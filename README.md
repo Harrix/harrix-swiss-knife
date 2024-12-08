@@ -47,6 +47,8 @@ pyside6-rcc src\harrix_swiss_knife\resources.qrc -o src\harrix_swiss_knife\resou
 
 ## Generate EXE
 
+<https://pyinstaller.org/en/stable/usage.html#options>
+
 ```cmd
-pyinstaller --name=harrix_swiss_knife --onefile --noconsole src/harrix_swiss_knife/main.py
+pyinstaller --clean --noconfirm --name=harrix_swiss_knife --onefile --noconsole --icon=src/harrix_swiss_knife/assets/logo.ico src/harrix_swiss_knife/main.py
 ```
