@@ -10,3 +10,14 @@
 #   universal: false
 
 -e file:.
+pyside6==6.8.1
+    # via harrix-swiss-knife
+pyside6-addons==6.8.1
+    # via pyside6
+pyside6-essentials==6.8.1
+    # via pyside6
+    # via pyside6-addons
+shiboken6==6.8.1
+    # via pyside6
+    # via pyside6-addons
+    # via pyside6-essentials
