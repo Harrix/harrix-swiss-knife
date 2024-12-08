@@ -2,7 +2,7 @@ import sys
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction
 
-import harrix_swiss_knife.resources_rc as resources_rc
+from harrix_swiss_knife import resources_rc
 
 def on_quit():
     QApplication.quit()
