@@ -1,6 +1,6 @@
 import sys
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QAction
 
 def on_quit():
     QApplication.quit()
