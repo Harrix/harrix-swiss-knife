@@ -2,6 +2,8 @@ import sys
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction
 
+import harrix_swiss_knife.resources_rc as resources_rc
+
 def on_quit():
     QApplication.quit()
 
@@ -10,7 +12,7 @@ if __name__ == "__main__":
     app.setQuitOnLastWindowClosed(False)
 
     # Создаем иконку для трея
-    tray_icon = QSystemTrayIcon(QIcon("assets/logo.svg"), parent=app)
+    tray_icon = QSystemTrayIcon(QIcon(":/assets/logo.svg"), parent=app)
 
     # Создаем меню
     menu = QMenu()
