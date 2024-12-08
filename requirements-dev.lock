@@ -10,6 +10,16 @@
 #   universal: false
 
 -e file:.
+altgraph==0.17.4
+    # via pyinstaller
+packaging==24.2
+    # via pyinstaller
+    # via pyinstaller-hooks-contrib
+pefile==2023.2.7
+    # via pyinstaller
+pyinstaller==6.11.1
+pyinstaller-hooks-contrib==2024.10
+    # via pyinstaller
 pyside6==6.8.1
     # via harrix-swiss-knife
 pyside6-addons==6.8.1
@@ -17,6 +27,11 @@ pyside6-addons==6.8.1
 pyside6-essentials==6.8.1
     # via pyside6
     # via pyside6-addons
+pywin32-ctypes==0.2.3
+    # via pyinstaller
+setuptools==75.6.0
+    # via pyinstaller
+    # via pyinstaller-hooks-contrib
 shiboken6==6.8.1
     # via pyside6
     # via pyside6-addons
