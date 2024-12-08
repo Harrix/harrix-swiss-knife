@@ -10,6 +10,7 @@ def on_quit():
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
+    app.setWindowIcon(QIcon(":/assets/logo.svg"))
 
     # Создаем иконку для трея
     tray_icon = QSystemTrayIcon(QIcon(":/assets/logo.svg"), parent=app)
