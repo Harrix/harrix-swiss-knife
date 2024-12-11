@@ -4,9 +4,6 @@ from PySide6.QtGui import QIcon, QAction
 
 from harrix_swiss_knife import resources_rc
 
-def on_quit():
-    QApplication.quit()
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
@@ -18,11 +15,20 @@ if __name__ == "__main__":
     # Создаем меню
     menu = QMenu()
 
-    action1 = QAction("Пункт 1")
-    action2 = QAction("Пункт 2")
-    exit_action = QAction("Выход", triggered=on_quit)
+    python_menu = QMenu("Python", None)
+    menu.addMenu(python_menu)
 
-    menu.addAction(action1)
+
+    action_create_rye_projects = QAction("Создать Rye проект в Projects")
+    python_menu.addAction(action_create_rye_projects)
+
+    action_create_rye_github = QAction("Создать Rye проект в Github")
+    python_menu.addAction(action_create_rye_github)
+
+
+    action2 = QAction("Пункт 2")
+    exit_action = QAction("Выход", triggered=lambda: QApplication.quit())
+
     menu.addAction(action2)
     menu.addSeparator()
     menu.addAction(exit_action)
