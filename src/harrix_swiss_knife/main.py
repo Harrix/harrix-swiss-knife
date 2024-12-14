@@ -16,11 +16,9 @@ if __name__ == "__main__":
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
 
     tray_icon = QSystemTrayIcon(QIcon(":/assets/logo.svg"), parent=app)
-
     menu = QMenu()
 
     python_menu = QMenu("Python", None)
-    menu.addMenu(python_menu)
     action_rye_new_project_projects = QAction(
         actions_python.on_rye_new_project_projects.title,
         triggered=actions_python.on_rye_new_project_projects(),
@@ -30,10 +28,14 @@ if __name__ == "__main__":
     python_menu.addAction(action_rye_new_project)
 
     exit_action = QAction("Выход", triggered=lambda: QApplication.quit())
+
+    menu.addMenu(python_menu)
     menu.addSeparator()
     menu.addAction(exit_action)
-    tray_icon.setContextMenu(menu)
 
+    tray_icon.setContextMenu(menu)
     tray_icon.show()
+
     sys.excepthook = except_hook
+
     sys.exit(app.exec())
