@@ -39,8 +39,8 @@ class on_rye_new_project_projects:
             f'"" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8',
             f"Set-Content -Path src/{name_project}/__init__.py -Value $null",
         ]
-
         command = ";".join(commands)
+
         process = subprocess.run(
             [
                 "powershell",
