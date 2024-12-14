@@ -52,3 +52,11 @@ pyside6-rcc src\harrix_swiss_knife\resources.qrc -o src\harrix_swiss_knife\resou
 ```cmd
 pyinstaller --clean --noconfirm --name=harrix_swiss_knife --onefile --noconsole --icon=src/harrix_swiss_knife/assets/logo.ico src/harrix_swiss_knife/main.py
 ```
+
+## Create a shortcut
+
+Example path for a shortcut:
+
+```shell
+C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
+```
