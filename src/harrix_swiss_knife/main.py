@@ -1,7 +1,6 @@
 import sys
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction
-from PySide6.QtCore import Qt
 
 from harrix_swiss_knife import resources_rc
 from harrix_swiss_knife import actions_python

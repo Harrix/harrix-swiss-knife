@@ -35,7 +35,7 @@ class on_rye_new_project_projects:
             f"rye init {name_project}",
             f"code-insiders {path}/{name_project}",
             f"cd {name_project}",
-            f"rye sync",
+            "rye sync",
             f'"" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8',
             f"Set-Content -Path src/{name_project}/__init__.py -Value $null",
         ]
