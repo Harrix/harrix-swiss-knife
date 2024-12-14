@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import subprocess
 from pathlib import Path
@@ -26,11 +27,32 @@ def write_in_output_txt(func):
     return wrapper
 
 
+def find_max_project_number(base_path):
+    pattern = re.compile(r"pythonProject(\d+)$")
+    max_number = 0
+
+    # Обход всех элементов в указанной директории
+    for item in os.listdir(base_path):
+        path = os.path.join(base_path, item)
+        if os.path.isdir(path):
+            match = pattern.match(item)
+            if match:
+                # Извлечение числа из имени папки
+                number = int(match.group(1))
+                # Определение максимального числа
+                if number > max_number:
+                    max_number = number
+
+    return max_number
+
+
 @write_in_output_txt
 def on_rye_new_project_projects():
     f = on_rye_new_project_projects
-    name_project = "test4"
+
     path = "C:/Users/sergi/OneDrive/Projects/Python"
+    name_project = f"pythonProject{find_max_project_number(path) + 1}"
+
     commands = [
         f"cd {path}",
         f"rye init {name_project}",
@@ -38,6 +60,7 @@ def on_rye_new_project_projects():
         f"cd {name_project}",
         f"rye sync",
         f'"" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8',
+        f"Set-Content -Path src/{name_project}/__init__.py -Value $null",
     ]
 
     command = ";".join(commands)
