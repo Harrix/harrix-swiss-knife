@@ -6,7 +6,7 @@ from harrix_swiss_knife import functions
 
 
 def find_max_project_number(base_path):
-    pattern = re.compile(r"pythonProject(\d+)$")
+    pattern = re.compile(r"python_project_(\d+)$")
     max_number = 0
     for item in os.listdir(base_path):
         path = os.path.join(base_path, item)
@@ -28,7 +28,7 @@ class on_rye_new_project_projects:
         f = on_rye_new_project_projects.__call__
 
         path = "C:/Users/sergi/OneDrive/Projects/Python"
-        name_project = f"pythonProject{find_max_project_number(path) + 1}"
+        name_project = f"python_project_{f"{(find_max_project_number(path) + 1):02}"}"
 
         commands = [
             f"cd {path}",
