@@ -40,11 +40,12 @@ class on_rye_new_project_projects:
             f"Set-Content -Path src/{name_project}/__init__.py -Value $null",
         ]
 
+        command = ";".join(commands)
         process = subprocess.run(
             [
                 "powershell",
                 "-Command",
-                f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {";".join(commands)}",
+                f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}",
             ],
             capture_output=True,
             text=True,
