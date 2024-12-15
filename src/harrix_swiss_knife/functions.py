@@ -8,10 +8,13 @@ def write_in_output_txt(func):
     def wrapper(*args, **kwargs):
         output_lines.clear()
         func(*args, **kwargs)
-        file = Path("output.txt")
+        data_path = Path("data")
+        if not data_path.exists():
+            data_path.mkdir(parents=True, exist_ok=True)
+        file = Path("data/output.txt")
         file.write_text("\n".join(output_lines), encoding="utf8")
         print("\n".join(output_lines))
-        os.startfile(file)
+        # os.startfile(file)
 
     def add_line(line):
         output_lines.append(line)
