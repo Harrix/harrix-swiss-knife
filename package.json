@@ -1,0 +1,18 @@
+{
+  "name": "harrix_swiss_knife",
+  "version": "0.1.0",
+  "description": "",
+  "main": "optimize.js",
+  "type": "module",
+  "scripts": {
+    "opt": "node optimize.js"
+  },
+  "dependencies": {
+    "imagemin": "^9.0.0",
+    "imagemin-gifsicle": "^5.2.0",
+    "imagemin-mozjpeg": "^7.0.0",
+    "imagemin-pngquant": "^5.0.1",
+    "imagemin-svgo": "^11.0.1",
+    "imagemin-webp": "^6.1.0"
+  }
+}

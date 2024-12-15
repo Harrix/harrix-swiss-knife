@@ -2,7 +2,7 @@
 
 ## Deploy on an empty machine
 
-- Install [Rye](https://rye.astral.sh) (More: [Установка и работа с Rye (Python) в VSCode](https://github.com/Harrix/harrix.dev-articles-2024/blob/main/rye-vscode-python/rye-vscode-python.md)), VSCode (with python extensions), Git.
+- Install [Rye](https://rye.astral.sh) ([Установка и работа с Rye (Python) в VSCode](https://github.com/Harrix/harrix.dev-articles-2024/blob/main/rye-vscode-python/rye-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
 
 - Clone project:
 
@@ -14,7 +14,7 @@
 
 - Open the folder `C:/GitHub/harrix-swiss-knife` in VSCode.
 
-- Open a terminal `Ctrl` + `` ` `` and run `rye sync`.
+- Open a terminal `Ctrl` + `` ` `` and run `rye sync` and `npm i`.
 
 - Open `src\harrix-swiss-knife\main.py` and run.
 
