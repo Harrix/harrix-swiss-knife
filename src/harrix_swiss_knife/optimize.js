@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
+import imagemin from "imagemin";
+import imageminPngquant from "imagemin-pngquant";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
 import { optimize } from "svgo";
@@ -17,13 +19,13 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir);
 }
 
-fs.readdir(imagesDir, (err, files) => {
+fs.readdir(imagesDir, async (err, files) => {
   if (err) {
     console.error("Error reading the image folder:", err);
     return;
   }
 
-  files.forEach((file) => {
+  for (const file of files) {
     const ext = path.extname(file).toLowerCase();
     const filePath = path.join(imagesDir, file);
     const outputFileName = path.parse(file).name;
@@ -51,20 +53,32 @@ fs.readdir(imagesDir, (err, files) => {
         console.log(`File ${file} successfully converted to AVIF.`);
       });
     } else if (ext === ".png") {
-      // Options for PNG
-      let pngOptions = { compressionLevel: 9, adaptiveFiltering: true };
-      if (png8bit) pngOptions.colors = 256; // Specify the maximum number of colors for an 8-bit PNG
+      try {
+        // Options for PNG
+        let pngOptions = { compressionLevel: 9, adaptiveFiltering: true };
+        if (png8bit) pngOptions.colors = 256; // Reduce colors to 256 for 8-bit PNG
 
-      // Optimizing png
-      sharp(filePath)
-        .png(pngOptions)
-        .toFile(path.join(outputDir, `${outputFileName}.png`))
-        .then(() => {
-          console.log(`File ${file} successfully optimized.`);
-        })
-        .catch((err) => {
-          console.error(`Error while optimizing file ${file}:`, err);
+        // Step 1: Optimize with sharp
+        const optimizedBuffer = await sharp(filePath).png(pngOptions).toBuffer();
+
+        // Step 2: Further optimize with imagemin-pngquant
+        const pngQuantBuffer = await imagemin.buffer(optimizedBuffer, {
+          plugins: [
+            imageminPngquant({
+              quality: [0.6, 0.8], // Adjust quality as needed
+              strip: true, // Remove metadata
+              speed: 1, // Slowest speed for best compression
+            }),
+          ],
         });
+
+        // Write the optimized image to the output directory
+        fs.writeFileSync(path.join(outputDir, `${outputFileName}.png`), pngQuantBuffer);
+
+        console.log(`File ${file} successfully optimized.`);
+      } catch (error) {
+        console.error(`Error while optimizing file ${file}:`, error);
+      }
     } else if (ext === ".svg") {
       // Optimize svg
       fs.readFile(filePath, "utf8", (err, data) => {
@@ -95,5 +109,5 @@ fs.readdir(imagesDir, (err, files) => {
     } else {
       console.log(`File ${file} is skipped because its format is not supported.`);
     }
-  });
+  }
 });
