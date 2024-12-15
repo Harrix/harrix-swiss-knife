@@ -5,7 +5,7 @@
   "main": "optimize.js",
   "type": "module",
   "scripts": {
-    "opt": "node optimize.js"
+    "optimize": "node src/harrix_swiss_knife/optimize.js"
   },
   "dependencies": {
     "imagemin": "^9.0.0",

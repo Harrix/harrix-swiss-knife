@@ -7,17 +7,38 @@ import { fileURLToPath } from "url";
 import { exec } from "child_process";
 import { optimize } from "svgo";
 
-const png8bit = true; // Set to true to convert PNG to 8-bit images
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const imagesDir = path.join(__dirname, "../../data/images");
-const outputDir = path.join(__dirname, "../../data/optimized_images");
+const args = process.argv.slice(2);
+const getArgValue = (argName, defaultValue) => {
+  const index = args.indexOf(argName);
+  return index !== -1 && args[index + 1] ? args[index + 1] : defaultValue;
+};
 
-if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir);
-}
+// Setting values with the possibility of redefinition via command line arguments
+// npm run optimize
+// npm run optimize -- --png8bit false --imagesDir "/custom/images/path" --outputDir "/custom/output/path"
+// npm run optimize -- --png8bit false
+const png8bit = getArgValue("--png8bit", true) === "true";
+const imagesDir = getArgValue("--imagesDir", path.join(__dirname, "../../data/images"));
+const outputDir = getArgValue("--outputDir", path.join(__dirname, "../../data/optimized_images"));
+
+const clearDirectory = (directoryPath) => {
+  if (fs.existsSync(directoryPath)) {
+    fs.readdirSync(directoryPath).forEach((file) => {
+      const filePath = path.join(directoryPath, file);
+      if (fs.lstatSync(filePath).isDirectory()) {
+        fs.rmSync(filePath, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(filePath);
+      }
+    });
+  } else {
+    fs.mkdirSync(directoryPath, { recursive: true });
+  }
+};
+clearDirectory(outputDir);
 
 fs.readdir(imagesDir, async (err, files) => {
   if (err) {
