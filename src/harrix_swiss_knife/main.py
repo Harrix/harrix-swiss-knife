@@ -20,6 +20,7 @@ class MainMenu:
             triggered=actions_python.on_rye_new_project_projects(),
         )
         self.python_menu.addAction(self.action_rye_new_project_projects)
+        
         self.action_rye_new_project = QAction("Создать Rye проект в …")
         self.python_menu.addAction(self.action_rye_new_project)
 
