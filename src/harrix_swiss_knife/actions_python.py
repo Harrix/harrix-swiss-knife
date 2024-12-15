@@ -30,16 +30,16 @@ class on_rye_new_project_projects:
         path = "C:/Users/sergi/OneDrive/Projects/Python"
         name_project = f"python_project_{f"{(find_max_project_number(path) + 1):02}"}"
 
-        commands = [
-            f"cd {path}",
-            f"rye init {name_project}",
-            f"code-insiders {path}/{name_project}",
-            f"cd {name_project}",
-            "rye sync",
-            f'"" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8',
-            f"Set-Content -Path src/{name_project}/__init__.py -Value $null",
-        ]
-        command = ";".join(commands)
+        commands = f"""
+            cd {path}
+            rye init {name_project}
+            code-insiders {path}/{name_project}
+            cd {name_project}
+            rye sync
+            "" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8
+            Set-Content -Path src/{name_project}/__init__.py -Value $null
+            """
+        command = ";".join(map(str.strip, commands.strip().splitlines()))
 
         process = subprocess.run(
             [
