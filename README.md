@@ -1,6 +1,6 @@
 # harrix-swiss-knife
 
-## Deploy on an empty machine
+## Deploy on an empty machine (Windows)
 
 - Install [Rye](https://rye.astral.sh) ([Установка и работа с Rye (Python) в VSCode](https://github.com/Harrix/harrix.dev-articles-2024/blob/main/rye-vscode-python/rye-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
 
@@ -14,11 +14,17 @@
 
 - Open the folder `C:/GitHub/harrix-swiss-knife` in VSCode.
 
-- Open a terminal `Ctrl` + `` ` `` and run `rye sync` and `npm i`.
+- Open a terminal `Ctrl` + `` ` ``.
+
+- Run `rye sync`.
+
+- Run `npm i`.
+
+- Copy `ffmpeg.exe` to the project folder `C:/GitHub/harrix-swiss-knife`. For example, from `ffmpeg-master-latest-win64-gpl.zip` on <https://github.com/BtbN/FFmpeg-Builds/releases>.
 
 - Open `src\harrix-swiss-knife\main.py` and run.
 
-After you can run the script from a terminal or shortcut for example:
+After you can run the script from a terminal:
 
 ```cmd
 c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
