@@ -9,7 +9,6 @@ class on_block_disks:
         f = on_block_disks.__call__
 
         commands = """
-            Set-ExecutionPolicy -ExecutionPolicy  Unrestricted -Scope Process
             manage-bde -lock E: -ForceDismount
             manage-bde -lock F: -ForceDismount
             """

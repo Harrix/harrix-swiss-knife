@@ -27,7 +27,7 @@ class MainMenu:
         )
         self.menu_python.addAction(self.action_rye_new_project)
 
-        self.action_windows_block_disks = QAction(
+        self.action_block_disks = QAction(
             actions_windows.on_block_disks.title,
             triggered=actions_windows.on_block_disks(),
         )
@@ -35,7 +35,7 @@ class MainMenu:
         self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
 
         self.menu.addMenu(self.menu_python)
-        self.menu.addAction(self.action_windows_block_disks)
+        self.menu.addAction(self.action_block_disks)
         self.menu.addSeparator()
         self.menu.addAction(self.action_exit)
 
