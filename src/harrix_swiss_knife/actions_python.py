@@ -6,8 +6,8 @@ from PySide6.QtWidgets import QInputDialog, QFileDialog
 from harrix_swiss_knife import functions
 
 
-def find_max_project_number(base_path):
-    pattern = re.compile(r"python_project_(\d+)$")
+def find_max_project_number(base_path, start_pattern):
+    pattern = re.compile(start_pattern + r"(\d+)$")
     max_number = 0
     for item in os.listdir(base_path):
         path = os.path.join(base_path, item)
@@ -19,6 +19,7 @@ def find_max_project_number(base_path):
                     max_number = number
 
     return max_number
+
 
 def create_rye_new_project(name_project, path):
     commands = f"""
@@ -50,21 +51,20 @@ def create_rye_new_project(name_project, path):
     return "\n".join(result_output)
 
 
-
 class on_rye_new_project_projects:
     title = "Create Rye project in Projects"
     title_with_dialog = "Create Rye project in  …"
     path_default = "C:/Users/sergi/OneDrive/Projects/Python"
+    start_pattern = "python_project_"
 
     @functions.write_in_output_txt
     def __call__(self, *args, **kwargs):
         f = on_rye_new_project_projects.__call__
 
         if not kwargs["is_need_dialog"]:
+            start_pattern = on_rye_new_project_projects.start_pattern
             self.path = on_rye_new_project_projects.path_default
-            self.name_project = (
-                f"python_project_{f"{(find_max_project_number(self.path) + 1):02}"}"
-            )
+            self.name_project = f"python_project_{f"{(find_max_project_number(self.path, start_pattern) + 1):02}"}"
         else:
             title = "Project name"
             label = "Enter the name of the project (English, without spaces):"
