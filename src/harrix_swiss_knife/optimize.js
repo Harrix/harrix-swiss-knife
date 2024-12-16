@@ -61,7 +61,7 @@ fs.readdir(imagesDir, async (err, files) => {
     const outputFileName = path.parse(file).name;
     const outputFilePath = path.join(outputDir, `${outputFileName}.avif`);
 
-    if (ext === ".jpg" || ext === ".jpeg" || ext === ".webp" || ext === ".avif") {
+    if (ext === ".jpg" || ext === ".jpeg" || ext === ".webp") {
       sharp(filePath)
         .avif({ quality: 63 })
         .toFile(outputFilePath)
