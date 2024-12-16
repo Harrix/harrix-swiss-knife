@@ -13,24 +13,8 @@ class MainMenu:
 
         # Menu Python
         self.menu_python = QMenu("Python", None)
-
-        class_action = actions_python.on_rye_new_project
-        action_name = f"action_{class_action.__name__}"
-        setattr(
-            self,
-            action_name,
-            QAction(
-                class_action.title,
-                triggered=partial(class_action(), is_dialog=False),
-            ),
-        )
-        self.menu_python.addAction(getattr(self, action_name))
-
-        self.action_rye_new_project = QAction(
-            actions_python.on_rye_new_project.title_with_dialog,
-            triggered=partial(actions_python.on_rye_new_project(), is_dialog=True),
-        )
-        self.menu_python.addAction(self.action_rye_new_project)
+        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project)
+        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project_dialog)
 
         # Menu Images
         self.menu_images = QMenu("Images", None)
@@ -54,6 +38,18 @@ class MainMenu:
         self.menu.addAction(self.action_block_disks)
         self.menu.addSeparator()
         self.menu.addAction(self.action_exit)
+
+    def add_item_menu(self, menu, class_action):
+        action_name = f"action_{class_action.__name__}"
+        setattr(
+            self,
+            action_name,
+            QAction(
+                class_action().title,
+                triggered=class_action(),
+            ),
+        )
+        menu.addAction(getattr(self, action_name))
 
 
 if __name__ == "__main__":
