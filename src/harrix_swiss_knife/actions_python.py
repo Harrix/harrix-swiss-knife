@@ -34,7 +34,7 @@ def create_rye_new_project(name_project, path):
     return functions.run_powershell_script(commands)
 
 
-class on_rye_new_project_projects:
+class on_rye_new_project:
     title = "Create Rye project in Projects"
     title_with_dialog = "Create Rye project in  …"
     path_default = "C:/Users/sergi/OneDrive/Projects/Python"
@@ -42,11 +42,11 @@ class on_rye_new_project_projects:
 
     @functions.write_in_output_txt
     def __call__(self, *args, **kwargs):
-        f = on_rye_new_project_projects.__call__
+        f = on_rye_new_project.__call__
 
         if not kwargs["is_need_dialog"]:
-            start_pattern = on_rye_new_project_projects.start_pattern
-            self.path = on_rye_new_project_projects.path_default
+            start_pattern = on_rye_new_project.start_pattern
+            self.path = on_rye_new_project.path_default
             self.name_project = f"python_project_{f"{(find_max_project_number(self.path, start_pattern) + 1):02}"}"
         else:
             title = "Project name"
@@ -61,7 +61,7 @@ class on_rye_new_project_projects:
 
             title = "Project directory"
             folder_path = QFileDialog.getExistingDirectory(
-                None, title, on_rye_new_project_projects.path_default
+                None, title, on_rye_new_project.path_default
             )
 
             if folder_path:
