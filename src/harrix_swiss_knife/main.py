@@ -11,7 +11,7 @@ class MainMenu:
     def __init__(self):
         self.menu = QMenu()
 
-        self.python_menu = QMenu("Python", None)
+        self.menu_python = QMenu("Python", None)
 
         self.action_rye_new_project_projects = QAction(
             actions_python.on_rye_new_project_projects.title,
@@ -19,7 +19,7 @@ class MainMenu:
                 actions_python.on_rye_new_project_projects(), is_need_dialog=False
             ),
         )
-        self.python_menu.addAction(self.action_rye_new_project_projects)
+        self.menu_python.addAction(self.action_rye_new_project_projects)
 
         self.action_rye_new_project = QAction(
             actions_python.on_rye_new_project_projects.title_with_dialog,
@@ -27,11 +27,11 @@ class MainMenu:
                 actions_python.on_rye_new_project_projects(), is_need_dialog=True
             ),
         )
-        self.python_menu.addAction(self.action_rye_new_project)
+        self.menu_python.addAction(self.action_rye_new_project)
 
         self.action_exit = QAction("Выход", triggered=lambda: QApplication.quit())
 
-        self.menu.addMenu(self.python_menu)
+        self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
         self.menu.addAction(self.action_exit)
 
