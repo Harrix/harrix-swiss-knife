@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 
 
 def write_in_output_txt(func):
@@ -14,7 +15,7 @@ def write_in_output_txt(func):
         if not data_path.exists():
             data_path.mkdir(parents=True, exist_ok=True)
         file = Path("data/output.txt")
-        output_text = "\n".join(output_lines) if not output_lines else ""
+        output_text = "\n".join(output_lines) if output_lines else ""
         file.write_text(output_text, encoding="utf8")
         print(output_text)
         os.startfile(file)
@@ -42,28 +43,63 @@ def run_powershell_script(commands):
 
 
 def run_powershell_script_as_admin(commands):
+    res_output = []
     command = ";".join(map(str.strip, commands.strip().splitlines()))
 
-    # Create a temporary file with a PowerShell script
-    with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as tmp_file:
-        tmp_file.write(command.encode("utf-8"))
-        tmp_script_path = tmp_file.name
+    # Create a temporary file with the PowerShell script
+    with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as tmp_script_file:
+        tmp_script_file.write(command.encode("utf-8"))
+        tmp_script_path = tmp_script_file.name
+
+    # Create a temporary file for the output
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp_output_file:
+        tmp_output_path = tmp_output_file.name
 
     try:
-        # Run PowerShell with administrator rights
-        process = subprocess.run(
-            [
-                "powershell",
-                "-Command",
-                "Start-Process",
-                "powershell",
-                f'-ArgumentList \'"-File", "{tmp_script_path}"\'',
-                "-Verb",
-                "RunAs",
-            ],
-            check=True,
-        )
+        # Wrapper script that runs the main script and writes the output to a file
+        wrapper_script = f"& '{tmp_script_path}' | Out-File -FilePath '{tmp_output_path}' -Encoding UTF8"
+
+        # Save the wrapper script to a temporary file
+        with tempfile.NamedTemporaryFile(
+            suffix=".ps1", delete=False
+        ) as tmp_wrapper_file:
+            tmp_wrapper_file.write(wrapper_script.encode("utf-8"))
+            tmp_wrapper_path = tmp_wrapper_file.name
+
+        # Command to run PowerShell with administrator privileges
+        cmd = [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            f"Start-Process powershell.exe -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{tmp_wrapper_path}\"' -Verb RunAs",
+        ]
+
+        # Start the process
+        process = subprocess.Popen(cmd)
+
+        # Wait for the process to finish
+        process.wait()
+
+        # Ensure the output file has been created
+        while not os.path.exists(tmp_output_path):
+            time.sleep(0.1)
+
+        # Wait until the file is fully written (can adjust wait time as needed)
+        time.sleep(1)  # Delay to complete writing to the file
+
+        # Read the output data from the file
+        with open(tmp_output_path, "r", encoding="utf-8") as f:
+            output = f.read()
+            res_output.append(output)
+
     finally:
-        # Delete the temporary file after execution
-        os.remove(tmp_script_path)
-    return "\n".join(filter(None, [process.stdout, process.stderr]))
+        # Delete temporary files after execution
+        if os.path.exists(tmp_script_path):
+            os.remove(tmp_script_path)
+        if os.path.exists(tmp_output_path):
+            os.remove(tmp_output_path)
+        if os.path.exists(tmp_wrapper_path):
+            os.remove(tmp_wrapper_path)
+    return "\n".join(filter(None, res_output))
