@@ -4,13 +4,14 @@ from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction
 
 from harrix_swiss_knife import resources_rc  # noqa
-from harrix_swiss_knife import actions_python, actions_windows
+from harrix_swiss_knife import actions_python, actions_windows, actions_images
 
 
 class MainMenu:
     def __init__(self):
         self.menu = QMenu()
 
+        # Menu Python
         self.menu_python = QMenu("Python", None)
 
         self.action_rye_new_project_projects = QAction(
@@ -27,6 +28,16 @@ class MainMenu:
         )
         self.menu_python.addAction(self.action_rye_new_project)
 
+        # Menu Images
+        self.menu_images = QMenu("Images", None)
+
+        self.action_optimize = QAction(
+            actions_images.on_images_optimize.title,
+            triggered=actions_images.on_images_optimize(),
+        )
+        self.menu_images.addAction(self.action_optimize)
+
+        # Main menu
         self.action_block_disks = QAction(
             actions_windows.on_block_disks.title,
             triggered=actions_windows.on_block_disks(),
@@ -35,6 +46,7 @@ class MainMenu:
         self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
 
         self.menu.addMenu(self.menu_python)
+        self.menu.addMenu(self.menu_images)
         self.menu.addAction(self.action_block_disks)
         self.menu.addSeparator()
         self.menu.addAction(self.action_exit)
