@@ -44,7 +44,7 @@ class on_rye_new_project:
     def __call__(self, *args, **kwargs):
         f = on_rye_new_project.__call__
 
-        if not kwargs["is_need_dialog"]:
+        if not kwargs["is_dialog"]:
             start_pattern = on_rye_new_project.start_pattern
             self.path = on_rye_new_project.path_default
             self.name_project = f"python_project_{f"{(find_max_project_number(self.path, start_pattern) + 1):02}"}"
