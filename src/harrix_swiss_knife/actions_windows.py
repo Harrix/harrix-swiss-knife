@@ -1,12 +1,12 @@
 from harrix_swiss_knife import functions
 
 
-class on_windows_block_disks:
+class on_block_disks:
     title = "Block disks"
 
     @functions.write_in_output_txt
     def __call__(self, *args, **kwargs):
-        f = on_windows_block_disks.__call__
+        f = on_block_disks.__call__
 
         commands = """
             Set-ExecutionPolicy -ExecutionPolicy  Unrestricted -Scope Process

@@ -28,8 +28,8 @@ class MainMenu:
         self.menu_python.addAction(self.action_rye_new_project)
 
         self.action_windows_block_disks = QAction(
-            actions_windows.on_windows_block_disks.title,
-            triggered=actions_windows.on_windows_block_disks(),
+            actions_windows.on_block_disks.title,
+            triggered=actions_windows.on_block_disks(),
         )
 
         self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
