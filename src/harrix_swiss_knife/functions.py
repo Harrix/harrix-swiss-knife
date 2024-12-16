@@ -10,6 +10,7 @@ def write_in_output_txt(func):
 
     def wrapper(*args, **kwargs):
         output_lines.clear()
+        print("Start")
         func(*args, **kwargs)
         data_path = Path("data")
         if not data_path.exists():
@@ -19,6 +20,7 @@ def write_in_output_txt(func):
         file.write_text(output_text, encoding="utf8")
         print(output_text)
         os.startfile(file)
+        print("End")
 
     def add_line(line):
         output_lines.append(line)
