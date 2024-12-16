@@ -29,7 +29,7 @@ class MainMenu:
         )
         self.menu_python.addAction(self.action_rye_new_project)
 
-        self.action_exit = QAction("Выход", triggered=lambda: QApplication.quit())
+        self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
 
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
