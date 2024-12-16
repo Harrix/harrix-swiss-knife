@@ -3,7 +3,7 @@ from functools import partial
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction
 
-from harrix_swiss_knife import resources_rc
+from harrix_swiss_knife import resources_rc  # noqa
 from harrix_swiss_knife import actions_python, actions_windows
 
 
@@ -23,9 +23,7 @@ class MainMenu:
 
         self.action_rye_new_project = QAction(
             actions_python.on_rye_new_project.title_with_dialog,
-            triggered=partial(
-                actions_python.on_rye_new_project(), is_need_dialog=True
-            ),
+            triggered=partial(actions_python.on_rye_new_project(), is_need_dialog=True),
         )
         self.menu_python.addAction(self.action_rye_new_project)
 
