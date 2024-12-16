@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction
 
 from harrix_swiss_knife import resources_rc
-from harrix_swiss_knife import actions_python
+from harrix_swiss_knife import actions_python, actions_windows
 
 
 class MainMenu:
@@ -29,9 +29,15 @@ class MainMenu:
         )
         self.menu_python.addAction(self.action_rye_new_project)
 
+        self.action_windows_block_disks = QAction(
+            actions_windows.on_windows_block_disks.title,
+            triggered=actions_windows.on_windows_block_disks(),
+        )
+
         self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
 
         self.menu.addMenu(self.menu_python)
+        self.menu.addAction(self.action_windows_block_disks)
         self.menu.addSeparator()
         self.menu.addAction(self.action_exit)
 

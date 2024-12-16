@@ -13,9 +13,10 @@ def write_in_output_txt(func):
         if not data_path.exists():
             data_path.mkdir(parents=True, exist_ok=True)
         file = Path("data/output.txt")
-        file.write_text("\n".join(output_lines), encoding="utf8")
-        print("\n".join(output_lines))
-        # os.startfile(file)
+        output_text = "\n".join(output_lines) if not output_lines else ""
+        file.write_text(output_text, encoding="utf8")
+        print(output_text)
+        os.startfile(file)
 
     def add_line(line):
         output_lines.append(line)
