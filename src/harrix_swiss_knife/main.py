@@ -14,17 +14,21 @@ class MainMenu:
         # Menu Python
         self.menu_python = QMenu("Python", None)
 
-        self.action_rye_new_project_projects = QAction(
-            actions_python.on_rye_new_project.title,
-            triggered=partial(
-                actions_python.on_rye_new_project(), is_need_dialog=False
+        class_action = actions_python.on_rye_new_project
+        action_name = f"action_{class_action.__name__}"
+        setattr(
+            self,
+            action_name,
+            QAction(
+                class_action.title,
+                triggered=partial(class_action(), is_dialog=False),
             ),
         )
-        self.menu_python.addAction(self.action_rye_new_project_projects)
+        self.menu_python.addAction(getattr(self, action_name))
 
         self.action_rye_new_project = QAction(
             actions_python.on_rye_new_project.title_with_dialog,
-            triggered=partial(actions_python.on_rye_new_project(), is_need_dialog=True),
+            triggered=partial(actions_python.on_rye_new_project(), is_dialog=True),
         )
         self.menu_python.addAction(self.action_rye_new_project)
 
