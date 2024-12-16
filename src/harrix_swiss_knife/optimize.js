@@ -1,3 +1,15 @@
+/*
+Minimize images, including SVG, PNG, JPG, WEBP, AVIF via Node.js.
+
+Example:
+
+```shell
+npm run optimize
+npm run optimize -- --png8bit false --imagesDir "/custom/images/path" --outputDir "/custom/output/path"
+npm run optimize -- --png8bit false
+```
+*/
+
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
@@ -17,9 +29,6 @@ const getArgValue = (argName, defaultValue) => {
 };
 
 // Setting values with the possibility of redefinition via command line arguments
-// npm run optimize
-// npm run optimize -- --png8bit false --imagesDir "/custom/images/path" --outputDir "/custom/output/path"
-// npm run optimize -- --png8bit false
 const png8bit = getArgValue("--png8bit", true) === "true";
 const imagesDir = getArgValue("--imagesDir", path.join(__dirname, "../../data/images"));
 const outputDir = getArgValue("--outputDir", path.join(__dirname, "../../data/optimized_images"));
@@ -52,7 +61,7 @@ fs.readdir(imagesDir, async (err, files) => {
     const outputFileName = path.parse(file).name;
     const outputFilePath = path.join(outputDir, `${outputFileName}.avif`);
 
-    if (ext === ".jpg" || ext === ".jpeg" || ext === ".webp") {
+    if (ext === ".jpg" || ext === ".jpeg" || ext === ".webp" || ext === ".avif") {
       sharp(filePath)
         .avif({ quality: 63 })
         .toFile(outputFilePath)

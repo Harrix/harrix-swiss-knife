@@ -20,6 +20,36 @@ def find_max_project_number(base_path):
 
     return max_number
 
+def create_rye_new_project(name_project, path):
+    commands = f"""
+        cd {path}
+        rye init {name_project}
+        code-insiders {path}/{name_project}
+        cd {name_project}
+        rye sync
+        "" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8
+        Set-Content -Path src/{name_project}/__init__.py -Value $null
+        """
+    command = ";".join(map(str.strip, commands.strip().splitlines()))
+
+    process = subprocess.run(
+        [
+            "powershell",
+            "-Command",
+            f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    result_output = []
+    output, error = process.stdout, process.stderr
+    if output:
+        result_output.append(output)
+    if error:
+        result_output.append(error)
+    return "\n".join(result_output)
+
+
 
 class on_rye_new_project_projects:
     title = "Create Rye project in Projects"
@@ -57,28 +87,5 @@ class on_rye_new_project_projects:
                 f.add_line("The directory was not selected.")
                 return
 
-        commands = f"""
-            cd {self.path}
-            rye init {self.name_project}
-            code-insiders {self.path}/{self.name_project}
-            cd {self.name_project}
-            rye sync
-            "" | Out-File -FilePath src/{self.name_project}/main.py -Encoding utf8
-            Set-Content -Path src/{self.name_project}/__init__.py -Value $null
-            """
-        command = ";".join(map(str.strip, commands.strip().splitlines()))
-
-        process = subprocess.run(
-            [
-                "powershell",
-                "-Command",
-                f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}",
-            ],
-            capture_output=True,
-            text=True,
-        )
-        output, error = process.stdout, process.stderr
-        if output:
-            f.add_line(output)
-        if error:
-            f.add_line(error)
+        result_output = create_rye_new_project(self.name_project, self.path)
+        f.add_line(result_output)
