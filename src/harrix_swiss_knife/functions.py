@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import subprocess
 
 
 def write_in_output_txt(func):
@@ -21,3 +22,18 @@ def write_in_output_txt(func):
 
     wrapper.add_line = add_line
     return wrapper
+
+
+def run_powershell_script(commands):
+    command = ";".join(map(str.strip, commands.strip().splitlines()))
+
+    process = subprocess.run(
+        [
+            "powershell",
+            "-Command",
+            f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    return "\n".join(filter(None, [process.stdout, process.stderr]))

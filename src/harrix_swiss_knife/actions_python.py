@@ -1,6 +1,5 @@
 import os
 import re
-import subprocess
 from PySide6.QtWidgets import QInputDialog, QFileDialog
 
 from harrix_swiss_knife import functions
@@ -31,24 +30,8 @@ def create_rye_new_project(name_project, path):
         "" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8
         Set-Content -Path src/{name_project}/__init__.py -Value $null
         """
-    command = ";".join(map(str.strip, commands.strip().splitlines()))
 
-    process = subprocess.run(
-        [
-            "powershell",
-            "-Command",
-            f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    result_output = []
-    output, error = process.stdout, process.stderr
-    if output:
-        result_output.append(output)
-    if error:
-        result_output.append(error)
-    return "\n".join(result_output)
+    return functions.run_powershell_script(commands)
 
 
 class on_rye_new_project_projects:
