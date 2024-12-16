@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 
 
 def write_in_output_txt(func):
@@ -37,4 +38,32 @@ def run_powershell_script(commands):
         capture_output=True,
         text=True,
     )
+    return "\n".join(filter(None, [process.stdout, process.stderr]))
+
+
+def run_powershell_script_as_admin(commands):
+    command = ";".join(map(str.strip, commands.strip().splitlines()))
+
+    # Create a temporary file with a PowerShell script
+    with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as tmp_file:
+        tmp_file.write(command.encode("utf-8"))
+        tmp_script_path = tmp_file.name
+
+    try:
+        # Run PowerShell with administrator rights
+        process = subprocess.run(
+            [
+                "powershell",
+                "-Command",
+                "Start-Process",
+                "powershell",
+                f'-ArgumentList \'"-File", "{tmp_script_path}"\'',
+                "-Verb",
+                "RunAs",
+            ],
+            check=True,
+        )
+    finally:
+        # Delete the temporary file after execution
+        os.remove(tmp_script_path)
     return "\n".join(filter(None, [process.stdout, process.stderr]))
