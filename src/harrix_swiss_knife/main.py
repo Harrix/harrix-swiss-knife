@@ -17,24 +17,13 @@ class MainMenu:
 
         # Menu Images
         self.menu_images = QMenu("Images", None)
-
-        self.action_optimize = QAction(
-            actions_images.on_images_optimize.title,
-            triggered=actions_images.on_images_optimize(),
-        )
-        self.menu_images.addAction(self.action_optimize)
-
-        # Main menu
-        self.action_block_disks = QAction(
-            actions_windows.on_block_disks.title,
-            triggered=actions_windows.on_block_disks(),
-        )
+        self.add_item_menu(self.menu_images, actions_images.on_images_optimize)
 
         self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
 
         self.menu.addMenu(self.menu_python)
         self.menu.addMenu(self.menu_images)
-        self.menu.addAction(self.action_block_disks)
+        self.add_item_menu(self.menu, actions_windows.on_block_disks)
         self.menu.addSeparator()
         self.menu.addAction(self.action_exit)
 
