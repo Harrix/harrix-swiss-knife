@@ -36,10 +36,15 @@ def run_powershell_script(commands):
         [
             "powershell",
             "-Command",
-            f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}",
+            (
+                "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
+                "$OutputEncoding = [System.Text.Encoding]::UTF8; "
+                f"{command}"
+            ),
         ],
         capture_output=True,
         text=True,
+        encoding="utf-8",  # Явно указываем использование кодировки UTF-8
     )
     return "\n".join(filter(None, [process.stdout, process.stderr]))
 
