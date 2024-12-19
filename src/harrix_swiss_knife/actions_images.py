@@ -50,7 +50,7 @@ class on_image_optimize_dialog:
             f.add_line("The directory was not selected.")
             return
 
-        commands = f'npm run optimize -- --imagesDir "{folder_path}" --replace true'
+        commands = f'npm run optimize imagesDir="{folder_path}" replace=true'
 
         result_output = functions.run_powershell_script(commands)
         f.add_line(result_output)

@@ -5,8 +5,8 @@ Example:
 
 ```shell
 npm run optimize
-npm run optimize -- --png8bit false --imagesDir "/custom/images/path" --outputDir "/custom/output/path"
-npm run optimize -- --png8bit false
+npm run optimize png8bit=false imagesDir="/custom/images/path" outputDir="/custom/output/path"
+npm run optimize png8bit=false
 ```
 */
 
@@ -23,15 +23,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const args = process.argv.slice(2);
-const getArgValue = (argName, defaultValue) => {
-  const index = args.indexOf(argName);
-  return index !== -1 && args[index + 1] ? args[index + 1] : defaultValue;
-};
+const dictionary = args.reduce((acc, item) => {
+  const [key, value] = item.split("=");
+  acc[key] = value === "true" ? true : value === "false" ? false : value;
+  return acc;
+}, {});
 
-// Setting values with the possibility of redefinition via command line arguments
-const png8bit = getArgValue("--png8bit", true) === "true";
-const imagesDir = getArgValue("--imagesDir", path.join(__dirname, "../../data/images"));
-const outputDir = getArgValue("--outputDir", path.join(__dirname, "../../data/optimized_images"));
+const png8bit = "png8bit" in dictionary ? dictionary.png8bit : true;
+const replace = "replace" in dictionary ? dictionary.replace : false;
+let imagesDir = "imagesDir" in dictionary ? dictionary.imagesDir : path.join(__dirname, "../../data/images");
+let outputDir = "outputDir" in dictionary ? dictionary.outputDir : path.join(__dirname, "../../data/optimized_images");
 
 const clearDirectory = (directoryPath) => {
   if (fs.existsSync(directoryPath)) {
@@ -47,7 +48,68 @@ const clearDirectory = (directoryPath) => {
     fs.mkdirSync(directoryPath, { recursive: true });
   }
 };
-clearDirectory(outputDir);
+
+if (!replace) {
+  clearDirectory(outputDir);
+} else {
+  const tempDirPath = path.join(dictionary.imagesDir, "temp");
+  fs.mkdir(tempDirPath, { recursive: true }, (err) => {
+    if (err) {
+      return console.error(`Error creating the directory: ${err.message}`);
+    }
+  });
+  outputDir = path.join(imagesDir, `temp`);
+}
+
+console.log(`replace ${replace}`);
+console.log(`imagesDir ${imagesDir}`);
+console.log(`outputDir ${outputDir}`);
+
+const deleteFileWithRetries = (filePath, retries = 3, delay = 1000) => {
+  try {
+    fs.unlinkSync(filePath);
+  } catch (error) {
+    if (error.code === 'EBUSY' && retries > 0) {
+      setTimeout(() => deleteFileWithRetries(filePath, retries - 1, delay), delay);
+    } else {
+      throw error;
+    }
+  }
+};
+
+const clearDirectoryExceptTemp = (directoryPath) => {
+  if (fs.existsSync(directoryPath)) {
+    fs.readdirSync(directoryPath).forEach((file) => {
+      const filePath = path.join(directoryPath, file);
+      if (fs.lstatSync(filePath).isDirectory()) {
+        if (file !== "temp") {
+          fs.rmSync(filePath, { recursive: true, force: true });
+        }
+      } else {
+        deleteFileWithRetries(filePath);
+      }
+    });
+  } else {
+    fs.mkdirSync(directoryPath, { recursive: true });
+  }};
+
+const copyFiles = (sourceDir, targetDir) => {
+  fs.readdir(sourceDir, (err, files) => {
+    if (err) throw err;
+    files.forEach((file) => {
+      const sourceFile = path.join(sourceDir, file);
+      const targetFile = path.join(targetDir, file);
+      fs.stat(sourceFile, (err, stat) => {
+        if (err) throw err;
+        if (stat.isFile()) {
+          fs.copyFile(sourceFile, targetFile, (err) => {
+            if (err) throw err;
+          });
+        }
+      });
+    });
+  });
+};
 
 fs.readdir(imagesDir, async (err, files) => {
   if (err) {
@@ -141,3 +203,8 @@ fs.readdir(imagesDir, async (err, files) => {
     }
   }
 });
+
+// if (replace) {
+//   clearDirectoryExceptTemp(imagesDir);
+//   copyFiles(outputDir, imagesDir);
+// }
