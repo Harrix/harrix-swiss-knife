@@ -18,6 +18,7 @@ class MainMenu:
         # Menu Images
         self.menu_images = QMenu("Images", None)
         self.add_item_menu(self.menu_images, actions_images.on_images_optimize)
+        self.add_item_menu(self.menu_images, actions_images.on_image_optimize_dialog)
 
         self.menu.addMenu(self.menu_python)
         self.menu.addMenu(self.menu_images)
