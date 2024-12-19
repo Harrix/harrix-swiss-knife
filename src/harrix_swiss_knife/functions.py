@@ -18,12 +18,12 @@ def write_in_output_txt(func):
         file = Path("data/output.txt")
         output_text = "\n".join(output_lines) if output_lines else ""
         file.write_text(output_text, encoding="utf8")
-        print(output_text)
         os.startfile(file)
         print("End")
 
     def add_line(line):
         output_lines.append(line)
+        print(line)
 
     wrapper.add_line = add_line
     return wrapper
