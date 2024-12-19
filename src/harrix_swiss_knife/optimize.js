@@ -21,6 +21,7 @@ import { optimize } from "svgo";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+let outputDir = ""
 
 const args = process.argv.slice(2);
 const dictionary = args.reduce((acc, item) => {
@@ -30,9 +31,7 @@ const dictionary = args.reduce((acc, item) => {
 }, {});
 
 const png8bit = "png8bit" in dictionary ? dictionary.png8bit : true;
-const replace = "replace" in dictionary ? dictionary.replace : false;
-let imagesDir = "imagesDir" in dictionary ? dictionary.imagesDir : path.join(__dirname, "../../data/images");
-let outputDir = "outputDir" in dictionary ? dictionary.outputDir : path.join(__dirname, "../../data/optimized_images");
+let imagesDir = "imagesDir" in dictionary ? dictionary.imagesDir : "";
 
 const clearDirectory = (directoryPath) => {
   if (fs.existsSync(directoryPath)) {
@@ -49,67 +48,21 @@ const clearDirectory = (directoryPath) => {
   }
 };
 
-if (!replace) {
+if (!imagesDir) {
+  imagesDir = path.join(__dirname, "../../data/images");
+  outputDir = path.join(__dirname, "../../data/optimized_images");
   clearDirectory(outputDir);
 } else {
   const tempDirPath = path.join(dictionary.imagesDir, "temp");
   fs.mkdir(tempDirPath, { recursive: true }, (err) => {
-    if (err) {
+    if (err)
       return console.error(`Error creating the directory: ${err.message}`);
-    }
   });
   outputDir = path.join(imagesDir, `temp`);
 }
 
-console.log(`replace ${replace}`);
-console.log(`imagesDir ${imagesDir}`);
-console.log(`outputDir ${outputDir}`);
-
-const deleteFileWithRetries = (filePath, retries = 3, delay = 1000) => {
-  try {
-    fs.unlinkSync(filePath);
-  } catch (error) {
-    if (error.code === 'EBUSY' && retries > 0) {
-      setTimeout(() => deleteFileWithRetries(filePath, retries - 1, delay), delay);
-    } else {
-      throw error;
-    }
-  }
-};
-
-const clearDirectoryExceptTemp = (directoryPath) => {
-  if (fs.existsSync(directoryPath)) {
-    fs.readdirSync(directoryPath).forEach((file) => {
-      const filePath = path.join(directoryPath, file);
-      if (fs.lstatSync(filePath).isDirectory()) {
-        if (file !== "temp") {
-          fs.rmSync(filePath, { recursive: true, force: true });
-        }
-      } else {
-        deleteFileWithRetries(filePath);
-      }
-    });
-  } else {
-    fs.mkdirSync(directoryPath, { recursive: true });
-  }};
-
-const copyFiles = (sourceDir, targetDir) => {
-  fs.readdir(sourceDir, (err, files) => {
-    if (err) throw err;
-    files.forEach((file) => {
-      const sourceFile = path.join(sourceDir, file);
-      const targetFile = path.join(targetDir, file);
-      fs.stat(sourceFile, (err, stat) => {
-        if (err) throw err;
-        if (stat.isFile()) {
-          fs.copyFile(sourceFile, targetFile, (err) => {
-            if (err) throw err;
-          });
-        }
-      });
-    });
-  });
-};
+console.log(`imagesDir: ${imagesDir}`)
+console.log(`outputDir: ${outputDir}`)
 
 fs.readdir(imagesDir, async (err, files) => {
   if (err) {
@@ -204,7 +157,3 @@ fs.readdir(imagesDir, async (err, files) => {
   }
 });
 
-// if (replace) {
-//   clearDirectoryExceptTemp(imagesDir);
-//   copyFiles(outputDir, imagesDir);
-// }
