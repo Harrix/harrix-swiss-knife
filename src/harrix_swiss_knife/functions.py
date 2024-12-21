@@ -44,7 +44,7 @@ def run_powershell_script(commands):
         ],
         capture_output=True,
         text=True,
-        encoding="utf-8",  # Явно указываем использование кодировки UTF-8
+        encoding="utf-8",
     )
     return "\n".join(filter(None, [process.stdout, process.stderr]))
 
