@@ -3,7 +3,12 @@ from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction
 
 from harrix_swiss_knife import resources_rc  # noqa
-from harrix_swiss_knife import actions_python, actions_windows, actions_images
+from harrix_swiss_knife import (
+    actions_python,
+    actions_windows,
+    actions_images,
+    actions_notes,
+)
 
 
 class MainMenu:
@@ -20,8 +25,13 @@ class MainMenu:
         self.add_item_menu(self.menu_images, actions_images.on_images_optimize)
         self.add_item_menu(self.menu_images, actions_images.on_image_optimize_dialog)
 
+        # Notes
+        self.menu_notes = QMenu("Notes", None)
+        self.add_item_menu(self.menu_notes, actions_notes.on_diary_new)
+
         self.menu.addMenu(self.menu_python)
         self.menu.addMenu(self.menu_images)
+        self.menu.addMenu(self.menu_notes)
         self.add_item_menu(self.menu, actions_windows.on_block_disks)
         self.add_item_menu(self.menu, actions_windows.on_open_camera_uploads)
         self.menu.addSeparator()
