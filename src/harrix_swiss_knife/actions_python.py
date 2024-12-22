@@ -13,13 +13,11 @@ class on_rye_new_project:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
-        f = self.__call__
-
         self.path = path_default
         self.name_project = f"python_project_{f"{(find_max_project_number(self.path, start_pattern) + 1):02}"}"
 
         result_output = create_rye_new_project(self.name_project, self.path)
-        f.add_line(result_output)
+        self.__call__.add_line(result_output)
 
 
 class on_rye_new_project_dialog:
@@ -27,8 +25,6 @@ class on_rye_new_project_dialog:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
-        f = self.__call__
-
         title = "Project name"
         label = "Enter the name of the project (English, without spaces):"
         project_name, ok = QInputDialog.getText(None, title, label)
@@ -36,7 +32,7 @@ class on_rye_new_project_dialog:
         if ok and project_name:
             self.name_project = project_name
         else:
-            f.add_line("The name of the project was not entered.")
+            self.__call__.add_line("The name of the project was not entered.")
             return
 
         title = "Project directory"
@@ -45,11 +41,11 @@ class on_rye_new_project_dialog:
         if folder_path:
             self.path = folder_path
         else:
-            f.add_line("The directory was not selected.")
+            self.__call__.add_line("The directory was not selected.")
             return
 
         result_output = create_rye_new_project(self.name_project, self.path)
-        f.add_line(result_output)
+        self.__call__.add_line(result_output)
 
 
 def find_max_project_number(base_path, start_pattern):

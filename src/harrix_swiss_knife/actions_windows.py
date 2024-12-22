@@ -9,15 +9,13 @@ class on_block_disks:
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs):
-        f = self.__call__
-
         commands = """
             manage-bde -lock E: -ForceDismount
             manage-bde -lock F: -ForceDismount
             """
 
         result_output = functions.run_powershell_script_as_admin(commands)
-        f.add_line(result_output)
+        self.__call__.add_line(result_output)
 
 
 class on_open_camera_uploads:
@@ -25,8 +23,6 @@ class on_open_camera_uploads:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
-        f = self.__call__
-
         folder_path = Path("D:/Dropbox/Camera Uploads")
         os.startfile(folder_path)
         os.startfile(folder_path / "info")
