@@ -9,7 +9,7 @@ class on_block_disks:
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs):
-        f = on_block_disks.__call__
+        f = self.__call__
 
         commands = """
             manage-bde -lock E: -ForceDismount
@@ -25,7 +25,7 @@ class on_open_camera_uploads:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
-        f = on_block_disks.__call__
+        f = self.__call__
 
         folder_path = Path("D:/Dropbox/Camera Uploads")
         os.startfile(folder_path)

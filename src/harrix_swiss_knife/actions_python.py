@@ -13,7 +13,7 @@ class on_rye_new_project:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
-        f = on_rye_new_project.__call__
+        f = self.__call__
 
         self.path = path_default
         self.name_project = f"python_project_{f"{(find_max_project_number(self.path, start_pattern) + 1):02}"}"
@@ -27,7 +27,7 @@ class on_rye_new_project_dialog:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
-        f = on_rye_new_project_dialog.__call__
+        f = self.__call__
 
         title = "Project name"
         label = "Enter the name of the project (English, without spaces):"

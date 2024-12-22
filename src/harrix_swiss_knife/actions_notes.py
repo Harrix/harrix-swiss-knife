@@ -17,7 +17,7 @@ class on_diary_new:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
-        f = on_diary_new.__call__
+        f = self.__call__
         output, file_path = add_diary_new_diary()
         functions.run_powershell_script(
             f'code-insiders "{vscode_workspace}" "{file_path}"'
@@ -30,7 +30,7 @@ class on_diary_new_with_images:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
-        f = on_diary_new.__call__
+        f = self.__call__
         output, file_path = add_diary_new_diary(is_with_images=True)
         functions.run_powershell_script(
             f'code-insiders "{vscode_workspace}" "{file_path}"'
