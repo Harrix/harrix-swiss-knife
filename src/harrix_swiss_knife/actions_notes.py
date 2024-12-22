@@ -37,14 +37,9 @@ class on_diary_new_with_images:
 
 
 def add_diary_new_diary(is_with_images=False):
-    text = f"""{beginning_of_md}
-
-# {datetime.now().strftime("%Y-%m-%d")}
-
-## {datetime.now().strftime("%H:%M")}
-
-
-"""
+    text = f"{beginning_of_md}\n\n"
+    text += f"# {datetime.now().strftime("%Y-%m-%d")}\n\n"
+    text += f"## {datetime.now().strftime("%H:%M")}\n\n"
     return add_diary_new_note(text, is_with_images)
 
 
