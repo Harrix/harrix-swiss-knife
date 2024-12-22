@@ -9,7 +9,7 @@ start_pattern = "python_project_"
 
 
 class on_rye_new_project:
-    title = "Create Rye project in Projects"
+    title = "New Rye project in Projects"
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
@@ -21,7 +21,7 @@ class on_rye_new_project:
 
 
 class on_rye_new_project_dialog:
-    title = "Create Rye project in  …"
+    title = "New Rye project in  …"
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
