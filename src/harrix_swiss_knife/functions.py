@@ -15,7 +15,7 @@ def write_in_output_txt(is_show_output=True):
             func(*args, **kwargs)
             end_time = time.time()
             elapsed_time = end_time - start_time
-            output_lines.append(f"Execution time: {elapsed_time:.4f} seconds")
+            wrapper.add_line(f"Execution time: {elapsed_time:.4f} seconds")
             data_path = Path("data")
             if not data_path.exists():
                 data_path.mkdir(parents=True, exist_ok=True)
