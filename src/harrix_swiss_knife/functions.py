@@ -5,28 +5,32 @@ import tempfile
 import time
 
 
-def write_in_output_txt(func):
-    output_lines = []
+def write_in_output_txt(is_show_output=True):
+    def decorator(func):
+        output_lines = []
 
-    def wrapper(*args, **kwargs):
-        output_lines.clear()
-        print("Start")
-        func(*args, **kwargs)
-        data_path = Path("data")
-        if not data_path.exists():
-            data_path.mkdir(parents=True, exist_ok=True)
-        file = Path("data/output.txt")
-        output_text = "\n".join(output_lines) if output_lines else ""
-        file.write_text(output_text, encoding="utf8")
-        os.startfile(file)
-        print("End")
+        def wrapper(*args, **kwargs):
+            output_lines.clear()
+            print("Start")
+            func(*args, **kwargs)
+            data_path = Path("data")
+            if not data_path.exists():
+                data_path.mkdir(parents=True, exist_ok=True)
+            file = Path("data/output.txt")
+            output_text = "\n".join(output_lines) if output_lines else ""
+            file.write_text(output_text, encoding="utf8")
+            if is_show_output:
+                os.startfile(file)
+            print("End")
 
-    def add_line(line):
-        output_lines.append(line)
-        print(line)
+        def add_line(line):
+            output_lines.append(line)
+            print(line)
 
-    wrapper.add_line = add_line
-    return wrapper
+        wrapper.add_line = add_line
+        return wrapper
+
+    return decorator
 
 
 def run_powershell_script(commands):

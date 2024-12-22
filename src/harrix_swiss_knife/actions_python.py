@@ -11,7 +11,7 @@ start_pattern = "python_project_"
 class on_rye_new_project:
     title = "Create Rye project in Projects"
 
-    @functions.write_in_output_txt
+    @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
         f = on_rye_new_project.__call__
 
@@ -25,7 +25,7 @@ class on_rye_new_project:
 class on_rye_new_project_dialog:
     title = "Create Rye project in  …"
 
-    @functions.write_in_output_txt
+    @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
         f = on_rye_new_project_dialog.__call__
 

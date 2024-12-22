@@ -7,7 +7,7 @@ from harrix_swiss_knife import functions
 class on_block_disks:
     title = "Block disks"
 
-    @functions.write_in_output_txt
+    @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs):
         f = on_block_disks.__call__
 
@@ -23,7 +23,7 @@ class on_block_disks:
 class on_open_camera_uploads:
     title = "Open Camera Uploads"
 
-    @functions.write_in_output_txt
+    @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
         f = on_block_disks.__call__
 
