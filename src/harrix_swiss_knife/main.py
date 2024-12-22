@@ -29,6 +29,7 @@ class MainMenu:
         self.menu_notes = QMenu("Notes", None)
         self.add_item_menu(self.menu_notes, actions_notes.on_diary_new)
         self.add_item_menu(self.menu_notes, actions_notes.on_diary_new_with_images)
+        self.add_item_menu(self.menu_notes, actions_notes.on_diary_new_dream)
 
         self.menu.addMenu(self.menu_python)
         self.menu.addMenu(self.menu_images)
