@@ -5,6 +5,11 @@ from harrix_swiss_knife import functions
 
 path_diary = "D:/Dropbox/Diaries/Diary"
 vscode_workspace = "D:/Dropbox/_Temp/_VS Code Workspaces/Diaries.code-workspace"
+beginning_of_md = """---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: ru
+---"""
 
 
 class on_diary_new:
@@ -34,11 +39,7 @@ class on_diary_new_with_images:
 
 
 def add_diary_new_diary(is_with_images=False):
-    text = f"""---
-author: Anton Sergienko
-author-email: anton.b.sergienko@gmail.com
-lang: ru
----
+    text = f"""{beginning_of_md}
 
 # {datetime.now().strftime("%Y-%m-%d")}
 
