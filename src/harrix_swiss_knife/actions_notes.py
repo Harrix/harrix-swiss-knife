@@ -60,7 +60,7 @@ def add_diary_new_dream(is_with_images=False):
     text = f"{beginning_of_md}\n\n"
     text += f"# {datetime.now().strftime("%Y-%m-%d")}\n\n"
     text += f"## {datetime.now().strftime("%H:%M")}\n\n"
-    text += "`` — .\n\n" * 5
+    text += "`` — .\n\n" * 5 + "`` — .\n"
     return add_diary_new_note(path_dream, text, is_with_images)
 
 
