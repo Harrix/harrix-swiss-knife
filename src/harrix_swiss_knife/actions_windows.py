@@ -3,6 +3,8 @@ from pathlib import Path
 
 from harrix_swiss_knife import functions
 
+path_camera_uploads = "D:/Dropbox/Camera Uploads"
+
 
 class on_block_disks:
     title = "Block disks"
@@ -14,8 +16,8 @@ class on_block_disks:
             manage-bde -lock F: -ForceDismount
             """
 
-        result_output = functions.run_powershell_script_as_admin(commands)
-        self.__call__.add_line(result_output)
+        output = functions.run_powershell_script_as_admin(commands)
+        self.__call__.add_line(output)
 
 
 class on_open_camera_uploads:
@@ -23,7 +25,7 @@ class on_open_camera_uploads:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
-        folder_path = Path("D:/Dropbox/Camera Uploads")
+        folder_path = Path(path_camera_uploads)
         os.startfile(folder_path)
         os.startfile(folder_path / "info")
         os.startfile(folder_path / "temp")
@@ -32,3 +34,4 @@ class on_open_camera_uploads:
         os.startfile(folder_path / "work_video")
         os.startfile(folder_path / "screenshots")
         os.startfile(folder_path / "trees_in_city")
+        self.__call__.add_line('The folder "Camera Uploads" is opened.')
