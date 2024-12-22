@@ -11,17 +11,20 @@ def write_in_output_txt(is_show_output=True):
 
         def wrapper(*args, **kwargs):
             output_lines.clear()
-            print("Start")
+            start_time = time.time()
             func(*args, **kwargs)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            output_lines.append(f"Execution time: {elapsed_time:.4f} seconds")
             data_path = Path("data")
             if not data_path.exists():
                 data_path.mkdir(parents=True, exist_ok=True)
-            file = Path("data/output.txt")
+            file = Path(data_path / "output.txt")
             output_text = "\n".join(output_lines) if output_lines else ""
+
             file.write_text(output_text, encoding="utf8")
             if is_show_output:
                 os.startfile(file)
-            print("End")
 
         def add_line(line):
             output_lines.append(line)
