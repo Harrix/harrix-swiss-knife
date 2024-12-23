@@ -94,7 +94,7 @@ class on_image_optimize_file:
 
 
 class on_image_optimize_clipboard:
-    title = "Optimize from clipboard"
+    title = "Optimize image from clipboard"
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs):
@@ -105,31 +105,30 @@ class on_image_optimize_clipboard:
             return
 
         temp_dir = Path(tempfile.mkdtemp())
-        file_name = "pasted_image.png"
+        file_name = "image.png"
         temp_file_path = temp_dir / file_name
         image.save(temp_file_path, "PNG")
         print(f"Image is saved as {temp_file_path}")
 
-        commands = f'npm run optimize imagesDir="{temp_dir}"'
+        commands = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
         result_output = functions.run_powershell_script(commands)
-
-        os.startfile(temp_dir)
-        print(str(temp_dir / "temp" / file_name))
 
         clr.AddReference("System.Collections.Specialized")
         clr.AddReference("System.Windows.Forms")
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        file_path = str(temp_dir / "temp" / file_name)
+        file_path = str(Path("data/optimized_images/image.png").absolute())
+        print(file_path)
 
         files = StringCollection()
         files.Add(file_path)
         Clipboard.SetFileDropList(files)
 
-        # shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_dir)
 
         self.__call__.add_line(result_output)
+        self.__call__.add_line("Image is optimized and copied to clipboard.")
 
 
 class on_image_optimize_dialog_replace:
