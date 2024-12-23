@@ -141,14 +141,11 @@ const processImage = async (file) => {
   }
 };
 
-console.log("+++++++++++++++++++");
-
 if (!imagesDir) {
   imagesDir = path.join(__dirname, "../../data/images");
   outputDir = path.join(__dirname, "../../data/optimized_images");
   clearDirectory(outputDir);
 } else {
-  console.log(outputDir);
   if (outputDir == "optimized_images") {
     outputDir = path.join(__dirname, "../../data/optimized_images");
   } else if (!outputDir) {
@@ -158,7 +155,6 @@ if (!imagesDir) {
     });
     outputDir = path.join(imagesDir, `temp`);
   }
-  console.log(outputDir);
 }
 
 console.log(`imagesDir: ${imagesDir}`);
