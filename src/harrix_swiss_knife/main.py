@@ -41,6 +41,7 @@ class MainMenu:
         self.menu.addMenu(self.menu_notes)
         self.add_item_menu(self.menu, actions_windows.on_open_camera_uploads)
         self.add_item_menu(self.menu, actions_windows.on_block_disks)
+        self.menu.addSeparator()
         self.add_item_menu(self.menu, actions_images.on_image_optimize_clipboard)
         self.menu.addSeparator()
         self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
