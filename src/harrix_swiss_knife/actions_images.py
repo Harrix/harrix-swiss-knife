@@ -91,7 +91,7 @@ class on_image_optimize_file:
         self.__call__.add_line(result_output)
 
 
-class on_image_optimize_dialog_and_replace:
+class on_image_optimize_dialog_replace:
     title = "Optimize images in … and replace"
 
     @functions.write_in_output_txt(is_show_output=True)
