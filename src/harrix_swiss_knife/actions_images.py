@@ -4,8 +4,9 @@ import shutil
 import tempfile
 from PIL import Image, ImageGrab
 from datetime import datetime
-from PySide6.QtWidgets import QApplication, QFileDialog
-from PySide6.QtGui import QImage, QPixmap, QClipboard
+import clr
+from PySide6.QtWidgets import QFileDialog
+
 
 from harrix_swiss_knife import functions
 
@@ -104,23 +105,27 @@ class on_image_optimize_clipboard:
             return
 
         temp_dir = Path(tempfile.mkdtemp())
-        file_name = 'pasted_image.png'
+        file_name = "pasted_image.png"
         temp_file_path = temp_dir / file_name
-        image.save(temp_file_path, 'PNG')
+        image.save(temp_file_path, "PNG")
         print(f"Image is saved as {temp_file_path}")
 
-        commands = (
-            f'npm run optimize imagesDir="{temp_dir}"'
-        )
+        commands = f'npm run optimize imagesDir="{temp_dir}"'
         result_output = functions.run_powershell_script(commands)
 
         os.startfile(temp_dir)
-        # processed_image = process_image(temp_file_path)
+        print(str(temp_dir / "temp" / file_name))
 
-        image = Image.open(temp_dir / "temp" / file_name)
-        pixmap = pil2pixmap(image)
-        clipboard = QApplication.clipboard()
-        clipboard.setPixmap(pixmap, QClipboard.Clipboard)
+        clr.AddReference("System.Collections.Specialized")
+        clr.AddReference("System.Windows.Forms")
+        from System.Collections.Specialized import StringCollection
+        from System.Windows.Forms import Clipboard
+
+        file_path = str(temp_dir / "temp" / file_name)
+
+        files = StringCollection()
+        files.Add(file_path)
+        Clipboard.SetFileDropList(files)
 
         # shutil.rmtree(temp_dir)
 
@@ -163,11 +168,3 @@ class on_image_optimize_dialog_replace:
 
         os.startfile(folder_path)
         self.__call__.add_line(result_output)
-
-
-def pil2pixmap(im):
-    """Convert PIL Image to QPixmap."""
-    im = im.convert("RGBA")
-    data = im.tobytes("raw", "RGBA")
-    qimage = QImage(data, im.size[0], im.size[1], QImage.Format_RGBA8888)
-    return QPixmap.fromImage(qimage)
