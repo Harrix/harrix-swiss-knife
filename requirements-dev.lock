@@ -17,6 +17,8 @@ packaging==24.2
     # via pyinstaller-hooks-contrib
 pefile==2023.2.7
     # via pyinstaller
+pillow==11.0.0
+    # via harrix-swiss-knife
 pyinstaller==6.11.1
 pyinstaller-hooks-contrib==2024.10
     # via pyinstaller

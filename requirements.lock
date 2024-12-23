@@ -10,6 +10,8 @@
 #   universal: false
 
 -e file:.
+pillow==11.0.0
+    # via harrix-swiss-knife
 pyside6==6.8.1
     # via harrix-swiss-knife
 pyside6-addons==6.8.1
