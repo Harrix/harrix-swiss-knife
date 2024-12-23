@@ -25,6 +25,19 @@ class on_images_optimize:
         self.__call__.add_line(result_output)
 
 
+class on_images_optimize_quality:
+    title = "Optimize images (high quality)"
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs):
+        commands = "npm run optimize quality=true"
+
+        result_output = functions.run_powershell_script(commands)
+        os.startfile(Path("data/images"))
+        os.startfile(Path("data/optimized_images"))
+        self.__call__.add_line(result_output)
+
+
 class on_image_optimize_dialog:
     title = "Optimize images in …/temp"
 
