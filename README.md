@@ -66,5 +66,3 @@ Example path for a shortcut:
 ```shell
 C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
-
-![alt text](img/pasted_image.png)
