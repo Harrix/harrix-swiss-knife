@@ -2,15 +2,16 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+from PIL import Image, ImageGrab
 from datetime import datetime
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QApplication, QFileDialog
+from PySide6.QtGui import QImage, QPixmap, QClipboard
 
 from harrix_swiss_knife import functions
 
 path_default = (
     f"C:/GitHub/_content__harrix-dev/harrix.dev-articles-{datetime.now().year}"
 )
-path_default_common = ""
 
 
 class on_images_optimize:
@@ -91,6 +92,41 @@ class on_image_optimize_file:
         self.__call__.add_line(result_output)
 
 
+class on_image_optimize_clipboard:
+    title = "Optimize from clipboard"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs):
+        image = ImageGrab.grabclipboard()
+
+        if not isinstance(image, Image.Image):
+            self.__call__.add_line("No image found in the clipboard")
+            return
+
+        temp_dir = Path(tempfile.mkdtemp())
+        file_name = 'pasted_image.png'
+        temp_file_path = temp_dir / file_name
+        image.save(temp_file_path, 'PNG')
+        print(f"Image is saved as {temp_file_path}")
+
+        commands = (
+            f'npm run optimize imagesDir="{temp_dir}"'
+        )
+        result_output = functions.run_powershell_script(commands)
+
+        os.startfile(temp_dir)
+        # processed_image = process_image(temp_file_path)
+
+        image = Image.open(temp_dir / "temp" / file_name)
+        pixmap = pil2pixmap(image)
+        clipboard = QApplication.clipboard()
+        clipboard.setPixmap(pixmap, QClipboard.Clipboard)
+
+        # shutil.rmtree(temp_dir)
+
+        self.__call__.add_line(result_output)
+
+
 class on_image_optimize_dialog_replace:
     title = "Optimize images in … and replace"
 
@@ -127,3 +163,11 @@ class on_image_optimize_dialog_replace:
 
         os.startfile(folder_path)
         self.__call__.add_line(result_output)
+
+
+def pil2pixmap(im):
+    """Convert PIL Image to QPixmap."""
+    im = im.convert("RGBA")
+    data = im.tobytes("raw", "RGBA")
+    qimage = QImage(data, im.size[0], im.size[1], QImage.Format_RGBA8888)
+    return QPixmap.fromImage(qimage)
