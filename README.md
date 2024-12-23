@@ -20,7 +20,7 @@
 
 - Run `npm i`.
 
-- Copy `ffmpeg.exe` to the project folder `C:/GitHub/harrix-swiss-knife`. For example, from `ffmpeg-master-latest-win64-gpl.zip` on <https://github.com/BtbN/FFmpeg-Builds/releases>.
+- Copy `ffmpeg.exe` to the project folder `C:/GitHub/harrix-swiss-knife`. For example, from `ffmpeg-master-latest-win64-gpl.zip` (<https://github.com/BtbN/FFmpeg-Builds/releases>).
 
 - Open `src\harrix-swiss-knife\main.py` and run.
 
