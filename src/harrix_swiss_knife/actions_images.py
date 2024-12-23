@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import shutil
+import tempfile
 from datetime import datetime
 from PySide6.QtWidgets import QFileDialog
 
@@ -54,6 +55,39 @@ class on_image_optimize_dialog:
 
         result_output = functions.run_powershell_script(commands)
         os.startfile(Path(folder_path) / "temp")
+        self.__call__.add_line(result_output)
+
+
+class on_image_optimize_file:
+    title = "Optimize one image"
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs):
+        file_path, _ = QFileDialog.getOpenFileName(
+            None,
+            "Select an Image File",
+            path_default,
+            "Image Files (*.jpg *.jpeg *.webp *.png *.svg);;All Files (*)",
+        )
+
+        if not file_path:
+            self.__call__.add_line("The file was not selected.")
+            return
+
+        temp_dir = Path(tempfile.mkdtemp())
+        file_name = Path(file_path).name
+        temp_file_path = temp_dir / file_name
+        shutil.copy(file_path, temp_file_path)
+
+        commands = (
+            f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
+        )
+
+        result_output = functions.run_powershell_script(commands)
+
+        shutil.rmtree(temp_dir)
+
+        os.startfile(Path("data/optimized_images"))
         self.__call__.add_line(result_output)
 
 

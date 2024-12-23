@@ -21,7 +21,6 @@ import { optimize } from "svgo";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-let outputDir = "";
 
 const args = process.argv.slice(2);
 const dictionary = args.reduce((acc, item) => {
@@ -32,6 +31,7 @@ const dictionary = args.reduce((acc, item) => {
 
 const quality = "quality" in dictionary ? dictionary.quality : false;
 let imagesDir = "imagesDir" in dictionary ? dictionary.imagesDir : "";
+let outputDir = "outputDir" in dictionary ? dictionary.outputDir : "";
 
 const clearDirectory = (directoryPath) => {
   if (fs.existsSync(directoryPath)) {
@@ -141,16 +141,24 @@ const processImage = async (file) => {
   }
 };
 
+console.log("+++++++++++++++++++");
+
 if (!imagesDir) {
   imagesDir = path.join(__dirname, "../../data/images");
   outputDir = path.join(__dirname, "../../data/optimized_images");
   clearDirectory(outputDir);
 } else {
-  const tempDirPath = path.join(dictionary.imagesDir, "temp");
-  fs.mkdir(tempDirPath, { recursive: true }, (err) => {
-    if (err) return console.error(`Error creating the directory: ${err.message}`);
-  });
-  outputDir = path.join(imagesDir, `temp`);
+  console.log(outputDir);
+  if (outputDir == "optimized_images") {
+    outputDir = path.join(__dirname, "../../data/optimized_images");
+  } else if (!outputDir) {
+    const tempDirPath = path.join(dictionary.imagesDir, "temp");
+    fs.mkdir(tempDirPath, { recursive: true }, (err) => {
+      if (err) return console.error(`Error creating the directory: ${err.message}`);
+    });
+    outputDir = path.join(imagesDir, `temp`);
+  }
+  console.log(outputDir);
 }
 
 console.log(`imagesDir: ${imagesDir}`);
