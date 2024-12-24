@@ -5,7 +5,7 @@ import tempfile
 from PIL import Image, ImageGrab
 from datetime import datetime
 import clr
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 
 from harrix_swiss_knife import functions
@@ -104,13 +104,27 @@ class on_image_optimize_clipboard:
             self.__call__.add_line("No image found in the clipboard")
             return
 
-        temp_dir = Path(tempfile.mkdtemp())
         file_name = "image.png"
+
+        if "is_dialog" in kwargs and kwargs["is_dialog"]:
+            title = "Image name"
+            label = "Enter the name of the image (English, without spaces):"
+            image_name, ok = QInputDialog.getText(None, title, label, text="image")
+
+            if ok and image_name:
+                file_name = image_name + ".png"
+            else:
+                self.__call__.add_line("The name of the image was not entered.")
+                return
+
+        temp_dir = Path(tempfile.mkdtemp())
         temp_file_path = temp_dir / file_name
         image.save(temp_file_path, "PNG")
         print(f"Image is saved as {temp_file_path}")
 
-        commands = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
+        commands = (
+            f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
+        )
         result_output = functions.run_powershell_script(commands)
 
         clr.AddReference("System.Collections.Specialized")
@@ -118,17 +132,26 @@ class on_image_optimize_clipboard:
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        file_path = str(Path("data/optimized_images/image.png").absolute())
+        file_path = str(Path(f"data/optimized_images/{file_name}").absolute())
         print(file_path)
 
         files = StringCollection()
         files.Add(file_path)
         Clipboard.SetFileDropList(files)
 
+        # os.startfile(temp_dir)
         shutil.rmtree(temp_dir)
 
         self.__call__.add_line(result_output)
         self.__call__.add_line("Image is optimized and copied to clipboard.")
+
+
+class on_image_optimize_clipboard_dialog:
+    title = "Optimize image from clipboard as …"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs):
+        on_image_optimize_clipboard.__call__(self, is_dialog=True)
 
 
 class on_image_optimize_dialog_replace:

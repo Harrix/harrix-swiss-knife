@@ -43,6 +43,7 @@ class MainMenu:
         self.add_item_menu(self.menu, actions_windows.on_block_disks)
         self.menu.addSeparator()
         self.add_item_menu(self.menu, actions_images.on_image_optimize_clipboard)
+        self.add_item_menu(self.menu, actions_images.on_image_optimize_clipboard_dialog)
         self.menu.addSeparator()
         self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
         self.menu.addAction(self.action_exit)
