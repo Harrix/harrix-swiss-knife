@@ -3,6 +3,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 import time
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QFont
+from PySide6.QtCore import Qt
 
 
 def write_in_output_txt(is_show_output=True):
@@ -129,3 +131,17 @@ def get_project_root():
             return parent
     # If .venv is not found, return the script's directory or None
     return current_file.parent
+
+
+def create_emoji_icon(emoji, size=32):
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.transparent)
+
+    painter = QPainter(pixmap)
+    font = QFont()
+    font.setPointSize(int(size * 0.8))
+    painter.setFont(font)
+    painter.drawText(pixmap.rect(), Qt.AlignCenter, emoji)
+    painter.end()
+
+    return QIcon(pixmap)

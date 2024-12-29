@@ -10,10 +10,14 @@ from harrix_swiss_knife import (
     actions_notes,
 )
 
+from harrix_swiss_knife import functions  as f
+
 
 class MainMenu:
     def __init__(self):
         self.menu = QMenu()
+
+        emoji_icon = f.create_emoji_icon("😊")
 
         # Menu Python
         self.menu_python = QMenu("Python", None)
@@ -45,7 +49,7 @@ class MainMenu:
         self.add_item_menu(self.menu, actions_images.on_image_optimize_clipboard)
         self.add_item_menu(self.menu, actions_images.on_image_optimize_clipboard_dialog)
         self.menu.addSeparator()
-        self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
+        self.action_exit = QAction(emoji_icon, "Exit", triggered=lambda: QApplication.quit())
         self.menu.addAction(self.action_exit)
 
     def add_item_menu(self, menu, class_action):
