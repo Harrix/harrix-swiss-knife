@@ -23,8 +23,8 @@ class on_images_optimize:
         commands = "npm run optimize"
 
         result_output = functions.run_powershell_script(commands)
-        os.startfile(Path("data/images"))
-        os.startfile(Path("data/optimized_images"))
+        os.startfile(functions.get_project_root() / "data" / "images")
+        os.startfile(functions.get_project_root() / "data" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -36,8 +36,8 @@ class on_images_optimize_quality:
         commands = "npm run optimize quality=true"
 
         result_output = functions.run_powershell_script(commands)
-        os.startfile(Path("data/images"))
-        os.startfile(Path("data/optimized_images"))
+        os.startfile(functions.get_project_root() / "data" / "images")
+        os.startfile(functions.get_project_root() / "data" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -89,7 +89,7 @@ class on_image_optimize_file:
 
         shutil.rmtree(temp_dir)
 
-        os.startfile(Path("data/optimized_images"))
+        os.startfile(functions.get_project_root() / "data" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -132,11 +132,13 @@ class on_image_optimize_clipboard:
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        file_path = str(Path(f"data/optimized_images/{file_name}").absolute())
-        print(file_path)
+        file_path = (
+            functions.get_project_root() / "data" / "optimized_images" / file_name
+        )
+        file_path = file_path.resolve()
 
         files = StringCollection()
-        files.Add(file_path)
+        files.Add(str(file_path))
         Clipboard.SetFileDropList(files)
 
         # os.startfile(temp_dir)

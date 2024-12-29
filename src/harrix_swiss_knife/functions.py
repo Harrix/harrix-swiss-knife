@@ -16,7 +16,7 @@ def write_in_output_txt(is_show_output=True):
             end_time = time.time()
             elapsed_time = end_time - start_time
             wrapper.add_line(f"Execution time: {elapsed_time:.4f} seconds")
-            data_path = Path("data")
+            data_path = get_project_root() / "data"
             if not data_path.exists():
                 data_path.mkdir(parents=True, exist_ok=True)
             file = Path(data_path / "output.txt")
@@ -117,3 +117,15 @@ def run_powershell_script_as_admin(commands):
         if os.path.exists(tmp_wrapper_path):
             os.remove(tmp_wrapper_path)
     return "\n".join(filter(None, res_output))
+
+
+def get_project_root():
+    # Get the absolute path to the current file
+    current_file = Path(__file__).resolve()
+
+    # Search for the project root folder by going up the directory tree
+    for parent in current_file.parents:
+        if (parent / ".venv").exists():
+            return parent
+    # If .venv is not found, return the script's directory or None
+    return current_file.parent
