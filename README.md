@@ -26,7 +26,7 @@
 
 - Open `src\harrix-swiss-knife\main.py` and run.
 
-After you can run the script from a terminal:
+After you can run the script from a terminal (or VSCode):
 
 ```cmd
 c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
