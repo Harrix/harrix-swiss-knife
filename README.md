@@ -51,14 +51,6 @@ Generate `resources_rc.py`:
 pyside6-rcc src\harrix_swiss_knife\resources.qrc -o src\harrix_swiss_knife\resources_rc.py
 ```
 
-## Generate EXE
-
-<https://pyinstaller.org/en/stable/usage.html#options>
-
-```cmd
-pyinstaller --clean --noconfirm --name=harrix_swiss_knife --onefile --noconsole --icon=src/harrix_swiss_knife/assets/logo.ico src/harrix_swiss_knife/main.py
-```
-
 ## Create a shortcut
 
 Example path for a shortcut:
