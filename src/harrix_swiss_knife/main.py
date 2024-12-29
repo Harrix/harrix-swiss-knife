@@ -19,9 +19,9 @@ class MainMenu:
 
         # Menu Python
         self.menu_python = QMenu("Python", None)
-        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project, "🆕")
+        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project, "rye.svg")
         self.add_item_menu(
-            self.menu_python, actions_python.on_rye_new_project_dialog, "🆕"
+            self.menu_python, actions_python.on_rye_new_project_dialog, "rye.svg"
         )
 
         # Menu Images
@@ -54,7 +54,17 @@ class MainMenu:
 
     def add_item_menu(self, menu, class_action, icon=""):
         action_name = f"action_{class_action.__name__}"
-        if icon:
+        if ".svg" in icon:
+            setattr(
+                self,
+                action_name,
+                QAction(
+                    QIcon(f":/assets/{icon}"),
+                    class_action().title,
+                    triggered=class_action(),
+                ),
+            )
+        elif ".svg" in icon:
             setattr(
                 self,
                 action_name,
