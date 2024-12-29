@@ -8,7 +8,7 @@
 
 - Clone project:
 
-  ```cmd
+  ```shell
   mkdir C:/GitHub
   cd C:/GitHub
   git clone https://github.com/Harrix/harrix-swiss-knife.git
@@ -28,7 +28,7 @@
 
 After you can run the script from a terminal (or VSCode):
 
-```cmd
+```shell
 c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
 
@@ -49,7 +49,7 @@ In the file `resources.qrc` add line for example `<file>assets/logo.svg</file>`:
 
 Generate `resources_rc.py`:
 
-```cmd
+```shell
 pyside6-rcc src\harrix_swiss_knife\resources.qrc -o src\harrix_swiss_knife\resources_rc.py
 ```
 
