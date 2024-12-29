@@ -10,19 +10,19 @@ from harrix_swiss_knife import (
     actions_notes,
 )
 
-from harrix_swiss_knife import functions  as f
+from harrix_swiss_knife import functions as f
 
 
 class MainMenu:
     def __init__(self):
         self.menu = QMenu()
 
-        emoji_icon = f.create_emoji_icon("😊")
-
         # Menu Python
         self.menu_python = QMenu("Python", None)
-        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project)
-        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project_dialog)
+        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project, "🆕")
+        self.add_item_menu(
+            self.menu_python, actions_python.on_rye_new_project_dialog, "🆕"
+        )
 
         # Menu Images
         self.menu_images = QMenu("Images", None)
@@ -49,19 +49,30 @@ class MainMenu:
         self.add_item_menu(self.menu, actions_images.on_image_optimize_clipboard)
         self.add_item_menu(self.menu, actions_images.on_image_optimize_clipboard_dialog)
         self.menu.addSeparator()
-        self.action_exit = QAction(emoji_icon, "Exit", triggered=lambda: QApplication.quit())
+        self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
         self.menu.addAction(self.action_exit)
 
-    def add_item_menu(self, menu, class_action):
+    def add_item_menu(self, menu, class_action, icon=""):
         action_name = f"action_{class_action.__name__}"
-        setattr(
-            self,
-            action_name,
-            QAction(
-                class_action().title,
-                triggered=class_action(),
-            ),
-        )
+        if icon:
+            setattr(
+                self,
+                action_name,
+                QAction(
+                    f.create_emoji_icon(icon),
+                    class_action().title,
+                    triggered=class_action(),
+                ),
+            )
+        else:
+            setattr(
+                self,
+                action_name,
+                QAction(
+                    class_action().title,
+                    triggered=class_action(),
+                ),
+            )
         menu.addAction(getattr(self, action_name))
 
 
