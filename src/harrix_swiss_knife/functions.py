@@ -76,9 +76,7 @@ def run_powershell_script_as_admin(commands):
         wrapper_script = f"& '{tmp_script_path}' | Out-File -FilePath '{tmp_output_path}' -Encoding UTF8"
 
         # Save the wrapper script to a temporary file
-        with tempfile.NamedTemporaryFile(
-            suffix=".ps1", delete=False
-        ) as tmp_wrapper_file:
+        with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as tmp_wrapper_file:
             tmp_wrapper_file.write(wrapper_script.encode("utf-8"))
             tmp_wrapper_path = tmp_wrapper_file.name
 

@@ -10,9 +10,7 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import functions
 
-path_default = (
-    f"C:/GitHub/_content__harrix-dev/harrix.dev-articles-{datetime.now().year}"
-)
+path_default = f"C:/GitHub/_content__harrix-dev/harrix.dev-articles-{datetime.now().year}"
 
 
 class on_images_optimize:
@@ -81,9 +79,7 @@ class on_image_optimize_file:
         temp_file_path = temp_dir / file_name
         shutil.copy(file_path, temp_file_path)
 
-        commands = (
-            f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
-        )
+        commands = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
 
         result_output = functions.run_powershell_script(commands)
 
@@ -122,9 +118,7 @@ class on_image_optimize_clipboard:
         image.save(temp_file_path, "PNG")
         print(f"Image is saved as {temp_file_path}")
 
-        commands = (
-            f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
-        )
+        commands = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
         result_output = functions.run_powershell_script(commands)
 
         clr.AddReference("System.Collections.Specialized")
@@ -132,9 +126,7 @@ class on_image_optimize_clipboard:
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        file_path = (
-            functions.get_project_root() / "data" / "optimized_images" / file_name
-        )
+        file_path = functions.get_project_root() / "data" / "optimized_images" / file_name
         file_path = file_path.resolve()
 
         files = StringCollection()

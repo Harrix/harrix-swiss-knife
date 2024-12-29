@@ -20,18 +20,14 @@ class MainMenu:
         # Menu Python
         self.menu_python = QMenu("Python", None)
         self.add_item_menu(self.menu_python, actions_python.on_rye_new_project, "rye.svg")
-        self.add_item_menu(
-            self.menu_python, actions_python.on_rye_new_project_dialog, "rye.svg"
-        )
+        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project_dialog, "rye.svg")
 
         # Menu Images
         self.menu_images = QMenu("Images", None)
         self.add_item_menu(self.menu_images, actions_images.on_images_optimize)
         self.add_item_menu(self.menu_images, actions_images.on_images_optimize_quality)
         self.add_item_menu(self.menu_images, actions_images.on_image_optimize_dialog)
-        self.add_item_menu(
-            self.menu_images, actions_images.on_image_optimize_dialog_replace
-        )
+        self.add_item_menu(self.menu_images, actions_images.on_image_optimize_dialog_replace)
         self.add_item_menu(self.menu_images, actions_images.on_image_optimize_file)
 
         # Notes
