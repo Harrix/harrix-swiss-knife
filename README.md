@@ -1,5 +1,7 @@
 # harrix-swiss-knife
 
+![harrix-swiss-knife](img/featured-image.svg)
+
 ## Deploy on an empty machine (Windows)
 
 - Install [Rye](https://rye.astral.sh) ([Установка и работа с Rye (Python) в VSCode](https://github.com/Harrix/harrix.dev-articles-2024/blob/main/rye-vscode-python/rye-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
