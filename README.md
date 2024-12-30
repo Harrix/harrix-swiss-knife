@@ -2,6 +2,14 @@
 
 ![harrix-swiss-knife](img/featured-image.svg)
 
+This is a **personal** project tailored to **specific personal** tasks.
+
+This project provides an application with a context menu in the system tray, featuring mini-programs designed to automate specific personal tasks. The project is intended for use on Windows.
+
+![Screenshot](img/screenshoot.png)
+
+_Figure 1: Screenshot_
+
 ## Deploy on an empty machine (Windows)
 
 - Install [Rye](https://rye.astral.sh) ([Установка и работа с Rye (Python) в VSCode](https://github.com/Harrix/harrix.dev-articles-2024/blob/main/rye-vscode-python/rye-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
