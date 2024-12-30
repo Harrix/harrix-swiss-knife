@@ -134,6 +134,18 @@ def get_project_root() -> Optional[Path]:
 
 
 def create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
+    """
+    Creates a QIcon object displaying the specified emoji.
+
+    Args:
+
+    - `emoji` (`str`): The emoji character to display.
+    - `size` (`int`, optional): The size of the icon in pixels. Defaults to 32.
+
+    Returns:
+
+    - `QIcon`: A QIcon object containing the rendered emoji.
+    """
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
 
