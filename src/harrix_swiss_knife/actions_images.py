@@ -6,19 +6,17 @@ from PIL import Image, ImageGrab
 from datetime import datetime
 import clr
 from PySide6.QtWidgets import QFileDialog, QInputDialog
-
-
 from harrix_swiss_knife import functions
 
-path_default = f"C:/GitHub/_content__harrix-dev/harrix.dev-articles-{datetime.now().year}"
+path_default: str = f"C:/GitHub/_content__harrix-dev/harrix.dev-articles-{datetime.now().year}"
 
 
 class on_images_optimize:
-    title = "Optimize images"
+    title: str = "Optimize images"
 
     @functions.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs):
-        commands = "npm run optimize"
+    def __call__(self, *args, **kwargs) -> None:
+        commands: str = "npm run optimize"
 
         result_output = functions.run_powershell_script(commands)
         os.startfile(functions.get_project_root() / "data" / "images")
@@ -27,11 +25,11 @@ class on_images_optimize:
 
 
 class on_images_optimize_quality:
-    title = "Optimize images (high quality)"
+    title: str = "Optimize images (high quality)"
 
     @functions.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs):
-        commands = "npm run optimize quality=true"
+    def __call__(self, *args, **kwargs) -> None:
+        commands: str = "npm run optimize quality=true"
 
         result_output = functions.run_powershell_script(commands)
         os.startfile(functions.get_project_root() / "data" / "images")
@@ -40,18 +38,18 @@ class on_images_optimize_quality:
 
 
 class on_image_optimize_dialog:
-    title = "Optimize images in …/temp"
+    title: str = "Optimize images in …/temp"
 
     @functions.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs):
-        title = "Project directory"
-        folder_path = QFileDialog.getExistingDirectory(None, title, path_default)
+    def __call__(self, *args, **kwargs) -> None:
+        title: str = "Project directory"
+        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
 
         if not folder_path:
             self.__call__.add_line("The directory was not selected.")
             return
 
-        commands = f'npm run optimize imagesDir="{folder_path}"'
+        commands: str = f'npm run optimize imagesDir="{folder_path}"'
 
         result_output = functions.run_powershell_script(commands)
         os.startfile(Path(folder_path) / "temp")
@@ -59,10 +57,10 @@ class on_image_optimize_dialog:
 
 
 class on_image_optimize_file:
-    title = "Optimize one image"
+    title: str = "Optimize one image"
 
     @functions.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             None,
             "Select an Image File",
@@ -74,12 +72,12 @@ class on_image_optimize_file:
             self.__call__.add_line("The file was not selected.")
             return
 
-        temp_dir = Path(tempfile.mkdtemp())
-        file_name = Path(file_path).name
-        temp_file_path = temp_dir / file_name
+        temp_dir: Path = Path(tempfile.mkdtemp())
+        file_name: str = Path(file_path).name
+        temp_file_path: Path = temp_dir / file_name
         shutil.copy(file_path, temp_file_path)
 
-        commands = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
+        commands: str = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
 
         result_output = functions.run_powershell_script(commands)
 
@@ -90,21 +88,21 @@ class on_image_optimize_file:
 
 
 class on_image_optimize_clipboard:
-    title = "Optimize image from clipboard"
+    title: str = "Optimize image from clipboard"
 
     @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         image = ImageGrab.grabclipboard()
 
         if not isinstance(image, Image.Image):
             self.__call__.add_line("No image found in the clipboard")
             return
 
-        file_name = "image.png"
+        file_name: str = "image.png"
 
         if "is_dialog" in kwargs and kwargs["is_dialog"]:
-            title = "Image name"
-            label = "Enter the name of the image (English, without spaces):"
+            title: str = "Image name"
+            label: str = "Enter the name of the image (English, without spaces):"
             image_name, ok = QInputDialog.getText(None, title, label, text="image")
 
             if ok and image_name:
@@ -113,12 +111,12 @@ class on_image_optimize_clipboard:
                 self.__call__.add_line("The name of the image was not entered.")
                 return
 
-        temp_dir = Path(tempfile.mkdtemp())
-        temp_file_path = temp_dir / file_name
+        temp_dir: Path = Path(tempfile.mkdtemp())
+        temp_file_path: Path = temp_dir / file_name
         image.save(temp_file_path, "PNG")
         print(f"Image is saved as {temp_file_path}")
 
-        commands = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
+        commands: str = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
         result_output = functions.run_powershell_script(commands)
 
         clr.AddReference("System.Collections.Specialized")
@@ -126,14 +124,13 @@ class on_image_optimize_clipboard:
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        file_path = functions.get_project_root() / "data" / "optimized_images" / file_name
+        file_path: Path = functions.get_project_root() / "data" / "optimized_images" / file_name
         file_path = file_path.resolve()
 
         files = StringCollection()
         files.Add(str(file_path))
         Clipboard.SetFileDropList(files)
 
-        # os.startfile(temp_dir)
         shutil.rmtree(temp_dir)
 
         self.__call__.add_line(result_output)
@@ -141,45 +138,40 @@ class on_image_optimize_clipboard:
 
 
 class on_image_optimize_clipboard_dialog:
-    title = "Optimize image from clipboard as …"
+    title: str = "Optimize image from clipboard as …"
 
     @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         on_image_optimize_clipboard.__call__(self, is_dialog=True)
 
 
 class on_image_optimize_dialog_replace:
-    title = "Optimize images in … and replace"
+    title: str = "Optimize images in … and replace"
 
     @functions.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs):
-        title = "Project directory"
-        folder_path = QFileDialog.getExistingDirectory(None, title, path_default)
+    def __call__(self, *args, **kwargs) -> None:
+        title: str = "Project directory"
+        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
 
         if not folder_path:
             self.__call__.add_line("The directory was not selected.")
             return
 
-        commands = f'npm run optimize imagesDir="{folder_path}"'
-
+        commands: str = f'npm run optimize imagesDir="{folder_path}"'
         result_output = functions.run_powershell_script(commands)
 
         folder_path = Path(folder_path)
 
-        # Remove all files in the main folder
         for item in folder_path.iterdir():
             if item.is_file():
                 item.unlink()
 
-        # Specify the path to the 'temp' folder
-        temp_folder = folder_path / "temp"
+        temp_folder: Path = folder_path / "temp"
 
-        # Copy all files from the 'temp' folder to the main folder
         for item in temp_folder.iterdir():
             if item.is_file() or item.is_symlink():
                 shutil.copy2(item, folder_path / item.name)
 
-        # Remove the empty 'temp' folder
         shutil.rmtree(temp_folder)
 
         os.startfile(folder_path)
