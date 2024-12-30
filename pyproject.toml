@@ -7,6 +7,8 @@ authors = [
 ]
 dependencies = [
     "pyside6>=6.8.1",
+    "pillow>=11.0.0",
+    "pythonnet>=3.0.5",
 ]
 license = { file="LICENSE.md" }
 readme = "README.md"
