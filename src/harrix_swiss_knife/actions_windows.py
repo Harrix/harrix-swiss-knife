@@ -1,4 +1,5 @@
 import os
+from typing import Callable
 from pathlib import Path
 
 from harrix_swiss_knife import functions
@@ -7,10 +8,10 @@ path_camera_uploads = "D:/Dropbox/Camera Uploads"
 
 
 class on_block_disks:
-    title = "Block disks"
+    title: str = "Block disks"
 
     @functions.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         commands = """
             manage-bde -lock E: -ForceDismount
             manage-bde -lock F: -ForceDismount
@@ -21,10 +22,10 @@ class on_block_disks:
 
 
 class on_open_camera_uploads:
-    title = "Open Camera Uploads"
+    title: str = "Open Camera Uploads"
 
     @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         folder_path = Path(path_camera_uploads)
         os.startfile(folder_path)
         os.startfile(folder_path / "info")
