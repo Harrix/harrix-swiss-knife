@@ -48,13 +48,8 @@ class MainMenu:
         self.menu.addAction(self.action_exit)
 
     def add_item(self, menu, class_action, icon=""):
-        action_name = f"action_{class_action.__name__}"
-
         if icon:
-            if ".svg" in icon:
-                icon_obj = QIcon(f":/assets/{icon}")
-            else:
-                icon_obj = self.create_emoji_icon(icon)
+            icon_obj = QIcon(f":/assets/{icon}") if ".svg" in icon else self.create_emoji_icon(icon)
             action = QAction(
                 icon_obj,
                 class_action().title,
@@ -66,7 +61,7 @@ class MainMenu:
                 triggered=class_action(),
             )
 
-        setattr(self, action_name, action)
+        setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
 
 
