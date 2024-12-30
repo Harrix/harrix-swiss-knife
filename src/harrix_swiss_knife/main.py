@@ -2,9 +2,8 @@ import sys
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction
 
-from harrix_swiss_knife import resources_rc  # noqa
+from harrix_swiss_knife import actions_py, resources_rc  # noqa
 from harrix_swiss_knife import (
-    actions_python,
     actions_windows,
     actions_images,
     actions_notes,
@@ -19,8 +18,8 @@ class MainMenu:
 
         # Menu Python
         self.menu_python = QMenu("Python", None)
-        self.add_item(self.menu_python, actions_python.on_rye_new_project, "rye.svg")
-        self.add_item(self.menu_python, actions_python.on_rye_new_project_dialog, "rye.svg")
+        self.add_item(self.menu_python, actions_py.on_rye_new_project, "rye.svg")
+        self.add_item(self.menu_python, actions_py.on_rye_new_project_dialog, "rye.svg")
 
         # Menu Images
         self.menu_images = QMenu("Images", None)
