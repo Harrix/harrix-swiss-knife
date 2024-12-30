@@ -34,5 +34,4 @@ class on_open_camera_uploads:
         os.startfile(folder_path / "work")
         os.startfile(folder_path / "work_video")
         os.startfile(folder_path / "screenshots")
-        os.startfile(folder_path / "trees_in_city")
         self.__call__.add_line('The folder "Camera Uploads" is opened.')
