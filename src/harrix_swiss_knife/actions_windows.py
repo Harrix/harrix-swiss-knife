@@ -1,5 +1,4 @@
 import os
-from typing import Callable
 from pathlib import Path
 
 from harrix_swiss_knife import functions
