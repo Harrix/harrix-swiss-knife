@@ -19,7 +19,7 @@ class MainMenu:
 
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
-        self.add_item(self.menu_images, actions_images.on_images_optimize, "🖼️")
+        self.add_item(self.menu_images, actions_images.on_images_optimize, "🚀")
         self.add_item(self.menu_images, actions_images.on_images_optimize_quality, "🔝")
         self.add_item(self.menu_images, actions_images.on_image_optimize_dialog, "📂")
         self.add_item(self.menu_images, actions_images.on_image_optimize_dialog_replace, "📂")
@@ -29,7 +29,7 @@ class MainMenu:
         self.menu_notes = self.new_menu("Notes", "📒")
         self.add_item(self.menu_notes, actions_notes.on_diary_new, "📓")
         self.add_item(self.menu_notes, actions_notes.on_diary_new_with_images, "🖼️")
-        self.add_item(self.menu_notes, actions_notes.on_diary_new_dream, "🛌")
+        self.add_item(self.menu_notes, actions_notes.on_diary_new_dream, "💤")
 
         self.menu.addMenu(self.menu_python)
         self.menu.addMenu(self.menu_images)
