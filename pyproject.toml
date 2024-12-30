@@ -2,15 +2,13 @@
 name = "harrix-swiss-knife"
 version = "0.1.0"  # Don't forget about the package.json
 description = "Python + Node.js application for automating personal tasks in Windows"
-authors = [
-    { name = "Sergienko Anton", email = "anton.b.sergienko@gmail.com" }
-]
+authors = [{ name = "Sergienko Anton", email = "anton.b.sergienko@gmail.com" }]
 dependencies = [
     "pyside6>=6.8.1",
     "pillow>=11.0.0",
-    "pythonnet>=3.0.5",
+    "pythonnet>=3.0.5"
 ]
-license = { file="LICENSE.md" }
+license = { file = "LICENSE.md" }
 readme = "README.md"
 requires-python = ">= 3.8"
 
@@ -23,6 +21,10 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/harrix_swiss_knife"]
+
+[tool.rye]
+managed = true
+dev-dependencies = []
 
 [tool.ruff]
 line-length = 120
