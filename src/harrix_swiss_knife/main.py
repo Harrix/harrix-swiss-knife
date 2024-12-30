@@ -2,8 +2,8 @@ import sys
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction
 
-from harrix_swiss_knife import actions_py, resources_rc  # noqa
-from harrix_swiss_knife import actions_windows, actions_images, actions_notes
+from harrix_swiss_knife import resources_rc  # noqa
+from harrix_swiss_knife import actions_windows, actions_images, actions_notes, actions_py
 
 from harrix_swiss_knife import functions as f
 
