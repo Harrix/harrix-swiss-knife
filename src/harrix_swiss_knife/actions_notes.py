@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime
+from typing import Tuple
 
 from harrix_swiss_knife import functions
 
@@ -17,7 +18,7 @@ class on_diary_new:
     title = "New diary note"
 
     @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary()
         functions.run_powershell_script(f'code-insiders "{vscode_workspace}" "{file_path}"')
         self.__call__.add_line(output)
@@ -27,7 +28,7 @@ class on_diary_new_with_images:
     title = "New diary note with images"
 
     @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary(is_with_images=True)
         functions.run_powershell_script(f'code-insiders "{vscode_workspace}" "{file_path}"')
         self.__call__.add_line(output)
@@ -37,28 +38,28 @@ class on_diary_new_dream:
     title = "New dream note"
 
     @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_dream()
         functions.run_powershell_script(f'code-insiders "{vscode_workspace}" "{file_path}"')
         self.__call__.add_line(output)
 
 
-def add_diary_new_diary(is_with_images=False):
+def add_diary_new_diary(is_with_images: bool = False) -> Tuple[str, Path]:
     text = f"{beginning_of_md}\n\n"
-    text += f"# {datetime.now().strftime("%Y-%m-%d")}\n\n"
-    text += f"## {datetime.now().strftime("%H:%M")}\n\n"
+    text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
+    text += f"## {datetime.now().strftime('%H:%M')}\n\n"
     return add_diary_new_note(path_diary, text, is_with_images)
 
 
-def add_diary_new_dream(is_with_images=False):
+def add_diary_new_dream(is_with_images: bool = False) -> Tuple[str, Path]:
     text = f"{beginning_of_md}\n\n"
-    text += f"# {datetime.now().strftime("%Y-%m-%d")}\n\n"
-    text += f"## {datetime.now().strftime("%H:%M")}\n\n"
+    text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
+    text += f"## {datetime.now().strftime('%H:%M')}\n\n"
     text += "`` — .\n\n" * 5 + "`` — .\n"
     return add_diary_new_note(path_dream, text, is_with_images)
 
 
-def add_diary_new_note(base_path, text, is_with_images):
+def add_diary_new_note(base_path: str, text: str, is_with_images: bool) -> Tuple[str, Path]:
     current_date = datetime.now()
     year = current_date.strftime("%Y")
     month = current_date.strftime("%m")
