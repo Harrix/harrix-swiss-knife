@@ -9,6 +9,17 @@ from PySide6.QtCore import Qt
 
 
 def write_in_output_txt(is_show_output: bool = True) -> Callable:
+    """
+    Decorator that captures the output of a function and writes it to a text file.
+
+    Args:
+
+    - `is_show_output` (`bool`, optional): Determines whether to automatically open the output file after writing. Defaults to `True`.
+
+    Returns:
+
+    - `Callable`: A decorator that wraps the target function with output capturing and writing functionality.
+    """
     def decorator(func: Callable) -> Callable:
         output_lines = []
 
@@ -40,6 +51,17 @@ def write_in_output_txt(is_show_output: bool = True) -> Callable:
 
 
 def run_powershell_script(commands: str) -> str:
+    """
+    Executes a PowerShell script composed of multiple commands.
+
+    Args:
+
+    - `commands` (`str`): A string containing PowerShell commands separated by newlines.
+
+    Returns:
+
+    - `str`: The combined output from stdout and stderr of the executed script.
+    """
     command = ";".join(map(str.strip, commands.strip().splitlines()))
 
     process = subprocess.run(
@@ -60,6 +82,17 @@ def run_powershell_script(commands: str) -> str:
 
 
 def run_powershell_script_as_admin(commands: str) -> str:
+    """
+    Executes PowerShell commands with administrative privileges.
+
+    Args:
+
+    - `commands` (`str`): A string containing PowerShell commands separated by newlines.
+
+    Returns:
+
+    - `str`: The combined output from the executed script's stdout and stderr.
+    """
     res_output = []
     command = ";".join(map(str.strip, commands.strip().splitlines()))
 
@@ -122,6 +155,16 @@ def run_powershell_script_as_admin(commands: str) -> str:
 
 
 def get_project_root() -> Optional[Path]:
+    """
+    Locate the project root directory by searching for the ".venv" folder.
+
+    Args:
+
+    Returns:
+
+    - `Optional[Path]`: The absolute path to the project root directory if found,
+      otherwise the script's directory or `None`.
+    """
     # Get the absolute path to the current file
     current_file = Path(__file__).resolve()
 
