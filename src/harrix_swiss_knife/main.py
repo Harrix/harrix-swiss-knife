@@ -19,36 +19,36 @@ class MainMenu:
 
         # Menu Python
         self.menu_python = QMenu("Python", None)
-        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project, "rye.svg")
-        self.add_item_menu(self.menu_python, actions_python.on_rye_new_project_dialog, "rye.svg")
+        self.add_item(self.menu_python, actions_python.on_rye_new_project, "rye.svg")
+        self.add_item(self.menu_python, actions_python.on_rye_new_project_dialog, "rye.svg")
 
         # Menu Images
         self.menu_images = QMenu("Images", None)
-        self.add_item_menu(self.menu_images, actions_images.on_images_optimize)
-        self.add_item_menu(self.menu_images, actions_images.on_images_optimize_quality)
-        self.add_item_menu(self.menu_images, actions_images.on_image_optimize_dialog)
-        self.add_item_menu(self.menu_images, actions_images.on_image_optimize_dialog_replace)
-        self.add_item_menu(self.menu_images, actions_images.on_image_optimize_file)
+        self.add_item(self.menu_images, actions_images.on_images_optimize)
+        self.add_item(self.menu_images, actions_images.on_images_optimize_quality)
+        self.add_item(self.menu_images, actions_images.on_image_optimize_dialog)
+        self.add_item(self.menu_images, actions_images.on_image_optimize_dialog_replace)
+        self.add_item(self.menu_images, actions_images.on_image_optimize_file)
 
         # Notes
         self.menu_notes = QMenu("Notes", None)
-        self.add_item_menu(self.menu_notes, actions_notes.on_diary_new)
-        self.add_item_menu(self.menu_notes, actions_notes.on_diary_new_with_images)
-        self.add_item_menu(self.menu_notes, actions_notes.on_diary_new_dream)
+        self.add_item(self.menu_notes, actions_notes.on_diary_new)
+        self.add_item(self.menu_notes, actions_notes.on_diary_new_with_images)
+        self.add_item(self.menu_notes, actions_notes.on_diary_new_dream)
 
         self.menu.addMenu(self.menu_python)
         self.menu.addMenu(self.menu_images)
         self.menu.addMenu(self.menu_notes)
-        self.add_item_menu(self.menu, actions_windows.on_open_camera_uploads)
-        self.add_item_menu(self.menu, actions_windows.on_block_disks)
+        self.add_item(self.menu, actions_windows.on_open_camera_uploads)
+        self.add_item(self.menu, actions_windows.on_block_disks)
         self.menu.addSeparator()
-        self.add_item_menu(self.menu, actions_images.on_image_optimize_clipboard)
-        self.add_item_menu(self.menu, actions_images.on_image_optimize_clipboard_dialog)
+        self.add_item(self.menu, actions_images.on_image_optimize_clipboard)
+        self.add_item(self.menu, actions_images.on_image_optimize_clipboard_dialog)
         self.menu.addSeparator()
         self.action_exit = QAction("Exit", triggered=lambda: QApplication.quit())
         self.menu.addAction(self.action_exit)
 
-    def add_item_menu(self, menu, class_action, icon=""):
+    def add_item(self, menu, class_action, icon=""):
         action_name = f"action_{class_action.__name__}"
 
         if icon:
