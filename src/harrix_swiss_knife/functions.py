@@ -1,3 +1,4 @@
+from typing import Callable, Optional
 import os
 from pathlib import Path
 import subprocess
@@ -7,8 +8,8 @@ from PySide6.QtGui import QIcon, QPixmap, QPainter, QFont
 from PySide6.QtCore import Qt
 
 
-def write_in_output_txt(is_show_output=True):
-    def decorator(func):
+def write_in_output_txt(is_show_output: bool = True) -> Callable:
+    def decorator(func: Callable) -> Callable:
         output_lines = []
 
         def wrapper(*args, **kwargs):
@@ -28,7 +29,7 @@ def write_in_output_txt(is_show_output=True):
             if is_show_output:
                 os.startfile(file)
 
-        def add_line(line):
+        def add_line(line: str):
             output_lines.append(line)
             print(line)
 
@@ -38,7 +39,7 @@ def write_in_output_txt(is_show_output=True):
     return decorator
 
 
-def run_powershell_script(commands):
+def run_powershell_script(commands: str) -> str:
     command = ";".join(map(str.strip, commands.strip().splitlines()))
 
     process = subprocess.run(
@@ -58,7 +59,7 @@ def run_powershell_script(commands):
     return "\n".join(filter(None, [process.stdout, process.stderr]))
 
 
-def run_powershell_script_as_admin(commands):
+def run_powershell_script_as_admin(commands: str) -> str:
     res_output = []
     command = ";".join(map(str.strip, commands.strip().splitlines()))
 
@@ -116,10 +117,11 @@ def run_powershell_script_as_admin(commands):
             os.remove(tmp_output_path)
         if os.path.exists(tmp_wrapper_path):
             os.remove(tmp_wrapper_path)
+
     return "\n".join(filter(None, res_output))
 
 
-def get_project_root():
+def get_project_root() -> Optional[Path]:
     # Get the absolute path to the current file
     current_file = Path(__file__).resolve()
 
@@ -131,7 +133,7 @@ def get_project_root():
     return current_file.parent
 
 
-def create_emoji_icon(emoji, size=32):
+def create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
 
