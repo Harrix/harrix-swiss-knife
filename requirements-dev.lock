@@ -10,24 +10,6 @@
 #   universal: false
 
 -e file:.
-altgraph==0.17.4
-    # via pyinstaller
-cffi==1.17.1
-    # via clr-loader
-clr-loader==0.2.7.post0
-    # via pythonnet
-packaging==24.2
-    # via pyinstaller
-    # via pyinstaller-hooks-contrib
-pefile==2023.2.7
-    # via pyinstaller
-pillow==11.0.0
-    # via harrix-swiss-knife
-pycparser==2.22
-    # via cffi
-pyinstaller==6.11.1
-pyinstaller-hooks-contrib==2024.10
-    # via pyinstaller
 pyside6==6.8.1
     # via harrix-swiss-knife
 pyside6-addons==6.8.1
@@ -35,13 +17,6 @@ pyside6-addons==6.8.1
 pyside6-essentials==6.8.1
     # via pyside6
     # via pyside6-addons
-pythonnet==3.0.5
-    # via harrix-swiss-knife
-pywin32-ctypes==0.2.3
-    # via pyinstaller
-setuptools==75.6.0
-    # via pyinstaller
-    # via pyinstaller-hooks-contrib
 shiboken6==6.8.1
     # via pyside6
     # via pyside6-addons

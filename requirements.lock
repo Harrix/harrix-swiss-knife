@@ -10,14 +10,6 @@
 #   universal: false
 
 -e file:.
-cffi==1.17.1
-    # via clr-loader
-clr-loader==0.2.7.post0
-    # via pythonnet
-pillow==11.0.0
-    # via harrix-swiss-knife
-pycparser==2.22
-    # via cffi
 pyside6==6.8.1
     # via harrix-swiss-knife
 pyside6-addons==6.8.1
@@ -25,8 +17,6 @@ pyside6-addons==6.8.1
 pyside6-essentials==6.8.1
     # via pyside6
     # via pyside6-addons
-pythonnet==3.0.5
-    # via harrix-swiss-knife
 shiboken6==6.8.1
     # via pyside6
     # via pyside6-addons
