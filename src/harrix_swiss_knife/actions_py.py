@@ -1,36 +1,35 @@
 import os
 import re
 from PySide6.QtWidgets import QInputDialog, QFileDialog
-
 from harrix_swiss_knife import functions
 
-path_default = "C:/Users/sergi/OneDrive/Projects/Python"
-start_pattern = "python_project_"
+path_default: str = "C:/Users/sergi/OneDrive/Projects/Python"
+start_pattern: str = "python_project_"
 
 
 class on_rye_new_project:
-    title = "New Rye project in Projects"
+    title: str = "New Rye project in Projects"
 
     @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs):
-        self.path = path_default
-        self.name_project = f"python_project_{f"{(find_max_project_number(self.path, start_pattern) + 1):02}"}"
+    def __call__(self, *args, **kwargs) -> None:
+        self.path: str = path_default
+        self.name_project: str = f"python_project_{f'{(find_max_project_number(self.path, start_pattern) + 1):02}'}"
 
         result_output = create_rye_new_project(self.name_project, self.path)
         self.__call__.add_line(result_output)
 
 
 class on_rye_new_project_dialog:
-    title = "New Rye project in  …"
+    title: str = "New Rye project in  …"
 
     @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs):
-        title = "Project name"
-        label = "Enter the name of the project (English, without spaces):"
+    def __call__(self, *args, **kwargs) -> None:
+        title: str = "Project name"
+        label: str = "Enter the name of the project (English, without spaces):"
         project_name, ok = QInputDialog.getText(None, title, label)
 
         if ok and project_name:
-            self.name_project = project_name
+            self.name_project: str = project_name
         else:
             self.__call__.add_line("The name of the project was not entered.")
             return
@@ -39,7 +38,7 @@ class on_rye_new_project_dialog:
         folder_path = QFileDialog.getExistingDirectory(None, title, path_default)
 
         if folder_path:
-            self.path = folder_path
+            self.path: str = folder_path
         else:
             self.__call__.add_line("The directory was not selected.")
             return
@@ -48,9 +47,9 @@ class on_rye_new_project_dialog:
         self.__call__.add_line(result_output)
 
 
-def find_max_project_number(base_path, start_pattern):
+def find_max_project_number(base_path: str, start_pattern: str) -> int:
     pattern = re.compile(start_pattern + r"(\d+)$")
-    max_number = 0
+    max_number: int = 0
     for item in os.listdir(base_path):
         path = os.path.join(base_path, item)
         if os.path.isdir(path):
@@ -63,8 +62,8 @@ def find_max_project_number(base_path, start_pattern):
     return max_number
 
 
-def create_rye_new_project(name_project, path):
-    commands = f"""
+def create_rye_new_project(name_project: str, path: str) -> str:
+    commands: str = f"""
         cd {path}
         rye init {name_project}
         code-insiders {path}/{name_project}
