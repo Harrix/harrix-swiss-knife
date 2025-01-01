@@ -41,11 +41,16 @@ class MainMenu:
         self.menu.addMenu(self.menu_notes)
         self.add_item(self.menu, actions_windows.on_open_camera_uploads, "📸")
         self.add_item(self.menu, actions_windows.on_block_disks, "🔒")
+        self.action_get_menu = QAction(
+            self.get_icon("☰"), "Get the list of items from this menu", triggered=lambda: self.get_menu()
+        )
+        self.menu.addAction(self.action_get_menu)
         self.menu.addSeparator()
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard, "🚀")
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard_dialog, "🚀")
         self.menu.addSeparator()
         self.action_exit = QAction(self.get_icon("×"), "Exit", triggered=lambda: QApplication.quit())
+
         self.menu.addAction(self.action_exit)
 
     def add_item(self, menu, class_action, icon=""):
@@ -63,6 +68,10 @@ class MainMenu:
         menu = QMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
+
+    @f.write_in_output_txt(is_show_output=True)
+    def get_menu(self):
+        self.get_menu.add_line("\n".join(f.generate_markdown_from_qmenu(self.menu)))
 
 
 if __name__ == "__main__":
