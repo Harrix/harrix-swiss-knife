@@ -74,7 +74,7 @@ class MainMenu:
         filename = f.get_project_root() / "README.md"
         list_of_menu = "\n".join(f.generate_markdown_from_qmenu(self.menu))
 
-        with open(filename, 'r', encoding='utf-8') as file:
+        with open(filename, "r", encoding="utf-8") as file:
             lines = file.readlines()
 
         start_index = None
@@ -87,8 +87,8 @@ class MainMenu:
                 break
 
         if start_index is not None and end_index is not None:
-            new_lines = "".join(lines[:start_index + 1]) + "\n" + list_of_menu + "\n\n" + "".join(lines[end_index:])
-            with open(filename, 'w', encoding='utf-8') as file:
+            new_lines = "".join(lines[: start_index + 1]) + "\n" + list_of_menu + "\n\n" + "".join(lines[end_index:])
+            with open(filename, "w", encoding="utf-8") as file:
                 file.writelines(new_lines)
 
         self.get_menu.add_line(list_of_menu)
