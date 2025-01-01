@@ -193,7 +193,9 @@ def create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
     pixmap.fill(Qt.transparent)
 
     painter = QPainter(pixmap)
-    painter.setFont(QFont('', int(size * 0.8)))
+    font = QFont()
+    font.setPointSize(int(size * 0.8))
+    painter.setFont(font)
     painter.drawText(pixmap.rect(), Qt.AlignCenter, emoji)
     painter.end()
 
