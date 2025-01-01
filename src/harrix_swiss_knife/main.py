@@ -86,8 +86,6 @@ class MainMenu:
                 end_index = i
                 break
 
-        print(start_index, end_index)
-
         if start_index is not None and end_index is not None:
             new_lines = "".join(lines[:start_index + 1]) + "\n" + list_of_menu + "\n\n" + "".join(lines[end_index:])
             with open(filename, 'w', encoding='utf-8') as file:
