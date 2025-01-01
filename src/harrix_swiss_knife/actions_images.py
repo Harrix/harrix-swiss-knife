@@ -179,7 +179,7 @@ class on_image_optimize_clipboard_dialog:
 
 
 class on_image_clear_optimized_images:
-    title: str = 'Clear the folder "optimized_images"'
+    title: str = "Clear the folder `optimized_images`"
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -193,7 +193,7 @@ class on_image_clear_optimized_images:
 
 
 class on_image_clear_images:
-    title: str = 'Clear the folder "images"'
+    title: str = "Clear the folder `images`"
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -207,7 +207,7 @@ class on_image_clear_images:
 
 
 class on_image_open_optimized_images:
-    title: str = 'Open the folder "optimized_images"'
+    title: str = "Open the folder `optimized_images`"
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -220,7 +220,7 @@ class on_image_open_optimized_images:
 
 
 class on_image_open_images:
-    title: str = 'Open the folder "images"'
+    title: str = "Open the folder `images`"
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
