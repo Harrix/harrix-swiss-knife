@@ -45,6 +45,17 @@ class on_diary_new_dream:
 
 
 def add_diary_new_diary(is_with_images: bool = False) -> Tuple[str, Path]:
+    """
+    Creates a new diary entry with the current date and time.
+
+    Args:
+
+    - `is_with_images` (`bool`, optional): Determines whether to include images in the diary entry. Defaults to `False`.
+
+    Returns:
+
+    - `Tuple[str, Path]`: A tuple containing the diary text and the path to the diary file.
+    """
     text = f"{beginning_of_md}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
@@ -52,6 +63,17 @@ def add_diary_new_diary(is_with_images: bool = False) -> Tuple[str, Path]:
 
 
 def add_diary_new_dream(is_with_images: bool = False) -> Tuple[str, Path]:
+    """
+    Creates a new dream diary entry with the current date and time.
+
+    Args:
+
+    - `is_with_images` (`bool`, optional): Determines whether to include images in the dream diary entry. Defaults to `False`.
+
+    Returns:
+
+    - `Tuple[str, Path]`: A tuple containing the dream diary text and the path to the diary file.
+    """
     text = f"{beginning_of_md}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
@@ -60,6 +82,19 @@ def add_diary_new_dream(is_with_images: bool = False) -> Tuple[str, Path]:
 
 
 def add_diary_new_note(base_path: str, text: str, is_with_images: bool) -> Tuple[str, Path]:
+    """
+    Creates a new diary note file in the specified path, organizing directories by year and month.
+
+    Args:
+
+    - `base_path` (`str`): The base directory path where the diary note will be created.
+    - `text` (`str`): The content to write into the diary note.
+    - `is_with_images` (`bool`): Determines whether to create an images directory alongside the diary note.
+
+    Returns:
+
+    - `Tuple[str, Path]`: A tuple containing a success message and the path to the created diary file.
+    """
     current_date = datetime.now()
     year = current_date.strftime("%Y")
     month = current_date.strftime("%m")

@@ -163,17 +163,12 @@ def get_project_root() -> Optional[Path]:
 
     Returns:
 
-    - `Optional[Path]`: The absolute path to the project root directory if found,
-      otherwise the script's directory or `None`.
+    - `Optional[Path]`: The absolute path to the project root directory if found, or `None`.
     """
-    # Get the absolute path to the current file
     current_file = Path(__file__).resolve()
-
-    # Search for the project root folder by going up the directory tree
     for parent in current_file.parents:
         if (parent / ".venv").exists():
             return parent
-    # If .venv is not found, return the script's directory or None
     return current_file.parent
 
 
