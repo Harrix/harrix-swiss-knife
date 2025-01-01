@@ -32,10 +32,10 @@ def write_in_output_txt(is_show_output: bool = True) -> Callable:
             end_time = time.time()
             elapsed_time = end_time - start_time
             wrapper.add_line(f"Execution time: {elapsed_time:.4f} seconds")
-            data_path = get_project_root() / "data"
-            if not data_path.exists():
-                data_path.mkdir(parents=True, exist_ok=True)
-            file = Path(data_path / "output.txt")
+            temp_path = get_project_root() / "temp"
+            if not temp_path.exists():
+                temp_path.mkdir(parents=True, exist_ok=True)
+            file = Path(temp_path / "output.txt")
             output_text = "\n".join(output_lines) if output_lines else ""
 
             file.write_text(output_text, encoding="utf8")

@@ -19,8 +19,8 @@ class on_images_optimize:
         commands: str = "npm run optimize"
 
         result_output = functions.run_powershell_script(commands)
-        os.startfile(functions.get_project_root() / "data" / "images")
-        os.startfile(functions.get_project_root() / "data" / "optimized_images")
+        os.startfile(functions.get_project_root() / "temp" / "images")
+        os.startfile(functions.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -32,8 +32,8 @@ class on_images_optimize_quality:
         commands: str = "npm run optimize quality=true"
 
         result_output = functions.run_powershell_script(commands)
-        os.startfile(functions.get_project_root() / "data" / "images")
-        os.startfile(functions.get_project_root() / "data" / "optimized_images")
+        os.startfile(functions.get_project_root() / "temp" / "images")
+        os.startfile(functions.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -83,7 +83,7 @@ class on_image_optimize_file:
 
         shutil.rmtree(temp_dir)
 
-        os.startfile(functions.get_project_root() / "data" / "optimized_images")
+        os.startfile(functions.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -157,7 +157,7 @@ class on_image_optimize_clipboard:
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        file_path: Path = functions.get_project_root() / "data" / "optimized_images" / file_name
+        file_path: Path = functions.get_project_root() / "temp" / "optimized_images" / file_name
         file_path = file_path.resolve()
 
         files = StringCollection()
@@ -176,3 +176,22 @@ class on_image_optimize_clipboard_dialog:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         on_image_optimize_clipboard.__call__(self, is_dialog=True)
+
+
+class on_image_clear:
+    title: str = "Clear the folder optimized_images"
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs) -> None:
+        title: str = "Project directory"
+        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
+
+        if not folder_path:
+            self.__call__.add_line("The directory was not selected.")
+            return
+
+        commands: str = f'npm run optimize imagesDir="{folder_path}"'
+
+        result_output = functions.run_powershell_script(commands)
+        os.startfile(Path(folder_path) / "temp")
+        self.__call__.add_line(result_output)

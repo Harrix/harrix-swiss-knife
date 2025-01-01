@@ -142,12 +142,12 @@ const processImage = async (file) => {
 };
 
 if (!imagesDir) {
-  imagesDir = path.join(__dirname, "../../data/images");
-  outputDir = path.join(__dirname, "../../data/optimized_images");
+  imagesDir = path.join(__dirname, "../../temp/images");
+  outputDir = path.join(__dirname, "../../temp/optimized_images");
   clearDirectory(outputDir);
 } else {
   if (outputDir == "optimized_images") {
-    outputDir = path.join(__dirname, "../../data/optimized_images");
+    outputDir = path.join(__dirname, "../../temp/optimized_images");
   } else if (!outputDir) {
     const tempDirPath = path.join(dictionary.imagesDir, "temp");
     fs.mkdir(tempDirPath, { recursive: true }, (err) => {
