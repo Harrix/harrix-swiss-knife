@@ -21,6 +21,7 @@ def write_in_output_txt(is_show_output: bool = True) -> Callable:
 
     - `Callable`: A decorator that wraps the target function with output capturing and writing functionality.
     """
+
     def decorator(func: Callable) -> Callable:
         output_lines = []
 
