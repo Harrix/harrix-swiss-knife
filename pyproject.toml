@@ -24,7 +24,9 @@ packages = ["src/harrix_swiss_knife"]
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "isort>=5.13.2",
+]
 
 [tool.ruff]
 line-length = 120
