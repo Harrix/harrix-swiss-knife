@@ -10,6 +10,32 @@ This project provides an application with a context menu in the system tray, fea
 
 _Figure 1: Screenshot_
 
+## List of commands
+
+- **Python**
+  - New Rye project in Projects
+  - New Rye project in  …
+- **Images**
+  - Optimize images
+  - Optimize images (high quality)
+  - Optimize images in …/temp
+  - Optimize images in … and replace
+  - Optimize one image
+  - Clear the folder `optimized_images`
+  - Clear the folder `images`
+  - Open the folder `optimized_images`
+  - Open the folder `images`
+- **Notes**
+  - New diary note
+  - New diary note with images
+  - New dream note
+- Open Camera Uploads
+- Block disks
+- Get the list of items from this menu
+- Optimize image from clipboard
+- Optimize image from clipboard as …
+- Exit
+
 ## Deploy on an empty machine (Windows)
 
 - Install [Rye](https://rye.astral.sh) ([Установка и работа с Rye (Python) в VSCode](https://github.com/Harrix/harrix.dev-articles-2024/blob/main/rye-vscode-python/rye-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
