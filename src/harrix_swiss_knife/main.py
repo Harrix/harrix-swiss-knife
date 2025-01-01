@@ -21,9 +21,14 @@ class MainMenu:
         self.menu_images = self.new_menu("Images", "🖼️")
         self.add_item(self.menu_images, actions_images.on_images_optimize, "🚀")
         self.add_item(self.menu_images, actions_images.on_images_optimize_quality, "🔝")
-        self.add_item(self.menu_images, actions_images.on_image_optimize_dialog, "📂")
-        self.add_item(self.menu_images, actions_images.on_image_optimize_dialog_replace, "📂")
-        self.add_item(self.menu_images, actions_images.on_image_optimize_file, "📋")
+        self.add_item(self.menu_images, actions_images.on_image_optimize_dialog, "⬆️")
+        self.add_item(self.menu_images, actions_images.on_image_optimize_dialog_replace, "⬆️")
+        self.add_item(self.menu_images, actions_images.on_image_optimize_file, "🖼️")
+        self.menu_images.addSeparator()
+        self.add_item(self.menu_images, actions_images.on_image_clear_optimized_images, "🧹")
+        self.add_item(self.menu_images, actions_images.on_image_clear_images, "🧹")
+        self.add_item(self.menu_images, actions_images.on_image_open_optimized_images, "📂")
+        self.add_item(self.menu_images, actions_images.on_image_open_images, "📂")
 
         # Notes
         self.menu_notes = self.new_menu("Notes", "📒")

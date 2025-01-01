@@ -178,20 +178,55 @@ class on_image_optimize_clipboard_dialog:
         on_image_optimize_clipboard.__call__(self, is_dialog=True)
 
 
-class on_image_clear:
-    title: str = "Clear the folder optimized_images"
+class on_image_clear_optimized_images:
+    title: str = 'Clear the folder "optimized_images"'
 
-    @functions.write_in_output_txt(is_show_output=True)
+    @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        title: str = "Project directory"
-        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
+        path = functions.get_project_root() / "temp" / "optimized_images"
+        if os.path.exists(path):
+            shutil.rmtree(path)
+            os.makedirs(path)
+            self.__call__.add_line(f"Folder '{path}' is clean.")
+        else:
+            self.__call__.add_line(f"Folder '{path}' is not exist.")
 
-        if not folder_path:
-            self.__call__.add_line("The directory was not selected.")
-            return
 
-        commands: str = f'npm run optimize imagesDir="{folder_path}"'
+class on_image_clear_images:
+    title: str = 'Clear the folder "images"'
 
-        result_output = functions.run_powershell_script(commands)
-        os.startfile(Path(folder_path) / "temp")
-        self.__call__.add_line(result_output)
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        path = functions.get_project_root() / "temp" / "images"
+        if os.path.exists(path):
+            shutil.rmtree(path)
+            os.makedirs(path)
+            self.__call__.add_line(f"Folder '{path}' is clean.")
+        else:
+            self.__call__.add_line(f"Folder '{path}' is not exist.")
+
+
+class on_image_open_optimized_images:
+    title: str = 'Open the folder "optimized_images"'
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        path = functions.get_project_root() / "temp" / "optimized_images"
+        if os.path.exists(path):
+            os.startfile(path)
+            self.__call__.add_line(f"Folder '{path}' is opened.")
+        else:
+            self.__call__.add_line(f"Folder '{path}' is not exist.")
+
+
+class on_image_open_images:
+    title: str = 'Open the folder "images"'
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        path = functions.get_project_root() / "temp" / "images"
+        if os.path.exists(path):
+            os.startfile(path)
+            self.__call__.add_line(f"Folder '{path}' is opened.")
+        else:
+            self.__call__.add_line(f"Folder '{path}' is not exist.")
