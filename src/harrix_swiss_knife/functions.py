@@ -1,12 +1,13 @@
-from typing import Callable, Optional, List
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import time
-from PySide6.QtGui import QIcon, QPixmap, QPainter, QFont
-from PySide6.QtWidgets import QMenu
+from pathlib import Path
+from typing import Callable, List, Optional
+
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
+from PySide6.QtWidgets import QMenu
 
 
 def write_in_output_txt(is_show_output: bool = True) -> Callable:

@@ -1,6 +1,8 @@
 import os
 import re
-from PySide6.QtWidgets import QInputDialog, QFileDialog
+
+from PySide6.QtWidgets import QFileDialog, QInputDialog
+
 from harrix_swiss_knife import functions
 
 path_default: str = "C:/Users/sergi/OneDrive/Projects/Python"
