@@ -55,7 +55,7 @@ def add_diary_new_dream(is_with_images: bool = False) -> Tuple[str, Path]:
     text = f"{beginning_of_md}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
-    text += "`` — .\n\n" * 5 + "`` — .\n"
+    text += "`` — не помню.\n\n" * 15 + "`` — не помню.\n"
     return add_diary_new_note(path_dream, text, is_with_images)
 
 
