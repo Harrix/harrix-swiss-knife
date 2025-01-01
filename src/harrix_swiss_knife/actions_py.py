@@ -48,6 +48,18 @@ class on_rye_new_project_dialog:
 
 
 def find_max_project_number(base_path: str, start_pattern: str) -> int:
+    """
+    Finds the maximum project number within directories matching a specified pattern.
+
+    Args:
+
+    - `base_path` (`str`): The base directory path to search for project folders.
+    - `start_pattern` (`str`): The starting pattern to identify relevant directories, followed by a number.
+
+    Returns:
+
+    - `int`: The highest project number found that matches the pattern. Returns `0` if no matching directories are found.
+    """
     pattern = re.compile(start_pattern + r"(\d+)$")
     max_number: int = 0
     for item in os.listdir(base_path):
