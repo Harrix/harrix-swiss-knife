@@ -63,6 +63,18 @@ def find_max_project_number(base_path: str, start_pattern: str) -> int:
 
 
 def create_rye_new_project(name_project: str, path: str) -> str:
+    """
+    Creates a new Rye project with the specified name and path, initializes it, and sets up necessary files.
+
+    Args:
+
+    - `name_project` (`str`): The name of the new Rye project.
+    - `path` (`str`): The directory path where the project will be created.
+
+    Returns:
+
+    - `str`: The output from executing the PowerShell script.
+    """
     commands: str = f"""
         cd {path}
         rye init {name_project}
