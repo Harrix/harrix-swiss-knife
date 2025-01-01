@@ -87,6 +87,39 @@ class on_image_optimize_file:
         self.__call__.add_line(result_output)
 
 
+class on_image_optimize_dialog_replace:
+    title: str = "Optimize images in … and replace"
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs) -> None:
+        title: str = "Project directory"
+        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
+
+        if not folder_path:
+            self.__call__.add_line("The directory was not selected.")
+            return
+
+        commands: str = f'npm run optimize imagesDir="{folder_path}"'
+        result_output = functions.run_powershell_script(commands)
+
+        folder_path = Path(folder_path)
+
+        for item in folder_path.iterdir():
+            if item.is_file():
+                item.unlink()
+
+        temp_folder: Path = folder_path / "temp"
+
+        for item in temp_folder.iterdir():
+            if item.is_file() or item.is_symlink():
+                shutil.copy2(item, folder_path / item.name)
+
+        shutil.rmtree(temp_folder)
+
+        os.startfile(folder_path)
+        self.__call__.add_line(result_output)
+
+
 class on_image_optimize_clipboard:
     title: str = "Optimize image from clipboard"
 
@@ -143,36 +176,3 @@ class on_image_optimize_clipboard_dialog:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         on_image_optimize_clipboard.__call__(self, is_dialog=True)
-
-
-class on_image_optimize_dialog_replace:
-    title: str = "Optimize images in … and replace"
-
-    @functions.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        title: str = "Project directory"
-        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
-
-        if not folder_path:
-            self.__call__.add_line("The directory was not selected.")
-            return
-
-        commands: str = f'npm run optimize imagesDir="{folder_path}"'
-        result_output = functions.run_powershell_script(commands)
-
-        folder_path = Path(folder_path)
-
-        for item in folder_path.iterdir():
-            if item.is_file():
-                item.unlink()
-
-        temp_folder: Path = folder_path / "temp"
-
-        for item in temp_folder.iterdir():
-            if item.is_file() or item.is_symlink():
-                shutil.copy2(item, folder_path / item.name)
-
-        shutil.rmtree(temp_folder)
-
-        os.startfile(folder_path)
-        self.__call__.add_line(result_output)
