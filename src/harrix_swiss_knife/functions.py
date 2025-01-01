@@ -1,10 +1,11 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, List
 import os
 from pathlib import Path
 import subprocess
 import tempfile
 import time
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QFont
+from PySide6.QtWidgets import QMenu
 from PySide6.QtCore import Qt
 
 
@@ -197,3 +198,30 @@ def create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
     painter.end()
 
     return QIcon(pixmap)
+
+
+def generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str]:
+    """
+    Recursively traverse the menu and its submenus, generating a Markdown list.
+
+    Args:
+
+    - `menu` (`QMenu`): The menu to traverse.
+    - `level` (`int`, optional): The current indentation level. Defaults to `0`.
+
+    Returns:
+
+    - `List[str]`: A list of strings representing the Markdown lines.
+    """
+    markdown_lines = []
+    for action in menu.actions():
+        if action.menu():  # If the action has a submenu
+            # Add a header for the submenu
+            markdown_lines.append(f'{"  " * level}- **{action.text()}**')
+            # Recursively traverse the submenu
+            markdown_lines.extend(generate_markdown_from_qmenu(action.menu(), level + 1))
+        else:
+            # Add a regular menu item
+            if action.text():
+                markdown_lines.append(f'{"  " * level}- {action.text()}')
+    return markdown_lines
