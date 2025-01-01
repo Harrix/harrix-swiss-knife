@@ -14,7 +14,8 @@ def write_in_output_txt(is_show_output: bool = True) -> Callable:
 
     Args:
 
-    - `is_show_output` (`bool`, optional): Determines whether to automatically open the output file after writing. Defaults to `True`.
+    - `is_show_output` (`bool`, optional): Determines whether to automatically open the output file after writing.
+      Defaults to `True`.
 
     Returns:
 
