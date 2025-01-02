@@ -12,20 +12,21 @@ from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
 
-def apply_func_to_files(folder: str, ext: str, func: Callable) -> None:
+def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
     """
     Applies a specified function to all files with a given extension within a folder.
 
     Args:
 
-    - `folder` (`str`): The path to the folder to search.
-    - `ext` (`str`): The file extension to filter by (e.g., `.txt`, `.py`).
-    - `func` (`Callable`): The function to apply to each matching file.
+    - `folder` (`str`): The path to the folder containing the files.
+    - `ext` (`str`): The file extension to filter by (e.g., ".txt").
+    - `func` (`Callable`): The function to apply to each filtered file.
 
     Returns:
 
-    - `None`: This function does not return anything.
+    - `str`: A summary of the results after applying the function to each file.
     """
+    list_files = []
     for root, dirs, files in os.walk(folder):
         # Exclude all directories and files starting with a dot
         dirs[:] = [d for d in dirs if not d.startswith(".")]
@@ -34,7 +35,13 @@ def apply_func_to_files(folder: str, ext: str, func: Callable) -> None:
         # Filter and process files with the specified extension
         for filename in fnmatch.filter(files, f"*{ext}"):
             file_path = os.path.join(root, filename)
-            func(file_path)
+            try:
+                func(file_path)
+                list_files.append(f"File {filename} is applied.")
+            except Exception:
+                list_files.append(f"❌ File {filename} is not applied.")
+
+    return "\n".join(list_files)
 
 
 def get_project_root() -> Optional[Path]:
