@@ -6,7 +6,8 @@ authors = [{ name = "Sergienko Anton", email = "anton.b.sergienko@gmail.com" }]
 dependencies = [
     "pyside6>=6.8.1",
     "pillow>=11.0.0",
-    "pythonnet>=3.0.5"
+    "pythonnet>=3.0.5",
+    "libcst>=1.5.1",
 ]
 license = { file = "LICENSE.md" }
 readme = "README.md"

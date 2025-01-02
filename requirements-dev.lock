@@ -15,6 +15,8 @@ cffi==1.17.1
 clr-loader==0.2.7.post0
     # via pythonnet
 isort==5.13.2
+libcst==1.5.1
+    # via harrix-swiss-knife
 pillow==11.0.0
     # via harrix-swiss-knife
 pycparser==2.22
@@ -28,6 +30,8 @@ pyside6-essentials==6.8.1
     # via pyside6-addons
 pythonnet==3.0.5
     # via harrix-swiss-knife
+pyyaml==6.0.2
+    # via libcst
 shiboken6==6.8.1
     # via pyside6
     # via pyside6-addons
