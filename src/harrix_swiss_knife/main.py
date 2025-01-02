@@ -16,6 +16,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_python, actions_py.on_rye_new_project)
         self.add_item(self.menu_python, actions_py.on_rye_new_project_dialog)
         self.add_item(self.menu_python, actions_py.on_sort_python_code_folder)
+        self.add_item(self.menu_python, actions_py.on_sort_python_code_file)
 
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
