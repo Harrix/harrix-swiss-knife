@@ -6,6 +6,7 @@ from harrix_swiss_knife import functions
 
 path_diary = "D:/Dropbox/Diaries/Diary"
 path_dream = "D:/Dropbox/Diaries/Dreams"
+path_github: str = "C:/GitHub"
 vscode_workspace = "D:/Dropbox/_Temp/_VS Code Workspaces/Diaries.code-workspace"
 beginning_of_md = """---
 author: Anton Sergienko
@@ -111,12 +112,35 @@ def add_diary_new_note(base_path: str, text: str, is_with_images: bool) -> Tuple
     month_path = year_path / month
     month_path.mkdir(exist_ok=True)
 
+    return add_note(month_path, day, text, is_with_images)
+
+
+def add_note(base_path: str, name: str, text: str, is_with_images: bool) -> Tuple[str, Path]:
+    """
+    Adds a note by creating a Markdown file, optionally with an images directory.
+
+    Args:
+
+    - `base_path` (`str`): The base directory path where the note will be added.
+    - `name` (`str`): The name of the note.
+    - `text` (`str`): The content of the note.
+    - `is_with_images` (`bool`): Flag indicating whether to create an images directory.
+
+    Returns:
+
+    - `Tuple[str, Path]`: A tuple containing a success message and the path to the created file.
+    """
+    base_path = Path(base_path)
+
     if is_with_images:
-        (month_path / day).mkdir(exist_ok=True)
-        (month_path / day / "img").mkdir(exist_ok=True)
-        file_path = month_path / day / f"{day}.md"
+        (base_path / name).mkdir(exist_ok=True)
+        (base_path / name / "img").mkdir(exist_ok=True)
+        file_path = base_path / name / f"{name}.md"
     else:
-        file_path = month_path / f"{day}.md"
+        file_path = base_path / f"{name}.md"
+
+    print("is_with_images", is_with_images)
+    print("+", file_path)
 
     with file_path.open(mode="w", encoding="utf-8") as file:
         file.write(text)
