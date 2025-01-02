@@ -66,26 +66,6 @@ class on_rye_new_project_dialog:
         self.__call__.add_line(result_output)
 
 
-class on_sort_python_code_folder:
-    icon: str = "📶"
-    title: str = "Sort classes, methods, functions in PY files"
-
-    @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        title = "Project directory"
-        folder_path = QFileDialog.getExistingDirectory(None, title, path_github)
-
-        if folder_path:
-            self.path: str = folder_path
-        else:
-            self.__call__.add_line("The directory was not selected.")
-            return
-
-        result_output = functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code)
-
-        self.__call__.add_line(result_output)
-
-
 class on_sort_python_code_file:
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in one PY file"
@@ -108,6 +88,26 @@ class on_sort_python_code_file:
             self.__call__.add_line(f"File {file_path} is applied.")
         except Exception:
             self.__call__.add_line(f"❌ File {file_path} is not applied.")
+
+
+class on_sort_python_code_folder:
+    icon: str = "📶"
+    title: str = "Sort classes, methods, functions in PY files"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        title = "Project directory"
+        folder_path = QFileDialog.getExistingDirectory(None, title, path_github)
+
+        if folder_path:
+            self.path: str = folder_path
+        else:
+            self.__call__.add_line("The directory was not selected.")
+            return
+
+        result_output = functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code)
+
+        self.__call__.add_line(result_output)
 
 
 def create_rye_new_project(name_project: str, path: str) -> str:
