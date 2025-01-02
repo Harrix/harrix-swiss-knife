@@ -1,3 +1,4 @@
+import fnmatch
 import os
 import subprocess
 import tempfile
@@ -9,6 +10,31 @@ import libcst as cst
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
+
+
+def apply_func_to_files(folder: str, ext: str, func: Callable) -> None:
+    """
+    Applies a specified function to all files with a given extension within a folder.
+
+    Args:
+
+    - `folder` (`str`): The path to the folder to search.
+    - `ext` (`str`): The file extension to filter by (e.g., `.txt`, `.py`).
+    - `func` (`Callable`): The function to apply to each matching file.
+
+    Returns:
+
+    - `None`: This function does not return anything.
+    """
+    for root, dirs, files in os.walk(folder):
+        # Exclude all directories and files starting with a dot
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        files = [f for f in files if not f.startswith(".")]
+
+        # Filter and process files with the specified extension
+        for filename in fnmatch.filter(files, f"*{ext}"):
+            file_path = os.path.join(root, filename)
+            func(file_path)
 
 
 def get_project_root() -> Optional[Path]:
