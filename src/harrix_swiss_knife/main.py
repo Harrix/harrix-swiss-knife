@@ -64,11 +64,6 @@ class MainMenu:
     def get_icon(self, icon):
         return QIcon(f":/assets/{icon}") if ".svg" in icon else f.create_emoji_icon(icon)
 
-    def new_menu(self, title, icon):
-        menu = QMenu(title, None)
-        menu.setIcon(self.get_icon(icon))
-        return menu
-
     @f.write_in_output_txt(is_show_output=True)
     def get_menu(self):
         filename = f.get_project_root() / "README.md"
@@ -92,6 +87,11 @@ class MainMenu:
                 file.writelines(new_lines)
 
         self.get_menu.add_line(list_of_menu)
+
+    def new_menu(self, title, icon):
+        menu = QMenu(title, None)
+        menu.setIcon(self.get_icon(icon))
+        return menu
 
 
 if __name__ == "__main__":

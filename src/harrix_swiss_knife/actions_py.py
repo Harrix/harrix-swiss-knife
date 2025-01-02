@@ -49,6 +49,32 @@ class on_rye_new_project_dialog:
         self.__call__.add_line(result_output)
 
 
+def create_rye_new_project(name_project: str, path: str) -> str:
+    """
+    Creates a new Rye project with the specified name and path, initializes it, and sets up necessary files.
+
+    Args:
+
+    - `name_project` (`str`): The name of the new Rye project.
+    - `path` (`str`): The directory path where the project will be created.
+
+    Returns:
+
+    - `str`: The output from executing the PowerShell script.
+    """
+    commands: str = f"""
+        cd {path}
+        rye init {name_project}
+        code-insiders {path}/{name_project}
+        cd {name_project}
+        rye sync
+        "" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8
+        Set-Content -Path src/{name_project}/__init__.py -Value $null
+        """
+
+    return functions.run_powershell_script(commands)
+
+
 def find_max_project_number(base_path: str, start_pattern: str) -> int:
     """
     Finds the maximum project number within directories matching a specified pattern.
@@ -74,29 +100,3 @@ def find_max_project_number(base_path: str, start_pattern: str) -> int:
                     max_number = number
 
     return max_number
-
-
-def create_rye_new_project(name_project: str, path: str) -> str:
-    """
-    Creates a new Rye project with the specified name and path, initializes it, and sets up necessary files.
-
-    Args:
-
-    - `name_project` (`str`): The name of the new Rye project.
-    - `path` (`str`): The directory path where the project will be created.
-
-    Returns:
-
-    - `str`: The output from executing the PowerShell script.
-    """
-    commands: str = f"""
-        cd {path}
-        rye init {name_project}
-        code-insiders {path}/{name_project}
-        cd {name_project}
-        rye sync
-        "" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8
-        Set-Content -Path src/{name_project}/__init__.py -Value $null
-        """
-
-    return functions.run_powershell_script(commands)
