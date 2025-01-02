@@ -62,12 +62,12 @@ class MainMenu:
         menu.addAction(action)
 
     def get_icon(self, icon):
-        return QIcon(f":/assets/{icon}") if ".svg" in icon else f.create_emoji_icon(icon)
+        return QIcon(f":/assets/{icon}") if ".svg" in icon else f.pyside_create_emoji_icon(icon)
 
     @f.write_in_output_txt(is_show_output=True)
     def get_menu(self):
         filename = f.get_project_root() / "README.md"
-        list_of_menu = "\n".join(f.generate_markdown_from_qmenu(self.menu))
+        list_of_menu = "\n".join(f.pyside_generate_markdown_from_qmenu(self.menu))
 
         with open(filename, "r", encoding="utf-8") as file:
             lines = file.readlines()

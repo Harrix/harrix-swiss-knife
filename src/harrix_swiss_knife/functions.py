@@ -10,7 +10,7 @@ from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
 
-def create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
+def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
     """
     Creates a QIcon object displaying the specified emoji.
 
@@ -36,7 +36,7 @@ def create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
     return QIcon(pixmap)
 
 
-def generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str]:
+def pyside_generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str]:
     """
     Recursively traverse the menu and its submenus, generating a Markdown list.
 
@@ -55,7 +55,7 @@ def generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str]:
             # Add a header for the submenu
             markdown_lines.append(f'{"  " * level}- **{action.text()}**')
             # Recursively traverse the submenu
-            markdown_lines.extend(generate_markdown_from_qmenu(action.menu(), level + 1))
+            markdown_lines.extend(pyside_generate_markdown_from_qmenu(action.menu(), level + 1))
         else:
             # Add a regular menu item
             if action.text():
