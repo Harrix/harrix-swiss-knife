@@ -1,6 +1,6 @@
-from pathlib import Path
 import os
 import re
+from pathlib import Path
 
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
@@ -15,8 +15,8 @@ CLI commands after installation.
 
 - `rye self update` — update Rye itself.
 - `rye sync --update-all` — update all project libraries.
-- `rye fmt` — format the project's Python files.
 - `isort .` — sort imports.
+- `rye fmt` — format the project's Python files.
 - `rye lint` — lint the project's Python files.
 - `rye fetch 3.13` + `rye pin 3.13` + `rye sync` — switch to a different Python version.
 """
@@ -96,7 +96,7 @@ def create_rye_new_project(name_project: str, path: str) -> str:
     readme_path = Path(path) / name_project / "README.md"
     print(readme_path)
     try:
-        with readme_path.open('a', encoding='utf-8') as file:
+        with readme_path.open("a", encoding="utf-8") as file:
             file.write(cli_commands)
         res += f"Content successfully added to {readme_path}"
     except FileNotFoundError:

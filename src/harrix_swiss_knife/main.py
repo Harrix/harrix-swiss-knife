@@ -5,7 +5,6 @@ from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
 from harrix_swiss_knife import resources_rc  # noqa
 from harrix_swiss_knife import actions_images, actions_notes, actions_py, actions_windows
-from harrix_swiss_knife import functions as f
 from harrix_swiss_knife import main_menu_base
 
 
