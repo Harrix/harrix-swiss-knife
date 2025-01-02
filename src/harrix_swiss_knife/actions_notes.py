@@ -24,22 +24,22 @@ class on_diary_new:
         self.__call__.add_line(output)
 
 
-class on_diary_new_with_images:
-    title = "New diary note with images"
-
-    @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        output, file_path = add_diary_new_diary(is_with_images=True)
-        functions.run_powershell_script(f'code-insiders "{vscode_workspace}" "{file_path}"')
-        self.__call__.add_line(output)
-
-
 class on_diary_new_dream:
     title = "New dream note"
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_dream()
+        functions.run_powershell_script(f'code-insiders "{vscode_workspace}" "{file_path}"')
+        self.__call__.add_line(output)
+
+
+class on_diary_new_with_images:
+    title = "New diary note with images"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        output, file_path = add_diary_new_diary(is_with_images=True)
         functions.run_powershell_script(f'code-insiders "{vscode_workspace}" "{file_path}"')
         self.__call__.add_line(output)
 
