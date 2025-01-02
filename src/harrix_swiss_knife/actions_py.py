@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import re
 
@@ -7,6 +8,18 @@ from harrix_swiss_knife import functions
 
 path_default: str = "C:/Users/sergi/OneDrive/Projects/Python"
 start_pattern: str = "python_project_"
+cli_commands = """
+## CLI commands
+
+CLI commands after installation.
+
+- `rye self update` — update Rye itself.
+- `rye sync --update-all` — update all project libraries.
+- `rye fmt` — format the project's Python files.
+- `isort .` — sort imports.
+- `rye lint` — lint the project's Python files.
+- `rye fetch 3.13` + `rye pin 3.13` + `rye sync` — switch to a different Python version.
+"""
 
 
 class on_rye_new_project:
@@ -16,7 +29,8 @@ class on_rye_new_project:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         self.path: str = path_default
-        self.name_project: str = f"python_project_{f'{(find_max_project_number(self.path, start_pattern) + 1):02}'}"
+        max_project_number = find_max_project_number(self.path, start_pattern)
+        self.name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
 
         result_output = create_rye_new_project(self.name_project, self.path)
         self.__call__.add_line(result_output)
@@ -64,17 +78,35 @@ def create_rye_new_project(name_project: str, path: str) -> str:
 
     - `str`: The output from executing the PowerShell script.
     """
-    commands: str = f"""
+    commands = f"""
         cd {path}
         rye init {name_project}
-        code-insiders {path}/{name_project}
         cd {name_project}
         rye sync
-        "" | Out-File -FilePath src/{name_project}/main.py -Encoding utf8
-        Set-Content -Path src/{name_project}/__init__.py -Value $null
+        rye add --dev isort
+        New-Item -ItemType File -Path src/{name_project}/main.py -Force
+        New-Item -ItemType File -Path src/{name_project}/__init__.py -Force
+        Add-Content -Path pyproject.toml -Value "`n[tool.ruff]"
+        Add-Content -Path pyproject.toml -Value "line-length = 120"
+        code-insiders {path}/{name_project}
         """
 
-    return functions.run_powershell_script(commands)
+    res = functions.run_powershell_script(commands)
+
+    readme_path = Path(path) / name_project / "README.md"
+    print(readme_path)
+    try:
+        with readme_path.open('a', encoding='utf-8') as file:
+            file.write(cli_commands)
+        res += f"Content successfully added to {readme_path}"
+    except FileNotFoundError:
+        res += f"File not found: {readme_path}"
+    except IOError as e:
+        res += f"I/O error: {e}"
+    except Exception as e:
+        res += f"An unexpected error occurred: {e}"
+
+    return res
 
 
 def find_max_project_number(base_path: str, start_pattern: str) -> int:
