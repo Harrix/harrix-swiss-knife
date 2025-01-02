@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 from harrix_swiss_knife import functions
 
 path_default: str = "C:/Users/sergi/OneDrive/Projects/Python"
+path_github: str = "C:/GitHub"
 start_pattern: str = "python_project_"
 cli_commands = """
 ## CLI commands
@@ -62,6 +63,28 @@ class on_rye_new_project_dialog:
             return
 
         result_output = create_rye_new_project(self.name_project, self.path)
+        self.__call__.add_line(result_output)
+
+
+class on_sort_python_code_folder:
+    icon: str = "📶"
+    title: str = "Sort classes, methods, functions in PY files"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        result_output = ""
+
+        title = "Project directory"
+        folder_path = QFileDialog.getExistingDirectory(None, title, path_github)
+
+        if folder_path:
+            self.path: str = folder_path
+        else:
+            self.__call__.add_line("The directory was not selected.")
+            return
+
+        result_output = functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code)
+
         self.__call__.add_line(result_output)
 
 
