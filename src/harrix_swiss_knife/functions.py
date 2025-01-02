@@ -185,6 +185,139 @@ def run_powershell_script_as_admin(commands: str) -> str:
     return "\n".join(filter(None, res_output))
 
 
+def sort_py_code(filename: str) -> None:
+    """
+    Sorts the classes and functions in a Python file alphabetically.
+
+    This function reads the specified Python file, parses its contents using `libcst`,
+    and rearranges the classes and functions in alphabetical order. Class attributes
+    and methods are organized within each class, and the sorted code is written back
+    to the file.
+
+    Args:
+
+    - `filename` (`str`): The path to the Python file to be sorted.
+
+    Returns:
+
+    - `None`: This function does not return any value.
+    """
+    with open(filename, "r", encoding="utf-8") as f:
+        code: str = f.read()
+
+    module: cst.Module = cst.parse_module(code)
+
+    # Split the module content into initial statements, final statements, classes, and functions
+    initial_statements: List[cst.BaseStatement] = []
+    final_statements: List[cst.BaseStatement] = []
+    class_defs: List[cst.ClassDef] = []
+    func_defs: List[cst.FunctionDef] = []
+
+    state: str = "initial"
+
+    for stmt in module.body:
+        if isinstance(stmt, cst.ClassDef):
+            state = "collecting"
+            class_defs.append(stmt)
+        elif isinstance(stmt, cst.FunctionDef):
+            state = "collecting"
+            func_defs.append(stmt)
+        else:
+            if state == "initial":
+                initial_statements.append(stmt)
+            else:
+                final_statements.append(stmt)
+
+    # Sort classes alphabetically and process each class
+    class_defs_sorted: List[cst.ClassDef] = sorted(class_defs, key=lambda cls: cls.name.value)
+
+    sorted_class_defs: List[cst.ClassDef] = []
+    for class_def in class_defs_sorted:
+        class_body_statements = class_def.body.body
+
+        # Initialize containers
+        docstring: Optional[cst.SimpleStatementLine] = None
+        class_attributes: List[cst.SimpleStatementLine] = []
+        methods: List[cst.FunctionDef] = []
+        other_statements: List[cst.BaseStatement] = []
+
+        idx: int = 0
+        total_statements: int = len(class_body_statements)
+
+        # Check if there is a docstring
+        if total_statements > 0:
+            first_stmt = class_body_statements[0]
+            if (
+                isinstance(first_stmt, cst.SimpleStatementLine)
+                and isinstance(first_stmt.body[0], cst.Expr)
+                and isinstance(first_stmt.body[0].value, cst.SimpleString)
+            ):
+                docstring = first_stmt
+                idx = 1  # Start from the next statement
+
+        # Process the remaining statements in the class body
+        for stmt in class_body_statements[idx:]:
+            if isinstance(stmt, cst.SimpleStatementLine) and any(
+                isinstance(elem, (cst.Assign, cst.AnnAssign)) for elem in stmt.body
+            ):
+                # This is a class attribute
+                class_attributes.append(stmt)
+            elif isinstance(stmt, cst.FunctionDef):
+                # This is a class method
+                methods.append(stmt)
+            else:
+                # Other statements (e.g., pass, expressions, etc.)
+                other_statements.append(stmt)
+
+        # Process methods: __init__ and other methods
+        init_method: Optional[cst.FunctionDef] = None
+        other_methods: List[cst.FunctionDef] = []
+
+        for method in methods:
+            if method.name.value == "__init__":
+                init_method = method
+            else:
+                other_methods.append(method)
+
+        other_methods_sorted: List[cst.FunctionDef] = sorted(other_methods, key=lambda m: m.name.value)
+
+        if init_method is not None:
+            methods_sorted: List[cst.FunctionDef] = [init_method] + other_methods_sorted
+        else:
+            methods_sorted = other_methods_sorted
+
+        # Assemble the new class body
+        new_body: List[cst.BaseStatement] = []
+        if docstring:
+            new_body.append(docstring)
+        new_body.extend(class_attributes)  # Class attributes remain at the top in original order
+        new_body.extend(methods_sorted)
+        new_body.extend(other_statements)
+
+        new_class_body: cst.IndentedBlock = cst.IndentedBlock(body=new_body)
+
+        # Update the class definition with the new body
+        new_class_def: cst.ClassDef = class_def.with_changes(body=new_class_body)
+        sorted_class_defs.append(new_class_def)
+
+    # Sort functions alphabetically
+    func_defs_sorted: List[cst.FunctionDef] = sorted(func_defs, key=lambda func: func.name.value)
+
+    # Assemble the new module body
+    new_module_body: List[cst.BaseStatement] = (
+        initial_statements + sorted_class_defs + func_defs_sorted + final_statements
+    )
+
+    new_module: cst.Module = module.with_changes(body=new_module_body)
+
+    # Convert the module back to code
+    new_code: str = new_module.code
+
+    # Write the sorted code back to the file
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(new_code)
+
+
 def write_in_output_txt(is_show_output: bool = True) -> Callable:
     """
     Decorator that captures the output of a function and writes it to a text file.
