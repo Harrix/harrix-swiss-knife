@@ -14,6 +14,7 @@ path_default: str = f"C:/GitHub/_content__harrix-dev/harrix.dev-articles-{dateti
 
 
 class on_image_clear_images:
+    icon: str = "🧹"
     title: str = "Clear the folder `images`"
 
     @functions.write_in_output_txt(is_show_output=False)
@@ -28,6 +29,7 @@ class on_image_clear_images:
 
 
 class on_image_clear_optimized_images:
+    icon: str = "🧹"
     title: str = "Clear the folder `optimized_images`"
 
     @functions.write_in_output_txt(is_show_output=False)
@@ -42,6 +44,7 @@ class on_image_clear_optimized_images:
 
 
 class on_image_open_images:
+    icon: str = "📂"
     title: str = "Open the folder `images`"
 
     @functions.write_in_output_txt(is_show_output=False)
@@ -55,6 +58,7 @@ class on_image_open_images:
 
 
 class on_image_open_optimized_images:
+    icon: str = "📂"
     title: str = "Open the folder `optimized_images`"
 
     @functions.write_in_output_txt(is_show_output=False)
@@ -68,6 +72,7 @@ class on_image_open_optimized_images:
 
 
 class on_image_optimize_clipboard:
+    icon: str = "🚀"
     title: str = "Optimize image from clipboard"
 
     @functions.write_in_output_txt(is_show_output=False)
@@ -118,6 +123,7 @@ class on_image_optimize_clipboard:
 
 
 class on_image_optimize_clipboard_dialog:
+    icon: str = "🚀"
     title: str = "Optimize image from clipboard as …"
 
     @functions.write_in_output_txt(is_show_output=False)
@@ -126,6 +132,7 @@ class on_image_optimize_clipboard_dialog:
 
 
 class on_image_optimize_dialog:
+    icon: str = "⬆️"
     title: str = "Optimize images in …/temp"
 
     @functions.write_in_output_txt(is_show_output=True)
@@ -145,6 +152,7 @@ class on_image_optimize_dialog:
 
 
 class on_image_optimize_dialog_replace:
+    icon: str = "⬆️"
     title: str = "Optimize images in … and replace"
 
     @functions.write_in_output_txt(is_show_output=True)
@@ -178,6 +186,7 @@ class on_image_optimize_dialog_replace:
 
 
 class on_image_optimize_file:
+    icon: str = "🖼️"
     title: str = "Optimize one image"
 
     @functions.write_in_output_txt(is_show_output=True)
@@ -209,6 +218,7 @@ class on_image_optimize_file:
 
 
 class on_images_optimize:
+    icon: str = "🚀"
     title: str = "Optimize images"
 
     @functions.write_in_output_txt(is_show_output=True)
@@ -222,6 +232,7 @@ class on_images_optimize:
 
 
 class on_images_optimize_quality:
+    icon: str = "🔝"
     title: str = "Optimize images (high quality)"
 
     @functions.write_in_output_txt(is_show_output=True)

@@ -7,6 +7,7 @@ path_camera_uploads = "D:/Dropbox/Camera Uploads"
 
 
 class on_block_disks:
+    icon: str = "🔒"
     title: str = "Block disks"
 
     @functions.write_in_output_txt(is_show_output=True)
@@ -21,6 +22,7 @@ class on_block_disks:
 
 
 class on_open_camera_uploads:
+    icon: str = "📸"
     title: str = "Open Camera Uploads"
 
     @functions.write_in_output_txt(is_show_output=False)

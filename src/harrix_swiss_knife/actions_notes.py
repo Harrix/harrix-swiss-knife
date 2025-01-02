@@ -15,6 +15,7 @@ lang: ru
 
 
 class on_diary_new:
+    icon: str = "📓"
     title = "New diary note"
 
     @functions.write_in_output_txt(is_show_output=False)
@@ -25,6 +26,7 @@ class on_diary_new:
 
 
 class on_diary_new_dream:
+    icon: str = "💤"
     title = "New dream note"
 
     @functions.write_in_output_txt(is_show_output=False)
@@ -35,6 +37,7 @@ class on_diary_new_dream:
 
 
 class on_diary_new_with_images:
+    icon: str = "📚"
     title = "New diary note with images"
 
     @functions.write_in_output_txt(is_show_output=False)

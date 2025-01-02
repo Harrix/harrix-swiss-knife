@@ -10,6 +10,7 @@ start_pattern: str = "python_project_"
 
 
 class on_rye_new_project:
+    icon: str = "rye.svg"
     title: str = "New Rye project in Projects"
 
     @functions.write_in_output_txt(is_show_output=False)
@@ -22,6 +23,7 @@ class on_rye_new_project:
 
 
 class on_rye_new_project_dialog:
+    icon: str = "rye.svg"
     title: str = "New Rye project in  …"
 
     @functions.write_in_output_txt(is_show_output=False)
