@@ -5,9 +5,27 @@ import time
 from pathlib import Path
 from typing import Callable, List, Optional
 
+import libcst as cst
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
+
+
+def get_project_root() -> Optional[Path]:
+    """
+    Locate the project root directory by searching for the ".venv" folder.
+
+    Args:
+
+    Returns:
+
+    - `Optional[Path]`: The absolute path to the project root directory if found, or `None`.
+    """
+    current_file = Path(__file__).resolve()
+    for parent in current_file.parents:
+        if (parent / ".venv").exists():
+            return parent
+    return current_file.parent
 
 
 def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
@@ -61,23 +79,6 @@ def pyside_generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str
             if action.text():
                 markdown_lines.append(f'{"  " * level}- {action.text()}')
     return markdown_lines
-
-
-def get_project_root() -> Optional[Path]:
-    """
-    Locate the project root directory by searching for the ".venv" folder.
-
-    Args:
-
-    Returns:
-
-    - `Optional[Path]`: The absolute path to the project root directory if found, or `None`.
-    """
-    current_file = Path(__file__).resolve()
-    for parent in current_file.parents:
-        if (parent / ".venv").exists():
-            return parent
-    return current_file.parent
 
 
 def run_powershell_script(commands: str) -> str:
