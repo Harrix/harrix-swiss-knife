@@ -1,4 +1,5 @@
 {
+  "beginning_of_article": "---\ndate: [DATE]\ncategories: [it]\ntags: []\nauthor: Anton Sergienko\nauthor-email: anton.b.sergienko@gmail.com\nlicense: CC BY 4.0\nlicense-url: https://github.com/Harrix/harrix.dev/blob/main/LICENSE.md\npermalink-source: https://github.com/Harrix/harrix.dev-articles-[YEAR]/blob/main/[NAME]/[NAME].md\npermalink: https://harrix.dev/ru/articles/[YEAR]/[NAME]/\nlang: ru\n---",
   "beginning_of_md": "---\nauthor: Anton Sergienko\nauthor-email: anton.b.sergienko@gmail.com\nlang: ru\n---",
   "cli_commands": "\n## CLI commands\n\nCLI commands after installation.\n\n- `rye self update` — update Rye itself.\n- `rye sync --update-all` — update all project libraries.\n- `isort .` — sort imports.\n- `rye fmt` — format the project's Python files.\n- `rye lint` — lint the project's Python files.\n- `rye fetch 3.13` + `rye pin 3.13` + `rye sync` — switch to a different Python version.\n",
   "editor": "code-insiders",
@@ -10,6 +11,7 @@
   "path_notes": "D:/Dropbox/Notes/Notes",
   "path_py_projects": "C:/Users/sergi/OneDrive/Projects/Python",
   "start_pattern_py_projects": "python_project_",
+  "vscode_workspace_articles": "D:/Dropbox/_Temp/_VS Code Workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_diaries": "D:/Dropbox/_Temp/_VS Code Workspaces/Diaries.code-workspace",
   "vscode_workspace_notes": "D:/Dropbox/_Temp/_VS Code Workspaces/Notes.code-workspace"
 }

@@ -38,6 +38,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_notes, actions_notes.on_diary_new)
         self.add_item(self.menu_notes, actions_notes.on_diary_new_with_images)
         self.add_item(self.menu_notes, actions_notes.on_diary_new_dream)
+        self.add_item(self.menu_notes, actions_notes.on_new_article)
 
         # Dev
         self.menu_dev = self.new_menu("Dev", "💻")

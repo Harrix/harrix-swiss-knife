@@ -2,21 +2,55 @@ from datetime import datetime
 from pathlib import Path
 from typing import Tuple
 
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
 config_data = {
+    "beginning_of_article": config["beginning_of_article"],
     "beginning_of_md": config["beginning_of_md"],
     "editor": config["editor"],
+    "path_articles": config["path_articles"],
     "path_diary": config["path_diary"],
     "path_dream": config["path_dream"],
     "path_github": config["path_github"],
     "path_notes": config["path_notes"],
+    "vscode_workspace_articles": config["vscode_workspace_articles"],
     "vscode_workspace_diaries": config["vscode_workspace_diaries"],
     "vscode_workspace_notes": config["vscode_workspace_notes"],
 }
+
+
+class on_new_article:
+    icon: str = "✍️"
+    title = "New article"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        title: str = "Article title"
+        label: str = "Enter the name of the article (English, without spaces):"
+        article_name, ok = QInputDialog.getText(None, title, label)
+
+        if ok and article_name:
+            self.name_project: str = article_name
+        else:
+            self.__call__.add_line("❌ The name of the article was not entered.")
+            return
+
+        folder_path = Path(config_data["path_articles"])
+        is_with_images = True
+
+        text = config_data["beginning_of_article"].replace("[YEAR]", datetime.now().strftime("%Y"))
+        text = text.replace("[NAME]", article_name)
+        text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
+        text += f"\n\n# {article_name}\n\n\n"
+
+        output, file_path = add_note(folder_path, article_name, text, is_with_images)
+        functions.run_powershell_script(
+            f'{config_data["editor"]} "{config_data["vscode_workspace_articles"]}" "{file_path}"'
+        )
+        self.__call__.add_line(output)
 
 
 class on_diary_new:
