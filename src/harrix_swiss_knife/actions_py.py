@@ -6,11 +6,11 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import functions
 
-config = functions.load_config('config.json')
-path_py_projects = config['path_py_projects']
-path_github = config['path_github']
-start_pattern_py_projects = config['start_pattern_py_projects']
-cli_commands = config['cli_commands']
+config = functions.load_config("config.json")
+path_py_projects = config["path_py_projects"]
+path_github = config["path_github"]
+start_pattern_py_projects = config["start_pattern_py_projects"]
+cli_commands = config["cli_commands"]
 
 
 class on_rye_new_project:

@@ -9,8 +9,8 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import functions
 
-config = functions.load_config('config.json')
-path_articles = config['path_articles']
+config = functions.load_config("config.json")
+path_articles = config["path_articles"]
 
 
 class on_image_clear_images:

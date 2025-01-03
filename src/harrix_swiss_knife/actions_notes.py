@@ -6,14 +6,14 @@ from PySide6.QtWidgets import QFileDialog
 
 from harrix_swiss_knife import functions
 
-config = functions.load_config('config.json')
-path_diary = config['path_diary']
-path_dream = config['path_dream']
-path_notes = config['path_notes']
-path_github = config['path_github']
-vscode_workspace_diaries = config['vscode_workspace_diaries']
-vscode_workspace_notes = config['vscode_workspace_notes']
-beginning_of_md = config['beginning_of_md']
+config = functions.load_config("config.json")
+path_diary = config["path_diary"]
+path_dream = config["path_dream"]
+path_notes = config["path_notes"]
+path_github = config["path_github"]
+vscode_workspace_diaries = config["vscode_workspace_diaries"]
+vscode_workspace_notes = config["vscode_workspace_notes"]
+beginning_of_md = config["beginning_of_md"]
 
 
 class on_diary_new:

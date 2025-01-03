@@ -3,8 +3,8 @@ from pathlib import Path
 
 from harrix_swiss_knife import functions
 
-config = functions.load_config('config.json')
-path_camera_uploads = config['path_camera_uploads']
+config = functions.load_config("config.json")
+path_camera_uploads = config["path_camera_uploads"]
 
 
 class on_block_disks:
