@@ -3,8 +3,8 @@ import sys
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
-from harrix_swiss_knife import resources_rc  # noqa
-from harrix_swiss_knife import actions_images, actions_notes, actions_py, actions_windows, main_menu_base
+from harrix_swiss_knife import actions_os, resources_rc  # noqa
+from harrix_swiss_knife import actions_images, actions_dev, actions_notes, actions_py, main_menu_base
 
 
 class MainMenu(main_menu_base.MainMenuBase):
@@ -47,15 +47,15 @@ class MainMenu(main_menu_base.MainMenuBase):
             self.get_icon("☰"), "Get the list of items from this menu", triggered=lambda: self.get_menu()
         )
         self.menu_dev.addAction(self.action_get_menu)
-        self.add_item(self.menu_dev, actions_windows.on_open_config_json)
+        self.add_item(self.menu_dev, actions_dev.on_open_config_json)
 
         # MainMenu
         self.menu.addMenu(self.menu_python)
         self.menu.addMenu(self.menu_images)
         self.menu.addMenu(self.menu_notes)
         self.menu.addMenu(self.menu_dev)
-        self.add_item(self.menu, actions_windows.on_open_camera_uploads)
-        self.add_item(self.menu, actions_windows.on_block_disks)
+        self.add_item(self.menu, actions_os.on_open_camera_uploads)
+        self.add_item(self.menu, actions_os.on_block_disks)
 
         self.menu.addSeparator()
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard)
