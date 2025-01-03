@@ -33,6 +33,7 @@ _Figure 1: Screenshot_
   - New diary note
   - New diary note with images
   - New dream note
+  - New article
 - **Dev**
   - Get the list of items from this menu
   - Open config.json
