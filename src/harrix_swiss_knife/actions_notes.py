@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Tuple
 
-from PySide6.QtWidgets import QFileDialog, QInputDialog
+from PySide6.QtWidgets import QFileDialog
 
 from harrix_swiss_knife import functions
 
@@ -57,23 +57,25 @@ class on_new_note_dialog:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        title = "Note name"
-        label = "Enter the name of the note:"
-        note_name, ok = QInputDialog.getText(None, title, label, text="note")
+        file_path, _ = QFileDialog.getSaveFileName(None, "Save Note", path_notes, "Markdown (*.md);;All Files (*)")
 
-        if ok and note_name:
-            file_name = note_name
+        if file_path:
+            path = Path(file_path)
+
+            folder_path = path.parent
+            note_name = path.stem
+
+            self.__call__.add_line(f"Folder path: {folder_path}")
+            self.__call__.add_line(f"File name without extension: {note_name}")
         else:
-            self.__call__.add_line("The name of the note was not entered.")
+            self.__call__.add_line("No file was selected.")
             return
-
-        folder_path: str = QFileDialog.getExistingDirectory(None, "Enter the folder for a note", path_notes)
 
         text = beginning_of_md
         text += f"\n\n# {note_name}\n\n\n"
         is_with_images = False
 
-        output, file_path = add_note(folder_path, file_name, text, is_with_images)
+        output, file_path = add_note(folder_path, note_name, text, is_with_images)
         functions.run_powershell_script(f'code-insiders "{vscode_workspace_notes}" "{file_path}"')
         self.__call__.add_line(output)
 
