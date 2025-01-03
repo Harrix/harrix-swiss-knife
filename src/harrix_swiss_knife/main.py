@@ -32,7 +32,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_images, actions_images.on_image_open_images)
 
         # Notes
-        self.menu_notes = self.new_menu("Notes", "📒")
+        self.menu_notes = self.new_menu("Notes", "📓")
         self.add_item(self.menu_notes, actions_notes.on_new_note_dialog)
         self.add_item(self.menu_notes, actions_notes.on_new_note_dialog_with_images)
         self.add_item(self.menu_notes, actions_notes.on_diary_new)
