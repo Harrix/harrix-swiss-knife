@@ -14,7 +14,7 @@ _Figure 1: Screenshot_
 
 - **Python**
   - New Rye project in Projects
-  - New Rye project in  …
+  - New Rye project in …
   - Sort classes, methods, functions in PY files
   - Sort classes, methods, functions in one PY file
 - **Images**
