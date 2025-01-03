@@ -12,34 +12,35 @@ _Figure 1: Screenshot_
 
 ## List of commands
 
-- **Python**
-  - New Rye project in Projects
-  - New Rye project in …
-  - Sort classes, methods, functions in PY files
-  - Sort classes, methods, functions in one PY file
-  - isort, rye fmt, sort in PY files
-- **Images**
-  - Optimize images
-  - Optimize images (high quality)
-  - Optimize images in …/temp
-  - Optimize images in … and replace
-  - Optimize one image
-  - Clear the folder `optimized_images`
-  - Clear the folder `images`
-  - Open the folder `optimized_images`
-  - Open the folder `images`
-- **Notes**
-  - New note
-  - New note with images
-  - New diary note
-  - New diary note with images
-  - New dream note
-  - New article
 - **Dev**
   - Get the list of items from this menu
   - Open config.json
-- Open Camera Uploads
-- Block disks
+- **Images**
+  - Optimize images
+  - Optimize images (high quality)
+  - Optimize images in … and replace
+  - Optimize images in …/temp
+  - Optimize one image
+  - Clear the folder `images`
+  - Clear the folder `optimized_images`
+  - Open the folder `images`
+  - Open the folder `optimized_images`
+- **Notes**
+  - New dream note
+  - New diary note with images
+  - New diary note
+  - New article
+  - New note with images
+  - New note
+- **OS**
+  - Block disks
+  - Open Camera Uploads
+- **Python**
+  - New Rye project in …
+  - New Rye project in Projects
+  - isort, rye fmt, sort in PY files
+  - Sort classes, methods, functions in one PY file
+  - Sort classes, methods, functions in PY files
 - Optimize image from clipboard
 - Optimize image from clipboard as …
 - Exit
