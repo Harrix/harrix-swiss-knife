@@ -32,21 +32,18 @@ class on_new_article:
         label: str = "Enter the name of the article (English, without spaces):"
         article_name, ok = QInputDialog.getText(None, title, label)
 
-        if ok and article_name:
-            self.name_project: str = article_name
-        else:
+        if not(ok and article_name):
             self.__call__.add_line("❌ The name of the article was not entered.")
             return
 
-        folder_path = Path(config_data["path_articles"])
-        is_with_images = True
+        article_name = article_name.replace(" ", "-")
 
         text = config_data["beginning_of_article"].replace("[YEAR]", datetime.now().strftime("%Y"))
         text = text.replace("[NAME]", article_name)
         text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
         text += f"\n\n# {article_name}\n\n\n"
 
-        output, file_path = add_note(folder_path, article_name, text, is_with_images)
+        output, file_path = add_note(Path(config_data["path_articles"]), article_name, text, True)
         functions.run_powershell_script(
             f'{config_data["editor"]} "{config_data["vscode_workspace_articles"]}" "{file_path}"'
         )
