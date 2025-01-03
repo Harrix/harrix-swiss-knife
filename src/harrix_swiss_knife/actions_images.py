@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import functions
 
-path_default: str = f"C:/GitHub/_content__harrix-dev/harrix.dev-articles-{datetime.now().year}"
+path_default_articles: str = f"C:/GitHub/_content__harrix-dev/harrix.dev-articles-{datetime.now().year}"
 
 
 class on_image_clear_images:
@@ -99,7 +99,7 @@ class on_image_optimize_clipboard:
         temp_dir: Path = Path(tempfile.mkdtemp())
         temp_file_path: Path = temp_dir / file_name
         image.save(temp_file_path, "PNG")
-        print(f"Image is saved as {temp_file_path}")
+        self.__call__.add_line(f"Image is saved as {temp_file_path}")
 
         commands: str = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
         result_output = functions.run_powershell_script(commands)
@@ -138,7 +138,7 @@ class on_image_optimize_dialog:
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title: str = "Project directory"
-        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
+        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default_articles)
 
         if not folder_path:
             self.__call__.add_line("❌ The directory was not selected.")
@@ -158,7 +158,7 @@ class on_image_optimize_dialog_replace:
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title: str = "Project directory"
-        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
+        folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default_articles)
 
         if not folder_path:
             self.__call__.add_line("❌ The directory was not selected.")
@@ -194,7 +194,7 @@ class on_image_optimize_file:
         file_path, _ = QFileDialog.getOpenFileName(
             None,
             "Select an Image File",
-            path_default,
+            path_default_articles,
             "Image Files (*.jpg *.jpeg *.webp *.png *.svg);;All Files (*)",
         )
 
