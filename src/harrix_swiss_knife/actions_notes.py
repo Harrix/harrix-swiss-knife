@@ -51,6 +51,7 @@ class on_diary_new_with_images:
         functions.run_powershell_script(f'code-insiders "{vscode_workspace_diaries}" "{file_path}"')
         self.__call__.add_line(output)
 
+
 class on_new_note_dialog:
     icon: str = "📓"
     title = "New note"
@@ -71,13 +72,23 @@ class on_new_note_dialog:
             self.__call__.add_line("No file was selected.")
             return
 
+        is_with_images = kwargs.get("is_with_images", False)
+
         text = beginning_of_md
         text += f"\n\n# {note_name}\n\n\n"
-        is_with_images = False
 
         output, file_path = add_note(folder_path, note_name, text, is_with_images)
         functions.run_powershell_script(f'code-insiders "{vscode_workspace_notes}" "{file_path}"')
         self.__call__.add_line(output)
+
+
+class on_new_note_dialog_with_images:
+    icon: str = "📓"
+    title = "New note with images"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        on_new_note_dialog.__call__(self, is_with_images=True)
 
 
 def add_diary_new_diary(is_with_images: bool = False) -> Tuple[str, Path]:
