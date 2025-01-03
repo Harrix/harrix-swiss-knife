@@ -22,34 +22,6 @@ config_data = {
 }
 
 
-class on_new_article:
-    icon: str = "✍️"
-    title = "New article"
-
-    @functions.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        title: str = "Article title"
-        label: str = "Enter the name of the article (English, without spaces):"
-        article_name, ok = QInputDialog.getText(None, title, label)
-
-        if not (ok and article_name):
-            self.__call__.add_line("❌ The name of the article was not entered.")
-            return
-
-        article_name = article_name.replace(" ", "-")
-
-        text = config_data["beginning_of_article"].replace("[YEAR]", datetime.now().strftime("%Y"))
-        text = text.replace("[NAME]", article_name)
-        text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
-        text += f"\n\n# {article_name}\n\n\n"
-
-        output, file_path = add_note(Path(config_data["path_articles"]), article_name, text, True)
-        functions.run_powershell_script(
-            f'{config_data["editor"]} "{config_data["vscode_workspace_articles"]}" "{file_path}"'
-        )
-        self.__call__.add_line(output)
-
-
 class on_diary_new:
     icon: str = "📖"
     title = "New diary note"
@@ -85,6 +57,34 @@ class on_diary_new_with_images:
         output, file_path = add_diary_new_diary(is_with_images=True)
         functions.run_powershell_script(
             f'{config_data["editor"]} "{config_data["vscode_workspace_diaries"]}" "{file_path}"'
+        )
+        self.__call__.add_line(output)
+
+
+class on_new_article:
+    icon: str = "✍️"
+    title = "New article"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        title: str = "Article title"
+        label: str = "Enter the name of the article (English, without spaces):"
+        article_name, ok = QInputDialog.getText(None, title, label)
+
+        if not (ok and article_name):
+            self.__call__.add_line("❌ The name of the article was not entered.")
+            return
+
+        article_name = article_name.replace(" ", "-")
+
+        text = config_data["beginning_of_article"].replace("[YEAR]", datetime.now().strftime("%Y"))
+        text = text.replace("[NAME]", article_name)
+        text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
+        text += f"\n\n# {article_name}\n\n\n"
+
+        output, file_path = add_note(Path(config_data["path_articles"]), article_name, text, True)
+        functions.run_powershell_script(
+            f'{config_data["editor"]} "{config_data["vscode_workspace_articles"]}" "{file_path}"'
         )
         self.__call__.add_line(output)
 
