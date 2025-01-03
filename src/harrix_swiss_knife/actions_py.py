@@ -46,6 +46,8 @@ class on_rye_new_project_dialog:
             self.__call__.add_line("❌ The name of the project was not entered.")
             return
 
+        self.name_project = self.name_project.replace(" ", "-")
+
         title = "Project directory"
         folder_path = QFileDialog.getExistingDirectory(None, title, config_data["path_py_projects"])
 

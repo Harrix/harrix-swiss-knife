@@ -91,7 +91,7 @@ class on_image_optimize_clipboard:
             image_name, ok = QInputDialog.getText(None, title, label, text="image")
 
             if ok and image_name:
-                file_name = image_name + ".png"
+                file_name = image_name.replace(" ", "-") + ".png"
             else:
                 self.__call__.add_line("❌ The name of the image was not entered.")
                 return
