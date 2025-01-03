@@ -69,7 +69,7 @@ class on_new_note_dialog:
             self.__call__.add_line(f"Folder path: {folder_path}")
             self.__call__.add_line(f"File name without extension: {note_name}")
         else:
-            self.__call__.add_line("No file was selected.")
+            self.__call__.add_line("❌ No file was selected.")
             return
 
         is_with_images = kwargs.get("is_with_images", False)

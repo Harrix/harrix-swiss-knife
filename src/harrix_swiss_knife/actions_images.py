@@ -25,7 +25,7 @@ class on_image_clear_images:
             os.makedirs(path)
             self.__call__.add_line(f"Folder '{path}' is clean.")
         else:
-            self.__call__.add_line(f"Folder '{path}' is not exist.")
+            self.__call__.add_line(f"❌ Folder '{path}' is not exist.")
 
 
 class on_image_clear_optimized_images:
@@ -40,7 +40,7 @@ class on_image_clear_optimized_images:
             os.makedirs(path)
             self.__call__.add_line(f"Folder '{path}' is clean.")
         else:
-            self.__call__.add_line(f"Folder '{path}' is not exist.")
+            self.__call__.add_line(f"❌ Folder '{path}' is not exist.")
 
 
 class on_image_open_images:
@@ -54,7 +54,7 @@ class on_image_open_images:
             os.startfile(path)
             self.__call__.add_line(f"Folder '{path}' is opened.")
         else:
-            self.__call__.add_line(f"Folder '{path}' is not exist.")
+            self.__call__.add_line(f"❌ Folder '{path}' is not exist.")
 
 
 class on_image_open_optimized_images:
@@ -68,7 +68,7 @@ class on_image_open_optimized_images:
             os.startfile(path)
             self.__call__.add_line(f"Folder '{path}' is opened.")
         else:
-            self.__call__.add_line(f"Folder '{path}' is not exist.")
+            self.__call__.add_line(f"❌ Folder '{path}' is not exist.")
 
 
 class on_image_optimize_clipboard:
@@ -80,7 +80,7 @@ class on_image_optimize_clipboard:
         image = ImageGrab.grabclipboard()
 
         if not isinstance(image, Image.Image):
-            self.__call__.add_line("No image found in the clipboard")
+            self.__call__.add_line("❌ No image found in the clipboard")
             return
 
         file_name: str = "image.png"
@@ -93,7 +93,7 @@ class on_image_optimize_clipboard:
             if ok and image_name:
                 file_name = image_name + ".png"
             else:
-                self.__call__.add_line("The name of the image was not entered.")
+                self.__call__.add_line("❌ The name of the image was not entered.")
                 return
 
         temp_dir: Path = Path(tempfile.mkdtemp())
@@ -141,7 +141,7 @@ class on_image_optimize_dialog:
         folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
 
         if not folder_path:
-            self.__call__.add_line("The directory was not selected.")
+            self.__call__.add_line("❌ The directory was not selected.")
             return
 
         commands: str = f'npm run optimize imagesDir="{folder_path}"'
@@ -161,7 +161,7 @@ class on_image_optimize_dialog_replace:
         folder_path: str = QFileDialog.getExistingDirectory(None, title, path_default)
 
         if not folder_path:
-            self.__call__.add_line("The directory was not selected.")
+            self.__call__.add_line("❌ The directory was not selected.")
             return
 
         commands: str = f'npm run optimize imagesDir="{folder_path}"'
@@ -199,7 +199,7 @@ class on_image_optimize_file:
         )
 
         if not file_path:
-            self.__call__.add_line("The file was not selected.")
+            self.__call__.add_line("❌ The file was not selected.")
             return
 
         temp_dir: Path = Path(tempfile.mkdtemp())

@@ -50,7 +50,7 @@ class on_rye_new_project_dialog:
         if ok and project_name:
             self.name_project: str = project_name
         else:
-            self.__call__.add_line("The name of the project was not entered.")
+            self.__call__.add_line("❌ The name of the project was not entered.")
             return
 
         title = "Project directory"
@@ -59,7 +59,7 @@ class on_rye_new_project_dialog:
         if folder_path:
             self.path: str = folder_path
         else:
-            self.__call__.add_line("The directory was not selected.")
+            self.__call__.add_line("❌ The directory was not selected.")
             return
 
         result_output = create_rye_new_project(self.name_project, self.path)
@@ -80,7 +80,7 @@ class on_sort_python_code_file:
         )
 
         if not file_path:
-            self.__call__.add_line("The file was not selected.")
+            self.__call__.add_line("❌ The file was not selected.")
             return
 
         try:
@@ -102,7 +102,7 @@ class on_sort_python_code_folder:
         if folder_path:
             self.path: str = folder_path
         else:
-            self.__call__.add_line("The directory was not selected.")
+            self.__call__.add_line("❌ The directory was not selected.")
             return
 
         result_output = functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code)
