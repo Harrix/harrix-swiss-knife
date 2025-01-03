@@ -39,16 +39,22 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_notes, actions_notes.on_diary_new_with_images)
         self.add_item(self.menu_notes, actions_notes.on_diary_new_dream)
 
+        # Dev
+        self.menu_dev = self.new_menu("Dev", "💻")
+        self.action_get_menu = QAction(
+            self.get_icon("☰"), "Get the list of items from this menu", triggered=lambda: self.get_menu()
+        )
+        self.menu_dev.addAction(self.action_get_menu)
+        self.add_item(self.menu_dev, actions_windows.on_open_config_json)
+
         # MainMenu
         self.menu.addMenu(self.menu_python)
         self.menu.addMenu(self.menu_images)
         self.menu.addMenu(self.menu_notes)
+        self.menu.addMenu(self.menu_dev)
         self.add_item(self.menu, actions_windows.on_open_camera_uploads)
         self.add_item(self.menu, actions_windows.on_block_disks)
-        self.action_get_menu = QAction(
-            self.get_icon("☰"), "Get the list of items from this menu", triggered=lambda: self.get_menu()
-        )
-        self.menu.addAction(self.action_get_menu)
+
         self.menu.addSeparator()
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard)
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard_dialog)

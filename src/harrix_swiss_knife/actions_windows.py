@@ -3,7 +3,7 @@ from pathlib import Path
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
-config_data = {"path_camera_uploads": config["path_camera_uploads"]}
+config_data = {"path_camera_uploads": config["path_camera_uploads"], "editor": config["editor"]}
 
 
 class on_block_disks:
@@ -36,3 +36,14 @@ class on_open_camera_uploads:
         os.startfile(folder_path / "work_video")
         os.startfile(folder_path / "screenshots")
         self.__call__.add_line('The folder "Camera Uploads" is opened.')
+
+
+class on_open_config_json:
+    icon: str = "⚙️"
+    title: str = "Open config.json"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        commands = f"{config_data["editor"]} {functions.get_project_root() / "config.json"}"
+        output = functions.run_powershell_script(commands)
+        self.__call__.add_line(output)

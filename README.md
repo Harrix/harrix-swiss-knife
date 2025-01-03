@@ -33,9 +33,11 @@ _Figure 1: Screenshot_
   - New diary note
   - New diary note with images
   - New dream note
+- **Dev**
+  - Get the list of items from this menu
+  - Open config.json
 - Open Camera Uploads
 - Block disks
-- Get the list of items from this menu
 - Optimize image from clipboard
 - Optimize image from clipboard as …
 - Exit
