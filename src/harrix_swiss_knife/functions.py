@@ -5,6 +5,7 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Callable, List, Optional
+import json
 
 import libcst as cst
 from PySide6.QtCore import Qt
@@ -59,6 +60,23 @@ def get_project_root() -> Optional[Path]:
         if (parent / ".venv").exists():
             return parent
     return current_file.parent
+
+
+def load_config(file_path: str) -> dict:
+    """
+    Loads a configuration file.
+
+    Args:
+
+    - `file_path` (`str`): The path to the configuration file.
+
+    Returns:
+
+    - `dict`: The configuration data.
+    """
+    with open(file_path, 'r', encoding="utf8") as config_file:
+        config = json.load(config_file)
+    return config
 
 
 def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:

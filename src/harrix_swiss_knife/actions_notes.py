@@ -6,17 +6,14 @@ from PySide6.QtWidgets import QFileDialog
 
 from harrix_swiss_knife import functions
 
-path_diary = "D:/Dropbox/Diaries/Diary"
-path_dream = "D:/Dropbox/Diaries/Dreams"
-path_notes = "D:/Dropbox/Notes/Notes"
-path_github: str = "C:/GitHub"
-vscode_workspace_diaries = "D:/Dropbox/_Temp/_VS Code Workspaces/Diaries.code-workspace"
-vscode_workspace_notes = "D:/Dropbox/_Temp/_VS Code Workspaces/Notes.code-workspace"
-beginning_of_md = """---
-author: Anton Sergienko
-author-email: anton.b.sergienko@gmail.com
-lang: ru
----"""
+config = functions.load_config('config.json')
+path_diary = config['path_diary']
+path_dream = config['path_dream']
+path_notes = config['path_notes']
+path_github = config['path_github']
+vscode_workspace_diaries = config['vscode_workspace_diaries']
+vscode_workspace_notes = config['vscode_workspace_notes']
+beginning_of_md = config['beginning_of_md']
 
 
 class on_diary_new:
@@ -181,9 +178,6 @@ def add_note(base_path: str, name: str, text: str, is_with_images: bool) -> Tupl
         file_path = base_path / name / f"{name}.md"
     else:
         file_path = base_path / f"{name}.md"
-
-    print("is_with_images", is_with_images)
-    print("+", file_path)
 
     with file_path.open(mode="w", encoding="utf-8") as file:
         file.write(text)

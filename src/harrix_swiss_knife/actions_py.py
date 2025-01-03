@@ -6,21 +6,11 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import functions
 
-path_default: str = "C:/Users/sergi/OneDrive/Projects/Python"
-path_github: str = "C:/GitHub"
-start_pattern: str = "python_project_"
-cli_commands = """
-## CLI commands
-
-CLI commands after installation.
-
-- `rye self update` — update Rye itself.
-- `rye sync --update-all` — update all project libraries.
-- `isort .` — sort imports.
-- `rye fmt` — format the project's Python files.
-- `rye lint` — lint the project's Python files.
-- `rye fetch 3.13` + `rye pin 3.13` + `rye sync` — switch to a different Python version.
-"""
+config = functions.load_config('config.json')
+path_py_projects = config['path_py_projects']
+path_github = config['path_github']
+start_pattern_py_projects = config['start_pattern_py_projects']
+cli_commands = config['cli_commands']
 
 
 class on_rye_new_project:
@@ -29,8 +19,8 @@ class on_rye_new_project:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        self.path: str = path_default
-        max_project_number = find_max_project_number(self.path, start_pattern)
+        self.path: str = path_py_projects
+        max_project_number = find_max_project_number(self.path, start_pattern_py_projects)
         self.name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
 
         result_output = create_rye_new_project(self.name_project, self.path)
@@ -54,7 +44,7 @@ class on_rye_new_project_dialog:
             return
 
         title = "Project directory"
-        folder_path = QFileDialog.getExistingDirectory(None, title, path_default)
+        folder_path = QFileDialog.getExistingDirectory(None, title, path_py_projects)
 
         if folder_path:
             self.path: str = folder_path
