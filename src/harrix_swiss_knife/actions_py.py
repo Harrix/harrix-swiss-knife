@@ -61,6 +61,32 @@ class on_rye_new_project_dialog:
         self.__call__.add_line(result_output)
 
 
+class on_sort_isort_fmt_python_code_folder:
+    icon: str = "🌟"
+    title: str = "isort, rye fmt, sort in PY files"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        title = "Project directory"
+        folder_path = QFileDialog.getExistingDirectory(None, title, config_data["path_github"])
+
+        if not (folder_path):
+            self.__call__.add_line("❌ The directory was not selected.")
+            return
+
+        commands = f"""
+            cd {folder_path}
+            isort .
+            rye fmt
+            """
+
+        res = functions.run_powershell_script(commands)
+        self.__call__.add_line(res)
+
+        res = functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code)
+        self.__call__.add_line(res)
+
+
 class on_sort_python_code_file:
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in one PY file"
