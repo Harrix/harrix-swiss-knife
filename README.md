@@ -15,6 +15,8 @@ _Figure 1: Screenshot_
 - **Python**
   - New Rye project in Projects
   - New Rye project in  …
+  - Sort classes, methods, functions in PY files
+  - Sort classes, methods, functions in one PY file
 - **Images**
   - Optimize images
   - Optimize images (high quality)
@@ -26,6 +28,8 @@ _Figure 1: Screenshot_
   - Open the folder `optimized_images`
   - Open the folder `images`
 - **Notes**
+  - New note
+  - New note with images
   - New diary note
   - New diary note with images
   - New dream note
