@@ -32,7 +32,7 @@ class on_new_article:
         label: str = "Enter the name of the article (English, without spaces):"
         article_name, ok = QInputDialog.getText(None, title, label)
 
-        if not(ok and article_name):
+        if not (ok and article_name):
             self.__call__.add_line("❌ The name of the article was not entered.")
             return
 
