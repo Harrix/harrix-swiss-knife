@@ -139,7 +139,6 @@ def create_rye_new_project(name_project: str, path: str) -> str:
     res = functions.run_powershell_script(commands)
 
     readme_path = Path(path) / name_project / "README.md"
-    print(readme_path)
     try:
         with readme_path.open("a", encoding="utf-8") as file:
             file.write(cli_commands)
