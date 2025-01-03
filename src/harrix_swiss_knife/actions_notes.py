@@ -7,13 +7,14 @@ from PySide6.QtWidgets import QFileDialog
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
+beginning_of_md = config["beginning_of_md"]
+editor = config["editor"]
 path_diary = config["path_diary"]
 path_dream = config["path_dream"]
-path_notes = config["path_notes"]
 path_github = config["path_github"]
+path_notes = config["path_notes"]
 vscode_workspace_diaries = config["vscode_workspace_diaries"]
 vscode_workspace_notes = config["vscode_workspace_notes"]
-beginning_of_md = config["beginning_of_md"]
 
 
 class on_diary_new:
@@ -23,7 +24,7 @@ class on_diary_new:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary()
-        functions.run_powershell_script(f'code-insiders "{vscode_workspace_diaries}" "{file_path}"')
+        functions.run_powershell_script(f'{editor} "{vscode_workspace_diaries}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -34,7 +35,7 @@ class on_diary_new_dream:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_dream()
-        functions.run_powershell_script(f'code-insiders "{vscode_workspace_diaries}" "{file_path}"')
+        functions.run_powershell_script(f'{editor} "{vscode_workspace_diaries}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -45,7 +46,7 @@ class on_diary_new_with_images:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary(is_with_images=True)
-        functions.run_powershell_script(f'code-insiders "{vscode_workspace_diaries}" "{file_path}"')
+        functions.run_powershell_script(f'{editor} "{vscode_workspace_diaries}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -75,7 +76,7 @@ class on_new_note_dialog:
         text += f"\n\n# {note_name}\n\n\n"
 
         output, file_path = add_note(folder_path, note_name, text, is_with_images)
-        functions.run_powershell_script(f'code-insiders "{vscode_workspace_notes}" "{file_path}"')
+        functions.run_powershell_script(f'{editor} "{vscode_workspace_notes}" "{file_path}"')
         self.__call__.add_line(output)
 
 

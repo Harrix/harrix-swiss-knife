@@ -7,10 +7,11 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
-path_py_projects = config["path_py_projects"]
-path_github = config["path_github"]
-start_pattern_py_projects = config["start_pattern_py_projects"]
 cli_commands = config["cli_commands"]
+editor = config["editor"]
+path_github = config["path_github"]
+path_py_projects = config["path_py_projects"]
+start_pattern_py_projects = config["start_pattern_py_projects"]
 
 
 class on_rye_new_project:
@@ -123,7 +124,7 @@ def create_rye_new_project(name_project: str, path: str) -> str:
         New-Item -ItemType File -Path src/{name_project}/__init__.py -Force
         Add-Content -Path pyproject.toml -Value "`n[tool.ruff]"
         Add-Content -Path pyproject.toml -Value "line-length = 120"
-        code-insiders {path}/{name_project}
+        {editor} {path}/{name_project}
         """
 
     res = functions.run_powershell_script(commands)
