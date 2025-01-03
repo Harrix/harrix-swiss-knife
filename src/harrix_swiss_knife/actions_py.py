@@ -7,11 +7,13 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
-cli_commands = config["cli_commands"]
-editor = config["editor"]
-path_github = config["path_github"]
-path_py_projects = config["path_py_projects"]
-start_pattern_py_projects = config["start_pattern_py_projects"]
+config_data = {
+    "cli_commands": config["cli_commands"],
+    "editor": config["editor"],
+    "path_github": config["path_github"],
+    "path_py_projects": config["path_py_projects"],
+    "start_pattern_py_projects": config["start_pattern_py_projects"],
+}
 
 
 class on_rye_new_project:
@@ -20,8 +22,8 @@ class on_rye_new_project:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        self.path: str = path_py_projects
-        max_project_number = find_max_project_number(self.path, start_pattern_py_projects)
+        self.path: str = config_data["path_py_projects"]
+        max_project_number = find_max_project_number(self.path, config_data["start_pattern_py_projects"])
         self.name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
 
         result_output = create_rye_new_project(self.name_project, self.path)
@@ -45,7 +47,7 @@ class on_rye_new_project_dialog:
             return
 
         title = "Project directory"
-        folder_path = QFileDialog.getExistingDirectory(None, title, path_py_projects)
+        folder_path = QFileDialog.getExistingDirectory(None, title, config_data["path_py_projects"])
 
         if folder_path:
             self.path: str = folder_path
@@ -66,7 +68,7 @@ class on_sort_python_code_file:
         file_path, _ = QFileDialog.getOpenFileName(
             None,
             "Select an Python File",
-            path_github,
+            config_data["path_github"],
             "Image Files (*.py);;All Files (*)",
         )
 
@@ -88,7 +90,7 @@ class on_sort_python_code_folder:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         title = "Project directory"
-        folder_path = QFileDialog.getExistingDirectory(None, title, path_github)
+        folder_path = QFileDialog.getExistingDirectory(None, title, config_data["path_github"])
 
         if folder_path:
             self.path: str = folder_path
@@ -124,7 +126,7 @@ def create_rye_new_project(name_project: str, path: str) -> str:
         New-Item -ItemType File -Path src/{name_project}/__init__.py -Force
         Add-Content -Path pyproject.toml -Value "`n[tool.ruff]"
         Add-Content -Path pyproject.toml -Value "line-length = 120"
-        {editor} {path}/{name_project}
+        {config_data["editor"]} {path}/{name_project}
         """
 
     res = functions.run_powershell_script(commands)
@@ -132,7 +134,7 @@ def create_rye_new_project(name_project: str, path: str) -> str:
     readme_path = Path(path) / name_project / "README.md"
     try:
         with readme_path.open("a", encoding="utf-8") as file:
-            file.write(cli_commands)
+            file.write(config_data["cli_commands"])
         res += f"Content successfully added to {readme_path}"
     except FileNotFoundError:
         res += f"File not found: {readme_path}"

@@ -1,10 +1,9 @@
 import os
 from pathlib import Path
-
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
-path_camera_uploads = config["path_camera_uploads"]
+config_data = {"path_camera_uploads": config["path_camera_uploads"]}
 
 
 class on_block_disks:
@@ -28,7 +27,7 @@ class on_open_camera_uploads:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        folder_path = Path(path_camera_uploads)
+        folder_path = Path(config_data["path_camera_uploads"])
         os.startfile(folder_path)
         os.startfile(folder_path / "info")
         os.startfile(folder_path / "temp")
