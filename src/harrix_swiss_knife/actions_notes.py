@@ -2,12 +2,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Tuple
 
+from PySide6.QtWidgets import QFileDialog, QInputDialog
+
 from harrix_swiss_knife import functions
 
 path_diary = "D:/Dropbox/Diaries/Diary"
 path_dream = "D:/Dropbox/Diaries/Dreams"
+path_notes = "D:/Dropbox/Notes/Notes"
 path_github: str = "C:/GitHub"
-vscode_workspace = "D:/Dropbox/_Temp/_VS Code Workspaces/Diaries.code-workspace"
+vscode_workspace_diaries = "D:/Dropbox/_Temp/_VS Code Workspaces/Diaries.code-workspace"
+vscode_workspace_notes = "D:/Dropbox/_Temp/_VS Code Workspaces/Notes.code-workspace"
 beginning_of_md = """---
 author: Anton Sergienko
 author-email: anton.b.sergienko@gmail.com
@@ -16,13 +20,13 @@ lang: ru
 
 
 class on_diary_new:
-    icon: str = "📓"
+    icon: str = "📖"
     title = "New diary note"
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary()
-        functions.run_powershell_script(f'code-insiders "{vscode_workspace}" "{file_path}"')
+        functions.run_powershell_script(f'code-insiders "{vscode_workspace_diaries}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -33,7 +37,7 @@ class on_diary_new_dream:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_dream()
-        functions.run_powershell_script(f'code-insiders "{vscode_workspace}" "{file_path}"')
+        functions.run_powershell_script(f'code-insiders "{vscode_workspace_diaries}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -44,7 +48,33 @@ class on_diary_new_with_images:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary(is_with_images=True)
-        functions.run_powershell_script(f'code-insiders "{vscode_workspace}" "{file_path}"')
+        functions.run_powershell_script(f'code-insiders "{vscode_workspace_diaries}" "{file_path}"')
+        self.__call__.add_line(output)
+
+class on_new_note_dialog:
+    icon: str = "📓"
+    title = "New note"
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        title = "Note name"
+        label = "Enter the name of the note:"
+        note_name, ok = QInputDialog.getText(None, title, label, text="note")
+
+        if ok and note_name:
+            file_name = note_name
+        else:
+            self.__call__.add_line("The name of the note was not entered.")
+            return
+
+        folder_path: str = QFileDialog.getExistingDirectory(None, "Enter the folder for a note", path_notes)
+
+        text = beginning_of_md
+        text += f"\n\n# {note_name}\n\n\n"
+        is_with_images = False
+
+        output, file_path = add_note(folder_path, file_name, text, is_with_images)
+        functions.run_powershell_script(f'code-insiders "{vscode_workspace_notes}" "{file_path}"')
         self.__call__.add_line(output)
 
 
