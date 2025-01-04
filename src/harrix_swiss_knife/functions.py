@@ -254,20 +254,27 @@ def run_powershell_script_as_admin(commands: str) -> str:
 
 def sort_py_code(filename: str) -> None:
     """
-    Sorts the classes and functions in a Python file alphabetically.
+    Sorts the Python code in the given file by organizing classes, functions, and statements.
 
-    This function reads the specified Python file, parses its contents using `libcst`,
-    and rearranges the classes and functions in alphabetical order. Class attributes
-    and methods are organized within each class, and the sorted code is written back
-    to the file.
+    This function reads a Python file, parses it, sorts classes and functions alphabetically,
+    and ensures that class attributes, methods, and other statements within classes are ordered
+    in a structured manner. The sorted code is then written back to the file.
 
     Args:
 
-    - `filename` (`str`): The path to the Python file to be sorted.
+    - `filename` (`str`): The path to the Python file that needs sorting.
 
     Returns:
 
-    - `None`: This function does not return any value.
+    - `None`: This function does not return a value, it modifies the file in place.
+
+    Note:
+
+    - This function uses `libcst` for parsing and manipulating Python ASTs.
+    - Sorting prioritizes initial non-class, non-function statements, followed by sorted classes,
+      then sorted functions, and finally any trailing statements.
+    - Within classes, `__init__` method is placed first among methods, followed by other methods
+      sorted alphabetically.
     """
     with open(filename, "r", encoding="utf-8") as f:
         code: str = f.read()
