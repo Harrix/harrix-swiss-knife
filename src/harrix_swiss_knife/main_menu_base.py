@@ -8,9 +8,29 @@ from harrix_swiss_knife import functions as f
 
 class MainMenuBase:
     def __init__(self):
+        """
+        Initializes the MainMenuBase with an empty QMenu.
+
+        Args:
+
+        - `self`: The instance of the class.
+        """
         self.menu = QMenu()
 
     def add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
+        """
+        Adds an action item to the given menu.
+
+        Args:
+
+        - `menu` (`QMenu`): The menu to which the action should be added.
+        - `class_action` (`Callable`): A function or method that represents the action to be performed.
+        - `icon` (`str`, optional): The icon path for the action. Defaults to `""`.
+
+        Returns:
+
+        - `None`
+        """
         if icon:
             action = QAction(self.get_icon(icon), class_action().title, triggered=class_action())
         elif class_action().icon:
@@ -21,10 +41,32 @@ class MainMenuBase:
         menu.addAction(action)
 
     def get_icon(self, icon: str) -> QIcon:
+        """
+        Retrieves or creates an icon based on the provided icon string.
+
+        Args:
+
+        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: "rye.svg", "🏆".
+
+        Returns:
+
+        - `QIcon`: The icon for use in the UI.
+        """
         return QIcon(f":/assets/{icon}") if ".svg" in icon else f.pyside_create_emoji_icon(icon)
 
     @f.write_in_output_txt(is_show_output=True)
     def get_menu(self) -> None:
+        """
+        Generates and updates the list of menu items in the README.md file.
+
+        Args:
+
+        - `self`: The instance of the class.
+
+        Returns:
+
+        - `None`
+        """
         filename = f.get_project_root() / "README.md"
         list_of_menu = "\n".join(f.pyside_generate_markdown_from_qmenu(self.menu))
 
@@ -48,6 +90,18 @@ class MainMenuBase:
         self.get_menu.add_line(list_of_menu)
 
     def new_menu(self, title: str, icon: str) -> QMenu:
+        """
+        Creates a new QMenu with a title and icon.
+
+        Args:
+
+        - `title` (`str`): The title of the new menu.
+        - `icon` (`str`): The path or description of the icon for the menu. Example: "rye.svg", "🏆".
+
+        Returns:
+
+        - `QMenu`: A new QMenu instance.
+        """
         menu = QMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
