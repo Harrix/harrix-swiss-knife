@@ -66,15 +66,15 @@ def get_project_root() -> Path:
 
 def load_config(file_path: str) -> dict:
     """
-    Loads a configuration file.
+    Loads configuration from a JSON file.
 
     Args:
 
-    - `file_path` (`str`): The path to the configuration file.
+    - `file_path` (`str`): Path to the JSON configuration file. Defaults to `None`.
 
     Returns:
 
-    - `dict`: The configuration data.
+    - `dict`: Configuration loaded from the file.
     """
     with open(file_path, "r", encoding="utf8") as config_file:
         config = json.load(config_file)
