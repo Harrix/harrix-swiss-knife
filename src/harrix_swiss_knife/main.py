@@ -35,10 +35,7 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu Dev
         self.menu_dev: QAction = self.new_menu("Dev", "💻")
-        self.action_get_menu: QAction = QAction(
-            self.get_icon("☰"), "Get the list of items from this menu", triggered=lambda: self.get_menu()
-        )
-        self.menu_dev.addAction(self.action_get_menu)
+        self.add_item(self.menu_dev, actions_dev.on_get_menu)
         self.add_item(self.menu_dev, actions_dev.on_open_config_json)
 
         # Menu Images

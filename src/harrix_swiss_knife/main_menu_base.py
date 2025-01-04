@@ -38,12 +38,14 @@ class MainMenuBase:
 
         - `None`
         """
+        action_instance = class_action(parent=self)
+
         if icon:
-            action = QAction(self.get_icon(icon), class_action().title, triggered=class_action())
-        elif class_action().icon:
-            action = QAction(self.get_icon(class_action().icon), class_action().title, triggered=class_action())
+            action = QAction(self.get_icon(icon), action_instance.title, triggered=action_instance)
+        elif hasattr(action_instance, 'icon') and action_instance.icon:
+            action = QAction(self.get_icon(action_instance.icon), action_instance.title, triggered=action_instance)
         else:
-            action = QAction(class_action().title, triggered=class_action())
+            action = QAction(action_instance.title, triggered=action_instance)
         setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
 
@@ -61,17 +63,24 @@ class MainMenuBase:
         """
         return QIcon(f":/assets/{icon}") if ".svg" in icon else f.pyside_create_emoji_icon(icon)
 
-    @f.write_in_output_txt(is_show_output=True)
-    def get_menu(self) -> None:
+    def get_menu(self) -> str:
         """
         Updates the README.md file with the current menu structure.
 
-        This method reads the README.md, finds the section to update,
-        writes the current menu structure into it, and then updates the file.
+        This method:
+
+        - Reads the content of README.md.
+        - Locates the section to update by looking for "## List of commands" and the next heading.
+        - Inserts the current menu structure into the file between these markers.
+        - Overwrites the README.md with the updated content.
+        - Returns the markdown representation of the menu.
+
+        Args:
 
         Returns:
 
-        - `None`
+        - `str`: The markdown formatted menu list.
+
         """
         filename = f.get_project_root() / "README.md"
         list_of_menu = "\n".join(f.pyside_generate_markdown_from_qmenu(self.menu))
@@ -92,7 +101,7 @@ class MainMenuBase:
             with open(filename, "w", encoding="utf-8") as file:
                 file.writelines(new_lines)
 
-        self.get_menu.add_line(list_of_menu)
+        return list_of_menu
 
     def new_menu(self, title: str, icon: str) -> QMenu:
         """
