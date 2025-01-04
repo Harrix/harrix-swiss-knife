@@ -1,6 +1,6 @@
 import sys
 
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
 from harrix_swiss_knife import resources_rc  # noqa

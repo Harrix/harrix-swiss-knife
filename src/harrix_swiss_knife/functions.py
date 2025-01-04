@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import libcst as cst
 from PySide6.QtCore import Qt
