@@ -8,7 +8,29 @@ from harrix_swiss_knife import actions_dev, actions_images, actions_notes, actio
 
 
 class MainMenu(main_menu_base.MainMenuBase):
+    """
+    Represents the main menu for a system tray application, managing various functionalities available through different submenus.
+
+    Attributes:
+
+    - `menu_dev` (`QAction`): Menu for development tools, labeled with "💻".
+    - `menu_images` (`QAction`): Menu for image manipulation tools, labeled with "🖼️".
+    - `menu_notes` (`QAction`): Menu for note-taking functionalities, labeled with "📓".
+    - `menu_os` (`QAction`): Menu for OS-specific operations, labeled with "🪟".
+    - `menu_python` (`QAction`): Menu for Python-related tools, labeled with "py.svg".
+    """
+
     def __init__(self):
+        """
+        Initializes the MainMenu with various submenus and actions:
+
+        - Sets up the development tools menu.
+        - Configures image manipulation options.
+        - Adds note-taking features.
+        - Includes OS operations.
+        - Provides Python project management tools.
+        - Adds general application controls like clipboard operations and exit.
+        """
         super().__init__()
 
         # Menu Dev
