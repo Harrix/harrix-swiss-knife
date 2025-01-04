@@ -109,8 +109,9 @@ def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
 
 def pyside_generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str]:
     """
-    Generates a markdown representation of a QMenu structure. This function traverses the QMenu and its submenus
-    to produce a nested list in markdown format.
+    Generates a markdown representation of a QMenu structure.
+
+    This function traverses the QMenu and its submenus to produce a nested list in markdown format.
 
     Args:
 
@@ -137,15 +138,18 @@ def pyside_generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str
 
 def run_powershell_script(commands: str) -> str:
     """
-    Executes a PowerShell script composed of multiple commands.
+    Runs a PowerShell script with the given commands.
+
+    This function executes a PowerShell script by concatenating multiple commands into a single command string,
+    which is then run through the `subprocess` module. It ensures that the output encoding is set to UTF-8.
 
     Args:
 
-    - `commands` (`str`): A string containing PowerShell commands separated by newlines.
+    - `commands` (`str`): A string containing PowerShell commands to execute.
 
     Returns:
 
-    - `str`: The combined output from stdout and stderr of the executed script.
+    - `str`: Combined output and error messages from the PowerShell execution.
     """
     command = ";".join(map(str.strip, commands.strip().splitlines()))
 
