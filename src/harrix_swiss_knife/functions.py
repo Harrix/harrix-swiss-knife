@@ -83,16 +83,16 @@ def load_config(file_path: str) -> dict:
 
 def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
     """
-    Creates a QIcon object displaying the specified emoji.
+    Creates an icon with the given emoji.
 
     Args:
 
-    - `emoji` (`str`): The emoji character to display.
-    - `size` (`int`, optional): The size of the icon in pixels. Defaults to 32.
+    - `emoji` (`str`): The emoji to be used in the icon.
+    - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
 
     Returns:
 
-    - `QIcon`: A QIcon object containing the rendered emoji.
+    - `QIcon`: A QIcon object containing the emoji as an icon.
     """
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
