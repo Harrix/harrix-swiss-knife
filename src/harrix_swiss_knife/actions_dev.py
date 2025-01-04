@@ -1,6 +1,3 @@
-import os
-from pathlib import Path
-
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
