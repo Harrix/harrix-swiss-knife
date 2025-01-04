@@ -394,16 +394,35 @@ def sort_py_code(filename: str) -> None:
 
 def write_in_output_txt(is_show_output: bool = True) -> Callable:
     """
-    Decorator that captures the output of a function and writes it to a text file.
+    Decorator to write function output to a temporary file and optionally display it.
+
+    This decorator captures all output of the decorated function into a list,
+    measures execution time, and writes this information into an `output.txt` file
+    in a temporary directory within the project root. It also offers the option
+    to automatically open this file after writing.
 
     Args:
 
-    - `is_show_output` (`bool`, optional): Determines whether to automatically open the output file after writing.
-      Defaults to `True`.
+    - `is_show_output` (`bool`): If `True`, automatically open the output file
+      after writing. Defaults to `True`.
 
     Returns:
 
-    - `Callable`: A decorator that wraps the target function with output capturing and writing functionality.
+    - `Callable`: A decorator function that wraps another function.
+
+    The decorator adds the following methods to the wrapped function:
+
+    - `add_line` (`Callable`): A method to add lines to the output list, which
+      will be written to the file.
+
+    Note:
+
+    - This decorator changes the behavior of the decorated function by capturing
+      its output and timing its execution.
+    - The `output.txt` file is created in a `temp` folder under the project root.
+      If the folder does not exist, it will be created.
+    - The function uses `os.startfile` to open the file which might not work on
+      all platforms or with all file types.
     """
 
     def decorator(func: Callable) -> Callable:
