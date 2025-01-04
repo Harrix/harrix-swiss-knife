@@ -21,7 +21,7 @@ def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
 
     - `folder` (`str`): The path to the root folder where the function should be applied. Defaults to `None`.
     - `ext` (`str`): The file extension to filter files by. Should include the dot (e.g., '.py').
-    - `func` (`Callable`): The function to apply to each file. This function should take a single argument, the file path.
+    - `func` (`Callable`): The function to apply to each file. This function should take an argument, the file path.
 
     Returns:
 
@@ -45,17 +45,19 @@ def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
     return "\n".join(list_files)
 
 
-def get_project_root() -> Optional[Path]:
+def get_project_root() -> Path:
     """
-    Locate the project root directory by searching for the ".venv" folder.
+    Finds the root directory of the current project.
 
-    Args:
+    This function traverses up the directory tree from the current file looking for a directory containing
+    a `.venv` folder, which is assumed to indicate the project root.
 
     Returns:
 
-    - `Optional[Path]`: The absolute path to the project root directory if found, or `None`.
+    - `Path`: The path to the project's root directory.
+
     """
-    current_file = Path(__file__).resolve()
+    current_file: Path = Path(__file__).resolve()
     for parent in current_file.parents:
         if (parent / ".venv").exists():
             return parent
