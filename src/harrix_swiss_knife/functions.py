@@ -392,6 +392,55 @@ def sort_py_code(filename: str) -> None:
         f.write(new_code)
 
 
+def tree_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:
+    """
+    Generates a tree-like representation of directory contents.
+
+    Example output:
+
+    ```text
+    ├─ note1
+    │  ├─ featured-image.png
+    │  └─ note1.md
+    └─ note2
+        └─ note2.md
+    ```
+
+    Args:
+
+    - `path` (`Path`): The root directory path to start the tree from.
+    - `is_ignore_hidden_dirs` (`bool`): If `True`, hidden directories (starting with a dot) are excluded from the tree.
+      Defaults to `False`.
+
+    Returns:
+
+    - `str`: A string representation of the directory structure with ASCII art tree elements.
+
+    Note:
+
+    - This function uses recursion to traverse directories. It handles `PermissionError`
+      by excluding directories without permission.
+    - Uses ASCII characters to represent tree branches (`├──`, `└──`, `│`).
+    """
+
+    def __tree(path: Path, is_ignore_hidden_dirs: bool = False, prefix: str = ""):
+        if is_ignore_hidden_dirs and path.name.startswith("."):
+            contents = []
+        else:
+            try:
+                contents = list(path.iterdir())
+            except PermissionError:
+                contents = []
+        pointers = ["├─ "] * (len(contents) - 1) + ["└─ "]
+        for pointer, path in zip(pointers, contents):
+            yield prefix + pointer + path.name
+            if path.is_dir():
+                extension = "│  " if pointer == "├─ " else "   "
+                yield from __tree(path, is_ignore_hidden_dirs, prefix=prefix + extension)
+
+    return "\n".join([line for line in __tree(Path(path), is_ignore_hidden_dirs)])
+
+
 def write_in_output_txt(is_show_output: bool = True) -> Callable:
     """
     Decorator to write function output to a temporary file and optionally display it.
