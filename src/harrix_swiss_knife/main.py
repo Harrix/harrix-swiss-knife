@@ -42,6 +42,8 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.menu_os = self.new_menu("OS", "🪟")
         self.add_item(self.menu_os, actions_os.on_block_disks)
         self.add_item(self.menu_os, actions_os.on_open_camera_uploads)
+        self.add_item(self.menu_os, actions_os.on_tree_view_folder_ignore_hidden_folders)
+        self.add_item(self.menu_os, actions_os.on_tree_view_folder)
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")

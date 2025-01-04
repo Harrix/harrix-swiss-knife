@@ -392,7 +392,7 @@ def sort_py_code(filename: str) -> None:
         f.write(new_code)
 
 
-def tree_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:
+def tree_view_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:
     """
     Generates a tree-like representation of directory contents.
 

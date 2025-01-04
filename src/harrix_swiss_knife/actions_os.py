@@ -1,10 +1,12 @@
 import os
 from pathlib import Path
 
+from PySide6.QtWidgets import QFileDialog
+
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
-config_data = {"path_camera_uploads": config["path_camera_uploads"]}
+config_data = {"path_camera_uploads": config["path_camera_uploads"],"path_github": config["path_github"]}
 
 
 class on_block_disks:
@@ -41,3 +43,32 @@ class on_open_camera_uploads:
         os.startfile(folder_path / "work_video")
         os.startfile(folder_path / "screenshots")
         self.__call__.add_line('The folder "Camera Uploads" is opened.')
+
+class on_tree_view_folder:
+    icon: str = "├"
+    title: str = "Tree view of a folder"
+
+    def __init__(self, **kwargs): ...
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs) -> None:
+        title = "Project directory"
+        folder_path = QFileDialog.getExistingDirectory(None, title, config_data["path_github"])
+
+        if not folder_path:
+            self.__call__.add_line("❌ The directory was not selected.")
+            return
+
+        result_output = functions.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_dirs", False))
+
+        self.__call__.add_line(result_output)
+
+class on_tree_view_folder_ignore_hidden_folders:
+    icon: str = "├"
+    title: str = "Tree view of a folder (ignore hidden dirs)"
+
+    def __init__(self, **kwargs): ...
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs) -> None:
+        on_tree_view_folder.__call__(self, is_ignore_hidden_dirs = True)
