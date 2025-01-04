@@ -131,18 +131,19 @@ class on_sort_python_code_folder:
         self.__call__.add_line(result_output)
 
 
-def create_rye_new_project(name_project: str, path: str) -> str:
+def create_rye_new_project(name_project: str, path: str | Path) -> str:
     """
-    Creates a new Rye project with the specified name and path, initializes it, and sets up necessary files.
+    Creates a new project using Rye, initializes it, and sets up necessary files.
 
     Args:
 
-    - `name_project` (`str`): The name of the new Rye project.
-    - `path` (`str`): The directory path where the project will be created.
+    - `name_project` (`str`): The name of the new project.
+    - `path` (`str` | `Path`): The directory path where the project will be created.
 
     Returns:
 
-    - `str`: The output from executing the PowerShell script.
+    - `str`: A string containing the result of the operations performed.
+
     """
     commands = f"""
         cd {path}
@@ -176,16 +177,17 @@ def create_rye_new_project(name_project: str, path: str) -> str:
 
 def find_max_project_number(base_path: str, start_pattern: str) -> int:
     """
-    Finds the maximum project number within directories matching a specified pattern.
+    Finds the highest project number in a given directory based on a pattern.
 
     Args:
 
-    - `base_path` (`str`): The base directory path to search for project folders.
-    - `start_pattern` (`str`): The starting pattern to identify relevant directories, followed by a number.
+    - `base_path` (`str`): The base directory path to search for projects.
+    - `start_pattern` (`str`): A regex pattern for matching project names.
 
     Returns:
 
-    - `int`: The highest project number found that matches the pattern. Returns `0` if no matching directories are found.
+    - `int`: The maximum project number found, or 0 if no matches are found.
+
     """
     pattern = re.compile(start_pattern + r"(\d+)$")
     max_number: int = 0
