@@ -17,6 +17,9 @@ class on_image_clear_images:
     icon: str = "🧹"
     title: str = "Clear the folder `images`"
 
+    def __init__(self, **kwargs):
+        ...
+
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         path = functions.get_project_root() / "temp" / "images"
@@ -31,6 +34,9 @@ class on_image_clear_images:
 class on_image_clear_optimized_images:
     icon: str = "🧹"
     title: str = "Clear the folder `optimized_images`"
+
+    def __init__(self, **kwargs):
+        ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -47,6 +53,9 @@ class on_image_open_images:
     icon: str = "📂"
     title: str = "Open the folder `images`"
 
+    def __init__(self, **kwargs):
+        ...
+
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         path = functions.get_project_root() / "temp" / "images"
@@ -61,6 +70,9 @@ class on_image_open_optimized_images:
     icon: str = "📂"
     title: str = "Open the folder `optimized_images`"
 
+    def __init__(self, **kwargs):
+        ...
+
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         path = functions.get_project_root() / "temp" / "optimized_images"
@@ -74,6 +86,9 @@ class on_image_open_optimized_images:
 class on_image_optimize_clipboard:
     icon: str = "🚀"
     title: str = "Optimize image from clipboard"
+
+    def __init__(self, **kwargs):
+        ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -126,6 +141,9 @@ class on_image_optimize_clipboard_dialog:
     icon: str = "🚀"
     title: str = "Optimize image from clipboard as …"
 
+    def __init__(self, **kwargs):
+        ...
+
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         on_image_optimize_clipboard.__call__(self, is_dialog=True)
@@ -134,6 +152,9 @@ class on_image_optimize_clipboard_dialog:
 class on_image_optimize_dialog:
     icon: str = "⬆️"
     title: str = "Optimize images in …/temp"
+
+    def __init__(self, **kwargs):
+        ...
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
@@ -154,6 +175,9 @@ class on_image_optimize_dialog:
 class on_image_optimize_dialog_replace:
     icon: str = "⬆️"
     title: str = "Optimize images in … and replace"
+
+    def __init__(self, **kwargs):
+        ...
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
@@ -189,6 +213,9 @@ class on_image_optimize_file:
     icon: str = "🖼️"
     title: str = "Optimize one image"
 
+    def __init__(self, **kwargs):
+        ...
+
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
@@ -221,6 +248,9 @@ class on_images_optimize:
     icon: str = "🚀"
     title: str = "Optimize images"
 
+    def __init__(self, **kwargs):
+        ...
+
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         commands: str = "npm run optimize"
@@ -234,6 +264,9 @@ class on_images_optimize:
 class on_images_optimize_quality:
     icon: str = "🔝"
     title: str = "Optimize images (high quality)"
+
+    def __init__(self, **kwargs):
+        ...
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:

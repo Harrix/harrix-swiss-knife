@@ -11,6 +11,9 @@ class on_block_disks:
     icon: str = "🔒"
     title: str = "Block disks"
 
+    def __init__(self, **kwargs):
+        ...
+
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         commands = """
@@ -25,6 +28,9 @@ class on_block_disks:
 class on_open_camera_uploads:
     icon: str = "📸"
     title: str = "Open Camera Uploads"
+
+    def __init__(self, **kwargs):
+        ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
