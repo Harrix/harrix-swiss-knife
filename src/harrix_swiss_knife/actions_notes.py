@@ -1,6 +1,5 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple
 
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
@@ -134,15 +133,15 @@ class on_new_note_dialog_with_images:
 
 def add_diary_new_diary(is_with_images: bool = False) -> str | Path:
     """
-    Creates a new diary entry with the current date and time.
+    Creates a new diary entry for the current day and time.
 
     Args:
 
-    - `is_with_images` (`bool`): Indicates whether to create directories for images. Defaults to `False`.
+    - `is_with_images` (`bool`): Whether to create directories for images. Defaults to `False`.
 
     Returns:
 
-    - `str | Path`: A message indicating the file created and the path to the file.
+    - `str | Path`: The path to the created diary entry file or a string message indicating creation.
     """
     text = f"{config_data['beginning_of_md']}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
@@ -152,15 +151,15 @@ def add_diary_new_diary(is_with_images: bool = False) -> str | Path:
 
 def add_diary_new_dream(is_with_images: bool = False) -> str | Path:
     """
-    Creates a new dream entry with placeholders for content.
+    Creates a new dream diary entry for the current day and time with placeholders for dream descriptions.
 
     Args:
 
-    - `is_with_images` (`bool`): Indicates whether to create directories for images. Defaults to `False`.
+    - `is_with_images` (`bool`): Whether to create directories for images. Defaults to `False`.
 
     Returns:
 
-    - `str | Path`: A message indicating the file created and the path to the file.
+    - `str | Path`: The path to the created dream diary entry file or a string message indicating creation.
     """
     text = f"{config_data['beginning_of_md']}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
@@ -171,17 +170,17 @@ def add_diary_new_dream(is_with_images: bool = False) -> str | Path:
 
 def add_diary_new_note(base_path: str | Path, text: str, is_with_images: bool) -> str | Path:
     """
-    Adds a new note to the specified diary or dream journal.
+    Adds a new note to the diary or dream diary for the given base path.
 
     Args:
 
-    - `base_path` (`str | Path`): The base path where the note will be saved.
-    - `text` (`str`): The content of the note.
-    - `is_with_images` (`bool`): Indicates whether to create directories for images.
+    - `base_path` (`str | Path`): The base path where the note should be added.
+    - `text` (`str`): The content to write in the note.
+    - `is_with_images` (`bool`): Whether to create a directory for images alongside the note.
 
     Returns:
 
-    - `str | Path`: A message indicating the file created and the path to the file.
+    - `str | Path`: A string message indicating the file was created along with the file path.
     """
     current_date = datetime.now()
     year = current_date.strftime("%Y")
@@ -201,18 +200,18 @@ def add_diary_new_note(base_path: str | Path, text: str, is_with_images: bool) -
 
 def add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
     """
-    Creates a new note file with the given name and content.
+    Adds a note to the specified base path.
 
     Args:
 
-    - `base_path` (`str | Path`): The directory where the note will be saved.
-    - `name` (`str`): The name of the note file.
-    - `text` (`str`): The content to write in the note.
-    - `is_with_images` (`bool`): Indicates whether to create directories for images.
+    - `base_path` (`str | Path`): The path where the note will be added.
+    - `name` (`str`): The name for the note file or directory.
+    - `text` (`str`): The text content for the note.
+    - `is_with_images` (`bool`): If true, creates directories for images.
 
     Returns:
 
-    - `str | Path`: A message indicating the file created and the path to the file.
+    - `str | Path`: A tuple containing a message about file creation and the path to the file.
     """
     base_path = Path(base_path)
 
