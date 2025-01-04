@@ -132,56 +132,56 @@ class on_new_note_dialog_with_images:
         on_new_note_dialog.__call__(self, is_with_images=True)
 
 
-def add_diary_new_diary(is_with_images: bool = False) -> Tuple[str, Path]:
+def add_diary_new_diary(is_with_images: bool = False) -> str | Path:
     """
     Creates a new diary entry with the current date and time.
 
     Args:
 
-    - `is_with_images` (`bool`, optional): Determines whether to include images in the diary entry. Defaults to `False`.
+    - `is_with_images` (`bool`): Indicates whether to create directories for images. Defaults to `False`.
 
     Returns:
 
-    - `Tuple[str, Path]`: A tuple containing the diary text and the path to the diary file.
+    - `str | Path`: A message indicating the file created and the path to the file.
     """
-    text = f"{config_data["beginning_of_md"]}\n\n"
+    text = f"{config_data['beginning_of_md']}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
     return add_diary_new_note(config_data["path_diary"], text, is_with_images)
 
 
-def add_diary_new_dream(is_with_images: bool = False) -> Tuple[str, Path]:
+def add_diary_new_dream(is_with_images: bool = False) -> str | Path:
     """
-    Creates a new dream diary entry with the current date and time.
+    Creates a new dream entry with placeholders for content.
 
     Args:
 
-    - `is_with_images` (`bool`, optional): Determines whether to include images in the dream diary entry. Defaults to `False`.
+    - `is_with_images` (`bool`): Indicates whether to create directories for images. Defaults to `False`.
 
     Returns:
 
-    - `Tuple[str, Path]`: A tuple containing the dream diary text and the path to the diary file.
+    - `str | Path`: A message indicating the file created and the path to the file.
     """
-    text = f"{config_data["beginning_of_md"]}\n\n"
+    text = f"{config_data['beginning_of_md']}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
     text += "`` — не помню.\n\n" * 15 + "`` — не помню.\n"
     return add_diary_new_note(config_data["path_dream"], text, is_with_images)
 
 
-def add_diary_new_note(base_path: str, text: str, is_with_images: bool) -> Tuple[str, Path]:
+def add_diary_new_note(base_path: str | Path, text: str, is_with_images: bool) -> str | Path:
     """
-    Creates a new diary note file in the specified path, organizing directories by year and month.
+    Adds a new note to the specified diary or dream journal.
 
     Args:
 
-    - `base_path` (`str`): The base directory path where the diary note will be created.
-    - `text` (`str`): The content to write into the diary note.
-    - `is_with_images` (`bool`): Determines whether to create an images directory alongside the diary note.
+    - `base_path` (`str | Path`): The base path where the note will be saved.
+    - `text` (`str`): The content of the note.
+    - `is_with_images` (`bool`): Indicates whether to create directories for images.
 
     Returns:
 
-    - `Tuple[str, Path]`: A tuple containing a success message and the path to the created diary file.
+    - `str | Path`: A message indicating the file created and the path to the file.
     """
     current_date = datetime.now()
     year = current_date.strftime("%Y")
@@ -199,20 +199,20 @@ def add_diary_new_note(base_path: str, text: str, is_with_images: bool) -> Tuple
     return add_note(month_path, day, text, is_with_images)
 
 
-def add_note(base_path: str, name: str, text: str, is_with_images: bool) -> Tuple[str, Path]:
+def add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
     """
-    Adds a note by creating a Markdown file, optionally with an images directory.
+    Creates a new note file with the given name and content.
 
     Args:
 
-    - `base_path` (`str`): The base directory path where the note will be added.
-    - `name` (`str`): The name of the note.
-    - `text` (`str`): The content of the note.
-    - `is_with_images` (`bool`): Flag indicating whether to create an images directory.
+    - `base_path` (`str | Path`): The directory where the note will be saved.
+    - `name` (`str`): The name of the note file.
+    - `text` (`str`): The content to write in the note.
+    - `is_with_images` (`bool`): Indicates whether to create directories for images.
 
     Returns:
 
-    - `Tuple[str, Path]`: A tuple containing a success message and the path to the created file.
+    - `str | Path`: A message indicating the file created and the path to the file.
     """
     base_path = Path(base_path)
 
