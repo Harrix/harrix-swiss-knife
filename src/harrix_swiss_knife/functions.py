@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable
 
 import libcst as cst
 from PySide6.QtCore import Qt
@@ -15,17 +15,17 @@ from PySide6.QtWidgets import QMenu
 
 def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
     """
-    Applies a specified function to all files with a given extension within a folder.
+    Applies a given function to all files with a specified extension in a folder and its sub-folders.
 
     Args:
 
-    - `folder` (`str`): The path to the folder containing the files.
-    - `ext` (`str`): The file extension to filter by (e.g., ".txt").
-    - `func` (`Callable`): The function to apply to each filtered file.
+    - `folder` (`str`): The path to the root folder where the function should be applied. Defaults to `None`.
+    - `ext` (`str`): The file extension to filter files by. Should include the dot (e.g., '.py').
+    - `func` (`Callable`): The function to apply to each file. This function should take a single argument, the file path.
 
     Returns:
 
-    - `str`: A summary of the results after applying the function to each file.
+    - `str`: A string listing the results of applying the function to each file, with each result on a new line.
     """
     list_files = []
     for root, dirs, files in os.walk(folder):
