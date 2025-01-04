@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Callable
+from typing import Callable, List
 
 import libcst as cst
 from PySide6.QtCore import Qt
@@ -109,18 +109,19 @@ def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
 
 def pyside_generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str]:
     """
-    Recursively traverse the menu and its submenus, generating a Markdown list.
+    Generates a markdown representation of a QMenu structure. This function traverses the QMenu and its submenus
+    to produce a nested list in markdown format.
 
     Args:
 
-    - `menu` (`QMenu`): The menu to traverse.
-    - `level` (`int`, optional): The current indentation level. Defaults to `0`.
+    - `menu` (`QMenu`): The QMenu object to convert to markdown.
+    - `level` (`int`, optional): The current indentation level for nested menus. Defaults to `0`.
 
     Returns:
 
-    - `List[str]`: A list of strings representing the Markdown lines.
+    - `List[str]`: A list of strings, each representing a line of markdown text that describes the menu structure.
     """
-    markdown_lines = []
+    markdown_lines: List[str] = []
     for action in menu.actions():
         if action.menu():  # If the action has a submenu
             # Add a header for the submenu
