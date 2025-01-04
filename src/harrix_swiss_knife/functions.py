@@ -172,15 +172,24 @@ def run_powershell_script(commands: str) -> str:
 
 def run_powershell_script_as_admin(commands: str) -> str:
     """
-    Executes PowerShell commands with administrative privileges.
+    Executes a PowerShell script with administrator privileges and captures the output.
 
     Args:
 
-    - `commands` (`str`): A string containing PowerShell commands separated by newlines.
+    - `commands` (`str`): A string containing the PowerShell commands to execute.
 
     Returns:
 
-    - `str`: The combined output from the executed script's stdout and stderr.
+    - `str`: The output from running the PowerShell script.
+
+    Raises:
+
+    - `subprocess.CalledProcessError`: If the PowerShell script execution fails.
+
+    Note:
+
+    - This function creates temporary files to store the script and its output, which are deleted after execution.
+    - The function waits for the script to finish and ensures the output file exists before reading from it.
     """
     res_output = []
     command = ";".join(map(str.strip, commands.strip().splitlines()))
