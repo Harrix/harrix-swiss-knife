@@ -57,14 +57,11 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.menu.addMenu(self.menu_notes)
         self.menu.addMenu(self.menu_os)
         self.menu.addMenu(self.menu_python)
-
         self.menu.addSeparator()
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard)
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard_dialog)
         self.menu.addSeparator()
-        self.action_exit = QAction(self.get_icon("×"), "Exit", triggered=lambda: QApplication.quit())
-
-        self.menu.addAction(self.action_exit)
+        self.add_item(self.menu, actions_dev.on_exit)
 
 
 if __name__ == "__main__":

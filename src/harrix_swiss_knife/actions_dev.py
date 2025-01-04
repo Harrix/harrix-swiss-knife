@@ -1,7 +1,22 @@
+from PySide6.QtWidgets import QApplication
+
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
 config_data = {"editor": config["editor"]}
+
+
+class on_exit:
+    icon: str = "×"
+    title: str = "Exit"
+
+    def __init__(self, **kwargs):
+        self.parent = kwargs.get("parent", None)
+
+    @functions.write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        if self.parent:
+            QApplication.quit()
 
 
 class on_get_menu:
