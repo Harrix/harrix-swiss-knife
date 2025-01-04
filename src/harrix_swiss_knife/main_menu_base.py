@@ -7,25 +7,32 @@ from harrix_swiss_knife import functions as f
 
 
 class MainMenuBase:
+    """
+    A base class for handling menu operations in a PyQt application.
+
+    This class provides methods to create and manage menu items,
+    retrieve icons, and generate documentation for menu items in a README file.
+
+    Attributes:
+
+    - `menu` (`QMenu`): The main menu object for the application, initialized in `__init__`.
+    """
+
     def __init__(self):
         """
-        Initializes the MainMenuBase with an empty QMenu.
-
-        Args:
-
-        - `self`: The instance of the class.
+        Initializes the `MainMenuBase` with an empty QMenu.
         """
         self.menu = QMenu()
 
     def add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
         """
-        Adds an action item to the given menu.
+        Adds an item to the given menu.
 
         Args:
 
-        - `menu` (`QMenu`): The menu to which the action should be added.
-        - `class_action` (`Callable`): A function or method that represents the action to be performed.
-        - `icon` (`str`, optional): The icon path for the action. Defaults to `""`.
+        - `menu` (`QMenu`): The menu to which the action will be added.
+        - `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
+        - `icon` (`str`, optional): Path or emoji for the icon of the menu item. Defaults to `""`.
 
         Returns:
 
@@ -42,26 +49,25 @@ class MainMenuBase:
 
     def get_icon(self, icon: str) -> QIcon:
         """
-        Retrieves or creates an icon based on the provided icon string.
+        Retrieves an icon for menu items.
 
         Args:
 
-        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: "rye.svg", "🏆".
+        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: "rye.svg", "🏆"
 
         Returns:
 
-        - `QIcon`: The icon for use in the UI.
+        - `QIcon`: A QIcon object for the given icon path or emoji icon.
         """
         return QIcon(f":/assets/{icon}") if ".svg" in icon else f.pyside_create_emoji_icon(icon)
 
     @f.write_in_output_txt(is_show_output=True)
     def get_menu(self) -> None:
         """
-        Generates and updates the list of menu items in the README.md file.
+        Updates the README.md file with the current menu structure.
 
-        Args:
-
-        - `self`: The instance of the class.
+        This method reads the README.md, finds the section to update,
+        writes the current menu structure into it, and then updates the file.
 
         Returns:
 
@@ -73,8 +79,7 @@ class MainMenuBase:
         with open(filename, "r", encoding="utf-8") as file:
             lines = file.readlines()
 
-        start_index: int | None = None
-        end_index: int | None = None
+        start_index = end_index = None
         for i, line in enumerate(lines):
             if line.startswith("## List of commands"):
                 start_index = i
@@ -91,17 +96,18 @@ class MainMenuBase:
 
     def new_menu(self, title: str, icon: str) -> QMenu:
         """
-        Creates a new QMenu with a title and icon.
+        Creates and returns a new QMenu with a title and an icon.
 
         Args:
 
         - `title` (`str`): The title of the new menu.
-        - `icon` (`str`): The path or description of the icon for the menu. Example: "rye.svg", "🏆".
+        - `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: "rye.svg", "🏆".
 
         Returns:
 
-        - `QMenu`: A new QMenu instance.
+        - `QMenu`: A newly created QMenu object.
         """
         menu = QMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
+
