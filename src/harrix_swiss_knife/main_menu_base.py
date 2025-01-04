@@ -1,3 +1,5 @@
+from typing import Callable
+
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu
 
@@ -8,7 +10,7 @@ class MainMenuBase:
     def __init__(self):
         self.menu = QMenu()
 
-    def add_item(self, menu, class_action, icon=""):
+    def add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
         if icon:
             action = QAction(self.get_icon(icon), class_action().title, triggered=class_action())
         elif class_action().icon:
@@ -18,19 +20,19 @@ class MainMenuBase:
         setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
 
-    def get_icon(self, icon):
+    def get_icon(self, icon: str) -> QIcon:
         return QIcon(f":/assets/{icon}") if ".svg" in icon else f.pyside_create_emoji_icon(icon)
 
     @f.write_in_output_txt(is_show_output=True)
-    def get_menu(self):
+    def get_menu(self) -> None:
         filename = f.get_project_root() / "README.md"
         list_of_menu = "\n".join(f.pyside_generate_markdown_from_qmenu(self.menu))
 
         with open(filename, "r", encoding="utf-8") as file:
             lines = file.readlines()
 
-        start_index = None
-        end_index = None
+        start_index: int | None = None
+        end_index: int | None = None
         for i, line in enumerate(lines):
             if line.startswith("## List of commands"):
                 start_index = i
@@ -45,7 +47,7 @@ class MainMenuBase:
 
         self.get_menu.add_line(list_of_menu)
 
-    def new_menu(self, title, icon):
+    def new_menu(self, title: str, icon: str) -> QMenu:
         menu = QMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
