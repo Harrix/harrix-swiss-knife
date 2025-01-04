@@ -25,8 +25,7 @@ class on_diary_new:
     icon: str = "📖"
     title = "New diary note"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -41,8 +40,7 @@ class on_diary_new_dream:
     icon: str = "💤"
     title = "New dream note"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -57,8 +55,7 @@ class on_diary_new_with_images:
     icon: str = "📚"
     title = "New diary note with images"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -73,8 +70,7 @@ class on_new_article:
     icon: str = "✍️"
     title = "New article"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -104,8 +100,7 @@ class on_new_note_dialog:
     icon: str = "📓"
     title = "New note"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -141,8 +136,7 @@ class on_new_note_dialog_with_images:
     icon: str = "📓"
     title = "New note with images"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:

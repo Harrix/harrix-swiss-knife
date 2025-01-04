@@ -20,8 +20,7 @@ class on_rye_new_project:
     icon: str = "rye.svg"
     title: str = "New Rye project in Projects"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -37,8 +36,7 @@ class on_rye_new_project_dialog:
     icon: str = "rye.svg"
     title: str = "New Rye project in …"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -71,8 +69,7 @@ class on_sort_isort_fmt_python_code_folder:
     icon: str = "🌟"
     title: str = "isort, rye fmt, sort in PY files"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -100,8 +97,7 @@ class on_sort_python_code_file:
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in one PY file"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
@@ -127,8 +123,7 @@ class on_sort_python_code_folder:
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in PY files"
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:

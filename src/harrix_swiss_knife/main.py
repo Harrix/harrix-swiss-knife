@@ -8,38 +8,16 @@ from harrix_swiss_knife import actions_dev, actions_images, actions_notes, actio
 
 
 class MainMenu(main_menu_base.MainMenuBase):
-    """
-    Represents the main menu for a system tray application, managing various functionalities available through different submenus.
-
-    Attributes:
-
-    - `menu_dev` (`QAction`): Menu for development tools, labeled with "💻".
-    - `menu_images` (`QAction`): Menu for image manipulation tools, labeled with "🖼️".
-    - `menu_notes` (`QAction`): Menu for note-taking functionalities, labeled with "📓".
-    - `menu_os` (`QAction`): Menu for OS-specific operations, labeled with "🪟".
-    - `menu_python` (`QAction`): Menu for Python-related tools, labeled with "py.svg".
-    """
-
     def __init__(self):
-        """
-        Initializes the MainMenu with various submenus and actions:
-
-        - Sets up the development tools menu.
-        - Configures image manipulation options.
-        - Adds note-taking features.
-        - Includes OS operations.
-        - Provides Python project management tools.
-        - Adds general application controls like clipboard operations and exit.
-        """
         super().__init__()
 
         # Menu Dev
-        self.menu_dev: QAction = self.new_menu("Dev", "💻")
+        self.menu_dev = self.new_menu("Dev", "💻")
         self.add_item(self.menu_dev, actions_dev.on_get_menu)
         self.add_item(self.menu_dev, actions_dev.on_open_config_json)
 
         # Menu Images
-        self.menu_images: QAction = self.new_menu("Images", "🖼️")
+        self.menu_images = self.new_menu("Images", "🖼️")
         self.add_item(self.menu_images, actions_images.on_images_optimize)
         self.add_item(self.menu_images, actions_images.on_images_optimize_quality)
         self.add_item(self.menu_images, actions_images.on_image_optimize_dialog_replace)
@@ -52,7 +30,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_images, actions_images.on_image_open_optimized_images)
 
         # Notes
-        self.menu_notes: QAction = self.new_menu("Notes", "📓")
+        self.menu_notes = self.new_menu("Notes", "📓")
         self.add_item(self.menu_notes, actions_notes.on_diary_new_dream)
         self.add_item(self.menu_notes, actions_notes.on_diary_new_with_images)
         self.add_item(self.menu_notes, actions_notes.on_diary_new)
@@ -61,12 +39,12 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_notes, actions_notes.on_new_note_dialog)
 
         # Menu OS
-        self.menu_os: QAction = self.new_menu("OS", "🪟")
+        self.menu_os = self.new_menu("OS", "🪟")
         self.add_item(self.menu_os, actions_os.on_block_disks)
         self.add_item(self.menu_os, actions_os.on_open_camera_uploads)
 
         # Menu Python
-        self.menu_python: QAction = self.new_menu("Python", "py.svg")
+        self.menu_python = self.new_menu("Python", "py.svg")
         self.add_item(self.menu_python, actions_py.on_rye_new_project_dialog)
         self.add_item(self.menu_python, actions_py.on_rye_new_project)
         self.add_item(self.menu_python, actions_py.on_sort_isort_fmt_python_code_folder)
@@ -84,7 +62,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard)
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard_dialog)
         self.menu.addSeparator()
-        self.action_exit: QAction = QAction(self.get_icon("×"), "Exit", triggered=lambda: QApplication.quit())
+        self.action_exit = QAction(self.get_icon("×"), "Exit", triggered=lambda: QApplication.quit())
 
         self.menu.addAction(self.action_exit)
 

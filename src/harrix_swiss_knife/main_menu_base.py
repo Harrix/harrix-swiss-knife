@@ -42,7 +42,7 @@ class MainMenuBase:
 
         if icon:
             action = QAction(self.get_icon(icon), action_instance.title, triggered=action_instance)
-        elif hasattr(action_instance, 'icon') and action_instance.icon:
+        elif hasattr(action_instance, "icon") and action_instance.icon:
             action = QAction(self.get_icon(action_instance.icon), action_instance.title, triggered=action_instance)
         else:
             action = QAction(action_instance.title, triggered=action_instance)
@@ -119,4 +119,3 @@ class MainMenuBase:
         menu = QMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
-
