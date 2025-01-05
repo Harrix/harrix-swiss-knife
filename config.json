@@ -3,7 +3,7 @@
   "beginning_of_md": "---\nauthor: Anton Sergienko\nauthor-email: anton.b.sergienko@gmail.com\nlang: ru\n---",
   "cli_commands": "\n## CLI commands\n\nCLI commands after installation.\n\n- `rye self update` — update Rye itself.\n- `rye sync --update-all` — update all project libraries.\n- `isort .` — sort imports.\n- `rye fmt` — format the project's Python files.\n- `rye lint` — lint the project's Python files.\n- `rye fetch 3.13` + `rye pin 3.13` + `rye sync` — switch to a different Python version.\n",
   "editor": "code-insiders",
-  "folders_of_3d": [
+  "folders_with_featured_image": [
     "D:/Dropbox/IT/3D printer/Models/Print",
     "D:/Dropbox/IT/3D printer/Models/Printed",
     "D:/Dropbox/IT/3D printer/Models/Unprinted",

@@ -77,9 +77,9 @@ class on_check_featured_image_not_recursively_in_folders:
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        folders_of_3d = config["folders_of_3d"]
+        folders_with_featured_image = config["folders_with_featured_image"]
 
-        for path in folders_of_3d:
+        for path in folders_with_featured_image:
             try:
                 _, result_output = functions.check_featured_image_not_recursively(path)
                 self.__call__.add_line(result_output)
