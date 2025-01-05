@@ -1,6 +1,7 @@
 import fnmatch
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import time
@@ -11,6 +12,77 @@ import libcst as cst
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
+
+
+def all_files_to_parent_dir(path: Path | str) -> str:
+    """
+    Moves all files from subdirectories within the given path to the parent directory and then
+    removes empty directories.
+
+    Args:
+
+    - `path` (`Path | str`): The path to the directory whose subdirectories you want to flatten.
+      Can be either a `Path` object or a string.
+
+    Returns:
+
+    - `str`: A string where each line represents an action taken on a subdirectory (e.g., "Fix subdirectory_name").
+
+    Notes:
+
+    - This function will print exceptions to stdout if there are issues with moving files or deleting directories.
+    - Directories will only be removed if they become empty after moving all files.
+
+    Before:
+
+    ```text
+    C:\test
+    ├─ folder1
+    │  ├─ image.jpg
+    │  ├─ sub1
+    │  │  ├─ file1.txt
+    │  │  └─ file2.txt
+    │  └─ sub2
+    │     ├─ file3.txt
+    │     └─ file4.txt
+    └─ folder2
+       └─ sub3
+          ├─ file6.txt
+          └─ sub4
+             └─ file5.txt
+    ```
+
+    After:
+
+    ```text
+    C:\test
+    ├─ folder1
+    │  ├─ file1.txt
+    │  ├─ file2.txt
+    │  ├─ file3.txt
+    │  ├─ file4.txt
+    │  └─ image.jpg
+    └─ folder2
+       ├─ file5.txt
+       └─ file6.txt
+    ```
+    """
+    list_lines = []
+    for child_dir in Path(path).iterdir():
+        for file in Path(child_dir).glob("**/*"):
+            if file.is_file():
+                try:
+                    file.replace(child_dir / file.name)
+                except Exception as exception:
+                    print(exception)
+        for file in Path(child_dir).glob("**/*"):
+            if file.is_dir():
+                try:
+                    shutil.rmtree(file)
+                except Exception as exception:
+                    print(exception)
+        list_lines.append(f"Fix {child_dir}")
+    return "\n".join(list_lines)
 
 
 def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:

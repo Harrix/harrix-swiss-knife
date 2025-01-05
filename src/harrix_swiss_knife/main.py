@@ -40,6 +40,7 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu OS
         self.menu_os = self.new_menu("OS", "🪟")
+        self.add_item(self.menu_os, actions_os.on_all_files_to_parent_dir)
         self.add_item(self.menu_os, actions_os.on_block_disks)
         self.add_item(self.menu_os, actions_os.on_open_camera_uploads)
         self.add_item(self.menu_os, actions_os.on_tree_view_folder_ignore_hidden_folders)

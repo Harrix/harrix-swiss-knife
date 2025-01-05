@@ -9,6 +9,27 @@ config = functions.load_config("config.json")
 config_data = {"path_camera_uploads": config["path_camera_uploads"], "path_github": config["path_github"]}
 
 
+class on_all_files_to_parent_dir:
+    icon: str = "🗂️"
+    title: str = "Moves and flattens files from nested folders"
+    tip: str = "The function moves all files from subdirectories to their parent directory, removing any then-empty subdirectories."
+
+    def __init__(self, **kwargs): ...
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs) -> None:
+        title = "Project directory"
+        folder_path = QFileDialog.getExistingDirectory(None, title, config_data["path_github"])
+
+        if not folder_path:
+            self.__call__.add_line("❌ The directory was not selected.")
+            return
+
+        result_output = functions.all_files_to_parent_dir(folder_path)
+
+        self.__call__.add_line(result_output)
+
+
 class on_block_disks:
     icon: str = "🔒"
     title: str = "Block disks"
