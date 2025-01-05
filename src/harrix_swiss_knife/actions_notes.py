@@ -8,6 +8,28 @@ from harrix_swiss_knife import functions
 config = functions.load_config("config.json")
 
 
+class on_add_author_book:
+    icon: str = "❞"
+    title: str = "Quotes. Add author and title"
+
+    def __init__(self, **kwargs): ...
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs) -> None:
+        title = "Directory"
+        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_quotes"])
+
+        if not folder_path:
+            self.__call__.add_line("❌ The directory was not selected.")
+            return
+
+        try:
+            result_output = functions.apply_func_to_files(folder_path, ".md", functions.add_author_book)
+            self.__call__.add_line(result_output)
+        except Exception as e:
+            self.__call__.add_line(f"❌ Error: {e}")
+
+
 class on_diary_new:
     icon: str = "📖"
     title = "New diary note"

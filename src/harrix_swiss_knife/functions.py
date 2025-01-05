@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from itertools import dropwhile
 from pathlib import Path
 from typing import Callable, List, Optional
 
@@ -12,6 +13,106 @@ import libcst as cst
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
+
+
+def add_author_book(filename: Path | str) -> str:
+    """
+    Adds the author and the title of the book to the quotes and formats them as Markdown quotes.
+
+    Args:
+
+    - `filename` (`Path` | `str`): The filename of the Markdown file.
+
+    Returns:
+
+    - `str`: A string indicating whether changes were made to the file or not.
+
+    Example:
+
+    Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
+
+    ```markdown
+    # Title of book
+
+    Line 1.
+
+    Line 2.
+
+    ---
+
+    Line 3.
+
+    Line 4.
+
+    -- Modified title of book
+    ```
+
+    After processing:
+
+    ```markdown
+    # Title of book
+
+    > Line 1.
+    >
+    > Line 2.
+    >
+    > _Name Surname - Title of book_
+
+    ---
+
+    > Line 3.
+    >
+    > Line 4.
+    >
+    > _Name Surname - Modified title of book_
+    ```
+
+    Note:
+
+    - If the file does not exist or is not a Markdown file, the function will return `None`.
+    - If the file has been modified, it returns a message indicating the changes; otherwise,
+      it indicates no changes were made.
+    """
+    lines_list = []
+    file = Path(filename)
+    if not file.is_file():
+        return
+    if file.suffix.lower() != ".md":
+        return
+    note_initial = file.read_text(encoding="utf8")
+
+    parts = note_initial.split("---", 2)
+    yaml_content, main_content = f"---{parts[1]}---", parts[2].lstrip()
+
+    lines = main_content.splitlines()
+
+    author = file.parts[-2].replace("-", " ")
+    title = lines[0].replace("# ", "")
+
+    lines = lines[1:] if lines and lines[0].startswith("# ") else lines
+    lines = lines[:-1] if lines[-1].strip() == "---" else lines
+
+    note = f"{yaml_content}\n\n# {title}\n\n"
+    quotes = list(map(str.strip, filter(None, "\n".join(lines).split("\n---\n"))))
+
+    quotes_fix = []
+    for quote in quotes:
+        lines_quote = quote.splitlines()
+        if lines_quote[-1].startswith("> -- _"):
+            quotes_fix.append(quote)  # The quote has already been processed
+            continue
+        if lines_quote[-1].startswith("-- "):
+            title = lines_quote[-1][3:]
+            del lines_quote[-2:]
+        quote_fix = "\n".join([f"> {line}".rstrip() for line in lines_quote])
+        quotes_fix.append(f"{quote_fix}\n>\n> -- _{author}, {title}_")
+    note += "\n\n---\n\n".join(quotes_fix) + "\n"
+    if note_initial != note:
+        file.write_text(note, encoding="utf8")
+        lines_list.append(f"Fix {filename}")
+    else:
+        lines_list.append(f"No changes in {filename}")
+    return "\n".join(lines_list)
 
 
 def all_files_to_parent_dir(path: Path | str) -> str:
@@ -502,6 +603,33 @@ def sort_py_code(filename: str) -> None:
     # Write the sorted code back to the file
     with open(filename, "w", encoding="utf-8") as f:
         f.write(new_code)
+
+
+def split_markdown_yaml_content(note: str) -> tuple[str, str]:
+    """
+    Splits a markdown note into YAML front matter and the main content.
+
+    This function assumes that the note starts with YAML front matter separated by '---' from the rest of the content.
+
+    Args:
+
+    - `note` (`str`): The markdown note string to be split.
+
+    Returns:
+
+    - `tuple[str, str]`: A tuple containing:
+        - The YAML front matter as a string, prefixed and suffixed with '---'.
+        - The remaining markdown content after the YAML front matter, with leading whitespace removed.
+
+    Note:
+
+    - If there is no '---' or only one '---' in the note, the function returns an empty string for YAML content and the entire note for the content part.
+    - The function does not validate if the YAML content is properly formatted YAML.
+    """
+    parts = note.split("---", 2)
+    if len(parts) < 3:
+        return "", note
+    return f"---{parts[1]}---", parts[2].lstrip()
 
 
 def tree_view_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:

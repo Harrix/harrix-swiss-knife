@@ -37,6 +37,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_notes, actions_notes.on_new_article)
         self.add_item(self.menu_notes, actions_notes.on_new_note_dialog_with_images)
         self.add_item(self.menu_notes, actions_notes.on_new_note_dialog)
+        self.add_item(self.menu_notes, actions_notes.on_add_author_book)
 
         # Menu OS
         self.menu_os = self.new_menu("OS", "🪟")

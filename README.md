@@ -32,7 +32,11 @@ _Figure 1: Screenshot_
   - New article
   - New note with images
   - New note
+  - Quotes. Add author and title
 - **OS**
+  - Moves and flattens files from nested folders
+  - Check featured_image.* in …
+  - Check featured_image.*
   - Block disks
   - Open Camera Uploads
   - Tree view of a folder (ignore hidden dirs)
