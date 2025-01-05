@@ -6,19 +6,6 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
-config_data = {
-    "beginning_of_article": config["beginning_of_article"],
-    "beginning_of_md": config["beginning_of_md"],
-    "editor": config["editor"],
-    "path_articles": config["path_articles"],
-    "path_diary": config["path_diary"],
-    "path_dream": config["path_dream"],
-    "path_github": config["path_github"],
-    "path_notes": config["path_notes"],
-    "vscode_workspace_articles": config["vscode_workspace_articles"],
-    "vscode_workspace_diaries": config["vscode_workspace_diaries"],
-    "vscode_workspace_notes": config["vscode_workspace_notes"],
-}
 
 
 class on_diary_new:
@@ -30,9 +17,7 @@ class on_diary_new:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary()
-        functions.run_powershell_script(
-            f'{config_data["editor"]} "{config_data["vscode_workspace_diaries"]}" "{file_path}"'
-        )
+        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -45,9 +30,7 @@ class on_diary_new_dream:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_dream()
-        functions.run_powershell_script(
-            f'{config_data["editor"]} "{config_data["vscode_workspace_diaries"]}" "{file_path}"'
-        )
+        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -60,9 +43,7 @@ class on_diary_new_with_images:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary(is_with_images=True)
-        functions.run_powershell_script(
-            f'{config_data["editor"]} "{config_data["vscode_workspace_diaries"]}" "{file_path}"'
-        )
+        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -84,15 +65,13 @@ class on_new_article:
 
         article_name = article_name.replace(" ", "-")
 
-        text = config_data["beginning_of_article"].replace("[YEAR]", datetime.now().strftime("%Y"))
+        text = config["beginning_of_article"].replace("[YEAR]", datetime.now().strftime("%Y"))
         text = text.replace("[NAME]", article_name)
         text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
         text += f"\n\n# {article_name}\n\n\n"
 
-        output, file_path = add_note(Path(config_data["path_articles"]), article_name, text, True)
-        functions.run_powershell_script(
-            f'{config_data["editor"]} "{config_data["vscode_workspace_articles"]}" "{file_path}"'
-        )
+        output, file_path = add_note(Path(config["path_articles"]), article_name, text, True)
+        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -105,7 +84,7 @@ class on_new_note_dialog:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
-            None, "Save Note", config_data["path_notes"], "Markdown (*.md);;All Files (*)"
+            None, "Save Note", config["path_notes"], "Markdown (*.md);;All Files (*)"
         )
 
         if file_path:
@@ -122,13 +101,11 @@ class on_new_note_dialog:
 
         is_with_images = kwargs.get("is_with_images", False)
 
-        text = config_data["beginning_of_md"]
+        text = config["beginning_of_md"]
         text += f"\n\n# {note_name}\n\n\n"
 
         output, file_path = add_note(folder_path, note_name, text, is_with_images)
-        functions.run_powershell_script(
-            f'{config_data["editor"]} "{config_data["vscode_workspace_notes"]}" "{file_path}"'
-        )
+        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -155,10 +132,10 @@ def add_diary_new_diary(is_with_images: bool = False) -> str | Path:
 
     - `str | Path`: The path to the created diary entry file or a string message indicating creation.
     """
-    text = f"{config_data['beginning_of_md']}\n\n"
+    text = f"{config['beginning_of_md']}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
-    return add_diary_new_note(config_data["path_diary"], text, is_with_images)
+    return add_diary_new_note(config["path_diary"], text, is_with_images)
 
 
 def add_diary_new_dream(is_with_images: bool = False) -> str | Path:
@@ -173,11 +150,11 @@ def add_diary_new_dream(is_with_images: bool = False) -> str | Path:
 
     - `str | Path`: The path to the created dream diary entry file or a string message indicating creation.
     """
-    text = f"{config_data['beginning_of_md']}\n\n"
+    text = f"{config['beginning_of_md']}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
     text += "`` — не помню.\n\n" * 15 + "`` — не помню.\n"
-    return add_diary_new_note(config_data["path_dream"], text, is_with_images)
+    return add_diary_new_note(config["path_dream"], text, is_with_images)
 
 
 def add_diary_new_note(base_path: str | Path, text: str, is_with_images: bool) -> str | Path:

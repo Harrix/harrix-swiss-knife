@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QFileDialog
 from harrix_swiss_knife import functions
 
 config = functions.load_config("config.json")
-config_data = {"path_camera_uploads": config["path_camera_uploads"], "path_github": config["path_github"]}
 
 
 class on_all_files_to_parent_dir:
@@ -19,7 +18,7 @@ class on_all_files_to_parent_dir:
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title = "Project directory"
-        folder_path = QFileDialog.getExistingDirectory(None, title, config_data["path_github"])
+        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
 
         if not folder_path:
             self.__call__.add_line("❌ The directory was not selected.")
@@ -55,7 +54,7 @@ class on_open_camera_uploads:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        folder_path = Path(config_data["path_camera_uploads"])
+        folder_path = Path(config["path_camera_uploads"])
         os.startfile(folder_path)
         os.startfile(folder_path / "info")
         os.startfile(folder_path / "temp")
@@ -75,7 +74,7 @@ class on_tree_view_folder:
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title = "Project directory"
-        folder_path = QFileDialog.getExistingDirectory(None, title, config_data["path_github"])
+        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
 
         if not folder_path:
             self.__call__.add_line("❌ The directory was not selected.")
