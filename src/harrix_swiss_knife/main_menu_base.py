@@ -47,6 +47,10 @@ class MainMenuBase:
         else:
             action = QAction(action_instance.title, triggered=action_instance)
         setattr(self, f"action_{class_action.__name__}", action)
+
+        if hasattr(action_instance, "tip") and action_instance.tip:
+            action.setToolTip(action_instance.tip)
+
         menu.addAction(action)
 
     def get_icon(self, icon: str) -> QIcon:
