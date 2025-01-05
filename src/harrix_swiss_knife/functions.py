@@ -117,6 +117,46 @@ def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
     return "\n".join(list_files)
 
 
+def check_featured_image_not_recursively(path: str) -> tuple[bool, str]:
+    """
+    Checks for the presence of `featured_image.*` files in every child directory, not recursively.
+
+    This function goes through each immediate subdirectory of the given path and checks if there
+    is at least one file with the name starting with "featured-image". If such a file is missing
+    in any directory, it logs this occurrence.
+
+    Args:
+
+    - `path` (`str`): Path to the directory being checked. Can be either a string or a Path object.
+
+    Returns:
+
+    - `tuple[bool, str]`: A tuple where:
+        - The first element (`bool`) indicates if all directories have a `featured_image.*` file.
+        - The second element (`str`) contains a formatted string with status or error messages.
+
+    Note:
+
+    - This function does not search recursively; it only checks the immediate child directories.
+    - The output string uses ANSI color codes for visual distinction of errors.
+    """
+    line_list: list[str] = []
+    is_correct: bool = True
+
+    for child_dir in Path(path).iterdir():
+        is_featured_image: bool = False
+        for file in child_dir.iterdir():
+            if file.is_file() and file.name.startswith("featured-image"):
+                is_featured_image = True
+        if not is_featured_image:
+            is_correct = False
+            line_list.append(f"{child_dir} without featured-image\x1b[0m")
+
+    if is_correct:
+        line_list.append(f"All correct in {path}")
+    return is_correct, "\n".join(line_list)
+
+
 def get_project_root() -> Path:
     """
     Finds the root directory of the current project.

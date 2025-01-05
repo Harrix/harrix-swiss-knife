@@ -46,6 +46,27 @@ class on_block_disks:
         self.__call__.add_line(output)
 
 
+class on_check_featured_image_not_recursively:
+    icon: str = "✅"
+    title: str = "Check featured_image.* in …"
+    tip: str = "Checks for the presence of `featured_image.*` files in every child directory, not recursively."
+
+    def __init__(self, **kwargs): ...
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs) -> None:
+        title = "Directory"
+        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
+
+        if not folder_path:
+            self.__call__.add_line("❌ The directory was not selected.")
+            return
+
+        _, result_output = functions.check_featured_image_not_recursively(folder_path)
+
+        self.__call__.add_line(result_output)
+
+
 class on_open_camera_uploads:
     icon: str = "📸"
     title: str = "Open Camera Uploads"
