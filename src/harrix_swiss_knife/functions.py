@@ -289,7 +289,7 @@ def load_config(file_path: str) -> dict:
 
     - `dict`: Configuration loaded from the file.
     """
-    with open(file_path, "r", encoding="utf8") as config_file:
+    with open(get_project_root() / file_path, "r", encoding="utf8") as config_file:
         config = json.load(config_file)
     return config
 
