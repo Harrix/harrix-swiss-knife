@@ -1,6 +1,8 @@
+from pathlib import Path
 from typing import Callable
 
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
 from harrix_swiss_knife import functions as f
@@ -53,19 +55,49 @@ class MainMenuBase:
 
         menu.addAction(action)
 
-    def get_icon(self, icon: str) -> QIcon:
+    def get_icon(self, icon: str, size: int = 32) -> QIcon:
         """
         Retrieves an icon for menu items.
 
         Args:
 
-        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: "rye.svg", "🏆"
+        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: "rye.svg", "🏆".
+        - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
 
         Returns:
 
         - `QIcon`: A QIcon object for the given icon path or emoji icon.
         """
-        return QIcon(f":/assets/{icon}") if ".svg" in icon else f.pyside_create_emoji_icon(icon)
+        if ".svg" in icon:
+            # Load the icon from the assets if it's an SVG file
+            return QIcon(f":/assets/{icon}")
+        else:
+            # Generate a safe filename for the emoji icon
+            filename = f"emoji_{"_".join(f"{ord(c):X}" for c in icon)}.png"
+            icon_dir = f.get_project_root() / "temp" / "icons"
+            icon_path = icon_dir / filename
+
+            if icon_path.exists():
+                # If the icon already exists, load it from the file
+                return QIcon(str(icon_path))
+            else:
+                # Create the icon
+                pixmap = QPixmap(size, size)
+                pixmap.fill(Qt.transparent)
+
+                painter = QPainter(pixmap)
+                font = QFont()
+                font.setPointSize(int(size * 0.8))
+                painter.setFont(font)
+                painter.drawText(pixmap.rect(), Qt.AlignCenter, icon)
+                painter.end()
+
+                # Ensure the directory exists
+                icon_dir.mkdir(parents=True, exist_ok=True)
+                # Save the pixmap as a PNG file
+                pixmap.save(str(icon_path), "PNG")
+                # Return the icon
+                return QIcon(pixmap)
 
     def get_menu(self) -> str:
         """
