@@ -35,6 +35,8 @@ _Figure 1: Screenshot_
 - **OS**
   - Block disks
   - Open Camera Uploads
+  - Tree view of a folder (ignore hidden dirs)
+  - Tree view of a folder
 - **Python**
   - New Rye project in …
   - New Rye project in Projects
