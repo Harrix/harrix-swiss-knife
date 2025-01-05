@@ -150,7 +150,7 @@ def check_featured_image_not_recursively(path: str) -> tuple[bool, str]:
                 is_featured_image = True
         if not is_featured_image:
             is_correct = False
-            line_list.append(f"{child_dir} without featured-image\x1b[0m")
+            line_list.append(f"❌ {child_dir} without featured-image")
 
     if is_correct:
         line_list.append(f"All correct in {path}")
