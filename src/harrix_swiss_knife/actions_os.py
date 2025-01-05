@@ -62,9 +62,29 @@ class on_check_featured_image_not_recursively:
             self.__call__.add_line("❌ The directory was not selected.")
             return
 
-        _, result_output = functions.check_featured_image_not_recursively(folder_path)
+        try:
+            _, result_output = functions.check_featured_image_not_recursively(folder_path)
+            self.__call__.add_line(result_output)
+        except Exception as e:
+            self.__call__.add_line(f"❌ Error: {e}")
 
-        self.__call__.add_line(result_output)
+
+class on_check_featured_image_not_recursively_in_folders:
+    icon: str = "✅"
+    title: str = "Check featured_image.*"
+
+    def __init__(self, **kwargs): ...
+
+    @functions.write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs) -> None:
+        folders_of_3d = config["folders_of_3d"]
+
+        for path in folders_of_3d:
+            try:
+                _, result_output = functions.check_featured_image_not_recursively(path)
+                self.__call__.add_line(result_output)
+            except Exception as e:
+                self.__call__.add_line(f"❌ Error: {e}")
 
 
 class on_open_camera_uploads:
