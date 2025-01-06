@@ -442,11 +442,11 @@ def run_powershell_script_as_admin(commands: str) -> str:
     # Create a temporary file with the PowerShell script
     with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as tmp_script_file:
         tmp_script_file.write(command.encode("utf-8"))
-        tmp_script_path = tmp_script_file.name
+        tmp_script_path = Path(tmp_script_file.name)
 
     # Create a temporary file for the output
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp_output_file:
-        tmp_output_path = tmp_output_file.name
+        tmp_output_path = Path(tmp_output_file.name)
 
     try:
         # Wrapper script that runs the main script and writes the output to a file
@@ -455,7 +455,7 @@ def run_powershell_script_as_admin(commands: str) -> str:
         # Save the wrapper script to a temporary file
         with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as tmp_wrapper_file:
             tmp_wrapper_file.write(wrapper_script.encode("utf-8"))
-            tmp_wrapper_path = tmp_wrapper_file.name
+            tmp_wrapper_path = Path(tmp_wrapper_file.name)
 
         # Command to run PowerShell with administrator privileges
         cmd = [
@@ -474,25 +474,22 @@ def run_powershell_script_as_admin(commands: str) -> str:
         process.wait()
 
         # Ensure the output file has been created
-        while not os.path.exists(tmp_output_path):
+        while not tmp_output_path.exists():
             time.sleep(0.1)
 
         # Wait until the file is fully written (can adjust wait time as needed)
         time.sleep(1)  # Delay to complete writing to the file
 
         # Read the output data from the file
-        with open(tmp_output_path, "r", encoding="utf-8") as f:
+        with tmp_output_path.open("r", encoding="utf-8") as f:
             output = f.read()
             res_output.append(output)
 
     finally:
         # Delete temporary files after execution
-        if os.path.exists(tmp_script_path):
-            os.remove(tmp_script_path)
-        if os.path.exists(tmp_output_path):
-            os.remove(tmp_output_path)
-        if os.path.exists(tmp_wrapper_path):
-            os.remove(tmp_wrapper_path)
+        tmp_script_path.unlink(missing_ok=True)
+        tmp_output_path.unlink(missing_ok=True)
+        tmp_wrapper_path.unlink(missing_ok=True)
 
     return "\n".join(filter(None, res_output))
 
