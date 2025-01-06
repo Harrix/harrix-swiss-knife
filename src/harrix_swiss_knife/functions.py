@@ -16,6 +16,75 @@ from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
 
+def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
+    """
+    Applies a given function to all files with a specified extension in a folder and its sub-folders.
+
+    Args:
+
+    - `folder` (`str`): The path to the root folder where the function should be applied. Defaults to `None`.
+    - `ext` (`str`): The file extension to filter files by. Should include the dot (e.g., '.py').
+    - `func` (`Callable`): The function to apply to each file. This function should take an argument, the file path.
+
+    Returns:
+
+    - `str`: A string listing the results of applying the function to each file, with each result on a new line.
+    """
+    list_files = []
+    folder_path = Path(folder)
+
+    for path in folder_path.rglob(f"*{ext}"):
+        # Exclude all folders and files starting with a dot
+        if path.is_file() and not any(part.startswith(".") for part in path.parts):
+            try:
+                func(str(path))
+                list_files.append(f"File {path.name} is applied.")
+            except Exception:
+                list_files.append(f"❌ File {path.name} is not applied.")
+
+    return "\n".join(list_files)
+
+
+def check_featured_image_not_recursively(path: str) -> tuple[bool, str]:
+    """
+    Checks for the presence of `featured_image.*` files in every child folder, not recursively.
+
+    This function goes through each immediate subfolder of the given path and checks if there
+    is at least one file with the name starting with "featured-image". If such a file is missing
+    in any folder, it logs this occurrence.
+
+    Args:
+
+    - `path` (`str`): Path to the folder being checked. Can be either a string or a Path object.
+
+    Returns:
+
+    - `tuple[bool, str]`: A tuple where:
+        - The first element (`bool`) indicates if all folders have a `featured_image.*` file.
+        - The second element (`str`) contains a formatted string with status or error messages.
+
+    Note:
+
+    - This function does not search recursively; it only checks the immediate child folders.
+    - The output string uses ANSI color codes for visual distinction of errors.
+    """
+    line_list: list[str] = []
+    is_correct: bool = True
+
+    for child_folder in Path(path).iterdir():
+        is_featured_image: bool = False
+        for file in child_folder.iterdir():
+            if file.is_file() and file.name.startswith("featured-image"):
+                is_featured_image = True
+        if not is_featured_image:
+            is_correct = False
+            line_list.append(f"❌ {child_folder} without featured-image")
+
+    if is_correct:
+        line_list.append(f"All correct in {path}")
+    return is_correct, "\n".join(line_list)
+
+
 def file_operations_all_files_to_parent_folder(path: Path | str) -> str:
     """
     Moves all files from subfolders within the given path to the parent folder and then
@@ -85,75 +154,6 @@ def file_operations_all_files_to_parent_folder(path: Path | str) -> str:
                     print(exception)
         list_lines.append(f"Fix {child_folder}")
     return "\n".join(list_lines)
-
-
-def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
-    """
-    Applies a given function to all files with a specified extension in a folder and its sub-folders.
-
-    Args:
-
-    - `folder` (`str`): The path to the root folder where the function should be applied. Defaults to `None`.
-    - `ext` (`str`): The file extension to filter files by. Should include the dot (e.g., '.py').
-    - `func` (`Callable`): The function to apply to each file. This function should take an argument, the file path.
-
-    Returns:
-
-    - `str`: A string listing the results of applying the function to each file, with each result on a new line.
-    """
-    list_files = []
-    folder_path = Path(folder)
-
-    for path in folder_path.rglob(f"*{ext}"):
-        # Exclude all folders and files starting with a dot
-        if path.is_file() and not any(part.startswith(".") for part in path.parts):
-            try:
-                func(str(path))
-                list_files.append(f"File {path.name} is applied.")
-            except Exception:
-                list_files.append(f"❌ File {path.name} is not applied.")
-
-    return "\n".join(list_files)
-
-
-def check_featured_image_not_recursively(path: str) -> tuple[bool, str]:
-    """
-    Checks for the presence of `featured_image.*` files in every child folder, not recursively.
-
-    This function goes through each immediate subfolder of the given path and checks if there
-    is at least one file with the name starting with "featured-image". If such a file is missing
-    in any folder, it logs this occurrence.
-
-    Args:
-
-    - `path` (`str`): Path to the folder being checked. Can be either a string or a Path object.
-
-    Returns:
-
-    - `tuple[bool, str]`: A tuple where:
-        - The first element (`bool`) indicates if all folders have a `featured_image.*` file.
-        - The second element (`str`) contains a formatted string with status or error messages.
-
-    Note:
-
-    - This function does not search recursively; it only checks the immediate child folders.
-    - The output string uses ANSI color codes for visual distinction of errors.
-    """
-    line_list: list[str] = []
-    is_correct: bool = True
-
-    for child_folder in Path(path).iterdir():
-        is_featured_image: bool = False
-        for file in child_folder.iterdir():
-            if file.is_file() and file.name.startswith("featured-image"):
-                is_featured_image = True
-        if not is_featured_image:
-            is_correct = False
-            line_list.append(f"❌ {child_folder} without featured-image")
-
-    if is_correct:
-        line_list.append(f"All correct in {path}")
-    return is_correct, "\n".join(line_list)
 
 
 def get_project_root() -> Path:
