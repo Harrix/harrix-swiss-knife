@@ -102,19 +102,16 @@ def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
     - `str`: A string listing the results of applying the function to each file, with each result on a new line.
     """
     list_files = []
-    for root, folders, files in os.walk(folder):
-        # Exclude all folders and files starting with a dot
-        folders[:] = [d for d in folders if not d.startswith(".")]
-        files = [f for f in files if not f.startswith(".")]
+    folder_path = Path(folder)
 
-        # Filter and process files with the specified extension
-        for filename in fnmatch.filter(files, f"*{ext}"):
-            file_path = os.path.join(root, filename)
+    for path in folder_path.rglob(f"*{ext}"):
+        # Exclude all folders and files starting with a dot
+        if path.is_file() and not any(part.startswith('.') for part in path.parts):
             try:
-                func(file_path)
-                list_files.append(f"File {filename} is applied.")
+                func(str(path))
+                list_files.append(f"File {path.name} is applied.")
             except Exception:
-                list_files.append(f"❌ File {filename} is not applied.")
+                list_files.append(f"❌ File {path.name} is not applied.")
 
     return "\n".join(list_files)
 
