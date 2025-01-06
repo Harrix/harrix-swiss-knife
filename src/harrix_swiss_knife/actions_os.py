@@ -98,13 +98,13 @@ class on_open_camera_uploads:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         folder_path = Path(config["path_camera_uploads"])
-        os.startfile(folder_path)
-        os.startfile(folder_path / "info")
-        os.startfile(folder_path / "temp")
-        os.startfile(folder_path / "video")
-        os.startfile(folder_path / "work")
-        os.startfile(folder_path / "work_video")
-        os.startfile(folder_path / "screenshots")
+        functions.os_open_file_or_folder(folder_path)
+        functions.os_open_file_or_folder(folder_path / "info")
+        functions.os_open_file_or_folder(folder_path / "temp")
+        functions.os_open_file_or_folder(folder_path / "video")
+        functions.os_open_file_or_folder(folder_path / "work")
+        functions.os_open_file_or_folder(folder_path / "work_video")
+        functions.os_open_file_or_folder(folder_path / "screenshots")
         self.__call__.add_line('The folder "Camera Uploads" is opened.')
 
 
