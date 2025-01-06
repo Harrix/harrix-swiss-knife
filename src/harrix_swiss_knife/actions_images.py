@@ -55,8 +55,8 @@ class on_image_open_images:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         path = functions.get_project_root() / "temp" / "images"
-        if os.path.exists(path):
-            os.startfile(path)
+        if path.exists():
+            functions.os_open_file_or_folder(path)
             self.__call__.add_line(f"Folder `{path}` is opened.")
         else:
             self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
@@ -71,8 +71,8 @@ class on_image_open_optimized_images:
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         path = functions.get_project_root() / "temp" / "optimized_images"
-        if os.path.exists(path):
-            os.startfile(path)
+        if path.exists():
+            functions.os_open_file_or_folder(path)
             self.__call__.add_line(f"Folder `{path}` is opened.")
         else:
             self.__call__.add_line(f"❌ Folder `{path}` is not exist.")

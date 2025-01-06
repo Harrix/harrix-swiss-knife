@@ -1,6 +1,7 @@
 import fnmatch
 import json
 import os
+import platform
 import shutil
 import subprocess
 import tempfile
@@ -292,6 +293,40 @@ def markdown_add_author_book(filename: Path | str) -> str:
     else:
         lines_list.append(f"No changes in {filename}")
     return "\n".join(lines_list)
+
+
+def os_open_file_or_folder(path: Path | str) -> None:
+    """
+    Opens a file or folder using the operating system's default application.
+
+    This function checks the operating system and uses the appropriate method to open
+    the given path:
+
+    - On **Windows**, it uses `os.startfile`.
+    - On **macOS**, it invokes the `open` command.
+    - On **Linux**, it uses `xdg-open`.
+
+    Args:
+
+    - `path` (`Path | str`): The path to the file or folder to be opened. Can be either a `Path` object or a string.
+
+    Returns:
+
+    - `None`: This function does not return any value but opens the file or folder in the default application.
+
+    Note:
+
+    - Ensure the path provided is valid and accessible.
+    - If the path does not exist or cannot be opened, the function might raise an exception,
+      depending on the underlying command's behavior.
+    """
+    if platform.system() == "Windows":
+        os.startfile(path)
+    elif platform.system() == "Darwin":  # macOS
+        subprocess.call(["open", str(path)])
+    elif platform.system() == "Linux":
+        subprocess.call(["xdg-open", str(path)])
+    return
 
 
 def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
