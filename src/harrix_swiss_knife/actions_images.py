@@ -160,7 +160,7 @@ class on_image_optimize_dialog:
         commands: str = f'npm run optimize imagesFolder="{folder_path}"'
 
         result_output = functions.run_powershell_script(commands)
-        os.startfile(Path(folder_path) / "temp")
+        functions.os_open_file_or_folder(Path(folder_path) / "temp")
         self.__call__.add_line(result_output)
 
 
@@ -196,7 +196,7 @@ class on_image_optimize_dialog_replace:
 
         shutil.rmtree(temp_folder)
 
-        os.startfile(folder_path)
+        functions.os_open_file_or_folder(folder_path)
         self.__call__.add_line(result_output)
 
 
@@ -230,7 +230,7 @@ class on_image_optimize_file:
 
         shutil.rmtree(temp_folder)
 
-        os.startfile(functions.get_project_root() / "temp" / "optimized_images")
+        functions.os_open_file_or_folder(functions.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -245,8 +245,8 @@ class on_images_optimize:
         commands: str = "npm run optimize"
 
         result_output = functions.run_powershell_script(commands)
-        os.startfile(functions.get_project_root() / "temp" / "images")
-        os.startfile(functions.get_project_root() / "temp" / "optimized_images")
+        functions.os_open_file_or_folder(functions.get_project_root() / "temp" / "images")
+        functions.os_open_file_or_folder(functions.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -261,6 +261,6 @@ class on_images_optimize_quality:
         commands: str = "npm run optimize quality=true"
 
         result_output = functions.run_powershell_script(commands)
-        os.startfile(functions.get_project_root() / "temp" / "images")
-        os.startfile(functions.get_project_root() / "temp" / "optimized_images")
+        functions.os_open_file_or_folder(functions.get_project_root() / "temp" / "images")
+        functions.os_open_file_or_folder(functions.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)

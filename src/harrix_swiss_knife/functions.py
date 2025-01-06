@@ -745,8 +745,6 @@ def write_in_output_txt(is_show_output: bool = True) -> Callable:
       its output and timing its execution.
     - The `output.txt` file is created in a `temp` folder under the project root.
       If the folder does not exist, it will be created.
-    - The function uses `os.startfile` to open the file which might not work on
-      all platforms or with all file types.
     """
 
     def decorator(func: Callable) -> Callable:
@@ -767,7 +765,7 @@ def write_in_output_txt(is_show_output: bool = True) -> Callable:
 
             file.write_text(output_text, encoding="utf8")
             if is_show_output:
-                os.startfile(file)
+                os_open_file_or_folder(file)
 
         def add_line(line: str):
             output_lines.append(line)
