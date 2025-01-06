@@ -20,8 +20,7 @@ class on_rye_new_project:
         max_project_number = find_max_project_number(self.path, config["start_pattern_py_projects"])
         self.name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
 
-        result_output = create_rye_new_project(self.name_project, self.path)
-        self.__call__.add_line(result_output)
+        self.__call__.add_line(create_rye_new_project(self.name_project, self.path))
 
 
 class on_rye_new_project_dialog:
@@ -53,8 +52,7 @@ class on_rye_new_project_dialog:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        result_output = create_rye_new_project(self.name_project, self.path)
-        self.__call__.add_line(result_output)
+        self.__call__.add_line(create_rye_new_project(self.name_project, self.path))
 
 
 class on_sort_isort_fmt_python_code_folder:
@@ -125,9 +123,7 @@ class on_sort_python_code_folder:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        result_output = functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code)
-
-        self.__call__.add_line(result_output)
+        self.__call__.add_line(functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code))
 
 
 def create_rye_new_project(name_project: str, path: str | Path) -> str:
