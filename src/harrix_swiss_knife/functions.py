@@ -15,106 +15,6 @@ from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
 
-def add_author_book(filename: Path | str) -> str:
-    """
-    Adds the author and the title of the book to the quotes and formats them as Markdown quotes.
-
-    Args:
-
-    - `filename` (`Path` | `str`): The filename of the Markdown file.
-
-    Returns:
-
-    - `str`: A string indicating whether changes were made to the file or not.
-
-    Example:
-
-    Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
-
-    ```markdown
-    # Title of book
-
-    Line 1.
-
-    Line 2.
-
-    ---
-
-    Line 3.
-
-    Line 4.
-
-    -- Modified title of book
-    ```
-
-    After processing:
-
-    ```markdown
-    # Title of book
-
-    > Line 1.
-    >
-    > Line 2.
-    >
-    > _Name Surname - Title of book_
-
-    ---
-
-    > Line 3.
-    >
-    > Line 4.
-    >
-    > _Name Surname - Modified title of book_
-    ```
-
-    Note:
-
-    - If the file does not exist or is not a Markdown file, the function will return `None`.
-    - If the file has been modified, it returns a message indicating the changes; otherwise,
-      it indicates no changes were made.
-    """
-    lines_list = []
-    file = Path(filename)
-    if not file.is_file():
-        return
-    if file.suffix.lower() != ".md":
-        return
-    note_initial = file.read_text(encoding="utf8")
-
-    parts = note_initial.split("---", 2)
-    yaml_content, main_content = f"---{parts[1]}---", parts[2].lstrip()
-
-    lines = main_content.splitlines()
-
-    author = file.parts[-2].replace("-", " ")
-    title = lines[0].replace("# ", "")
-
-    lines = lines[1:] if lines and lines[0].startswith("# ") else lines
-    lines = lines[:-1] if lines[-1].strip() == "---" else lines
-
-    note = f"{yaml_content}\n\n# {title}\n\n"
-    quotes = list(map(str.strip, filter(None, "\n".join(lines).split("\n---\n"))))
-
-    quotes_fix = []
-    for quote in quotes:
-        lines_quote = quote.splitlines()
-        if lines_quote[-1].startswith("> -- _"):
-            quotes_fix.append(quote)  # The quote has already been processed
-            continue
-        if lines_quote[-1].startswith("-- "):
-            title = lines_quote[-1][3:]
-            del lines_quote[-2:]
-        quote_fix = "\n".join([f"> {line}".rstrip() for line in lines_quote])
-        quotes_fix.append(f"{quote_fix}\n>\n> -- _{author}, {title}_")
-    note += "\n\n---\n\n".join(quotes_fix) + "\n"
-    if note_initial != note:
-        file.write_text(note, encoding="utf8")
-        lines_list.append(f"Fix {filename}")
-    else:
-        lines_list.append(f"No changes in {filename}")
-    return "\n".join(lines_list)
-
-
 def all_files_to_parent_dir(path: Path | str) -> str:
     """
     Moves all files from subdirectories within the given path to the parent directory and then
@@ -292,6 +192,106 @@ def load_config(file_path: str) -> dict:
     with open(get_project_root() / file_path, "r", encoding="utf8") as config_file:
         config = json.load(config_file)
     return config
+
+
+def markdown_add_author_book(filename: Path | str) -> str:
+    """
+    Adds the author and the title of the book to the quotes and formats them as Markdown quotes.
+
+    Args:
+
+    - `filename` (`Path` | `str`): The filename of the Markdown file.
+
+    Returns:
+
+    - `str`: A string indicating whether changes were made to the file or not.
+
+    Example:
+
+    Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
+
+    ```markdown
+    # Title of book
+
+    Line 1.
+
+    Line 2.
+
+    ---
+
+    Line 3.
+
+    Line 4.
+
+    -- Modified title of book
+    ```
+
+    After processing:
+
+    ```markdown
+    # Title of book
+
+    > Line 1.
+    >
+    > Line 2.
+    >
+    > _Name Surname - Title of book_
+
+    ---
+
+    > Line 3.
+    >
+    > Line 4.
+    >
+    > _Name Surname - Modified title of book_
+    ```
+
+    Note:
+
+    - If the file does not exist or is not a Markdown file, the function will return `None`.
+    - If the file has been modified, it returns a message indicating the changes; otherwise,
+      it indicates no changes were made.
+    """
+    lines_list = []
+    file = Path(filename)
+    if not file.is_file():
+        return
+    if file.suffix.lower() != ".md":
+        return
+    note_initial = file.read_text(encoding="utf8")
+
+    parts = note_initial.split("---", 2)
+    yaml_content, main_content = f"---{parts[1]}---", parts[2].lstrip()
+
+    lines = main_content.splitlines()
+
+    author = file.parts[-2].replace("-", " ")
+    title = lines[0].replace("# ", "")
+
+    lines = lines[1:] if lines and lines[0].startswith("# ") else lines
+    lines = lines[:-1] if lines[-1].strip() == "---" else lines
+
+    note = f"{yaml_content}\n\n# {title}\n\n"
+    quotes = list(map(str.strip, filter(None, "\n".join(lines).split("\n---\n"))))
+
+    quotes_fix = []
+    for quote in quotes:
+        lines_quote = quote.splitlines()
+        if lines_quote[-1].startswith("> -- _"):
+            quotes_fix.append(quote)  # The quote has already been processed
+            continue
+        if lines_quote[-1].startswith("-- "):
+            title = lines_quote[-1][3:]
+            del lines_quote[-2:]
+        quote_fix = "\n".join([f"> {line}".rstrip() for line in lines_quote])
+        quotes_fix.append(f"{quote_fix}\n>\n> -- _{author}, {title}_")
+    note += "\n\n---\n\n".join(quotes_fix) + "\n"
+    if note_initial != note:
+        file.write_text(note, encoding="utf8")
+        lines_list.append(f"Fix {filename}")
+    else:
+        lines_list.append(f"No changes in {filename}")
+    return "\n".join(lines_list)
 
 
 def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:

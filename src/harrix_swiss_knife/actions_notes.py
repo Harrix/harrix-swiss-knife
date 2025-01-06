@@ -24,7 +24,7 @@ class on_add_author_book:
             return
 
         try:
-            result_output = functions.apply_func_to_files(folder_path, ".md", functions.add_author_book)
+            result_output = functions.apply_func_to_files(folder_path, ".md", functions.markdown_add_author_book)
             self.__call__.add_line(result_output)
         except Exception as e:
             self.__call__.add_line(f"❌ Error: {e}")
