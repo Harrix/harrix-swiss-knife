@@ -150,11 +150,11 @@ class on_image_optimize_dialog:
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        title: str = "Project directory"
+        title: str = "Project folder"
         folder_path: str = QFileDialog.getExistingDirectory(None, title, config["path_articles"])
 
         if not folder_path:
-            self.__call__.add_line("❌ The directory was not selected.")
+            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         commands: str = f'npm run optimize imagesDir="{folder_path}"'
@@ -172,11 +172,11 @@ class on_image_optimize_dialog_replace:
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        title: str = "Project directory"
+        title: str = "Project folder"
         folder_path: str = QFileDialog.getExistingDirectory(None, title, config["path_articles"])
 
         if not folder_path:
-            self.__call__.add_line("❌ The directory was not selected.")
+            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         commands: str = f'npm run optimize imagesDir="{folder_path}"'

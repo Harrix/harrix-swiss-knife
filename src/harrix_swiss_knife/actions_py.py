@@ -45,13 +45,13 @@ class on_rye_new_project_dialog:
 
         self.name_project = self.name_project.replace(" ", "-")
 
-        title = "Project directory"
+        title = "Project folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_py_projects"])
 
         if folder_path:
             self.path: str = folder_path
         else:
-            self.__call__.add_line("❌ The directory was not selected.")
+            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         result_output = create_rye_new_project(self.name_project, self.path)
@@ -66,11 +66,11 @@ class on_sort_isort_fmt_python_code_folder:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        title = "Project directory"
+        title = "Project folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
 
         if not (folder_path):
-            self.__call__.add_line("❌ The directory was not selected.")
+            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         commands = f"""
@@ -120,13 +120,13 @@ class on_sort_python_code_folder:
 
     @functions.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        title = "Project directory"
+        title = "Project folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
 
         if folder_path:
             self.path: str = folder_path
         else:
-            self.__call__.add_line("❌ The directory was not selected.")
+            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         result_output = functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code)
@@ -141,7 +141,7 @@ def create_rye_new_project(name_project: str, path: str | Path) -> str:
     Args:
 
     - `name_project` (`str`): The name of the new project.
-    - `path` (`str` | `Path`): The directory path where the project will be created.
+    - `path` (`str` | `Path`): The folder path where the project will be created.
 
     Returns:
 
@@ -180,11 +180,11 @@ def create_rye_new_project(name_project: str, path: str | Path) -> str:
 
 def find_max_project_number(base_path: str, start_pattern: str) -> int:
     """
-    Finds the highest project number in a given directory based on a pattern.
+    Finds the highest project number in a given folder based on a pattern.
 
     Args:
 
-    - `base_path` (`str`): The base directory path to search for projects.
+    - `base_path` (`str`): The base folder path to search for projects.
     - `start_pattern` (`str`): A regex pattern for matching project names.
 
     Returns:

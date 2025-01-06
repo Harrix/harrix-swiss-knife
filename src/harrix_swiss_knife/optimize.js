@@ -33,10 +33,10 @@ const quality = "quality" in dictionary ? dictionary.quality : false;
 let imagesDir = "imagesDir" in dictionary ? dictionary.imagesDir : "";
 let outputDir = "outputDir" in dictionary ? dictionary.outputDir : "";
 
-const clearDirectory = (directoryPath) => {
-  if (fs.existsSync(directoryPath)) {
-    fs.readdirSync(directoryPath).forEach((file) => {
-      const filePath = path.join(directoryPath, file);
+const clearFolder = (folderPath) => {
+  if (fs.existsSync(folderPath)) {
+    fs.readdirSync(folderPath).forEach((file) => {
+      const filePath = path.join(folderPath, file);
       if (fs.lstatSync(filePath).isDirectory()) {
         fs.rmSync(filePath, { recursive: true, force: true });
       } else {
@@ -44,7 +44,7 @@ const clearDirectory = (directoryPath) => {
       }
     });
   } else {
-    fs.mkdirSync(directoryPath, { recursive: true });
+    fs.mkdirSync(folderPath, { recursive: true });
   }
 };
 
@@ -101,7 +101,7 @@ const processImage = async (file) => {
           ],
         });
 
-        // Write the optimized image to the output directory
+        // Write the optimized image to the output folder
         fs.writeFileSync(path.join(outputDir, `${outputFileName}.png`), pngQuantBuffer);
 
         console.log(`File ${file} successfully optimized.`);
@@ -144,14 +144,14 @@ const processImage = async (file) => {
 if (!imagesDir) {
   imagesDir = path.join(__dirname, "../../temp/images");
   outputDir = path.join(__dirname, "../../temp/optimized_images");
-  clearDirectory(outputDir);
+  clearFolder(outputDir);
 } else {
   if (outputDir == "optimized_images") {
     outputDir = path.join(__dirname, "../../temp/optimized_images");
   } else if (!outputDir) {
     const tempDirPath = path.join(dictionary.imagesDir, "temp");
     fs.mkdir(tempDirPath, { recursive: true }, (err) => {
-      if (err) return console.error(`Error creating the directory: ${err.message}`);
+      if (err) return console.error(`Error creating the folder: ${err.message}`);
     });
     outputDir = path.join(imagesDir, `temp`);
   }

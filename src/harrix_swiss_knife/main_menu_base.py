@@ -92,7 +92,7 @@ class MainMenuBase:
                 painter.drawText(pixmap.rect(), Qt.AlignCenter, icon)
                 painter.end()
 
-                # Ensure the directory exists
+                # Ensure the folder exists
                 icon_dir.mkdir(parents=True, exist_ok=True)
                 # Save the pixmap as a PNG file
                 pixmap.save(str(icon_path), "PNG")

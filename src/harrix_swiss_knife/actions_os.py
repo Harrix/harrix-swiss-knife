@@ -11,17 +11,17 @@ config = functions.load_config("config.json")
 class on_all_files_to_parent_dir:
     icon: str = "🗂️"
     title: str = "Moves and flattens files from nested folders"
-    tip: str = "The function moves all files from subdirectories to their parent directory, removing any then-empty subdirectories."
+    tip: str = "The function moves all files from subfolders to their parent folder, removing any then-empty subfolders."
 
     def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        title = "Project directory"
+        title = "Project folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
 
         if not folder_path:
-            self.__call__.add_line("❌ The directory was not selected.")
+            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         result_output = functions.all_files_to_parent_dir(folder_path)
@@ -49,17 +49,17 @@ class on_block_disks:
 class on_check_featured_image_not_recursively:
     icon: str = "✅"
     title: str = "Check featured_image.* in …"
-    tip: str = "Checks for the presence of `featured_image.*` files in every child directory, not recursively."
+    tip: str = "Checks for the presence of `featured_image.*` files in every child folder, not recursively."
 
     def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        title = "Directory"
+        title = "Folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
 
         if not folder_path:
-            self.__call__.add_line("❌ The directory was not selected.")
+            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         try:
@@ -114,11 +114,11 @@ class on_tree_view_folder:
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        title = "Project directory"
+        title = "Project folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
 
         if not folder_path:
-            self.__call__.add_line("❌ The directory was not selected.")
+            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         result_output = functions.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_dirs", False))

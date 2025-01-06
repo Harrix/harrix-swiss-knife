@@ -16,11 +16,11 @@ class on_add_author_book:
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        title = "Directory"
+        title = "Folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_quotes"])
 
         if not folder_path:
-            self.__call__.add_line("❌ The directory was not selected.")
+            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         try:
@@ -148,7 +148,7 @@ def add_diary_new_diary(is_with_images: bool = False) -> str | Path:
 
     Args:
 
-    - `is_with_images` (`bool`): Whether to create directories for images. Defaults to `False`.
+    - `is_with_images` (`bool`): Whether to create folders for images. Defaults to `False`.
 
     Returns:
 
@@ -166,7 +166,7 @@ def add_diary_new_dream(is_with_images: bool = False) -> str | Path:
 
     Args:
 
-    - `is_with_images` (`bool`): Whether to create directories for images. Defaults to `False`.
+    - `is_with_images` (`bool`): Whether to create folders for images. Defaults to `False`.
 
     Returns:
 
@@ -187,7 +187,7 @@ def add_diary_new_note(base_path: str | Path, text: str, is_with_images: bool) -
 
     - `base_path` (`str | Path`): The base path where the note should be added.
     - `text` (`str`): The content to write in the note.
-    - `is_with_images` (`bool`): Whether to create a directory for images alongside the note.
+    - `is_with_images` (`bool`): Whether to create a folder for images alongside the note.
 
     Returns:
 
@@ -216,9 +216,9 @@ def add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) 
     Args:
 
     - `base_path` (`str | Path`): The path where the note will be added.
-    - `name` (`str`): The name for the note file or directory.
+    - `name` (`str`): The name for the note file or folder.
     - `text` (`str`): The text content for the note.
-    - `is_with_images` (`bool`): If true, creates directories for images.
+    - `is_with_images` (`bool`): If true, creates folders for images.
 
     Returns:
 

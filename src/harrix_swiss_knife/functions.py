@@ -17,22 +17,22 @@ from PySide6.QtWidgets import QMenu
 
 def all_files_to_parent_dir(path: Path | str) -> str:
     """
-    Moves all files from subdirectories within the given path to the parent directory and then
-    removes empty directories.
+    Moves all files from subfolders within the given path to the parent folder and then
+    removes empty folders.
 
     Args:
 
-    - `path` (`Path | str`): The path to the directory whose subdirectories you want to flatten.
+    - `path` (`Path | str`): The path to the folder whose subfolders you want to flatten.
       Can be either a `Path` object or a string.
 
     Returns:
 
-    - `str`: A string where each line represents an action taken on a subdirectory (e.g., "Fix subdirectory_name").
+    - `str`: A string where each line represents an action taken on a subfolder (e.g., "Fix subfolder_name").
 
     Notes:
 
-    - This function will print exceptions to stdout if there are issues with moving files or deleting directories.
-    - Directories will only be removed if they become empty after moving all files.
+    - This function will print exceptions to stdout if there are issues with moving files or deleting folders.
+    - Folders will only be removed if they become empty after moving all files.
 
     Before:
 
@@ -102,7 +102,7 @@ def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
     """
     list_files = []
     for root, dirs, files in os.walk(folder):
-        # Exclude all directories and files starting with a dot
+        # Exclude all folders and files starting with a dot
         dirs[:] = [d for d in dirs if not d.startswith(".")]
         files = [f for f in files if not f.startswith(".")]
 
@@ -120,25 +120,25 @@ def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
 
 def check_featured_image_not_recursively(path: str) -> tuple[bool, str]:
     """
-    Checks for the presence of `featured_image.*` files in every child directory, not recursively.
+    Checks for the presence of `featured_image.*` files in every child folder, not recursively.
 
-    This function goes through each immediate subdirectory of the given path and checks if there
+    This function goes through each immediate subfolder of the given path and checks if there
     is at least one file with the name starting with "featured-image". If such a file is missing
-    in any directory, it logs this occurrence.
+    in any folder, it logs this occurrence.
 
     Args:
 
-    - `path` (`str`): Path to the directory being checked. Can be either a string or a Path object.
+    - `path` (`str`): Path to the folder being checked. Can be either a string or a Path object.
 
     Returns:
 
     - `tuple[bool, str]`: A tuple where:
-        - The first element (`bool`) indicates if all directories have a `featured_image.*` file.
+        - The first element (`bool`) indicates if all folders have a `featured_image.*` file.
         - The second element (`str`) contains a formatted string with status or error messages.
 
     Note:
 
-    - This function does not search recursively; it only checks the immediate child directories.
+    - This function does not search recursively; it only checks the immediate child folders.
     - The output string uses ANSI color codes for visual distinction of errors.
     """
     line_list: list[str] = []
@@ -160,14 +160,14 @@ def check_featured_image_not_recursively(path: str) -> tuple[bool, str]:
 
 def get_project_root() -> Path:
     """
-    Finds the root directory of the current project.
+    Finds the root folder of the current project.
 
-    This function traverses up the directory tree from the current file looking for a directory containing
+    This function traverses up the folder tree from the current file looking for a folder containing
     a `.venv` folder, which is assumed to indicate the project root.
 
     Returns:
 
-    - `Path`: The path to the project's root directory.
+    - `Path`: The path to the project's root folder.
 
     """
     current_file: Path = Path(__file__).resolve()
@@ -634,7 +634,7 @@ def split_markdown_yaml_content(note: str) -> tuple[str, str]:
 
 def tree_view_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:
     """
-    Generates a tree-like representation of directory contents.
+    Generates a tree-like representation of folder contents.
 
     Example output:
 
@@ -648,18 +648,18 @@ def tree_view_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:
 
     Args:
 
-    - `path` (`Path`): The root directory path to start the tree from.
-    - `is_ignore_hidden_dirs` (`bool`): If `True`, hidden directories (starting with a dot) are excluded from the tree.
+    - `path` (`Path`): The root folder path to start the tree from.
+    - `is_ignore_hidden_dirs` (`bool`): If `True`, hidden folders (starting with a dot) are excluded from the tree.
       Defaults to `False`.
 
     Returns:
 
-    - `str`: A string representation of the directory structure with ASCII art tree elements.
+    - `str`: A string representation of the folder structure with ASCII art tree elements.
 
     Note:
 
-    - This function uses recursion to traverse directories. It handles `PermissionError`
-      by excluding directories without permission.
+    - This function uses recursion to traverse folders. It handles `PermissionError`
+      by excluding folders without permission.
     - Uses ASCII characters to represent tree branches (`├──`, `└──`, `│`).
     """
 
@@ -687,7 +687,7 @@ def write_in_output_txt(is_show_output: bool = True) -> Callable:
 
     This decorator captures all output of the decorated function into a list,
     measures execution time, and writes this information into an `output.txt` file
-    in a temporary directory within the project root. It also offers the option
+    in a temporary folder within the project root. It also offers the option
     to automatically open this file after writing.
 
     Args:
