@@ -25,7 +25,7 @@ class on_all_files_to_parent_folder:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        self.__call__.add_line(functions.file_operations_all_files_to_parent_folder(folder_path))
+        self.__call__.add_line(functions.file_all_files_to_parent_folder(folder_path))
 
 
 class on_block_disks:
@@ -62,7 +62,7 @@ class on_check_featured_image_not_recursively:
             return
 
         try:
-            self.__call__.add_line(functions.check_featured_image_not_recursively(folder_path)[1])
+            self.__call__.add_line(functions.file_check_featured_image_not_recursively(folder_path)[1])
         except Exception as e:
             self.__call__.add_line(f"❌ Error: {e}")
 
@@ -79,7 +79,7 @@ class on_check_featured_image_not_recursively_in_folders:
 
         for path in folders_with_featured_image:
             try:
-                self.__call__.add_line(functions.check_featured_image_not_recursively(path)[1])
+                self.__call__.add_line(functions.file_check_featured_image_not_recursively(path)[1])
             except Exception as e:
                 self.__call__.add_line(f"❌ Error: {e}")
 
