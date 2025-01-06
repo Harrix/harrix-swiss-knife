@@ -202,4 +202,3 @@ def find_max_project_number(base_path: str, start_pattern: str) -> int:
                     max_number = number
 
     return max_number
-

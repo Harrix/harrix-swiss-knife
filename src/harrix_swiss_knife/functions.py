@@ -106,7 +106,7 @@ def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
 
     for path in folder_path.rglob(f"*{ext}"):
         # Exclude all folders and files starting with a dot
-        if path.is_file() and not any(part.startswith('.') for part in path.parts):
+        if path.is_file() and not any(part.startswith(".") for part in path.parts):
             try:
                 func(str(path))
                 list_files.append(f"File {path.name} is applied.")
