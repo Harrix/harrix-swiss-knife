@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife import functions
 
-config = functions.load_config("config.json")
+config = functions.dev_load_config("config.json")
 
 
 class on_exit:
@@ -12,7 +12,7 @@ class on_exit:
     def __init__(self, **kwargs):
         self.parent = kwargs.get("parent", None)
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         if self.parent:
             QApplication.quit()
@@ -25,7 +25,7 @@ class on_get_menu:
     def __init__(self, **kwargs):
         self.parent = kwargs.get("parent", None)
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         if self.parent:
             self.__call__.add_line(self.parent.get_menu())
@@ -37,8 +37,8 @@ class on_open_config_json:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        commands = f"{config["editor"]} {functions.get_project_root() / "config.json"}"
-        output = functions.run_powershell_script(commands)
+        commands = f"{config["editor"]} {functions.dev_get_project_root() / "config.json"}"
+        output = functions.dev_run_powershell_script(commands)
         self.__call__.add_line(output)
