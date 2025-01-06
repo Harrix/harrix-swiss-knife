@@ -74,8 +74,8 @@ class MainMenuBase:
         else:
             # Generate a safe filename for the emoji icon
             filename = f"emoji_{"_".join(f"{ord(c):X}" for c in icon)}.png"
-            icon_dir = f.get_project_root() / "temp" / "icons"
-            icon_path = icon_dir / filename
+            icon_folder = f.get_project_root() / "temp" / "icons"
+            icon_path = icon_folder / filename
 
             if icon_path.exists():
                 # If the icon already exists, load it from the file
@@ -93,7 +93,7 @@ class MainMenuBase:
                 painter.end()
 
                 # Ensure the folder exists
-                icon_dir.mkdir(parents=True, exist_ok=True)
+                icon_folder.mkdir(parents=True, exist_ok=True)
                 # Save the pixmap as a PNG file
                 pixmap.save(str(icon_path), "PNG")
                 # Return the icon

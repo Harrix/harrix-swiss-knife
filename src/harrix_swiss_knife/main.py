@@ -41,7 +41,7 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu OS
         self.menu_os = self.new_menu("OS", "🪟")
-        self.add_item(self.menu_os, actions_os.on_all_files_to_parent_dir)
+        self.add_item(self.menu_os, actions_os.on_all_files_to_parent_folder)
         self.add_item(self.menu_os, actions_os.on_check_featured_image_not_recursively)
         self.add_item(self.menu_os, actions_os.on_check_featured_image_not_recursively_in_folders)
         self.add_item(self.menu_os, actions_os.on_block_disks)

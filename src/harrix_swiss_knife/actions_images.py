@@ -105,12 +105,12 @@ class on_image_optimize_clipboard:
                 self.__call__.add_line("❌ The name of the image was not entered.")
                 return
 
-        temp_dir: Path = Path(tempfile.mkdtemp())
-        temp_file_path: Path = temp_dir / file_name
+        temp_folder: Path = Path(tempfile.mkdtemp())
+        temp_file_path: Path = temp_folder / file_name
         image.save(temp_file_path, "PNG")
         self.__call__.add_line(f"Image is saved as {temp_file_path}")
 
-        commands: str = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
+        commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
         result_output = functions.run_powershell_script(commands)
 
         clr.AddReference("System.Collections.Specialized")
@@ -125,7 +125,7 @@ class on_image_optimize_clipboard:
         files.Add(str(file_path))
         Clipboard.SetFileDropList(files)
 
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_folder)
 
         self.__call__.add_line(result_output)
         self.__call__.add_line("Image is optimized and copied to clipboard.")
@@ -157,7 +157,7 @@ class on_image_optimize_dialog:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        commands: str = f'npm run optimize imagesDir="{folder_path}"'
+        commands: str = f'npm run optimize imagesFolder="{folder_path}"'
 
         result_output = functions.run_powershell_script(commands)
         os.startfile(Path(folder_path) / "temp")
@@ -179,7 +179,7 @@ class on_image_optimize_dialog_replace:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        commands: str = f'npm run optimize imagesDir="{folder_path}"'
+        commands: str = f'npm run optimize imagesFolder="{folder_path}"'
         result_output = functions.run_powershell_script(commands)
 
         folder_path = Path(folder_path)
@@ -219,16 +219,16 @@ class on_image_optimize_file:
             self.__call__.add_line("❌ The file was not selected.")
             return
 
-        temp_dir: Path = Path(tempfile.mkdtemp())
+        temp_folder: Path = Path(tempfile.mkdtemp())
         file_name: str = Path(file_path).name
-        temp_file_path: Path = temp_dir / file_name
+        temp_file_path: Path = temp_folder / file_name
         shutil.copy(file_path, temp_file_path)
 
-        commands: str = f'npm run optimize imagesDir="{temp_dir}" outputDir="optimized_images"'
+        commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
 
         result_output = functions.run_powershell_script(commands)
 
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_folder)
 
         os.startfile(functions.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)

@@ -5,7 +5,7 @@ Example:
 
 ```shell
 npm run optimize
-npm run optimize quality=true imagesDir="/custom/images/path" outputDir="/custom/output/path"
+npm run optimize quality=true imagesFolder="/custom/images/path" outputFolder="/custom/output/path"
 npm run optimize quality=true
 ```
 */
@@ -20,7 +20,7 @@ import { exec } from "child_process";
 import { optimize } from "svgo";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __foldername = path.dirname(__filename);
 
 const args = process.argv.slice(2);
 const dictionary = args.reduce((acc, item) => {
@@ -30,8 +30,8 @@ const dictionary = args.reduce((acc, item) => {
 }, {});
 
 const quality = "quality" in dictionary ? dictionary.quality : false;
-let imagesDir = "imagesDir" in dictionary ? dictionary.imagesDir : "";
-let outputDir = "outputDir" in dictionary ? dictionary.outputDir : "";
+let imagesFolder = "imagesFolder" in dictionary ? dictionary.imagesFolder : "";
+let outputFolder = "outputFolder" in dictionary ? dictionary.outputFolder : "";
 
 const clearFolder = (folderPath) => {
   if (fs.existsSync(folderPath)) {
@@ -50,9 +50,9 @@ const clearFolder = (folderPath) => {
 
 const processImage = async (file) => {
   const ext = path.extname(file).toLowerCase();
-  const filePath = path.join(imagesDir, file);
+  const filePath = path.join(imagesFolder, file);
   const outputFileName = path.parse(file).name;
-  const outputFilePath = path.join(outputDir, `${outputFileName}.avif`);
+  const outputFilePath = path.join(outputFolder, `${outputFileName}.avif`);
 
   if (ext === ".jpg" || ext === ".jpeg" || ext === ".webp") {
     let qualityValue = quality ? 93 : 63;
@@ -80,7 +80,7 @@ const processImage = async (file) => {
     try {
       if (quality) {
         // If quality is true, copy the file without changes
-        fs.copyFileSync(filePath, path.join(outputDir, `${outputFileName}.png`));
+        fs.copyFileSync(filePath, path.join(outputFolder, `${outputFileName}.png`));
         console.log(`File ${file} copied without changes.`);
       } else {
         // Options for PNG
@@ -102,7 +102,7 @@ const processImage = async (file) => {
         });
 
         // Write the optimized image to the output folder
-        fs.writeFileSync(path.join(outputDir, `${outputFileName}.png`), pngQuantBuffer);
+        fs.writeFileSync(path.join(outputFolder, `${outputFileName}.png`), pngQuantBuffer);
 
         console.log(`File ${file} successfully optimized.`);
       }
@@ -126,7 +126,7 @@ const processImage = async (file) => {
         ],
       });
 
-      const outputFilePath = path.join(outputDir, `${outputFileName}.svg`);
+      const outputFilePath = path.join(outputFolder, `${outputFileName}.svg`);
 
       fs.writeFile(outputFilePath, result.data, (err) => {
         if (err) {
@@ -141,26 +141,26 @@ const processImage = async (file) => {
   }
 };
 
-if (!imagesDir) {
-  imagesDir = path.join(__dirname, "../../temp/images");
-  outputDir = path.join(__dirname, "../../temp/optimized_images");
-  clearFolder(outputDir);
+if (!imagesFolder) {
+  imagesFolder = path.join(__foldername, "../../temp/images");
+  outputFolder = path.join(__foldername, "../../temp/optimized_images");
+  clearFolder(outputFolder);
 } else {
-  if (outputDir == "optimized_images") {
-    outputDir = path.join(__dirname, "../../temp/optimized_images");
-  } else if (!outputDir) {
-    const tempDirPath = path.join(dictionary.imagesDir, "temp");
-    fs.mkdir(tempDirPath, { recursive: true }, (err) => {
+  if (outputFolder == "optimized_images") {
+    outputFolder = path.join(__foldername, "../../temp/optimized_images");
+  } else if (!outputFolder) {
+    const tempFolderPath = path.join(dictionary.imagesFolder, "temp");
+    fs.mkdir(tempFolderPath, { recursive: true }, (err) => {
       if (err) return console.error(`Error creating the folder: ${err.message}`);
     });
-    outputDir = path.join(imagesDir, `temp`);
+    outputFolder = path.join(imagesFolder, `temp`);
   }
 }
 
-console.log(`imagesDir: ${imagesDir}`);
-console.log(`outputDir: ${outputDir}`);
+console.log(`imagesFolder: ${imagesFolder}`);
+console.log(`outputFolder: ${outputFolder}`);
 
-fs.readdir(imagesDir, async (err, files) => {
+fs.readdir(imagesFolder, async (err, files) => {
   if (err) {
     console.error("Error reading the image folder:", err);
     return;

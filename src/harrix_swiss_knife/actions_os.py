@@ -8,7 +8,7 @@ from harrix_swiss_knife import functions
 config = functions.load_config("config.json")
 
 
-class on_all_files_to_parent_dir:
+class on_all_files_to_parent_folder:
     icon: str = "🗂️"
     title: str = "Moves and flattens files from nested folders"
     tip: str = "The function moves all files from subfolders to their parent folder, removing any then-empty subfolders."
@@ -24,7 +24,7 @@ class on_all_files_to_parent_dir:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        result_output = functions.all_files_to_parent_dir(folder_path)
+        result_output = functions.all_files_to_parent_folder(folder_path)
 
         self.__call__.add_line(result_output)
 
@@ -121,17 +121,17 @@ class on_tree_view_folder:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        result_output = functions.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_dirs", False))
+        result_output = functions.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_folders", False))
 
         self.__call__.add_line(result_output)
 
 
 class on_tree_view_folder_ignore_hidden_folders:
     icon: str = "├"
-    title: str = "Tree view of a folder (ignore hidden dirs)"
+    title: str = "Tree view of a folder (ignore hidden folders)"
 
     def __init__(self, **kwargs): ...
 
     @functions.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        on_tree_view_folder.__call__(self, is_ignore_hidden_dirs=True)
+        on_tree_view_folder.__call__(self, is_ignore_hidden_folders=True)
