@@ -78,11 +78,8 @@ class on_sort_isort_fmt_python_code_folder:
             rye fmt
             """
 
-        res = functions.run_powershell_script(commands)
-        self.__call__.add_line(res)
-
-        res = functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code)
-        self.__call__.add_line(res)
+        self.__call__.add_line(functions.run_powershell_script(commands))
+        self.__call__.add_line(functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code))
 
 
 class on_sort_python_code_file:
