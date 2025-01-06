@@ -1,4 +1,3 @@
-import os
 import re
 from pathlib import Path
 
@@ -146,7 +145,6 @@ def create_rye_new_project(name_project: str, path: str | Path) -> str:
     Returns:
 
     - `str`: A string containing the result of the operations performed.
-
     """
     commands = f"""
         cd {path}
@@ -190,17 +188,18 @@ def find_max_project_number(base_path: str, start_pattern: str) -> int:
     Returns:
 
     - `int`: The maximum project number found, or 0 if no matches are found.
-
     """
     pattern = re.compile(start_pattern + r"(\d+)$")
     max_number: int = 0
-    for item in os.listdir(base_path):
-        path = os.path.join(base_path, item)
-        if os.path.isdir(path):
-            match = pattern.match(item)
+    base_path = Path(base_path)
+
+    for item in base_path.iterdir():
+        if item.is_dir():
+            match = pattern.match(item.name)
             if match:
                 number = int(match.group(1))
                 if number > max_number:
                     max_number = number
 
     return max_number
+
