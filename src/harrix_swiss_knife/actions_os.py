@@ -55,7 +55,7 @@ class on_check_featured_image_not_recursively:
     @functions.dev_write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title = "Folder"
-        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
+        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_3d"])
 
         if not folder_path:
             self.__call__.add_line("❌ The folder was not selected.")
