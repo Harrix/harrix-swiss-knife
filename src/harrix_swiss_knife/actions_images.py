@@ -91,7 +91,7 @@ class on_image_optimize_clipboard:
             self.__call__.add_line("❌ No image found in the clipboard")
             return
 
-        file_name: str = "image.png"
+        filename: str = "image.png"
 
         if "is_dialog" in kwargs and kwargs["is_dialog"]:
             title: str = "Image name"
@@ -99,13 +99,13 @@ class on_image_optimize_clipboard:
             image_name, ok = QInputDialog.getText(None, title, label, text="image")
 
             if ok and image_name:
-                file_name = image_name.replace(" ", "-") + ".png"
+                filename = image_name.replace(" ", "-") + ".png"
             else:
                 self.__call__.add_line("❌ The name of the image was not entered.")
                 return
 
         temp_folder: Path = Path(tempfile.mkdtemp())
-        temp_file_path: Path = temp_folder / file_name
+        temp_file_path: Path = temp_folder / filename
         image.save(temp_file_path, "PNG")
         self.__call__.add_line(f"Image is saved as {temp_file_path}")
 
@@ -117,7 +117,7 @@ class on_image_optimize_clipboard:
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        file_path: Path = functions.get_project_root() / "temp" / "optimized_images" / file_name
+        file_path: Path = functions.get_project_root() / "temp" / "optimized_images" / filename
         file_path = file_path.resolve()
 
         files = StringCollection()
@@ -219,8 +219,8 @@ class on_image_optimize_file:
             return
 
         temp_folder: Path = Path(tempfile.mkdtemp())
-        file_name: str = Path(file_path).name
-        temp_file_path: Path = temp_folder / file_name
+        filename: str = Path(file_path).name
+        temp_file_path: Path = temp_folder / filename
         shutil.copy(file_path, temp_file_path)
 
         commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
