@@ -16,7 +16,7 @@ from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
 
-def all_files_to_parent_folder(path: Path | str) -> str:
+def file_operations_all_files_to_parent_folder(path: Path | str) -> str:
     """
     Moves all files from subfolders within the given path to the parent folder and then
     removes empty folders.
