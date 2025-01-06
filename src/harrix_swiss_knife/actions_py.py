@@ -77,7 +77,7 @@ class on_sort_isort_fmt_python_code_folder:
             """
 
         self.__call__.add_line(functions.run_powershell_script(commands))
-        self.__call__.add_line(functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code))
+        self.__call__.add_line(functions.file_apply_func_to_files(folder_path, ".py", functions.sort_py_code))
 
 
 class on_sort_python_code_file:
@@ -123,7 +123,7 @@ class on_sort_python_code_folder:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        self.__call__.add_line(functions.apply_func_to_files(folder_path, ".py", functions.sort_py_code))
+        self.__call__.add_line(functions.file_apply_func_to_files(folder_path, ".py", functions.sort_py_code))
 
 
 def create_rye_new_project(name_project: str, path: str | Path) -> str:
