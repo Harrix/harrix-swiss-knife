@@ -16,147 +16,7 @@ from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
 
-def file_all_files_to_parent_folder(path: Path | str) -> str:
-    """
-    Moves all files from subfolders within the given path to the parent folder and then
-    removes empty folders.
-
-    Args:
-
-    - `path` (`Path | str`): The path to the folder whose subfolders you want to flatten.
-      Can be either a `Path` object or a string.
-
-    Returns:
-
-    - `str`: A string where each line represents an action taken on a subfolder (e.g., "Fix subfolder_name").
-
-    Notes:
-
-    - This function will print exceptions to stdout if there are issues with moving files or deleting folders.
-    - Folders will only be removed if they become empty after moving all files.
-
-    Before:
-
-    ```text
-    C:\test
-    ├─ folder1
-    │  ├─ image.jpg
-    │  ├─ sub1
-    │  │  ├─ file1.txt
-    │  │  └─ file2.txt
-    │  └─ sub2
-    │     ├─ file3.txt
-    │     └─ file4.txt
-    └─ folder2
-       └─ sub3
-          ├─ file6.txt
-          └─ sub4
-             └─ file5.txt
-    ```
-
-    After:
-
-    ```text
-    C:\test
-    ├─ folder1
-    │  ├─ file1.txt
-    │  ├─ file2.txt
-    │  ├─ file3.txt
-    │  ├─ file4.txt
-    │  └─ image.jpg
-    └─ folder2
-       ├─ file5.txt
-       └─ file6.txt
-    ```
-    """
-    list_lines = []
-    for child_folder in Path(path).iterdir():
-        for file in Path(child_folder).glob("**/*"):
-            if file.is_file():
-                try:
-                    file.replace(child_folder / file.name)
-                except Exception as exception:
-                    print(exception)
-        for file in Path(child_folder).glob("**/*"):
-            if file.is_dir():
-                try:
-                    shutil.rmtree(file)
-                except Exception as exception:
-                    print(exception)
-        list_lines.append(f"Fix {child_folder}")
-    return "\n".join(list_lines)
-
-
-def file_apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
-    """
-    Applies a given function to all files with a specified extension in a folder and its sub-folders.
-
-    Args:
-
-    - `folder` (`str`): The path to the root folder where the function should be applied. Defaults to `None`.
-    - `ext` (`str`): The file extension to filter files by. Should include the dot (e.g., '.py').
-    - `func` (`Callable`): The function to apply to each file. This function should take an argument, the file path.
-
-    Returns:
-
-    - `str`: A string listing the results of applying the function to each file, with each result on a new line.
-    """
-    list_files = []
-    folder_path = Path(folder)
-
-    for path in folder_path.rglob(f"*{ext}"):
-        # Exclude all folders and files starting with a dot
-        if path.is_file() and not any(part.startswith(".") for part in path.parts):
-            try:
-                func(str(path))
-                list_files.append(f"File {path.name} is applied.")
-            except Exception:
-                list_files.append(f"❌ File {path.name} is not applied.")
-
-    return "\n".join(list_files)
-
-
-def file_check_featured_image_not_recursively(path: str) -> tuple[bool, str]:
-    """
-    Checks for the presence of `featured_image.*` files in every child folder, not recursively.
-
-    This function goes through each immediate subfolder of the given path and checks if there
-    is at least one file with the name starting with "featured-image". If such a file is missing
-    in any folder, it logs this occurrence.
-
-    Args:
-
-    - `path` (`str`): Path to the folder being checked. Can be either a string or a Path object.
-
-    Returns:
-
-    - `tuple[bool, str]`: A tuple where:
-        - The first element (`bool`) indicates if all folders have a `featured_image.*` file.
-        - The second element (`str`) contains a formatted string with status or error messages.
-
-    Note:
-
-    - This function does not search recursively; it only checks the immediate child folders.
-    - The output string uses ANSI color codes for visual distinction of errors.
-    """
-    line_list: list[str] = []
-    is_correct: bool = True
-
-    for child_folder in Path(path).iterdir():
-        is_featured_image: bool = False
-        for file in child_folder.iterdir():
-            if file.is_file() and file.name.startswith("featured-image"):
-                is_featured_image = True
-        if not is_featured_image:
-            is_correct = False
-            line_list.append(f"❌ {child_folder} without featured-image")
-
-    if is_correct:
-        line_list.append(f"All correct in {path}")
-    return is_correct, "\n".join(line_list)
-
-
-def get_project_root() -> Path:
+def dev_get_project_root() -> Path:
     """
     Finds the root folder of the current project.
 
@@ -175,7 +35,7 @@ def get_project_root() -> Path:
     return current_file.parent
 
 
-def load_config(file_path: str) -> dict:
+def dev_load_config(file_path: str) -> dict:
     """
     Loads configuration from a JSON file.
 
@@ -187,201 +47,12 @@ def load_config(file_path: str) -> dict:
 
     - `dict`: Configuration loaded from the file.
     """
-    with open(get_project_root() / file_path, "r", encoding="utf8") as config_file:
+    with open(dev_get_project_root() / file_path, "r", encoding="utf8") as config_file:
         config = json.load(config_file)
     return config
 
 
-def markdown_add_author_book(filename: Path | str) -> str:
-    """
-    Adds the author and the title of the book to the quotes and formats them as Markdown quotes.
-
-    Args:
-
-    - `filename` (`Path` | `str`): The filename of the Markdown file.
-
-    Returns:
-
-    - `str`: A string indicating whether changes were made to the file or not.
-
-    Example:
-
-    Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
-
-    ```markdown
-    # Title of book
-
-    Line 1.
-
-    Line 2.
-
-    ---
-
-    Line 3.
-
-    Line 4.
-
-    -- Modified title of book
-    ```
-
-    After processing:
-
-    ```markdown
-    # Title of book
-
-    > Line 1.
-    >
-    > Line 2.
-    >
-    > _Name Surname - Title of book_
-
-    ---
-
-    > Line 3.
-    >
-    > Line 4.
-    >
-    > _Name Surname - Modified title of book_
-    ```
-
-    Note:
-
-    - If the file does not exist or is not a Markdown file, the function will return `None`.
-    - If the file has been modified, it returns a message indicating the changes; otherwise,
-      it indicates no changes were made.
-    """
-    lines_list = []
-    file = Path(filename)
-    if not file.is_file():
-        return
-    if file.suffix.lower() != ".md":
-        return
-    note_initial = file.read_text(encoding="utf8")
-
-    parts = note_initial.split("---", 2)
-    yaml_content, main_content = f"---{parts[1]}---", parts[2].lstrip()
-
-    lines = main_content.splitlines()
-
-    author = file.parts[-2].replace("-", " ")
-    title = lines[0].replace("# ", "")
-
-    lines = lines[1:] if lines and lines[0].startswith("# ") else lines
-    lines = lines[:-1] if lines[-1].strip() == "---" else lines
-
-    note = f"{yaml_content}\n\n# {title}\n\n"
-    quotes = list(map(str.strip, filter(None, "\n".join(lines).split("\n---\n"))))
-
-    quotes_fix = []
-    for quote in quotes:
-        lines_quote = quote.splitlines()
-        if lines_quote[-1].startswith("> -- _"):
-            quotes_fix.append(quote)  # The quote has already been processed
-            continue
-        if lines_quote[-1].startswith("-- "):
-            title = lines_quote[-1][3:]
-            del lines_quote[-2:]
-        quote_fix = "\n".join([f"> {line}".rstrip() for line in lines_quote])
-        quotes_fix.append(f"{quote_fix}\n>\n> -- _{author}, {title}_")
-    note += "\n\n---\n\n".join(quotes_fix) + "\n"
-    if note_initial != note:
-        file.write_text(note, encoding="utf8")
-        lines_list.append(f"Fix {filename}")
-    else:
-        lines_list.append(f"No changes in {filename}")
-    return "\n".join(lines_list)
-
-
-def os_open_file_or_folder(path: Path | str) -> None:
-    """
-    Opens a file or folder using the operating system's default application.
-
-    This function checks the operating system and uses the appropriate method to open
-    the given path:
-
-    - On **Windows**, it uses `os.startfile`.
-    - On **macOS**, it invokes the `open` command.
-    - On **Linux**, it uses `xdg-open`.
-
-    Args:
-
-    - `path` (`Path | str`): The path to the file or folder to be opened. Can be either a `Path` object or a string.
-
-    Returns:
-
-    - `None`: This function does not return any value but opens the file or folder in the default application.
-
-    Note:
-
-    - Ensure the path provided is valid and accessible.
-    - If the path does not exist or cannot be opened, the function might raise an exception,
-      depending on the underlying command's behavior.
-    """
-    if platform.system() == "Windows":
-        os.startfile(path)
-    elif platform.system() == "Darwin":  # macOS
-        subprocess.call(["open", str(path)])
-    elif platform.system() == "Linux":
-        subprocess.call(["xdg-open", str(path)])
-    return
-
-
-def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
-    """
-    Creates an icon with the given emoji.
-
-    Args:
-
-    - `emoji` (`str`): The emoji to be used in the icon.
-    - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
-
-    Returns:
-
-    - `QIcon`: A QIcon object containing the emoji as an icon.
-    """
-    pixmap = QPixmap(size, size)
-    pixmap.fill(Qt.transparent)
-
-    painter = QPainter(pixmap)
-    font = QFont()
-    font.setPointSize(int(size * 0.8))
-    painter.setFont(font)
-    painter.drawText(pixmap.rect(), Qt.AlignCenter, emoji)
-    painter.end()
-
-    return QIcon(pixmap)
-
-
-def pyside_generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str]:
-    """
-    Generates a markdown representation of a QMenu structure.
-
-    This function traverses the QMenu and its submenus to produce a nested list in markdown format.
-
-    Args:
-
-    - `menu` (`QMenu`): The QMenu object to convert to markdown.
-    - `level` (`int`, optional): The current indentation level for nested menus. Defaults to `0`.
-
-    Returns:
-
-    - `List[str]`: A list of strings, each representing a line of markdown text that describes the menu structure.
-    """
-    markdown_lines: List[str] = []
-    for action in menu.actions():
-        if action.menu():  # If the action has a submenu
-            # Add a header for the submenu
-            markdown_lines.append(f'{"  " * level}- **{action.text()}**')
-            # Recursively traverse the submenu
-            markdown_lines.extend(pyside_generate_markdown_from_qmenu(action.menu(), level + 1))
-        else:
-            # Add a regular menu item
-            if action.text():
-                markdown_lines.append(f'{"  " * level}- {action.text()}')
-    return markdown_lines
-
-
-def run_powershell_script(commands: str) -> str:
+def dev_run_powershell_script(commands: str) -> str:
     """
     Runs a PowerShell script with the given commands.
 
@@ -415,7 +86,7 @@ def run_powershell_script(commands: str) -> str:
     return "\n".join(filter(None, [process.stdout, process.stderr]))
 
 
-def run_powershell_script_as_admin(commands: str) -> str:
+def dev_run_powershell_script_as_admin(commands: str) -> str:
     """
     Executes a PowerShell script with administrator privileges and captures the output.
 
@@ -494,7 +165,7 @@ def run_powershell_script_as_admin(commands: str) -> str:
     return "\n".join(filter(None, res_output))
 
 
-def sort_py_code(filename: str) -> None:
+def dev_sort_py_code(filename: str) -> None:
     """
     Sorts the Python code in the given file by organizing classes, functions, and statements.
 
@@ -634,34 +305,242 @@ def sort_py_code(filename: str) -> None:
         f.write(new_code)
 
 
-def split_markdown_yaml_content(note: str) -> tuple[str, str]:
+def dev_write_in_output_txt(is_show_output: bool = True) -> Callable:
     """
-    Splits a markdown note into YAML front matter and the main content.
+    Decorator to write function output to a temporary file and optionally display it.
 
-    This function assumes that the note starts with YAML front matter separated by '---' from the rest of the content.
+    This decorator captures all output of the decorated function into a list,
+    measures execution time, and writes this information into an `output.txt` file
+    in a temporary folder within the project root. It also offers the option
+    to automatically open this file after writing.
 
     Args:
 
-    - `note` (`str`): The markdown note string to be split.
+    - `is_show_output` (`bool`): If `True`, automatically open the output file
+      after writing. Defaults to `True`.
 
     Returns:
 
-    - `tuple[str, str]`: A tuple containing:
-        - The YAML front matter as a string, prefixed and suffixed with '---'.
-        - The remaining markdown content after the YAML front matter, with leading whitespace removed.
+    - `Callable`: A decorator function that wraps another function.
+
+    The decorator adds the following methods to the wrapped function:
+
+    - `add_line` (`Callable`): A method to add lines to the output list, which
+      will be written to the file.
 
     Note:
 
-    - If there is no '---' or only one '---' in the note, the function returns an empty string for YAML content and the entire note for the content part.
-    - The function does not validate if the YAML content is properly formatted YAML.
+    - This decorator changes the behavior of the decorated function by capturing
+      its output and timing its execution.
+    - The `output.txt` file is created in a `temp` folder under the project root.
+      If the folder does not exist, it will be created.
     """
-    parts = note.split("---", 2)
-    if len(parts) < 3:
-        return "", note
-    return f"---{parts[1]}---", parts[2].lstrip()
+
+    def decorator(func: Callable) -> Callable:
+        output_lines = []
+
+        def wrapper(*args, **kwargs):
+            output_lines.clear()
+            start_time = time.time()
+            func(*args, **kwargs)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            wrapper.add_line(f"Execution time: {elapsed_time:.4f} seconds")
+            temp_path = dev_get_project_root() / "temp"
+            if not temp_path.exists():
+                temp_path.mkdir(parents=True, exist_ok=True)
+            file = Path(temp_path / "output.txt")
+            output_text = "\n".join(output_lines) if output_lines else ""
+
+            file.write_text(output_text, encoding="utf8")
+            if is_show_output:
+                file_open_file_or_folder(file)
+
+        def add_line(line: str):
+            output_lines.append(line)
+            print(line)
+
+        wrapper.add_line = add_line
+        return wrapper
+
+    return decorator
 
 
-def tree_view_folder(path: Path, is_ignore_hidden_folders: bool = False) -> str:
+def file_all_to_parent_folder(path: Path | str) -> str:
+    """
+    Moves all files from subfolders within the given path to the parent folder and then
+    removes empty folders.
+
+    Args:
+
+    - `path` (`Path | str`): The path to the folder whose subfolders you want to flatten.
+      Can be either a `Path` object or a string.
+
+    Returns:
+
+    - `str`: A string where each line represents an action taken on a subfolder (e.g., "Fix subfolder_name").
+
+    Notes:
+
+    - This function will print exceptions to stdout if there are issues with moving files or deleting folders.
+    - Folders will only be removed if they become empty after moving all files.
+
+    Before:
+
+    ```text
+    C:\test
+    ├─ folder1
+    │  ├─ image.jpg
+    │  ├─ sub1
+    │  │  ├─ file1.txt
+    │  │  └─ file2.txt
+    │  └─ sub2
+    │     ├─ file3.txt
+    │     └─ file4.txt
+    └─ folder2
+       └─ sub3
+          ├─ file6.txt
+          └─ sub4
+             └─ file5.txt
+    ```
+
+    After:
+
+    ```text
+    C:\test
+    ├─ folder1
+    │  ├─ file1.txt
+    │  ├─ file2.txt
+    │  ├─ file3.txt
+    │  ├─ file4.txt
+    │  └─ image.jpg
+    └─ folder2
+       ├─ file5.txt
+       └─ file6.txt
+    ```
+    """
+    list_lines = []
+    for child_folder in Path(path).iterdir():
+        for file in Path(child_folder).glob("**/*"):
+            if file.is_file():
+                try:
+                    file.replace(child_folder / file.name)
+                except Exception as exception:
+                    print(exception)
+        for file in Path(child_folder).glob("**/*"):
+            if file.is_dir():
+                try:
+                    shutil.rmtree(file)
+                except Exception as exception:
+                    print(exception)
+        list_lines.append(f"Fix {child_folder}")
+    return "\n".join(list_lines)
+
+
+def file_apply_func(folder: str, ext: str, func: Callable) -> str:
+    """
+    Applies a given function to all files with a specified extension in a folder and its sub-folders.
+
+    Args:
+
+    - `folder` (`str`): The path to the root folder where the function should be applied. Defaults to `None`.
+    - `ext` (`str`): The file extension to filter files by. Should include the dot (e.g., '.py').
+    - `func` (`Callable`): The function to apply to each file. This function should take an argument, the file path.
+
+    Returns:
+
+    - `str`: A string listing the results of applying the function to each file, with each result on a new line.
+    """
+    list_files = []
+    folder_path = Path(folder)
+
+    for path in folder_path.rglob(f"*{ext}"):
+        # Exclude all folders and files starting with a dot
+        if path.is_file() and not any(part.startswith(".") for part in path.parts):
+            try:
+                func(str(path))
+                list_files.append(f"File {path.name} is applied.")
+            except Exception:
+                list_files.append(f"❌ File {path.name} is not applied.")
+
+    return "\n".join(list_files)
+
+
+def file_check_featured_image(path: str) -> tuple[bool, str]:
+    """
+    Checks for the presence of `featured_image.*` files in every child folder, not recursively.
+
+    This function goes through each immediate subfolder of the given path and checks if there
+    is at least one file with the name starting with "featured-image". If such a file is missing
+    in any folder, it logs this occurrence.
+
+    Args:
+
+    - `path` (`str`): Path to the folder being checked. Can be either a string or a Path object.
+
+    Returns:
+
+    - `tuple[bool, str]`: A tuple where:
+        - The first element (`bool`) indicates if all folders have a `featured_image.*` file.
+        - The second element (`str`) contains a formatted string with status or error messages.
+
+    Note:
+
+    - This function does not search recursively; it only checks the immediate child folders.
+    - The output string uses ANSI color codes for visual distinction of errors.
+    """
+    line_list: list[str] = []
+    is_correct: bool = True
+
+    for child_folder in Path(path).iterdir():
+        is_featured_image: bool = False
+        for file in child_folder.iterdir():
+            if file.is_file() and file.name.startswith("featured-image"):
+                is_featured_image = True
+        if not is_featured_image:
+            is_correct = False
+            line_list.append(f"❌ {child_folder} without featured-image")
+
+    if is_correct:
+        line_list.append(f"All correct in {path}")
+    return is_correct, "\n".join(line_list)
+
+
+def file_open_file_or_folder(path: Path | str) -> None:
+    """
+    Opens a file or folder using the operating system's default application.
+
+    This function checks the operating system and uses the appropriate method to open
+    the given path:
+
+    - On **Windows**, it uses `os.startfile`.
+    - On **macOS**, it invokes the `open` command.
+    - On **Linux**, it uses `xdg-open`.
+
+    Args:
+
+    - `path` (`Path | str`): The path to the file or folder to be opened. Can be either a `Path` object or a string.
+
+    Returns:
+
+    - `None`: This function does not return any value but opens the file or folder in the default application.
+
+    Note:
+
+    - Ensure the path provided is valid and accessible.
+    - If the path does not exist or cannot be opened, the function might raise an exception,
+      depending on the underlying command's behavior.
+    """
+    if platform.system() == "Windows":
+        os.startfile(path)
+    elif platform.system() == "Darwin":  # macOS
+        subprocess.call(["open", str(path)])
+    elif platform.system() == "Linux":
+        subprocess.call(["xdg-open", str(path)])
+    return
+
+
+def file_tree_view_folder(path: Path, is_ignore_hidden_folders: bool = False) -> str:
     """
     Generates a tree-like representation of folder contents.
 
@@ -710,62 +589,183 @@ def tree_view_folder(path: Path, is_ignore_hidden_folders: bool = False) -> str:
     return "\n".join([line for line in __tree(Path(path), is_ignore_hidden_folders)])
 
 
-def write_in_output_txt(is_show_output: bool = True) -> Callable:
+def markdown_add_author_book(filename: Path | str) -> str:
     """
-    Decorator to write function output to a temporary file and optionally display it.
-
-    This decorator captures all output of the decorated function into a list,
-    measures execution time, and writes this information into an `output.txt` file
-    in a temporary folder within the project root. It also offers the option
-    to automatically open this file after writing.
+    Adds the author and the title of the book to the quotes and formats them as Markdown quotes.
 
     Args:
 
-    - `is_show_output` (`bool`): If `True`, automatically open the output file
-      after writing. Defaults to `True`.
+    - `filename` (`Path` | `str`): The filename of the Markdown file.
 
     Returns:
 
-    - `Callable`: A decorator function that wraps another function.
+    - `str`: A string indicating whether changes were made to the file or not.
 
-    The decorator adds the following methods to the wrapped function:
+    Example:
 
-    - `add_line` (`Callable`): A method to add lines to the output list, which
-      will be written to the file.
+    Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
+
+    ```markdown
+    # Title of book
+
+    Line 1.
+
+    Line 2.
+
+    ---
+
+    Line 3.
+
+    Line 4.
+
+    -- Modified title of book
+    ```
+
+    After processing:
+
+    ```markdown
+    # Title of book
+
+    > Line 1.
+    >
+    > Line 2.
+    >
+    > _Name Surname - Title of book_
+
+    ---
+
+    > Line 3.
+    >
+    > Line 4.
+    >
+    > _Name Surname - Modified title of book_
+    ```
 
     Note:
 
-    - This decorator changes the behavior of the decorated function by capturing
-      its output and timing its execution.
-    - The `output.txt` file is created in a `temp` folder under the project root.
-      If the folder does not exist, it will be created.
+    - If the file does not exist or is not a Markdown file, the function will return `None`.
+    - If the file has been modified, it returns a message indicating the changes; otherwise,
+      it indicates no changes were made.
     """
+    lines_list = []
+    file = Path(filename)
+    if not file.is_file():
+        return
+    if file.suffix.lower() != ".md":
+        return
+    note_initial = file.read_text(encoding="utf8")
 
-    def decorator(func: Callable) -> Callable:
-        output_lines = []
+    parts = note_initial.split("---", 2)
+    yaml_content, main_content = f"---{parts[1]}---", parts[2].lstrip()
 
-        def wrapper(*args, **kwargs):
-            output_lines.clear()
-            start_time = time.time()
-            func(*args, **kwargs)
-            end_time = time.time()
-            elapsed_time = end_time - start_time
-            wrapper.add_line(f"Execution time: {elapsed_time:.4f} seconds")
-            temp_path = get_project_root() / "temp"
-            if not temp_path.exists():
-                temp_path.mkdir(parents=True, exist_ok=True)
-            file = Path(temp_path / "output.txt")
-            output_text = "\n".join(output_lines) if output_lines else ""
+    lines = main_content.splitlines()
 
-            file.write_text(output_text, encoding="utf8")
-            if is_show_output:
-                os_open_file_or_folder(file)
+    author = file.parts[-2].replace("-", " ")
+    title = lines[0].replace("# ", "")
 
-        def add_line(line: str):
-            output_lines.append(line)
-            print(line)
+    lines = lines[1:] if lines and lines[0].startswith("# ") else lines
+    lines = lines[:-1] if lines[-1].strip() == "---" else lines
 
-        wrapper.add_line = add_line
-        return wrapper
+    note = f"{yaml_content}\n\n# {title}\n\n"
+    quotes = list(map(str.strip, filter(None, "\n".join(lines).split("\n---\n"))))
 
-    return decorator
+    quotes_fix = []
+    for quote in quotes:
+        lines_quote = quote.splitlines()
+        if lines_quote[-1].startswith("> -- _"):
+            quotes_fix.append(quote)  # The quote has already been processed
+            continue
+        if lines_quote[-1].startswith("-- "):
+            title = lines_quote[-1][3:]
+            del lines_quote[-2:]
+        quote_fix = "\n".join([f"> {line}".rstrip() for line in lines_quote])
+        quotes_fix.append(f"{quote_fix}\n>\n> -- _{author}, {title}_")
+    note += "\n\n---\n\n".join(quotes_fix) + "\n"
+    if note_initial != note:
+        file.write_text(note, encoding="utf8")
+        lines_list.append(f"Fix {filename}")
+    else:
+        lines_list.append(f"No changes in {filename}")
+    return "\n".join(lines_list)
+
+
+def markdown_split_yaml_content(note: str) -> tuple[str, str]:
+    """
+    Splits a markdown note into YAML front matter and the main content.
+
+    This function assumes that the note starts with YAML front matter separated by '---' from the rest of the content.
+
+    Args:
+
+    - `note` (`str`): The markdown note string to be split.
+
+    Returns:
+
+    - `tuple[str, str]`: A tuple containing:
+        - The YAML front matter as a string, prefixed and suffixed with '---'.
+        - The remaining markdown content after the YAML front matter, with leading whitespace removed.
+
+    Note:
+
+    - If there is no '---' or only one '---' in the note, the function returns an empty string for YAML content and the entire note for the content part.
+    - The function does not validate if the YAML content is properly formatted YAML.
+    """
+    parts = note.split("---", 2)
+    if len(parts) < 3:
+        return "", note
+    return f"---{parts[1]}---", parts[2].lstrip()
+
+
+def pyside_create_emoji_icon(emoji: str, size: int = 32) -> QIcon:
+    """
+    Creates an icon with the given emoji.
+
+    Args:
+
+    - `emoji` (`str`): The emoji to be used in the icon.
+    - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
+
+    Returns:
+
+    - `QIcon`: A QIcon object containing the emoji as an icon.
+    """
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.transparent)
+
+    painter = QPainter(pixmap)
+    font = QFont()
+    font.setPointSize(int(size * 0.8))
+    painter.setFont(font)
+    painter.drawText(pixmap.rect(), Qt.AlignCenter, emoji)
+    painter.end()
+
+    return QIcon(pixmap)
+
+
+def pyside_generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str]:
+    """
+    Generates a markdown representation of a QMenu structure.
+
+    This function traverses the QMenu and its submenus to produce a nested list in markdown format.
+
+    Args:
+
+    - `menu` (`QMenu`): The QMenu object to convert to markdown.
+    - `level` (`int`, optional): The current indentation level for nested menus. Defaults to `0`.
+
+    Returns:
+
+    - `List[str]`: A list of strings, each representing a line of markdown text that describes the menu structure.
+    """
+    markdown_lines: List[str] = []
+    for action in menu.actions():
+        if action.menu():  # If the action has a submenu
+            # Add a header for the submenu
+            markdown_lines.append(f'{"  " * level}- **{action.text()}**')
+            # Recursively traverse the submenu
+            markdown_lines.extend(pyside_generate_markdown_from_qmenu(action.menu(), level + 1))
+        else:
+            # Add a regular menu item
+            if action.text():
+                markdown_lines.append(f'{"  " * level}- {action.text()}')
+    return markdown_lines

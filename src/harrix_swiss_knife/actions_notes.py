@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import functions
 
-config = functions.load_config("config.json")
+config = functions.dev_load_config("config.json")
 
 
 class on_add_author_book:
@@ -14,7 +14,7 @@ class on_add_author_book:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=True)
+    @functions.dev_write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title = "Folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_quotes"])
@@ -24,7 +24,7 @@ class on_add_author_book:
             return
 
         try:
-            result_output = functions.file_apply_func_to_files(folder_path, ".md", functions.markdown_add_author_book)
+            result_output = functions.file_apply_func(folder_path, ".md", functions.markdown_add_author_book)
             self.__call__.add_line(result_output)
         except Exception as e:
             self.__call__.add_line(f"❌ Error: {e}")
@@ -36,10 +36,10 @@ class on_diary_new:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary()
-        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
+        functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -49,10 +49,10 @@ class on_diary_new_dream:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_dream()
-        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
+        functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -62,10 +62,10 @@ class on_diary_new_with_images:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = add_diary_new_diary(is_with_images=True)
-        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
+        functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -75,7 +75,7 @@ class on_new_article:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         title: str = "Article title"
         label: str = "Enter the name of the article (English, without spaces):"
@@ -93,7 +93,7 @@ class on_new_article:
         text += f"\n\n# {article_name}\n\n\n"
 
         output, file_path = add_note(Path(config["path_articles"]), article_name, text, True)
-        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{file_path}"')
+        functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -103,7 +103,7 @@ class on_new_note_dialog:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
             None, "Save Note", config["path_notes"], "Markdown (*.md);;All Files (*)"
@@ -127,7 +127,7 @@ class on_new_note_dialog:
         text += f"\n\n# {note_name}\n\n\n"
 
         output, file_path = add_note(folder_path, note_name, text, is_with_images)
-        functions.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{file_path}"')
+        functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -137,7 +137,7 @@ class on_new_note_dialog_with_images:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         on_new_note_dialog.__call__(self, is_with_images=True)
 

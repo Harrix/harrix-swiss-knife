@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import functions
 
-config = functions.load_config("config.json")
+config = functions.dev_load_config("config.json")
 
 
 class on_rye_new_project:
@@ -14,7 +14,7 @@ class on_rye_new_project:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         self.path: str = config["path_py_projects"]
         max_project_number = find_max_project_number(self.path, config["start_pattern_py_projects"])
@@ -29,7 +29,7 @@ class on_rye_new_project_dialog:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         title: str = "Project name"
         label: str = "Enter the name of the project (English, without spaces):"
@@ -61,7 +61,7 @@ class on_sort_isort_fmt_python_code_folder:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         title = "Project folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
@@ -76,8 +76,8 @@ class on_sort_isort_fmt_python_code_folder:
             rye fmt
             """
 
-        self.__call__.add_line(functions.run_powershell_script(commands))
-        self.__call__.add_line(functions.file_apply_func_to_files(folder_path, ".py", functions.sort_py_code))
+        self.__call__.add_line(functions.dev_run_powershell_script(commands))
+        self.__call__.add_line(functions.file_apply_func(folder_path, ".py", functions.dev_sort_py_code))
 
 
 class on_sort_python_code_file:
@@ -86,7 +86,7 @@ class on_sort_python_code_file:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             None,
@@ -100,7 +100,7 @@ class on_sort_python_code_file:
             return
 
         try:
-            functions.sort_py_code(file_path)
+            functions.dev_sort_py_code(file_path)
             self.__call__.add_line(f"File {file_path} is applied.")
         except Exception:
             self.__call__.add_line(f"❌ File {file_path} is not applied.")
@@ -112,7 +112,7 @@ class on_sort_python_code_folder:
 
     def __init__(self, **kwargs): ...
 
-    @functions.write_in_output_txt(is_show_output=False)
+    @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         title = "Project folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
@@ -123,7 +123,7 @@ class on_sort_python_code_folder:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        self.__call__.add_line(functions.file_apply_func_to_files(folder_path, ".py", functions.sort_py_code))
+        self.__call__.add_line(functions.file_apply_func(folder_path, ".py", functions.dev_sort_py_code))
 
 
 def create_rye_new_project(name_project: str, path: str | Path) -> str:
@@ -152,7 +152,7 @@ def create_rye_new_project(name_project: str, path: str | Path) -> str:
         {config["editor"]} {path}/{name_project}
         """
 
-    res = functions.run_powershell_script(commands)
+    res = functions.dev_run_powershell_script(commands)
 
     readme_path = Path(path) / name_project / "README.md"
     try:
