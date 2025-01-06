@@ -14,7 +14,7 @@ config = functions.load_config("config.json")
 
 class on_image_clear_images:
     icon: str = "🧹"
-    title: str = "Clear the folder `images`"
+    title: str = "Clear the folder images"
 
     def __init__(self, **kwargs): ...
 
@@ -24,14 +24,14 @@ class on_image_clear_images:
         if os.path.exists(path):
             shutil.rmtree(path)
             os.makedirs(path)
-            self.__call__.add_line(f"Folder '{path}' is clean.")
+            self.__call__.add_line(f"Folder `{path}` is clean.")
         else:
-            self.__call__.add_line(f"❌ Folder '{path}' is not exist.")
+            self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
 
 
 class on_image_clear_optimized_images:
     icon: str = "🧹"
-    title: str = "Clear the folder `optimized_images`"
+    title: str = "Clear the folder optimized_images"
 
     def __init__(self, **kwargs): ...
 
@@ -41,14 +41,14 @@ class on_image_clear_optimized_images:
         if os.path.exists(path):
             shutil.rmtree(path)
             os.makedirs(path)
-            self.__call__.add_line(f"Folder '{path}' is clean.")
+            self.__call__.add_line(f"Folder `{path}` is clean.")
         else:
-            self.__call__.add_line(f"❌ Folder '{path}' is not exist.")
+            self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
 
 
 class on_image_open_images:
     icon: str = "📂"
-    title: str = "Open the folder `images`"
+    title: str = "Open the folder images"
 
     def __init__(self, **kwargs): ...
 
@@ -57,14 +57,14 @@ class on_image_open_images:
         path = functions.get_project_root() / "temp" / "images"
         if os.path.exists(path):
             os.startfile(path)
-            self.__call__.add_line(f"Folder '{path}' is opened.")
+            self.__call__.add_line(f"Folder `{path}` is opened.")
         else:
-            self.__call__.add_line(f"❌ Folder '{path}' is not exist.")
+            self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
 
 
 class on_image_open_optimized_images:
     icon: str = "📂"
-    title: str = "Open the folder `optimized_images`"
+    title: str = "Open the folder optimized_images"
 
     def __init__(self, **kwargs): ...
 
@@ -73,9 +73,9 @@ class on_image_open_optimized_images:
         path = functions.get_project_root() / "temp" / "optimized_images"
         if os.path.exists(path):
             os.startfile(path)
-            self.__call__.add_line(f"Folder '{path}' is opened.")
+            self.__call__.add_line(f"Folder `{path}` is opened.")
         else:
-            self.__call__.add_line(f"❌ Folder '{path}' is not exist.")
+            self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
 
 
 class on_image_optimize_clipboard:

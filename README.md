@@ -23,10 +23,10 @@ _Figure 1: Screenshot_
   - Optimize images in … and replace
   - Optimize images in …/temp
   - Optimize one image
-  - Clear the folder `images`
-  - Clear the folder `optimized_images`
-  - Open the folder `images`
-  - Open the folder `optimized_images`
+  - Clear the folder images
+  - Clear the folder optimized_images
+  - Open the folder images
+  - Open the folder optimized_images
 - **Notes**
   - New dream note
   - New diary note with images
