@@ -75,9 +75,9 @@ class on_check_featured_image_not_recursively_in_folders:
 
     @functions.dev_write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        folders_with_featured_image = config["folders_with_featured_image"]
+        paths_with_featured_image = config["paths_with_featured_image"]
 
-        for path in folders_with_featured_image:
+        for path in paths_with_featured_image:
             try:
                 self.__call__.add_line(functions.file_check_featured_image(path)[1])
             except Exception as e:
