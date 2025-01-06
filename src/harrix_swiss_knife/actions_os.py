@@ -11,7 +11,9 @@ config = functions.load_config("config.json")
 class on_all_files_to_parent_folder:
     icon: str = "🗂️"
     title: str = "Moves and flattens files from nested folders"
-    tip: str = "The function moves all files from subfolders to their parent folder, removing any then-empty subfolders."
+    tip: str = (
+        "The function moves all files from subfolders to their parent folder, removing any then-empty subfolders."
+    )
 
     def __init__(self, **kwargs): ...
 
