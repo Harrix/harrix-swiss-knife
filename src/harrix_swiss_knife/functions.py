@@ -15,7 +15,7 @@ from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
 
-def all_files_to_parent_dir(path: Path | str) -> str:
+def all_files_to_parent_folder(path: Path | str) -> str:
     """
     Moves all files from subfolders within the given path to the parent folder and then
     removes empty folders.
@@ -69,20 +69,20 @@ def all_files_to_parent_dir(path: Path | str) -> str:
     ```
     """
     list_lines = []
-    for child_dir in Path(path).iterdir():
-        for file in Path(child_dir).glob("**/*"):
+    for child_folder in Path(path).iterdir():
+        for file in Path(child_folder).glob("**/*"):
             if file.is_file():
                 try:
-                    file.replace(child_dir / file.name)
+                    file.replace(child_folder / file.name)
                 except Exception as exception:
                     print(exception)
-        for file in Path(child_dir).glob("**/*"):
+        for file in Path(child_folder).glob("**/*"):
             if file.is_dir():
                 try:
                     shutil.rmtree(file)
                 except Exception as exception:
                     print(exception)
-        list_lines.append(f"Fix {child_dir}")
+        list_lines.append(f"Fix {child_folder}")
     return "\n".join(list_lines)
 
 
@@ -101,9 +101,9 @@ def apply_func_to_files(folder: str, ext: str, func: Callable) -> str:
     - `str`: A string listing the results of applying the function to each file, with each result on a new line.
     """
     list_files = []
-    for root, dirs, files in os.walk(folder):
+    for root, folders, files in os.walk(folder):
         # Exclude all folders and files starting with a dot
-        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        folders[:] = [d for d in folders if not d.startswith(".")]
         files = [f for f in files if not f.startswith(".")]
 
         # Filter and process files with the specified extension
@@ -144,14 +144,14 @@ def check_featured_image_not_recursively(path: str) -> tuple[bool, str]:
     line_list: list[str] = []
     is_correct: bool = True
 
-    for child_dir in Path(path).iterdir():
+    for child_folder in Path(path).iterdir():
         is_featured_image: bool = False
-        for file in child_dir.iterdir():
+        for file in child_folder.iterdir():
             if file.is_file() and file.name.startswith("featured-image"):
                 is_featured_image = True
         if not is_featured_image:
             is_correct = False
-            line_list.append(f"❌ {child_dir} without featured-image")
+            line_list.append(f"❌ {child_folder} without featured-image")
 
     if is_correct:
         line_list.append(f"All correct in {path}")
@@ -632,7 +632,7 @@ def split_markdown_yaml_content(note: str) -> tuple[str, str]:
     return f"---{parts[1]}---", parts[2].lstrip()
 
 
-def tree_view_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:
+def tree_view_folder(path: Path, is_ignore_hidden_folders: bool = False) -> str:
     """
     Generates a tree-like representation of folder contents.
 
@@ -649,7 +649,7 @@ def tree_view_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:
     Args:
 
     - `path` (`Path`): The root folder path to start the tree from.
-    - `is_ignore_hidden_dirs` (`bool`): If `True`, hidden folders (starting with a dot) are excluded from the tree.
+    - `is_ignore_hidden_folders` (`bool`): If `True`, hidden folders (starting with a dot) are excluded from the tree.
       Defaults to `False`.
 
     Returns:
@@ -663,8 +663,8 @@ def tree_view_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:
     - Uses ASCII characters to represent tree branches (`├──`, `└──`, `│`).
     """
 
-    def __tree(path: Path, is_ignore_hidden_dirs: bool = False, prefix: str = ""):
-        if is_ignore_hidden_dirs and path.name.startswith("."):
+    def __tree(path: Path, is_ignore_hidden_folders: bool = False, prefix: str = ""):
+        if is_ignore_hidden_folders and path.name.startswith("."):
             contents = []
         else:
             try:
@@ -676,9 +676,9 @@ def tree_view_folder(path: Path, is_ignore_hidden_dirs: bool = False) -> str:
             yield prefix + pointer + path.name
             if path.is_dir():
                 extension = "│  " if pointer == "├─ " else "   "
-                yield from __tree(path, is_ignore_hidden_dirs, prefix=prefix + extension)
+                yield from __tree(path, is_ignore_hidden_folders, prefix=prefix + extension)
 
-    return "\n".join([line for line in __tree(Path(path), is_ignore_hidden_dirs)])
+    return "\n".join([line for line in __tree(Path(path), is_ignore_hidden_folders)])
 
 
 def write_in_output_txt(is_show_output: bool = True) -> Callable:

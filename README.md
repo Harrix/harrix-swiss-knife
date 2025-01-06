@@ -41,7 +41,7 @@ _Figure 1: Screenshot_
   - Check featured_image.*
   - Block disks
   - Open Camera Uploads
-  - Tree view of a folder (ignore hidden dirs)
+  - Tree view of a folder (ignore hidden folders)
   - Tree view of a folder
 - **Python**
   - New Rye project in …
