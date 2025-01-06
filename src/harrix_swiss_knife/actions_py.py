@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import functions
 
-config = functions.dev_load_config("config.json")
+config = functions.dev_load_config("config/config.json")
 
 
 class on_rye_new_project:
