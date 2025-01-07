@@ -27,7 +27,7 @@ _Figure 1: Screenshot_
   - Clear the folder optimized_images
   - Open the folder images
   - Open the folder optimized_images
-- **Notes**
+- **Markdown**
   - New dream note
   - New diary note with images
   - New diary note
@@ -35,7 +35,7 @@ _Figure 1: Screenshot_
   - New note with images
   - New note
   - Quotes. Add author and title
-- **OS**
+- **File operations**
   - Moves and flattens files from nested folders
   - Check featured_image.* in …
   - Check featured_image.*
