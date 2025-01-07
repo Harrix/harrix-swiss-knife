@@ -5,7 +5,7 @@ from harrix_swiss_knife import functions
 config = functions.dev_load_config("config/config.json")
 
 
-class on_exit:
+class on_dev_exit:
     icon: str = "×"
     title: str = "Exit"
 
@@ -18,7 +18,7 @@ class on_exit:
             QApplication.quit()
 
 
-class on_get_menu:
+class on_dev_get_menu:
     icon: str = "☰"
     title: str = "Get the list of items from this menu"
 
@@ -31,7 +31,7 @@ class on_get_menu:
             self.__call__.add_line(self.parent.get_menu())
 
 
-class on_open_config_json:
+class on_dev_open_config_json:
     icon: str = "⚙️"
     title: str = "Open config.json"
 
