@@ -31,13 +31,13 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu Markdown
         self.menu_md = self.new_menu("Markdown", "📓")
-        self.add_item(self.menu_md, actions_md.on_diary_new_dream)
-        self.add_item(self.menu_md, actions_md.on_diary_new_with_images)
-        self.add_item(self.menu_md, actions_md.on_diary_new)
-        self.add_item(self.menu_md, actions_md.on_new_article)
-        self.add_item(self.menu_md, actions_md.on_new_note_dialog_with_images)
-        self.add_item(self.menu_md, actions_md.on_new_note_dialog)
-        self.add_item(self.menu_md, actions_md.on_add_author_book)
+        self.add_item(self.menu_md, actions_md.on_markdown_diary_new_dream)
+        self.add_item(self.menu_md, actions_md.on_markdown_diary_new_with_images)
+        self.add_item(self.menu_md, actions_md.on_markdown_diary_new)
+        self.add_item(self.menu_md, actions_md.on_markdown_new_article)
+        self.add_item(self.menu_md, actions_md.on_markdown_new_note_dialog_with_images)
+        self.add_item(self.menu_md, actions_md.on_markdown_new_note_dialog)
+        self.add_item(self.menu_md, actions_md.on_markdown_add_author_book)
 
         # Menu OS
         self.menu_os = self.new_menu("OS", "🪟")
