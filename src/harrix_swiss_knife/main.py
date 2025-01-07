@@ -39,15 +39,15 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, actions_md.on_markdown_new_note_dialog)
         self.add_item(self.menu_md, actions_md.on_markdown_add_author_book)
 
-        # Menu OS
-        self.menu_os = self.new_menu("OS", "🪟")
-        self.add_item(self.menu_os, actions_file.on_file_all_files_to_parent_folder)
-        self.add_item(self.menu_os, actions_file.on_file_check_featured_image)
-        self.add_item(self.menu_os, actions_file.on_file_check_featured_image_in_folders)
-        self.add_item(self.menu_os, actions_file.on_file_block_disks)
-        self.add_item(self.menu_os, actions_file.on_file_open_camera_uploads)
-        self.add_item(self.menu_os, actions_file.on_file_tree_view_folder_ignore_hidden_folders)
-        self.add_item(self.menu_os, actions_file.on_file_tree_view_folder)
+        # Menu File operations
+        self.menu_file = self.new_menu("File operations", "🪟")
+        self.add_item(self.menu_file, actions_file.on_file_all_files_to_parent_folder)
+        self.add_item(self.menu_file, actions_file.on_file_check_featured_image)
+        self.add_item(self.menu_file, actions_file.on_file_check_featured_image_in_folders)
+        self.add_item(self.menu_file, actions_file.on_file_block_disks)
+        self.add_item(self.menu_file, actions_file.on_file_open_camera_uploads)
+        self.add_item(self.menu_file, actions_file.on_file_tree_view_folder_ignore_hidden_folders)
+        self.add_item(self.menu_file, actions_file.on_file_tree_view_folder)
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
@@ -61,7 +61,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.menu.addMenu(self.menu_dev)
         self.menu.addMenu(self.menu_images)
         self.menu.addMenu(self.menu_md)
-        self.menu.addMenu(self.menu_os)
+        self.menu.addMenu(self.menu_file)
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
         self.add_item(self.menu, actions_images.on_image_optimize_clipboard)
