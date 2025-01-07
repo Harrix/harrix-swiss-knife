@@ -1,4 +1,3 @@
-import fnmatch
 import json
 import os
 import platform
@@ -6,7 +5,6 @@ import shutil
 import subprocess
 import tempfile
 import time
-from itertools import dropwhile
 from pathlib import Path
 from typing import Callable, List, Optional
 
