@@ -1,7 +1,7 @@
 {
   "beginning_of_article": "snippet:config/beginning_of_article.md",
   "beginning_of_md": "snippet:config/beginning_of_md.md",
-  "cli_commands": "\n## CLI commands\n\nCLI commands after installation.\n\n- `rye self update` — update Rye itself.\n- `rye sync --update-all` — update all project libraries.\n- `isort .` — sort imports.\n- `rye fmt` — format the project's Python files.\n- `rye lint` — lint the project's Python files.\n- `rye fetch 3.13` + `rye pin 3.13` + `rye sync` — switch to a different Python version.\n",
+  "cli_commands": "snippet:config/cli_commands.md",
   "editor": "code-insiders",
   "path_3d": "D:/Downloads/_3d",
   "path_articles": "C:/GitHub/_content__harrix-dev/harrix.dev-articles-2024",
