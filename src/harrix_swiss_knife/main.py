@@ -18,8 +18,8 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
-        self.add_item(self.menu_images, actions_images.on_images_optimize)
-        self.add_item(self.menu_images, actions_images.on_images_optimize_quality)
+        self.add_item(self.menu_images, actions_images.on_image_optimize)
+        self.add_item(self.menu_images, actions_images.on_image_optimize_quality)
         self.add_item(self.menu_images, actions_images.on_image_optimize_dialog_replace)
         self.add_item(self.menu_images, actions_images.on_image_optimize_dialog)
         self.add_item(self.menu_images, actions_images.on_image_optimize_file)
