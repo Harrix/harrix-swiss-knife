@@ -233,7 +233,7 @@ class on_image_optimize_file:
         self.__call__.add_line(result_output)
 
 
-class on_images_optimize:
+class on_image_optimize:
     icon: str = "🚀"
     title: str = "Optimize images"
 
@@ -249,7 +249,7 @@ class on_images_optimize:
         self.__call__.add_line(result_output)
 
 
-class on_images_optimize_quality:
+class on_image_optimize_quality:
     icon: str = "🔝"
     title: str = "Optimize images (high quality)"
 
