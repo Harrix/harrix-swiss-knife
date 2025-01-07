@@ -77,6 +77,22 @@ class on_image_open_optimized_images:
             self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
 
 
+class on_image_optimize:
+    icon: str = "🚀"
+    title: str = "Optimize images"
+
+    def __init__(self, **kwargs): ...
+
+    @functions.dev_write_in_output_txt(is_show_output=True)
+    def __call__(self, *args, **kwargs) -> None:
+        commands: str = "npm run optimize"
+
+        result_output = functions.dev_run_powershell_script(commands)
+        functions.file_open_file_or_folder(functions.dev_get_project_root() / "temp" / "images")
+        functions.file_open_file_or_folder(functions.dev_get_project_root() / "temp" / "optimized_images")
+        self.__call__.add_line(result_output)
+
+
 class on_image_optimize_clipboard:
     icon: str = "🚀"
     title: str = "Optimize image from clipboard"
@@ -229,22 +245,6 @@ class on_image_optimize_file:
 
         shutil.rmtree(temp_folder)
 
-        functions.file_open_file_or_folder(functions.dev_get_project_root() / "temp" / "optimized_images")
-        self.__call__.add_line(result_output)
-
-
-class on_image_optimize:
-    icon: str = "🚀"
-    title: str = "Optimize images"
-
-    def __init__(self, **kwargs): ...
-
-    @functions.dev_write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        commands: str = "npm run optimize"
-
-        result_output = functions.dev_run_powershell_script(commands)
-        functions.file_open_file_or_folder(functions.dev_get_project_root() / "temp" / "images")
         functions.file_open_file_or_folder(functions.dev_get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)
 
