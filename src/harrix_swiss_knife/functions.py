@@ -47,8 +47,23 @@ def dev_load_config(file_path: str) -> dict:
 
     - `dict`: Configuration loaded from the file.
     """
-    with open(dev_get_project_root() / file_path, "r", encoding="utf8") as config_file:
-        config = json.load(config_file)
+    config_file = Path(dev_get_project_root()) / file_path
+    with config_file.open("r", encoding="utf-8") as file:
+        config = json.load(file)
+
+    def process_snippet(value):
+        if isinstance(value, str) and value.startswith("snippet:"):
+            snippet_path = Path(dev_get_project_root()) / value.split('snippet:', 1)[1].strip()
+            with snippet_path.open("r", encoding="utf-8") as snippet_file:
+                return snippet_file.read()
+        return value
+
+    for key, value in config.items():
+        if isinstance(value, dict):
+            config[key] = {k: process_snippet(v) for k, v in value.items()}
+        else:
+            config[key] = process_snippet(value)
+
     return config
 
 
