@@ -4,14 +4,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
 from harrix_swiss_knife import resources_rc  # noqa
-from harrix_swiss_knife import (
-    actions_dev,
-    actions_file,
-    actions_images,
-    actions_md,
-    actions_py,
-    main_menu_base
-)
+from harrix_swiss_knife import actions_dev, actions_file, actions_images, actions_md, actions_py, main_menu_base
 
 
 class MainMenu(main_menu_base.MainMenuBase):
@@ -60,7 +53,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.menu_python = self.new_menu("Python", "py.svg")
         self.add_item(self.menu_python, actions_py.on_py_rye_new_project_dialog)
         self.add_item(self.menu_python, actions_py.on_py_rye_new_project)
-        self.add_item(self.menu_python, actions_py.on_sort_isort_fmt_python_code_folder)
+        self.add_item(self.menu_python, actions_py.on_py_sort_isort_fmt_python_code_folder)
         self.add_item(self.menu_python, actions_py.on_py_sort_code)
         self.add_item(self.menu_python, actions_py.on_py_sort_code_folder)
 
