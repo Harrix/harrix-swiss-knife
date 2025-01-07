@@ -8,7 +8,7 @@ from harrix_swiss_knife import functions
 config = functions.dev_load_config("config/config.json")
 
 
-class on_rye_new_project:
+class on_py_rye_new_project:
     icon: str = "rye.svg"
     title: str = "New Rye project in Projects"
 
@@ -23,7 +23,7 @@ class on_rye_new_project:
         self.__call__.add_line(create_rye_new_project(self.name_project, self.path))
 
 
-class on_rye_new_project_dialog:
+class on_py_rye_new_project_dialog:
     icon: str = "rye.svg"
     title: str = "New Rye project in …"
 
@@ -80,7 +80,7 @@ class on_sort_isort_fmt_python_code_folder:
         self.__call__.add_line(functions.file_apply_func(folder_path, ".py", functions.dev_sort_py_code))
 
 
-class on_sort_python_code_file:
+class on_py_sort_code:
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in one PY file"
 
@@ -106,7 +106,7 @@ class on_sort_python_code_file:
             self.__call__.add_line(f"❌ File {file_path} is not applied.")
 
 
-class on_sort_python_code_folder:
+class on_py_sort_code_folder:
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in PY files"
 
