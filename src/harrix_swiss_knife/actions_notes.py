@@ -90,7 +90,7 @@ class on_new_article:
         text = config["beginning_of_article"].replace("[YEAR]", datetime.now().strftime("%Y"))
         text = text.replace("[NAME]", article_name)
         text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
-        text += f"\n\n# {article_name}\n\n\n"
+        text += f"\n# {article_name}\n\n\n"
 
         output, file_path = add_note(Path(config["path_articles"]), article_name, text, True)
         functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{file_path}"')
@@ -124,7 +124,7 @@ class on_new_note_dialog:
         is_with_images = kwargs.get("is_with_images", False)
 
         text = config["beginning_of_md"]
-        text += f"\n\n# {note_name}\n\n\n"
+        text += f"\n# {note_name}\n\n\n"
 
         output, file_path = add_note(folder_path, note_name, text, is_with_images)
         functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{file_path}"')
@@ -172,7 +172,7 @@ def add_diary_new_dream(is_with_images: bool = False) -> str | Path:
 
     - `str | Path`: The path to the created dream diary entry file or a string message indicating creation.
     """
-    text = f"{config['beginning_of_md']}\n\n"
+    text = f"{config['beginning_of_md']}\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
     text += "`` — не помню.\n\n" * 15 + "`` — не помню.\n"
