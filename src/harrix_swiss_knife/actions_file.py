@@ -7,7 +7,7 @@ from harrix_swiss_knife import functions
 config = functions.dev_load_config("config/config.json")
 
 
-class on_all_files_to_parent_folder:
+class on_file_all_files_to_parent_folder:
     icon: str = "🗂️"
     title: str = "Moves and flattens files from nested folders"
     tip: str = (
@@ -28,7 +28,7 @@ class on_all_files_to_parent_folder:
         self.__call__.add_line(functions.file_all_to_parent_folder(folder_path))
 
 
-class on_block_disks:
+class on_file_block_disks:
     icon: str = "🔒"
     title: str = "Block disks"
 
@@ -45,7 +45,7 @@ class on_block_disks:
         self.__call__.add_line(output)
 
 
-class on_check_featured_image_not_recursively:
+class on_file_check_featured_image:
     icon: str = "✅"
     title: str = "Check featured_image.* in …"
     tip: str = "Checks for the presence of `featured_image.*` files in every child folder, not recursively."
@@ -67,7 +67,7 @@ class on_check_featured_image_not_recursively:
             self.__call__.add_line(f"❌ Error: {e}")
 
 
-class on_check_featured_image_not_recursively_in_folders:
+class on_file_check_featured_image_in_folders:
     icon: str = "✅"
     title: str = "Check featured_image.*"
 
@@ -84,7 +84,7 @@ class on_check_featured_image_not_recursively_in_folders:
                 self.__call__.add_line(f"❌ Error: {e}")
 
 
-class on_open_camera_uploads:
+class on_file_open_camera_uploads:
     icon: str = "📸"
     title: str = "Open Camera Uploads"
 
@@ -103,7 +103,7 @@ class on_open_camera_uploads:
         self.__call__.add_line('The folder "Camera Uploads" is opened.')
 
 
-class on_tree_view_folder:
+class on_file_tree_view_folder:
     icon: str = "├"
     title: str = "Tree view of a folder"
 
@@ -122,7 +122,7 @@ class on_tree_view_folder:
         self.__call__.add_line(result_output)
 
 
-class on_tree_view_folder_ignore_hidden_folders:
+class on_file_tree_view_folder_ignore_hidden_folders:
     icon: str = "├"
     title: str = "Tree view of a folder (ignore hidden folders)"
 
@@ -130,4 +130,4 @@ class on_tree_view_folder_ignore_hidden_folders:
 
     @functions.dev_write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        on_tree_view_folder.__call__(self, is_ignore_hidden_folders=True)
+        on_file_tree_view_folder.__call__(self, is_ignore_hidden_folders=True)

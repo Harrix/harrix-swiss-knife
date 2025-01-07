@@ -3,8 +3,15 @@ import sys
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
-from harrix_swiss_knife import actions_file, actions_md, resources_rc  # noqa
-from harrix_swiss_knife import actions_dev, actions_images, actions_py, main_menu_base
+from harrix_swiss_knife import resources_rc  # noqa
+from harrix_swiss_knife import (
+    actions_dev,
+    actions_file,
+    actions_images,
+    actions_md,
+    actions_py,
+    main_menu_base
+)
 
 
 class MainMenu(main_menu_base.MainMenuBase):
@@ -41,13 +48,13 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu OS
         self.menu_os = self.new_menu("OS", "🪟")
-        self.add_item(self.menu_os, actions_file.on_all_files_to_parent_folder)
-        self.add_item(self.menu_os, actions_file.on_check_featured_image_not_recursively)
-        self.add_item(self.menu_os, actions_file.on_check_featured_image_not_recursively_in_folders)
-        self.add_item(self.menu_os, actions_file.on_block_disks)
-        self.add_item(self.menu_os, actions_file.on_open_camera_uploads)
-        self.add_item(self.menu_os, actions_file.on_tree_view_folder_ignore_hidden_folders)
-        self.add_item(self.menu_os, actions_file.on_tree_view_folder)
+        self.add_item(self.menu_os, actions_file.on_file_all_files_to_parent_folder)
+        self.add_item(self.menu_os, actions_file.on_file_check_featured_image)
+        self.add_item(self.menu_os, actions_file.on_file_check_featured_image_in_folders)
+        self.add_item(self.menu_os, actions_file.on_file_block_disks)
+        self.add_item(self.menu_os, actions_file.on_file_open_camera_uploads)
+        self.add_item(self.menu_os, actions_file.on_file_tree_view_folder_ignore_hidden_folders)
+        self.add_item(self.menu_os, actions_file.on_file_tree_view_folder)
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
