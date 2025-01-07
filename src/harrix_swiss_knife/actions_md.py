@@ -38,7 +38,7 @@ class on_diary_new:
 
     @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        output, file_path = add_diary_new_diary()
+        output, file_path = markdown_add_diary_new_diary()
         functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
@@ -51,7 +51,7 @@ class on_diary_new_dream:
 
     @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        output, file_path = add_diary_new_dream()
+        output, file_path = markdown_add_diary_new_dream()
         functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
@@ -64,7 +64,7 @@ class on_diary_new_with_images:
 
     @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        output, file_path = add_diary_new_diary(is_with_images=True)
+        output, file_path = markdown_add_diary_new_diary(is_with_images=True)
         functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
@@ -92,7 +92,7 @@ class on_new_article:
         text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
         text += f"\n# {article_name}\n\n\n"
 
-        output, file_path = add_note(Path(config["path_articles"]), article_name, text, True)
+        output, file_path = markdown_add_note(Path(config["path_articles"]), article_name, text, True)
         functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{file_path}"')
         self.__call__.add_line(output)
 
@@ -126,7 +126,7 @@ class on_new_note_dialog:
         text = config["beginning_of_md"]
         text += f"\n# {note_name}\n\n\n"
 
-        output, file_path = add_note(folder_path, note_name, text, is_with_images)
+        output, file_path = markdown_add_note(folder_path, note_name, text, is_with_images)
         functions.dev_run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{file_path}"')
         self.__call__.add_line(output)
 
@@ -142,7 +142,7 @@ class on_new_note_dialog_with_images:
         on_new_note_dialog.__call__(self, is_with_images=True)
 
 
-def add_diary_new_diary(is_with_images: bool = False) -> str | Path:
+def markdown_add_diary_new_diary(is_with_images: bool = False) -> str | Path:
     """
     Creates a new diary entry for the current day and time.
 
@@ -157,10 +157,10 @@ def add_diary_new_diary(is_with_images: bool = False) -> str | Path:
     text = f"{config['beginning_of_md']}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
-    return add_diary_new_note(config["path_diary"], text, is_with_images)
+    return markdown_add_diary_new_note(config["path_diary"], text, is_with_images)
 
 
-def add_diary_new_dream(is_with_images: bool = False) -> str | Path:
+def markdown_add_diary_new_dream(is_with_images: bool = False) -> str | Path:
     """
     Creates a new dream diary entry for the current day and time with placeholders for dream descriptions.
 
@@ -176,10 +176,10 @@ def add_diary_new_dream(is_with_images: bool = False) -> str | Path:
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
     text += "`` — не помню.\n\n" * 15 + "`` — не помню.\n"
-    return add_diary_new_note(config["path_dream"], text, is_with_images)
+    return markdown_add_diary_new_note(config["path_dream"], text, is_with_images)
 
 
-def add_diary_new_note(base_path: str | Path, text: str, is_with_images: bool) -> str | Path:
+def markdown_add_diary_new_note(base_path: str | Path, text: str, is_with_images: bool) -> str | Path:
     """
     Adds a new note to the diary or dream diary for the given base path.
 
@@ -206,10 +206,10 @@ def add_diary_new_note(base_path: str | Path, text: str, is_with_images: bool) -
     month_path = year_path / month
     month_path.mkdir(exist_ok=True)
 
-    return add_note(month_path, day, text, is_with_images)
+    return markdown_add_note(month_path, day, text, is_with_images)
 
 
-def add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
+def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
     """
     Adds a note to the specified base path.
 
