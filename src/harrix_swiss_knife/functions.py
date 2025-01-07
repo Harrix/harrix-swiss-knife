@@ -811,3 +811,33 @@ def pyside_generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str
             if action.text():
                 markdown_lines.append(f'{"  " * level}- {action.text()}')
     return markdown_lines
+
+
+def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
+    """
+    Adds a note to the specified base path.
+
+    Args:
+
+    - `base_path` (`str | Path`): The path where the note will be added.
+    - `name` (`str`): The name for the note file or folder.
+    - `text` (`str`): The text content for the note.
+    - `is_with_images` (`bool`): If true, creates folders for images.
+
+    Returns:
+
+    - `str | Path`: A tuple containing a message about file creation and the path to the file.
+    """
+    base_path = Path(base_path)
+
+    if is_with_images:
+        (base_path / name).mkdir(exist_ok=True)
+        (base_path / name / "img").mkdir(exist_ok=True)
+        file_path = base_path / name / f"{name}.md"
+    else:
+        file_path = base_path / f"{name}.md"
+
+    with file_path.open(mode="w", encoding="utf-8") as file:
+        file.write(text)
+
+    return f"File {file_path} created.", file_path
