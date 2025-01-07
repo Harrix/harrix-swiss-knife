@@ -8,7 +8,7 @@ from harrix_swiss_knife import functions
 config = functions.dev_load_config("config/config.json")
 
 
-class on_add_author_book:
+class on_markdown_add_author_book:
     icon: str = "❞"
     title: str = "Quotes. Add author and title"
 
@@ -30,7 +30,7 @@ class on_add_author_book:
             self.__call__.add_line(f"❌ Error: {e}")
 
 
-class on_diary_new:
+class on_markdown_diary_new:
     icon: str = "📖"
     title = "New diary note"
 
@@ -43,7 +43,7 @@ class on_diary_new:
         self.__call__.add_line(output)
 
 
-class on_diary_new_dream:
+class on_markdown_diary_new_dream:
     icon: str = "💤"
     title = "New dream note"
 
@@ -56,7 +56,7 @@ class on_diary_new_dream:
         self.__call__.add_line(output)
 
 
-class on_diary_new_with_images:
+class on_markdown_diary_new_with_images:
     icon: str = "📚"
     title = "New diary note with images"
 
@@ -69,7 +69,7 @@ class on_diary_new_with_images:
         self.__call__.add_line(output)
 
 
-class on_new_article:
+class on_markdown_new_article:
     icon: str = "✍️"
     title = "New article"
 
@@ -97,7 +97,7 @@ class on_new_article:
         self.__call__.add_line(output)
 
 
-class on_new_note_dialog:
+class on_markdown_new_note_dialog:
     icon: str = "📓"
     title = "New note"
 
@@ -131,7 +131,7 @@ class on_new_note_dialog:
         self.__call__.add_line(output)
 
 
-class on_new_note_dialog_with_images:
+class on_markdown_new_note_dialog_with_images:
     icon: str = "📓"
     title = "New note with images"
 
@@ -139,7 +139,7 @@ class on_new_note_dialog_with_images:
 
     @functions.dev_write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        on_new_note_dialog.__call__(self, is_with_images=True)
+        on_markdown_new_note_dialog.__call__(self, is_with_images=True)
 
 
 def markdown_add_diary_new_diary(is_with_images: bool = False) -> str | Path:
