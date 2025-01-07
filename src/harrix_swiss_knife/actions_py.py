@@ -157,7 +157,7 @@ def create_rye_new_project(name_project: str, path: str | Path) -> str:
     readme_path = Path(path) / name_project / "README.md"
     try:
         with readme_path.open("a", encoding="utf-8") as file:
-            file.write(config["cli_commands"])
+            file.write("\n" + config["cli_commands"])
         res += f"Content successfully added to {readme_path}"
     except FileNotFoundError:
         res += f"File not found: {readme_path}"
