@@ -51,7 +51,7 @@ def dev_load_config(file_path: str) -> dict:
 
     def process_snippet(value):
         if isinstance(value, str) and value.startswith("snippet:"):
-            snippet_path = Path(dev_get_project_root()) / value.split('snippet:', 1)[1].strip()
+            snippet_path = Path(dev_get_project_root()) / value.split("snippet:", 1)[1].strip()
             with snippet_path.open("r", encoding="utf-8") as snippet_file:
                 return snippet_file.read()
         return value
