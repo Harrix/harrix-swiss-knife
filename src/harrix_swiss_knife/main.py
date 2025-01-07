@@ -3,8 +3,8 @@ import sys
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
-from harrix_swiss_knife import resources_rc  # noqa
-from harrix_swiss_knife import actions_dev, actions_images, actions_notes, actions_os, actions_py, main_menu_base
+from harrix_swiss_knife import actions_md, resources_rc  # noqa
+from harrix_swiss_knife import actions_dev, actions_images, actions_os, actions_py, main_menu_base
 
 
 class MainMenu(main_menu_base.MainMenuBase):
@@ -29,15 +29,15 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_images, actions_images.on_image_open_images)
         self.add_item(self.menu_images, actions_images.on_image_open_optimized_images)
 
-        # Notes
-        self.menu_notes = self.new_menu("Notes", "📓")
-        self.add_item(self.menu_notes, actions_notes.on_diary_new_dream)
-        self.add_item(self.menu_notes, actions_notes.on_diary_new_with_images)
-        self.add_item(self.menu_notes, actions_notes.on_diary_new)
-        self.add_item(self.menu_notes, actions_notes.on_new_article)
-        self.add_item(self.menu_notes, actions_notes.on_new_note_dialog_with_images)
-        self.add_item(self.menu_notes, actions_notes.on_new_note_dialog)
-        self.add_item(self.menu_notes, actions_notes.on_add_author_book)
+        # Menu Markdown
+        self.menu_md = self.new_menu("Markdown", "📓")
+        self.add_item(self.menu_md, actions_md.on_diary_new_dream)
+        self.add_item(self.menu_md, actions_md.on_diary_new_with_images)
+        self.add_item(self.menu_md, actions_md.on_diary_new)
+        self.add_item(self.menu_md, actions_md.on_new_article)
+        self.add_item(self.menu_md, actions_md.on_new_note_dialog_with_images)
+        self.add_item(self.menu_md, actions_md.on_new_note_dialog)
+        self.add_item(self.menu_md, actions_md.on_add_author_book)
 
         # Menu OS
         self.menu_os = self.new_menu("OS", "🪟")
@@ -60,7 +60,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         # MainMenu
         self.menu.addMenu(self.menu_dev)
         self.menu.addMenu(self.menu_images)
-        self.menu.addMenu(self.menu_notes)
+        self.menu.addMenu(self.menu_md)
         self.menu.addMenu(self.menu_os)
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
