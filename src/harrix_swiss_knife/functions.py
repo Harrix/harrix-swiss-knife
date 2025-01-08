@@ -843,8 +843,8 @@ def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_image
     return f"File {file_path} created.", file_path
 
 
-def markdown_add_image_captions (filename):
-    with open(filename, 'r', encoding='utf-8') as f:
+def markdown_add_image_captions(filename):
+    with open(filename, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
     yaml_started = False
@@ -857,17 +857,17 @@ def markdown_add_image_captions (filename):
     for line in lines:
         line_num += 1
         if not yaml_started:
-            if line.strip() == '---':
+            if line.strip() == "---":
                 yaml_started = True
                 yaml_lines.append(line)
             else:
                 break  # No YAML block, start processing content
         elif yaml_started and not yaml_ended:
             yaml_lines.append(line)
-            if line.strip() == '---':
+            if line.strip() == "---":
                 yaml_ended = True
         else:
-            content_lines = lines[line_num - 1:]
+            content_lines = lines[line_num - 1 :]
             break
 
     if not yaml_ended:
@@ -875,22 +875,22 @@ def markdown_add_image_captions (filename):
         content_lines = lines[line_num:]
 
     # Parse the YAML block
-    yaml_text = ''.join(yaml_lines)
+    yaml_text = "".join(yaml_lines)
     yaml_data = yaml.safe_load(yaml_text)
-    lang = yaml_data.get('lang', 'en')  # Default to 'en' if not found
+    lang = yaml_data.get("lang", "en")  # Default to 'en' if not found
 
     # Now process content_lines
     output_lines = yaml_lines.copy()
     in_code_block = False
     figure_counter = 1
     i = 0
-    code_fence = ''
+    code_fence = ""
 
     while i < len(content_lines):
         line = content_lines[i]
         # Check for code block start and end
         if not in_code_block:
-            code_fence_match = re.match(r'^([`~]{3,})(.*)$', line)
+            code_fence_match = re.match(r"^([`~]{3,})(.*)$", line)
             if code_fence_match:
                 in_code_block = True
                 code_fence = code_fence_match.group(1)
@@ -899,18 +899,18 @@ def markdown_add_image_captions (filename):
                 continue
         else:
             # In code block, check for end
-            if re.match(r'^' + re.escape(code_fence) + r'\s*$', line.strip()):
+            if re.match(r"^" + re.escape(code_fence) + r"\s*$", line.strip()):
                 in_code_block = False
             output_lines.append(line)
             i += 1
             continue
 
         # If not in code block, check for image line
-        image_match = re.match(r'^\!$$(.*?)$$$$(.*?)$$\s*$', line.strip())
+        image_match = re.match(r"^\!$$(.*?)$$$$(.*?)$$\s*$", line.strip())
         if image_match and line.strip() == line.strip():
             alt_text = image_match.group(1)
             # Check if alt_text is 'Featured image'
-            if alt_text.lower() == 'featured image':
+            if alt_text.lower() == "featured image":
                 output_lines.append(line)
                 i += 1
                 continue
@@ -919,10 +919,10 @@ def markdown_add_image_captions (filename):
                 caption_removed = False
                 if i + 1 < len(content_lines):
                     next_line = content_lines[i + 1].strip()
-                    if lang == 'ru':
-                        caption_pattern = r'^_Рисунок\s*\d+\s*—\s*(.*?)_$'
+                    if lang == "ru":
+                        caption_pattern = r"^_Рисунок\s*\d+\s*—\s*(.*?)_$"
                     else:
-                        caption_pattern = r'^_Figure\s*\d+\s*:\s*—\s*(.*?)_$'
+                        caption_pattern = r"^_Figure\s*\d+\s*:\s*—\s*(.*?)_$"
                     if re.match(caption_pattern, next_line):
                         # Remove existing caption by skipping the next line
                         i += 1
@@ -930,12 +930,12 @@ def markdown_add_image_captions (filename):
                 # Add the image line
                 output_lines.append(line)
                 # Insert an empty line
-                output_lines.append('\n')
+                output_lines.append("\n")
                 # Create new caption
-                if lang == 'ru':
-                    caption_line = f'_Рисунок {figure_counter} — {alt_text}_\n'
+                if lang == "ru":
+                    caption_line = f"_Рисунок {figure_counter} — {alt_text}_\n"
                 else:
-                    caption_line = f'_Figure {figure_counter}: — {alt_text}_\n'
+                    caption_line = f"_Figure {figure_counter}: — {alt_text}_\n"
                 output_lines.append(caption_line)
                 figure_counter += 1
                 i += 1
@@ -946,5 +946,5 @@ def markdown_add_image_captions (filename):
         i += 1
 
     # Write the modified content back to the file
-    with open(filename, 'w', encoding='utf-8') as f:
+    with open(filename, "w", encoding="utf-8") as f:
         f.writelines(output_lines)

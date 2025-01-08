@@ -60,7 +60,7 @@ class MainMenuBase:
 
         Args:
 
-        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: "rye.svg", "🏆".
+        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: "uv.svg", "🏆".
         - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
 
         Returns:
@@ -145,7 +145,7 @@ class MainMenuBase:
         Args:
 
         - `title` (`str`): The title of the new menu.
-        - `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: "rye.svg", "🏆".
+        - `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: "uv.svg", "🏆".
 
         Returns:
 
