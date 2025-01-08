@@ -38,6 +38,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, actions_md.on_markdown_new_note_dialog_with_images)
         self.add_item(self.menu_md, actions_md.on_markdown_new_note_dialog)
         self.add_item(self.menu_md, actions_md.on_markdown_add_author_book)
+        self.add_item(self.menu_md, actions_md.on_markdown_add_image_captions)
 
         # Menu File operations
         self.menu_file = self.new_menu("File operations", "🪟")
