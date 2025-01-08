@@ -1,32 +1,31 @@
 [project]
 name = "harrix-swiss-knife"
-version = "0.1.0"  # Don't forget about the package.json
+version = "0.2"
 description = "Python + Node.js application for automating personal tasks in Windows"
-authors = [{ name = "Sergienko Anton", email = "anton.b.sergienko@gmail.com" }]
-dependencies = [
-    "pyside6>=6.8.1",
-    "pillow>=11.0.0",
-    "pythonnet>=3.0.5",
-    "libcst>=1.5.1",
-]
-license = { file = "LICENSE.md" }
 readme = "README.md"
-requires-python = ">= 3.8"
+license = { file = "LICENSE.md" }
+authors = [
+    { name = "Sergienko Anton", email = "anton.b.sergienko@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "libcst>=1.5.1",
+    "pillow>=11.1.0",
+    "pyside6>=6.8.1.1",
+    "pythonnet>=3.0.5",
+]
+
+[project.scripts]
+harrix-swiss-knife = "harrix_swiss_knife:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/harrix_swiss_knife"]
-
-[tool.rye]
-managed = true
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "isort>=5.13.2",
+    "ruff>=0.8.6",
 ]
 
 [tool.ruff]
