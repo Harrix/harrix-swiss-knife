@@ -46,8 +46,7 @@ class on_markdown_add_image_captions:
             self.__call__.add_line("❌ No file was selected.")
             return
 
-        functions.markdown_add_image_captions(Path(filename))
-        self.__call__.add_line(f"Filename: {filename} fixed")
+        self.__call__.add_line(functions.markdown_add_image_captions(Path(filename)))
 
 
 class on_markdown_diary_new:

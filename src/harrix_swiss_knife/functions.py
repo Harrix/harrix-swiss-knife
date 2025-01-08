@@ -732,11 +732,37 @@ def markdown_add_author_book(filename: Path | str) -> str:
     return "\n".join(lines_list)
 
 
-def markdown_add_image_captions(filename):
+def markdown_add_image_captions(filename: Path | str) -> str:
+    """
+    Processes a markdown file to add captions to images based on their alt text.
+
+    This function reads a markdown file, processes its content to:
+    - Recognize images by their markdown syntax.
+    - Add automatic captions with sequential numbering, localized for Russian or English.
+    - Skip image captions that already exist in italic format.
+    - Ensure proper handling within and outside of code blocks.
+
+    Args:
+
+    - `filename` (`Path | str`): The path to the markdown file to be processed.
+
+    Returns:
+
+    - `str`: A status message indicating whether the file was modified or not.
+
+    Note:
+
+    - The function modifies the file in place if changes are made.
+    - The first argument of the function can be either a `Path` object or a string representing the file path.
+    """
     with open(filename, "r", encoding="utf-8") as f:
         lines = f.read()
 
     yaml_md, content_md = markdown_split_yaml_content(lines)
+
+    # Parse YAML
+    data_yaml = yaml.safe_load(yaml_md.strip("---\n"))
+    lang = data_yaml.get("lang")
 
     lines = content_md.split("\n")
     new_lines = []
@@ -759,7 +785,7 @@ def markdown_add_image_captions(filename):
                 # Check if the previous line is empty
                 if i > 0 and lines[i - 1].strip() == "":
                     # Check if the line before the previous one is an image
-                    if i > 1 and re.match(r"^\!$$(.*?)$$$$(.*?)\.(.*?)$$$", lines[i - 2].strip()):
+                    if i > 1 and re.match(r"^\!\[(.*?)\]\((.*?)\.(.*?)\)$", lines[i - 2].strip()):
                         # Skip this line and the next one (do not add to new_lines)
                         i += 2
                         continue
@@ -791,7 +817,7 @@ def markdown_add_image_captions(filename):
 
         if not in_code_block:
             # Check if the line is an image line
-            match = re.match(r"^\!$$(.*?)$$$$(.*?)\.(.*?)$$$", line)
+            match = re.match(r"^\!\[(.*?)\]\((.*?)\.(.*?)\)$", line)
             if match and line.startswith("![Featured image](featured-image"):
                 match = False
             if match:
@@ -800,7 +826,10 @@ def markdown_add_image_captions(filename):
                 alt_text = match.group(1)  # Extract the Alt text
                 new_lines.append(line)  # Add the image line
                 # Create the caption and add it
-                caption = f"_Figure {image_count} — {alt_text}_"
+                if lang == "ru":
+                    caption = f"_Рисунок {image_count} — {alt_text}_"
+                else:
+                    caption = f"_Figure {image_count}: {alt_text}_"
                 new_lines.append("\n" + caption)
             else:
                 # If not an image line, add the line as is
@@ -813,8 +842,12 @@ def markdown_add_image_captions(filename):
 
     content_md = "\n".join(new_lines)
 
-    with filename.open(mode="w", encoding="utf-8") as file:
-        file.write(yaml_md + "\n\n" + content_md)
+    lines_new = yaml_md + "\n\n" + content_md
+    if lines != lines_new:
+        with filename.open(mode="w", encoding="utf-8") as file:
+            file.write(lines_new)
+        return f"✅ File {filename} applied."
+    return f"File is not changed."
 
 
 def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
