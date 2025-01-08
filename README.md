@@ -46,7 +46,7 @@ _Figure 1: Screenshot_
 - **Python**
   - New Rye project in …
   - New Rye project in Projects
-  - isort, rye fmt, sort in PY files
+  - isort, ruff format, sort in PY files
   - Sort classes, methods, functions in one PY file
   - Sort classes, methods, functions in PY files
 - Optimize image from clipboard
@@ -55,7 +55,7 @@ _Figure 1: Screenshot_
 
 ## Deploy on an empty machine (Windows)
 
-- Install [Rye](https://rye.astral.sh) ([Установка и работа с Rye (Python) в VSCode](https://github.com/Harrix/harrix.dev-articles-2024/blob/main/rye-vscode-python/rye-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
+- Install [uv](https://docs.astral.sh/uv/) ([Установка и работа с uv (Python) в VSCode](https://github.com/Harrix/harrix.dev-articles-2025/blob/main/uv-vscode-python/uv-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
 
 - Clone project:
 
@@ -69,7 +69,7 @@ _Figure 1: Screenshot_
 
 - Open a terminal `Ctrl` + `` ` ``.
 
-- Run `rye sync`.
+- Run `uv sync`.
 
 - Run `npm i`.
 
@@ -87,12 +87,12 @@ c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-kn
 
 CLI commands after installation.
 
-- `rye self update` — update Rye itself.
-- `rye sync --update-all` — update all project libraries.
+- `uv self update` — update uv itself.
+- `uv sync --upgrade` — update all project libraries.
 - `isort .` — sort imports.
-- `rye fmt` — format the project's Python files.
-- `rye lint` — lint the project's Python files.
-- `rye fetch 3.13` + `rye pin 3.13` + `rye sync` — switch to a different Python version.
+- `ruff format` — format the project's Python files.
+- `ruff check` — lint the project's Python files.
+- `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
 
 ## Add file to a resource file
 
