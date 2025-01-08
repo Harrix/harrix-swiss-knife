@@ -856,28 +856,28 @@ def markdown_add_image_captions(filename):
     while i < len(lines):
         line = lines[i]
 
-        # Проверяем, не является ли строка началом или концом кодового блока
+        # Check if the line is the start or end of a code block
         if re.match(r'^`{3,}', line.strip()):
-            in_code_block = not in_code_block  # Переключаем состояние
+            in_code_block = not in_code_block  # Toggle the state
             new_lines.append(line)
             i += 1
             continue
 
         if not in_code_block:
             stripped_line = line.strip()
-            # Проверяем, является ли строка подписью в курсиве
+            # Check if the line is an italic caption
             if re.match(r'^_.*_$', stripped_line):
-                # Проверяем, является ли предыдущая строка пустой
+                # Check if the previous line is empty
                 if i > 0 and lines[i-1].strip() == '':
-                    # Проверяем, является ли строка перед предыдущей изображением
-                    if i > 1 and re.match(r'^\!\[(.*?)\]\((.*?)\.(.*?)\)$', lines[i-2].strip()):
-                        # Пропускаем эту строку и следующую (не добавляем в new_lines)
+                    # Check if the line before the previous one is an image
+                    if i > 1 and re.match(r'^\!$$(.*?)$$$$(.*?)\.(.*?)$$$', lines[i-2].strip()):
+                        # Skip this line and the next one (do not add to new_lines)
                         i += 2
                         continue
-            # В остальных случаях добавляем строку в new_lines
+            # In other cases, add the line to new_lines
             new_lines.append(line)
         else:
-            # Если внутри кодового блока, просто добавляем строку
+            # If inside a code block, just add the line
             new_lines.append(line)
 
         i += 1
@@ -902,7 +902,7 @@ def markdown_add_image_captions(filename):
 
         if not in_code_block:
             # Check if the line is an image line
-            match = re.match(r'^\!\[(.*?)\]\((.*?)\.(.*?)\)$', line)
+            match = re.match(r'^\!$$(.*?)$$$$(.*?)\.(.*?)$$$', line)
             if match and line.startswith("![Featured image](featured-image"):
                 match = False
             if match:
@@ -911,7 +911,7 @@ def markdown_add_image_captions(filename):
                 alt_text = match.group(1)  # Extract the Alt text
                 new_lines.append(line)     # Add the image line
                 # Create the caption and add it
-                caption = f'_Рисунок {image_count} — {alt_text}_'
+                caption = f'_Figure {image_count} — {alt_text}_'
                 new_lines.append("\n" + caption)
             else:
                 # If not an image line, add the line as is
