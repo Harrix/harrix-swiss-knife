@@ -55,6 +55,7 @@ dependencies = [
     { name = "pillow" },
     { name = "pyside6" },
     { name = "pythonnet" },
+    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
@@ -69,6 +70,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=11.1.0" },
     { name = "pyside6", specifier = ">=6.8.1.1" },
     { name = "pythonnet", specifier = ">=3.0.5" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
 ]
 
 [package.metadata.requires-dev]
