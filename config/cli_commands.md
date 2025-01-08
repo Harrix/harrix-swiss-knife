@@ -2,9 +2,9 @@
 
 CLI commands after installation.
 
-- `rye self update` — update Rye itself.
-- `rye sync --update-all` — update all project libraries.
+- `uv self update` — update uv itself.
+- `uv sync --upgrade` — update all project libraries.
 - `isort .` — sort imports.
-- `rye fmt` — format the project's Python files.
-- `rye lint` — lint the project's Python files.
-- `rye fetch 3.13` + `rye pin 3.13` + `rye sync` — switch to a different Python version.
+- `ruff format` — format the project's Python files.
+- `ruff check` — lint the project's Python files.
+- `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.

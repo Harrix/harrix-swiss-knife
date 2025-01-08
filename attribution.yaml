@@ -10,10 +10,10 @@ attribution:
     }
   - {
       author: Astral,
-      author-site: "https://github.com/astral-sh",
+      author-site: "https://astral.sh/",
       license: MIT,
-      license-url: "https://github.com/astral-sh/rye/blob/main/LICENSE",
-      permalink: "https://github.com/astral-sh/rye/blob/main/docs/static/favicon.svg",
-      permalink-date: 2024-08-03,
-      name: Rye Logo,
+      license-url: "https://github.com/astral-sh/uv/blob/main/LICENSE-MIT",
+      permalink: "https://docs.astral.sh/uv/assets/logo-letter.svg",
+      permalink-date: 2025-01-07,
+      name: Hatch Logo,
     }

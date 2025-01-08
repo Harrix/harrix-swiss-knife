@@ -35,6 +35,7 @@ _Figure 1: Screenshot_
   - New note with images
   - New note
   - Quotes. Add author and title
+  - Add image captions …
 - **File operations**
   - Moves and flattens files from nested folders
   - Check featured_image.* in …
@@ -44,8 +45,8 @@ _Figure 1: Screenshot_
   - Tree view of a folder (ignore hidden folders)
   - Tree view of a folder
 - **Python**
-  - New Rye project in …
-  - New Rye project in Projects
+  - New uv project in …
+  - New uv project in Projects
   - isort, ruff format, sort in PY files
   - Sort classes, methods, functions in one PY file
   - Sort classes, methods, functions in PY files
