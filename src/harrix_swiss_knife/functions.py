@@ -844,107 +844,87 @@ def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_image
 
 
 def markdown_add_image_captions(filename):
-    with open(filename, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+    with open(filename, 'r', encoding='utf-8') as f:
+        lines = f.read()
 
-    yaml_started = False
-    yaml_ended = False
-    yaml_lines = []
-    content_lines = []
-    line_num = 0
+    yaml_md, content_md = markdown_split_yaml_content(lines)
 
-    # Parse YAML front matter
-    for line in lines:
-        line_num += 1
-        if not yaml_started:
-            if line.strip() == "---":
-                yaml_started = True
-                yaml_lines.append(line)
-            else:
-                break  # No YAML block, start processing content
-        elif yaml_started and not yaml_ended:
-            yaml_lines.append(line)
-            if line.strip() == "---":
-                yaml_ended = True
-        else:
-            content_lines = lines[line_num - 1 :]
-            break
-
-    if not yaml_ended:
-        # No YAML end, entire file is YAML?
-        content_lines = lines[line_num:]
-
-    # Parse the YAML block
-    yaml_text = "".join(yaml_lines)
-    yaml_data = yaml.safe_load(yaml_text)
-    lang = yaml_data.get("lang", "en")  # Default to 'en' if not found
-
-    # Now process content_lines
-    output_lines = yaml_lines.copy()
+    lines = content_md.split('\n')
+    new_lines = []
     in_code_block = False
-    figure_counter = 1
     i = 0
-    code_fence = ""
+    while i < len(lines):
+        line = lines[i]
 
-    while i < len(content_lines):
-        line = content_lines[i]
-        # Check for code block start and end
-        if not in_code_block:
-            code_fence_match = re.match(r"^([`~]{3,})(.*)$", line)
-            if code_fence_match:
-                in_code_block = True
-                code_fence = code_fence_match.group(1)
-                output_lines.append(line)
-                i += 1
-                continue
-        else:
-            # In code block, check for end
-            if re.match(r"^" + re.escape(code_fence) + r"\s*$", line.strip()):
-                in_code_block = False
-            output_lines.append(line)
+        # Проверяем, не является ли строка началом или концом кодового блока
+        if re.match(r'^`{3,}', line.strip()):
+            in_code_block = not in_code_block  # Переключаем состояние
+            new_lines.append(line)
             i += 1
             continue
 
-        # If not in code block, check for image line
-        image_match = re.match(r"^\!$$(.*?)$$$$(.*?)$$\s*$", line.strip())
-        if image_match and line.strip() == line.strip():
-            alt_text = image_match.group(1)
-            # Check if alt_text is 'Featured image'
-            if alt_text.lower() == "featured image":
-                output_lines.append(line)
-                i += 1
-                continue
-            else:
-                # Check next line for existing caption
-                caption_removed = False
-                if i + 1 < len(content_lines):
-                    next_line = content_lines[i + 1].strip()
-                    if lang == "ru":
-                        caption_pattern = r"^_Рисунок\s*\d+\s*—\s*(.*?)_$"
-                    else:
-                        caption_pattern = r"^_Figure\s*\d+\s*:\s*—\s*(.*?)_$"
-                    if re.match(caption_pattern, next_line):
-                        # Remove existing caption by skipping the next line
-                        i += 1
-                        caption_removed = True
-                # Add the image line
-                output_lines.append(line)
-                # Insert an empty line
-                output_lines.append("\n")
-                # Create new caption
-                if lang == "ru":
-                    caption_line = f"_Рисунок {figure_counter} — {alt_text}_\n"
-                else:
-                    caption_line = f"_Figure {figure_counter}: — {alt_text}_\n"
-                output_lines.append(caption_line)
-                figure_counter += 1
-                i += 1
-                continue
+        if not in_code_block:
+            stripped_line = line.strip()
+            # Проверяем, является ли строка подписью в курсиве
+            if re.match(r'^_.*_$', stripped_line):
+                # Проверяем, является ли предыдущая строка пустой
+                if i > 0 and lines[i-1].strip() == '':
+                    # Проверяем, является ли строка перед предыдущей изображением
+                    if i > 1 and re.match(r'^\!\[(.*?)\]\((.*?)\.(.*?)\)$', lines[i-2].strip()):
+                        # Пропускаем эту строку и следующую (не добавляем в new_lines)
+                        i += 2
+                        continue
+            # В остальных случаях добавляем строку в new_lines
+            new_lines.append(line)
         else:
-            # Regular line
-            output_lines.append(line)
+            # Если внутри кодового блока, просто добавляем строку
+            new_lines.append(line)
+
         i += 1
 
-    # Write the modified content back to the file
-    with open(filename, "w", encoding="utf-8") as f:
-        f.writelines(output_lines)
+    content_md = '\n'.join(new_lines)
+
+    lines = content_md.split('\n')
+    new_lines = []
+    in_code_block = False
+    image_count = 0  # Initialize the image counter
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+
+        # Check for start/end of a code block
+        if re.match(r'^`{3,}', line.strip()):
+            in_code_block = not in_code_block  # Toggle the code block state
+            new_lines.append(line)
+            i += 1
+            continue
+
+        if not in_code_block:
+            # Check if the line is an image line
+            match = re.match(r'^\!\[(.*?)\]\((.*?)\.(.*?)\)$', line)
+            if match and line.startswith("![Featured image](featured-image"):
+                match = False
+            if match:
+                # Increment the image counter
+                image_count += 1
+                alt_text = match.group(1)  # Extract the Alt text
+                new_lines.append(line)     # Add the image line
+                # Create the caption and add it
+                caption = f'_Рисунок {image_count} — {alt_text}_'
+                new_lines.append("\n" + caption)
+            else:
+                # If not an image line, add the line as is
+                new_lines.append(line)
+        else:
+            # If inside a code block, just add the line
+            new_lines.append(line)
+
+        i += 1
+
+    content_md = '\n'.join(new_lines)
+
+    with filename.open(mode="w", encoding="utf-8") as file:
+        file.write(yaml_md + "\n\n" + content_md)
+
+
