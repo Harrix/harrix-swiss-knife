@@ -7,53 +7,6 @@ from harrix_swiss_knife import functions
 config = functions.dev_load_config("config/config.json")
 
 
-class on_py_uv_new_project:
-    icon: str = "uv.svg"
-    title: str = "New uv project in Projects"
-
-    def __init__(self, **kwargs): ...
-
-    @functions.dev_write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        self.path: str = config["path_py_projects"]
-        max_project_number = functions.file_find_max_folder_number(self.path, config["start_pattern_py_projects"])
-        self.name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
-
-        self.__call__.add_line(py_create_uv_new_project(self.name_project, self.path))
-
-
-class on_py_uv_new_project_dialog:
-    icon: str = "uv.svg"
-    title: str = "New uv project in …"
-
-    def __init__(self, **kwargs): ...
-
-    @functions.dev_write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        title: str = "Project name"
-        label: str = "Enter the name of the project (English, without spaces):"
-        project_name, ok = QInputDialog.getText(None, title, label)
-
-        if ok and project_name:
-            self.name_project: str = project_name
-        else:
-            self.__call__.add_line("❌ The name of the project was not entered.")
-            return
-
-        self.name_project = self.name_project.replace(" ", "-")
-
-        title = "Project folder"
-        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_py_projects"])
-
-        if folder_path:
-            self.path: str = folder_path
-        else:
-            self.__call__.add_line("❌ The folder was not selected.")
-            return
-
-        self.__call__.add_line(py_create_uv_new_project(self.name_project, self.path))
-
-
 class on_py_sort_code:
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in one PY file"
@@ -123,6 +76,53 @@ class on_py_sort_isort_fmt_python_code_folder:
 
         self.__call__.add_line(functions.dev_run_powershell_script(commands))
         self.__call__.add_line(functions.file_apply_func(folder_path, ".py", functions.dev_sort_py_code))
+
+
+class on_py_uv_new_project:
+    icon: str = "uv.svg"
+    title: str = "New uv project in Projects"
+
+    def __init__(self, **kwargs): ...
+
+    @functions.dev_write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        self.path: str = config["path_py_projects"]
+        max_project_number = functions.file_find_max_folder_number(self.path, config["start_pattern_py_projects"])
+        self.name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
+
+        self.__call__.add_line(py_create_uv_new_project(self.name_project, self.path))
+
+
+class on_py_uv_new_project_dialog:
+    icon: str = "uv.svg"
+    title: str = "New uv project in …"
+
+    def __init__(self, **kwargs): ...
+
+    @functions.dev_write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        title: str = "Project name"
+        label: str = "Enter the name of the project (English, without spaces):"
+        project_name, ok = QInputDialog.getText(None, title, label)
+
+        if ok and project_name:
+            self.name_project: str = project_name
+        else:
+            self.__call__.add_line("❌ The name of the project was not entered.")
+            return
+
+        self.name_project = self.name_project.replace(" ", "-")
+
+        title = "Project folder"
+        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_py_projects"])
+
+        if folder_path:
+            self.path: str = folder_path
+        else:
+            self.__call__.add_line("❌ The folder was not selected.")
+            return
+
+        self.__call__.add_line(py_create_uv_new_project(self.name_project, self.path))
 
 
 def py_create_uv_new_project(name_project: str, path: str | Path) -> str:

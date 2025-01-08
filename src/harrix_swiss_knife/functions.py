@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, List, Optional
 
 import libcst as cst
+import yaml
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
@@ -731,6 +732,121 @@ def markdown_add_author_book(filename: Path | str) -> str:
     return "\n".join(lines_list)
 
 
+def markdown_add_image_captions(filename):
+    with open(filename, "r", encoding="utf-8") as f:
+        lines = f.read()
+
+    yaml_md, content_md = markdown_split_yaml_content(lines)
+
+    lines = content_md.split("\n")
+    new_lines = []
+    in_code_block = False
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+
+        # Check if the line is the start or end of a code block
+        if re.match(r"^`{3,}", line.strip()):
+            in_code_block = not in_code_block  # Toggle the state
+            new_lines.append(line)
+            i += 1
+            continue
+
+        if not in_code_block:
+            stripped_line = line.strip()
+            # Check if the line is an italic caption
+            if re.match(r"^_.*_$", stripped_line):
+                # Check if the previous line is empty
+                if i > 0 and lines[i - 1].strip() == "":
+                    # Check if the line before the previous one is an image
+                    if i > 1 and re.match(r"^\!$$(.*?)$$$$(.*?)\.(.*?)$$$", lines[i - 2].strip()):
+                        # Skip this line and the next one (do not add to new_lines)
+                        i += 2
+                        continue
+            # In other cases, add the line to new_lines
+            new_lines.append(line)
+        else:
+            # If inside a code block, just add the line
+            new_lines.append(line)
+
+        i += 1
+
+    content_md = "\n".join(new_lines)
+
+    lines = content_md.split("\n")
+    new_lines = []
+    in_code_block = False
+    image_count = 0  # Initialize the image counter
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+
+        # Check for start/end of a code block
+        if re.match(r"^`{3,}", line.strip()):
+            in_code_block = not in_code_block  # Toggle the code block state
+            new_lines.append(line)
+            i += 1
+            continue
+
+        if not in_code_block:
+            # Check if the line is an image line
+            match = re.match(r"^\!$$(.*?)$$$$(.*?)\.(.*?)$$$", line)
+            if match and line.startswith("![Featured image](featured-image"):
+                match = False
+            if match:
+                # Increment the image counter
+                image_count += 1
+                alt_text = match.group(1)  # Extract the Alt text
+                new_lines.append(line)  # Add the image line
+                # Create the caption and add it
+                caption = f"_Figure {image_count} — {alt_text}_"
+                new_lines.append("\n" + caption)
+            else:
+                # If not an image line, add the line as is
+                new_lines.append(line)
+        else:
+            # If inside a code block, just add the line
+            new_lines.append(line)
+
+        i += 1
+
+    content_md = "\n".join(new_lines)
+
+    with filename.open(mode="w", encoding="utf-8") as file:
+        file.write(yaml_md + "\n\n" + content_md)
+
+
+def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
+    """
+    Adds a note to the specified base path.
+
+    Args:
+
+    - `base_path` (`str | Path`): The path where the note will be added.
+    - `name` (`str`): The name for the note file or folder.
+    - `text` (`str`): The text content for the note.
+    - `is_with_images` (`bool`): If true, creates folders for images.
+
+    Returns:
+
+    - `str | Path`: A tuple containing a message about file creation and the path to the file.
+    """
+    base_path = Path(base_path)
+
+    if is_with_images:
+        (base_path / name).mkdir(exist_ok=True)
+        (base_path / name / "img").mkdir(exist_ok=True)
+        file_path = base_path / name / f"{name}.md"
+    else:
+        file_path = base_path / f"{name}.md"
+
+    with file_path.open(mode="w", encoding="utf-8") as file:
+        file.write(text)
+
+    return f"File {file_path} created.", file_path
+
+
 def markdown_split_yaml_content(note: str) -> tuple[str, str]:
     """
     Splits a markdown note into YAML front matter and the main content.
@@ -811,120 +927,3 @@ def pyside_generate_markdown_from_qmenu(menu: QMenu, level: int = 0) -> List[str
             if action.text():
                 markdown_lines.append(f'{"  " * level}- {action.text()}')
     return markdown_lines
-
-
-def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
-    """
-    Adds a note to the specified base path.
-
-    Args:
-
-    - `base_path` (`str | Path`): The path where the note will be added.
-    - `name` (`str`): The name for the note file or folder.
-    - `text` (`str`): The text content for the note.
-    - `is_with_images` (`bool`): If true, creates folders for images.
-
-    Returns:
-
-    - `str | Path`: A tuple containing a message about file creation and the path to the file.
-    """
-    base_path = Path(base_path)
-
-    if is_with_images:
-        (base_path / name).mkdir(exist_ok=True)
-        (base_path / name / "img").mkdir(exist_ok=True)
-        file_path = base_path / name / f"{name}.md"
-    else:
-        file_path = base_path / f"{name}.md"
-
-    with file_path.open(mode="w", encoding="utf-8") as file:
-        file.write(text)
-
-    return f"File {file_path} created.", file_path
-
-
-def markdown_add_image_captions(filename):
-    with open(filename, 'r', encoding='utf-8') as f:
-        lines = f.read()
-
-    yaml_md, content_md = markdown_split_yaml_content(lines)
-
-    lines = content_md.split('\n')
-    new_lines = []
-    in_code_block = False
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-
-        # Check if the line is the start or end of a code block
-        if re.match(r'^`{3,}', line.strip()):
-            in_code_block = not in_code_block  # Toggle the state
-            new_lines.append(line)
-            i += 1
-            continue
-
-        if not in_code_block:
-            stripped_line = line.strip()
-            # Check if the line is an italic caption
-            if re.match(r'^_.*_$', stripped_line):
-                # Check if the previous line is empty
-                if i > 0 and lines[i-1].strip() == '':
-                    # Check if the line before the previous one is an image
-                    if i > 1 and re.match(r'^\!$$(.*?)$$$$(.*?)\.(.*?)$$$', lines[i-2].strip()):
-                        # Skip this line and the next one (do not add to new_lines)
-                        i += 2
-                        continue
-            # In other cases, add the line to new_lines
-            new_lines.append(line)
-        else:
-            # If inside a code block, just add the line
-            new_lines.append(line)
-
-        i += 1
-
-    content_md = '\n'.join(new_lines)
-
-    lines = content_md.split('\n')
-    new_lines = []
-    in_code_block = False
-    image_count = 0  # Initialize the image counter
-    i = 0
-
-    while i < len(lines):
-        line = lines[i]
-
-        # Check for start/end of a code block
-        if re.match(r'^`{3,}', line.strip()):
-            in_code_block = not in_code_block  # Toggle the code block state
-            new_lines.append(line)
-            i += 1
-            continue
-
-        if not in_code_block:
-            # Check if the line is an image line
-            match = re.match(r'^\!$$(.*?)$$$$(.*?)\.(.*?)$$$', line)
-            if match and line.startswith("![Featured image](featured-image"):
-                match = False
-            if match:
-                # Increment the image counter
-                image_count += 1
-                alt_text = match.group(1)  # Extract the Alt text
-                new_lines.append(line)     # Add the image line
-                # Create the caption and add it
-                caption = f'_Figure {image_count} — {alt_text}_'
-                new_lines.append("\n" + caption)
-            else:
-                # If not an image line, add the line as is
-                new_lines.append(line)
-        else:
-            # If inside a code block, just add the line
-            new_lines.append(line)
-
-        i += 1
-
-    content_md = '\n'.join(new_lines)
-
-    with filename.open(mode="w", encoding="utf-8") as file:
-        file.write(yaml_md + "\n\n" + content_md)
-
-
