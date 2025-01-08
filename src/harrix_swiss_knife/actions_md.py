@@ -142,6 +142,26 @@ class on_markdown_new_note_dialog_with_images:
         on_markdown_new_note_dialog.__call__(self, is_with_images=True)
 
 
+class on_markdown_add_image_captions:
+    icon: str = "📓"
+    title = "Add image captions …"
+
+    def __init__(self, **kwargs): ...
+
+    @functions.dev_write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        filename, _ = QFileDialog.getOpenFileName(
+            None, "Save Note", config["path_articles"], "Markdown (*.md);;All Files (*)"
+        )
+
+        if not filename:
+            self.__call__.add_line("❌ No file was selected.")
+            return
+
+        functions.markdown_add_image_captions(Path(filename))
+        self.__call__.add_line(f"Filename: {filename} fixed")
+
+
 def markdown_add_diary_new_diary(is_with_images: bool = False) -> str | Path:
     """
     Creates a new diary entry for the current day and time.
