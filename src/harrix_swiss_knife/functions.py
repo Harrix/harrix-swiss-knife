@@ -766,12 +766,12 @@ def markdown_add_image_captions(filename: Path | str) -> str:
 
     # Remove captions
     is_caption = False
-    lines = content_md.split('\n')
+    lines = content_md.split("\n")
     new_lines = []
     code_block_delimiter = None
 
     for i, line in enumerate(lines):
-        match = re.match(r'^(`{3,})(.*)', line)
+        match = re.match(r"^(`{3,})(.*)", line)
         if match:
             delimiter = match.group(1)
             if code_block_delimiter is None:
@@ -804,17 +804,17 @@ def markdown_add_image_captions(filename: Path | str) -> str:
         # In other cases, add the line to new_lines
         new_lines.append(line)
 
-    content_md = '\n'.join(new_lines)
+    content_md = "\n".join(new_lines)
 
     # Add captions
     image_count = 0
 
-    lines = content_md.split('\n')
+    lines = content_md.split("\n")
     new_lines = []
     code_block_delimiter = None
 
     for i, line in enumerate(lines):
-        match = re.match(r'^(`{3,})(.*)', line)
+        match = re.match(r"^(`{3,})(.*)", line)
         if match:
             delimiter = match.group(1)
             if code_block_delimiter is None:
@@ -849,7 +849,7 @@ def markdown_add_image_captions(filename: Path | str) -> str:
             # If not an image line, add the line as is
             new_lines.append(line)
 
-    content_md = '\n'.join(new_lines)
+    content_md = "\n".join(new_lines)
 
     document_new = yaml_md + "\n\n" + content_md
     if document != document_new:
