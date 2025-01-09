@@ -756,96 +756,105 @@ def markdown_add_image_captions(filename: Path | str) -> str:
     - The first argument of the function can be either a `Path` object or a string representing the file path.
     """
     with open(filename, "r", encoding="utf-8") as f:
-        lines = f.read()
+        document = f.read()
 
-    yaml_md, content_md = markdown_split_yaml_content(lines)
+    yaml_md, content_md = markdown_split_yaml_content(document)
 
     # Parse YAML
     data_yaml = yaml.safe_load(yaml_md.strip("---\n"))
     lang = data_yaml.get("lang")
 
-    lines = content_md.split("\n")
+    # Remove captions
+    is_caption = False
+    lines = content_md.split('\n')
     new_lines = []
-    in_code_block = False
-    i = 0
-    while i < len(lines):
-        line = lines[i]
+    code_block_delimiter = None
 
-        # Check if the line is the start or end of a code block
-        if re.match(r"^`{3,}", line.strip()):
-            in_code_block = not in_code_block  # Toggle the state
-            new_lines.append(line)
-            i += 1
-            continue
-
-        if not in_code_block:
-            stripped_line = line.strip()
-            # Check if the line is an italic caption
-            if re.match(r"^_.*_$", stripped_line):
-                # Check if the previous line is empty
-                if i > 0 and lines[i - 1].strip() == "":
-                    # Check if the line before the previous one is an image
-                    if i > 1 and re.match(r"^\!\[(.*?)\]\((.*?)\.(.*?)\)$", lines[i - 2].strip()):
-                        # Skip this line and the next one (do not add to new_lines)
-                        i += 2
-                        continue
-            # In other cases, add the line to new_lines
-            new_lines.append(line)
-        else:
-            # If inside a code block, just add the line
-            new_lines.append(line)
-
-        i += 1
-
-    content_md = "\n".join(new_lines)
-
-    lines = content_md.split("\n")
-    new_lines = []
-    in_code_block = False
-    image_count = 0  # Initialize the image counter
-    i = 0
-
-    while i < len(lines):
-        line = lines[i]
-
-        # Check for start/end of a code block
-        if re.match(r"^`{3,}", line.strip()):
-            in_code_block = not in_code_block  # Toggle the code block state
-            new_lines.append(line)
-            i += 1
-            continue
-
-        if not in_code_block:
-            # Check if the line is an image line
-            match = re.match(r"^\!\[(.*?)\]\((.*?)\.(.*?)\)$", line)
-            if match and line.startswith("![Featured image](featured-image"):
-                match = False
-            if match:
-                # Increment the image counter
-                image_count += 1
-                alt_text = match.group(1)  # Extract the Alt text
-                new_lines.append(line)  # Add the image line
-                # Create the caption and add it
-                if lang == "ru":
-                    caption = f"_Рисунок {image_count} — {alt_text}_"
-                else:
-                    caption = f"_Figure {image_count}: {alt_text}_"
-                new_lines.append("\n" + caption)
-            else:
-                # If not an image line, add the line as is
+    for i, line in enumerate(lines):
+        match = re.match(r'^(`{3,})(.*)', line)
+        if match:
+            delimiter = match.group(1)
+            if code_block_delimiter is None:
+                code_block_delimiter = delimiter
                 new_lines.append(line)
+                continue
+            elif code_block_delimiter == delimiter:
+                code_block_delimiter = None
+                new_lines.append(line)
+                continue
+
+        if code_block_delimiter:  # Inside a code block
+            new_lines.append(line)
+            continue
+
+        if is_caption:
+            is_caption = False
+            if line.strip() == "":  # Skip next line after caption
+                continue
+
+        # Check if the line is an italic caption
+        if re.match(r"^_.*_$", line):
+            # Check if the previous line is empty
+            if i > 0 and lines[i - 1].strip() == "":
+                # Check if the line before the previous one is an image
+                if i > 1 and re.match(r"^\!\[(.*?)\]\((.*?)\.(.*?)\)$", lines[i - 2].strip()):
+                    # Skip this line and the next one (do not add to new_lines)
+                    is_caption = True
+                    continue
+        # In other cases, add the line to new_lines
+        new_lines.append(line)
+
+    content_md = '\n'.join(new_lines)
+
+    # Add captions
+    image_count = 0
+
+    lines = content_md.split('\n')
+    new_lines = []
+    code_block_delimiter = None
+
+    for i, line in enumerate(lines):
+        match = re.match(r'^(`{3,})(.*)', line)
+        if match:
+            delimiter = match.group(1)
+            if code_block_delimiter is None:
+                code_block_delimiter = delimiter
+                new_lines.append(line)
+                continue
+            elif code_block_delimiter == delimiter:
+                code_block_delimiter = None
+                new_lines.append(line)
+                continue
+
+        if code_block_delimiter:  # Inside a code block
+            new_lines.append(line)
+            continue
+
+        # Check if the line is an image line
+        match = re.match(r"^\!\[(.*?)\]\((.*?)\.(.*?)\)$", line)
+        if match and line.startswith("![Featured image](featured-image"):
+            match = False
+        if match:
+            # Increment the image counter
+            image_count += 1
+            alt_text = match.group(1)  # Extract the Alt text
+            new_lines.append(line)  # Add the image line
+            # Create the caption and add it
+            if lang == "ru":
+                caption = f"_Рисунок {image_count} — {alt_text}_"
+            else:
+                caption = f"_Figure {image_count}: {alt_text}_"
+            new_lines.append("\n" + caption)
         else:
-            # If inside a code block, just add the line
+            # If not an image line, add the line as is
             new_lines.append(line)
 
-        i += 1
+    content_md = '\n'.join(new_lines)
 
-    content_md = "\n".join(new_lines)
-
-    lines_new = yaml_md + "\n\n" + content_md
-    if lines != lines_new:
+    document_new = yaml_md + "\n\n" + content_md
+    if document != document_new:
         with filename.open(mode="w", encoding="utf-8") as file:
-            file.write(lines_new)
+            file.write(document_new)
         return f"✅ File {filename} applied."
     return f"File is not changed."
 
