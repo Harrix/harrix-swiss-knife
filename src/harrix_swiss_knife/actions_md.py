@@ -49,6 +49,28 @@ class on_markdown_add_image_captions:
         self.__call__.add_line(functions.markdown_add_image_captions(Path(filename)))
 
 
+class on_markdown_add_image_captions_folder:
+    icon: str = "🌄"
+    title = "Add image captions in …"
+
+    def __init__(self, **kwargs): ...
+
+    @functions.dev_write_in_output_txt(is_show_output=False)
+    def __call__(self, *args, **kwargs) -> None:
+        title = "Folder"
+        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_articles"])
+
+        if not folder_path:
+            self.__call__.add_line("❌ The folder was not selected.")
+            return
+
+        try:
+            result_output = functions.file_apply_func(folder_path, ".md", functions.markdown_add_image_captions)
+            self.__call__.add_line(result_output)
+        except Exception as e:
+            self.__call__.add_line(f"❌ Error: {e}")
+
+
 class on_markdown_diary_new:
     icon: str = "📖"
     title = "New diary note"
