@@ -856,7 +856,7 @@ def markdown_add_image_captions(filename: Path | str) -> str:
         with filename.open(mode="w", encoding="utf-8") as file:
             file.write(document_new)
         return f"✅ File {filename} applied."
-    return f"File is not changed."
+    return "File is not changed."
 
 
 def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
