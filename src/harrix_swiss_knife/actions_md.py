@@ -31,8 +31,8 @@ class on_markdown_add_author_book:
 
 
 class on_markdown_add_image_captions:
-    icon: str = "📓"
-    title = "Add image captions …"
+    icon: str = "🌄"
+    title = "Add image captions in one MD"
 
     def __init__(self, **kwargs): ...
 
