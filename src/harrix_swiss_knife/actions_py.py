@@ -14,22 +14,22 @@ class on_py_sort_code:
 
     @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        file_path, _ = QFileDialog.getOpenFileName(
+        filename, _ = QFileDialog.getOpenFileName(
             None,
             "Select an Python File",
             config["path_github"],
             "Image Files (*.py);;All Files (*)",
         )
 
-        if not file_path:
+        if not filename:
             self.__call__.add_line("❌ The file was not selected.")
             return
 
         try:
-            h.dev.sort_py_code(file_path)
-            self.__call__.add_line(f"File {file_path} is applied.")
+            h.dev.sort_py_code(filename)
+            self.__call__.add_line(f"File {filename} is applied.")
         except Exception:
-            self.__call__.add_line(f"❌ File {file_path} is not applied.")
+            self.__call__.add_line(f"❌ File {filename} is not applied.")
 
 
 class on_py_sort_code_folder:

@@ -120,9 +120,9 @@ class on_image_optimize_clipboard:
                 return
 
         temp_folder: Path = Path(tempfile.mkdtemp())
-        temp_file_path: Path = temp_folder / filename
-        image.save(temp_file_path, "PNG")
-        self.__call__.add_line(f"Image is saved as {temp_file_path}")
+        temp_filename: Path = temp_folder / filename
+        image.save(temp_filename, "PNG")
+        self.__call__.add_line(f"Image is saved as {temp_filename}")
 
         commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
         result_output = h.dev.run_powershell_script(commands)
@@ -132,11 +132,11 @@ class on_image_optimize_clipboard:
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        file_path: Path = h.dev.get_project_root() / "temp" / "optimized_images" / filename
-        file_path = file_path.resolve()
+        filename: Path = h.dev.get_project_root() / "temp" / "optimized_images" / filename
+        filename = filename.resolve()
 
         files = StringCollection()
-        files.Add(str(file_path))
+        files.Add(str(filename))
         Clipboard.SetFileDropList(files)
 
         shutil.rmtree(temp_folder)
@@ -222,21 +222,21 @@ class on_image_optimize_file:
 
     @h.dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
-        file_path, _ = QFileDialog.getOpenFileName(
+        filename, _ = QFileDialog.getOpenFileName(
             None,
             "Select an Image File",
             config["path_articles"],
             "Image Files (*.jpg *.jpeg *.webp *.png *.svg);;All Files (*)",
         )
 
-        if not file_path:
+        if not filename:
             self.__call__.add_line("❌ The file was not selected.")
             return
 
         temp_folder: Path = Path(tempfile.mkdtemp())
-        filename: str = Path(file_path).name
-        temp_file_path: Path = temp_folder / filename
-        shutil.copy(file_path, temp_file_path)
+        filename: str = Path(filename).name
+        temp_filename: Path = temp_folder / filename
+        shutil.copy(filename, temp_filename)
 
         commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
 
