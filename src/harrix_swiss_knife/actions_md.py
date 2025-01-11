@@ -2,127 +2,97 @@ from datetime import datetime
 from pathlib import Path
 
 import harrix_pylib as h
-from PySide6.QtWidgets import QFileDialog, QInputDialog
+
+from harrix_swiss_knife import action_base
 
 config = h.dev.load_config("config/config.json")
 
 
-class on_markdown_add_author_book:
+class on_markdown_add_author_book(action_base.ActionBase):
     icon: str = "❞"
     title: str = "Quotes. Add author and title"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        title = "Folder"
-        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_quotes"])
-
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder with quotes", config["path_quotes"])
         if not folder_path:
-            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         try:
-            result_output = h.file.apply_func(folder_path, ".md", h.md.add_author_book)
-            self.__call__.add_line(result_output)
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.add_author_book))
         except Exception as e:
-            self.__call__.add_line(f"❌ Error: {e}")
+            self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_markdown_add_image_captions:
+class on_markdown_add_image_captions(action_base.ActionBase):
     icon: str = "🌄"
-    title = "Add image captions in one MD"
+    title: str = "Add image captions in one MD"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        filename, _ = QFileDialog.getOpenFileName(
-            None, "Save Note", config["path_articles"], "Markdown (*.md);;All Files (*)"
+    def execute(self, *args, **kwargs):
+        filename = self.get_open_file_name(
+            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)"
         )
-
         if not filename:
-            self.__call__.add_line("❌ No file was selected.")
             return
 
-        self.__call__.add_line(h.md.add_image_captions(Path(filename)))
+        try:
+            self.add_line(h.md.add_image_captions(filename))
+        except Exception as e:
+            self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_markdown_add_image_captions_folder:
+class on_markdown_add_image_captions_folder(action_base.ActionBase):
     icon: str = "🌄"
     title = "Add image captions in …"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        title = "Folder"
-        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_articles"])
-
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
         if not folder_path:
-            self.__call__.add_line("❌ The folder was not selected.")
             return
 
         try:
-            result_output = h.file.apply_func(folder_path, ".md", h.md.add_image_captions)
-            self.__call__.add_line(result_output)
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.add_image_captions))
         except Exception as e:
-            self.__call__.add_line(f"❌ Error: {e}")
+            self.add_line(f"❌ Error: {e}")
 
 
-class on_markdown_diary_new:
+class on_markdown_diary_new(action_base.ActionBase):
     icon: str = "📖"
     title = "New diary note"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        output, file_path = markdown_add_diary_new_diary()
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
-        self.__call__.add_line(output)
+    def execute(self, *args, **kwargs):
+        output, filename = markdown_add_diary_new_diary()
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
+        self.add_line(output)
 
 
-class on_markdown_diary_new_dream:
+class on_markdown_diary_new_dream(action_base.ActionBase):
     icon: str = "💤"
     title = "New dream note"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        output, file_path = markdown_add_diary_new_dream()
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
-        self.__call__.add_line(output)
+    def execute(self, *args, **kwargs):
+        output, filename = markdown_add_diary_new_dream()
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
+        self.add_line(output)
 
 
-class on_markdown_diary_new_with_images:
+class on_markdown_diary_new_with_images(action_base.ActionBase):
     icon: str = "📚"
     title = "New diary note with images"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        output, file_path = markdown_add_diary_new_diary(is_with_images=True)
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
-        self.__call__.add_line(output)
+    def execute(self, *args, **kwargs):
+        output, filename = markdown_add_diary_new_diary(is_with_images=True)
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
+        self.add_line(output)
 
 
-class on_markdown_new_article:
+class on_markdown_new_article(action_base.ActionBase):
     icon: str = "✍️"
     title = "New article"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        title: str = "Article title"
-        label: str = "Enter the name of the article (English, without spaces):"
-        article_name, ok = QInputDialog.getText(None, title, label)
-
-        if not (ok and article_name):
-            self.__call__.add_line("❌ The name of the article was not entered.")
+    def execute(self, *args, **kwargs):
+        article_name = self.get_text_input("Article title", "Enter the name of the article (English, without spaces):")
+        if not article_name:
             return
 
         article_name = article_name.replace(" ", "-")
@@ -132,54 +102,38 @@ class on_markdown_new_article:
         text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
         text += f"\n# {article_name}\n\n\n"
 
-        output, file_path = h.md.add_note(Path(config["path_articles"]), article_name, text, True)
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{file_path}"')
-        self.__call__.add_line(output)
+        output, filename = h.md.add_note(Path(config["path_articles"]), article_name, text, True)
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{filename}"')
+        self.add_line(output)
 
 
-class on_markdown_new_note_dialog:
+class on_markdown_new_note_dialog(action_base.ActionBase):
     icon: str = "📓"
     title = "New note"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        file_path, _ = QFileDialog.getSaveFileName(
-            None, "Save Note", config["path_notes"], "Markdown (*.md);;All Files (*)"
-        )
-
-        if file_path:
-            path = Path(file_path)
-
-            folder_path = path.parent
-            note_name = path.stem
-
-            self.__call__.add_line(f"Folder path: {folder_path}")
-            self.__call__.add_line(f"File name without extension: {note_name}")
-        else:
-            self.__call__.add_line("❌ No file was selected.")
+    def execute(self, *args, **kwargs):
+        filename = self.get_save_file_name("Save Note", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        if not filename:
             return
+
+        self.add_line(f"Folder path: {filename.parent}")
+        self.add_line(f"File name without extension: {filename.stem}")
 
         is_with_images = kwargs.get("is_with_images", False)
 
-        text = config["beginning_of_md"]
-        text += f"\n# {note_name}\n\n\n"
+        text = config["beginning_of_md"] + f"\n# {filename.stem}\n\n\n"
 
-        output, file_path = h.md.add_note(folder_path, note_name, text, is_with_images)
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{file_path}"')
-        self.__call__.add_line(output)
+        output, filename = h.md.add_note(filename.parent, filename.stem, text, is_with_images)
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(output)
 
 
-class on_markdown_new_note_dialog_with_images:
+class on_markdown_new_note_dialog_with_images(action_base.ActionBase):
     icon: str = "📓"
     title = "New note with images"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        on_markdown_new_note_dialog.__call__(self, is_with_images=True)
+    def execute(self, *args, **kwargs):
+        on_markdown_new_note_dialog.execute(self, is_with_images=True)
 
 
 def markdown_add_diary_new_diary(is_with_images: bool = False) -> str | Path:
