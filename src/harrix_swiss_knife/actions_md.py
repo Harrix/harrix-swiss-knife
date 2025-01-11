@@ -1,11 +1,10 @@
 from datetime import datetime
 from pathlib import Path
 
+import harrix_pylib as h
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
-from harrix_swiss_knife import funcs_dev, funcs_file, funcs_md
-
-config = funcs_dev.load_config("config/config.json")
+config = h.dev.load_config("config/config.json")
 
 
 class on_markdown_add_author_book:
@@ -14,7 +13,7 @@ class on_markdown_add_author_book:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=True)
+    @h.dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title = "Folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_quotes"])
@@ -24,7 +23,7 @@ class on_markdown_add_author_book:
             return
 
         try:
-            result_output = funcs_file.apply_func(folder_path, ".md", funcs_md.add_author_book)
+            result_output = h.file.apply_func(folder_path, ".md", h.md.add_author_book)
             self.__call__.add_line(result_output)
         except Exception as e:
             self.__call__.add_line(f"❌ Error: {e}")
@@ -36,7 +35,7 @@ class on_markdown_add_image_captions:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=False)
+    @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         filename, _ = QFileDialog.getOpenFileName(
             None, "Save Note", config["path_articles"], "Markdown (*.md);;All Files (*)"
@@ -46,7 +45,7 @@ class on_markdown_add_image_captions:
             self.__call__.add_line("❌ No file was selected.")
             return
 
-        self.__call__.add_line(funcs_md.add_image_captions(Path(filename)))
+        self.__call__.add_line(h.md.add_image_captions(Path(filename)))
 
 
 class on_markdown_add_image_captions_folder:
@@ -55,7 +54,7 @@ class on_markdown_add_image_captions_folder:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=False)
+    @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         title = "Folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_articles"])
@@ -65,7 +64,7 @@ class on_markdown_add_image_captions_folder:
             return
 
         try:
-            result_output = funcs_file.apply_func(folder_path, ".md", funcs_md.add_image_captions)
+            result_output = h.file.apply_func(folder_path, ".md", h.md.add_image_captions)
             self.__call__.add_line(result_output)
         except Exception as e:
             self.__call__.add_line(f"❌ Error: {e}")
@@ -77,10 +76,10 @@ class on_markdown_diary_new:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=False)
+    @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = markdown_add_diary_new_diary()
-        funcs_dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -90,10 +89,10 @@ class on_markdown_diary_new_dream:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=False)
+    @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = markdown_add_diary_new_dream()
-        funcs_dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -103,10 +102,10 @@ class on_markdown_diary_new_with_images:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=False)
+    @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         output, file_path = markdown_add_diary_new_diary(is_with_images=True)
-        funcs_dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -116,7 +115,7 @@ class on_markdown_new_article:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=False)
+    @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         title: str = "Article title"
         label: str = "Enter the name of the article (English, without spaces):"
@@ -133,8 +132,8 @@ class on_markdown_new_article:
         text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
         text += f"\n# {article_name}\n\n\n"
 
-        output, file_path = funcs_md.add_note(Path(config["path_articles"]), article_name, text, True)
-        funcs_dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{file_path}"')
+        output, file_path = h.md.add_note(Path(config["path_articles"]), article_name, text, True)
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -144,7 +143,7 @@ class on_markdown_new_note_dialog:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=False)
+    @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
             None, "Save Note", config["path_notes"], "Markdown (*.md);;All Files (*)"
@@ -167,8 +166,8 @@ class on_markdown_new_note_dialog:
         text = config["beginning_of_md"]
         text += f"\n# {note_name}\n\n\n"
 
-        output, file_path = funcs_md.add_note(folder_path, note_name, text, is_with_images)
-        funcs_dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{file_path}"')
+        output, file_path = h.md.add_note(folder_path, note_name, text, is_with_images)
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{file_path}"')
         self.__call__.add_line(output)
 
 
@@ -178,7 +177,7 @@ class on_markdown_new_note_dialog_with_images:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=False)
+    @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         on_markdown_new_note_dialog.__call__(self, is_with_images=True)
 
@@ -247,4 +246,4 @@ def markdown_add_diary_new_note(base_path: str | Path, text: str, is_with_images
     month_path = year_path / month
     month_path.mkdir(exist_ok=True)
 
-    return funcs_md.add_note(month_path, day, text, is_with_images)
+    return h.md.add_note(month_path, day, text, is_with_images)
