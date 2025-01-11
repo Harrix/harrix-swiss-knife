@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
-from harrix_swiss_knife import functions as f
+from harrix_swiss_knife import funcs_dev, funcs_pyside
 
 
 class MainMenuBase:
@@ -73,7 +73,7 @@ class MainMenuBase:
         else:
             # Generate a safe filename for the emoji icon
             filename = f"emoji_{"_".join(f"{ord(c):X}" for c in icon)}.png"
-            icon_folder = f.dev_get_project_root() / "temp" / "icons"
+            icon_folder = funcs_dev.dev_get_project_root() / "temp" / "icons"
             icon_path = icon_folder / filename
 
             if icon_path.exists():
@@ -117,8 +117,8 @@ class MainMenuBase:
         - `str`: The markdown formatted menu list.
 
         """
-        filename = f.dev_get_project_root() / "README.md"
-        list_of_menu = "\n".join(f.pyside_generate_markdown_from_qmenu(self.menu))
+        filename = funcs_dev.dev_get_project_root() / "README.md"
+        list_of_menu = "\n".join(funcs_pyside.pyside_generate_markdown_from_qmenu(self.menu))
 
         with open(filename, "r", encoding="utf-8") as file:
             lines = file.readlines()
