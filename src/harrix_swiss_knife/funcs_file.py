@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable
 
 
-def file_all_to_parent_folder(path: Path | str) -> str:
+def all_to_parent_folder(path: Path | str) -> str:
     """
     Moves all files from subfolders within the given path to the parent folder and then
     removes empty folders.
@@ -78,7 +78,7 @@ def file_all_to_parent_folder(path: Path | str) -> str:
     return "\n".join(list_lines)
 
 
-def file_apply_func(folder: str, ext: str, func: Callable) -> str:
+def apply_func(folder: str, ext: str, func: Callable) -> str:
     """
     Applies a given function to all files with a specified extension in a folder and its sub-folders.
 
@@ -107,7 +107,7 @@ def file_apply_func(folder: str, ext: str, func: Callable) -> str:
     return "\n".join(list_files)
 
 
-def file_check_featured_image(path: str) -> tuple[bool, str]:
+def check_featured_image(path: str) -> tuple[bool, str]:
     """
     Checks for the presence of `featured_image.*` files in every child folder, not recursively.
 
@@ -147,7 +147,7 @@ def file_check_featured_image(path: str) -> tuple[bool, str]:
     return is_correct, "\n".join(line_list)
 
 
-def file_find_max_folder_number(base_path: str, start_pattern: str) -> int:
+def find_max_folder_number(base_path: str, start_pattern: str) -> int:
     """
     Finds the highest folder number in a given folder based on a pattern.
 
@@ -175,7 +175,7 @@ def file_find_max_folder_number(base_path: str, start_pattern: str) -> int:
     return max_number
 
 
-def file_open_file_or_folder(path: Path | str) -> None:
+def open_file_or_folder(path: Path | str) -> None:
     """
     Opens a file or folder using the operating system's default application.
 
@@ -209,7 +209,7 @@ def file_open_file_or_folder(path: Path | str) -> None:
     return
 
 
-def file_tree_view_folder(path: Path, is_ignore_hidden_folders: bool = False) -> str:
+def tree_view_folder(path: Path, is_ignore_hidden_folders: bool = False) -> str:
     """
     Generates a tree-like representation of folder contents.
 

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import funcs_dev, funcs_file
 
-config = funcs_dev.dev_load_config("config/config.json")
+config = funcs_dev.load_config("config/config.json")
 
 
 class on_image_clear_images:
@@ -17,9 +17,9 @@ class on_image_clear_images:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=False)
+    @funcs_dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        path = funcs_dev.dev_get_project_root() / "temp" / "images"
+        path = funcs_dev.get_project_root() / "temp" / "images"
         if path.exists():
             shutil.rmtree(path)
             path.mkdir(parents=True)
@@ -34,9 +34,9 @@ class on_image_clear_optimized_images:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=False)
+    @funcs_dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        path = funcs_dev.dev_get_project_root() / "temp" / "optimized_images"
+        path = funcs_dev.get_project_root() / "temp" / "optimized_images"
         if path.exists():
             shutil.rmtree(path)
             path.mkdir(parents=True)
@@ -51,11 +51,11 @@ class on_image_open_images:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=False)
+    @funcs_dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        path = funcs_dev.dev_get_project_root() / "temp" / "images"
+        path = funcs_dev.get_project_root() / "temp" / "images"
         if path.exists():
-            funcs_file.file_open_file_or_folder(path)
+            funcs_file.open_file_or_folder(path)
             self.__call__.add_line(f"Folder `{path}` is opened.")
         else:
             self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
@@ -67,11 +67,11 @@ class on_image_open_optimized_images:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=False)
+    @funcs_dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
-        path = funcs_dev.dev_get_project_root() / "temp" / "optimized_images"
+        path = funcs_dev.get_project_root() / "temp" / "optimized_images"
         if path.exists():
-            funcs_file.file_open_file_or_folder(path)
+            funcs_file.open_file_or_folder(path)
             self.__call__.add_line(f"Folder `{path}` is opened.")
         else:
             self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
@@ -83,13 +83,13 @@ class on_image_optimize:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=True)
+    @funcs_dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         commands: str = "npm run optimize"
 
-        result_output = funcs_dev.dev_run_powershell_script(commands)
-        funcs_file.file_open_file_or_folder(funcs_dev.dev_get_project_root() / "temp" / "images")
-        funcs_file.file_open_file_or_folder(funcs_dev.dev_get_project_root() / "temp" / "optimized_images")
+        result_output = funcs_dev.run_powershell_script(commands)
+        funcs_file.open_file_or_folder(funcs_dev.get_project_root() / "temp" / "images")
+        funcs_file.open_file_or_folder(funcs_dev.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -99,7 +99,7 @@ class on_image_optimize_clipboard:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=False)
+    @funcs_dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         image = ImageGrab.grabclipboard()
 
@@ -126,14 +126,14 @@ class on_image_optimize_clipboard:
         self.__call__.add_line(f"Image is saved as {temp_file_path}")
 
         commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-        result_output = funcs_dev.dev_run_powershell_script(commands)
+        result_output = funcs_dev.run_powershell_script(commands)
 
         clr.AddReference("System.Collections.Specialized")
         clr.AddReference("System.Windows.Forms")
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        file_path: Path = funcs_dev.dev_get_project_root() / "temp" / "optimized_images" / filename
+        file_path: Path = funcs_dev.get_project_root() / "temp" / "optimized_images" / filename
         file_path = file_path.resolve()
 
         files = StringCollection()
@@ -152,7 +152,7 @@ class on_image_optimize_clipboard_dialog:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=False)
+    @funcs_dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         on_image_optimize_clipboard.__call__(self, is_dialog=True)
 
@@ -163,7 +163,7 @@ class on_image_optimize_dialog:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=True)
+    @funcs_dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title: str = "Project folder"
         folder_path: str = QFileDialog.getExistingDirectory(None, title, config["path_articles"])
@@ -174,8 +174,8 @@ class on_image_optimize_dialog:
 
         commands: str = f'npm run optimize imagesFolder="{folder_path}"'
 
-        result_output = funcs_dev.dev_run_powershell_script(commands)
-        funcs_file.file_open_file_or_folder(Path(folder_path) / "temp")
+        result_output = funcs_dev.run_powershell_script(commands)
+        funcs_file.open_file_or_folder(Path(folder_path) / "temp")
         self.__call__.add_line(result_output)
 
 
@@ -185,7 +185,7 @@ class on_image_optimize_dialog_replace:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=True)
+    @funcs_dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title: str = "Project folder"
         folder_path: str = QFileDialog.getExistingDirectory(None, title, config["path_articles"])
@@ -195,7 +195,7 @@ class on_image_optimize_dialog_replace:
             return
 
         commands: str = f'npm run optimize imagesFolder="{folder_path}"'
-        result_output = funcs_dev.dev_run_powershell_script(commands)
+        result_output = funcs_dev.run_powershell_script(commands)
 
         folder_path = Path(folder_path)
 
@@ -211,7 +211,7 @@ class on_image_optimize_dialog_replace:
 
         shutil.rmtree(temp_folder)
 
-        funcs_file.file_open_file_or_folder(folder_path)
+        funcs_file.open_file_or_folder(folder_path)
         self.__call__.add_line(result_output)
 
 
@@ -221,7 +221,7 @@ class on_image_optimize_file:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=True)
+    @funcs_dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             None,
@@ -241,11 +241,11 @@ class on_image_optimize_file:
 
         commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
 
-        result_output = funcs_dev.dev_run_powershell_script(commands)
+        result_output = funcs_dev.run_powershell_script(commands)
 
         shutil.rmtree(temp_folder)
 
-        funcs_file.file_open_file_or_folder(funcs_dev.dev_get_project_root() / "temp" / "optimized_images")
+        funcs_file.open_file_or_folder(funcs_dev.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)
 
 
@@ -255,11 +255,11 @@ class on_image_optimize_quality:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.dev_write_in_output_txt(is_show_output=True)
+    @funcs_dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         commands: str = "npm run optimize quality=true"
 
-        result_output = funcs_dev.dev_run_powershell_script(commands)
-        funcs_file.file_open_file_or_folder(funcs_dev.dev_get_project_root() / "temp" / "images")
-        funcs_file.file_open_file_or_folder(funcs_dev.dev_get_project_root() / "temp" / "optimized_images")
+        result_output = funcs_dev.run_powershell_script(commands)
+        funcs_file.open_file_or_folder(funcs_dev.get_project_root() / "temp" / "images")
+        funcs_file.open_file_or_folder(funcs_dev.get_project_root() / "temp" / "optimized_images")
         self.__call__.add_line(result_output)
