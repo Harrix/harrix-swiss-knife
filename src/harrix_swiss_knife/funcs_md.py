@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 
 
-def markdown_add_author_book(filename: Path | str) -> str:
+def add_author_book(filename: Path | str) -> str:
     """
     Adds the author and the title of the book to the quotes and formats them as Markdown quotes.
 
@@ -104,7 +104,7 @@ def markdown_add_author_book(filename: Path | str) -> str:
     return "\n".join(lines_list)
 
 
-def markdown_add_image_captions(filename: Path | str) -> str:
+def add_image_captions(filename: Path | str) -> str:
     """
     Processes a markdown file to add captions to images based on their alt text.
 
@@ -129,7 +129,7 @@ def markdown_add_image_captions(filename: Path | str) -> str:
     """
     with open(filename, "r", encoding="utf-8") as f:
         document = f.read()
-    yaml_md, content_md = markdown_split_yaml_content(document)
+    yaml_md, content_md = split_yaml_content(document)
     data_yaml = yaml.safe_load(yaml_md.strip("---\n"))
     lang = data_yaml.get("lang")
 
@@ -197,7 +197,7 @@ def markdown_add_image_captions(filename: Path | str) -> str:
     return "File is not changed."
 
 
-def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
+def add_note(base_path: str | Path, name: str, text: str, is_with_images: bool) -> str | Path:
     """
     Adds a note to the specified base path.
 
@@ -227,7 +227,7 @@ def markdown_add_note(base_path: str | Path, name: str, text: str, is_with_image
     return f"File {file_path} created.", file_path
 
 
-def markdown_split_yaml_content(note: str) -> tuple[str, str]:
+def split_yaml_content(note: str) -> tuple[str, str]:
     """
     Splits a markdown note into YAML front matter and the main content.
 

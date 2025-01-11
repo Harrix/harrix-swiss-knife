@@ -10,7 +10,7 @@ import libcst as cst
 from harrix_swiss_knife import funcs_file
 
 
-def dev_get_project_root() -> Path:
+def get_project_root() -> Path:
     """
     Finds the root folder of the current project.
 
@@ -29,7 +29,7 @@ def dev_get_project_root() -> Path:
     return current_file.parent
 
 
-def dev_load_config(file_path: str) -> dict:
+def load_config(file_path: str) -> dict:
     """
     Loads configuration from a JSON file.
 
@@ -41,13 +41,13 @@ def dev_load_config(file_path: str) -> dict:
 
     - `dict`: Configuration loaded from the file.
     """
-    config_file = Path(dev_get_project_root()) / file_path
+    config_file = Path(get_project_root()) / file_path
     with config_file.open("r", encoding="utf-8") as file:
         config = json.load(file)
 
     def process_snippet(value):
         if isinstance(value, str) and value.startswith("snippet:"):
-            snippet_path = Path(dev_get_project_root()) / value.split("snippet:", 1)[1].strip()
+            snippet_path = Path(get_project_root()) / value.split("snippet:", 1)[1].strip()
             with snippet_path.open("r", encoding="utf-8") as snippet_file:
                 return snippet_file.read()
         return value
@@ -61,7 +61,7 @@ def dev_load_config(file_path: str) -> dict:
     return config
 
 
-def dev_run_powershell_script(commands: str) -> str:
+def run_powershell_script(commands: str) -> str:
     """
     Runs a PowerShell script with the given commands.
 
@@ -95,7 +95,7 @@ def dev_run_powershell_script(commands: str) -> str:
     return "\n".join(filter(None, [process.stdout, process.stderr]))
 
 
-def dev_run_powershell_script_as_admin(commands: str) -> str:
+def run_powershell_script_as_admin(commands: str) -> str:
     """
     Executes a PowerShell script with administrator privileges and captures the output.
 
@@ -174,7 +174,7 @@ def dev_run_powershell_script_as_admin(commands: str) -> str:
     return "\n".join(filter(None, res_output))
 
 
-def dev_sort_py_code(filename: str) -> None:
+def sort_py_code(filename: str) -> None:
     """
     Sorts the Python code in the given file by organizing classes, functions, and statements.
 
@@ -314,7 +314,7 @@ def dev_sort_py_code(filename: str) -> None:
         f.write(new_code)
 
 
-def dev_write_in_output_txt(is_show_output: bool = True) -> Callable:
+def write_in_output_txt(is_show_output: bool = True) -> Callable:
     """
     Decorator to write function output to a temporary file and optionally display it.
 
@@ -355,7 +355,7 @@ def dev_write_in_output_txt(is_show_output: bool = True) -> Callable:
             end_time = time.time()
             elapsed_time = end_time - start_time
             wrapper.add_line(f"Execution time: {elapsed_time:.4f} seconds")
-            temp_path = dev_get_project_root() / "temp"
+            temp_path = get_project_root() / "temp"
             if not temp_path.exists():
                 temp_path.mkdir(parents=True, exist_ok=True)
             file = Path(temp_path / "output.txt")
@@ -363,7 +363,7 @@ def dev_write_in_output_txt(is_show_output: bool = True) -> Callable:
 
             file.write_text(output_text, encoding="utf8")
             if is_show_output:
-                funcs_file.file_open_file_or_folder(file)
+                funcs_file.open_file_or_folder(file)
 
         def add_line(line: str):
             output_lines.append(line)
