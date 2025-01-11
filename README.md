@@ -35,7 +35,8 @@ _Figure 1: Screenshot_
   - New note with images
   - New note
   - Quotes. Add author and title
-  - Add image captions …
+  - Add image captions in one MD
+  - Add image captions in …
 - **File operations**
   - Moves and flattens files from nested folders
   - Check featured_image.* in …
