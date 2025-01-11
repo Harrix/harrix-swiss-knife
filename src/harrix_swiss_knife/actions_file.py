@@ -1,10 +1,9 @@
 from pathlib import Path
 
+import harrix_pylib as h
 from PySide6.QtWidgets import QFileDialog
 
-from harrix_swiss_knife import funcs_dev, funcs_file
-
-config = funcs_dev.load_config("config/config.json")
+config = h.dev.load_config("config/config.json")
 
 
 class on_file_all_files_to_parent_folder:
@@ -16,7 +15,7 @@ class on_file_all_files_to_parent_folder:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=True)
+    @h.dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title = "Project folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
@@ -25,7 +24,7 @@ class on_file_all_files_to_parent_folder:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        self.__call__.add_line(funcs_file.all_to_parent_folder(folder_path))
+        self.__call__.add_line(h.file.all_to_parent_folder(folder_path))
 
 
 class on_file_block_disks:
@@ -34,14 +33,14 @@ class on_file_block_disks:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=True)
+    @h.dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         commands = """
             manage-bde -lock E: -ForceDismount
             manage-bde -lock F: -ForceDismount
             """
 
-        output = funcs_dev.run_powershell_script_as_admin(commands)
+        output = h.dev.run_powershell_script_as_admin(commands)
         self.__call__.add_line(output)
 
 
@@ -52,7 +51,7 @@ class on_file_check_featured_image:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=True)
+    @h.dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title = "Folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_3d"])
@@ -62,7 +61,7 @@ class on_file_check_featured_image:
             return
 
         try:
-            self.__call__.add_line(funcs_file.check_featured_image(folder_path)[1])
+            self.__call__.add_line(h.file.check_featured_image(folder_path)[1])
         except Exception as e:
             self.__call__.add_line(f"❌ Error: {e}")
 
@@ -73,13 +72,13 @@ class on_file_check_featured_image_in_folders:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=True)
+    @h.dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         paths_with_featured_image = config["paths_with_featured_image"]
 
         for path in paths_with_featured_image:
             try:
-                self.__call__.add_line(funcs_file.check_featured_image(path)[1])
+                self.__call__.add_line(h.file.check_featured_image(path)[1])
             except Exception as e:
                 self.__call__.add_line(f"❌ Error: {e}")
 
@@ -90,16 +89,16 @@ class on_file_open_camera_uploads:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=False)
+    @h.dev.write_in_output_txt(is_show_output=False)
     def __call__(self, *args, **kwargs) -> None:
         folder_path = Path(config["path_camera_uploads"])
-        funcs_file.open_file_or_folder(folder_path)
-        funcs_file.open_file_or_folder(folder_path / "info")
-        funcs_file.open_file_or_folder(folder_path / "temp")
-        funcs_file.open_file_or_folder(folder_path / "video")
-        funcs_file.open_file_or_folder(folder_path / "work")
-        funcs_file.open_file_or_folder(folder_path / "work_video")
-        funcs_file.open_file_or_folder(folder_path / "screenshots")
+        h.file.open_file_or_folder(folder_path)
+        h.file.open_file_or_folder(folder_path / "info")
+        h.file.open_file_or_folder(folder_path / "temp")
+        h.file.open_file_or_folder(folder_path / "video")
+        h.file.open_file_or_folder(folder_path / "work")
+        h.file.open_file_or_folder(folder_path / "work_video")
+        h.file.open_file_or_folder(folder_path / "screenshots")
         self.__call__.add_line('The folder "Camera Uploads" is opened.')
 
 
@@ -109,7 +108,7 @@ class on_file_tree_view_folder:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=True)
+    @h.dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         title = "Project folder"
         folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
@@ -118,7 +117,7 @@ class on_file_tree_view_folder:
             self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        result_output = funcs_file.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_folders", False))
+        result_output = h.file.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_folders", False))
         self.__call__.add_line(result_output)
 
 
@@ -128,6 +127,6 @@ class on_file_tree_view_folder_ignore_hidden_folders:
 
     def __init__(self, **kwargs): ...
 
-    @funcs_dev.write_in_output_txt(is_show_output=True)
+    @h.dev.write_in_output_txt(is_show_output=True)
     def __call__(self, *args, **kwargs) -> None:
         on_file_tree_view_folder.__call__(self, is_ignore_hidden_folders=True)
