@@ -73,15 +73,9 @@ class on_file_open_camera_uploads(action_base.ActionBase):
     title: str = "Open Camera Uploads"
 
     def execute(self, *args, **kwargs):
-        folder_path = Path(config["path_camera_uploads"])
-        h.file.open_file_or_folder(folder_path)
-        h.file.open_file_or_folder(folder_path / "info")
-        h.file.open_file_or_folder(folder_path / "temp")
-        h.file.open_file_or_folder(folder_path / "video")
-        h.file.open_file_or_folder(folder_path / "work")
-        h.file.open_file_or_folder(folder_path / "work_video")
-        h.file.open_file_or_folder(folder_path / "screenshots")
-        self.add_line('The folder "Camera Uploads" is opened.')
+        for path in config["paths_camera_uploads"]:
+            h.file.open_file_or_folder(Path(path))
+        self.add_line('The folders from "Camera Uploads" is opened.')
 
 
 class on_file_tree_view_folder(action_base.ActionBase):

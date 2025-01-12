@@ -1,17 +1,26 @@
 {
   "beginning-of-article": "snippet:config/beginning-of-article.md",
   "beginning-of-md": "snippet:config/beginning-of-md.md",
+  "block_drives": ["E", "F"],
   "cli-commands": "snippet:config/cli-commands.md",
   "editor": "code-insiders",
   "path_3d": "D:/Downloads/_3d",
   "path_articles": "C:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
-  "path_camera_uploads": "D:/Dropbox/Camera Uploads",
   "path_diary": "D:/Dropbox/Diaries/Diary",
   "path_dream": "D:/Dropbox/Diaries/Dreams",
   "path_github": "C:/GitHub",
   "path_notes": "D:/Dropbox/Notes/Notes",
   "path_py_projects": "C:/Users/sergi/OneDrive/Projects/Python",
   "path_quotes": "D:/Dropbox/Notes/Notes/Quotes",
+  "paths_camera_uploads": [
+    "D:/Dropbox/Camera Uploads",
+    "D:/Dropbox/Camera Uploads/info",
+    "D:/Dropbox/Camera Uploads/temp",
+    "D:/Dropbox/Camera Uploads/video",
+    "D:/Dropbox/Camera Uploads/work",
+    "D:/Dropbox/Camera Uploads/work_video",
+    "D:/Dropbox/Camera Uploads/screenshots"
+  ],
   "paths_with_featured_image": [
     "D:/Dropbox/IT/3D printer/Models/Print",
     "D:/Dropbox/IT/3D printer/Models/Printed",
@@ -29,7 +38,6 @@
     "D:/Dropbox/IT/3D printer/Models - Science/Printed",
     "D:/Dropbox/IT/3D printer/Models - Science/Unprinted"
   ],
-  "block_drives": ["E", "F"],
   "start_pattern_py_projects": "python_project_",
   "vscode_workspace_articles": "D:/Dropbox/_Temp/_VS Code Workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_diaries": "D:/Dropbox/_Temp/_VS Code Workspaces/Diaries.code-workspace",
