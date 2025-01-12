@@ -14,8 +14,7 @@ class on_dev_exit(action_base.ActionBase):
         self.parent = kwargs.get("parent", None)
 
     def execute(self, *args, **kwargs):
-        if self.parent:
-            QApplication.quit()
+        QApplication.quit()
 
 
 class on_dev_get_menu(action_base.ActionBase):
@@ -26,8 +25,7 @@ class on_dev_get_menu(action_base.ActionBase):
         self.parent = kwargs.get("parent", None)
 
     def execute(self, *args, **kwargs):
-        if self.parent:
-            self.add_line(self.parent.get_menu())
+        self.add_line(self.parent.get_menu())
 
 
 class on_dev_open_config_json(action_base.ActionBase):
@@ -35,6 +33,6 @@ class on_dev_open_config_json(action_base.ActionBase):
     title: str = "Open config.json"
 
     def execute(self, *args, **kwargs):
-        commands = f"{config['editor']} {h.dev.get_project_root() / 'config' / 'config.json'}"
+        commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
         output = h.dev.run_powershell_script(commands)
         self.add_line(output)
