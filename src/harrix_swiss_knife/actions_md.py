@@ -88,6 +88,21 @@ class on_markdown_diary_new_with_images(action_base.ActionBase):
         self.add_line(output)
 
 
+class on_markdown_get_list_movies_books(action_base.ActionBase):
+    icon: str = "🎬"
+    title = "Get a list of movies, books for web"
+
+    def execute(self, *args, **kwargs):
+        content = self.get_text_textarea("Markdown content", "Input Markdown content")
+        count = 0
+        for line in content.splitlines():
+            if line.startswith("### "):
+                self.add_line(f"- {line[4:].strip()}")
+                count += 1
+
+        self.add_line(f"\nCount: {count}")
+
+
 class on_markdown_new_article(action_base.ActionBase):
     icon: str = "✍️"
     title = "New article"

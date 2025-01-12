@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import harrix_pylib as h
-from PySide6.QtWidgets import QFileDialog, QInputDialog
+from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QInputDialog, QLabel, QPlainTextEdit, QVBoxLayout
 
 config = h.dev.load_config("config/config.json")
 
@@ -50,3 +50,39 @@ class ActionBase:
             self.add_line("❌ Text was not entered.")
             return None
         return text
+
+    def get_text_textarea(self, title: str, label: str) -> str | None:
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create a multi-line text field
+        text_edit = QPlainTextEdit()
+        layout.addWidget(text_edit)
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.Accepted:
+            text = text_edit.toPlainText()
+            if not text.strip():
+                self.add_line("❌ Text was not entered.")
+                return None
+            return text
+        else:
+            self.add_line("❌ Dialog was canceled.")
+            return None
