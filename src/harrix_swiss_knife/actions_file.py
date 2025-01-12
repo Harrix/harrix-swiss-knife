@@ -30,10 +30,9 @@ class on_file_block_disks(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        commands = """
-            manage-bde -lock E: -ForceDismount
-            manage-bde -lock F: -ForceDismount
-            """
+        commands = ""
+        for drive in config["block_drives"]:
+            commands += f"manage-bde -lock {drive}: -ForceDismount\n"
 
         output = h.dev.run_powershell_script_as_admin(commands)
         self.add_line(output)
