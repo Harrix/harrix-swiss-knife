@@ -29,6 +29,7 @@
     "D:/Dropbox/IT/3D printer/Models - Science/Printed",
     "D:/Dropbox/IT/3D printer/Models - Science/Unprinted"
   ],
+  "block_drives": ["E", "F"],
   "start_pattern_py_projects": "python_project_",
   "vscode_workspace_articles": "D:/Dropbox/_Temp/_VS Code Workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_diaries": "D:/Dropbox/_Temp/_VS Code Workspaces/Diaries.code-workspace",
