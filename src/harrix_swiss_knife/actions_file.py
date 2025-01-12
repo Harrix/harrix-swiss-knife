@@ -3,94 +3,77 @@ from pathlib import Path
 import harrix_pylib as h
 from PySide6.QtWidgets import QFileDialog
 
+from harrix_swiss_knife import action_base
+
 config = h.dev.load_config("config/config.json")
 
 
-class on_file_all_files_to_parent_folder:
+class on_file_all_files_to_parent_folder(action_base.ActionBase):
     icon: str = "🗂️"
     title: str = "Moves and flattens files from nested folders"
     tip: str = (
         "The function moves all files from subfolders to their parent folder, removing any then-empty subfolders."
     )
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        title = "Project folder"
-        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
-
-        if not folder_path:
-            self.__call__.add_line("❌ The folder was not selected.")
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
+        if folder_path is None:
             return
 
-        self.__call__.add_line(h.file.all_to_parent_folder(folder_path))
+        self.add_line(h.file.all_to_parent_folder(folder_path))
 
 
-class on_file_block_disks:
+class on_file_block_disks(action_base.ActionBase):
     icon: str = "🔒"
     title: str = "Block disks"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
+    def execute(self, *args, **kwargs):
         commands = """
             manage-bde -lock E: -ForceDismount
             manage-bde -lock F: -ForceDismount
             """
 
         output = h.dev.run_powershell_script_as_admin(commands)
-        self.__call__.add_line(output)
+        self.add_line(output)
 
 
-class on_file_check_featured_image:
+class on_file_check_featured_image(action_base.ActionBase):
     icon: str = "✅"
     title: str = "Check featured_image.* in …"
     tip: str = "Checks for the presence of `featured_image.*` files in every child folder, not recursively."
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        title = "Folder"
-        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_3d"])
-
-        if not folder_path:
-            self.__call__.add_line("❌ The folder was not selected.")
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
+        if folder_path is None:
             return
 
         try:
-            self.__call__.add_line(h.file.check_featured_image(folder_path)[1])
+            self.add_line(h.file.check_featured_image(folder_path)[1])
         except Exception as e:
-            self.__call__.add_line(f"❌ Error: {e}")
+            self.add_line(f"❌ Error: {e}")
 
 
-class on_file_check_featured_image_in_folders:
+class on_file_check_featured_image_in_folders(action_base.ActionBase):
     icon: str = "✅"
     title: str = "Check featured_image.*"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        paths_with_featured_image = config["paths_with_featured_image"]
-
-        for path in paths_with_featured_image:
+    def execute(self, *args, **kwargs):
+        for path in config["paths_with_featured_image"]:
             try:
-                self.__call__.add_line(h.file.check_featured_image(path)[1])
+                self.add_line(h.file.check_featured_image(path)[1])
             except Exception as e:
-                self.__call__.add_line(f"❌ Error: {e}")
+                self.add_line(f"❌ Error: {e}")
 
 
-class on_file_open_camera_uploads:
+class on_file_open_camera_uploads(action_base.ActionBase):
     icon: str = "📸"
     title: str = "Open Camera Uploads"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
+    def execute(self, *args, **kwargs):
         folder_path = Path(config["path_camera_uploads"])
         h.file.open_file_or_folder(folder_path)
         h.file.open_file_or_folder(folder_path / "info")
@@ -99,34 +82,27 @@ class on_file_open_camera_uploads:
         h.file.open_file_or_folder(folder_path / "work")
         h.file.open_file_or_folder(folder_path / "work_video")
         h.file.open_file_or_folder(folder_path / "screenshots")
-        self.__call__.add_line('The folder "Camera Uploads" is opened.')
+        self.add_line('The folder "Camera Uploads" is opened.')
 
 
-class on_file_tree_view_folder:
+class on_file_tree_view_folder(action_base.ActionBase):
     icon: str = "├"
     title: str = "Tree view of a folder"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        title = "Project folder"
-        folder_path = QFileDialog.getExistingDirectory(None, title, config["path_github"])
-
-        if not folder_path:
-            self.__call__.add_line("❌ The folder was not selected.")
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
+        if folder_path is None:
             return
 
         result_output = h.file.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_folders", False))
-        self.__call__.add_line(result_output)
+        self.add_line(result_output)
 
 
-class on_file_tree_view_folder_ignore_hidden_folders:
+class on_file_tree_view_folder_ignore_hidden_folders(action_base.ActionBase):
     icon: str = "├"
     title: str = "Tree view of a folder (ignore hidden folders)"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        on_file_tree_view_folder.__call__(self, is_ignore_hidden_folders=True)
+    def execute(self, *args, **kwargs):
+        on_file_tree_view_folder.execute(self, is_ignore_hidden_folders=True)
