@@ -12,7 +12,7 @@ class ActionBase:
     is_show_output: bool = False
 
     def __init__(self, **kwargs):
-        pass
+        ...
 
     def __call__(self, *args, **kwargs):
         # Decorate the 'execute' method with 'write_in_output_txt'
@@ -31,14 +31,14 @@ class ActionBase:
             return None
         return Path(folder_path)
 
-    def get_open_file_name(self, title: str, default_path: str, filter_: str) -> Path | None:
+    def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         filename, _ = QFileDialog.getOpenFileName(None, title, default_path, filter_)
         if not filename:
             self.add_line("❌ No file was selected.")
             return None
         return Path(filename)
 
-    def get_save_file_name(self, title: str, default_path: str, filter_: str) -> Path | None:
+    def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         filename, _ = QFileDialog.getSaveFileName(None, title, default_path, filter_)
         if not filename:
             self.add_line("❌ No file was selected.")

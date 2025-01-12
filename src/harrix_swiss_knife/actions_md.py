@@ -29,7 +29,7 @@ class on_markdown_add_image_captions(action_base.ActionBase):
     title: str = "Add image captions in one MD"
 
     def execute(self, *args, **kwargs):
-        filename = self.get_open_file_name(
+        filename = self.get_open_filename(
             "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)"
         )
         if not filename:
@@ -112,7 +112,7 @@ class on_markdown_new_note_dialog(action_base.ActionBase):
     title = "New note"
 
     def execute(self, *args, **kwargs):
-        filename = self.get_save_file_name("Save Note", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        filename = self.get_save_filename("Save Note", config["path_notes"], "Markdown (*.md);;All Files (*)")
         if not filename:
             return
 
