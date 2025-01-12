@@ -109,7 +109,7 @@ class on_image_optimize_clipboard(action_base.ActionBase):
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        filename = h.dev.get_project_root() / "temp" / "optimized_images" / filename
+        filename = h.dev.get_project_root() / "temp/optimized_images" / filename
         filename = filename.resolve()
 
         files = StringCollection()
@@ -197,7 +197,7 @@ class on_image_optimize_file(action_base.ActionBase):
 
         shutil.rmtree(temp_folder)
 
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "optimized_images")
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.add_line(result_output)
 
 
@@ -208,6 +208,6 @@ class on_image_optimize_quality(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         result_output = h.dev.run_powershell_script("npm run optimize quality=true")
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "images")
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "optimized_images")
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.add_line(result_output)
