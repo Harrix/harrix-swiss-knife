@@ -97,7 +97,7 @@ class on_markdown_new_article(action_base.ActionBase):
 
         article_name = article_name.replace(" ", "-")
 
-        text = config["beginning_of_article"].replace("[YEAR]", datetime.now().strftime("%Y"))
+        text = config["beginning-of-article"].replace("[YEAR]", datetime.now().strftime("%Y"))
         text = text.replace("[NAME]", article_name)
         text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
         text += f"\n# {article_name}\n\n\n"
@@ -121,7 +121,7 @@ class on_markdown_new_note_dialog(action_base.ActionBase):
 
         is_with_images = kwargs.get("is_with_images", False)
 
-        text = config["beginning_of_md"] + f"\n# {filename.stem}\n\n\n"
+        text = config["beginning-of-md"] + f"\n# {filename.stem}\n\n\n"
 
         output, filename = h.md.add_note(filename.parent, filename.stem, text, is_with_images)
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{filename}"')
@@ -148,7 +148,7 @@ def markdown_add_diary_new_diary(is_with_images: bool = False) -> str | Path:
 
     - `str | Path`: The path to the created diary entry file or a string message indicating creation.
     """
-    text = f"{config['beginning_of_md']}\n\n"
+    text = f"{config['beginning-of-md']}\n\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
     return markdown_add_diary_new_note(config["path_diary"], text, is_with_images)
@@ -166,7 +166,7 @@ def markdown_add_diary_new_dream(is_with_images: bool = False) -> str | Path:
 
     - `str | Path`: The path to the created dream diary entry file or a string message indicating creation.
     """
-    text = f"{config['beginning_of_md']}\n"
+    text = f"{config['beginning-of-md']}\n"
     text += f"# {datetime.now().strftime('%Y-%m-%d')}\n\n"
     text += f"## {datetime.now().strftime('%H:%M')}\n\n"
     text += "`` — не помню.\n\n" * 15 + "`` — не помню.\n"
