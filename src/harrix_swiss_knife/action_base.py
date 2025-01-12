@@ -11,8 +11,7 @@ class ActionBase:
     title: str = ""
     is_show_output: bool = False
 
-    def __init__(self, **kwargs):
-        ...
+    def __init__(self, **kwargs): ...
 
     def __call__(self, *args, **kwargs):
         # Decorate the 'execute' method with 'write_in_output_txt'
