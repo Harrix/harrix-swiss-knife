@@ -5,7 +5,6 @@ from pathlib import Path
 import clr
 import harrix_pylib as h
 from PIL import Image, ImageGrab
-from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from harrix_swiss_knife import action_base
 
