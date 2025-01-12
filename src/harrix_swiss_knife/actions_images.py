@@ -7,124 +7,102 @@ import harrix_pylib as h
 from PIL import Image, ImageGrab
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
+from harrix_swiss_knife import action_base
+
 config = h.dev.load_config("config/config.json")
 
 
-class on_image_clear_images:
+class on_image_clear_images(action_base.ActionBase):
     icon: str = "🧹"
     title: str = "Clear the folder images"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
+    def execute(self, *args, **kwargs):
         path = h.dev.get_project_root() / "temp" / "images"
         if path.exists():
             shutil.rmtree(path)
             path.mkdir(parents=True)
-            self.__call__.add_line(f"Folder `{path}` is clean.")
+            self.add_line(f"Folder `{path}` is clean.")
         else:
-            self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
+            self.add_line(f"❌ Folder `{path}` is not exist.")
 
 
-class on_image_clear_optimized_images:
+class on_image_clear_optimized_images(action_base.ActionBase):
     icon: str = "🧹"
     title: str = "Clear the folder optimized_images"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
+    def execute(self, *args, **kwargs):
         path = h.dev.get_project_root() / "temp" / "optimized_images"
         if path.exists():
             shutil.rmtree(path)
             path.mkdir(parents=True)
-            self.__call__.add_line(f"Folder `{path}` is clean.")
+            self.add_line(f"Folder `{path}` is clean.")
         else:
-            self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
+            self.add_line(f"❌ Folder `{path}` is not exist.")
 
 
-class on_image_open_images:
+class on_image_open_images(action_base.ActionBase):
     icon: str = "📂"
     title: str = "Open the folder images"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
+    def execute(self, *args, **kwargs):
         path = h.dev.get_project_root() / "temp" / "images"
         if path.exists():
             h.file.open_file_or_folder(path)
-            self.__call__.add_line(f"Folder `{path}` is opened.")
+            self.add_line(f"Folder `{path}` is opened.")
         else:
-            self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
+            self.add_line(f"❌ Folder `{path}` is not exist.")
 
 
-class on_image_open_optimized_images:
+class on_image_open_optimized_images(action_base.ActionBase):
     icon: str = "📂"
     title: str = "Open the folder optimized_images"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
+    def execute(self, *args, **kwargs):
         path = h.dev.get_project_root() / "temp" / "optimized_images"
         if path.exists():
             h.file.open_file_or_folder(path)
-            self.__call__.add_line(f"Folder `{path}` is opened.")
+            self.add_line(f"Folder `{path}` is opened.")
         else:
-            self.__call__.add_line(f"❌ Folder `{path}` is not exist.")
+            self.add_line(f"❌ Folder `{path}` is not exist.")
 
 
-class on_image_optimize:
+class on_image_optimize(action_base.ActionBase):
     icon: str = "🚀"
     title: str = "Optimize images"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        commands: str = "npm run optimize"
-
-        result_output = h.dev.run_powershell_script(commands)
+    def execute(self, *args, **kwargs):
+        result_output = h.dev.run_powershell_script("npm run optimize")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "optimized_images")
-        self.__call__.add_line(result_output)
+        self.add_line(result_output)
 
 
-class on_image_optimize_clipboard:
+class on_image_optimize_clipboard(action_base.ActionBase):
     icon: str = "🚀"
     title: str = "Optimize image from clipboard"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
+    def execute(self, *args, **kwargs):
         image = ImageGrab.grabclipboard()
 
         if not isinstance(image, Image.Image):
-            self.__call__.add_line("❌ No image found in the clipboard")
+            self.add_line("❌ No image found in the clipboard")
             return
 
-        filename: str = "image.png"
+        filename = "image.png"
 
         if "is_dialog" in kwargs and kwargs["is_dialog"]:
-            title: str = "Image name"
-            label: str = "Enter the name of the image (English, without spaces):"
-            image_name, ok = QInputDialog.getText(None, title, label, text="image")
-
-            if ok and image_name:
-                filename = image_name.replace(" ", "-") + ".png"
-            else:
-                self.__call__.add_line("❌ The name of the image was not entered.")
+            image_name = self.get_text_input("Image name", "Enter the name of the image (English, without spaces):")
+            if not image_name:
                 return
+            filename = image_name.replace(" ", "-") + ".png"
 
-        temp_folder: Path = Path(tempfile.mkdtemp())
-        temp_filename: Path = temp_folder / filename
+        temp_folder = Path(tempfile.mkdtemp())
+        temp_filename = temp_folder / filename
         image.save(temp_filename, "PNG")
-        self.__call__.add_line(f"Image is saved as {temp_filename}")
+        self.add_line(f"Image is saved as {temp_filename}")
 
-        commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
+        commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
         result_output = h.dev.run_powershell_script(commands)
 
         clr.AddReference("System.Collections.Specialized")
@@ -132,7 +110,7 @@ class on_image_optimize_clipboard:
         from System.Collections.Specialized import StringCollection
         from System.Windows.Forms import Clipboard
 
-        filename: Path = h.dev.get_project_root() / "temp" / "optimized_images" / filename
+        filename = h.dev.get_project_root() / "temp" / "optimized_images" / filename
         filename = filename.resolve()
 
         files = StringCollection()
@@ -141,68 +119,50 @@ class on_image_optimize_clipboard:
 
         shutil.rmtree(temp_folder)
 
-        self.__call__.add_line(result_output)
-        self.__call__.add_line("Image is optimized and copied to clipboard.")
+        self.add_line(result_output)
+        self.add_line("Image is optimized and copied to clipboard.")
 
 
-class on_image_optimize_clipboard_dialog:
+class on_image_optimize_clipboard_dialog(action_base.ActionBase):
     icon: str = "🚀"
     title: str = "Optimize image from clipboard as …"
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=False)
-    def __call__(self, *args, **kwargs) -> None:
-        on_image_optimize_clipboard.__call__(self, is_dialog=True)
+    def execute(self, *args, **kwargs):
+        on_image_optimize_clipboard.execute(self, is_dialog=True)
 
 
-class on_image_optimize_dialog:
+class on_image_optimize_dialog(action_base.ActionBase):
     icon: str = "⬆️"
     title: str = "Optimize images in …/temp"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        title: str = "Project folder"
-        folder_path: str = QFileDialog.getExistingDirectory(None, title, config["path_articles"])
-
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
         if not folder_path:
-            self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        commands: str = f'npm run optimize imagesFolder="{folder_path}"'
-
-        result_output = h.dev.run_powershell_script(commands)
+        result_output = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{folder_path}"')
         h.file.open_file_or_folder(Path(folder_path) / "temp")
-        self.__call__.add_line(result_output)
+        self.add_line(result_output)
 
 
-class on_image_optimize_dialog_replace:
+class on_image_optimize_dialog_replace(action_base.ActionBase):
     icon: str = "⬆️"
     title: str = "Optimize images in … and replace"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        title: str = "Project folder"
-        folder_path: str = QFileDialog.getExistingDirectory(None, title, config["path_articles"])
-
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
         if not folder_path:
-            self.__call__.add_line("❌ The folder was not selected.")
             return
 
-        commands: str = f'npm run optimize imagesFolder="{folder_path}"'
-        result_output = h.dev.run_powershell_script(commands)
-
-        folder_path = Path(folder_path)
+        result_output = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{folder_path}"')
 
         for item in folder_path.iterdir():
             if item.is_file():
                 item.unlink()
 
-        temp_folder: Path = folder_path / "temp"
+        temp_folder = folder_path / "temp"
 
         for item in temp_folder.iterdir():
             if item.is_file() or item.is_symlink():
@@ -211,54 +171,44 @@ class on_image_optimize_dialog_replace:
         shutil.rmtree(temp_folder)
 
         h.file.open_file_or_folder(folder_path)
-        self.__call__.add_line(result_output)
+        self.add_line(result_output)
 
 
-class on_image_optimize_file:
+class on_image_optimize_file(action_base.ActionBase):
     icon: str = "🖼️"
     title: str = "Optimize one image"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        filename, _ = QFileDialog.getOpenFileName(
-            None,
+    def execute(self, *args, **kwargs):
+        filename = self.get_open_filename(
             "Select an Image File",
             config["path_articles"],
             "Image Files (*.jpg *.jpeg *.webp *.png *.svg);;All Files (*)",
         )
-
         if not filename:
-            self.__call__.add_line("❌ The file was not selected.")
             return
 
-        temp_folder: Path = Path(tempfile.mkdtemp())
-        filename: str = Path(filename).name
-        temp_filename: Path = temp_folder / filename
-        shutil.copy(filename, temp_filename)
+        temp_folder = Path(tempfile.mkdtemp())
+        filename_name = Path(filename).name
+        temp_filename = temp_folder / filename_name
+        shutil.copy(filename_name, temp_filename)
 
         commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-
         result_output = h.dev.run_powershell_script(commands)
 
         shutil.rmtree(temp_folder)
 
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "optimized_images")
-        self.__call__.add_line(result_output)
+        self.add_line(result_output)
 
 
-class on_image_optimize_quality:
+class on_image_optimize_quality(action_base.ActionBase):
     icon: str = "🔝"
     title: str = "Optimize images (high quality)"
+    is_show_output = True
 
-    def __init__(self, **kwargs): ...
-
-    @h.dev.write_in_output_txt(is_show_output=True)
-    def __call__(self, *args, **kwargs) -> None:
-        commands: str = "npm run optimize quality=true"
-
-        result_output = h.dev.run_powershell_script(commands)
+    def execute(self, *args, **kwargs):
+        result_output = h.dev.run_powershell_script("npm run optimize quality=true")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "optimized_images")
-        self.__call__.add_line(result_output)
+        self.add_line(result_output)
