@@ -115,7 +115,7 @@ def py_create_uv_new_project(project_name: str, path: str | Path) -> str:
     readme_path = Path(path) / project_name / "README.md"
     try:
         with readme_path.open("a", encoding="utf-8") as file:
-            file.write(f"# {project_name}\n\n{config['cli_commands']}")
+            file.write(f"# {project_name}\n\n{config['cli-commands']}")
         res += f"Content successfully added to {readme_path}"
     except FileNotFoundError:
         res += f"File not found: {readme_path}"

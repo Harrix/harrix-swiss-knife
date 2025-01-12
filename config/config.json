@@ -1,7 +1,7 @@
 {
-  "beginning_of_article": "snippet:config/beginning_of_article.md",
-  "beginning_of_md": "snippet:config/beginning_of_md.md",
-  "cli_commands": "snippet:config/cli_commands.md",
+  "beginning-of-article": "snippet:config/beginning-of-article.md",
+  "beginning-of-md": "snippet:config/beginning-of-md.md",
+  "cli-commands": "snippet:config/cli-commands.md",
   "editor": "code-insiders",
   "path_3d": "D:/Downloads/_3d",
   "path_articles": "C:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
