@@ -77,7 +77,7 @@ if __name__ == "__main__":
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-    main_menu: MainMenu = MainMenu()
+    main_menu = MainMenu()
 
     tray_icon: QSystemTrayIcon = QSystemTrayIcon(QIcon(":/assets/logo.svg"), parent=app)
     tray_icon.setContextMenu(main_menu.menu)
