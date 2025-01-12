@@ -35,6 +35,6 @@ class on_dev_open_config_json(action_base.ActionBase):
     title: str = "Open config.json"
 
     def execute(self, *args, **kwargs):
-        commands = f"{config['editor']} {h.dev.get_project_root() /'config' / 'config.json'}"
+        commands = f"{config['editor']} {h.dev.get_project_root() / 'config' / 'config.json'}"
         output = h.dev.run_powershell_script(commands)
         self.add_line(output)
