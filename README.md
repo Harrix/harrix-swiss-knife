@@ -37,6 +37,7 @@ _Figure 1: Screenshot_
   - Quotes. Add author and title
   - Add image captions in one MD
   - Add image captions in …
+  - Get a list of movies, books for web
 - **File operations**
   - Moves and flattens files from nested folders
   - Check featured_image.* in …
