@@ -82,5 +82,6 @@ if __name__ == "__main__":
 
     tray_icon: QSystemTrayIcon = QSystemTrayIcon(QIcon(":/assets/logo.svg"), parent=app)
     tray_icon.setContextMenu(main_menu.menu)
+    tray_icon.setToolTip("harrix-swiss-knife")
     tray_icon.show()
     sys.exit(app.exec())
