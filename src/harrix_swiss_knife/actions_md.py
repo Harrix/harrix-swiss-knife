@@ -179,7 +179,7 @@ class on_markdown_sort_sections_folder(action_base.ActionBase):
             return
 
         try:
-            self.add_line(h.file.sort_sections(folder_path, ".md", h.md.add_image_captions))
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.sort_sections))
             self.add_line(h.file.apply_func(folder_path, ".md", h.md.add_image_captions))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
