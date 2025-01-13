@@ -167,3 +167,19 @@ class on_markdown_sort_sections(action_base.ActionBase):
             self.add_line(h.md.add_image_captions(filename))
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
+
+
+class on_markdown_sort_sections_folder(action_base.ActionBase):
+    icon: str = "#"
+    title = "Sort sections in …"
+
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not folder_path:
+            return
+
+        try:
+            self.add_line(h.file.sort_sections(folder_path, ".md", h.md.add_image_captions))
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.add_image_captions))
+        except Exception as e:
+            self.add_line(f"❌ Error: {e}")
