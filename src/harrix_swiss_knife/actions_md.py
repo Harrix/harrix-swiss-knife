@@ -151,3 +151,19 @@ class on_markdown_new_note_dialog_with_images(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         on_markdown_new_note_dialog.execute(self, is_with_images=True)
+
+
+class on_markdown_sort_sections(action_base.ActionBase):
+    icon: str = "#"
+    title: str = "Sort sections"
+
+    def execute(self, *args, **kwargs):
+        filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        if not filename:
+            return
+
+        try:
+            self.add_line(h.md.sort_sections(filename))
+            self.add_line(h.md.add_image_captions(filename))
+        except Exception as e:
+            self.add_line(f"❌ Ошибка: {e}")
