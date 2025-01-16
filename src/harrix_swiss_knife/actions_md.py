@@ -155,7 +155,7 @@ class on_markdown_new_note_dialog_with_images(action_base.ActionBase):
 
 class on_markdown_sort_sections(action_base.ActionBase):
     icon: str = "#"
-    title: str = "Sort sections"
+    title: str = "Sort sections in one MD"
 
     def execute(self, *args, **kwargs):
         filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
@@ -174,7 +174,7 @@ class on_markdown_sort_sections_folder(action_base.ActionBase):
     title = "Sort sections in …"
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_notes"])
         if not folder_path:
             return
 
