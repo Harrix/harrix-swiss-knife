@@ -1,5 +1,5 @@
 import shutil
-import tempfile
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 import clr
@@ -96,27 +96,26 @@ class on_image_optimize_clipboard(action_base.ActionBase):
                 return
             filename = image_name.replace(" ", "-") + ".png"
 
-        temp_folder = Path(tempfile.mkdtemp())
-        temp_filename = temp_folder / filename
-        image.save(temp_filename, "PNG")
-        self.add_line(f"Image is saved as {temp_filename}")
 
-        commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-        result_output = h.dev.run_powershell_script(commands)
+        with TemporaryDirectory() as temp_folder:
+            temp_filename = Path(temp_folder) / filename
+            image.save(temp_filename, "PNG")
+            self.add_line(f"Image is saved as {temp_filename}")
 
-        clr.AddReference("System.Collections.Specialized")
-        clr.AddReference("System.Windows.Forms")
-        from System.Collections.Specialized import StringCollection
-        from System.Windows.Forms import Clipboard
+            commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
+            result_output = h.dev.run_powershell_script(commands)
 
-        filename = h.dev.get_project_root() / "temp/optimized_images" / filename
-        filename = filename.resolve()
+            clr.AddReference("System.Collections.Specialized")
+            clr.AddReference("System.Windows.Forms")
+            from System.Collections.Specialized import StringCollection
+            from System.Windows.Forms import Clipboard
 
-        files = StringCollection()
-        files.Add(str(filename))
-        Clipboard.SetFileDropList(files)
+            filename = h.dev.get_project_root() / "temp/optimized_images" / filename
+            filename = filename.resolve()
 
-        shutil.rmtree(temp_folder)
+            files = StringCollection()
+            files.Add(str(filename))
+            Clipboard.SetFileDropList(files)
 
         self.add_line(result_output)
         self.add_line("Image is optimized and copied to clipboard.")
@@ -187,15 +186,12 @@ class on_image_optimize_file(action_base.ActionBase):
         if not filename:
             return
 
-        temp_folder = Path(tempfile.mkdtemp())
-        filename_name = Path(filename).name
-        temp_filename = temp_folder / filename_name
-        shutil.copy(filename_name, temp_filename)
+        with TemporaryDirectory() as temp_folder:
+            temp_filename = Path(temp_folder) / Path(filename).name
+            shutil.copy(filename, temp_filename)
 
-        commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-        result_output = h.dev.run_powershell_script(commands)
-
-        shutil.rmtree(temp_folder)
+            commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
+            result_output = h.dev.run_powershell_script(commands)
 
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.add_line(result_output)
