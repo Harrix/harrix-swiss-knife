@@ -35,9 +35,9 @@ _Figure 1: Screenshot_
   - New note with images
   - New note
   - Quotes. Add author and title
+  - Get a list of movies, books for web
   - Add image captions in one MD
   - Add image captions in …
-  - Get a list of movies, books for web
   - Sort sections
   - Sort sections in …
 - **File operations**
