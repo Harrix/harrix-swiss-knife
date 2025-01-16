@@ -92,7 +92,7 @@ c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-kn
 
 CLI commands after installation.
 
-- `uv self update` — update uv itself.
+- `uv self update` — update uv itself (sometimes you need to call twice).
 - `uv sync --upgrade` — update all project libraries.
 - `isort .` — sort imports.
 - `ruff format` — format the project's Python files.
