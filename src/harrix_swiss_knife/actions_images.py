@@ -1,6 +1,6 @@
 import shutil
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import clr
 import harrix_pylib as h
@@ -95,7 +95,6 @@ class on_image_optimize_clipboard(action_base.ActionBase):
             if not image_name:
                 return
             filename = image_name.replace(" ", "-") + ".png"
-
 
         with TemporaryDirectory() as temp_folder:
             temp_filename = Path(temp_folder) / filename
