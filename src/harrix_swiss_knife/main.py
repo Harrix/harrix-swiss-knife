@@ -46,13 +46,13 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu File operations
         self.menu_file = self.new_menu("File operations", "🪟")
-        self.add_item(self.menu_file, hsk.file.on_file_all_files_to_parent_folder)
-        self.add_item(self.menu_file, hsk.file.on_file_check_featured_image)
-        self.add_item(self.menu_file, hsk.file.on_file_check_featured_image_in_folders)
-        self.add_item(self.menu_file, hsk.file.on_file_block_disks)
-        self.add_item(self.menu_file, hsk.file.on_file_open_camera_uploads)
-        self.add_item(self.menu_file, hsk.file.on_file_tree_view_folder_ignore_hidden_folders)
-        self.add_item(self.menu_file, hsk.file.on_file_tree_view_folder)
+        self.add_item(self.menu_file, hsk.file.on_all_files_to_parent_folder)
+        self.add_item(self.menu_file, hsk.file.on_check_featured_image)
+        self.add_item(self.menu_file, hsk.file.on_check_featured_image_in_folders)
+        self.add_item(self.menu_file, hsk.file.on_block_disks)
+        self.add_item(self.menu_file, hsk.file.on_open_camera_uploads)
+        self.add_item(self.menu_file, hsk.file.on_tree_view_folder_ignore_hidden_folders)
+        self.add_item(self.menu_file, hsk.file.on_tree_view_folder)
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
