@@ -29,7 +29,7 @@ class on_py_sort_code(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         filename = self.get_open_filename(
-            "Select an Python File", config["path_github"], "Image Files (*.py);;All Files (*)"
+            "Select an Python File", config["path_github"], "Python Files (*.py);;All Files (*)"
         )
         if not filename:
             return
