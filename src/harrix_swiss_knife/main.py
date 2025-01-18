@@ -25,7 +25,6 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_images, actions_images.on_image_optimize_file)
         self.menu_images.addSeparator()
         self.add_item(self.menu_images, actions_images.on_image_clear_images)
-        self.add_item(self.menu_images, actions_images.on_image_clear_optimized_images)
         self.add_item(self.menu_images, actions_images.on_image_open_images)
         self.add_item(self.menu_images, actions_images.on_image_open_optimized_images)
 
