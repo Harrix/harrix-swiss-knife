@@ -7,7 +7,7 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
-class on_file_all_files_to_parent_folder(action_base.ActionBase):
+class on_all_files_to_parent_folder(action_base.ActionBase):
     icon: str = "🗂️"
     title: str = "Moves and flattens files from nested folders"
     tip: str = (
@@ -23,7 +23,7 @@ class on_file_all_files_to_parent_folder(action_base.ActionBase):
         self.add_line(h.file.all_to_parent_folder(folder_path))
 
 
-class on_file_block_disks(action_base.ActionBase):
+class on_block_disks(action_base.ActionBase):
     icon: str = "🔒"
     title: str = "Block disks"
     is_show_output = True
@@ -37,7 +37,7 @@ class on_file_block_disks(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_file_check_featured_image(action_base.ActionBase):
+class on_check_featured_image(action_base.ActionBase):
     icon: str = "✅"
     title: str = "Check featured_image.* in …"
     tip: str = "Checks for the presence of `featured_image.*` files in every child folder, not recursively."
@@ -54,7 +54,7 @@ class on_file_check_featured_image(action_base.ActionBase):
             self.add_line(f"❌ Error: {e}")
 
 
-class on_file_check_featured_image_in_folders(action_base.ActionBase):
+class on_check_featured_image_in_folders(action_base.ActionBase):
     icon: str = "✅"
     title: str = "Check featured_image.*"
     is_show_output = True
@@ -67,7 +67,7 @@ class on_file_check_featured_image_in_folders(action_base.ActionBase):
                 self.add_line(f"❌ Error: {e}")
 
 
-class on_file_open_camera_uploads(action_base.ActionBase):
+class on_open_camera_uploads(action_base.ActionBase):
     icon: str = "📸"
     title: str = "Open Camera Uploads"
 
@@ -77,7 +77,7 @@ class on_file_open_camera_uploads(action_base.ActionBase):
         self.add_line('The folders from "Camera Uploads" is opened.')
 
 
-class on_file_tree_view_folder(action_base.ActionBase):
+class on_tree_view_folder(action_base.ActionBase):
     icon: str = "├"
     title: str = "Tree view of a folder"
     is_show_output = True
@@ -91,10 +91,10 @@ class on_file_tree_view_folder(action_base.ActionBase):
         self.add_line(result_output)
 
 
-class on_file_tree_view_folder_ignore_hidden_folders(action_base.ActionBase):
+class on_tree_view_folder_ignore_hidden_folders(action_base.ActionBase):
     icon: str = "├"
     title: str = "Tree view of a folder (ignore hidden folders)"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        on_file_tree_view_folder.execute(self, is_ignore_hidden_folders=True)
+        on_tree_view_folder.execute(self, is_ignore_hidden_folders=True)
