@@ -14,8 +14,8 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu Dev
         self.menu_dev = self.new_menu("Dev", "💻")
-        self.add_item(self.menu_dev, hsk.dev.on_dev_get_menu)
-        self.add_item(self.menu_dev, hsk.dev.on_dev_open_config_json)
+        self.add_item(self.menu_dev, hsk.dev.on_get_menu)
+        self.add_item(self.menu_dev, hsk.dev.on_open_config_json)
 
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
@@ -73,7 +73,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu, hsk.images.on_image_optimize_clipboard)
         self.add_item(self.menu, hsk.images.on_image_optimize_clipboard_dialog)
         self.menu.addSeparator()
-        self.add_item(self.menu, hsk.dev.on_dev_exit)
+        self.add_item(self.menu, hsk.dev.on_exit)
 
 
 if __name__ == "__main__":
