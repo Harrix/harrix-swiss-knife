@@ -6,7 +6,7 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
-class on_dev_exit(action_base.ActionBase):
+class on_exit(action_base.ActionBase):
     icon: str = "×"
     title: str = "Exit"
 
@@ -17,7 +17,7 @@ class on_dev_exit(action_base.ActionBase):
         QApplication.quit()
 
 
-class on_dev_get_menu(action_base.ActionBase):
+class on_get_menu(action_base.ActionBase):
     icon: str = "☰"
     title: str = "Get the list of items from this menu"
 
@@ -28,7 +28,7 @@ class on_dev_get_menu(action_base.ActionBase):
         self.add_line(self.parent.get_menu())
 
 
-class on_dev_open_config_json(action_base.ActionBase):
+class on_open_config_json(action_base.ActionBase):
     icon: str = "⚙️"
     title: str = "Open config.json"
 
