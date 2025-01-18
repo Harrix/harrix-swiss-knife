@@ -97,6 +97,8 @@ CLI commands after installation.
 - `ruff format` — format the project's Python files.
 - `ruff check` — lint the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
+- `pytest` — run tests without slow tests.
+- `pytest -m "slow or not slow"` — run all tests.
 
 ## Add file to a resource file
 
