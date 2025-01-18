@@ -60,6 +60,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_python, actions_py.on_py_sort_isort_fmt_python_code_folder)
         self.add_item(self.menu_python, actions_py.on_py_sort_code)
         self.add_item(self.menu_python, actions_py.on_py_sort_code_folder)
+        self.add_item(self.menu_python, actions_py.on_py_extract_functions_and_classes)
 
         # MainMenu
         self.menu.addMenu(self.menu_dev)
