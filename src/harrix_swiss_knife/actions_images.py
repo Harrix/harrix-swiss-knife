@@ -13,30 +13,17 @@ config = h.dev.load_config("config/config.json")
 
 class on_image_clear_images(action_base.ActionBase):
     icon: str = "🧹"
-    title: str = "Clear the folder images"
+    title: str = "Clear folders images"
 
     def execute(self, *args, **kwargs):
-        path = h.dev.get_project_root() / "temp" / "images"
-        if path.exists():
-            shutil.rmtree(path)
-            path.mkdir(parents=True)
-            self.add_line(f"Folder `{path}` is clean.")
-        else:
-            self.add_line(f"❌ Folder `{path}` is not exist.")
-
-
-class on_image_clear_optimized_images(action_base.ActionBase):
-    icon: str = "🧹"
-    title: str = "Clear the folder optimized_images"
-
-    def execute(self, *args, **kwargs):
-        path = h.dev.get_project_root() / "temp" / "optimized_images"
-        if path.exists():
-            shutil.rmtree(path)
-            path.mkdir(parents=True)
-            self.add_line(f"Folder `{path}` is clean.")
-        else:
-            self.add_line(f"❌ Folder `{path}` is not exist.")
+        paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp" / "optimized_images"]
+        for path in paths:
+            if path.exists():
+                shutil.rmtree(path)
+                path.mkdir(parents=True)
+                self.add_line(f"Folder `{path}` is clean.")
+            else:
+                self.add_line(f"❌ Folder `{path}` is not exist.")
 
 
 class on_image_open_images(action_base.ActionBase):
