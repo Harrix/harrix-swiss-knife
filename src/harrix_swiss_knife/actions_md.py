@@ -8,7 +8,7 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
-class on_markdown_add_author_book(action_base.ActionBase):
+class on_add_author_book(action_base.ActionBase):
     icon: str = "❞"
     title: str = "Quotes. Add author and title"
     is_show_output = True
@@ -24,7 +24,7 @@ class on_markdown_add_author_book(action_base.ActionBase):
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_markdown_add_image_captions(action_base.ActionBase):
+class on_add_image_captions(action_base.ActionBase):
     icon: str = "🌄"
     title: str = "Add image captions in one MD"
 
@@ -41,7 +41,7 @@ class on_markdown_add_image_captions(action_base.ActionBase):
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_markdown_add_image_captions_folder(action_base.ActionBase):
+class on_add_image_captions_folder(action_base.ActionBase):
     icon: str = "🌄"
     title = "Add image captions in …"
 
@@ -56,7 +56,7 @@ class on_markdown_add_image_captions_folder(action_base.ActionBase):
             self.add_line(f"❌ Error: {e}")
 
 
-class on_markdown_diary_new(action_base.ActionBase):
+class on_diary_new(action_base.ActionBase):
     icon: str = "📖"
     title = "New diary note"
 
@@ -66,7 +66,7 @@ class on_markdown_diary_new(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_markdown_diary_new_dream(action_base.ActionBase):
+class on_diary_new_dream(action_base.ActionBase):
     icon: str = "💤"
     title = "New dream note"
 
@@ -76,7 +76,7 @@ class on_markdown_diary_new_dream(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_markdown_diary_new_with_images(action_base.ActionBase):
+class on_diary_new_with_images(action_base.ActionBase):
     icon: str = "📚"
     title = "New diary note with images"
 
@@ -88,7 +88,7 @@ class on_markdown_diary_new_with_images(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_markdown_get_list_movies_books(action_base.ActionBase):
+class on_get_list_movies_books(action_base.ActionBase):
     icon: str = "🎬"
     title = "Get a list of movies, books for web"
 
@@ -103,7 +103,7 @@ class on_markdown_get_list_movies_books(action_base.ActionBase):
         self.add_line(f"\nCount: {count}")
 
 
-class on_markdown_new_article(action_base.ActionBase):
+class on_new_article(action_base.ActionBase):
     icon: str = "✍️"
     title = "New article"
 
@@ -124,7 +124,7 @@ class on_markdown_new_article(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_markdown_new_note_dialog(action_base.ActionBase):
+class on_new_note_dialog(action_base.ActionBase):
     icon: str = "📓"
     title = "New note"
 
@@ -145,15 +145,15 @@ class on_markdown_new_note_dialog(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_markdown_new_note_dialog_with_images(action_base.ActionBase):
+class on_new_note_dialog_with_images(action_base.ActionBase):
     icon: str = "📓"
     title = "New note with images"
 
     def execute(self, *args, **kwargs):
-        on_markdown_new_note_dialog.execute(self, is_with_images=True)
+        on_new_note_dialog.execute(self, is_with_images=True)
 
 
-class on_markdown_sort_sections(action_base.ActionBase):
+class on_sort_sections(action_base.ActionBase):
     icon: str = "#"
     title: str = "Sort sections in one MD"
 
@@ -169,7 +169,7 @@ class on_markdown_sort_sections(action_base.ActionBase):
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_markdown_sort_sections_folder(action_base.ActionBase):
+class on_sort_sections_folder(action_base.ActionBase):
     icon: str = "#"
     title = "Sort sections in …"
 
