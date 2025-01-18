@@ -19,15 +19,15 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
-        self.add_item(self.menu_images, hsk.images.on_image_optimize)
-        self.add_item(self.menu_images, hsk.images.on_image_optimize_quality)
-        self.add_item(self.menu_images, hsk.images.on_image_optimize_dialog_replace)
-        self.add_item(self.menu_images, hsk.images.on_image_optimize_dialog)
-        self.add_item(self.menu_images, hsk.images.on_image_optimize_file)
+        self.add_item(self.menu_images, hsk.images.on_optimize)
+        self.add_item(self.menu_images, hsk.images.on_optimize_quality)
+        self.add_item(self.menu_images, hsk.images.on_optimize_dialog_replace)
+        self.add_item(self.menu_images, hsk.images.on_optimize_dialog)
+        self.add_item(self.menu_images, hsk.images.on_optimize_file)
         self.menu_images.addSeparator()
-        self.add_item(self.menu_images, hsk.images.on_image_clear_images)
-        self.add_item(self.menu_images, hsk.images.on_image_open_images)
-        self.add_item(self.menu_images, hsk.images.on_image_open_optimized_images)
+        self.add_item(self.menu_images, hsk.images.on_clear_images)
+        self.add_item(self.menu_images, hsk.images.on_open_images)
+        self.add_item(self.menu_images, hsk.images.on_open_optimized_images)
 
         # Menu Markdown
         self.menu_md = self.new_menu("Markdown", "📓")
@@ -70,8 +70,8 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.menu.addMenu(self.menu_file)
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
-        self.add_item(self.menu, hsk.images.on_image_optimize_clipboard)
-        self.add_item(self.menu, hsk.images.on_image_optimize_clipboard_dialog)
+        self.add_item(self.menu, hsk.images.on_optimize_clipboard)
+        self.add_item(self.menu, hsk.images.on_optimize_clipboard_dialog)
         self.menu.addSeparator()
         self.add_item(self.menu, hsk.dev.on_exit)
 
