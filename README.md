@@ -53,6 +53,7 @@ _Figure 1: Screenshot_
   - isort, ruff format, sort in PY files
   - Sort classes, methods, functions in one PY file
   - Sort classes, methods, functions in PY files
+  - Extracts list of funcs to a MD list from one PY file
 - Optimize image from clipboard
 - Optimize image from clipboard as …
 - Exit
