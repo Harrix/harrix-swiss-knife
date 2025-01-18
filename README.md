@@ -23,8 +23,7 @@ _Figure 1: Screenshot_
   - Optimize images in … and replace
   - Optimize images in …/temp
   - Optimize one image
-  - Clear the folder images
-  - Clear the folder optimized_images
+  - Clear folders images
   - Open the folder images
   - Open the folder optimized_images
 - **Markdown**
@@ -38,7 +37,7 @@ _Figure 1: Screenshot_
   - Get a list of movies, books for web
   - Add image captions in one MD
   - Add image captions in …
-  - Sort sections
+  - Sort sections in one MD
   - Sort sections in …
 - **File operations**
   - Moves and flattens files from nested folders
