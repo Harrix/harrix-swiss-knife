@@ -17,7 +17,7 @@ class on_py_sort_code(action_base.ActionBase):
             return
 
         try:
-            h.dev.sort_py_code(filename)
+            h.py.sort_py_code(filename)
             self.add_line(f"File {filename} is applied.")
         except Exception:
             self.add_line(f"❌ File {filename} is not applied.")
@@ -33,7 +33,7 @@ class on_py_sort_code_folder(action_base.ActionBase):
             return
 
         try:
-            self.add_line(h.file.apply_func(folder_path, ".py", h.dev.sort_py_code))
+            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
@@ -49,7 +49,7 @@ class on_py_sort_isort_fmt_python_code_folder(action_base.ActionBase):
 
         commands = f"cd {folder_path}\nisort .\nruff format"
         self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(folder_path, ".py", h.dev.sort_py_code))
+        self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
 
 class on_py_uv_new_project(action_base.ActionBase):
@@ -61,7 +61,7 @@ class on_py_uv_new_project(action_base.ActionBase):
         max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
         name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
 
-        self.add_line(h.py.py_create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
+        self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
 
 
 class on_py_uv_new_project_dialog(action_base.ActionBase):
@@ -78,7 +78,7 @@ class on_py_uv_new_project_dialog(action_base.ActionBase):
             return
 
         self.add_line(
-            h.py.py_create_uv_new_project(
+            h.py.create_uv_new_project(
                 project_name.replace(" ", "-"), folder_path, config["editor"], config["cli_commands"]
             )
         )
