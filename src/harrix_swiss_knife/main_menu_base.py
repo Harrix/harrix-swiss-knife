@@ -119,21 +119,7 @@ class MainMenuBase:
         filename = h.dev.get_project_root() / "README.md"
         list_of_menu = "\n".join(h.pyside.generate_markdown_from_qmenu(self.menu))
 
-        with open(filename, "r", encoding="utf-8") as file:
-            lines = file.readlines()
-
-        start_index = end_index = None
-        for i, line in enumerate(lines):
-            if line.startswith("## List of commands"):
-                start_index = i
-            elif start_index is not None and line.startswith("##") and i != start_index:
-                end_index = i
-                break
-
-        if start_index is not None and end_index is not None:
-            new_lines = "".join(lines[: start_index + 1]) + "\n" + list_of_menu + "\n\n" + "".join(lines[end_index:])
-            with open(filename, "w", encoding="utf-8") as file:
-                file.writelines(new_lines)
+        h.md.replace_section(filename, list_of_menu, "## List of commands")
 
         return list_of_menu
 
