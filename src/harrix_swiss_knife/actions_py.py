@@ -1,3 +1,5 @@
+from pathlib import Path
+import shutil
 import harrix_pylib as h
 
 from harrix_swiss_knife import action_base
@@ -25,20 +27,48 @@ class on_extract_functions_and_classes(action_base.ActionBase):
 
 class on_generate_markdown_documentation(action_base.ActionBase):
     icon: str = "🏗️"
-    title: str = "Generate MD documentation from one PY file"
+    title: str = "Generate MD documentation"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        filename = self.get_open_filename(
-            "Select an Python File", config["path_github"], "Python Files (*.py);;All Files (*)"
-        )
-        if not filename:
-            return
+        projects = ["C:/GitHub/harrix-pylib"]
 
+        for folder_path in projects:
+            output = generate_docs_for_project(folder_path, config["beginning_of_md"])
+            self.add_line(output)
+
+
+def generate_docs_for_project(folder: Path | str, beginning_of_md: str) -> str:
+    result_lines = []
+    folder = Path(folder)
+
+    docs_folder = folder / "docs"
+    docs_folder.mkdir(parents=True, exist_ok=True)
+    shutil.copy(folder / "README.md", docs_folder / 'index.md')
+    result_lines.append(f"File README.md is copied.")
+
+    list_funcs_all = ""
+
+    for filename in (Path(folder) / "src").rglob(f"*.py"):
+        if not (filename.is_file() and not filename.stem.startswith("__")):
+            continue
         from harrix_swiss_knife import funcs_temp
+        list_funcs = funcs_temp.extract_functions_and_classes(filename)
+        docs = funcs_temp.generate_markdown_documentation(filename)
+        filename_docs = docs_folder / f"{filename.stem}.md"
+        Path(filename_docs).write_text(beginning_of_md + "\n" + docs, encoding="utf8")
 
-        result = funcs_temp.generate_markdown_documentation(filename)
-        self.add_line(result)
+        list_funcs_all += list_funcs + "\n\n"
+
+        result_lines.append(f"File {filename.name} is processed.")
+
+    if len(list_funcs_all.splitlines()) > 2:
+        list_funcs_all = list_funcs_all[:-1]
+
+    h.md.replace_section(folder / "README.md", list_funcs_all, "## List of functions")
+
+    return "\n".join(result_lines)
+
 
 
 class on_sort_code(action_base.ActionBase):
