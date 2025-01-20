@@ -14,12 +14,12 @@ def extract_functions_and_classes(filename: Path | str, is_add_link_demo: bool =
 
     Returns:
 
-     - `str`: Returns the markdown-formatted list of classes and functions.
+    - `str`: Returns the markdown-formatted list of classes and functions.
 
     Example output:
 
     ```markdown
-    ### extract_functions_and_classes__before.py
+    ### File `extract_functions_and_classes__before.py`
 
     | Function/Class | Description |
     |----------------|-------------|
@@ -78,7 +78,7 @@ def extract_functions_and_classes(filename: Path | str, is_add_link_demo: bool =
 
     # Create Markdown table
     output_lines = []
-    output_lines.append(f"### {filename.stem}.py\n")
+    output_lines.append(f"### File `{filename.name}`\n")
     if is_add_link_demo:
         link = f"{domain}/docs/{filename.stem}.md"
         output_lines.append(f"Doc: [{filename.stem}.md]({link})\n")
@@ -111,7 +111,7 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
     tree = ast.parse(source)
 
     markdown_lines = []
-    markdown_lines.append(f"# {file_path.name}\n")
+    markdown_lines.append(f"# File `{file_path.name}`\n")
 
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, ast.ClassDef):
