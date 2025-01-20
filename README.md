@@ -48,13 +48,13 @@ _Figure 1: Screenshot_
   - Tree view of a folder (ignore hidden folders)
   - Tree view of a folder
 - **Python**
+  - isort, ruff format, sort in PY files
   - New uv project in …
   - New uv project in Projects
-  - isort, ruff format, sort in PY files
   - Sort classes, methods, functions in one PY file
   - Sort classes, methods, functions in PY files
   - Extracts list of funcs to a MD list from one PY file
-  - Generate MD documentation from one PY file
+  - Generate MD documentation
 - Optimize image from clipboard
 - Optimize image from clipboard as …
 - Exit
