@@ -24,7 +24,7 @@ class on_extract_functions_and_classes(action_base.ActionBase):
 
 
 class on_generate_markdown_documentation(action_base.ActionBase):
-    icon: str = "⏬"
+    icon: str = "🏗️"
     title: str = "Generate MD documentation from one PY file"
     is_show_output = True
 
