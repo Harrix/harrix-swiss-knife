@@ -31,14 +31,14 @@ class on_generate_markdown_documentation(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        projects = ["C:/GitHub/harrix-pylib"]
+        projects = [["C:/GitHub/harrix-pylib", "https://github.com/Harrix/harrix-pylib"]]
 
-        for folder_path in projects:
-            output = generate_docs_for_project(folder_path, config["beginning_of_md"])
+        for folder_path, domain in projects:
+            output = generate_docs_for_project(folder_path, config["beginning_of_md"], domain)
             self.add_line(output)
 
 
-def generate_docs_for_project(folder: Path | str, beginning_of_md: str) -> str:
+def generate_docs_for_project(folder: Path | str, beginning_of_md: str, domain: str) -> str:
     result_lines = []
     folder = Path(folder)
 
@@ -53,7 +53,7 @@ def generate_docs_for_project(folder: Path | str, beginning_of_md: str) -> str:
         if not (filename.is_file() and not filename.stem.startswith("__")):
             continue
         from harrix_swiss_knife import funcs_temp
-        list_funcs = funcs_temp.extract_functions_and_classes(filename)
+        list_funcs = funcs_temp.extract_functions_and_classes(filename, True, domain)
         docs = funcs_temp.generate_markdown_documentation(filename)
         filename_docs = docs_folder / f"{filename.stem}.md"
         Path(filename_docs).write_text(beginning_of_md + "\n" + docs, encoding="utf8")
