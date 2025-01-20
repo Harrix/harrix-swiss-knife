@@ -23,6 +23,24 @@ class on_extract_functions_and_classes(action_base.ActionBase):
         self.add_line(result)
 
 
+class on_generate_markdown_documentation(action_base.ActionBase):
+    icon: str = "⏬"
+    title: str = "Generate MD documentation from one PY file"
+    is_show_output = True
+
+    def execute(self, *args, **kwargs):
+        filename = self.get_open_filename(
+            "Select an Python File", config["path_github"], "Python Files (*.py);;All Files (*)"
+        )
+        if not filename:
+            return
+
+        from harrix_swiss_knife import funcs_temp
+
+        result = funcs_temp.generate_markdown_documentation(filename)
+        self.add_line(result)
+
+
 class on_sort_code(action_base.ActionBase):
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in one PY file"
