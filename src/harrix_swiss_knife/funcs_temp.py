@@ -95,7 +95,7 @@ def extract_functions_and_classes(filename: Path | str, is_add_link_demo: bool =
 
 def generate_markdown_documentation(file_path: Path | str) -> str:
     """
-    Generates Markdown documentation for a given Python file.
+    Generates Markdown documentation for a given Python file without YAML.
 
     Args:
         file_path (str): The path to the Python file.
@@ -104,19 +104,21 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
         str: A Markdown-formatted string documenting the classes, functions,
              and methods in the file along with their docstrings.
     """
+    file_path = Path(file_path)
     with open(file_path, 'r', encoding='utf-8') as f:
         source = f.read()
 
     tree = ast.parse(source)
 
     markdown_lines = []
+    markdown_lines.append(f"# {file_path.name}\n")
 
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, ast.ClassDef):
             class_name = node.name
             class_docstring = ast.get_docstring(node)
             # Add class name and docstring to markdown
-            markdown_lines.append(f"#### Class `{class_name}`\n")
+            markdown_lines.append(f"## Class `{class_name}`\n")
             if class_docstring:
                 markdown_lines.append(f"{class_docstring}\n")
             else:
@@ -127,7 +129,7 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
                     method_name = class_node.name
                     method_docstring = ast.get_docstring(class_node)
                     # Add method name and docstring to markdown
-                    markdown_lines.append(f"##### Method `{method_name}`\n")
+                    markdown_lines.append(f"### Method `{method_name}`\n")
                     if method_docstring:
                         markdown_lines.append(f"{method_docstring}\n")
                     else:
@@ -136,7 +138,7 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
             # Function at module level
             func_name = node.name
             func_docstring = ast.get_docstring(node)
-            markdown_lines.append(f"### Function `{func_name}`\n")
+            markdown_lines.append(f"## Function `{func_name}`\n")
             if func_docstring:
                 markdown_lines.append(f"{func_docstring}\n")
             else:
