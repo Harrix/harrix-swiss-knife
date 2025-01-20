@@ -54,6 +54,7 @@ _Figure 1: Screenshot_
   - Sort classes, methods, functions in one PY file
   - Sort classes, methods, functions in PY files
   - Extracts list of funcs to a MD list from one PY file
+  - Generate MD documentation from one PY file
 - Optimize image from clipboard
 - Optimize image from clipboard as …
 - Exit
