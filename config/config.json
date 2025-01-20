@@ -1,6 +1,7 @@
 {
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
+  "beginning_of_md_docs": "snippet:config/beginning-of-md-docs.md",
   "block_drives": ["E", "F"],
   "cli_commands": "snippet:config/cli-commands.md",
   "editor": "code-insiders",

@@ -34,7 +34,7 @@ class on_generate_markdown_documentation(action_base.ActionBase):
         projects = [["C:/GitHub/harrix-pylib", "https://github.com/Harrix/harrix-pylib"]]
 
         for folder_path, domain in projects:
-            output = generate_docs_for_project(folder_path, config["beginning_of_md"], domain)
+            output = generate_docs_for_project(folder_path, config["beginning_of_md_docs"], domain)
             self.add_line(output)
 
 
