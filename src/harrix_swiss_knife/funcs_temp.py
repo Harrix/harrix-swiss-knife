@@ -104,6 +104,44 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
         str: A Markdown-formatted string documenting the classes, functions,
              and methods in the file along with their docstrings.
     """
+    def get_function_signature(node: ast.FunctionDef) -> str:
+        args = []
+        defaults = [None]*(len(node.args.args)-len(node.args.defaults)) + node.args.defaults
+
+        for arg, default in zip(node.args.args, defaults):
+            arg_str = arg.arg
+            if arg.annotation:
+                arg_str += f": {ast.unparse(arg.annotation)}"
+            if default:
+                arg_str += f" = {ast.unparse(default)}"
+            args.append(arg_str)
+
+        if node.args.vararg:
+            arg_str = f"*{node.args.vararg.arg}"
+            if node.args.vararg.annotation:
+                arg_str += f": {ast.unparse(node.args.vararg.annotation)}"
+            args.append(arg_str)
+
+        if node.args.kwarg:
+            arg_str = f"**{node.args.kwarg.arg}"
+            if node.args.kwarg.annotation:
+                arg_str += f": {ast.unparse(node.args.kwarg.annotation)}"
+            args.append(arg_str)
+
+        args_str = ', '.join(args)
+        signature = f"def {node.name}({args_str})"
+        if node.returns:
+            signature += f" -> {ast.unparse(node.returns)}"
+        return signature
+
+    def get_class_signature(node: ast.ClassDef) -> str:
+        bases = [ast.unparse(base) for base in node.bases]
+        bases_str = ', '.join(bases)
+        signature = f"class {node.name}"
+        if bases_str:
+            signature += f"({bases_str})"
+        return signature
+
     file_path = Path(file_path)
     with open(file_path, 'r', encoding='utf-8') as f:
         source = f.read()
@@ -117,32 +155,44 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
         if isinstance(node, ast.ClassDef):
             class_name = node.name
             class_docstring = ast.get_docstring(node)
-            # Add class name and docstring to markdown
+            class_signature = get_class_signature(node)
+            # Добавляем название класса и его сигнатуру
             markdown_lines.append(f"## Class `{class_name}`\n")
+            markdown_lines.append("```python")
+            markdown_lines.append(f"{class_signature}")
+            markdown_lines.append("```\n")
             if class_docstring:
                 markdown_lines.append(f"{class_docstring}\n")
             else:
                 markdown_lines.append("_No docstring provided._\n")
-            # Now, process methods
+            # Обрабатываем методы класса
             for class_node in node.body:
                 if isinstance(class_node, ast.FunctionDef):
                     method_name = class_node.name
                     method_docstring = ast.get_docstring(class_node)
-                    # Add method name and docstring to markdown
+                    method_signature = get_function_signature(class_node)
+                    # Добавляем название метода и его сигнатуру
                     markdown_lines.append(f"### Method `{method_name}`\n")
+                    markdown_lines.append("```python")
+                    markdown_lines.append(f"{method_signature}")
+                    markdown_lines.append("```\n")
                     if method_docstring:
                         markdown_lines.append(f"{method_docstring}\n")
                     else:
                         markdown_lines.append("_No docstring provided._\n")
         elif isinstance(node, ast.FunctionDef):
-            # Function at module level
+            # Функция на уровне модуля
             func_name = node.name
             func_docstring = ast.get_docstring(node)
+            func_signature = get_function_signature(node)
             markdown_lines.append(f"## Function `{func_name}`\n")
+            markdown_lines.append("```python")
+            markdown_lines.append(f"{func_signature}")
+            markdown_lines.append("```\n")
             if func_docstring:
                 markdown_lines.append(f"{func_docstring}\n")
             else:
                 markdown_lines.append("_No docstring provided._\n")
-    # Join all lines
+    # Объединяем все строки
     markdown_doc = '\n'.join(markdown_lines)
     return markdown_doc
