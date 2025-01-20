@@ -23,7 +23,7 @@ def extract_functions_and_classes(filename: Path | str, is_add_link_demo: bool =
 
     | Function/Class | Description |
     |----------------|-------------|
-    | Class `Cat (Animal`) | Represents a domestic cat, inheriting from the `Animal` base class. |
+    | Class `Cat (Animal)` | Represents a domestic cat, inheriting from the `Animal` base class. |
     | `add` | Adds two integers. |
     | `multiply` | Multiples two integers. |
     ```
