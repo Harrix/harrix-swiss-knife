@@ -2,7 +2,7 @@ import ast
 from pathlib import Path
 
 
-def extract_functions_and_classes(filename: Path | str, is_add_link_demo: bool = True, domain:str="") -> str:
+def extract_functions_and_classes(filename: Path | str, is_add_link_demo: bool = True, domain: str = "") -> str:
     """
     Extracts all classes and functions from a Python file and formats them into a markdown list.
 
@@ -104,9 +104,10 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
         str: A Markdown-formatted string documenting the classes, functions,
              and methods in the file along with their docstrings.
     """
+
     def get_function_signature(node: ast.FunctionDef) -> str:
         args = []
-        defaults = [None]*(len(node.args.args)-len(node.args.defaults)) + node.args.defaults
+        defaults = [None] * (len(node.args.args) - len(node.args.defaults)) + node.args.defaults
 
         for arg, default in zip(node.args.args, defaults):
             arg_str = arg.arg
@@ -128,15 +129,15 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
                 arg_str += f": {ast.unparse(node.args.kwarg.annotation)}"
             args.append(arg_str)
 
-        args_str = ', '.join(args)
-        signature = f"def {node.name}({args_str})"
+        args_str = ", ".join(args)
+        signature = f"def {node.name}({args_str})"  # Create the function signature
         if node.returns:
             signature += f" -> {ast.unparse(node.returns)}"
         return signature
 
     def get_class_signature(node: ast.ClassDef) -> str:
         bases = [ast.unparse(base) for base in node.bases]
-        bases_str = ', '.join(bases)
+        bases_str = ", ".join(bases)
         signature = f"class {node.name}"
         if bases_str:
             signature += f"({bases_str})"
@@ -147,22 +148,25 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
         end_line = node.end_lineno
         node_lines = source_lines[start_line:end_line]
 
-        # Удаляем docstring, если он есть
-        if (isinstance(node.body, list) and node.body and
-            isinstance(node.body[0], ast.Expr) and
-            isinstance(node.body[0].value, ast.Constant) and
-            isinstance(node.body[0].value.value, str)):
+        # Remove the docstring if it exists
+        if (
+            isinstance(node.body, list)
+            and node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
             docstring_node = node.body[0]
             docstring_start = docstring_node.lineno - 1
             docstring_end = docstring_node.end_lineno
-            # Вычисляем индексы строк, относящихся к docstring
+            # Calculate the indexes of the lines related to the docstring
             docstring_lines = set(range(docstring_start, docstring_end))
             node_lines = [line for i, line in enumerate(node_lines, start=start_line) if i not in docstring_lines]
 
-        return ''.join(node_lines)
+        return "".join(node_lines)
 
     file_path = Path(file_path)
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         source = f.read()
     source_lines = source.splitlines(keepends=True)
     tree = ast.parse(source)
@@ -176,7 +180,7 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
             class_docstring = ast.get_docstring(node)
             class_signature = get_class_signature(node)
             class_code = get_node_code(node, source_lines)
-            # Добавляем название класса и его сигнатуру
+            # Add the class name and its signature
             markdown_lines.append(f"## Class `{class_name}`\n")
             markdown_lines.append("```python")
             markdown_lines.append(f"{class_signature}")
@@ -185,7 +189,7 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
                 markdown_lines.append(f"{class_docstring}\n")
             else:
                 markdown_lines.append("_No docstring provided._\n")
-            # Добавляем код в блок details
+            # Add the code to the details block
             markdown_lines.append("<details>")
             markdown_lines.append("<summary>Code:</summary>\n")
             markdown_lines.append("```python")
@@ -193,14 +197,14 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
             markdown_lines.append("```\n")
             markdown_lines.append("</details>\n")
 
-            # Обрабатываем методы класса
+            # Process class methods
             for class_node in node.body:
                 if isinstance(class_node, ast.FunctionDef):
                     method_name = class_node.name
                     method_docstring = ast.get_docstring(class_node)
                     method_signature = get_function_signature(class_node)
                     method_code = get_node_code(class_node, source_lines)
-                    # Добавляем название метода и его сигнатуру
+                    # Add the method name and its signature
                     markdown_lines.append(f"### Method `{method_name}`\n")
                     markdown_lines.append("```python")
                     markdown_lines.append(f"{method_signature}")
@@ -209,7 +213,7 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
                         markdown_lines.append(f"{method_docstring}\n")
                     else:
                         markdown_lines.append("_No docstring provided._\n")
-                    # Добавляем код в блок details
+                    # Add the code to the details block
                     markdown_lines.append("<details>")
                     markdown_lines.append("<summary>Code:</summary>\n")
                     markdown_lines.append("```python")
@@ -217,7 +221,7 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
                     markdown_lines.append("```\n")
                     markdown_lines.append("</details>\n")
         elif isinstance(node, ast.FunctionDef):
-            # Функция на уровне модуля
+            # Module level function
             func_name = node.name
             func_docstring = ast.get_docstring(node)
             func_signature = get_function_signature(node)
@@ -230,13 +234,13 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
                 markdown_lines.append(f"{func_docstring}\n")
             else:
                 markdown_lines.append("_No docstring provided._\n")
-            # Добавляем код в блок details
+            # Add the code to the details block
             markdown_lines.append("<details>")
             markdown_lines.append("<summary>Code:</summary>\n")
             markdown_lines.append("```python")
             markdown_lines.append(func_code.strip())
             markdown_lines.append("```\n")
             markdown_lines.append("</details>\n")
-    # Объединяем все строки
-    markdown_doc = '\n'.join(markdown_lines)
+    # Join all lines
+    markdown_doc = "\n".join(markdown_lines)
     return markdown_doc
