@@ -34,8 +34,9 @@ def generate_docs_for_project(folder: Path | str, beginning_of_md: str, domain: 
         list_funcs_all = list_funcs_all[:-1]
 
     h.md.replace_section(folder / "README.md", list_funcs_all, "## List of functions")
-    shutil.copy(folder / "README.md", docs_folder / "index.md")
-    result_lines.append(f"File README.md is copied.")
+    index_content = beginning_of_md + "\n" + Path(folder / "README.md").read_text(encoding="utf8")
+    Path(docs_folder / "index.md").write_text(index_content, encoding="utf8")
+    result_lines.append(f"File index.md is created.")
 
     return "\n".join(result_lines)
 
