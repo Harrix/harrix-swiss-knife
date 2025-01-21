@@ -124,8 +124,7 @@ def generate_docs_for_project(folder: Path | str, beginning_of_md: str, domain: 
 
     docs_folder = folder / "docs"
     docs_folder.mkdir(parents=True, exist_ok=True)
-    h.file.clear_directory(docs_folder)
-    shutil.copytree(folder / "img", docs_folder / "img")
+    shutil.copytree(folder / "img", docs_folder / "img", dirs_exist_ok=True)
     result_lines.append(f"Folder img is copied.")
 
     list_funcs_all = ""
