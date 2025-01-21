@@ -17,7 +17,7 @@ class on_extract_functions_and_classes(action_base.ActionBase):
         if not filename:
             return
 
-        result = h.py.funcs_temp.extract_functions_and_classes(filename)
+        result = h.py.extract_functions_and_classes(filename)
         self.add_line(result)
 
 
@@ -30,9 +30,7 @@ class on_generate_markdown_documentation(action_base.ActionBase):
         projects = [["C:/GitHub/harrix-pylib", "https://github.com/Harrix/harrix-pylib"]]
 
         for folder_path, domain in projects:
-            from harrix_swiss_knife import funcs_temp
-
-            output = funcs_temp.generate_docs_for_project(folder_path, config["beginning_of_md_docs"], domain)
+            output = h.py.generate_docs_for_project(folder_path, config["beginning_of_md_docs"], domain)
             self.add_line(output)
 
 
