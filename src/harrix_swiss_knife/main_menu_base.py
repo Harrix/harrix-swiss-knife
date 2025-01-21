@@ -79,23 +79,7 @@ class MainMenuBase:
                 # If the icon already exists, load it from the file
                 return QIcon(str(icon_path))
             else:
-                # Create the icon
-                pixmap = QPixmap(size, size)
-                pixmap.fill(Qt.transparent)
-
-                painter = QPainter(pixmap)
-                font = QFont()
-                font.setPointSize(int(size * 0.8))
-                painter.setFont(font)
-                painter.drawText(pixmap.rect(), Qt.AlignCenter, icon)
-                painter.end()
-
-                # Ensure the folder exists
-                icon_folder.mkdir(parents=True, exist_ok=True)
-                # Save the pixmap as a PNG file
-                pixmap.save(str(icon_path), "PNG")
-                # Return the icon
-                return QIcon(pixmap)
+                return h.pyside.create_emoji_icon(icon, size)
 
     def get_menu(self) -> str:
         """
