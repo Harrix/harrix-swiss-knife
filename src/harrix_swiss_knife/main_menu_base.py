@@ -1,8 +1,7 @@
 from typing import Callable
 
 import harrix_pylib as h
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QFont, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu
 
 
