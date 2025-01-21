@@ -1,6 +1,6 @@
 # harrix-swiss-knife
 
-![harrix-swiss-knife](https://github.com/Harrix/harrix-swiss-knife/tree/main/img/featured-image.svg)
+![harrix-swiss-knife](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/featured-image.svg)
 
 This is a **personal** project tailored to **specific personal** tasks.
 
