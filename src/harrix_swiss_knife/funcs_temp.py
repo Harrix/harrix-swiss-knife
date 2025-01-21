@@ -130,6 +130,7 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
             args.append(arg_str)
 
         args_str = ", ".join(args)
+        args_str = args_str.replace("'", '"')
         signature = f"def {node.name}({args_str})"  # Create the function signature
         if node.returns:
             signature += f" -> {ast.unparse(node.returns)}"
