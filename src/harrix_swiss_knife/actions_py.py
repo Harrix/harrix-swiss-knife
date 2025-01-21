@@ -34,10 +34,13 @@ class on_generate_markdown_documentation(action_base.ActionBase):
             return
 
         folder_path = Path(folder_path)
-
         domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
 
         output = h.py.generate_docs_for_project(folder_path, config["beginning_of_md_docs"], domain)
+        self.add_line(output)
+
+        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+        output = h.dev.run_powershell_script(commands)
         self.add_line(output)
 
 
