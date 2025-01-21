@@ -17,6 +17,8 @@ _Figure 1: Screenshot_
 - **Dev**
   - Get the list of items from this menu
   - Open config.json
+  - Install global NPM packages
+  - Update NPM and global NPM packages
 - **Images**
   - Optimize images
   - Optimize images (high quality)
@@ -54,7 +56,7 @@ _Figure 1: Screenshot_
   - Sort classes, methods, functions in one PY file
   - Sort classes, methods, functions in PY files
   - Extracts list of funcs to a MD list from one PY file
-  - Generate MD documentation
+  - Generate MD documentation in …
 - Optimize image from clipboard
 - Optimize image from clipboard as …
 - Exit
