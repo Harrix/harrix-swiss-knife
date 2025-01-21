@@ -31,6 +31,7 @@ class on_generate_markdown_documentation(action_base.ActionBase):
 
         for folder_path, domain in projects:
             from harrix_swiss_knife import funcs_temp
+
             output = funcs_temp.generate_docs_for_project(folder_path, config["beginning_of_md_docs"], domain)
             self.add_line(output)
 

@@ -5,8 +5,42 @@ from pathlib import Path
 import harrix_pylib as h
 
 
-def generate_markdown_documentation(file_path: Path | str) -> str:
+def generate_docs_for_project(folder: Path | str, beginning_of_md: str, domain: str) -> str:
+    result_lines = []
+    folder = Path(folder)
 
+    docs_folder = folder / "docs"
+    docs_folder.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(folder / "img", docs_folder / "img", dirs_exist_ok=True)
+    result_lines.append(f"Folder img is copied.")
+
+    list_funcs_all = ""
+
+    for filename in (Path(folder) / "src").rglob(f"*.py"):
+        if not (filename.is_file() and not filename.stem.startswith("__")):
+            continue
+
+        list_funcs = h.py.extract_functions_and_classes(filename, True, domain)
+        docs = generate_markdown_documentation(filename)
+
+        filename_docs = docs_folder / f"{filename.stem}.md"
+        Path(filename_docs).write_text(beginning_of_md + "\n" + docs, encoding="utf8")
+
+        list_funcs_all += list_funcs + "\n\n"
+
+        result_lines.append(f"File {filename.name} is processed.")
+
+    if len(list_funcs_all.splitlines()) > 2:
+        list_funcs_all = list_funcs_all[:-1]
+
+    h.md.replace_section(folder / "README.md", list_funcs_all, "## List of functions")
+    shutil.copy(folder / "README.md", docs_folder / "index.md")
+    result_lines.append(f"File README.md is copied.")
+
+    return "\n".join(result_lines)
+
+
+def generate_markdown_documentation(file_path: Path | str) -> str:
     def get_function_signature(node: ast.FunctionDef) -> str:
         args = []
         defaults = [None] * (len(node.args.args) - len(node.args.defaults)) + node.args.defaults
@@ -147,38 +181,3 @@ def generate_markdown_documentation(file_path: Path | str) -> str:
     # Join all lines
     markdown_doc = "\n".join(markdown_lines)
     return markdown_doc
-
-
-def generate_docs_for_project(folder: Path | str, beginning_of_md: str, domain: str) -> str:
-    result_lines = []
-    folder = Path(folder)
-
-    docs_folder = folder / "docs"
-    docs_folder.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(folder / "img", docs_folder / "img", dirs_exist_ok=True)
-    result_lines.append(f"Folder img is copied.")
-
-    list_funcs_all = ""
-
-    for filename in (Path(folder) / "src").rglob(f"*.py"):
-        if not (filename.is_file() and not filename.stem.startswith("__")):
-            continue
-
-        list_funcs = h.py.extract_functions_and_classes(filename, True, domain)
-        docs = generate_markdown_documentation(filename)
-
-        filename_docs = docs_folder / f"{filename.stem}.md"
-        Path(filename_docs).write_text(beginning_of_md + "\n" + docs, encoding="utf8")
-
-        list_funcs_all += list_funcs + "\n\n"
-
-        result_lines.append(f"File {filename.name} is processed.")
-
-    if len(list_funcs_all.splitlines()) > 2:
-        list_funcs_all = list_funcs_all[:-1]
-
-    h.md.replace_section(folder / "README.md", list_funcs_all, "## List of functions")
-    shutil.copy(folder / "README.md", docs_folder / "index.md")
-    result_lines.append(f"File README.md is copied.")
-
-    return "\n".join(result_lines)
