@@ -156,6 +156,7 @@ class on_new_note_dialog_with_images(action_base.ActionBase):
 class on_prettier_folder(action_base.ActionBase):
     icon: str = "✨"
     title = "Prettier in …"
+    is_show_output = True
 
     def execute(self, *args, **kwargs):
         folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_github"])
