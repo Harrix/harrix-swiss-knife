@@ -21,7 +21,7 @@ def generate_docs_for_project(folder: Path | str, beginning_of_md: str, domain: 
             continue
 
         list_funcs = h.py.extract_functions_and_classes(filename, True, domain)
-        docs = generate_markdown_documentation(filename)
+        docs = generate_md_docs_content(filename)
 
         filename_docs = docs_folder / f"{filename.stem}.md"
         Path(filename_docs).write_text(beginning_of_md + "\n" + docs, encoding="utf8")
@@ -40,7 +40,7 @@ def generate_docs_for_project(folder: Path | str, beginning_of_md: str, domain: 
     return "\n".join(result_lines)
 
 
-def generate_markdown_documentation(file_path: Path | str) -> str:
+def generate_md_docs_content(file_path: Path | str) -> str:
     def get_function_signature(node: ast.FunctionDef) -> str:
         args = []
         defaults = [None] * (len(node.args.args) - len(node.args.defaults)) + node.args.defaults
