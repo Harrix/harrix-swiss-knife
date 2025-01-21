@@ -41,6 +41,7 @@ _Figure 1: Screenshot_
   - Add image captions in …
   - Sort sections in one MD
   - Sort sections in …
+  - Prettier in …
 - **File operations**
   - Moves and flattens files from nested folders
   - Check featured_image.* in …
@@ -80,6 +81,8 @@ _Figure 1: Screenshot_
 - Run `uv sync`.
 
 - Run `npm i`.
+
+- Run `npm i -g npm-check-updates` and `npm i -g prettier` (or run `Dev` → `Install global NPM packages`).
 
 - Copy `ffmpeg.exe` to the project folder `C:/GitHub/harrix-swiss-knife`. For example, from `ffmpeg-master-latest-win64-gpl.zip` (<https://github.com/BtbN/FFmpeg-Builds/releases>).
 
