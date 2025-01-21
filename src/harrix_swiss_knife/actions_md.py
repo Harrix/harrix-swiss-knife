@@ -153,6 +153,20 @@ class on_new_note_dialog_with_images(action_base.ActionBase):
         on_new_note_dialog.execute(self, is_with_images=True)
 
 
+class on_prettier_folder(action_base.ActionBase):
+    icon: str = "✨"
+    title = "Prettier in …"
+
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_github"])
+        if not folder_path:
+            return
+
+        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+        output = h.dev.run_powershell_script(commands)
+        self.add_line(output)
+
+
 class on_sort_sections(action_base.ActionBase):
     icon: str = "#"
     title: str = "Sort sections in one MD"
@@ -183,18 +197,3 @@ class on_sort_sections_folder(action_base.ActionBase):
             self.add_line(h.file.apply_func(folder_path, ".md", h.md.add_image_captions))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
-
-
-class on_prettier_folder(action_base.ActionBase):
-    icon: str = "✨"
-    title = "Prettier in …"
-
-    def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_github"])
-        if not folder_path:
-            return
-
-        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
-
