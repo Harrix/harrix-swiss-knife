@@ -16,6 +16,8 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.menu_dev = self.new_menu("Dev", "💻")
         self.add_item(self.menu_dev, hsk.dev.on_get_menu)
         self.add_item(self.menu_dev, hsk.dev.on_open_config_json)
+        self.add_item(self.menu_dev, hsk.dev.on_npm_install_packages)
+        self.add_item(self.menu_dev, hsk.dev.on_npm_update_packages)
 
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")

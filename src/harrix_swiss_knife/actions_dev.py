@@ -28,6 +28,28 @@ class on_get_menu(action_base.ActionBase):
         self.add_line(self.parent.get_menu())
 
 
+class on_npm_install_packages(action_base.ActionBase):
+    icon: str = "📥"
+    title: str = "Install global NPM packages"
+    is_show_output = True
+
+    def execute(self, *args, **kwargs):
+        commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
+        output = h.dev.run_powershell_script(commands)
+        self.add_line(output)
+
+
+class on_npm_update_packages(action_base.ActionBase):
+    icon: str = "📥"
+    title: str = "Update NPM and global NPM packages"
+    is_show_output = True
+
+    def execute(self, *args, **kwargs):
+        commands = f"npm update npm -g\nnpm update -g"
+        output = h.dev.run_powershell_script(commands)
+        self.add_line(output)
+
+
 class on_open_config_json(action_base.ActionBase):
     icon: str = "⚙️"
     title: str = "Open config.json"
