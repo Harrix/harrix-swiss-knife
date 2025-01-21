@@ -1,3 +1,4 @@
+from pathlib import Path
 import harrix_pylib as h
 
 from harrix_swiss_knife import action_base
@@ -23,15 +24,20 @@ class on_extract_functions_and_classes(action_base.ActionBase):
 
 class on_generate_markdown_documentation(action_base.ActionBase):
     icon: str = "🏗️"
-    title: str = "Generate MD documentation"
+    title: str = "Generate MD documentation in …"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        projects = [["C:/GitHub/harrix-pylib", "https://github.com/Harrix/harrix-pylib"]]
+        folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
+        if not folder_path:
+            return
 
-        for folder_path, domain in projects:
-            output = h.py.generate_docs_for_project(folder_path, config["beginning_of_md_docs"], domain)
-            self.add_line(output)
+        folder_path = Path(folder_path)
+
+        domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
+
+        output = h.py.generate_docs_for_project(folder_path, config["beginning_of_md_docs"], domain)
+        self.add_line(output)
 
 
 class on_sort_code(action_base.ActionBase):
