@@ -8,7 +8,7 @@ This is a **personal** project tailored to **specific personal** tasks.
 
 This project provides an application with a context menu in the system tray, featuring mini-programs designed to automate specific personal tasks. The project is intended for use on Windows.
 
-![Screenshot](img/screenshoot.png)
+![Screenshot](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/screenshoot.png)
 
 _Figure 1: Screenshot_
 
