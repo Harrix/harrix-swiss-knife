@@ -218,7 +218,38 @@ class on_sort_sections_folder(action_base.ActionBase):
 
 
 def generate_toc_with_links(filename: Path | str) -> str:
-    def generate_id(text, existing_ids):
+    """
+    Generates a Table of Contents (TOC) with clickable links for a given Markdown file and inserts or refreshes
+    the TOC in the document.
+
+    This function reads a Markdown file, processes its content to create or update a TOC, and writes
+    back the changes if any were made.
+
+    Args:
+
+    - `filename` (`Path` | `str`): The path to the Markdown file. Can be either a `Path` object or a string.
+
+    Returns:
+
+    - `str`: A string containing the status of the TOC operation, including whether the TOC was refreshed or
+      if the file was unchanged.
+
+    Note:
+
+    - The function handles YAML frontmatter by preserving it and only modifying the content below the YAML if present.
+    - If the TOC already exists in the document, it will be replaced with the new TOC.
+    - Headers in the document are used to generate TOC entries, with appropriate indentation based on header level.
+
+    Example:
+
+    ```python
+    import harrix_pylib as h
+
+    result = h.md.sort_sections("C:/Notes/note.md")
+    print(result)
+    ```
+    """
+    def generate_id(text: str, existing_ids: set) -> str:
         # Convert text to lowercase
         text = text.lower()
 
