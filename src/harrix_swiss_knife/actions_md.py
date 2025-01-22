@@ -219,17 +219,17 @@ class on_sort_sections_folder(action_base.ActionBase):
 
 def generate_toc_with_links(filename: Path | str) -> str:
     def generate_id(text, existing_ids):
-    # Convert text to lowercase
+        # Convert text to lowercase
         text = text.lower()
 
         # Remove all non-word characters (e.g., punctuation, HTML)
-        text = re.sub(r'[^\w\s]', '', text)
+        text = re.sub(r"[^\w\s]", "", text)
 
         # Replace spaces with hyphens
-        text = re.sub(r'\s+', '-', text)
+        text = re.sub(r"\s+", "-", text)
 
         # Replace two or more hyphens in a row with one
-        text = re.sub(r'-+', '-', text)
+        text = re.sub(r"-+", "-", text)
 
         # Ensure uniqueness by appending a number if necessary
         original_text = text
@@ -300,7 +300,7 @@ def generate_toc_with_links(filename: Path | str) -> str:
         if is_code_block:
             continue
         if line.startswith("##"):
-            if not is_stop_searching_place_toc:
+            if not is_stop_searching_place_toc and len(toc_lines) > 1:
                 new_lines.insert(len(new_lines) - 1, toc + "\n")
             is_stop_searching_place_toc = True
         if is_stop_searching_place_toc or line.startswith("# ") or line.startswith("![") or not line.strip():
@@ -308,6 +308,7 @@ def generate_toc_with_links(filename: Path | str) -> str:
         if line and not is_first_paragraph and len(toc_lines) > 1:
             new_lines.append("\n" + toc)
             is_first_paragraph = True
+            is_stop_searching_place_toc = True
     content_without_yaml = "\n".join(new_lines)
     if content_without_yaml[-1] != "\n":
         content_without_yaml += "\n"
