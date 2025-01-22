@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -86,6 +87,22 @@ class on_diary_new_with_images(action_base.ActionBase):
         )
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
         self.add_line(output)
+
+
+class on_generate_toc(action_base.ActionBase):
+    icon: str = "📑"
+    title = "Generate TOC in …"
+    is_show_output = True
+
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not folder_path:
+            return
+
+        try:
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+        except Exception as e:
+            self.add_line(f"❌ Error: {e}")
 
 
 class on_get_list_movies_books(action_base.ActionBase):
@@ -198,3 +215,80 @@ class on_sort_sections_folder(action_base.ActionBase):
             self.add_line(h.file.apply_func(folder_path, ".md", h.md.add_image_captions))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
+
+
+def generate_toc_with_links(filename: Path | str) -> str:
+    result_lines = []
+    filename = Path(filename)
+
+    document = filename.read_text(encoding="utf8")
+
+    parts = document.split("---", 2)
+    if len(parts) < 3:
+        yaml_md = ""
+    else:
+        yaml_md = f"---{parts[1]}---"
+
+    # Generate TOC
+    lines = h.md.remove_yaml_and_code(document).splitlines()
+    toc_lines = []
+    for line in lines:
+        if line.startswith("##"):
+            # Determine the header level
+            level = len(re.match(r"#+", line).group())
+            # Extract the header text
+            title = line[level:].strip()
+            title = title.replace("<!-- top-section -->", "")
+            link = f"#{title.lower().replace(' ', '-').replace('(', '').replace(')', '')}"
+            title_text = title.strip()
+            # Form the table of contents entry
+            toc_lines.append(f"{'  ' * (level - 2)}- [{title_text}]({link})")
+    toc = "\n".join(toc_lines)
+    result_lines.append("TOC:\n\n" + toc)
+
+    # Delete old TOC
+    is_stop_searching_toc = False
+    new_lines = []
+    lines = h.md.remove_yaml(document).splitlines()
+    for line, is_code_block in h.md.identify_code_blocks(lines):
+        if is_code_block:
+            new_lines.append(line)
+            continue
+        if line.startswith("##"):
+            is_stop_searching_toc = True
+        if is_stop_searching_toc:
+            new_lines.append(line)
+        elif not re.match(r"- \[(.*?)\]\(#(.*?)\)$", line.strip()):
+            if len(new_lines) == 0 or new_lines[-1].strip() or line:
+                new_lines.append(line)
+    content_without_yaml = "\n".join(new_lines)
+
+    # Paste TOC
+    is_stop_searching_place_toc = False
+    is_first_paragraph = False
+    new_lines = []
+    lines = content_without_yaml.splitlines()
+    for line, is_code_block in h.md.identify_code_blocks(lines):
+        new_lines.append(line)
+        if is_code_block:
+            continue
+        if line.startswith("##"):
+            is_stop_searching_place_toc = True
+        if is_stop_searching_place_toc or line.startswith("# ") or line.startswith("![") or not line.strip():
+            continue
+        if line and not is_first_paragraph and len(toc_lines) > 1:
+            new_lines.append("\n" + toc)
+            is_first_paragraph = True
+    content_without_yaml = "\n".join(new_lines)
+    if content_without_yaml[-1] != "\n":
+        content_without_yaml += "\n"
+
+    document_new = yaml_md + "\n\n" + content_without_yaml
+    if document != document_new:
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write(document_new)
+        result_lines.append(f"✅ TOC is added or refreshed in {filename}.")
+    else:
+        result_lines.append("File is not changed.")
+
+    return "\n".join(result_lines)
