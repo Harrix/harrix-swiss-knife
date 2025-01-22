@@ -91,6 +91,22 @@ class on_diary_new_with_images(action_base.ActionBase):
 
 class on_generate_toc(action_base.ActionBase):
     icon: str = "📑"
+    title = "Generate TOC in one MD"
+    is_show_output = True
+
+    def execute(self, *args, **kwargs):
+        filename = self.get_open_filename("Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)")
+        if not filename:
+            return
+
+        try:
+            self.add_line(h.md.generate_toc_with_links(filename))
+        except Exception as e:
+            self.add_line(f"❌ Ошибка: {e}")
+
+
+class on_generate_toc_folder(action_base.ActionBase):
+    icon: str = "📑"
     title = "Generate TOC in …"
     is_show_output = True
 
