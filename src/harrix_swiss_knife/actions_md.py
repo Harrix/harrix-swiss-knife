@@ -300,6 +300,8 @@ def generate_toc_with_links(filename: Path | str) -> str:
         if is_code_block:
             continue
         if line.startswith("##"):
+            if not is_stop_searching_place_toc:
+                new_lines.insert(len(new_lines) - 1, toc + "\n")
             is_stop_searching_place_toc = True
         if is_stop_searching_place_toc or line.startswith("# ") or line.startswith("![") or not line.strip():
             continue
@@ -319,5 +321,3 @@ def generate_toc_with_links(filename: Path | str) -> str:
         result_lines.append("File is not changed.")
 
     return "\n".join(result_lines)
-
-generate_toc_with_links(r"D:\Dropbox\Notes\Notes\IT_Dev\C++\C++-Сборник-рецептов.md")
