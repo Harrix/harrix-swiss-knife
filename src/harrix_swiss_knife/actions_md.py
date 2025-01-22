@@ -100,7 +100,7 @@ class on_generate_toc(action_base.ActionBase):
             return
 
         try:
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+            self.add_line(h.file.apply_func(folder_path, ".md", generate_toc_with_links))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
@@ -218,6 +218,31 @@ class on_sort_sections_folder(action_base.ActionBase):
 
 
 def generate_toc_with_links(filename: Path | str) -> str:
+    def generate_id(text, existing_ids):
+    # Convert text to lowercase
+        text = text.lower()
+
+        # Remove all non-word characters (e.g., punctuation, HTML)
+        text = re.sub(r'[^\w\s]', '', text)
+
+        # Replace spaces with hyphens
+        text = re.sub(r'\s+', '-', text)
+
+        # Replace two or more hyphens in a row with one
+        text = re.sub(r'-+', '-', text)
+
+        # Ensure uniqueness by appending a number if necessary
+        original_text = text
+        counter = 1
+        while text in existing_ids:
+            text = f"{original_text}-{counter}"
+            counter += 1
+
+        # Add the new unique ID to the set
+        existing_ids.add(text)
+
+        return text
+
     result_lines = []
     filename = Path(filename)
 
@@ -230,6 +255,7 @@ def generate_toc_with_links(filename: Path | str) -> str:
         yaml_md = f"---{parts[1]}---"
 
     # Generate TOC
+    existing_ids = set()
     lines = h.md.remove_yaml_and_code(document).splitlines()
     toc_lines = []
     for line in lines:
@@ -239,7 +265,8 @@ def generate_toc_with_links(filename: Path | str) -> str:
             # Extract the header text
             title = line[level:].strip()
             title = title.replace("<!-- top-section -->", "")
-            link = f"#{title.lower().replace(' ', '-').replace('(', '').replace(')', '')}"
+            text_link = generate_id(title, existing_ids)
+            link = f"#{text_link}"
             title_text = title.strip()
             # Form the table of contents entry
             toc_lines.append(f"{'  ' * (level - 2)}- [{title_text}]({link})")
@@ -292,3 +319,5 @@ def generate_toc_with_links(filename: Path | str) -> str:
         result_lines.append("File is not changed.")
 
     return "\n".join(result_lines)
+
+generate_toc_with_links(r"D:\Dropbox\Notes\Notes\IT_Dev\C++\C++-Сборник-рецептов.md")
