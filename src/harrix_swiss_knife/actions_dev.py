@@ -45,7 +45,7 @@ class on_npm_update_packages(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        commands = f"npm update npm -g\nnpm update -g"
+        commands = "npm update npm -g\nnpm update -g"
         output = h.dev.run_powershell_script(commands)
         self.add_line(output)
 
