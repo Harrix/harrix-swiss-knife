@@ -5,7 +5,7 @@ description = "Python + Node.js application for automating personal tasks in Win
 readme = "README.md"
 license = { file = "LICENSE.md" }
 authors = [
-    { name = "Sergienko Anton", email = "anton.b.sergienko@gmail.com" }
+    { name = "Anton Sergienko", email = "anton.b.sergienko@gmail.com" }
 ]
 requires-python = ">=3.12"
 dependencies = [
