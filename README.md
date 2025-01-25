@@ -6,6 +6,8 @@ This is a **personal** project tailored to **specific personal** tasks.
 
 ![GitHub](https://img.shields.io/github/license/Harrix/harrix-swiss-knife)
 
+GitHub: <https://github.com/Harrix/harrix-swiss-knife>.
+
 This project provides an application with a context menu in the system tray, featuring mini-programs designed to automate specific personal tasks. The project is intended for use on Windows.
 
 ![Screenshot](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/screenshoot.png)
