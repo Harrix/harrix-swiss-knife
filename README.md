@@ -135,3 +135,7 @@ Example path for a shortcut:
 ```shell
 C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
+
+## License
+
+License: [MIT](https://github.com/Harrix/harrix-swiss-knife/blob/main/LICENSE.md).
