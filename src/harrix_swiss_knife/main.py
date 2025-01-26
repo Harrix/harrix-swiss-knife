@@ -48,6 +48,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, hsk.md.on_prettier_folder)
         self.add_item(self.menu_md, hsk.md.on_generate_toc)
         self.add_item(self.menu_md, hsk.md.on_generate_toc_folder)
+        self.add_item(self.menu_md, hsk.md.on_format_yaml)
 
         # Menu File operations
         self.menu_file = self.new_menu("File operations", "🪟")

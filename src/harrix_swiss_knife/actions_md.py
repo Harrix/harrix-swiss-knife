@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 import harrix_pylib as h
+import yaml
 
 from harrix_swiss_knife import action_base
 
@@ -95,7 +96,9 @@ class on_generate_toc(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        filename = self.get_open_filename("Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)")
+        filename = self.get_open_filename(
+            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)"
+        )
         if not filename:
             return
 
@@ -199,6 +202,22 @@ class on_prettier_folder(action_base.ActionBase):
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         output = h.dev.run_powershell_script(commands)
         self.add_line(output)
+
+
+class on_format_yaml(action_base.ActionBase):
+    icon: str = "✨"
+    title = "Format YAML"
+    is_show_output = True
+
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not folder_path:
+            return
+
+        try:
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+        except Exception as e:
+            self.add_line(f"❌ Error: {e}")
 
 
 class on_sort_sections(action_base.ActionBase):
