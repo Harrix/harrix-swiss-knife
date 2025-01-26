@@ -84,6 +84,8 @@ _Figure 1: Screenshot_
 
 - Run `uv sync`.
 
+- Run `uv sync --upgrade` (optional).
+
 - Run `npm i`.
 
 - Run `npm i -g npm-check-updates` and `npm i -g prettier` (or run `Dev` → `Install global NPM packages`).
@@ -108,6 +110,40 @@ CLI commands after installation.
 - `ruff format` — format the project's Python files.
 - `ruff check` — lint the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
+
+## Add a new action
+
+- Add a new action `class on_<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
+- If you need to show `output.txt` add line `is_show_output = True`.
+- In `main.py` add action `self.add_item(self.menu_<section>, hsk.md.on_<action>)` in `<section>`.
+- From `harrix-swiss-knife`, call the command `Python` → `Sort classes, methods, functions in PY files`.
+  and select folder `harrix-pylib`.
+
+Example an action:
+
+```python
+class on_sort_sections(action_base.ActionBase):
+    icon: str = "#"
+    title: str = "Sort sections in one MD"
+
+    def execute(self, *args, **kwargs):
+        filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        if not filename:
+            return
+
+        try:
+            self.add_line(h.md.sort_sections(filename))
+            self.add_line(h.md.add_image_captions(filename))
+        except Exception as e:
+            self.add_line(f"❌ Ошибка: {e}")
+```
+
+## Update `harrix-pylib`
+
+- Run `uv sync --upgrade`.
+- Change version in line `"harrix-pylib>=<version>"`
+- Run `uv sync --upgrade`.
+- Create a commit `⬆️ Update harrix-pylib`.
 
 ## Add file to a resource file
 
