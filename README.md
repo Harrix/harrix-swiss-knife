@@ -69,7 +69,7 @@ _Figure 1: Screenshot_
 
 ## Deploy on an empty machine (Windows)
 
-- Install [uv](https://docs.astral.sh/uv/) ([Установка и работа с uv (Python) в VSCode](https://github.com/Harrix/harrix.dev-articles-2025/blob/main/uv-vscode-python/uv-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
+- Install [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
 
 - Clone project:
 
