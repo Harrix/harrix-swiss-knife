@@ -115,7 +115,7 @@ CLI commands after installation.
 
 - Add a new action `class on_<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
 - Site for searching emojis <https://emojidb.org/>.
-- If you need to show `output.txt` add line `is_show_output = True` after `title: str = ...`.
+- If you need to display `output.txt` add the line `is_show_output = True` after `title: str = ...`.
 - In `main.py` add action `self.add_item(self.menu_<section>, hsk.md.on_<action>)` in `<section>`.
 - From `harrix-swiss-knife`, call the command `Python` → `Sort classes, methods, functions in PY files`.
   and select folder `harrix-pylib`.
