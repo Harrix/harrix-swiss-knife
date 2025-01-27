@@ -4,7 +4,31 @@ from PySide6.QtCore import Qt
 
 
 class MainWindow(QMainWindow):
+    """
+    The main window of the application that displays a menu and handles user interactions.
+
+    Attributes:
+
+    - `list_widget` (`QListWidget`): Widget to display the list of menu actions.
+    - `text_edit` (`QTextEdit`): Widget to display information about performed actions.
+    """
+
     def __init__(self, menu):
+        """
+        Initializes the `MainWindow` with the given menu.
+
+        Args:
+
+        - `menu` (`QMenu`): The menu whose actions will be displayed in the list widget.
+
+        Sets up the main window layout, initializes widgets, populates the list with menu actions,
+        and connects signals to their respective handlers.
+
+        Defaults:
+
+        - Window title is set to "Menu".
+        - Window size is set to 600x400 pixels.
+        """
         super().__init__()
 
         self.setWindowTitle("Menu")
@@ -30,10 +54,33 @@ class MainWindow(QMainWindow):
         self.list_widget.itemClicked.connect(self.on_item_clicked)
 
     def closeEvent(self, event):
+        """
+        Overrides the close event to hide the window instead of closing it.
+
+        Args:
+
+        - `event` (`QCloseEvent`): The close event triggered when the window is requested to close.
+
+        Prevents the window from closing and hides it instead.
+        """
         event.ignore()
         self.hide()
 
     def on_item_clicked(self, item):
+        """
+        Handles the event when an item in the list widget is clicked.
+
+        Args:
+
+        - `item` (`QListWidgetItem`): The item that was clicked.
+
+        If the associated action is a `QAction`, it triggers the action and logs the action's text
+        in the text edit widget.
+
+        Returns:
+
+        - None
+        """
         action = item.data(Qt.UserRole)
         if isinstance(action, QAction):
             # Trigger the action
@@ -42,6 +89,21 @@ class MainWindow(QMainWindow):
             self.text_edit.append(f"Action performed: {action.text()}")
 
     def populate_list(self, actions, indent_level=0):
+        """
+        Populates the list widget with actions, handling submenus recursively.
+
+        Args:
+
+        - `actions` (`list[QAction]`): A list of actions to add to the list widget.
+        - `indent_level` (`int`): The current indentation level for submenu actions. Defaults to `0`.
+
+        For each action, an item is created with appropriate indentation and icon. If the action
+        has a submenu, the text is made bold and the submenu actions are added recursively with increased indentation.
+
+        Returns:
+
+        - None
+        """
         for action in actions:
             item = QListWidgetItem()
             # Add indentation for submenus
