@@ -1,11 +1,12 @@
 import sys
 
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication, QSystemTrayIcon
+from PySide6.QtWidgets import QApplication
 
 import harrix_swiss_knife as hsk
 from harrix_swiss_knife import resources_rc  # noqa
 from harrix_swiss_knife import main_menu_base
+from harrix_swiss_knife import tray_icon
 
 
 class MainMenu(main_menu_base.MainMenuBase):
@@ -84,14 +85,13 @@ class MainMenu(main_menu_base.MainMenuBase):
 
 
 if __name__ == "__main__":
-    app: QApplication = QApplication(sys.argv)
+    app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
 
     main_menu = MainMenu()
 
-    tray_icon: QSystemTrayIcon = QSystemTrayIcon(QIcon(":/assets/logo.svg"), parent=app)
-    tray_icon.setContextMenu(main_menu.menu)
+    tray_icon = tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu, parent=app)
     tray_icon.setToolTip("harrix-swiss-knife")
     tray_icon.show()
     sys.exit(app.exec())
