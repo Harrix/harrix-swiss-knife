@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QMainWindow, QListWidget, QListWidgetItem, QTextEdit, QWidget, QHBoxLayout
+from PySide6.QtWidgets import QMainWindow, QListWidget, QListWidgetItem, QTextEdit, QWidget, QHBoxLayout, QSplitter
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 import harrix_pylib as h
@@ -35,13 +35,16 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout()
         central_widget.setLayout(layout)
 
-        # Create a QListWidget to display menu items
-        self.list_widget = QListWidget()
-        layout.addWidget(self.list_widget, 1)
+        splitter = QSplitter()
+        layout.addWidget(splitter)
 
-        # Add QTextEdit on the right
+        self.list_widget = QListWidget()
+        splitter.addWidget(self.list_widget)
+
         self.text_edit = QTextEdit()
-        layout.addWidget(self.text_edit, 2)
+        splitter.addWidget(self.text_edit)
+
+        splitter.setSizes([300, 700])
 
         # Populate QListWidget with actions from the menu
         self.populate_list(menu.actions())
