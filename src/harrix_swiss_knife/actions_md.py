@@ -90,6 +90,22 @@ class on_diary_new_with_images(action_base.ActionBase):
         self.add_line(output)
 
 
+class on_format_yaml(action_base.ActionBase):
+    icon: str = "✨"
+    title = "Format YAML"
+    is_show_output = True
+
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not folder_path:
+            return
+
+        try:
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+        except Exception as e:
+            self.add_line(f"❌ Error: {e}")
+
+
 class on_generate_toc(action_base.ActionBase):
     icon: str = "📑"
     title = "Generate TOC in one MD"
@@ -202,22 +218,6 @@ class on_prettier_folder(action_base.ActionBase):
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         output = h.dev.run_powershell_script(commands)
         self.add_line(output)
-
-
-class on_format_yaml(action_base.ActionBase):
-    icon: str = "✨"
-    title = "Format YAML"
-    is_show_output = True
-
-    def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
-        if not folder_path:
-            return
-
-        try:
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
 
 
 class on_sort_sections(action_base.ActionBase):
