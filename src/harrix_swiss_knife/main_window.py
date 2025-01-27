@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QListWidget, QListWidgetItem, QTextEdit, QWidget, QHBoxLayout
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
+import harrix_pylib as h
 
 
 class MainWindow(QMainWindow):
@@ -23,16 +24,11 @@ class MainWindow(QMainWindow):
 
         Sets up the main window layout, initializes widgets, populates the list with menu actions,
         and connects signals to their respective handlers.
-
-        Defaults:
-
-        - Window title is set to "Menu".
-        - Window size is set to 600x400 pixels.
         """
         super().__init__()
 
-        self.setWindowTitle("Menu")
-        self.resize(600, 400)
+        self.setWindowTitle("harrix-swiss-knife")
+        self.resize(1024, 800)
         # Main widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -86,7 +82,8 @@ class MainWindow(QMainWindow):
             # Trigger the action
             action.trigger()
             # Display information in QTextEdit
-            self.text_edit.append(f"Action performed: {action.text()}")
+            output_txt = (h.dev.get_project_root() / "temp/output.txt").read_text(encoding="utf8")
+            self.text_edit.setPlainText(output_txt)
 
     def populate_list(self, actions, indent_level=0):
         """
@@ -107,6 +104,8 @@ class MainWindow(QMainWindow):
         for action in actions:
             item = QListWidgetItem()
             # Add indentation for submenus
+            if not action.text():
+                continue
             text = ("    " * indent_level) + action.text()
             item.setText(text)
             if not action.icon().isNull():
