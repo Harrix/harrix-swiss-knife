@@ -80,6 +80,9 @@ class MainWindow(QMainWindow):
 
         - None
         """
+        # Check if the item is enabled
+        if not item.flags() & Qt.ItemIsSelectable:
+            return  # Do nothing if the item is disabled
         action = item.data(Qt.UserRole)
         if isinstance(action, QAction):
             # Trigger the action
@@ -105,23 +108,28 @@ class MainWindow(QMainWindow):
         - None
         """
         for action in actions:
-            item = QListWidgetItem()
-            # Add indentation for submenus
             if not action.text():
                 continue
+            item = QListWidgetItem()
+            # Add indentation for submenus
             text = ("    " * indent_level) + action.text()
             item.setText(text)
             if not action.icon().isNull():
                 item.setIcon(action.icon())
-            item.setData(Qt.UserRole, action)
 
-            self.list_widget.addItem(item)
-
-            # Check if the action has a submenu
             if action.menu() is not None:
+                # The action has a submenu
                 # Make the text bold
                 font = item.font()
                 font.setBold(True)
                 item.setFont(font)
+                # Set the item flags to make it not selectable and disabled
+                item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+                # Do not set UserRole data for this item
+                self.list_widget.addItem(item)
                 # Recursively add actions from the submenu
                 self.populate_list(action.menu().actions(), indent_level + 1)
+            else:
+                # Regular action without submenu
+                item.setData(Qt.UserRole, action)
+                self.list_widget.addItem(item)
