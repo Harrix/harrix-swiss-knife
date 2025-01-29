@@ -10,6 +10,10 @@ from PySide6.QtCore import Qt, QDateTime, QModelIndex, QSortFilterProxyModel
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QFont, QAction
 from collections import defaultdict
 
+import harrix_pylib as h
+
+config = h.dev.load_config("config/config.json")
+
 class SetOfExercise:
     def __init__(self, name_exercises, type_types, value, date):
         self.name_exercises = name_exercises
@@ -259,11 +263,10 @@ class MainWindow(QMainWindow):
         self.pushButton_export_csv.clicked.connect(self.on_pushButton_18_clicked)
 
     def init_database(self):
-        path = "C:\\Harrix\\Dropbox\\Database"
-        filename = os.path.join(path, "HarrixSport.db")
+        filename = config["sqlite_sport"]
 
         if not os.path.exists(filename):
-            filename, _ = QFileDialog.getOpenFileName(self, "Открыть базу данных", path, "База данных SQLite (*.db)")
+            filename, _ = QFileDialog.getOpenFileName(self, "Открыть базу данных", filename.parent, "База данных SQLite (*.db)")
 
         self.db = QSqlDatabase.addDatabase("QSQLITE")
         self.db.setDatabaseName(filename)
