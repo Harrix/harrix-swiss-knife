@@ -11,6 +11,8 @@ from PySide6.QtGui import QStandardItemModel, QStandardItem, QFont, QAction
 from collections import defaultdict
 
 import harrix_pylib as h
+import harrix_swiss_knife as hsk
+
 
 config = h.dev.load_config("config/config.json")
 
@@ -30,12 +32,13 @@ class SetOfExercise:
 def compare(set1, set2):
     return set1.value < set2.value
 
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
     def __init__(self):
         super().__init__()
+        self.setupUi(self)
 
-        self.setWindowTitle("Harrix Sport")
-        self.resize(800, 600)
+        # self.setWindowTitle("Harrix Sport")
+        # self.resize(800, 600)
 
         self.db = None
         self.model_process = None
@@ -43,81 +46,28 @@ class MainWindow(QMainWindow):
         self.model_types = None
         self.model_weight = None
 
-        self.create_widgets()
         self.init_database()
         self.update_all()
 
     def create_widgets(self):
-        # Создаем вкладки
-        self.tabWidget = QTabWidget()
         self.setCentralWidget(self.tabWidget)
 
         # Вкладка Process
-        self.tab_process = QWidget()
         self.create_tab_process()
-        self.tabWidget.addTab(self.tab_process, "Process")
 
         # Вкладка Exercises
-        self.tab_exercises = QWidget()
         self.create_tab_exercises()
-        self.tabWidget.addTab(self.tab_exercises, "Exercises")
 
         # Вкладка Types
-        self.tab_types = QWidget()
         self.create_tab_types()
-        self.tabWidget.addTab(self.tab_types, "Types")
 
         # Вкладка Weight
-        self.tab_weight = QWidget()
         self.create_tab_weight()
-        self.tabWidget.addTab(self.tab_weight, "Weight")
 
         # Вкладка Statistics
-        self.tab_statistics = QWidget()
         self.create_tab_statistics()
-        self.tabWidget.addTab(self.tab_statistics, "Statistics")
 
     def create_tab_process(self):
-        layout = QVBoxLayout()
-
-        # Верхняя панель с вводом данных
-        input_layout = QGridLayout()
-
-        self.comboBox = QComboBox()
-        self.comboBox_2 = QComboBox()
-        self.spinBox = QSpinBox()
-        self.spinBox.setMaximum(1000000)
-        self.lineEdit = QLineEdit()
-        self.lineEdit.setPlaceholderText("yyyy-MM-dd")
-
-        self.pushButton_add = QPushButton("Add")
-        self.pushButton_delete = QPushButton("Delete")
-        self.pushButton_update = QPushButton("Update Selected")
-        self.pushButton_refresh = QPushButton("Refresh")
-
-        input_layout.addWidget(QLabel("Exercise:"), 0, 0)
-        input_layout.addWidget(self.comboBox, 0, 1)
-        input_layout.addWidget(QLabel("Type:"), 0, 2)
-        input_layout.addWidget(self.comboBox_2, 0, 3)
-
-        input_layout.addWidget(QLabel("Value:"), 1, 0)
-        input_layout.addWidget(self.spinBox, 1, 1)
-        input_layout.addWidget(QLabel("Date:"), 1, 2)
-        input_layout.addWidget(self.lineEdit, 1, 3)
-
-        input_layout.addWidget(self.pushButton_add, 2, 0)
-        input_layout.addWidget(self.pushButton_delete, 2, 1)
-        input_layout.addWidget(self.pushButton_update, 2, 2)
-        input_layout.addWidget(self.pushButton_refresh, 2, 3)
-
-        layout.addLayout(input_layout)
-
-        # Таблица
-        self.tableView = QTableView()
-        layout.addWidget(self.tableView)
-
-        self.tab_process.setLayout(layout)
-
         # Подключаем сигналы
         self.comboBox.currentIndexChanged.connect(self.on_comboBox_currentIndexChanged)
         self.pushButton_add.clicked.connect(self.on_pushButton_clicked)
@@ -126,37 +76,6 @@ class MainWindow(QMainWindow):
         self.pushButton_refresh.clicked.connect(self.on_pushButton_4_clicked)
 
     def create_tab_exercises(self):
-        layout = QVBoxLayout()
-
-        # Верхняя панель с вводом данных
-        input_layout = QGridLayout()
-
-        self.lineEdit_4 = QLineEdit()
-        self.lineEdit_5 = QLineEdit()
-
-        self.pushButton_exercise_add = QPushButton("Add Exercise")
-        self.pushButton_exercise_delete = QPushButton("Delete Selected")
-        self.pushButton_exercise_update = QPushButton("Update Selected")
-        self.pushButton_exercise_refresh = QPushButton("Refresh")
-
-        input_layout.addWidget(QLabel("Exercise Name:"), 0, 0)
-        input_layout.addWidget(self.lineEdit_4, 0, 1)
-        input_layout.addWidget(QLabel("Unit:"), 0, 2)
-        input_layout.addWidget(self.lineEdit_5, 0, 3)
-
-        input_layout.addWidget(self.pushButton_exercise_add, 1, 0)
-        input_layout.addWidget(self.pushButton_exercise_delete, 1, 1)
-        input_layout.addWidget(self.pushButton_exercise_update, 1, 2)
-        input_layout.addWidget(self.pushButton_exercise_refresh, 1, 3)
-
-        layout.addLayout(input_layout)
-
-        # Таблица
-        self.tableView_2 = QTableView()
-        layout.addWidget(self.tableView_2)
-
-        self.tab_exercises.setLayout(layout)
-
         # Подключаем сигналы
         self.pushButton_exercise_add.clicked.connect(self.on_pushButton_12_clicked)
         self.pushButton_exercise_delete.clicked.connect(self.on_pushButton_9_clicked)
@@ -164,37 +83,6 @@ class MainWindow(QMainWindow):
         self.pushButton_exercise_refresh.clicked.connect(self.on_pushButton_11_clicked)
 
     def create_tab_types(self):
-        layout = QVBoxLayout()
-
-        # Верхняя панель с вводом данных
-        input_layout = QGridLayout()
-
-        self.comboBox_3 = QComboBox()
-        self.lineEdit_6 = QLineEdit()
-
-        self.pushButton_type_add = QPushButton("Add Type")
-        self.pushButton_type_delete = QPushButton("Delete Selected")
-        self.pushButton_type_update = QPushButton("Update Selected")
-        self.pushButton_type_refresh = QPushButton("Refresh")
-
-        input_layout.addWidget(QLabel("Exercise:"), 0, 0)
-        input_layout.addWidget(self.comboBox_3, 0, 1)
-        input_layout.addWidget(QLabel("Type Name:"), 0, 2)
-        input_layout.addWidget(self.lineEdit_6, 0, 3)
-
-        input_layout.addWidget(self.pushButton_type_add, 1, 0)
-        input_layout.addWidget(self.pushButton_type_delete, 1, 1)
-        input_layout.addWidget(self.pushButton_type_update, 1, 2)
-        input_layout.addWidget(self.pushButton_type_refresh, 1, 3)
-
-        layout.addLayout(input_layout)
-
-        # Таблица
-        self.tableView_3 = QTableView()
-        layout.addWidget(self.tableView_3)
-
-        self.tab_types.setLayout(layout)
-
         # Подключаем сигналы
         self.pushButton_type_add.clicked.connect(self.on_pushButton_13_clicked)
         self.pushButton_type_delete.clicked.connect(self.on_pushButton_14_clicked)
@@ -202,39 +90,6 @@ class MainWindow(QMainWindow):
         self.pushButton_type_refresh.clicked.connect(self.on_pushButton_16_clicked)
 
     def create_tab_weight(self):
-        layout = QVBoxLayout()
-
-        # Верхняя панель с вводом данных
-        input_layout = QGridLayout()
-
-        self.doubleSpinBox = QDoubleSpinBox()
-        self.doubleSpinBox.setMaximum(1000)
-        self.lineEdit_3 = QLineEdit()
-        self.lineEdit_3.setPlaceholderText("yyyy-MM-dd")
-
-        self.pushButton_weight_add = QPushButton("Add Weight")
-        self.pushButton_weight_delete = QPushButton("Delete Selected")
-        self.pushButton_weight_update = QPushButton("Update Selected")
-        self.pushButton_weight_refresh = QPushButton("Refresh")
-
-        input_layout.addWidget(QLabel("Weight:"), 0, 0)
-        input_layout.addWidget(self.doubleSpinBox, 0, 1)
-        input_layout.addWidget(QLabel("Date:"), 0, 2)
-        input_layout.addWidget(self.lineEdit_3, 0, 3)
-
-        input_layout.addWidget(self.pushButton_weight_add, 1, 0)
-        input_layout.addWidget(self.pushButton_weight_delete, 1, 1)
-        input_layout.addWidget(self.pushButton_weight_update, 1, 2)
-        input_layout.addWidget(self.pushButton_weight_refresh, 1, 3)
-
-        layout.addLayout(input_layout)
-
-        # Таблица
-        self.tableView_4 = QTableView()
-        layout.addWidget(self.tableView_4)
-
-        self.tab_weight.setLayout(layout)
-
         # Подключаем сигналы
         self.pushButton_weight_add.clicked.connect(self.on_pushButton_5_clicked)
         self.pushButton_weight_delete.clicked.connect(self.on_pushButton_6_clicked)
@@ -242,22 +97,6 @@ class MainWindow(QMainWindow):
         self.pushButton_weight_refresh.clicked.connect(self.on_pushButton_8_clicked)
 
     def create_tab_statistics(self):
-        layout = QVBoxLayout()
-
-        self.pushButton_statistics_refresh = QPushButton("Generate Statistics")
-        self.pushButton_export_csv = QPushButton("Export CSV")
-
-        layout_buttons = QHBoxLayout()
-        layout_buttons.addWidget(self.pushButton_statistics_refresh)
-        layout_buttons.addWidget(self.pushButton_export_csv)
-
-        layout.addLayout(layout_buttons)
-
-        self.textEdit = QTextEdit()
-        layout.addWidget(self.textEdit)
-
-        self.tab_statistics.setLayout(layout)
-
         # Подключаем сигналы
         self.pushButton_statistics_refresh.clicked.connect(self.on_pushButton_19_clicked)
         self.pushButton_export_csv.clicked.connect(self.on_pushButton_18_clicked)
