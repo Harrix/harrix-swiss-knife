@@ -13,11 +13,15 @@ class MainMenu(main_menu_base.MainMenuBase):
         super().__init__()
 
         # Menu Dev
-        self.menu_dev = self.new_menu("Dev", "💻")
+        self.menu_dev = self.new_menu("Dev", "🛠️")
         self.add_item(self.menu_dev, hsk.dev.on_get_menu)
         self.add_item(self.menu_dev, hsk.dev.on_open_config_json)
         self.add_item(self.menu_dev, hsk.dev.on_npm_install_packages)
         self.add_item(self.menu_dev, hsk.dev.on_npm_update_packages)
+
+        # Menu Apps
+        self.menu_apps = self.new_menu("Apps", "💻")
+        self.add_item(self.menu_apps, hsk.apps.on_fitness)
 
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
@@ -72,6 +76,7 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # MainMenu
         self.menu.addMenu(self.menu_dev)
+        self.menu.addMenu(self.menu_apps)
         self.menu.addMenu(self.menu_images)
         self.menu.addMenu(self.menu_file)
         self.menu.addMenu(self.menu_md)
