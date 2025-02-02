@@ -1,13 +1,9 @@
 import sys
 import os
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QLineEdit, QPushButton, QComboBox,
-    QSpinBox, QDoubleSpinBox, QTextEdit, QMessageBox, QFileDialog, QTabWidget,
-    QVBoxLayout, QHBoxLayout, QTableView, QTableWidgetItem, QHeaderView, QGridLayout
-)
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
-from PySide6.QtCore import Qt, QDateTime, QModelIndex, QSortFilterProxyModel
-from PySide6.QtGui import QStandardItemModel, QStandardItem, QFont, QAction
+from PySide6.QtCore import Qt, QDateTime, QSortFilterProxyModel
+from PySide6.QtGui import QStandardItemModel, QStandardItem
 from collections import defaultdict
 
 import harrix_pylib as h
@@ -37,9 +33,6 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
-        # self.setWindowTitle("Harrix Sport")
-        # self.resize(800, 600)
-
         self.db = None
         self.model_process = None
         self.model_exercises = None
@@ -49,57 +42,25 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         self.init_database()
         self.update_all()
 
-    def create_widgets(self):
-        self.setCentralWidget(self.tabWidget)
-
-        # Вкладка Process
-        self.create_tab_process()
-
-        # Вкладка Exercises
-        self.create_tab_exercises()
-
-        # Вкладка Types
-        self.create_tab_types()
-
-        # Вкладка Weight
-        self.create_tab_weight()
-
-        # Вкладка Statistics
-        self.create_tab_statistics()
-
-    def create_tab_process(self):
-        # Подключаем сигналы
         self.comboBox.currentIndexChanged.connect(self.on_comboBox_currentIndexChanged)
-        self.pushButton_add.clicked.connect(self.on_pushButton_clicked)
-        self.pushButton_delete.clicked.connect(self.on_pushButton_2_clicked)
-        self.pushButton_update.clicked.connect(self.on_pushButton_3_clicked)
-        self.pushButton_refresh.clicked.connect(self.on_pushButton_4_clicked)
-
-    def create_tab_exercises(self):
-        # Подключаем сигналы
-        self.pushButton_exercise_add.clicked.connect(self.on_pushButton_12_clicked)
-        self.pushButton_exercise_delete.clicked.connect(self.on_pushButton_9_clicked)
-        self.pushButton_exercise_update.clicked.connect(self.on_pushButton_10_clicked)
-        self.pushButton_exercise_refresh.clicked.connect(self.on_pushButton_11_clicked)
-
-    def create_tab_types(self):
-        # Подключаем сигналы
-        self.pushButton_type_add.clicked.connect(self.on_pushButton_13_clicked)
-        self.pushButton_type_delete.clicked.connect(self.on_pushButton_14_clicked)
-        self.pushButton_type_update.clicked.connect(self.on_pushButton_15_clicked)
-        self.pushButton_type_refresh.clicked.connect(self.on_pushButton_16_clicked)
-
-    def create_tab_weight(self):
-        # Подключаем сигналы
-        self.pushButton_weight_add.clicked.connect(self.on_pushButton_5_clicked)
-        self.pushButton_weight_delete.clicked.connect(self.on_pushButton_6_clicked)
-        self.pushButton_weight_update.clicked.connect(self.on_pushButton_7_clicked)
-        self.pushButton_weight_refresh.clicked.connect(self.on_pushButton_8_clicked)
-
-    def create_tab_statistics(self):
-        # Подключаем сигналы
-        self.pushButton_statistics_refresh.clicked.connect(self.on_pushButton_19_clicked)
-        self.pushButton_export_csv.clicked.connect(self.on_pushButton_18_clicked)
+        self.pushButton_add.clicked.connect(self.on_pushButton_add_clicked)
+        self.pushButton_delete.clicked.connect(self.on_pushButton_delete_clicked)
+        self.pushButton_update.clicked.connect(self.on_pushButton_update_clicked)
+        self.pushButton_refresh.clicked.connect(self.on_pushButton_refresh_clicked)
+        self.pushButton_exercise_add.clicked.connect(self.on_pushButton_exercise_add_clicked)
+        self.pushButton_exercise_delete.clicked.connect(self.on_pushButton_exercise_delete_clicked)
+        self.pushButton_exercise_update.clicked.connect(self.on_pushButton_exercise_update_clicked)
+        self.pushButton_exercise_refresh.clicked.connect(self.on_pushButton_exercise_refresh_clicked)
+        self.pushButton_type_add.clicked.connect(self.on_pushButton_type_add_clicked)
+        self.pushButton_type_delete.clicked.connect(self.on_pushButton_type_delete_clicked)
+        self.pushButton_type_update.clicked.connect(self.on_pushButton_type_update_clicked)
+        self.pushButton_type_refresh.clicked.connect(self.on_pushButton_type_refresh_clicked)
+        self.pushButton_weight_add.clicked.connect(self.on_pushButton_weight_add_clicked)
+        self.pushButton_weight_delete.clicked.connect(self.on_pushButton_weight_delete_clicked)
+        self.pushButton_weight_update.clicked.connect(self.on_pushButton_weight_update_clicked)
+        self.pushButton_weight_refresh.clicked.connect(self.on_pushButton_weight_refresh_clicked)
+        self.pushButton_statistics_refresh.clicked.connect(self.on_pushButton_statistics_refresh_clicked)
+        self.pushButton_export_csv.clicked.connect(self.on_pushButton_export_csv_clicked)
 
     def init_database(self):
         filename = config["sqlite_sport"]
@@ -330,7 +291,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         # Обработка изменения данных в таблице
         pass  # Можно добавить ваш код, если нужно
 
-    def on_pushButton_clicked(self):
+    def on_pushButton_add_clicked(self):
         exercise = self.comboBox.currentText()
         type_name = self.comboBox_2.currentText()
         value = str(self.spinBox.value())
@@ -371,7 +332,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_2_clicked(self):
+    def on_pushButton_delete_clicked(self):
         index = self.tableView.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Ошибка", "Выберите запись для удаления")
@@ -389,7 +350,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_3_clicked(self):
+    def on_pushButton_update_clicked(self):
         index = self.tableView.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Ошибка", "Выберите запись для обновления")
@@ -446,10 +407,10 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_4_clicked(self):
+    def on_pushButton_refresh_clicked(self):
         self.update_all()
 
-    def on_pushButton_12_clicked(self):
+    def on_pushButton_exercise_add_clicked(self):
         exercise = self.lineEdit_4.text()
         unit = self.lineEdit_5.text()
 
@@ -466,7 +427,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_9_clicked(self):
+    def on_pushButton_exercise_delete_clicked(self):
         index = self.tableView_2.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Ошибка", "Выберите упражнение для удаления")
@@ -484,16 +445,16 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_11_clicked(self):
+    def on_pushButton_exercise_refresh_clicked(self):
         self.update_all()
 
-    def on_pushButton_16_clicked(self):
+    def on_pushButton_type_refresh_clicked(self):
         self.update_all()
 
-    def on_pushButton_8_clicked(self):
+    def on_pushButton_weight_refresh_clicked(self):
         self.update_all()
 
-    def on_pushButton_14_clicked(self):
+    def on_pushButton_type_delete_clicked(self):
         index = self.tableView_3.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Ошибка", "Выберите тип для удаления")
@@ -511,7 +472,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_6_clicked(self):
+    def on_pushButton_weight_delete_clicked(self):
         index = self.tableView_4.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Ошибка", "Выберите запись веса для удаления")
@@ -529,7 +490,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_10_clicked(self):
+    def on_pushButton_exercise_update_clicked(self):
         index = self.tableView_2.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Ошибка", "Выберите упражнение для обновления")
@@ -553,7 +514,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_5_clicked(self):
+    def on_pushButton_weight_add_clicked(self):
         value = str(self.doubleSpinBox.value())
         date = self.lineEdit_3.text()
 
@@ -570,7 +531,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_7_clicked(self):
+    def on_pushButton_weight_update_clicked(self):
         index = self.tableView_4.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Ошибка", "Выберите запись веса для обновления")
@@ -594,7 +555,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_13_clicked(self):
+    def on_pushButton_type_add_clicked(self):
         exercise = self.comboBox_3.currentText()
         type_name = self.lineEdit_6.text()
 
@@ -625,7 +586,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.update_all()
 
-    def on_pushButton_15_clicked(self):
+    def on_pushButton_type_update_clicked(self):
         index = self.tableView_3.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Ошибка", "Выберите тип для обновления")
@@ -685,12 +646,12 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
                 f.write(";".join(row_data) + "\n")
         print("CSV сохранен")
 
-    def on_pushButton_18_clicked(self):
+    def on_pushButton_export_csv_clicked(self):
         filename, _ = QFileDialog.getSaveFileName(self, "Сохранить таблицу", "", "CSV (*.csv)")
         if filename:
             self.save_as_csv(filename)
 
-    def on_pushButton_19_clicked(self):
+    def on_pushButton_statistics_refresh_clicked(self):
         self.textEdit.clear()
 
         query = QSqlQuery()
