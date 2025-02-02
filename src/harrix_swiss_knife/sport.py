@@ -63,10 +63,6 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         else:
             print("Failed to open the database")
 
-    def onDataChanged(self, topLeft, bottomRight):
-        # Handle data changes in the table
-        pass  # You can add your code here if needed
-
     def on_comboBox_currentIndexChanged(self):
         arg1 = self.comboBox.currentText()
         query = QSqlQuery()
@@ -604,9 +600,6 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         self.model_process.setSourceModel(model)
         self.tableView.setModel(self.model_process)
         self.tableView.resizeColumnsToContents()
-
-        # Connect signal for dataChanged
-        self.model_process.dataChanged.connect(self.onDataChanged)
 
     def show_types(self):
         query = QSqlQuery()
