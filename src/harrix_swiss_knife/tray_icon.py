@@ -1,6 +1,5 @@
 from PySide6.QtWidgets import QSystemTrayIcon
 
-
 from harrix_swiss_knife import main_window
 
 

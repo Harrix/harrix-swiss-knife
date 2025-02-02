@@ -1,7 +1,7 @@
-from PySide6.QtWidgets import QMainWindow, QListWidget, QListWidgetItem, QTextEdit, QWidget, QHBoxLayout, QSplitter
-from PySide6.QtGui import QAction
-from PySide6.QtCore import Qt
 import harrix_pylib as h
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QMainWindow, QSplitter, QTextEdit, QWidget
 
 
 class MainWindow(QMainWindow):
