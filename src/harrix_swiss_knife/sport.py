@@ -9,7 +9,7 @@ from collections import defaultdict
 import harrix_pylib as h
 import harrix_swiss_knife as hsk
 
-
+# Load configuration
 config = h.dev.load_config("config/config.json")
 
 class SetOfExercise:
@@ -66,15 +66,15 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         filename = config["sqlite_sport"]
 
         if not os.path.exists(filename):
-            filename, _ = QFileDialog.getOpenFileName(self, "Открыть базу данных", filename.parent, "База данных SQLite (*.db)")
+            filename, _ = QFileDialog.getOpenFileName(self, "Open Database", os.path.dirname(filename), "SQLite Database (*.db)")
 
         self.db = QSqlDatabase.addDatabase("QSQLITE")
         self.db.setDatabaseName(filename)
 
         if self.db.open():
-            print("База данных открылась")
+            print("Database opened successfully")
         else:
-            print("База данных не открылась")
+            print("Failed to open the database")
 
     def update_all(self):
         self.show_process()
@@ -87,7 +87,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         query_text = "SELECT * FROM exercises"
         if not query.exec(query_text):
-            print("Ошибка при работе с таблицей «exercises»")
+            print("Error accessing the 'exercises' table")
             return
 
         self.comboBox.clear()
@@ -108,55 +108,55 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         subquery = QSqlQuery()
         query_text = "SELECT * FROM process ORDER BY _id DESC"
         if not query.exec(query_text):
-            print("Ошибка при показе таблицы «process»")
+            print("Error displaying the 'process' table")
             return
 
         model = QStandardItemModel()
 
-        # Заголовки
-        model.setHorizontalHeaderLabels(["Упражнение", "Тип упражнения", "Сколько сделал", "Дата"])
+        # Headers
+        model.setHorizontalHeaderLabels(["Exercise", "Exercise Type", "Quantity", "Date"])
 
         i = 0
         while query.next():
-            # Получаем значения из запроса
+            # Retrieve values from the query
             _id = query.value(0)
             _id_exercises = query.value(1)
             _id_types = query.value(2)
             value = query.value(3)
             date = query.value(4)
 
-            # Преобразуем в строки, если необходимо
+            # Convert to strings if necessary
             _id_exercises = str(_id_exercises)
             _id_types = str(_id_types)
             value = str(value)
             date = str(date)
 
-            # Получаем название упражнения
+            # Get the exercise name
             subquery_text = f"SELECT name, unit FROM exercises WHERE _id = {_id_exercises}"
             if not subquery.exec(subquery_text):
-                print(f"Ошибка при получении упражнения с _id = {_id_exercises}")
+                print(f"Error retrieving exercise with _id = {_id_exercises}")
                 continue
             subquery.next()
             name_exercises = subquery.value(0)
             unit_exercises = subquery.value(1)
             if not unit_exercises:
-                unit_exercises = "раз"
+                unit_exercises = "times"
 
-            # Получаем тип упражнения
+            # Get the exercise type
             if _id_types and _id_types != "-1":
                 subquery_text = f"SELECT type FROM types WHERE _id = {_id_types} AND _id_exercises = {_id_exercises}"
                 if not subquery.exec(subquery_text):
-                    print(f"Ошибка при получении типа с _id = {_id_types}")
-                    type_types = "[Без типа]"
+                    print(f"Error retrieving type with _id = {_id_types}")
+                    type_types = "[No Type]"
                 else:
                     if subquery.next():
                         type_types = subquery.value(0)
                     else:
-                        type_types = "[Без типа]"
+                        type_types = "[No Type]"
             else:
-                type_types = "[Без типа]"
+                type_types = "[No Type]"
 
-            # Добавляем в модель
+            # Add to the model
             item_exercise = QStandardItem(name_exercises)
             item_type = QStandardItem(type_types)
             item_value = QStandardItem(f"{value} {unit_exercises}")
@@ -171,18 +171,18 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         self.tableView.setModel(self.model_process)
         self.tableView.resizeColumnsToContents()
 
-        # Подключаем сигнал для dataChanged
+        # Connect signal for dataChanged
         self.model_process.dataChanged.connect(self.onDataChanged)
 
     def show_exercises(self):
         query = QSqlQuery()
         query_text = "SELECT * FROM exercises"
         if not query.exec(query_text):
-            print("Ошибка при показе таблицы «exercises»")
+            print("Error displaying the 'exercises' table")
             return
 
         model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Упражнение", "Единица измерения"])
+        model.setHorizontalHeaderLabels(["Exercise", "Unit of Measurement"])
 
         i = 0
         while query.next():
@@ -207,11 +207,11 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         subquery = QSqlQuery()
         query_text = "SELECT * FROM types"
         if not query.exec(query_text):
-            print("Ошибка при показе таблицы «types»")
+            print("Error displaying the 'types' table")
             return
 
         model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Упражнение", "Тип упражнения"])
+        model.setHorizontalHeaderLabels(["Exercise", "Exercise Type"])
 
         i = 0
         while query.next():
@@ -219,10 +219,10 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
             _id_exercises = query.value(1)
             type_name = query.value(2)
 
-            # Получаем название упражнения
+            # Get the exercise name
             subquery_text = f"SELECT name FROM exercises WHERE _id = {_id_exercises}"
             if not subquery.exec(subquery_text):
-                print(f"Ошибка при получении упражнения с _id = {_id_exercises}")
+                print(f"Error retrieving exercise with _id = {_id_exercises}")
                 continue
             subquery.next()
             name_exercises = subquery.value(0)
@@ -243,11 +243,11 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         query_text = "SELECT * FROM weight"
         if not query.exec(query_text):
-            print("Ошибка при показе таблицы «weight»")
+            print("Error displaying the 'weight' table")
             return
 
         model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Вес", "Дата"])
+        model.setHorizontalHeaderLabels(["Weight", "Date"])
 
         i = 0
         while query.next():
@@ -278,18 +278,18 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
                 subquery_text = f"SELECT * FROM types WHERE _id_exercises = {_id}"
                 if subquery.exec(subquery_text):
                     self.comboBox_2.clear()
-                    self.comboBox_2.addItem("[Без типа]")
+                    self.comboBox_2.addItem("[No Type]")
                     while subquery.next():
                         type_name = subquery.value(2)
                         self.comboBox_2.addItem(type_name)
             else:
-                print("Упражнение не найдено")
+                print("Exercise not found")
         else:
-            print("Ошибка при работе с таблицей «exercises»")
+            print("Error accessing the 'exercises' table")
 
     def onDataChanged(self, topLeft, bottomRight):
-        # Обработка изменения данных в таблице
-        pass  # Можно добавить ваш код, если нужно
+        # Handle data changes in the table
+        pass  # You can add your code here if needed
 
     def on_pushButton_add_clicked(self):
         exercise = self.comboBox.currentText()
@@ -300,20 +300,20 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         subquery = QSqlQuery()
 
-        # Получаем _id_exercises
+        # Get _id_exercises
         query_text = f"SELECT * FROM exercises WHERE name = '{exercise}'"
         if query.exec(query_text):
             if query.next():
                 _id_exercises = query.value(0)
             else:
-                print("Упражнение не найдено")
+                print("Exercise not found")
                 return
         else:
-            print("Ошибка при получении _id_exercises")
+            print("Error retrieving _id_exercises")
             return
 
-        # Получаем _id_types
-        if type_name != "[Без типа]":
+        # Get _id_types
+        if type_name != "[No Type]":
             subquery_text = f"SELECT * FROM types WHERE type = '{type_name}' AND _id_exercises = {_id_exercises}"
             subquery.exec(subquery_text)
             if subquery.next():
@@ -323,19 +323,19 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         else:
             _id_types = "-1"
 
-        # Вставляем новую запись в process
+        # Insert a new record into process
         insert_text = f"INSERT INTO process (_id_exercises, _id_types, value, date) VALUES({_id_exercises}, '{_id_types}', '{value}', '{date}')"
         if query.exec(insert_text):
-            print("Запись добавлена")
+            print("Record added")
         else:
-            print("Ошибка при добавлении записи")
+            print("Error adding record")
 
         self.update_all()
 
     def on_pushButton_delete_clicked(self):
         index = self.tableView.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Ошибка", "Выберите запись для удаления")
+            QMessageBox.warning(self, "Error", "Select a record to delete")
             return
 
         row = index.row()
@@ -344,16 +344,16 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         delete_text = f"DELETE FROM process WHERE _id = {_id}"
         if query.exec(delete_text):
-            print("Запись удалена")
+            print("Record deleted")
         else:
-            print("Ошибка при удалении записи")
+            print("Error deleting record")
 
         self.update_all()
 
     def on_pushButton_update_clicked(self):
         index = self.tableView.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Ошибка", "Выберите запись для обновления")
+            QMessageBox.warning(self, "Error", "Select a record to update")
             return
 
         row = index.row()
@@ -375,20 +375,20 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         subquery = QSqlQuery()
 
-        # Получаем _id_exercises
+        # Get _id_exercises
         query_text = f"SELECT * FROM exercises WHERE name = '{exercise}'"
         if query.exec(query_text):
             if query.next():
                 _id_exercises = query.value(0)
             else:
-                print("Упражнение не найдено")
+                print("Exercise not found")
                 return
         else:
-            print("Ошибка при получении _id_exercises")
+            print("Error retrieving _id_exercises")
             return
 
-        # Получаем _id_types
-        if type_name and type_name != "[Без типа]":
+        # Get _id_types
+        if type_name and type_name != "[No Type]":
             subquery_text = f"SELECT * FROM types WHERE type = '{type_name}' AND _id_exercises = {_id_exercises}"
             subquery.exec(subquery_text)
             if subquery.next():
@@ -398,12 +398,12 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         else:
             _id_types = "-1"
 
-        # Обновляем запись
+        # Update the record
         update_text = f"UPDATE process SET _id_exercises = {_id_exercises}, _id_types = {_id_types}, date = '{date}', value = '{value}' WHERE _id = {_id}"
         if query.exec(update_text):
-            print("Запись обновлена")
+            print("Record updated")
         else:
-            print("Ошибка при обновлении записи")
+            print("Error updating record")
 
         self.update_all()
 
@@ -415,22 +415,22 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         unit = self.lineEdit_5.text()
 
         if not exercise:
-            QMessageBox.warning(self, "Ошибка", "Введите название упражнения")
+            QMessageBox.warning(self, "Error", "Enter exercise name")
             return
 
         query = QSqlQuery()
         insert_text = f"INSERT INTO exercises (name, unit) VALUES('{exercise}', '{unit}')"
         if query.exec(insert_text):
-            print("Упражнение добавлено")
+            print("Exercise added")
         else:
-            print("Ошибка при добавлении упражнения")
+            print("Error adding exercise")
 
         self.update_all()
 
     def on_pushButton_exercise_delete_clicked(self):
         index = self.tableView_2.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Ошибка", "Выберите упражнение для удаления")
+            QMessageBox.warning(self, "Error", "Select an exercise to delete")
             return
 
         row = index.row()
@@ -439,9 +439,9 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         delete_text = f"DELETE FROM exercises WHERE _id = {_id}"
         if query.exec(delete_text):
-            print("Упражнение удалено")
+            print("Exercise deleted")
         else:
-            print("Ошибка при удалении упражнения")
+            print("Error deleting exercise")
 
         self.update_all()
 
@@ -457,7 +457,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
     def on_pushButton_type_delete_clicked(self):
         index = self.tableView_3.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Ошибка", "Выберите тип для удаления")
+            QMessageBox.warning(self, "Error", "Select a type to delete")
             return
 
         row = index.row()
@@ -466,16 +466,16 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         delete_text = f"DELETE FROM types WHERE _id = {_id}"
         if query.exec(delete_text):
-            print("Тип удален")
+            print("Type deleted")
         else:
-            print("Ошибка при удалении типа")
+            print("Error deleting type")
 
         self.update_all()
 
     def on_pushButton_weight_delete_clicked(self):
         index = self.tableView_4.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Ошибка", "Выберите запись веса для удаления")
+            QMessageBox.warning(self, "Error", "Select a weight record to delete")
             return
 
         row = index.row()
@@ -484,16 +484,16 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         delete_text = f"DELETE FROM weight WHERE _id = {_id}"
         if query.exec(delete_text):
-            print("Запись веса удалена")
+            print("Weight record deleted")
         else:
-            print("Ошибка при удалении записи веса")
+            print("Error deleting weight record")
 
         self.update_all()
 
     def on_pushButton_exercise_update_clicked(self):
         index = self.tableView_2.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Ошибка", "Выберите упражнение для обновления")
+            QMessageBox.warning(self, "Error", "Select an exercise to update")
             return
 
         row = index.row()
@@ -508,9 +508,9 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         update_text = f"UPDATE exercises SET name = '{name}', unit = '{unit}' WHERE _id = {_id}"
         if query.exec(update_text):
-            print("Упражнение обновлено")
+            print("Exercise updated")
         else:
-            print("Ошибка при обновлении упражнения")
+            print("Error updating exercise")
 
         self.update_all()
 
@@ -519,22 +519,22 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         date = self.lineEdit_3.text()
 
         if not date:
-            QMessageBox.warning(self, "Ошибка", "Введите дату")
+            QMessageBox.warning(self, "Error", "Enter date")
             return
 
         query = QSqlQuery()
         insert_text = f"INSERT INTO weight (value, date) VALUES('{value}', '{date}')"
         if query.exec(insert_text):
-            print("Вес добавлен")
+            print("Weight added")
         else:
-            print("Ошибка при добавлении веса")
+            print("Error adding weight")
 
         self.update_all()
 
     def on_pushButton_weight_update_clicked(self):
         index = self.tableView_4.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Ошибка", "Выберите запись веса для обновления")
+            QMessageBox.warning(self, "Error", "Select a weight record to update")
             return
 
         row = index.row()
@@ -549,9 +549,9 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         update_text = f"UPDATE weight SET value = '{value}', date = '{date}' WHERE _id = {_id}"
         if query.exec(update_text):
-            print("Запись веса обновлена")
+            print("Weight record updated")
         else:
-            print("Ошибка при обновлении записи веса")
+            print("Error updating weight record")
 
         self.update_all()
 
@@ -560,36 +560,36 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         type_name = self.lineEdit_6.text()
 
         if not type_name:
-            QMessageBox.warning(self, "Ошибка", "Введите название типа")
+            QMessageBox.warning(self, "Error", "Enter type name")
             return
 
         query = QSqlQuery()
         subquery = QSqlQuery()
 
-        # Получаем _id_exercises
+        # Get _id_exercises
         query_text = f"SELECT * FROM exercises WHERE name = '{exercise}'"
         if query.exec(query_text):
             if query.next():
                 _id_exercises = query.value(0)
             else:
-                print("Упражнение не найдено")
+                print("Exercise not found")
                 return
         else:
-            print("Ошибка при получении _id_exercises")
+            print("Error retrieving _id_exercises")
             return
 
         insert_text = f"INSERT INTO types (_id_exercises, type) VALUES({_id_exercises}, '{type_name}')"
         if query.exec(insert_text):
-            print("Тип добавлен")
+            print("Type added")
         else:
-            print("Ошибка при добавлении типа")
+            print("Error adding type")
 
         self.update_all()
 
     def on_pushButton_type_update_clicked(self):
         index = self.tableView_3.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Ошибка", "Выберите тип для обновления")
+            QMessageBox.warning(self, "Error", "Select a type to update")
             return
 
         row = index.row()
@@ -604,23 +604,23 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         query = QSqlQuery()
         subquery = QSqlQuery()
 
-        # Получаем _id_exercises
+        # Get _id_exercises
         query_text = f"SELECT * FROM exercises WHERE name = '{exercise}'"
         if query.exec(query_text):
             if query.next():
                 _id_exercises = query.value(0)
             else:
-                print("Упражнение не найдено")
+                print("Exercise not found")
                 return
         else:
-            print("Ошибка при получении _id_exercises")
+            print("Error retrieving _id_exercises")
             return
 
         update_text = f"UPDATE types SET _id_exercises = {_id_exercises}, type = '{type_name}' WHERE _id = {_id}"
         if query.exec(update_text):
-            print("Тип обновлен")
+            print("Type updated")
         else:
-            print("Ошибка при обновлении типа")
+            print("Error updating type")
 
         self.update_all()
 
@@ -631,7 +631,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         model = self.model_process.sourceModel()
 
         with open(filename, 'w', encoding='utf-8') as f:
-            # Заголовки
+            # Headers
             headers = [model.headerData(i, Qt.Horizontal) for i in range(model.columnCount())]
             headers = [header if header is not None else "" for header in headers]
             f.write(";".join(headers) + "\n")
@@ -644,10 +644,10 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
                     data = data if data is not None else ""
                     row_data.append(f'"{data}"')
                 f.write(";".join(row_data) + "\n")
-        print("CSV сохранен")
+        print("CSV saved")
 
     def on_pushButton_export_csv_clicked(self):
-        filename, _ = QFileDialog.getSaveFileName(self, "Сохранить таблицу", "", "CSV (*.csv)")
+        filename, _ = QFileDialog.getSaveFileName(self, "Save Table", "", "CSV (*.csv)")
         if filename:
             self.save_as_csv(filename)
 
@@ -658,7 +658,7 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         subquery = QSqlQuery()
         query_text = "SELECT * FROM process ORDER BY _id DESC"
         if not query.exec(query_text):
-            print("Ошибка при показе таблицы «process»")
+            print("Error displaying the 'process' table")
             return
 
         data = defaultdict(list)
@@ -670,30 +670,30 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
             value = query.value(3)
             date = query.value(4)
 
-            # Получаем название упражнения
+            # Get the exercise name
             subquery_text = f"SELECT name, unit FROM exercises WHERE _id = {_id_exercises}"
             if not subquery.exec(subquery_text):
-                print(f"Ошибка при получении упражнения с _id = {_id_exercises}")
+                print(f"Error retrieving exercise with _id = {_id_exercises}")
                 continue
             subquery.next()
             name_exercises = subquery.value(0)
             unit_exercises = subquery.value(1)
             if not unit_exercises:
-                unit_exercises = "раз"
+                unit_exercises = "times"
 
-            # Получаем тип упражнения
+            # Get the exercise type
             if _id_types and _id_types != -1:
                 subquery_text = f"SELECT type FROM types WHERE _id = {_id_types}"
                 if not subquery.exec(subquery_text):
-                    print(f"Ошибка при получении типа с _id = {_id_types}")
-                    type_types = "[Без типа]"
+                    print(f"Error retrieving type with _id = {_id_types}")
+                    type_types = "[No Type]"
                 else:
                     if subquery.next():
                         type_types = subquery.value(0)
                     else:
-                        type_types = "[Без типа]"
+                        type_types = "[No Type]"
             else:
-                type_types = "[Без типа]"
+                type_types = "[No Type]"
 
             key = f"{name_exercises} {type_types}"
             data[key].append(SetOfExercise(name_exercises, type_types, value, date))
