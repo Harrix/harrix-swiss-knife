@@ -31,6 +31,16 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_images, hsk.images.on_open_images)
         self.add_item(self.menu_images, hsk.images.on_open_optimized_images)
 
+        # Menu File operations
+        self.menu_file = self.new_menu("File operations", "🪟")
+        self.add_item(self.menu_file, hsk.file.on_all_files_to_parent_folder)
+        self.add_item(self.menu_file, hsk.file.on_check_featured_image)
+        self.add_item(self.menu_file, hsk.file.on_check_featured_image_in_folders)
+        self.add_item(self.menu_file, hsk.file.on_block_disks)
+        self.add_item(self.menu_file, hsk.file.on_open_camera_uploads)
+        self.add_item(self.menu_file, hsk.file.on_tree_view_folder_ignore_hidden_folders)
+        self.add_item(self.menu_file, hsk.file.on_tree_view_folder)
+
         # Menu Markdown
         self.menu_md = self.new_menu("Markdown", "📓")
         self.add_item(self.menu_md, hsk.md.on_diary_new_dream)
@@ -50,16 +60,6 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, hsk.md.on_generate_toc_folder)
         self.add_item(self.menu_md, hsk.md.on_format_yaml)
 
-        # Menu File operations
-        self.menu_file = self.new_menu("File operations", "🪟")
-        self.add_item(self.menu_file, hsk.file.on_all_files_to_parent_folder)
-        self.add_item(self.menu_file, hsk.file.on_check_featured_image)
-        self.add_item(self.menu_file, hsk.file.on_check_featured_image_in_folders)
-        self.add_item(self.menu_file, hsk.file.on_block_disks)
-        self.add_item(self.menu_file, hsk.file.on_open_camera_uploads)
-        self.add_item(self.menu_file, hsk.file.on_tree_view_folder_ignore_hidden_folders)
-        self.add_item(self.menu_file, hsk.file.on_tree_view_folder)
-
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
         self.add_item(self.menu_python, hsk.py.on_sort_isort_fmt_python_code_folder)
@@ -73,8 +73,8 @@ class MainMenu(main_menu_base.MainMenuBase):
         # MainMenu
         self.menu.addMenu(self.menu_dev)
         self.menu.addMenu(self.menu_images)
-        self.menu.addMenu(self.menu_md)
         self.menu.addMenu(self.menu_file)
+        self.menu.addMenu(self.menu_md)
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
         self.add_item(self.menu, hsk.images.on_optimize_clipboard)
