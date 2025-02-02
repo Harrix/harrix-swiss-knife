@@ -113,7 +113,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.connect_signals()
 
     def connect_signals(self):
-        self.comboBox.currentIndexChanged.connect(self.on_exercise_changed)
+        self.comboBox_exercise.currentIndexChanged.connect(self.on_exercise_changed)
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.pushButton_delete.clicked.connect(self.on_delete_record)
         self.pushButton_update.clicked.connect(self.on_update_record)
@@ -152,8 +152,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             sys.exit(1)
 
     def on_add_exercise(self):
-        exercise = self.lineEdit_4.text()
-        unit = self.lineEdit_5.text()
+        exercise = self.lineEdit_exercise_name.text()
+        unit = self.lineEdit_exercise_unit.text()
 
         if not exercise:
             QMessageBox.warning(self, "Error", "Enter exercise name")
@@ -169,10 +169,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to add exercise")
 
     def on_add_record(self):
-        exercise_name = self.comboBox.currentText()
-        type_name = self.comboBox_2.currentText()
-        value = str(self.spinBox.value())
-        date = self.lineEdit.text()
+        exercise_name = self.comboBox_exercise.currentText()
+        type_name = self.comboBox_type.currentText()
+        value = str(self.spinBox_count.value())
+        date = self.lineEdit_date.text()
 
         exercise_id = self.db_manager.get_exercise_id(exercise_name)
         if exercise_id is None:
@@ -201,8 +201,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to add record")
 
     def on_add_type(self):
-        exercise_name = self.comboBox_3.currentText()
-        type_name = self.lineEdit_6.text()
+        exercise_name = self.comboBox_exercise_name.currentText()
+        type_name = self.lineEdit_exercise_type.text()
 
         if not type_name:
             QMessageBox.warning(self, "Error", "Enter type name")
@@ -222,8 +222,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to add type")
 
     def on_add_weight(self):
-        value = str(self.doubleSpinBox.value())
-        date = self.lineEdit_3.text()
+        value = str(self.doubleSpinBox_weight.value())
+        date = self.lineEdit_weight_date.text()
 
         if not date:
             QMessageBox.warning(self, "Error", "Enter date")
@@ -239,7 +239,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to add weight")
 
     def on_delete_exercise(self):
-        index = self.tableView_2.currentIndex()
+        index = self.tableView_exercises.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Error", "Select an exercise to delete")
             return
@@ -257,7 +257,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to delete exercise")
 
     def on_delete_record(self):
-        index = self.tableView.currentIndex()
+        index = self.tableView_process.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Error", "Select a record to delete")
             return
@@ -275,7 +275,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to delete record")
 
     def on_delete_type(self):
-        index = self.tableView_3.currentIndex()
+        index = self.tableView_exercise_types.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Error", "Select a type to delete")
             return
@@ -293,7 +293,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to delete type")
 
     def on_delete_weight(self):
-        index = self.tableView_4.currentIndex()
+        index = self.tableView_weight.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Error", "Select a weight record to delete")
             return
@@ -311,7 +311,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to delete weight record")
 
     def on_exercise_changed(self):
-        exercise_name = self.comboBox.currentText()
+        exercise_name = self.comboBox_exercise.currentText()
         exercise_id = self.db_manager.get_exercise_id(exercise_name)
         if exercise_id is None:
             return
@@ -320,12 +320,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         params = {"exercise_id": exercise_id}
         query = self.db_manager.execute_query(query_text, params)
 
-        self.comboBox_2.clear()
-        self.comboBox_2.addItem("[No Type]")
+        self.comboBox_type.clear()
+        self.comboBox_type.addItem("[No Type]")
 
         while query.next():
             type_name = query.value(0)
-            self.comboBox_2.addItem(type_name)
+            self.comboBox_type.addItem(type_name)
 
     def on_export_csv(self):
         filename, _ = QFileDialog.getSaveFileName(self, "Save Table", "", "CSV (*.csv)")
@@ -333,7 +333,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.save_as_csv(filename)
 
     def on_refresh_statistics(self):
-        self.textEdit.clear()
+        self.textEdit_statistics.clear()
 
         query_text = "SELECT * FROM process ORDER BY _id DESC"
         query = self.db_manager.execute_query(query_text)
@@ -368,10 +368,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                     break
             result_text += "--------\n"
 
-        self.textEdit.setText(result_text)
+        self.textEdit_statistics.setText(result_text)
 
     def on_update_exercise(self):
-        index = self.tableView_2.currentIndex()
+        index = self.tableView_exercises.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Error", "Select an exercise to update")
             return
@@ -399,7 +399,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to update exercise")
 
     def on_update_record(self):
-        index = self.tableView.currentIndex()
+        index = self.tableView_process.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Error", "Select a record to update")
             return
@@ -449,7 +449,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to update record")
 
     def on_update_type(self):
-        index = self.tableView_3.currentIndex()
+        index = self.tableView_exercise_types.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Error", "Select a type to update")
             return
@@ -481,7 +481,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to update type")
 
     def on_update_weight(self):
-        index = self.tableView_4.currentIndex()
+        index = self.tableView_weight.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Error", "Select a weight record to update")
             return
@@ -555,8 +555,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.model_exercises = QSortFilterProxyModel()
         self.model_exercises.setSourceModel(model)
-        self.tableView_2.setModel(self.model_exercises)
-        self.tableView_2.resizeColumnsToContents()
+        self.tableView_exercises.setModel(self.model_exercises)
+        self.tableView_exercises.resizeColumnsToContents()
 
     def show_process(self):
         query_text = "SELECT * FROM process ORDER BY _id DESC"
@@ -591,8 +591,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.model_process = QSortFilterProxyModel()
         self.model_process.setSourceModel(model)
-        self.tableView.setModel(self.model_process)
-        self.tableView.resizeColumnsToContents()
+        self.tableView_process.setModel(self.model_process)
+        self.tableView_process.resizeColumnsToContents()
 
     def show_types(self):
         query_text = "SELECT * FROM types"
@@ -621,8 +621,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.model_types = QSortFilterProxyModel()
         self.model_types.setSourceModel(model)
-        self.tableView_3.setModel(self.model_types)
-        self.tableView_3.resizeColumnsToContents()
+        self.tableView_exercise_types.setModel(self.model_types)
+        self.tableView_exercise_types.resizeColumnsToContents()
 
     def show_weight(self):
         query_text = "SELECT * FROM weight"
@@ -649,8 +649,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.model_weight = QSortFilterProxyModel()
         self.model_weight.setSourceModel(model)
-        self.tableView_4.setModel(self.model_weight)
-        self.tableView_4.resizeColumnsToContents()
+        self.tableView_weight.setModel(self.model_weight)
+        self.tableView_weight.resizeColumnsToContents()
 
     def update_all(self):
         self.show_process()
@@ -660,17 +660,17 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         exercises = self.db_manager.get_all_exercises()
 
-        self.comboBox.clear()
-        self.comboBox_3.clear()
+        self.comboBox_exercise.clear()
+        self.comboBox_exercise_name.clear()
 
         for name in exercises:
-            self.comboBox.addItem(name)
-            self.comboBox_3.addItem(name)
+            self.comboBox_exercise.addItem(name)
+            self.comboBox_exercise_name.addItem(name)
 
         now = QDateTime.currentDateTime()
         date = now.toString("yyyy-MM-dd")
-        self.lineEdit.setText(date)
-        self.lineEdit_3.setText(date)
+        self.lineEdit_date.setText(date)
+        self.lineEdit_weight_date.setText(date)
         self.on_exercise_changed()
 
 
