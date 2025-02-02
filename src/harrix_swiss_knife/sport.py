@@ -9,7 +9,6 @@ from collections import defaultdict
 import harrix_pylib as h
 import harrix_swiss_knife as hsk
 
-# Load configuration
 config = h.dev.load_config("config/config.json")
 
 
@@ -47,25 +46,6 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         self.pushButton_statistics_refresh.clicked.connect(self.on_pushButton_statistics_refresh_clicked)
         self.pushButton_export_csv.clicked.connect(self.on_pushButton_export_csv_clicked)
 
-    def for_add(self):
-        query = QSqlQuery()
-        query_text = "SELECT * FROM exercises"
-        if not query.exec(query_text):
-            print("Error accessing the 'exercises' table")
-            return
-
-        self.comboBox.clear()
-        self.comboBox_3.clear()
-
-        while query.next():
-            name = query.value(1)
-            self.comboBox.addItem(name)
-            self.comboBox_3.addItem(name)
-
-        now = QDateTime.currentDateTime()
-        date = now.toString("yyyy-MM-dd")
-        self.lineEdit.setText(date)
-        self.lineEdit_3.setText(date)
 
     def init_database(self):
         filename = config["sqlite_sport"]
@@ -698,7 +678,26 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         self.show_exercises()
         self.show_types()
         self.show_weight()
-        self.for_add()
+
+        query = QSqlQuery()
+        query_text = "SELECT * FROM exercises"
+        if not query.exec(query_text):
+            print("Error accessing the 'exercises' table")
+            return
+
+        self.comboBox.clear()
+        self.comboBox_3.clear()
+
+        while query.next():
+            name = query.value(1)
+            self.comboBox.addItem(name)
+            self.comboBox_3.addItem(name)
+
+        now = QDateTime.currentDateTime()
+        date = now.toString("yyyy-MM-dd")
+        self.lineEdit.setText(date)
+        self.lineEdit_3.setText(date)
+
 
 
 class SetOfExercise:
@@ -713,10 +712,6 @@ class SetOfExercise:
 
     def __str__(self):
         return f"{self.date}: {self.name_exercises} {self.type_types} {self.value}"
-
-
-def compare(set1, set2):
-    return set1.value < set2.value
 
 
 if __name__ == "__main__":
