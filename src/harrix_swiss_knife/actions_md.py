@@ -1,9 +1,7 @@
-import re
 from datetime import datetime
 from pathlib import Path
 
 import harrix_pylib as h
-import yaml
 
 from harrix_swiss_knife import action_base
 
