@@ -184,7 +184,7 @@ C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-kn
 ### Convert UI file to PY class
 
 ```shell
-pyside6-uic src/harrix_swiss_knife/mainwindow.ui -o src/harrix_swiss_knife/sport_window.py
+pyside6-uic src/harrix_swiss_knife/sport_window.ui -o src/harrix_swiss_knife/sport_window.py
 ```
 
 </details>

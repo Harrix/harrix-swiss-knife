@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>4</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -54,7 +54,7 @@
            <property name="title">
             <string>Добавить упражнение</string>
            </property>
-           <widget class="QPushButton" name="pushButton">
+           <widget class="QPushButton" name="pushButton_add">
             <property name="geometry">
              <rect>
               <x>200</x>
@@ -114,7 +114,7 @@
             </property>
            </widget>
           </widget>
-          <widget class="QPushButton" name="pushButton_2">
+          <widget class="QPushButton" name="pushButton_delete">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -140,7 +140,7 @@
             <string>С выделенной строкой:</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_3">
+          <widget class="QPushButton" name="pushButton_update">
            <property name="geometry">
             <rect>
              <x>100</x>
@@ -153,7 +153,7 @@
             <string>Сохранить</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_4">
+          <widget class="QPushButton" name="pushButton_refresh">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -166,7 +166,7 @@
             <string>Обновить таблицу</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_18">
+          <widget class="QPushButton" name="pushButton_export_csv">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -263,7 +263,7 @@
              </rect>
             </property>
            </widget>
-           <widget class="QPushButton" name="pushButton_12">
+           <widget class="QPushButton" name="pushButton_exercise_add">
             <property name="geometry">
              <rect>
               <x>190</x>
@@ -290,7 +290,7 @@
             <string>С выделенной строкой:</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_9">
+          <widget class="QPushButton" name="pushButton_exercise_delete">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -303,7 +303,7 @@
             <string>Удалить</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_10">
+          <widget class="QPushButton" name="pushButton_exercise_update">
            <property name="geometry">
             <rect>
              <x>90</x>
@@ -316,7 +316,7 @@
             <string>Сохранить</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_11">
+          <widget class="QPushButton" name="pushButton_exercise_refresh">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -387,7 +387,7 @@
              </rect>
             </property>
            </widget>
-           <widget class="QPushButton" name="pushButton_13">
+           <widget class="QPushButton" name="pushButton_type_add">
             <property name="geometry">
              <rect>
               <x>190</x>
@@ -414,7 +414,7 @@
             <string>С выделенной строкой:</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_14">
+          <widget class="QPushButton" name="pushButton_type_delete">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -427,7 +427,7 @@
             <string>Удалить</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_15">
+          <widget class="QPushButton" name="pushButton_type_update">
            <property name="geometry">
             <rect>
              <x>100</x>
@@ -440,7 +440,7 @@
             <string>Сохранить</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_16">
+          <widget class="QPushButton" name="pushButton_type_refresh">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -519,7 +519,7 @@
              </rect>
             </property>
            </widget>
-           <widget class="QPushButton" name="pushButton_5">
+           <widget class="QPushButton" name="pushButton_weight_add">
             <property name="geometry">
              <rect>
               <x>190</x>
@@ -549,7 +549,7 @@
             </property>
            </widget>
           </widget>
-          <widget class="QPushButton" name="pushButton_6">
+          <widget class="QPushButton" name="pushButton_weight_delete">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -562,7 +562,7 @@
             <string>Удалить</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_7">
+          <widget class="QPushButton" name="pushButton_weight_update">
            <property name="geometry">
             <rect>
              <x>90</x>
@@ -575,7 +575,7 @@
             <string>Сохранить</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_8">
+          <widget class="QPushButton" name="pushButton_weight_refresh">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -634,7 +634,7 @@
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <widget class="QPushButton" name="pushButton_19">
+          <widget class="QPushButton" name="pushButton_statistics_refresh">
            <property name="geometry">
             <rect>
              <x>20</x>
