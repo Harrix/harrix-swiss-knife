@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Harrix Sport - Учет тренировок</string>
+   <string>Harrix Sport - Training Tracker</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
@@ -22,7 +22,7 @@
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
-        <string>Список</string>
+        <string>List</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
@@ -52,7 +52,7 @@
             </rect>
            </property>
            <property name="title">
-            <string>Добавить упражнение</string>
+            <string>Add Exercise</string>
            </property>
            <widget class="QPushButton" name="pushButton_add">
             <property name="geometry">
@@ -64,7 +64,7 @@
              </rect>
             </property>
             <property name="text">
-             <string>Добавить</string>
+             <string>Add</string>
             </property>
            </widget>
            <widget class="QComboBox" name="comboBox">
@@ -124,7 +124,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Удалить</string>
+            <string>Delete</string>
            </property>
           </widget>
           <widget class="QLabel" name="label">
@@ -137,7 +137,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>С выделенной строкой:</string>
+            <string>With the selected row:</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_update">
@@ -150,7 +150,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Сохранить</string>
+            <string>Save</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_refresh">
@@ -163,7 +163,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Обновить таблицу</string>
+            <string>Refresh Table</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_export_csv">
@@ -176,7 +176,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Экспорт таблицы</string>
+            <string>Export Table</string>
            </property>
           </widget>
          </widget>
@@ -185,7 +185,7 @@
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
-        <string>Упражнения</string>
+        <string>Exercises</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
@@ -215,7 +215,7 @@
             </rect>
            </property>
            <property name="title">
-            <string>Добавить новое упражнение</string>
+            <string>Add New Exercise</string>
            </property>
            <widget class="QLineEdit" name="lineEdit_4">
             <property name="geometry">
@@ -237,7 +237,7 @@
              </rect>
             </property>
             <property name="text">
-             <string>Название</string>
+             <string>Name</string>
             </property>
            </widget>
            <widget class="QLabel" name="label_6">
@@ -250,7 +250,7 @@
              </rect>
             </property>
             <property name="text">
-             <string>Единица измерения</string>
+             <string>Unit of Measurement</string>
             </property>
            </widget>
            <widget class="QLineEdit" name="lineEdit_5">
@@ -273,7 +273,7 @@
              </rect>
             </property>
             <property name="text">
-             <string>Добавить</string>
+             <string>Add</string>
             </property>
            </widget>
           </widget>
@@ -287,7 +287,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>С выделенной строкой:</string>
+            <string>With the selected row:</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_exercise_delete">
@@ -300,7 +300,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Удалить</string>
+            <string>Delete</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_exercise_update">
@@ -313,7 +313,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Сохранить</string>
+            <string>Save</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_exercise_refresh">
@@ -326,7 +326,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Обновить таблицу</string>
+            <string>Refresh Table</string>
            </property>
           </widget>
          </widget>
@@ -335,7 +335,7 @@
       </widget>
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
-        <string>Типы упражнений</string>
+        <string>Exercise Types</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
@@ -365,7 +365,7 @@
             </rect>
            </property>
            <property name="title">
-            <string>Добавить новый тип упражнения</string>
+            <string>Add New Exercise Type</string>
            </property>
            <widget class="QComboBox" name="comboBox_3">
             <property name="geometry">
@@ -397,7 +397,7 @@
              </rect>
             </property>
             <property name="text">
-             <string>Добавить</string>
+             <string>Add</string>
             </property>
            </widget>
           </widget>
@@ -411,7 +411,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>С выделенной строкой:</string>
+            <string>With the selected row:</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_type_delete">
@@ -424,7 +424,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Удалить</string>
+            <string>Delete</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_type_update">
@@ -437,7 +437,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Сохранить</string>
+            <string>Save</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_type_refresh">
@@ -450,7 +450,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Обновить таблицу</string>
+            <string>Refresh Table</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_17">
@@ -477,7 +477,7 @@
       </widget>
       <widget class="QWidget" name="tab_5">
        <attribute name="title">
-        <string>Вес</string>
+        <string>Weight</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_5">
         <item>
@@ -507,7 +507,7 @@
             </rect>
            </property>
            <property name="title">
-            <string>Добавить новые данные</string>
+            <string>Add New Data</string>
            </property>
            <widget class="QLineEdit" name="lineEdit_3">
             <property name="geometry">
@@ -529,7 +529,7 @@
              </rect>
             </property>
             <property name="text">
-             <string>Добавить</string>
+             <string>Add</string>
             </property>
            </widget>
            <widget class="QDoubleSpinBox" name="doubleSpinBox">
@@ -559,7 +559,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Удалить</string>
+            <string>Delete</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_weight_update">
@@ -572,7 +572,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Сохранить</string>
+            <string>Save</string>
            </property>
           </widget>
           <widget class="QPushButton" name="pushButton_weight_refresh">
@@ -585,7 +585,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Обновить таблицу</string>
+            <string>Refresh Table</string>
            </property>
           </widget>
           <widget class="QLabel" name="label_2">
@@ -598,7 +598,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>С выделенной строкой:</string>
+            <string>With the selected row:</string>
            </property>
           </widget>
          </widget>
@@ -607,7 +607,7 @@
       </widget>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
-        <string>Аналитика</string>
+        <string>Analytics</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
@@ -644,7 +644,7 @@
             </rect>
            </property>
            <property name="text">
-            <string>Рекорды</string>
+            <string>Records</string>
            </property>
           </widget>
          </widget>
