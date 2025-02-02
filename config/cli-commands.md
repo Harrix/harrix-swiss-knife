@@ -7,4 +7,5 @@ CLI commands after installation.
 - `isort .` — sort imports.
 - `ruff format` — format the project's Python files.
 - `ruff check` — lint the project's Python files.
+- `ruff check --fix` — lint and fix the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
