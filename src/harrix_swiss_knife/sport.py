@@ -323,14 +323,12 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
         data = defaultdict(list)
 
         while query.next():
-            _id = query.value(0)
             exercise_id = query.value(1)
             type_id = query.value(2)
             value = query.value(3)
             date = query.value(4)
 
             exercise_name = self.db_manager.get_exercise_name(exercise_id)
-            unit = self.db_manager.get_exercise_unit(exercise_id)
             type_name = self.db_manager.get_type_name(type_id, exercise_id)
 
             key = f"{exercise_name} {type_name}"
