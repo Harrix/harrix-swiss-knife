@@ -101,7 +101,12 @@ After you can run the script from a terminal (or VSCode):
 c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
 
-## CLI commands
+## Development
+
+<details>
+<summary>Development ⬇️</summary>
+
+### CLI commands
 
 CLI commands after installation.
 
@@ -112,7 +117,7 @@ CLI commands after installation.
 - `ruff check` — lint the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
 
-## Add a new action
+### Add a new action
 
 - Add a new action `class on_<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
 - Site for searching emojis <https://emojidb.org/>.
@@ -140,14 +145,14 @@ class on_sort_sections(action_base.ActionBase):
             self.add_line(f"❌ Ошибка: {e}")
 ```
 
-## Update `harrix-pylib`
+### Update `harrix-pylib`
 
 - Run `uv sync --upgrade`.
 - Change version in line `"harrix-pylib>=<version>"`
 - Run `uv sync --upgrade`.
 - Create a commit `⬆️ Update harrix-pylib`.
 
-## Add file to a resource file
+### Add file to a resource file
 
 Add files (pictures, etc.) to the `src\harrix_swiss_knife\assets` folder.
 
@@ -168,13 +173,21 @@ Generate `resources_rc.py`:
 pyside6-rcc src\harrix_swiss_knife\resources.qrc -o src\harrix_swiss_knife\resources_rc.py
 ```
 
-## Create a shortcut
+### Create a shortcut
 
 Example path for a shortcut:
 
 ```shell
 C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
+
+### Convert UI file to PY class
+
+```shell
+pyside6-uic src/harrix_swiss_knife/mainwindow.ui -o src/harrix_swiss_knife/sport_window.py
+```
+
+</details>
 
 ## License
 
