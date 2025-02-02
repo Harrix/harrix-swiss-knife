@@ -8,7 +8,7 @@ from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 
-import harrix_swiss_knife as hsk
+from harrix_swiss_knife import fitness_window
 
 config = h.dev.load_config("config/config.json")
 
@@ -97,7 +97,7 @@ class DatabaseManager:
             return "[No Type]"
 
 
-class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
+class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -110,10 +110,31 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
 
         self.init_database()
         self.update_all()
-        self.setup_connections()
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.comboBox.currentIndexChanged.connect(self.on_exercise_changed)
+        self.pushButton_add.clicked.connect(self.on_add_record)
+        self.pushButton_delete.clicked.connect(self.on_delete_record)
+        self.pushButton_update.clicked.connect(self.on_update_record)
+        self.pushButton_refresh.clicked.connect(self.update_all)
+        self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
+        self.pushButton_exercise_delete.clicked.connect(self.on_delete_exercise)
+        self.pushButton_exercise_update.clicked.connect(self.on_update_exercise)
+        self.pushButton_exercise_refresh.clicked.connect(self.update_all)
+        self.pushButton_type_add.clicked.connect(self.on_add_type)
+        self.pushButton_type_delete.clicked.connect(self.on_delete_type)
+        self.pushButton_type_update.clicked.connect(self.on_update_type)
+        self.pushButton_type_refresh.clicked.connect(self.update_all)
+        self.pushButton_weight_add.clicked.connect(self.on_add_weight)
+        self.pushButton_weight_delete.clicked.connect(self.on_delete_weight)
+        self.pushButton_weight_update.clicked.connect(self.on_update_weight)
+        self.pushButton_weight_refresh.clicked.connect(self.update_all)
+        self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
+        self.pushButton_export_csv.clicked.connect(self.on_export_csv)
 
     def init_database(self):
-        filename = config["sqlite_sport"]
+        filename = config["sqlite_fitness"]
 
         if not os.path.exists(filename):
             filename, _ = QFileDialog.getOpenFileName(
@@ -508,27 +529,6 @@ class MainWindow(QMainWindow, hsk.sport_window.Ui_MainWindow):
                     row_data.append(f'"{data}"')
                 f.write(";".join(row_data) + "\n")
         print("CSV saved")
-
-    def setup_connections(self):
-        self.comboBox.currentIndexChanged.connect(self.on_exercise_changed)
-        self.pushButton_add.clicked.connect(self.on_add_record)
-        self.pushButton_delete.clicked.connect(self.on_delete_record)
-        self.pushButton_update.clicked.connect(self.on_update_record)
-        self.pushButton_refresh.clicked.connect(self.update_all)
-        self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
-        self.pushButton_exercise_delete.clicked.connect(self.on_delete_exercise)
-        self.pushButton_exercise_update.clicked.connect(self.on_update_exercise)
-        self.pushButton_exercise_refresh.clicked.connect(self.update_all)
-        self.pushButton_type_add.clicked.connect(self.on_add_type)
-        self.pushButton_type_delete.clicked.connect(self.on_delete_type)
-        self.pushButton_type_update.clicked.connect(self.on_update_type)
-        self.pushButton_type_refresh.clicked.connect(self.update_all)
-        self.pushButton_weight_add.clicked.connect(self.on_add_weight)
-        self.pushButton_weight_delete.clicked.connect(self.on_delete_weight)
-        self.pushButton_weight_update.clicked.connect(self.on_update_weight)
-        self.pushButton_weight_refresh.clicked.connect(self.update_all)
-        self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
-        self.pushButton_export_csv.clicked.connect(self.on_export_csv)
 
     def show_exercises(self):
         query_text = "SELECT * FROM exercises"

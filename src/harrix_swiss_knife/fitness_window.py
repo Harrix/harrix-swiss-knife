@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'sport_window.ui'
+## Form generated from reading UI file 'fitness_window.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.8.2
 ##
@@ -10,24 +10,50 @@
 
 from PySide6.QtCore import (
     QCoreApplication,
+    QDate,
+    QDateTime,
+    QLocale,
     QMetaObject,
+    QObject,
+    QPoint,
     QRect,
     QSize,
     Qt,
+    QTime,
+    QUrl,
 )
 from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QConicalGradient,
+    QCursor,
     QFont,
+    QFontDatabase,
+    QGradient,
+    QIcon,
+    QImage,
+    QKeySequence,
+    QLinearGradient,
+    QPainter,
+    QPalette,
+    QPixmap,
+    QRadialGradient,
+    QTransform,
 )
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QDoubleSpinBox,
     QFrame,
     QGroupBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
+    QMainWindow,
     QMenuBar,
     QPushButton,
+    QSizePolicy,
     QSpinBox,
     QStatusBar,
     QTableView,
@@ -42,7 +68,7 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Harrix Sport - Training Tracker", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Fitness tracker", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Add Exercise", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
