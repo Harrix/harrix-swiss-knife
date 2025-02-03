@@ -117,6 +117,7 @@ CLI commands after installation.
 - `ruff check` — lint the project's Python files.
 - `ruff check --fix` — lint and fix the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
+- `vermin src` — determines the minimum version of Python.
 
 ### Add a new action
 
@@ -179,6 +180,16 @@ pyside6-rcc src\harrix_swiss_knife\resources.qrc -o src\harrix_swiss_knife\resou
 ```shell
 pyside6-uic src/harrix_swiss_knife/fitness_window.ui -o src/harrix_swiss_knife/fitness_window.py
 ```
+
+### Minimum Python Version
+
+We determine the minimum Python version using [vermin](https://github.com/netromdk/vermin):
+
+```shell
+vermin src
+```
+
+However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
 
 </details>
 
