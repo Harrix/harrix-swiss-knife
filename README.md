@@ -174,14 +174,6 @@ Generate `resources_rc.py`:
 pyside6-rcc src\harrix_swiss_knife\resources.qrc -o src\harrix_swiss_knife\resources_rc.py
 ```
 
-### Create a shortcut
-
-Example path for a shortcut:
-
-```shell
-C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
-```
-
 ### Convert UI file to PY class
 
 ```shell
@@ -189,6 +181,14 @@ pyside6-uic src/harrix_swiss_knife/fitness_window.ui -o src/harrix_swiss_knife/f
 ```
 
 </details>
+
+## Create a shortcut
+
+Example path for a shortcut:
+
+```shell
+C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
+```
 
 ## License
 
