@@ -17,55 +17,57 @@ _Figure 1: Screenshot_
 ## List of commands
 
 - **Dev**
-  - Get the list of items from this menu
-  - Open config.json
-  - Install global NPM packages
-  - Update NPM and global NPM packages
+  - ☰ Get the list of items from this menu
+  -  Open config.json
+  - 📥 Install global NPM packages
+  - 📥 Update NPM and global NPM packages
+- **Apps**
+  -  Fitness tracker
 - **Images**
-  - Optimize images
-  - Optimize images (high quality)
-  - Optimize images in … and replace
-  - Optimize images in …/temp
-  - Optimize one image
-  - Clear folders images
-  - Open the folder images
-  - Open the folder optimized_images
-- **Markdown**
-  - New dream note
-  - New diary note with images
-  - New diary note
-  - New article
-  - New note with images
-  - New note
-  - Quotes. Add author and title
-  - Get a list of movies, books for web
-  - Add image captions in one MD
-  - Add image captions in …
-  - Sort sections in one MD
-  - Sort sections in …
-  - Prettier in …
-  - Generate TOC in one MD
-  - Generate TOC in …
-  - Format YAML
+  - 🚀 Optimize images
+  - 🔝 Optimize images (high quality)
+  -  Optimize images in … and replace
+  -  Optimize images in …/temp
+  -  Optimize one image
+  - 🧹 Clear folders images
+  - 📂 Open the folder images
+  - 📂 Open the folder optimized_images
 - **File operations**
-  - Moves and flattens files from nested folders
-  - Check featured_image.* in …
-  - Check featured_image.*
-  - Block disks
-  - Open Camera Uploads
-  - Tree view of a folder (ignore hidden folders)
-  - Tree view of a folder
+  -  Moves and flattens files from nested folders
+  - ✅ Check featured_image.* in …
+  - ✅ Check featured_image.*
+  - 🔒 Block disks
+  - 📸 Open Camera Uploads
+  - ├ Tree view of a folder (ignore hidden folders)
+  - ├ Tree view of a folder
+- **Markdown**
+  - 💤 New dream note
+  - 📚 New diary note with images
+  - 📖 New diary note
+  -  New article
+  - 📓 New note with images
+  - 📓 New note
+  - ❞ Quotes. Add author and title
+  - 🎬 Get a list of movies, books for web
+  - 🌄 Add image captions in one MD
+  - 🌄 Add image captions in …
+  - # Sort sections in one MD
+  - # Sort sections in …
+  - ✨ Prettier in …
+  - 📑 Generate TOC in one MD
+  - 📑 Generate TOC in …
+  - ✨ Format YAML
 - **Python**
-  - isort, ruff format, sort in PY files
-  - New uv project in …
-  - New uv project in Projects
-  - Sort classes, methods, functions in one PY file
-  - Sort classes, methods, functions in PY files
-  - Extracts list of funcs to a MD list from one PY file
-  - Generate MD documentation in …
-- Optimize image from clipboard
-- Optimize image from clipboard as …
-- Exit
+  - 🌟 isort, ruff format, sort in PY files
+  -  New uv project in …
+  -  New uv project in Projects
+  - 📶 Sort classes, methods, functions in one PY file
+  - 📶 Sort classes, methods, functions in PY files
+  -  Extracts list of funcs to a MD list from one PY file
+  -  Generate MD documentation in …
+- 🚀 Optimize image from clipboard
+- 🚀 Optimize image from clipboard as …
+- × Exit
 
 ## Deploy on an empty machine (Windows)
 
