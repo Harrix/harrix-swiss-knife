@@ -219,7 +219,7 @@ class on_prettier_folder(action_base.ActionBase):
 
 
 class on_sort_sections(action_base.ActionBase):
-    icon: str = "#"
+    icon: str = "📶"
     title: str = "Sort sections in one MD"
 
     def execute(self, *args, **kwargs):
@@ -235,7 +235,7 @@ class on_sort_sections(action_base.ActionBase):
 
 
 class on_sort_sections_folder(action_base.ActionBase):
-    icon: str = "#"
+    icon: str = "📶"
     title = "Sort sections in …"
 
     def execute(self, *args, **kwargs):

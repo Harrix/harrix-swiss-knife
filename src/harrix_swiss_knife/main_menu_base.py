@@ -104,7 +104,7 @@ class MainMenuBase:
                 markdown_lines.extend(self.generate_markdown_from_qmenu(action.menu(), level + 1))
             else:
                 # Add a regular menu item
-                icon = action._icon if hasattr(action, "_icon") and len(action._icon) == 1 else ""
+                icon = action._icon if hasattr(action, "_icon") and "." not in action._icon else ""
                 if action.text():
                     markdown_lines.append(f"{'  ' * level}- {icon} {action.text()}")
         return markdown_lines

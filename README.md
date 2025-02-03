@@ -18,22 +18,22 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ☰ Get the list of items from this menu
-  -  Open config.json
+  - ⚙️ Open config.json
   - 📥 Install global NPM packages
   - 📥 Update NPM and global NPM packages
 - **Apps**
-  -  Fitness tracker
+  - 🏃🏻 Fitness tracker
 - **Images**
   - 🚀 Optimize images
   - 🔝 Optimize images (high quality)
-  -  Optimize images in … and replace
-  -  Optimize images in …/temp
-  -  Optimize one image
+  - ⬆️ Optimize images in … and replace
+  - ⬆️ Optimize images in …/temp
+  - 🖼️ Optimize one image
   - 🧹 Clear folders images
   - 📂 Open the folder images
   - 📂 Open the folder optimized_images
 - **File operations**
-  -  Moves and flattens files from nested folders
+  - 🗂️ Moves and flattens files from nested folders
   - ✅ Check featured_image.* in …
   - ✅ Check featured_image.*
   - 🔒 Block disks
@@ -44,15 +44,15 @@ _Figure 1: Screenshot_
   - 💤 New dream note
   - 📚 New diary note with images
   - 📖 New diary note
-  -  New article
+  - ✍️ New article
   - 📓 New note with images
   - 📓 New note
   - ❞ Quotes. Add author and title
   - 🎬 Get a list of movies, books for web
   - 🌄 Add image captions in one MD
   - 🌄 Add image captions in …
-  - # Sort sections in one MD
-  - # Sort sections in …
+  - 📶 Sort sections in one MD
+  - 📶 Sort sections in …
   - ✨ Prettier in …
   - 📑 Generate TOC in one MD
   - 📑 Generate TOC in …
@@ -63,8 +63,8 @@ _Figure 1: Screenshot_
   -  New uv project in Projects
   - 📶 Sort classes, methods, functions in one PY file
   - 📶 Sort classes, methods, functions in PY files
-  -  Extracts list of funcs to a MD list from one PY file
-  -  Generate MD documentation in …
+  - ⬇️ Extracts list of funcs to a MD list from one PY file
+  - 🏗️ Generate MD documentation in …
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit
