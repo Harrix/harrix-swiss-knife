@@ -8,12 +8,3 @@ attribution:
       permalink-date: 2021-08-01,
       name: Python logo and wordmark.svg,
     }
-  - {
-      author: Astral,
-      author-site: "https://astral.sh/",
-      license: MIT,
-      license-url: "https://github.com/astral-sh/uv/blob/main/LICENSE-MIT",
-      permalink: "https://docs.astral.sh/uv/assets/logo-letter.svg",
-      permalink-date: 2025-01-07,
-      name: Hatch Logo,
-    }

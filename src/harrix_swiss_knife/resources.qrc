@@ -2,7 +2,6 @@
 <RCC>
     <qresource prefix="/">
         <file>assets/logo.svg</file>
-        <file>assets/uv.svg</file>
         <file>assets/py.svg</file>
     </qresource>
 </RCC>
