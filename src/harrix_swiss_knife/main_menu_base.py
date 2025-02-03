@@ -42,8 +42,10 @@ class MainMenuBase:
 
         if icon:
             action = QAction(self.get_icon(icon), action_instance.title, triggered=action_instance)
+            action._icon = icon
         elif hasattr(action_instance, "icon") and action_instance.icon:
             action = QAction(self.get_icon(action_instance.icon), action_instance.title, triggered=action_instance)
+            action._icon = action_instance.icon
         else:
             action = QAction(action_instance.title, triggered=action_instance)
         setattr(self, f"action_{class_action.__name__}", action)
@@ -102,8 +104,9 @@ class MainMenuBase:
                 markdown_lines.extend(self.generate_markdown_from_qmenu(action.menu(), level + 1))
             else:
                 # Add a regular menu item
+                icon = action._icon if hasattr(action, "_icon") and len(action._icon) == 1 else ""
                 if action.text():
-                    markdown_lines.append(f"{'  ' * level}- {action.text()}")
+                    markdown_lines.append(f"{'  ' * level}- {icon} {action.text()}")
         return markdown_lines
 
     def get_icon(self, icon: str, size: int = 32) -> QIcon:
