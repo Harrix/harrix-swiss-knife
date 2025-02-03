@@ -59,8 +59,8 @@ _Figure 1: Screenshot_
   - ✨ Format YAML
 - **Python**
   - 🌟 isort, ruff format, sort in PY files
-  -  New uv project in …
-  -  New uv project in Projects
+  - 🐍 New uv project in …
+  - 🐍 New uv project in Projects
   - 📶 Sort classes, methods, functions in one PY file
   - 📶 Sort classes, methods, functions in PY files
   - ⬇️ Extracts list of funcs to a MD list from one PY file

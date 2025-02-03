@@ -92,7 +92,7 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
 
 
 class on_uv_new_project(action_base.ActionBase):
-    icon: str = "uv.svg"
+    icon: str = "🐍"
     title: str = "New uv project in Projects"
 
     def execute(self, *args, **kwargs):
@@ -104,7 +104,7 @@ class on_uv_new_project(action_base.ActionBase):
 
 
 class on_uv_new_project_dialog(action_base.ActionBase):
-    icon: str = "uv.svg"
+    icon: str = "🐍"
     title: str = "New uv project in …"
 
     def execute(self, *args, **kwargs):
