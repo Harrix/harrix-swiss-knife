@@ -149,7 +149,7 @@ class on_sort_sections(action_base.ActionBase):
 ### Update `harrix-pylib`
 
 - Run `uv sync --upgrade`.
-- Change version in line `"harrix-pylib>=<version>"`
+- Change version in line `"harrix-pylib>=<version>"` in `pyproject.toml`
 - Run `uv sync --upgrade`.
 - Create a commit `⬆️ Update harrix-pylib`.
 
