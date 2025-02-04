@@ -34,8 +34,8 @@ _Figure 1: Screenshot_
   - 📂 Open the folder optimized_images
 - **File operations**
   - 🗂️ Moves and flattens files from nested folders
-  - ✅ Check featured_image.* in …
-  - ✅ Check featured_image.*
+  - ✅ Check featured_image.\* in …
+  - ✅ Check featured_image.\*
   - 🔒 Block disks
   - 📸 Open Camera Uploads
   - ├ Tree view of a folder (ignore hidden folders)
@@ -144,7 +144,7 @@ class on_sort_sections(action_base.ActionBase):
 
         try:
             self.add_line(h.md.sort_sections(filename))
-            self.add_line(h.md.add_image_captions(filename))
+            self.add_line(h.md.generate_image_captions(filename))
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
 ```
