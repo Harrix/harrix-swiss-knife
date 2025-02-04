@@ -34,8 +34,8 @@ _Figure 1: Screenshot_
   - 📂 Open the folder optimized_images
 - **File operations**
   - 🗂️ Moves and flattens files from nested folders
-  - ✅ Check featured_image.\* in …
-  - ✅ Check featured_image.\*
+  - ✅ Check featured_image.* in …
+  - ✅ Check featured_image.*
   - 🔒 Block disks
   - 📸 Open Camera Uploads
   - ├ Tree view of a folder (ignore hidden folders)
