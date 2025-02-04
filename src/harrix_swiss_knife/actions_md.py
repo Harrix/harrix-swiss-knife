@@ -8,7 +8,7 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
-class on_add_author_book(action_base.ActionBase):
+class on_generate_author_book(action_base.ActionBase):
     icon: str = "❞"
     title: str = "Quotes. Add author and title"
     is_show_output = True
@@ -19,12 +19,12 @@ class on_add_author_book(action_base.ActionBase):
             return
 
         try:
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.add_author_book))
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_author_book))
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_add_image_captions(action_base.ActionBase):
+class on_generate_image_captions(action_base.ActionBase):
     icon: str = "🌄"
     title: str = "Add image captions in one MD"
 
@@ -36,12 +36,12 @@ class on_add_image_captions(action_base.ActionBase):
             return
 
         try:
-            self.add_line(h.md.add_image_captions(filename))
+            self.add_line(h.md.generate_image_captions(filename))
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_add_image_captions_folder(action_base.ActionBase):
+class on_generate_image_captions_folder(action_base.ActionBase):
     icon: str = "🌄"
     title = "Add image captions in …"
 
@@ -51,7 +51,7 @@ class on_add_image_captions_folder(action_base.ActionBase):
             return
 
         try:
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.add_image_captions))
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
@@ -229,7 +229,7 @@ class on_sort_sections(action_base.ActionBase):
 
         try:
             self.add_line(h.md.sort_sections(filename))
-            self.add_line(h.md.add_image_captions(filename))
+            self.add_line(h.md.generate_image_captions(filename))
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
 
@@ -245,6 +245,6 @@ class on_sort_sections_folder(action_base.ActionBase):
 
         try:
             self.add_line(h.file.apply_func(folder_path, ".md", h.md.sort_sections))
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.add_image_captions))
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
