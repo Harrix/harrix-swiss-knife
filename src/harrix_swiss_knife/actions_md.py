@@ -248,3 +248,58 @@ class on_sort_sections_folder(action_base.ActionBase):
             self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
+
+
+from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtGui import QClipboard
+
+class on_increase_heading_level_content(action_base.ActionBase):
+    icon: str = "👉"
+    title = "Increase heading level"
+
+    def execute(self, *args, **kwargs):
+        content = self.get_text_textarea("Markdown content", "Input Markdown content")
+        new_content = increase_heading_level_content(content)
+        self.add_line(new_content)
+        clipboard = QApplication.clipboard()
+        clipboard.setText(new_content, QClipboard.Clipboard)
+        QMessageBox.information(None, "Copy", "Text copied to clipboard!")
+
+
+import yaml, re
+
+def identify_code_blocks(lines):
+    code_block_delimiter = None
+    for line in lines:
+        match = re.match(r"^(`{3,})(.*)", line)
+        if match:
+            delimiter = match.group(1)
+            if code_block_delimiter is None:
+                code_block_delimiter = delimiter
+            elif code_block_delimiter == delimiter:
+                code_block_delimiter = None
+            yield line, True
+            continue
+        if code_block_delimiter:
+            yield line, True
+        else:
+            yield line, False
+
+def increase_heading_level_content(markdown_text: str) -> str:
+    parts = markdown_text.split("---", 2)
+    if len(parts) < 3:
+        yaml_md, content_md = "", markdown_text
+    else:
+        yaml_md, content_md = f"---{parts[1]}---", parts[2].lstrip()
+
+    new_lines = []
+    lines = content_md.split("\n")
+    for line, is_code_block in identify_code_blocks(lines):
+        if is_code_block:
+            new_lines.append(line)
+            continue
+
+        new_lines.append("#" + line if line.startswith('#') else line)
+    content_md = "\n".join(new_lines)
+
+    return yaml_md + "\n\n" + content_md
