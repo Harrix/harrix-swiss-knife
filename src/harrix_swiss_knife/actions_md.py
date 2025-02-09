@@ -303,3 +303,66 @@ class on_sort_sections_folder(action_base.ActionBase):
             self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
+
+from pathlib import Path
+import yaml
+import harrix_pylib as h
+import re  # for regex
+
+def combine_markdown_files(path):
+    """
+    Combines all Markdown (.md) files in the specified directory and subdirectories
+    into a single Markdown file, excluding files that end with '.g.md'.
+    """
+    base_path = Path(path)
+
+    # Get all .md files excluding those ending with '.g.md'
+    md_files = [f for f in base_path.glob('**/*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
+
+    yaml_headers = []
+    contents = []
+
+    for md_file in md_files:
+        markdown_text = md_file.read_text(encoding='utf-8')
+        parts = markdown_text.split('---', 2)
+        if len(parts) < 3:
+            yaml_md, content_md = '', markdown_text
+        else:
+            yaml_md, content_md = f'---{parts[1]}---', parts[2].lstrip()
+
+        # Parse YAML and collect headers
+        if yaml_md:
+            yaml_content = yaml.safe_load(parts[1])
+            yaml_headers.append(yaml_content)
+        else:
+            yaml_content = {}
+
+        # Increase heading levels
+        content_md = h.md.increase_heading_level_content(content_md)
+
+        # Collect content
+        contents.append(content_md)
+
+    # Combine YAML headers
+    combined_yaml = {}
+    for y in yaml_headers:
+        combined_yaml.update(y)
+
+    # Prepare the final content
+    folder_name = base_path.name
+    output_file = base_path / f'_{folder_name}.g.md'
+
+    # Dump combined YAML
+    yaml_md = yaml.safe_dump(combined_yaml, sort_keys=False)
+    final_content = ""
+    if combined_yaml:
+        final_content += f'---\n{yaml_md}---\n\n'
+
+    final_content += f'# {folder_name}\n\n'
+    final_content += '\n\n'.join(contents)
+
+    # Write to the output file
+    output_file.write_text(final_content, encoding='utf-8')
+
+
+print(combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev"))
