@@ -42,6 +42,21 @@ class on_diary_new_with_images(action_base.ActionBase):
         self.add_line(output)
 
 
+class on_download_and_replace_images(action_base.ActionBase):
+    icon: str = "📥"
+    title: str = "Download images in one MD"
+
+    def execute(self, *args, **kwargs):
+        filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        if not filename:
+            return
+
+        try:
+            self.add_line(h.md.download_and_replace_images(filename))
+        except Exception as e:
+            self.add_line(f"❌ Ошибка: {e}")
+
+
 class on_format_yaml(action_base.ActionBase):
     icon: str = "✨"
     title = "Format YAML"
