@@ -69,7 +69,11 @@ class on_generate_author_book(action_base.ActionBase):
             return
 
         try:
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_author_book))
+            result = h.file.apply_func(folder_path, ".md", h.md.generate_author_book)
+            self.add_line(result)
+            clipboard = QApplication.clipboard()
+            clipboard.setText(result, QClipboard.Clipboard)
+            QMessageBox.information(None, "Copy", "Text copied to clipboard!")
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
 
@@ -146,13 +150,19 @@ class on_get_list_movies_books(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         content = self.get_text_textarea("Markdown content", "Input Markdown content")
+        result = ""
         count = 0
         for line in content.splitlines():
             if line.startswith("### "):
-                self.add_line(f"- {line[4:].strip()}")
+                result += f"- {line[4:].strip()}\n"
                 count += 1
 
-        self.add_line(f"\nCount: {count}")
+        result += f"\nCount: {count}"
+        self.add_line(result)
+
+        clipboard = QApplication.clipboard()
+        clipboard.setText(result, QClipboard.Clipboard)
+        QMessageBox.information(None, "Copy", "Text copied to clipboard!")
 
 
 class on_increase_heading_level_content(action_base.ActionBase):
