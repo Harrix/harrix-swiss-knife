@@ -57,6 +57,21 @@ class on_download_and_replace_images(action_base.ActionBase):
             self.add_line(f"❌ Ошибка: {e}")
 
 
+class on_download_and_replace_images_folder(action_base.ActionBase):
+    icon: str = "📥"
+    title = "Download images in …"
+
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not folder_path:
+            return
+
+        try:
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.download_and_replace_images))
+        except Exception as e:
+            self.add_line(f"❌ Error: {e}")
+
+
 class on_format_yaml(action_base.ActionBase):
     icon: str = "✨"
     title = "Format YAML"

@@ -47,16 +47,19 @@ _Figure 1: Screenshot_
   - ✍️ New article
   - 📓 New note with images
   - 📓 New note
-  - ❞ Quotes. Add author and title
-  - 🎬 Get a list of movies, books for web
-  - 🌄 Add image captions in one MD
-  - 🌄 Add image captions in …
-  - 📶 Sort sections in one MD
-  - 📶 Sort sections in …
-  - ✨ Prettier in …
-  - 📑 Generate TOC in one MD
-  - 📑 Generate TOC in …
+  - 📥 Download images in one MD
+  - 📥 Download images in …
   - ✨ Format YAML
+  - ❞ Quotes. Add author and title
+  - 🌄 Add image captions in …
+  - 🌄 Add image captions in one MD
+  - 📑 Generate TOC in …
+  - 📑 Generate TOC in one MD
+  - 🎬 Get a list of movies, books for web
+  - 👉 Increase heading level
+  - ✨ Prettier in …
+  - 📶 Sort sections in …
+  - 📶 Sort sections in one MD
 - **Python**
   - 🌟 isort, ruff format, sort in PY files
   - 🐍 New uv project in …
