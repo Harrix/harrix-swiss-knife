@@ -64,6 +64,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, hsk.md.on_generate_toc_folder)
         self.add_item(self.menu_md, hsk.md.on_format_yaml)
         self.add_item(self.menu_md, hsk.md.on_increase_heading_level_content)
+        self.add_item(self.menu_md, hsk.md.on_download_and_replace_images)
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
