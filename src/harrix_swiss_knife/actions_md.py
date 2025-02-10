@@ -307,7 +307,95 @@ class on_sort_sections_folder(action_base.ActionBase):
 from pathlib import Path
 import yaml
 import harrix_pylib as h
-import re  # for regex
+import re
+
+
+def identify_code_blocks(lines):
+    code_block_delimiter = None
+    for line in lines:
+        match = re.match(r"^(`{3,})(.*)", line)
+        if match:
+            delimiter = match.group(1)
+            if code_block_delimiter is None:
+                code_block_delimiter = delimiter
+            elif code_block_delimiter == delimiter:
+                code_block_delimiter = None
+            yield line, True
+            continue
+        if code_block_delimiter:
+            yield line, True
+        else:
+            yield line, False
+
+def identify_code_blocks_line(markdown_line):
+    current_text = ""
+    in_code = False
+    backtick_count = 0
+
+    i = 0
+    while i < len(markdown_line):
+        if markdown_line[i] == "`":
+            # Counting the number of consecutive backquotes
+            count = 1
+            while i + 1 < len(markdown_line) and markdown_line[i + 1] == "`":
+                count += 1
+                i += 1
+
+            if not in_code:
+                # Start of code block
+                if current_text:
+                    yield current_text, False
+                    current_text = ""
+                backtick_count = count
+                current_text = "`" * count
+                in_code = True
+            elif count == backtick_count:
+                # End of code block
+                current_text += "`" * count
+                yield current_text, True
+                current_text = ""
+                in_code = False
+            else:
+                # Backquotes inside the code
+                current_text += "`" * count
+        else:
+            current_text += markdown_line[i]
+
+        i += 1
+
+    if current_text:
+        yield current_text, False
+
+
+def append_path_to_local_links_images_line(markdown_line, adding_path):
+    adding_path = adding_path.replace('\\', '/')
+    if adding_path.endswith('/'):
+        adding_path = adding_path[:-1]
+
+    regex_for_images = r"\!\[(.*?)\]\((?!http)(.*?)\.(.*?)\)"
+
+    def replace_path_in_images(match):
+        alt_text = match.group(1)
+        img_path = match.group(2).replace('\\', '/')
+        extension = match.group(3)
+        return f"![{alt_text}]({adding_path}/{img_path}.{extension})"
+
+    markdown_line = re.sub(regex_for_images, replace_path_in_images, markdown_line)
+
+    regex_for_links = r"\[(.*?)\]\((?!http)(.*?)\)"
+
+    def replace_path_in_links(match):
+        link_text = match.group(1)
+        file_path = match.group(2).replace('\\', '/')
+        return f"[{link_text}]({adding_path}/{file_path})"
+
+    markdown_line = re.sub(regex_for_links, replace_path_in_links, markdown_line)
+
+    return markdown_line
+
+
+# m = "Image ![Alt text](img/image.png) text [file.zip](files/file.zip)"
+# print(append_path_to_local_links_images_line(m, "folder/subfolder"))
 
 def combine_markdown_files(path):
     """
@@ -340,6 +428,33 @@ def combine_markdown_files(path):
         # Increase heading levels
         content_md = h.md.increase_heading_level_content(content_md)
 
+        # Fix links in no-code lines
+        new_lines = []
+        lines = content_md.split("\n")
+        for line, is_code_block in identify_code_blocks(lines):
+            if is_code_block:
+                new_lines.append(line)
+                continue
+
+            # Check no-code line
+            new_parts = []
+            for part, is_code in identify_code_blocks_line(line):
+                if is_code:
+                    new_parts.append(part)
+                    continue
+
+                adding_path = '/'.join(md_file.parent.parts[len(base_path.parts):])
+                part_new = append_path_to_local_links_images_line(part, adding_path)
+                if "![" in part:
+                    print(part)
+                    print(part_new)
+                    print("-----")
+                new_parts.append(part_new)
+
+            line_new = "".join(new_parts)
+            new_lines.append(line_new)
+        content_md = "\n".join(new_lines)
+
         # Collect content
         contents.append(content_md)
 
@@ -364,5 +479,33 @@ def combine_markdown_files(path):
     # Write to the output file
     output_file.write_text(final_content, encoding='utf-8')
 
+    return output_file
 
-print(combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev"))
+
+class on_combine_markdown_files(action_base.ActionBase):
+    icon: str = "📶"
+    title = "Combine MD files in …"
+
+    def execute(self, *args, **kwargs):
+        # folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_notes"])
+        folder_path="D:/Dropbox/Notes/Notes/IT_Dev"
+        if not folder_path:
+            return
+
+        try:
+            output_file = combine_markdown_files(folder_path)
+            # h.md.generate_image_captions))
+        except Exception as e:
+            self.add_line(f"❌ Error: {e}")
+
+
+# combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev")
+# print(combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev"))
+
+# from pathlib import Path
+
+# path = Path("C:/Notes/")
+# path2 = Path("C:/Notes/Python/Pycharm/")
+
+# relative_path_str = '/'.join(path2.parts[len(path.parts):])
+# print(relative_path_str)  # Python/Pycharm
