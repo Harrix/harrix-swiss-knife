@@ -78,6 +78,8 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_python, hsk.py.on_sort_code_folder)
         self.add_item(self.menu_python, hsk.py.on_extract_functions_and_classes)
         self.add_item(self.menu_python, hsk.py.on_generate_markdown_documentation)
+        self.menu_python.addSeparator()
+        self.add_item(self.menu_python, hsk.py.on_publish_harrix_pylib)
 
         # MainMenu
         self.menu.addMenu(self.menu_dev)
