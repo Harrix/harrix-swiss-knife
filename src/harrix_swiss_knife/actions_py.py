@@ -1,4 +1,6 @@
 from pathlib import Path
+import re
+import time
 
 import harrix_pylib as h
 
@@ -42,6 +44,70 @@ class on_generate_markdown_documentation(action_base.ActionBase):
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         output = h.dev.run_powershell_script(commands)
         self.add_line(output)
+
+
+class on_publish_harrix_pylib(action_base.ActionBase):
+    icon: str = "⚒️"
+    title: str = "Publish harrix-pylib"
+    is_show_output = True
+
+    def execute(self, *args, **kwargs):
+        token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
+        if not token:
+            return
+
+        path_library = Path(config["path_github"]) / "harrix-pylib"
+        projects = [Path(config["path_github"]) / "harrix-swiss-knife"]
+
+        # Increase version of library
+        path_toml = path_library / "pyproject.toml"
+        content = path_toml.read_text(encoding="utf8")
+        pattern = r'version = "(\d+)\.(\d+)"'
+        find = re.search(pattern, content, re.DOTALL)
+        new_version = f"{find.group(1)}.{int(find.group(2)) + 1}"
+        new_content = re.sub(pattern, lambda m: f'version = "{m.group(1)}.{int(m.group(2)) + 1}"', content)
+        path_toml.write_text(new_content)
+        self.add_line(f"New version {new_version}")
+
+        commands = f"""
+            cd {path_library}
+            uv sync --upgrade
+            Remove-Item -Path "{path_library}/dist/*" -Recurse -Force
+            uv build
+            uv publish --token {token}
+            git add pyproject.toml
+            git add uv.lock
+            git commit -m "🚀 Build version {new_version}" """
+        output = h.dev.run_powershell_script(commands)
+        self.add_line(output)
+
+        time.sleep(20)
+
+        for project in projects:
+            project = Path(project)
+
+            commands = f"""
+                cd {project}
+                uv sync --upgrade
+                uv sync --upgrade """
+            output = h.dev.run_powershell_script(commands)
+            self.add_line(output)
+
+            # Increase version of library
+            path_toml = project / "pyproject.toml"
+            content = path_toml.read_text(encoding="utf8")
+            pattern = path_library.parts[-1] + r'>=(\d+)\.(\d+)'
+            new_content = re.sub(pattern, lambda m: f'{path_library.parts[-1]}>={new_version}', content)
+            path_toml.write_text(new_content)
+
+            commands = f"""
+                cd {project}
+                uv sync --upgrade
+                git add pyproject.toml
+                git add uv.lock
+                git commit -m "⬆️ Update {path_library.parts[-1]}" """
+            output = h.dev.run_powershell_script(commands)
+            self.add_line(output)
 
 
 class on_sort_code(action_base.ActionBase):
