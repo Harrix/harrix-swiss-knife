@@ -366,22 +366,26 @@ def identify_code_blocks_line(markdown_line):
     if current_text:
         yield current_text, False
 
+def split_yaml_content(markdown_text: str) -> tuple[str, str]:
+    if not markdown_text.startswith("---"):
+        return "", markdown_text
+    parts = markdown_text.split("---", 2)
+    if len(parts) < 3:
+        return "", markdown_text
+    return f"---{parts[1]}---", parts[2].lstrip()
 
-def append_path_to_local_links_images_line(markdown_line, adding_path):
-    adding_path = adding_path.replace('\\', '/')
-    if adding_path.endswith('/'):
-        adding_path = adding_path[:-1]
-
-    regex_for_links = r"\[(.*?)\]\(((?!http).*?)\)"
-
+def append_path_to_local_links_images_line(markdown_line: str, adding_path: str) -> str:
     def replace_path_in_links(match):
         link_text = match.group(1)
-        file_path = match.group(2).replace('\\', '/')
+        file_path = match.group(2).replace("\\", "/")
+        if adding_path == "":
+            return f"[{link_text}]({file_path})"
         return f"[{link_text}]({adding_path}/{file_path})"
 
-    markdown_line = re.sub(regex_for_links, replace_path_in_links, markdown_line)
-
-    return markdown_line
+    adding_path = adding_path.replace("\\", "/")
+    if adding_path.endswith("/"):
+        adding_path = adding_path[:-1]
+    return re.sub(r"\[(.*?)\]\(((?!http).*?)\)", replace_path_in_links, markdown_line)
 
 
 # m = "Image ![Alt text](img/image.png) text [file.zip](files/file.zip)"
@@ -389,33 +393,25 @@ def append_path_to_local_links_images_line(markdown_line, adding_path):
 # m = "![Исключения](img/exceptions.png)"
 # print(append_path_to_local_links_images_line(m, "folder/subfolder"))
 
-def combine_markdown_files(path):
-    """
-    Combines all Markdown (.md) files in the specified directory and subdirectories
-    into a single Markdown file, excluding files that end with '.g.md'.
-    """
-    base_path = Path(path)
+def combine_markdown_files(folder_path):
+    base_path = Path(folder_path)
 
     # Get all .md files excluding those ending with '.g.md'
     md_files = [f for f in base_path.glob('**/*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
 
-    yaml_headers = []
+    data_yaml_headers = []
     contents = []
 
     for md_file in md_files:
         markdown_text = md_file.read_text(encoding='utf-8')
-        parts = markdown_text.split('---', 2)
-        if len(parts) < 3:
-            yaml_md, content_md = '', markdown_text
-        else:
-            yaml_md, content_md = f'---{parts[1]}---', parts[2].lstrip()
+        yaml_md, content_md = split_yaml_content(markdown_text)
 
         # Parse YAML and collect headers
         if yaml_md:
-            yaml_content = yaml.safe_load(parts[1])
-            yaml_headers.append(yaml_content)
+            data_yaml = yaml.safe_load(yaml_md.strip("---\n"))
+            data_yaml_headers.append(data_yaml)
         else:
-            yaml_content = {}
+            data_yaml = {}
 
         # Increase heading levels
         content_md = h.md.increase_heading_level_content(content_md)
@@ -425,8 +421,6 @@ def combine_markdown_files(path):
         lines = content_md.split("\n")
         for line, is_code_block in identify_code_blocks(lines):
             if is_code_block:
-                if "![" in line:
-                        print("*************", line)
                 new_lines.append(line)
                 continue
 
@@ -434,18 +428,14 @@ def combine_markdown_files(path):
             new_parts = []
             for part, is_code in identify_code_blocks_line(line):
                 if is_code:
-                    if "![" in part:
-                        print("+++++++++++++++", part)
                     new_parts.append(part)
                     continue
 
                 adding_path = '/'.join(md_file.parent.parts[len(base_path.parts):])
-                part_new = append_path_to_local_links_images_line(part, adding_path)
-                if "![" in part:
-                    print(part)
-                    print(part_new)
-                    print(adding_path)
-                    print("-----")
+                if adding_path:
+                    part_new = append_path_to_local_links_images_line(part, adding_path)
+                else:
+                    part_new = part
                 new_parts.append(part_new)
 
             line_new = "".join(new_parts)
@@ -457,7 +447,7 @@ def combine_markdown_files(path):
 
     # Combine YAML headers
     combined_yaml = {}
-    for y in yaml_headers:
+    for y in data_yaml_headers:
         combined_yaml.update(y)
 
     # Prepare the final content
@@ -496,7 +486,8 @@ class on_combine_markdown_files(action_base.ActionBase):
             self.add_line(f"❌ Error: {e}")
 
 
-combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev")
+# combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev/Python")
+# combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev")
 # print(combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev"))
 
 # from pathlib import Path
