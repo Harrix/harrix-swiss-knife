@@ -372,17 +372,7 @@ def append_path_to_local_links_images_line(markdown_line, adding_path):
     if adding_path.endswith('/'):
         adding_path = adding_path[:-1]
 
-    regex_for_images = r"\!\[(.*?)\]\((?!http)(.*?)\.(.*?)\)"
-
-    def replace_path_in_images(match):
-        alt_text = match.group(1)
-        img_path = match.group(2).replace('\\', '/')
-        extension = match.group(3)
-        return f"![{alt_text}]({adding_path}/{img_path}.{extension})"
-
-    markdown_line = re.sub(regex_for_images, replace_path_in_images, markdown_line)
-
-    regex_for_links = r"\[(.*?)\]\((?!http)(.*?)\)"
+    regex_for_links = r"\[(.*?)\]\(((?!http).*?)\)"
 
     def replace_path_in_links(match):
         link_text = match.group(1)
@@ -395,6 +385,8 @@ def append_path_to_local_links_images_line(markdown_line, adding_path):
 
 
 # m = "Image ![Alt text](img/image.png) text [file.zip](files/file.zip)"
+# print(append_path_to_local_links_images_line(m, "folder/subfolder"))
+# m = "![Исключения](img/exceptions.png)"
 # print(append_path_to_local_links_images_line(m, "folder/subfolder"))
 
 def combine_markdown_files(path):
@@ -433,6 +425,8 @@ def combine_markdown_files(path):
         lines = content_md.split("\n")
         for line, is_code_block in identify_code_blocks(lines):
             if is_code_block:
+                if "![" in line:
+                        print("*************", line)
                 new_lines.append(line)
                 continue
 
@@ -440,6 +434,8 @@ def combine_markdown_files(path):
             new_parts = []
             for part, is_code in identify_code_blocks_line(line):
                 if is_code:
+                    if "![" in part:
+                        print("+++++++++++++++", part)
                     new_parts.append(part)
                     continue
 
@@ -448,6 +444,7 @@ def combine_markdown_files(path):
                 if "![" in part:
                     print(part)
                     print(part_new)
+                    print(adding_path)
                     print("-----")
                 new_parts.append(part_new)
 
@@ -499,7 +496,7 @@ class on_combine_markdown_files(action_base.ActionBase):
             self.add_line(f"❌ Error: {e}")
 
 
-# combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev")
+combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev")
 # print(combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev"))
 
 # from pathlib import Path
