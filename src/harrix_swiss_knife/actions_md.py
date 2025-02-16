@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+import time
 
 import harrix_pylib as h
 from PySide6.QtGui import QClipboard
@@ -387,17 +388,11 @@ def append_path_to_local_links_images_line(markdown_line: str, adding_path: str)
         adding_path = adding_path[:-1]
     return re.sub(r"\[(.*?)\]\(((?!http).*?)\)", replace_path_in_links, markdown_line)
 
-
-# m = "Image ![Alt text](img/image.png) text [file.zip](files/file.zip)"
-# print(append_path_to_local_links_images_line(m, "folder/subfolder"))
-# m = "![Исключения](img/exceptions.png)"
-# print(append_path_to_local_links_images_line(m, "folder/subfolder"))
-
 def combine_markdown_files(folder_path):
-    base_path = Path(folder_path)
+    folder_path = Path(folder_path)
 
     # Get all .md files excluding those ending with '.g.md'
-    md_files = [f for f in base_path.glob('**/*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
+    md_files = [f for f in folder_path.glob('**/*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
 
     data_yaml_headers = []
     contents = []
@@ -431,7 +426,7 @@ def combine_markdown_files(folder_path):
                     new_parts.append(part)
                     continue
 
-                adding_path = '/'.join(md_file.parent.parts[len(base_path.parts):])
+                adding_path = '/'.join(md_file.parent.parts[len(folder_path.parts):])
                 if adding_path:
                     part_new = append_path_to_local_links_images_line(part, adding_path)
                 else:
@@ -443,7 +438,7 @@ def combine_markdown_files(folder_path):
         content_md = "\n".join(new_lines)
 
         # Collect content
-        contents.append(content_md)
+        contents.append(content_md.strip())
 
     # Combine YAML headers
     combined_yaml = {}
@@ -451,8 +446,8 @@ def combine_markdown_files(folder_path):
         combined_yaml.update(y)
 
     # Prepare the final content
-    folder_name = base_path.name
-    output_file = base_path / f'_{folder_name}.g.md'
+    folder_name = folder_path.name
+    output_file = folder_path / f'_{folder_name}.g.md'
 
     # Dump combined YAML
     yaml_md = yaml.safe_dump(combined_yaml, sort_keys=False)
@@ -463,37 +458,40 @@ def combine_markdown_files(folder_path):
     final_content += f'# {folder_name}\n\n'
     final_content += '\n\n'.join(contents)
 
+    final_content = h.md.generate_toc_with_links_content(final_content)
+    final_content = h.md.generate_image_captions_content(final_content)
+
     # Write to the output file
     output_file.write_text(final_content, encoding='utf-8')
 
-    return output_file
+    return f"File {output_file} is created."
+
+
+def combine_markdown_files_recursively(folder_path):
+    result_lines = []
+    folder_path = Path(folder_path)
+
+    for folder in folder_path.glob('**/*'):
+        if not folder.is_dir() and not folder.name.startswith('.'):
+            continue
+        if len(list(folder.rglob("*.md"))) < 2:
+            continue
+        try:
+            result_lines.append(combine_markdown_files(folder))
+        except Exception as e:
+            result_lines.append(f"❌ Error: {e}")
+
+        return "".join(result_lines)
 
 
 class on_combine_markdown_files(action_base.ActionBase):
-    icon: str = "📶"
+    icon: str = "🔗"
     title = "Combine MD files in …"
+    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        # folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_notes"])
-        folder_path="D:/Dropbox/Notes/Notes/IT_Dev"
+        folder_path = self.get_existing_directory("Select a folder with Markdown files",config["path_notes"])
         if not folder_path:
             return
 
-        try:
-            output_file = combine_markdown_files(folder_path)
-            # h.md.generate_image_captions))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
-
-
-# combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev/Python")
-# combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev")
-# print(combine_markdown_files("D:/Dropbox/Notes/Notes/IT_Dev"))
-
-# from pathlib import Path
-
-# path = Path("C:/Notes/")
-# path2 = Path("C:/Notes/Python/Pycharm/")
-
-# relative_path_str = '/'.join(path2.parts[len(path.parts):])
-# print(relative_path_str)  # Python/Pycharm
+        self.add_line(combine_markdown_files_recursively(folder_path))
