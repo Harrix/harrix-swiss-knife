@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 import time
+from PySide6.QtWidgets import QMessageBox
 
 import harrix_pylib as h
 
@@ -25,7 +26,7 @@ class on_extract_functions_and_classes(action_base.ActionBase):
         self.add_line(result)
 
 
-class on_generate_markdown_documentation(action_base.ActionBase):
+class on_generate_md_docs(action_base.ActionBase):
     icon: str = "🏗️"
     title: str = "Generate MD documentation in …"
     is_show_output = True
@@ -38,7 +39,7 @@ class on_generate_markdown_documentation(action_base.ActionBase):
         folder_path = Path(folder_path)
         domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
 
-        output = h.py.generate_docs_for_project(folder_path, config["beginning_of_md_docs"], domain)
+        output = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
         self.add_line(output)
 
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
@@ -46,9 +47,31 @@ class on_generate_markdown_documentation(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_publish_harrix_pylib(action_base.ActionBase):
-    icon: str = "⚒️"
-    title: str = "Publish harrix-pylib"
+class on_harrix_pylib_01_prepare(action_base.ActionBase):
+    icon: str = "👩🏻‍🍳"
+    title: str = "01 Prepare harrix-pylib"
+
+    def execute(self, *args, **kwargs):
+        folder_path = Path(config["path_github"]) / "harrix-pylib"
+
+        commands = f"cd {folder_path}\nisort .\nruff format"
+        self.add_line(h.dev.run_powershell_script(commands))
+        self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+
+        domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
+        output = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
+        self.add_line(output)
+        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+        output = h.dev.run_powershell_script(commands)
+        self.add_line(output)
+
+        output = h.dev.run_powershell_script(f"github {folder_path} ")
+        self.add_line(output)
+
+
+class on_harrix_pylib_02_publish(action_base.ActionBase):
+    icon: str = "👷‍♂️"
+    title: str = "02 Publish and update harrix-pylib"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -81,7 +104,9 @@ class on_publish_harrix_pylib(action_base.ActionBase):
         output = h.dev.run_powershell_script(commands)
         self.add_line(output)
 
-        time.sleep(20)
+        time_waiting_seconds = 20
+        QMessageBox.information(None, "Copy", f"Wait {time_waiting_seconds} seconds for the package to be published.")
+        time.sleep(time_waiting_seconds)
 
         for project in projects:
             project = Path(project)
