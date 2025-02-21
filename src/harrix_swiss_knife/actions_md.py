@@ -471,8 +471,18 @@ def combine_markdown_files_recursively(folder_path):
     result_lines = []
     folder_path = Path(folder_path)
 
-    for folder in folder_path.glob('**/*'):
-        if not folder.is_dir() and not folder.name.startswith('.'):
+    for file in filter(
+            lambda path: not any((part for part in path.parts if part.startswith("."))),
+            Path(folder_path).rglob("*"),
+            ):
+        if file.is_file() and file.name.endswith(".g.md"):
+            file.unlink()
+
+    for folder in filter(
+            lambda path: not any((part for part in path.parts if part.startswith("."))),
+            Path(folder_path).rglob("*"),
+            ):
+        if not folder.is_dir():
             continue
         if len(list(folder.rglob("*.md"))) < 2:
             continue
@@ -481,7 +491,7 @@ def combine_markdown_files_recursively(folder_path):
         except Exception as e:
             result_lines.append(f"❌ Error: {e}")
 
-        return "".join(result_lines)
+    return "\n".join(result_lines)
 
 
 class on_combine_markdown_files(action_base.ActionBase):
@@ -495,3 +505,4 @@ class on_combine_markdown_files(action_base.ActionBase):
             return
 
         self.add_line(combine_markdown_files_recursively(folder_path))
+
