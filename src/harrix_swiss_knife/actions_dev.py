@@ -1,12 +1,12 @@
 import harrix_pylib as h
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife import action_base
+from harrix_swiss_knife import action_base_in_thread
 
 config = h.dev.load_config("config/config.json")
 
 
-class on_exit(action_base.ActionBase):
+class on_exit(action_base_in_thread.ActionBaseInThread):
     icon: str = "×"
     title: str = "Exit"
 
@@ -17,7 +17,7 @@ class on_exit(action_base.ActionBase):
         QApplication.quit()
 
 
-class on_get_menu(action_base.ActionBase):
+class on_get_menu(action_base_in_thread.ActionBaseInThread):
     icon: str = "☰"
     title: str = "Get the list of items from this menu"
 
@@ -28,7 +28,7 @@ class on_get_menu(action_base.ActionBase):
         self.add_line(self.parent.get_menu())
 
 
-class on_npm_install_packages(action_base.ActionBase):
+class on_npm_install_packages(action_base_in_thread.ActionBaseInThread):
     icon: str = "📥"
     title: str = "Install global NPM packages"
     is_show_output = True
@@ -39,7 +39,7 @@ class on_npm_install_packages(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_npm_update_packages(action_base.ActionBase):
+class on_npm_update_packages(action_base_in_thread.ActionBaseInThread):
     icon: str = "📥"
     title: str = "Update NPM and global NPM packages"
     is_show_output = True
@@ -50,7 +50,7 @@ class on_npm_update_packages(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_open_config_json(action_base.ActionBase):
+class on_open_config_json(action_base_in_thread.ActionBaseInThread):
     icon: str = "⚙️"
     title: str = "Open config.json"
 

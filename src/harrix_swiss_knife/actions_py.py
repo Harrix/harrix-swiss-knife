@@ -5,12 +5,12 @@ from PySide6.QtWidgets import QMessageBox
 
 import harrix_pylib as h
 
-from harrix_swiss_knife import action_base
+from harrix_swiss_knife import action_base_in_thread
 
 config = h.dev.load_config("config/config.json")
 
 
-class on_extract_functions_and_classes(action_base.ActionBase):
+class on_extract_functions_and_classes(action_base_in_thread.ActionBaseInThread):
     icon: str = "⬇️"
     title: str = "Extracts list of funcs to a MD list from one PY file"
     is_show_output = True
@@ -26,7 +26,7 @@ class on_extract_functions_and_classes(action_base.ActionBase):
         self.add_line(result)
 
 
-class on_generate_md_docs(action_base.ActionBase):
+class on_generate_md_docs(action_base_in_thread.ActionBaseInThread):
     icon: str = "🏗️"
     title: str = "Generate MD documentation in …"
     is_show_output = True
@@ -47,7 +47,7 @@ class on_generate_md_docs(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_harrix_pylib_01_prepare(action_base.ActionBase):
+class on_harrix_pylib_01_prepare(action_base_in_thread.ActionBaseInThread):
     icon: str = "👩🏻‍🍳"
     title: str = "01 Prepare harrix-pylib"
 
@@ -69,7 +69,7 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
         self.add_line(output)
 
 
-class on_harrix_pylib_02_publish(action_base.ActionBase):
+class on_harrix_pylib_02_publish(action_base_in_thread.ActionBaseInThread):
     icon: str = "👷‍♂️"
     title: str = "02 Publish and update harrix-pylib"
     is_show_output = True
@@ -135,7 +135,7 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
             self.add_line(output)
 
 
-class on_sort_code(action_base.ActionBase):
+class on_sort_code(action_base_in_thread.ActionBaseInThread):
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in one PY file"
 
@@ -153,7 +153,7 @@ class on_sort_code(action_base.ActionBase):
             self.add_line(f"❌ File {filename} is not applied.")
 
 
-class on_sort_code_folder(action_base.ActionBase):
+class on_sort_code_folder(action_base_in_thread.ActionBaseInThread):
     icon: str = "📶"
     title: str = "Sort classes, methods, functions in PY files"
 
@@ -168,7 +168,7 @@ class on_sort_code_folder(action_base.ActionBase):
             self.add_line(f"❌ Error: {e}")
 
 
-class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
+class on_sort_isort_fmt_python_code_folder(action_base_in_thread.ActionBaseInThread):
     icon: str = "🌟"
     title: str = "isort, ruff format, sort in PY files"
 
@@ -182,7 +182,7 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
         self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
 
-class on_uv_new_project(action_base.ActionBase):
+class on_uv_new_project(action_base_in_thread.ActionBaseInThread):
     icon: str = "🐍"
     title: str = "New uv project in Projects"
 
@@ -194,7 +194,7 @@ class on_uv_new_project(action_base.ActionBase):
         self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
 
 
-class on_uv_new_project_dialog(action_base.ActionBase):
+class on_uv_new_project_dialog(action_base_in_thread.ActionBaseInThread):
     icon: str = "🐍"
     title: str = "New uv project in …"
 
