@@ -3,10 +3,13 @@ from pathlib import Path
 import harrix_pylib as h
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QInputDialog, QLabel, QPlainTextEdit, QVBoxLayout
 
+
+from harrix_swiss_knife import thread_for_action
+
 config = h.dev.load_config("config/config.json")
 
 
-class ActionBase:
+class ActionBaseInThread:
     """
     A base class for actions that can be executed and optionally have outputs written to a text file.
 
@@ -26,39 +29,43 @@ class ActionBase:
     title: str = ""
     is_show_output: bool = False
 
-    def __init__(self, **kwargs): ...
+    def __init__(self, **kwargs):
+        self._thread = None
 
     def __call__(self, *args, **kwargs):
         """
         Calls the decorated `execute` method, setting up output handling if required.
-
-        Args:
-
-        - `*args`: Variable length argument list.
-        - `**kwargs`: Arbitrary keyword arguments.
-
-        Returns:
-
-        - The result of the decorated `execute` method.
         """
-        # Decorate the 'execute' method with 'write_in_output_txt'
         decorated_execute = h.dev.write_in_output_txt(is_show_output=self.is_show_output)(self.execute)
-        # Save the 'add_line' method from the decorated function
         self.add_line = decorated_execute.add_line
-        return decorated_execute(*args, **kwargs)
+
+        # Create and setup thread
+        self._thread = thread_for_action.ThreadForAction(decorated_execute, args, kwargs)
+
+        # Connect signals
+        self._thread.finished.connect(self._on_execution_finished)
+        self._thread.error.connect(self._on_execution_error)
+
+        # Start thread
+        self._thread.start()
+
+    def _on_execution_finished(self, result):
+        """
+        Handle successful execution.
+        """
+        self._thread.deleteLater()
+        return result
+
+    def _on_execution_error(self, error):
+        """
+        Handle execution error.
+        """
+        self._thread.deleteLater()
+        raise error
 
     def execute(self, *args, **kwargs):
         """
-        Abstract method intended to be overridden by subclasses with specific action logic.
-
-        Args:
-
-        - `*args`: Variable length argument list.
-        - `**kwargs`: Arbitrary keyword arguments.
-
-        Raises:
-
-        - `NotImplementedError`: If the method is not implemented in a subclass.
+        The execute method must be implemented in subclasses.
         """
         raise NotImplementedError("The execute method must be implemented in subclasses")
 
