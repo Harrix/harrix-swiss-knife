@@ -1,11 +1,11 @@
 import harrix_pylib as h
 
-from harrix_swiss_knife import action_base_in_thread, fitness
+from harrix_swiss_knife import action_base, fitness
 
 config = h.dev.load_config("config/config.json")
 
 
-class on_fitness(action_base_in_thread.ActionBaseInThread):
+class on_fitness(action_base.ActionBase):
     icon: str = "🏃🏻"
     title: str = "Fitness tracker"
 
