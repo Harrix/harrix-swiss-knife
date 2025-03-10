@@ -60,6 +60,7 @@ _Figure 1: Screenshot_
   - ✨ Prettier in …
   - 📶 Sort sections in …
   - 📶 Sort sections in one MD
+  - 🔗 Combine MD files in …
 - **Python**
   - 🌟 isort, ruff format, sort in PY files
   - 🐍 New uv project in …
@@ -68,6 +69,8 @@ _Figure 1: Screenshot_
   - 📶 Sort classes, methods, functions in PY files
   - ⬇️ Extracts list of funcs to a MD list from one PY file
   - 🏗️ Generate MD documentation in …
+  - 👩🏻‍🍳 01 Prepare harrix-pylib
+  - 👷‍♂️ 02 Publish and update harrix-pylib
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit
