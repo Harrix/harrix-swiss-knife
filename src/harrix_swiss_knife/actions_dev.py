@@ -1,7 +1,7 @@
 import harrix_pylib as h
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife import action_base_in_thread
+from harrix_swiss_knife import action_base, action_base_in_thread
 
 config = h.dev.load_config("config/config.json")
 
@@ -17,7 +17,7 @@ class on_exit(action_base_in_thread.ActionBaseInThread):
         QApplication.quit()
 
 
-class on_get_menu(action_base_in_thread.ActionBaseInThread):
+class on_get_menu(action_base.ActionBase):
     icon: str = "☰"
     title: str = "Get the list of items from this menu"
 
