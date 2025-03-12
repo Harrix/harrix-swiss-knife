@@ -6,12 +6,12 @@ import clr
 import harrix_pylib as h
 from PIL import Image, ImageGrab
 
-from harrix_swiss_knife import action_base_in_thread
+from harrix_swiss_knife import action_base
 
 config = h.dev.load_config("config/config.json")
 
 
-class on_clear_images(action_base_in_thread.ActionBaseInThread):
+class on_clear_images(action_base.ActionBase):
     icon: str = "🧹"
     title: str = "Clear folders images"
 
@@ -26,7 +26,7 @@ class on_clear_images(action_base_in_thread.ActionBaseInThread):
                 self.add_line(f"❌ Folder `{path}` is not exist.")
 
 
-class on_open_images(action_base_in_thread.ActionBaseInThread):
+class on_open_images(action_base.ActionBase):
     icon: str = "📂"
     title: str = "Open the folder images"
 
@@ -39,7 +39,7 @@ class on_open_images(action_base_in_thread.ActionBaseInThread):
             self.add_line(f"❌ Folder `{path}` is not exist.")
 
 
-class on_open_optimized_images(action_base_in_thread.ActionBaseInThread):
+class on_open_optimized_images(action_base.ActionBase):
     icon: str = "📂"
     title: str = "Open the folder optimized_images"
 
@@ -52,7 +52,7 @@ class on_open_optimized_images(action_base_in_thread.ActionBaseInThread):
             self.add_line(f"❌ Folder `{path}` is not exist.")
 
 
-class on_optimize(action_base_in_thread.ActionBaseInThread):
+class on_optimize(action_base.ActionBase):
     icon: str = "🚀"
     title: str = "Optimize images"
     is_show_output = True
@@ -64,7 +64,7 @@ class on_optimize(action_base_in_thread.ActionBaseInThread):
         self.add_line(result_output)
 
 
-class on_optimize_clipboard(action_base_in_thread.ActionBaseInThread):
+class on_optimize_clipboard(action_base.ActionBase):
     icon: str = "🚀"
     title: str = "Optimize image from clipboard"
 
@@ -107,7 +107,7 @@ class on_optimize_clipboard(action_base_in_thread.ActionBaseInThread):
         self.add_line("Image is optimized and copied to clipboard.")
 
 
-class on_optimize_clipboard_dialog(action_base_in_thread.ActionBaseInThread):
+class on_optimize_clipboard_dialog(action_base.ActionBase):
     icon: str = "🚀"
     title: str = "Optimize image from clipboard as …"
 
@@ -115,7 +115,7 @@ class on_optimize_clipboard_dialog(action_base_in_thread.ActionBaseInThread):
         on_optimize_clipboard.execute(self, is_dialog=True)
 
 
-class on_optimize_dialog(action_base_in_thread.ActionBaseInThread):
+class on_optimize_dialog(action_base.ActionBase):
     icon: str = "⬆️"
     title: str = "Optimize images in …/temp"
     is_show_output = True
@@ -130,7 +130,7 @@ class on_optimize_dialog(action_base_in_thread.ActionBaseInThread):
         self.add_line(result_output)
 
 
-class on_optimize_dialog_replace(action_base_in_thread.ActionBaseInThread):
+class on_optimize_dialog_replace(action_base.ActionBase):
     icon: str = "⬆️"
     title: str = "Optimize images in … and replace"
     is_show_output = True
@@ -158,7 +158,7 @@ class on_optimize_dialog_replace(action_base_in_thread.ActionBaseInThread):
         self.add_line(result_output)
 
 
-class on_optimize_file(action_base_in_thread.ActionBaseInThread):
+class on_optimize_file(action_base.ActionBase):
     icon: str = "🖼️"
     title: str = "Optimize one image"
     is_show_output = True
@@ -183,7 +183,7 @@ class on_optimize_file(action_base_in_thread.ActionBaseInThread):
         self.add_line(result_output)
 
 
-class on_optimize_quality(action_base_in_thread.ActionBaseInThread):
+class on_optimize_quality(action_base.ActionBase):
     icon: str = "🔝"
     title: str = "Optimize images (high quality)"
     is_show_output = True

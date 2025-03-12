@@ -6,12 +6,12 @@ import harrix_pylib as h
 from PySide6.QtGui import QClipboard
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from harrix_swiss_knife import action_base_in_thread
+from harrix_swiss_knife import action_base
 
 config = h.dev.load_config("config/config.json")
 
 
-class on_diary_new(action_base_in_thread.ActionBaseInThread):
+class on_diary_new(action_base.ActionBase):
     icon: str = "📖"
     title = "New diary note"
 
@@ -21,7 +21,7 @@ class on_diary_new(action_base_in_thread.ActionBaseInThread):
         self.add_line(output)
 
 
-class on_diary_new_dream(action_base_in_thread.ActionBaseInThread):
+class on_diary_new_dream(action_base.ActionBase):
     icon: str = "💤"
     title = "New dream note"
 
@@ -31,7 +31,7 @@ class on_diary_new_dream(action_base_in_thread.ActionBaseInThread):
         self.add_line(output)
 
 
-class on_diary_new_with_images(action_base_in_thread.ActionBaseInThread):
+class on_diary_new_with_images(action_base.ActionBase):
     icon: str = "📚"
     title = "New diary note with images"
 
@@ -43,7 +43,7 @@ class on_diary_new_with_images(action_base_in_thread.ActionBaseInThread):
         self.add_line(output)
 
 
-class on_download_and_replace_images(action_base_in_thread.ActionBaseInThread):
+class on_download_and_replace_images(action_base.ActionBase):
     icon: str = "📥"
     title: str = "Download images in one MD"
 
@@ -58,7 +58,7 @@ class on_download_and_replace_images(action_base_in_thread.ActionBaseInThread):
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_download_and_replace_images_folder(action_base_in_thread.ActionBaseInThread):
+class on_download_and_replace_images_folder(action_base.ActionBase):
     icon: str = "📥"
     title = "Download images in …"
 
@@ -73,7 +73,7 @@ class on_download_and_replace_images_folder(action_base_in_thread.ActionBaseInTh
             self.add_line(f"❌ Error: {e}")
 
 
-class on_format_yaml(action_base_in_thread.ActionBaseInThread):
+class on_format_yaml(action_base.ActionBase):
     icon: str = "✨"
     title = "Format YAML"
     is_show_output = True
@@ -89,7 +89,7 @@ class on_format_yaml(action_base_in_thread.ActionBaseInThread):
             self.add_line(f"❌ Error: {e}")
 
 
-class on_generate_author_book(action_base_in_thread.ActionBaseInThread):
+class on_generate_author_book(action_base.ActionBase):
     icon: str = "❞"
     title: str = "Quotes. Add author and title"
     is_show_output = True
@@ -109,7 +109,7 @@ class on_generate_author_book(action_base_in_thread.ActionBaseInThread):
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_generate_image_captions(action_base_in_thread.ActionBaseInThread):
+class on_generate_image_captions(action_base.ActionBase):
     icon: str = "🌄"
     title: str = "Add image captions in one MD"
 
@@ -126,7 +126,7 @@ class on_generate_image_captions(action_base_in_thread.ActionBaseInThread):
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_generate_image_captions_folder(action_base_in_thread.ActionBaseInThread):
+class on_generate_image_captions_folder(action_base.ActionBase):
     icon: str = "🌄"
     title = "Add image captions in …"
 
@@ -141,7 +141,7 @@ class on_generate_image_captions_folder(action_base_in_thread.ActionBaseInThread
             self.add_line(f"❌ Error: {e}")
 
 
-class on_generate_toc(action_base_in_thread.ActionBaseInThread):
+class on_generate_toc(action_base.ActionBase):
     icon: str = "📑"
     title = "Generate TOC in one MD"
     is_show_output = True
@@ -159,7 +159,7 @@ class on_generate_toc(action_base_in_thread.ActionBaseInThread):
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_generate_toc_folder(action_base_in_thread.ActionBaseInThread):
+class on_generate_toc_folder(action_base.ActionBase):
     icon: str = "📑"
     title = "Generate TOC in …"
     is_show_output = True
@@ -175,7 +175,7 @@ class on_generate_toc_folder(action_base_in_thread.ActionBaseInThread):
             self.add_line(f"❌ Error: {e}")
 
 
-class on_get_list_movies_books(action_base_in_thread.ActionBaseInThread):
+class on_get_list_movies_books(action_base.ActionBase):
     icon: str = "🎬"
     title = "Get a list of movies, books for web"
 
@@ -196,7 +196,7 @@ class on_get_list_movies_books(action_base_in_thread.ActionBaseInThread):
         QMessageBox.information(None, "Copy", "Text copied to clipboard!")
 
 
-class on_increase_heading_level_content(action_base_in_thread.ActionBaseInThread):
+class on_increase_heading_level_content(action_base.ActionBase):
     icon: str = "👉"
     title = "Increase heading level"
 
@@ -209,7 +209,7 @@ class on_increase_heading_level_content(action_base_in_thread.ActionBaseInThread
         QMessageBox.information(None, "Copy", "Text copied to clipboard!")
 
 
-class on_new_article(action_base_in_thread.ActionBaseInThread):
+class on_new_article(action_base.ActionBase):
     icon: str = "✍️"
     title = "New article"
 
@@ -230,7 +230,7 @@ class on_new_article(action_base_in_thread.ActionBaseInThread):
         self.add_line(output)
 
 
-class on_new_note_dialog(action_base_in_thread.ActionBaseInThread):
+class on_new_note_dialog(action_base.ActionBase):
     icon: str = "📓"
     title = "New note"
 
@@ -251,7 +251,7 @@ class on_new_note_dialog(action_base_in_thread.ActionBaseInThread):
         self.add_line(output)
 
 
-class on_new_note_dialog_with_images(action_base_in_thread.ActionBaseInThread):
+class on_new_note_dialog_with_images(action_base.ActionBase):
     icon: str = "📓"
     title = "New note with images"
 
@@ -259,7 +259,7 @@ class on_new_note_dialog_with_images(action_base_in_thread.ActionBaseInThread):
         on_new_note_dialog.execute(self, is_with_images=True)
 
 
-class on_prettier_folder(action_base_in_thread.ActionBaseInThread):
+class on_prettier_folder(action_base.ActionBase):
     icon: str = "✨"
     title = "Prettier in …"
     is_show_output = True
@@ -274,7 +274,7 @@ class on_prettier_folder(action_base_in_thread.ActionBaseInThread):
         self.add_line(output)
 
 
-class on_sort_sections(action_base_in_thread.ActionBaseInThread):
+class on_sort_sections(action_base.ActionBase):
     icon: str = "📶"
     title: str = "Sort sections in one MD"
 
@@ -290,7 +290,7 @@ class on_sort_sections(action_base_in_thread.ActionBaseInThread):
             self.add_line(f"❌ Ошибка: {e}")
 
 
-class on_sort_sections_folder(action_base_in_thread.ActionBaseInThread):
+class on_sort_sections_folder(action_base.ActionBase):
     icon: str = "📶"
     title = "Sort sections in …"
 
@@ -494,7 +494,7 @@ def combine_markdown_files_recursively(folder_path):
     return "\n".join(result_lines)
 
 
-class on_combine_markdown_files(action_base_in_thread.ActionBaseInThread):
+class on_combine_markdown_files(action_base.ActionBase):
     icon: str = "🔗"
     title = "Combine MD files in …"
     is_show_output = True
