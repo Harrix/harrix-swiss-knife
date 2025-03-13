@@ -3,30 +3,8 @@ from pathlib import Path
 import harrix_pylib as h
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QInputDialog, QLabel, QPlainTextEdit, QVBoxLayout
 
-from PySide6.QtCore import QObject, Signal, QThreadPool, QRunnable
-import functools
-
 config = h.dev.load_config("config/config.json")
 
-# Signals for thread communication
-class WorkerSignals(QObject):
-    result_ready = Signal(object)
-
-# Class for executing task in a separate thread
-class ThreadWorker(QRunnable):
-    def __init__(self, fn, *args, **kwargs):
-        super().__init__()
-        self.fn = fn
-        self.args = args
-        self.kwargs = kwargs
-        self.signals = WorkerSignals()
-
-    def run(self):
-        try:
-            result = self.fn(*self.args, **self.kwargs)
-            self.signals.result_ready.emit(result)
-        except Exception as e:
-            print(f"Error in thread: {e}")
 
 class ActionBase:
     """
@@ -48,13 +26,26 @@ class ActionBase:
     title: str = ""
     is_show_output: bool = False
 
-    def __init__(self, **kwargs):
-        # Initialize attributes from kwargs
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+    def __init__(self, **kwargs): ...
 
-        self._thread_results = {}
-        self._worker_signals = {}
+    def __call__(self, *args, **kwargs):
+        """
+        Calls the decorated `execute` method, setting up output handling if required.
+
+        Args:
+
+        - `*args`: Variable length argument list.
+        - `**kwargs`: Arbitrary keyword arguments.
+
+        Returns:
+
+        - The result of the decorated `execute` method.
+        """
+        # Decorate the 'execute' method with 'write_in_output_txt'
+        decorated_execute = h.dev.write_in_output_txt(is_show_output=self.is_show_output)(self.execute)
+        # Save the 'add_line' method from the decorated function
+        self.add_line = decorated_execute.add_line
+        return decorated_execute(*args, **kwargs)
 
     def execute(self, *args, **kwargs):
         """
@@ -71,83 +62,24 @@ class ActionBase:
         """
         raise NotImplementedError("The execute method must be implemented in subclasses")
 
-    def run_in_thread(self, func):
+    def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         """
-        Decorator for functions that should be executed in a separate thread
+        Opens a dialog to select an existing directory.
 
-        Usage:
-        @run_in_thread
-        def my_long_running_function(param1, param2):
-            # Executes in a separate thread
-            return result
+        Args:
 
-        signal = my_long_running_function(1, 2)  # Returns signal object
+        - `title` (`str`): The title of the dialog window.
+        - `default_path` (`str`): The initial directory displayed in the dialog.
+
+        Returns:
+
+        - `Path | None`: The selected directory as a `Path` object, or `None` if no directory is selected.
         """
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Unique identifier for this call
-            call_id = id(func)
-
-            # Create signals if not already created
-            if call_id not in self._worker_signals:
-                self._worker_signals[call_id] = WorkerSignals()
-
-            # Function to execute in thread
-            def thread_func():
-                result = func(*args, **kwargs)
-                self._thread_results[call_id] = result
-                self._worker_signals[call_id].result_ready.emit(result)
-                return result
-
-            # Start in thread
-            worker = ThreadWorker(thread_func)
-            QThreadPool.globalInstance().start(worker)
-
-            # Return object that can be used to get the result
-            return self._worker_signals[call_id]
-
-        return wrapper
-
-    def on_thread_done(self, signal, callback):
-        """
-        Connect callback to thread completion signal
-
-        Usage:
-        signal = self.run_in_thread(my_func)(arg1, arg2)
-        self.on_thread_done(signal, lambda result: self.update_ui(result))
-        """
-        signal.result_ready.connect(callback)
-
-    def __call__(self, *args, **kwargs):
-        # Apply the write_in_output_txt decorator to the execute method
-        decorated_execute = h.dev.write_in_output_txt(is_show_output=self.is_show_output)(self.execute)
-
-        # Save the add_line method from the decorated function
-        self.add_line = decorated_execute.add_line
-
-        # Create a wrapper for decorated_execute that adds threading functionality
-        @functools.wraps(decorated_execute)
-        def thread_aware_execute(*exec_args, **exec_kwargs):
-            # Temporarily store the original execute method
-            original_execute = self.execute
-
-            # Call the decorated_execute with arguments
-            result = decorated_execute(*exec_args, **exec_kwargs)
-
-            # Restore the execute method
-            self.execute = original_execute
-
-            return result
-
-        # Replace the execute method with thread_aware_execute
-        self.execute = thread_aware_execute
-
-        # Call thread_aware_execute
-        return thread_aware_execute(*args, **kwargs)
-
-    def run_code_in_thread(self, func_in_thread, on_update_complete):
-        thread_signal = func_in_thread()
-        self.on_thread_done(thread_signal, on_update_complete)
+        folder_path = QFileDialog.getExistingDirectory(None, title, default_path)
+        if not folder_path:
+            self.add_line("❌ Folder was not selected.")
+            return None
+        return Path(folder_path)
 
     def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """
