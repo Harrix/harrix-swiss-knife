@@ -34,9 +34,19 @@ class on_npm_install_packages(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        @self.run_in_thread
+        def func_in_thread():
+            commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
+            result = h.dev.run_powershell_script(commands)
+            print("111")
+            return result
+
+        def on_update_complete(result):
+            self.add_line(result)
+            print("222")
+
+        thread_signal = func_in_thread()
+        self.on_thread_done(thread_signal, on_update_complete)
 
 
 class on_npm_update_packages(action_base.ActionBase):
@@ -45,16 +55,33 @@ class on_npm_update_packages(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        commands = "npm update npm -g\nnpm update -g"
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        @self.run_in_thread
+        def func_in_thread():
+            commands = "npm update npm -g\nnpm update -g"
+            result = h.dev.run_powershell_script(commands)
+            return result
 
+        def on_update_complete(result):
+            self.add_line(result)
+
+        thread_signal = func_in_thread()
+        self.on_thread_done(thread_signal, on_update_complete)
 
 class on_open_config_json(action_base.ActionBase):
     icon: str = "⚙️"
     title: str = "Open config.json"
 
     def execute(self, *args, **kwargs):
-        commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        @self.run_in_thread
+        def func_in_thread():
+            commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
+            result = h.dev.run_powershell_script(commands)
+            print("111")
+            return result
+
+        def on_update_complete(result):
+            self.add_line(result)
+            print("222")
+
+        thread_signal = func_in_thread()
+        self.on_thread_done(thread_signal, on_update_complete)
