@@ -1,7 +1,18 @@
 from pathlib import Path
 
 import harrix_pylib as h
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QInputDialog, QLabel, QPlainTextEdit, QVBoxLayout
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+)
 
 config = h.dev.load_config("config/config.json")
 
@@ -186,4 +197,54 @@ class ActionBase:
             return text
         else:
             self.add_line("❌ Dialog was canceled.")
+            return None
+
+    def show_text_textarea(self, text: str, title: str = "Result") -> str | None:
+        """
+        Opens a dialog to display text with a copy button.
+
+        Args:
+        - `text` (`str`): The text to display in the textarea.
+        - `title` (`str`): The title of the text area dialog.
+
+        Returns:
+        - `str | None`: The displayed text, or `None` if cancelled.
+        """
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(600, 400)  # Set a reasonable default size
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Create a multi-line text field
+        text_edit = QPlainTextEdit()
+        text_edit.setPlainText(text)
+        text_edit.setReadOnly(True)  # Make it read-only since we're just displaying text
+        layout.addWidget(text_edit)
+
+        # Create a horizontal layout for buttons
+        button_layout = QHBoxLayout()
+
+        # Add a Copy button
+        copy_button = QPushButton("Copy to Clipboard")
+        copy_button.clicked.connect(lambda: QGuiApplication.clipboard().setText(text_edit.toPlainText()))
+        button_layout.addWidget(copy_button)
+
+        # Add OK button
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_button)
+
+        # Add the button layout to the main layout
+        layout.addLayout(button_layout)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.Accepted:
+            return text
+        else:
             return None
