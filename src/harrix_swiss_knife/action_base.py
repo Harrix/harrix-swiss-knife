@@ -248,3 +248,21 @@ class ActionBase:
             return text
         else:
             return None
+
+    def text_to_clipboard(self, text: str):
+        """
+        Copies the given text to the system clipboard.
+
+        Args:
+
+        - `text` (`str`): The text to be copied to the clipboard.
+
+        Returns:
+
+        - `None`: This function does not return any value.
+
+        Note:
+
+        - This function uses `QGuiApplication` to interact with the system clipboard.
+        """
+        QGuiApplication.clipboard().setText(text)
