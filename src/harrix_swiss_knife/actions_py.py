@@ -1,9 +1,9 @@
-from pathlib import Path
 import re
 import time
-from PySide6.QtWidgets import QMessageBox
+from pathlib import Path
 
 import harrix_pylib as h
+from PySide6.QtWidgets import QMessageBox
 
 from harrix_swiss_knife import action_base
 
@@ -121,8 +121,8 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
             # Increase version of library
             path_toml = project / "pyproject.toml"
             content = path_toml.read_text(encoding="utf8")
-            pattern = path_library.parts[-1] + r'>=(\d+)\.(\d+)'
-            new_content = re.sub(pattern, lambda m: f'{path_library.parts[-1]}>={new_version}', content)
+            pattern = path_library.parts[-1] + r">=(\d+)\.(\d+)"
+            new_content = re.sub(pattern, lambda m: f"{path_library.parts[-1]}>={new_version}", content)
             path_toml.write_text(new_content)
 
             commands = f"""
