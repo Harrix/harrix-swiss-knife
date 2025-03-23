@@ -14,6 +14,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from harrix_swiss_knife import toast_notification
+
 config = h.dev.load_config("config/config.json")
 
 
@@ -248,6 +250,18 @@ class ActionBase:
             return text
         else:
             return None
+
+    def show_toast(self, message: str, duration: int = 1000):
+        """
+        Displays a toast notification.
+
+        Args:
+
+        - `message` (`str`): The text of the message.
+        - `duration` (`int`): The display duration in milliseconds. Defaults to `1000`.
+        """
+        toast = toast_notification.ToastNotification(message=message, duration=duration)
+        toast.exec()
 
     def text_to_clipboard(self, text: str):
         """
