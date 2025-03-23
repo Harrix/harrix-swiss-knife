@@ -25,7 +25,9 @@ class on_get_menu(action_base.ActionBase):
         self.parent = kwargs.get("parent", None)
 
     def execute(self, *args, **kwargs):
-        self.add_line(self.parent.get_menu())
+        result = self.parent.get_menu()
+        self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_npm_install_packages(action_base.ActionBase):
