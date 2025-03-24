@@ -230,7 +230,12 @@ class ActionBase:
 
         # Add a Copy button
         copy_button = QPushButton("Copy to Clipboard")
-        copy_button.clicked.connect(lambda: QGuiApplication.clipboard().setText(text_edit.toPlainText()))
+
+        def click_copy_button():
+            QGuiApplication.clipboard().setText(text_edit.toPlainText())
+            self.show_toast("Copied to Clipboard")
+
+        copy_button.clicked.connect(click_copy_button)
         button_layout.addWidget(copy_button)
 
         # Add OK button
@@ -280,3 +285,4 @@ class ActionBase:
         - This function uses `QGuiApplication` to interact with the system clipboard.
         """
         QGuiApplication.clipboard().setText(text)
+        self.show_toast("Copied to Clipboard")
