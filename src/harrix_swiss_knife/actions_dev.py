@@ -2,6 +2,7 @@ import harrix_pylib as h
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife import action_base
+from harrix_swiss_knife import toast_countdown_notification
 
 config = h.dev.load_config("config/config.json")
 
@@ -41,69 +42,6 @@ class on_npm_install_packages(action_base.ActionBase):
         self.add_line(output)
 
 
-from PySide6.QtCore import QTimer, QTime, Qt
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel
-
-class CountdownToastNotification(QDialog):
-    """
-    Тост-уведомление с таймером (секундомером).
-    Пока окно открыто, каждую секунду обновляем время, прошедшее с момента запуска.
-    """
-
-    def __init__(self, message: str = "Идёт процесс...", parent=None):
-        super().__init__(parent)
-
-        # Делаем окошко поверх всех, без рамок и с прозрачным фоном
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-
-        # Надпись, в которую будем писать + время
-        self.label = QLabel(self)
-        self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
-            "color: white;"
-            "padding: 15px 20px;"
-            "border-radius: 10px;"
-            "font-size: 16pt;"
-            "font-weight: bold;"
-        )
-
-        # Изначальный текст
-        self.message = message
-        self.elapsed_seconds = 0
-
-        # Размещаем на layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
-
-        # Запустим таймер на 1 секунду
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_time)
-
-    def start_countdown(self):
-        """Запускаем секундомер."""
-        self.start_time = QTime.currentTime()
-        self.timer.start(1000)  # тик раз в секунду
-        self._refresh_label_text()
-
-    def update_time(self):
-        """Обновляем отсчёт времени в Label."""
-        now = QTime.currentTime()
-        self.elapsed_seconds = self.start_time.secsTo(now)
-        self._refresh_label_text()
-
-    def _refresh_label_text(self):
-        self.label.setText(f"{self.message}\nПрошло секунд: {self.elapsed_seconds}")
-
-    def closeEvent(self, event):
-        """При закрытии окошка останавливаем таймер."""
-        self.timer.stop()
-        return super().closeEvent(event)
-
-
 from PySide6.QtCore import Signal, QThread
 
 # class on_npm_update_packages(action_base.ActionBase):
@@ -126,7 +64,7 @@ class on_npm_update_packages(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         # Создаём "тост" со счётчиком
-        self.toast = CountdownToastNotification("Обновление NPM и глобальных пакетов...")
+        self.toast = toast_countdown_notification.ToastCountdownNotification("Обновление NPM и глобальных пакетов...")
         self.toast.show()
         self.toast.start_countdown()
 
