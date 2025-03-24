@@ -44,12 +44,13 @@ class on_npm_install_packages(action_base.ActionBase):
 class on_npm_update_packages(action_base.ActionBase):
     icon: str = "📥"
     title: str = "Update NPM and global NPM packages"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
+        self.show_toast("❗The process is not fast", duration=5000)
         commands = "npm update npm -g\nnpm update -g"
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        result = h.dev.run_powershell_script(commands)
+        self.show_toast("Update completed")
+        self.show_text_textarea(result)
 
 
 class on_open_config_json(action_base.ActionBase):
