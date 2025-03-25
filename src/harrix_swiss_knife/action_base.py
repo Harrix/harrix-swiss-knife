@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
 )
-import time
 
 from harrix_swiss_knife import toast_notification
 
@@ -52,7 +51,6 @@ class ActionBase:
             temp_path.mkdir(parents=True, exist_ok=True)
         self.file = Path(temp_path / "output.txt")
 
-
     def __call__(self, *args, **kwargs):
         """
         Execute the action and handle the output display.
@@ -66,7 +64,7 @@ class ActionBase:
 
         The result returned by the execute method.
         """
-        open(self.file, 'w').close() # create or clear
+        open(self.file, "w").close()  # create or clear
         result = self.execute(*args, **kwargs)
 
         if self.is_show_output:
@@ -81,8 +79,8 @@ class ActionBase:
 
         - `line` (`str`): The text line to add to the output.
         """
-        with open(self.file, 'a', encoding="utf8") as f:
-            f.write(line + '\n')
+        with open(self.file, "a", encoding="utf8") as f:
+            f.write(line + "\n")
         print(line)
 
     def execute(self, *args, **kwargs):

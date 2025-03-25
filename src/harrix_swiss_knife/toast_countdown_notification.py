@@ -1,5 +1,6 @@
-from PySide6.QtCore import QTimer, QTime, Qt
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel
+from PySide6.QtCore import Qt, QTime, QTimer
+from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout
+
 
 class ToastCountdownNotification(QDialog):
     """
@@ -45,6 +46,16 @@ class ToastCountdownNotification(QDialog):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
 
+    def _refresh_label_text(self):
+        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
+
+    def closeEvent(self, event):
+        """
+        Stops the timer when the window is closed.
+        """
+        self.timer.stop()
+        return super().closeEvent(event)
+
     def start_countdown(self):
         """
         Starts the stopwatch.
@@ -60,13 +71,3 @@ class ToastCountdownNotification(QDialog):
         now = QTime.currentTime()
         self.elapsed_seconds = self.start_time.secsTo(now)
         self._refresh_label_text()
-
-    def _refresh_label_text(self):
-        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
-
-    def closeEvent(self, event):
-        """
-        Stops the timer when the window is closed.
-        """
-        self.timer.stop()
-        return super().closeEvent(event)
