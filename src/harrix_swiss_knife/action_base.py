@@ -41,6 +41,11 @@ class ActionBase:
     is_show_output: bool = False
 
     def __init__(self, **kwargs):
+        """
+        Initialize the ActionBase instance.
+
+        Creates the output log list and ensures the temporary directory exists.
+        """
         self.output_lines = []
 
         temp_path = h.dev.get_project_root() / "temp"
@@ -49,6 +54,16 @@ class ActionBase:
         self.file = Path(temp_path / "output.txt")
 
     def __call__(self, *args, **kwargs):
+        """
+        Execute the action, measure execution time, and log results.
+
+        Clears previous output, calls the execute method, records execution time,
+        writes output to a file, and optionally displays the output.
+
+        Returns:
+
+        The result of the execute method.
+        """
         self.output_lines.clear()
         start_time = time.time()
         result = self.execute(*args, **kwargs)
@@ -62,6 +77,13 @@ class ActionBase:
         return result
 
     def add_line(self, line):
+        """
+        Add a line to the output log and print it.
+
+        Args:
+
+        - `line` (`str`): The text to add to the log and print.
+        """
         self.output_lines.append(line)
         print(line)
 
