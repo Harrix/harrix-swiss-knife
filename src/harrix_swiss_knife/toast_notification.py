@@ -1,50 +1,28 @@
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QVBoxLayout
+from PySide6.QtCore import QTimer
+
+from harrix_swiss_knife import toast_notification_base
 
 
-class ToastNotification(QDialog):
+class ToastNotification(toast_notification_base.ToastNotificationBase):
     """
-    Represents a toast notification window that displays a message and
-    automatically closes after a specified duration.
+    A temporary toast notification that automatically closes after a specified duration.
+
+    This class extends ToastNotificationBase to add automatic closing functionality.
+    The notification will appear on screen and automatically disappear after
+    the specified duration.
+
+    Attributes:
+
+    - Inherits all attributes from `ToastNotificationBase`
 
     Args:
 
     - `message` (`str`): The text to be displayed in the notification.
-    - `duration` (`int`): The time in milliseconds after which the window closes. Defaults to `1000`.
-    - `parent`: The parent widget, usually `None`.
-
-    Attributes:
-
-    - `label` (`QLabel`): The label used to display the message with specific styling.
+    - `duration` (`int`, optional): Time in milliseconds before the notification
+      automatically closes. Defaults to `1000`.
+    - `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
     """
 
     def __init__(self, message: str, duration: int = 1000, parent=None):
-        # Inherit QDialog
-        super().__init__(parent)
-
-        # Set window flags
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-
-        # Set transparent background for the entire dialog
-        self.setAttribute(Qt.WA_TranslucentBackground)
-
-        # Message text
-        self.label = QLabel(message, self)
-        self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
-            "color: white;"
-            "padding: 15px 20px;"
-            "border-radius: 10px;"
-            "font-size: 16pt;"
-            "font-weight: bold;"
-        )
-        self.label.setAlignment(Qt.AlignCenter)
-
-        # Layout the contents without margins
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
-
-        # Start a timer that closes the window after the duration
+        super().__init__(message, parent)
         QTimer.singleShot(duration, self.close)

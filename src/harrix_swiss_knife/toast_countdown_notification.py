@@ -1,72 +1,69 @@
-from PySide6.QtCore import Qt, QTime, QTimer
-from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout
+from PySide6.QtCore import QTime, QTimer
+from PySide6.QtWidgets import QDialog
+
+from harrix_swiss_knife import toast_notification_base
 
 
-class ToastCountdownNotification(QDialog):
+class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
     """
-    A toast notification with a timer (stopwatch).
-    Updates the elapsed time every second while the window is open.
+    A toast notification that displays an elapsed time counter.
+
+    This class extends ToastNotificationBase to show a notification with a running
+    counter that tracks elapsed time in seconds. Useful for indicating ongoing
+    processes while showing how much time has passed.
 
     Attributes:
 
-    - `message` (`str`): The initial message displayed. Defaults to "Process is running...".
-    - `elapsed_seconds` (`int`): The number of seconds elapsed since the timer started.
+    - `elapsed_seconds` (`int`): The number of seconds that have elapsed since starting the countdown.
+    - `timer` (`QTimer`): Timer object that triggers the time update every second.
+    - `start_time` (`QTime`): The time when the countdown was started.
+
+    Args:
+
+    - `message` (`str`, optional): The text to be displayed in the notification.
+      Defaults to `"Process is running..."`.
+    - `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
     """
 
     def __init__(self, message: str = "Process is running...", parent=None):
-        super().__init__(parent)
+        super().__init__(message, parent)
 
-        # Make the window stay on top, without borders, and with a transparent background
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-
-        # Label to display the message and time
-        self.label = QLabel(self)
-        self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
-            "color: white;"
-            "padding: 15px 20px;"
-            "border-radius: 10px;"
-            "font-size: 16pt;"
-            "font-weight: bold;"
-        )
-
-        # Initial text
-        self.message = message
         self.elapsed_seconds = 0
-
-        # Place the label in the layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
-
-        # Start a timer with 1-second intervals
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
 
     def _refresh_label_text(self):
+        """
+        Updates the notification text with the current elapsed time.
+        """
         self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 
     def closeEvent(self, event):
         """
-        Stops the timer when the window is closed.
+        Handles the notification close event.
+
+        Stops the timer when the notification is closed to prevent memory leaks.
+
+        Args:
+
+        - `event`: The close event object.
         """
         self.timer.stop()
-        return super().closeEvent(event)
+        super().closeEvent(event)
 
     def start_countdown(self):
         """
-        Starts the stopwatch.
+        Starts the countdown timer and initializes the display.
         """
         self.start_time = QTime.currentTime()
-        self.timer.start(1000)  # tick every second
+        self.timer.start(1000)
         self._refresh_label_text()
 
     def update_time(self):
         """
-        Updates the time display in the label.
+        Updates the elapsed time counter.
+
+        This method is called automatically every second when the timer is active.
         """
         now = QTime.currentTime()
         self.elapsed_seconds = self.start_time.secsTo(now)
