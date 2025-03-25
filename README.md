@@ -154,6 +154,43 @@ class on_sort_sections(action_base.ActionBase):
             self.add_line(f"❌ Ошибка: {e}")
 ```
 
+Example an action with QThread:
+
+```python
+class on_npm_update_packages(action_base.ActionBase):
+    icon: str = "📥"
+    title: str = "Update NPM and global NPM packages"
+
+    def execute(self, *args, **kwargs):
+        self.toast = toast_countdown_notification.ToastCountdownNotification(on_npm_update_packages.title)
+        self.toast.show()
+        self.toast.start_countdown()
+
+        class Worker(QThread):
+            finished = Signal(str)
+
+            def __init__(self, parent=None):
+                super().__init__(parent)
+
+            def run(self):
+                commands = "npm update npm -g\nnpm update -g"
+                result = h.dev.run_powershell_script(commands)
+                self.finished.emit(result)
+
+        self.worker = Worker()
+        self.worker.finished.connect(self.on_update_finished)
+        self.worker.start()
+
+    @Slot(str)
+    def on_update_finished(self, result: str):
+        self.toast.close()
+
+        self.show_toast("Update completed", duration=2000)
+
+        self.show_text_textarea(result)
+        self.add_line(result)
+```
+
 ### Update `harrix-pylib`
 
 - Run `uv sync --upgrade` (maybe twice).
