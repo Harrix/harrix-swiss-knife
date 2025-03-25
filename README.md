@@ -133,8 +133,7 @@ CLI commands after installation.
 - Site for searching emojis <https://emojidb.org/>.
 - If you need to display `output.txt` add the line `is_show_output = True` after `title: str = ...`.
 - In `main.py` add action `self.add_item(self.menu_<section>, hsk.md.on_<action>)` in `<section>`.
-- From `harrix-swiss-knife`, call the command `Python` → `Sort classes, methods, functions in PY files`.
-  and select folder `harrix-pylib`.
+- From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort in PY files` and select the folder `harrix_swiss_knife`.
 
 Example an action:
 
@@ -161,6 +160,8 @@ class on_sort_sections(action_base.ActionBase):
 - Change version in line `"harrix-pylib>=<version>"` in `pyproject.toml`
 - Run `uv sync --upgrade`.
 - Create a commit `⬆️ Update harrix-pylib`.
+
+Or from `harrix-swiss-knife`, call the command `Python` → `02 Publish and update harrix-pylib`.
 
 ### Add file to a resource file
 
