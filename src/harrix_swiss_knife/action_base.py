@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import harrix_pylib as h
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
 )
+
 
 from harrix_swiss_knife import toast_notification
 
@@ -237,7 +238,7 @@ class ActionBase:
         """
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(600, 400)  # Set a reasonable default size
+        dialog.resize(1024, 768)  # Set a reasonable default size
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -246,6 +247,12 @@ class ActionBase:
         text_edit = QPlainTextEdit()
         text_edit.setPlainText(text)
         text_edit.setReadOnly(True)  # Make it read-only since we're just displaying text
+
+        # Set JetBrains Mono font
+        font = QFont("JetBrains Mono")
+        font.setPointSize(9)
+        text_edit.setFont(font)
+
         layout.addWidget(text_edit)
 
         # Create a horizontal layout for buttons
