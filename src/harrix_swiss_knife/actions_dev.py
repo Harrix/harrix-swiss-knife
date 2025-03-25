@@ -1,7 +1,6 @@
 import harrix_pylib as h
+from PySide6.QtCore import QThread, Signal, Slot
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import Signal, QThread
-from PySide6.QtCore import Slot
 
 from harrix_swiss_knife import action_base, toast_countdown_notification
 
@@ -37,12 +36,35 @@ class on_get_menu(action_base.ActionBase):
 class on_npm_install_packages(action_base.ActionBase):
     icon: str = "📥"
     title: str = "Install global NPM packages"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        self.toast = toast_countdown_notification.ToastCountdownNotification(on_npm_update_packages.title)
+        self.toast.show()
+        self.toast.start_countdown()
+
+        class Worker(QThread):
+            finished = Signal(str)
+
+            def __init__(self, parent=None):
+                super().__init__(parent)
+
+            def run(self):
+                commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
+                result = h.dev.run_powershell_script(commands)
+                self.finished.emit(result)
+
+        self.worker = Worker()
+        self.worker.finished.connect(self.on_update_finished)
+        self.worker.start()
+
+    @Slot(str)
+    def on_update_finished(self, result: str):
+        self.toast.close()
+
+        self.show_toast("Install completed", duration=2000)
+
+        self.show_text_textarea(result)
+        self.add_line(result)
 
 
 class on_npm_update_packages(action_base.ActionBase):
