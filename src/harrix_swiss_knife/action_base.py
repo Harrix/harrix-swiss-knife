@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
 )
+import time
 
 from harrix_swiss_knife import toast_notification
 
@@ -39,26 +40,30 @@ class ActionBase:
     title: str = ""
     is_show_output: bool = False
 
-    def __init__(self, **kwargs): ...
+    def __init__(self, **kwargs):
+        self.output_lines = []
+
+        temp_path = h.dev.get_project_root() / "temp"
+        if not temp_path.exists():
+            temp_path.mkdir(parents=True, exist_ok=True)
+        self.file = Path(temp_path / "output.txt")
 
     def __call__(self, *args, **kwargs):
-        """
-        Calls the decorated `execute` method, setting up output handling if required.
+        self.output_lines.clear()
+        start_time = time.time()
+        result = self.execute(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        self.add_line(f"Execution time: {elapsed_time:.4f} seconds")
 
-        Args:
+        self.file.write_text("\n".join(self.output_lines), encoding="utf8")
+        if self.is_show_output:
+            h.file.open_file_or_folder(self.file)
+        return result
 
-        - `*args`: Variable length argument list.
-        - `**kwargs`: Arbitrary keyword arguments.
-
-        Returns:
-
-        - The result of the decorated `execute` method.
-        """
-        # Decorate the 'execute' method with 'write_in_output_txt'
-        decorated_execute = h.dev.write_in_output_txt(is_show_output=self.is_show_output)(self.execute)
-        # Save the 'add_line' method from the decorated function
-        self.add_line = decorated_execute.add_line
-        return decorated_execute(*args, **kwargs)
+    def add_line(self, line):
+        self.output_lines.append(line)
+        print(line)
 
     def execute(self, *args, **kwargs):
         """

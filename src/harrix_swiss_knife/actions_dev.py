@@ -23,6 +23,7 @@ class on_get_menu(action_base.ActionBase):
     title: str = "Get the list of items from this menu"
 
     def __init__(self, **kwargs):
+        super().__init__()
         self.parent = kwargs.get("parent", None)
 
     def execute(self, *args, **kwargs):
