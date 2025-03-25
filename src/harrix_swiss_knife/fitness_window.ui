@@ -596,8 +596,8 @@
          <widget class="QTextEdit" name="textEdit">
           <property name="font">
            <font>
-            <family>Roboto Mono</family>
-            <pointsize>10</pointsize>
+            <family>JetBrains Mono</family>
+            <pointsize>9</pointsize>
            </font>
           </property>
          </widget>
