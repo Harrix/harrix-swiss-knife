@@ -10,6 +10,7 @@ class on_fitness(action_base.ActionBase):
     title: str = "Fitness tracker"
 
     def __init__(self, **kwargs):
+        super().__init__()
         self.parent = kwargs.get("parent", None)
         self.main_window = None
 

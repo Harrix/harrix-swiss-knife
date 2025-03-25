@@ -12,6 +12,7 @@ class on_exit(action_base.ActionBase):
     title: str = "Exit"
 
     def __init__(self, **kwargs):
+        super().__init__()
         self.parent = kwargs.get("parent", None)
 
     def execute(self, *args, **kwargs):
