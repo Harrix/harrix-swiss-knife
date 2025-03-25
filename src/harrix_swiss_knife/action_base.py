@@ -22,18 +22,17 @@ config = h.dev.load_config("config/config.json")
 
 class ActionBase:
     """
-    A base class for actions that can be executed and optionally have outputs written to a text file.
+    Base class for actions that can be executed and produce output.
+
+    This class provides common functionality for actions including output management,
+    file operations, and user interface interactions.
 
     Attributes:
 
-    - `icon` (`str`): Path to the icon representing this action. Defaults to an empty string `""`.
-    - `title` (`str`): The title of the action. Defaults to an empty string `""`.
-    - `is_show_output` (`bool`): Flag to determine if output should be shown. Defaults to `False`.
-
-    Note:
-
-    - The `__call__` method decorates the `execute` method with `write_in_output_txt` for output handling.
-    - Subclasses must implement the `execute` method to define specific behaviors.
+    - `icon` (`str`): Icon identifier for the action. Defaults to `""`.
+    - `title` (`str`): Display title of the action. Defaults to `""`.
+    - `is_show_output` (`bool`): Whether to automatically display output after execution. Defaults to `False`.
+    - `file` (`Path`): Path to the output file where results are written.
     """
 
     icon: str = ""
@@ -42,63 +41,62 @@ class ActionBase:
 
     def __init__(self, **kwargs):
         """
-        Initialize the ActionBase instance.
+        Initialize the action with a temporary output file.
 
-        Creates the output log list and ensures the temporary directory exists.
+        Args:
+
+        - `**kwargs`: Additional keyword arguments for customization.
         """
-        self.output_lines = []
-
         temp_path = h.dev.get_project_root() / "temp"
         if not temp_path.exists():
             temp_path.mkdir(parents=True, exist_ok=True)
         self.file = Path(temp_path / "output.txt")
 
+
     def __call__(self, *args, **kwargs):
         """
-        Execute the action, measure execution time, and log results.
+        Execute the action and handle the output display.
 
-        Clears previous output, calls the execute method, records execution time,
-        writes output to a file, and optionally displays the output.
+        Args:
+
+        - `*args`: Positional arguments passed to the execute method.
+        - `**kwargs`: Keyword arguments passed to the execute method.
 
         Returns:
 
-        The result of the execute method.
+        The result returned by the execute method.
         """
-        self.output_lines.clear()
-        start_time = time.time()
+        open(self.file, 'w').close() # create or clear
         result = self.execute(*args, **kwargs)
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        self.add_line(f"Execution time: {elapsed_time:.4f} seconds")
 
-        self.file.write_text("\n".join(self.output_lines), encoding="utf8")
         if self.is_show_output:
             h.file.open_file_or_folder(self.file)
         return result
 
     def add_line(self, line):
         """
-        Add a line to the output log and print it.
+        Add a line to the output file and print it to the console.
 
         Args:
 
-        - `line` (`str`): The text to add to the log and print.
+        - `line` (`str`): The text line to add to the output.
         """
-        self.output_lines.append(line)
+        with open(self.file, 'a', encoding="utf8") as f:
+            f.write(line + '\n')
         print(line)
 
     def execute(self, *args, **kwargs):
         """
-        Abstract method intended to be overridden by subclasses with specific action logic.
+        Execute the action logic (must be implemented by subclasses).
 
         Args:
 
-        - `*args`: Variable length argument list.
-        - `**kwargs`: Arbitrary keyword arguments.
+        - `*args`: Positional arguments for the execution.
+        - `**kwargs`: Keyword arguments for the execution.
 
         Raises:
 
-        - `NotImplementedError`: If the method is not implemented in a subclass.
+        - `NotImplementedError`: When this method is not overridden in a subclass.
         """
         raise NotImplementedError("The execute method must be implemented in subclasses")
 
