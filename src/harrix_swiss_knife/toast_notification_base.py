@@ -21,6 +21,14 @@ class ToastNotificationBase(QDialog):
     """
 
     def __init__(self, message: str, parent=None):
+        """
+        Initializes the toast notification with the specified message and parent widget.
+
+        Args:
+
+        - `message` (`str`): The message to display in the toast notification.
+        - `parent` (`Optional[QWidget]`): The parent widget of the notification. Defaults to `None`.
+        """
         super().__init__(parent)
 
         # Window settings
@@ -57,7 +65,13 @@ class ToastNotificationBase(QDialog):
         self.setCursor(Qt.OpenHandCursor)
 
     def mousePressEvent(self, event: QMouseEvent):
-        """Handle mouse press events for dragging."""
+        """
+        Handles the mouse press event to initiate dragging of the notification.
+
+        Args:
+
+        - `event` (`QMouseEvent`): The mouse event triggering the press action.
+        """
         if event.button() == Qt.LeftButton:
             self.dragging = True
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
@@ -65,13 +79,25 @@ class ToastNotificationBase(QDialog):
             event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent):
-        """Handle mouse move events for dragging."""
+        """
+        Handles the mouse move event to update the position of the notification during dragging.
+
+        Args:
+
+        - `event` (`QMouseEvent`): The mouse event triggering the move action.
+        """
         if event.buttons() & Qt.LeftButton and self.dragging:
             self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
 
     def mouseReleaseEvent(self, event: QMouseEvent):
-        """Handle mouse release events to end dragging."""
+        """
+        Handles the mouse release event to conclude the dragging of the notification.
+
+        Args:
+
+        - `event` (`QMouseEvent`): The mouse event triggering the release action.
+        """
         if event.button() == Qt.LeftButton and self.dragging:
             self.dragging = False
             self.setCursor(Qt.OpenHandCursor)  # Restore cursor to indicate draggable state
