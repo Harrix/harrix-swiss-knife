@@ -39,12 +39,12 @@ class on_generate_md_docs(action_base.ActionBase):
         folder_path = Path(folder_path)
         domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
 
-        output = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
-        self.add_line(output)
+        result = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
+        self.add_line(result)
 
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
 
 
 class on_harrix_pylib_01_prepare(action_base.ActionBase):
@@ -59,14 +59,14 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
         self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
         domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
-        output = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
-        self.add_line(output)
+        result = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
+        self.add_line(result)
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
 
-        output = h.dev.run_powershell_script(f"github {folder_path} ")
-        self.add_line(output)
+        result = h.dev.run_powershell_script(f"github {folder_path} ")
+        self.add_line(result)
 
 
 class on_harrix_pylib_02_publish(action_base.ActionBase):
@@ -101,8 +101,8 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
             git add pyproject.toml
             git add uv.lock
             git commit -m "🚀 Build version {new_version}" """
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
 
         time_waiting_seconds = 20
         QMessageBox.information(None, "Copy", f"Wait {time_waiting_seconds} seconds for the package to be published.")
@@ -115,8 +115,8 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
                 cd {project}
                 uv sync --upgrade
                 uv sync --upgrade """
-            output = h.dev.run_powershell_script(commands)
-            self.add_line(output)
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
 
             # Increase version of library
             path_toml = project / "pyproject.toml"
@@ -131,8 +131,8 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
                 git add pyproject.toml
                 git add uv.lock
                 git commit -m "⬆️ Update {path_library.parts[-1]}" """
-            output = h.dev.run_powershell_script(commands)
-            self.add_line(output)
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
 
 
 class on_sort_code(action_base.ActionBase):

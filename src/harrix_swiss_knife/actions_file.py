@@ -33,8 +33,8 @@ class on_block_disks(action_base.ActionBase):
         for drive in config["block_drives"]:
             commands += f"manage-bde -lock {drive}: -ForceDismount\n"
 
-        output = h.dev.run_powershell_script_as_admin(commands)
-        self.add_line(output)
+        result = h.dev.run_powershell_script_as_admin(commands)
+        self.add_line(result)
 
 
 class on_check_featured_image(action_base.ActionBase):
@@ -87,8 +87,8 @@ class on_tree_view_folder(action_base.ActionBase):
         if folder_path is None:
             return
 
-        result_output = h.file.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_folders", False))
-        self.add_line(result_output)
+        result = h.file.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_folders", False))
+        self.add_line(result)
 
 
 class on_tree_view_folder_ignore_hidden_folders(action_base.ActionBase):

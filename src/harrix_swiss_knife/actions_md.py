@@ -16,9 +16,9 @@ class on_diary_new(action_base.ActionBase):
     title = "New diary note"
 
     def execute(self, *args, **kwargs):
-        output, filename = h.md.add_diary_new_diary(config["path_diary"], config["beginning_of_md"])
+        result, filename = h.md.add_diary_new_diary(config["path_diary"], config["beginning_of_md"])
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
-        self.add_line(output)
+        self.add_line(result)
 
 
 class on_diary_new_dream(action_base.ActionBase):
@@ -26,9 +26,9 @@ class on_diary_new_dream(action_base.ActionBase):
     title = "New dream note"
 
     def execute(self, *args, **kwargs):
-        output, filename = h.md.add_diary_new_dream(config["path_dream"], config["beginning_of_md"])
+        result, filename = h.md.add_diary_new_dream(config["path_dream"], config["beginning_of_md"])
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
-        self.add_line(output)
+        self.add_line(result)
 
 
 class on_diary_new_with_images(action_base.ActionBase):
@@ -36,11 +36,11 @@ class on_diary_new_with_images(action_base.ActionBase):
     title = "New diary note with images"
 
     def execute(self, *args, **kwargs):
-        output, filename = h.md.add_diary_new_diary(
+        result, filename = h.md.add_diary_new_diary(
             config["path_diary"], config["beginning_of_md"], is_with_images=True
         )
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
-        self.add_line(output)
+        self.add_line(result)
 
 
 class on_download_and_replace_images(action_base.ActionBase):
@@ -225,9 +225,9 @@ class on_new_article(action_base.ActionBase):
         text = text.replace("[DATE]", datetime.now().strftime("%Y-%m-%d"))
         text += f"\n# {article_name}\n\n\n"
 
-        output, filename = h.md.add_note(Path(config["path_articles"]), article_name, text, True)
+        result, filename = h.md.add_note(Path(config["path_articles"]), article_name, text, True)
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{filename}"')
-        self.add_line(output)
+        self.add_line(result)
 
 
 class on_new_note_dialog(action_base.ActionBase):
@@ -246,9 +246,9 @@ class on_new_note_dialog(action_base.ActionBase):
 
         text = config["beginning_of_md"] + f"\n# {filename.stem}\n\n\n"
 
-        output, filename = h.md.add_note(filename.parent, filename.stem, text, is_with_images)
+        result, filename = h.md.add_note(filename.parent, filename.stem, text, is_with_images)
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{filename}"')
-        self.add_line(output)
+        self.add_line(result)
 
 
 class on_new_note_dialog_with_images(action_base.ActionBase):
@@ -270,8 +270,8 @@ class on_prettier_folder(action_base.ActionBase):
             return
 
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
 
 
 class on_sort_sections(action_base.ActionBase):

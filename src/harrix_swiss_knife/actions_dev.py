@@ -107,5 +107,5 @@ class on_open_config_json(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
-        output = h.dev.run_powershell_script(commands)
-        self.add_line(output)
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)

@@ -691,5 +691,6 @@ class SetOfExercise:
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
+    window.tabWidget.setCurrentIndex(0)
     window.show()
     sys.exit(app.exec())

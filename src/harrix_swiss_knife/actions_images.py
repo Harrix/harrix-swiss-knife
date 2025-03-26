@@ -58,10 +58,10 @@ class on_optimize(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        result_output = h.dev.run_powershell_script("npm run optimize")
+        result = h.dev.run_powershell_script("npm run optimize")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp" / "optimized_images")
-        self.add_line(result_output)
+        self.add_line(result)
 
 
 class on_optimize_clipboard(action_base.ActionBase):
@@ -89,7 +89,7 @@ class on_optimize_clipboard(action_base.ActionBase):
             self.add_line(f"Image is saved as {temp_filename}")
 
             commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-            result_output = h.dev.run_powershell_script(commands)
+            result = h.dev.run_powershell_script(commands)
 
             clr.AddReference("System.Collections.Specialized")
             clr.AddReference("System.Windows.Forms")
@@ -103,7 +103,7 @@ class on_optimize_clipboard(action_base.ActionBase):
             files.Add(str(filename))
             Clipboard.SetFileDropList(files)
 
-        self.add_line(result_output)
+        self.add_line(result)
         self.add_line("Image is optimized and copied to clipboard.")
 
 
@@ -125,9 +125,9 @@ class on_optimize_dialog(action_base.ActionBase):
         if not folder_path:
             return
 
-        result_output = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{folder_path}"')
+        result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{folder_path}"')
         h.file.open_file_or_folder(Path(folder_path) / "temp")
-        self.add_line(result_output)
+        self.add_line(result)
 
 
 class on_optimize_dialog_replace(action_base.ActionBase):
@@ -140,7 +140,7 @@ class on_optimize_dialog_replace(action_base.ActionBase):
         if not folder_path:
             return
 
-        result_output = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{folder_path}"')
+        result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{folder_path}"')
 
         for item in folder_path.iterdir():
             if item.is_file():
@@ -155,7 +155,7 @@ class on_optimize_dialog_replace(action_base.ActionBase):
         shutil.rmtree(temp_folder)
 
         h.file.open_file_or_folder(folder_path)
-        self.add_line(result_output)
+        self.add_line(result)
 
 
 class on_optimize_file(action_base.ActionBase):
@@ -177,10 +177,10 @@ class on_optimize_file(action_base.ActionBase):
             shutil.copy(filename, temp_filename)
 
             commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-            result_output = h.dev.run_powershell_script(commands)
+            result = h.dev.run_powershell_script(commands)
 
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
-        self.add_line(result_output)
+        self.add_line(result)
 
 
 class on_optimize_quality(action_base.ActionBase):
@@ -189,7 +189,7 @@ class on_optimize_quality(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        result_output = h.dev.run_powershell_script("npm run optimize quality=true")
+        result = h.dev.run_powershell_script("npm run optimize quality=true")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
-        self.add_line(result_output)
+        self.add_line(result)
