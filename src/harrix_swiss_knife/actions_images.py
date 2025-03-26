@@ -17,7 +17,7 @@ class on_clear_images(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         result_lines = []
-        paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp" / "optimized_images"]
+        paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp/optimized_images"]
         for path in paths:
             if path.exists():
                 shutil.rmtree(path)
