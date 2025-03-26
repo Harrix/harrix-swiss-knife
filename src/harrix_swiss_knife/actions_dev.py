@@ -64,7 +64,6 @@ class on_npm_install_packages(action_base.ActionBase):
         self.show_text_textarea(result)
         self.add_line(result)
 
-
 class on_npm_update_packages(action_base.ActionBase):
     icon = "📥"
     title = "Update NPM and global NPM packages"
@@ -86,11 +85,11 @@ class on_npm_update_packages(action_base.ActionBase):
                 self.finished.emit(result)
 
         self.worker = Worker()
-        self.worker.finished.connect(self.on_update_finished)
+        self.worker.finished.connect(self.on_after_thread)
         self.worker.start()
 
     @Slot(str)
-    def on_update_finished(self, result: str):
+    def on_after_thread(self, result: str):
         self.toast.close()
 
         self.show_toast("Update completed", duration=2000)
