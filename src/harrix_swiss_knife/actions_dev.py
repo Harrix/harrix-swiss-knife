@@ -52,11 +52,11 @@ class on_npm_install_packages(action_base.ActionBase):
                 self.finished.emit(result)
 
         self.worker = Worker()
-        self.worker.finished.connect(self.on_update_finished)
+        self.worker.finished.connect(self.on_after_thread)
         self.worker.start()
 
     @Slot(str)
-    def on_update_finished(self, result: str):
+    def on_after_thread(self, result: str):
         self.close_toast_countdown()
 
         self.show_toast("Install completed", duration=2000)
