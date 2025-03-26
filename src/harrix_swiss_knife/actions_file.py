@@ -29,10 +29,7 @@ class on_block_disks(action_base.ActionBase):
     title: str = "Block disks"
 
     def execute(self, *args, **kwargs):
-        commands = ""
-        for drive in config["block_drives"]:
-            commands += f"manage-bde -lock {drive}: -ForceDismount\n"
-
+        commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in config["block_drives"]])
         result = h.dev.run_powershell_script_as_admin(commands)
         self.add_line(result)
         self.show_text_textarea(result)
