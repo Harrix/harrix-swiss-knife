@@ -39,7 +39,6 @@ class on_check_featured_image(action_base.ActionBase):
     icon: str = "✅"
     title: str = "Check featured_image.* in …"
     tip: str = "Checks for the presence of `featured_image.*` files in every child folder, not recursively."
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
         folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
@@ -47,9 +46,11 @@ class on_check_featured_image(action_base.ActionBase):
             return
 
         try:
-            self.add_line(h.file.check_featured_image(folder_path)[1])
+            result = h.file.check_featured_image(folder_path)[1]
         except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+            result = f"❌ Error: {e}"
+        self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_check_featured_image_in_folders(action_base.ActionBase):
