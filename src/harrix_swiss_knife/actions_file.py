@@ -13,20 +13,20 @@ class on_all_files_to_parent_folder(action_base.ActionBase):
     tip: str = (
         "The function moves all files from subfolders to their parent folder, removing any then-empty subfolders."
     )
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
+        folder_path = self.get_existing_directory("Select folder", config["path_3d"])
         if folder_path is None:
             return
 
-        self.add_line(h.file.all_to_parent_folder(folder_path))
+        result = h.file.all_to_parent_folder(folder_path)
+        self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_block_disks(action_base.ActionBase):
     icon: str = "🔒"
     title: str = "Block disks"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
         commands = ""
@@ -35,6 +35,7 @@ class on_block_disks(action_base.ActionBase):
 
         result = h.dev.run_powershell_script_as_admin(commands)
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_check_featured_image(action_base.ActionBase):
@@ -83,7 +84,7 @@ class on_tree_view_folder(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
+        folder_path = self.get_existing_directory("Select folder", config["path_3d"])
         if folder_path is None:
             return
 
