@@ -38,9 +38,7 @@ class on_npm_install_packages(action_base.ActionBase):
     title = "Install global NPM packages"
 
     def execute(self, *args, **kwargs):
-        self.toast = toast_countdown_notification.ToastCountdownNotification(on_npm_update_packages.title)
-        self.toast.show()
-        self.toast.start_countdown()
+        self.show_toast_countdown(on_npm_update_packages.title)
 
         class Worker(QThread):
             finished = Signal(str)
@@ -59,7 +57,7 @@ class on_npm_install_packages(action_base.ActionBase):
 
     @Slot(str)
     def on_update_finished(self, result: str):
-        self.toast.close()
+        self.close_toast_countdown()
 
         self.show_toast("Install completed", duration=2000)
 

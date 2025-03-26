@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 
-from harrix_swiss_knife import toast_notification
+from harrix_swiss_knife import toast_notification, toast_countdown_notification
 
 config = h.dev.load_config("config/config.json")
 
@@ -292,6 +292,24 @@ class ActionBase:
         """
         toast = toast_notification.ToastNotification(message=message, duration=duration)
         toast.exec()
+
+    def show_toast_countdown(self, message: str):
+        """
+        Displays a toast countdown notification.
+
+        Args:
+
+        - `message` (`str`): The text of the message.
+        """
+        self.toast = toast_countdown_notification.ToastCountdownNotification(message)
+        self.toast.show()
+        self.toast.start_countdown()
+
+    def close_toast_countdown(self):
+        """
+        Closes a toast countdown notification.
+        """
+        self.toast.close()
 
     def text_to_clipboard(self, text: str):
         """
