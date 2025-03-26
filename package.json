@@ -8,7 +8,7 @@
     "optimize": "node src/harrix_swiss_knife/optimize.js"
   },
   "dependencies": {
-    "imagemin": "^9.0.0",
+    "imagemin": "^9.0.1",
     "imagemin-pngquant": "^10.0.0",
     "minimist": "^1.2.8",
     "sharp": "^0.33.5",
