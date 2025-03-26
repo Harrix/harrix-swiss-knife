@@ -15,7 +15,7 @@ class on_all_files_to_parent_folder(action_base.ActionBase):
     )
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select folder", config["path_3d"])
+        folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
         if folder_path is None:
             return
 
@@ -82,21 +82,20 @@ class on_open_camera_uploads(action_base.ActionBase):
 class on_tree_view_folder(action_base.ActionBase):
     icon = "├"
     title = "Tree view of a folder"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select folder", config["path_3d"])
+        folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
         if folder_path is None:
             return
 
         result = h.file.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_folders", False))
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_tree_view_folder_ignore_hidden_folders(action_base.ActionBase):
     icon = "├"
     title = "Tree view of a folder (ignore hidden folders)"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
         on_tree_view_folder.execute(self, is_ignore_hidden_folders=True)
