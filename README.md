@@ -34,8 +34,8 @@ _Figure 1: Screenshot_
   - 📂 Open the folder optimized_images
 - **File operations**
   - 🗂️ Moves and flattens files from nested folders
-  - ✅ Check featured_image.* in …
-  - ✅ Check featured_image.*
+  - ✅ Check featured_image.\* in …
+  - ✅ Check featured_image.\*
   - 🔒 Block disks
   - 📸 Open Camera Uploads
   - ├ Tree view of a folder (ignore hidden folders)
@@ -132,7 +132,7 @@ CLI commands after installation.
 
 - Add a new action `class on_<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
 - Site for searching emojis <https://emojidb.org/>.
-- If you need to display `output.txt` add the line `is_show_output = True` after `title: str = ...`.
+- If you need to display `output.txt` add the line `is_show_output = True` after `title = ...`.
 - In `main.py` add action `self.add_item(self.menu_<section>, hsk.md.on_<action>)` in `<section>`.
 - From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort in PY files` and select the folder `harrix_swiss_knife`.
 
@@ -140,8 +140,8 @@ Example an action:
 
 ```python
 class on_sort_sections(action_base.ActionBase):
-    icon: str = "⬆️"
-    title: str = "Sort sections in one MD"
+    icon = "⬆️"
+    title = "Sort sections in one MD"
 
     def execute(self, *args, **kwargs):
         filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
@@ -159,8 +159,8 @@ Example an action with QThread:
 
 ```python
 class on_npm_update_packages(action_base.ActionBase):
-    icon: str = "📥"
-    title: str = "Update NPM and global NPM packages"
+    icon = "📥"
+    title = "Update NPM and global NPM packages"
 
     def execute(self, *args, **kwargs):
         self.toast = toast_countdown_notification.ToastCountdownNotification(on_npm_update_packages.title)

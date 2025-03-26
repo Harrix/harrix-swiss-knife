@@ -8,8 +8,8 @@ config = h.dev.load_config("config/config.json")
 
 
 class on_all_files_to_parent_folder(action_base.ActionBase):
-    icon: str = "🗂️"
-    title: str = "Moves and flattens files from nested folders"
+    icon = "🗂️"
+    title = "Moves and flattens files from nested folders"
     tip: str = (
         "The function moves all files from subfolders to their parent folder, removing any then-empty subfolders."
     )
@@ -25,8 +25,8 @@ class on_all_files_to_parent_folder(action_base.ActionBase):
 
 
 class on_block_disks(action_base.ActionBase):
-    icon: str = "🔒"
-    title: str = "Block disks"
+    icon = "🔒"
+    title = "Block disks"
 
     def execute(self, *args, **kwargs):
         commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in config["block_drives"]])
@@ -36,8 +36,8 @@ class on_block_disks(action_base.ActionBase):
 
 
 class on_check_featured_image(action_base.ActionBase):
-    icon: str = "✅"
-    title: str = "Check featured_image.* in …"
+    icon = "✅"
+    title = "Check featured_image.* in …"
     tip: str = "Checks for the presence of `featured_image.*` files in every child folder, not recursively."
 
     def execute(self, *args, **kwargs):
@@ -54,8 +54,8 @@ class on_check_featured_image(action_base.ActionBase):
 
 
 class on_check_featured_image_in_folders(action_base.ActionBase):
-    icon: str = "✅"
-    title: str = "Check featured_image.*"
+    icon = "✅"
+    title = "Check featured_image.*"
 
     def execute(self, *args, **kwargs):
         result_lines = []
@@ -70,8 +70,8 @@ class on_check_featured_image_in_folders(action_base.ActionBase):
 
 
 class on_open_camera_uploads(action_base.ActionBase):
-    icon: str = "📸"
-    title: str = "Open Camera Uploads"
+    icon = "📸"
+    title = "Open Camera Uploads"
 
     def execute(self, *args, **kwargs):
         for path in config["paths_camera_uploads"]:
@@ -80,8 +80,8 @@ class on_open_camera_uploads(action_base.ActionBase):
 
 
 class on_tree_view_folder(action_base.ActionBase):
-    icon: str = "├"
-    title: str = "Tree view of a folder"
+    icon = "├"
+    title = "Tree view of a folder"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -94,8 +94,8 @@ class on_tree_view_folder(action_base.ActionBase):
 
 
 class on_tree_view_folder_ignore_hidden_folders(action_base.ActionBase):
-    icon: str = "├"
-    title: str = "Tree view of a folder (ignore hidden folders)"
+    icon = "├"
+    title = "Tree view of a folder (ignore hidden folders)"
     is_show_output = True
 
     def execute(self, *args, **kwargs):

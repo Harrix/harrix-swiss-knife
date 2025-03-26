@@ -12,8 +12,8 @@ config = h.dev.load_config("config/config.json")
 
 
 class on_clear_images(action_base.ActionBase):
-    icon: str = "🧹"
-    title: str = "Clear folders images"
+    icon = "🧹"
+    title = "Clear folders images"
 
     def execute(self, *args, **kwargs):
         paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp" / "optimized_images"]
@@ -27,8 +27,8 @@ class on_clear_images(action_base.ActionBase):
 
 
 class on_open_images(action_base.ActionBase):
-    icon: str = "📂"
-    title: str = "Open the folder images"
+    icon = "📂"
+    title = "Open the folder images"
 
     def execute(self, *args, **kwargs):
         path = h.dev.get_project_root() / "temp" / "images"
@@ -40,8 +40,8 @@ class on_open_images(action_base.ActionBase):
 
 
 class on_open_optimized_images(action_base.ActionBase):
-    icon: str = "📂"
-    title: str = "Open the folder optimized_images"
+    icon = "📂"
+    title = "Open the folder optimized_images"
 
     def execute(self, *args, **kwargs):
         path = h.dev.get_project_root() / "temp" / "optimized_images"
@@ -53,8 +53,8 @@ class on_open_optimized_images(action_base.ActionBase):
 
 
 class on_optimize(action_base.ActionBase):
-    icon: str = "🚀"
-    title: str = "Optimize images"
+    icon = "🚀"
+    title = "Optimize images"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -65,8 +65,8 @@ class on_optimize(action_base.ActionBase):
 
 
 class on_optimize_clipboard(action_base.ActionBase):
-    icon: str = "🚀"
-    title: str = "Optimize image from clipboard"
+    icon = "🚀"
+    title = "Optimize image from clipboard"
 
     def execute(self, *args, **kwargs):
         image = ImageGrab.grabclipboard()
@@ -108,16 +108,16 @@ class on_optimize_clipboard(action_base.ActionBase):
 
 
 class on_optimize_clipboard_dialog(action_base.ActionBase):
-    icon: str = "🚀"
-    title: str = "Optimize image from clipboard as …"
+    icon = "🚀"
+    title = "Optimize image from clipboard as …"
 
     def execute(self, *args, **kwargs):
         on_optimize_clipboard.execute(self, is_dialog=True)
 
 
 class on_optimize_dialog(action_base.ActionBase):
-    icon: str = "⬆️"
-    title: str = "Optimize images in …/temp"
+    icon = "⬆️"
+    title = "Optimize images in …/temp"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -131,8 +131,8 @@ class on_optimize_dialog(action_base.ActionBase):
 
 
 class on_optimize_dialog_replace(action_base.ActionBase):
-    icon: str = "⬆️"
-    title: str = "Optimize images in … and replace"
+    icon = "⬆️"
+    title = "Optimize images in … and replace"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -159,8 +159,8 @@ class on_optimize_dialog_replace(action_base.ActionBase):
 
 
 class on_optimize_file(action_base.ActionBase):
-    icon: str = "🖼️"
-    title: str = "Optimize one image"
+    icon = "🖼️"
+    title = "Optimize one image"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -184,8 +184,8 @@ class on_optimize_file(action_base.ActionBase):
 
 
 class on_optimize_quality(action_base.ActionBase):
-    icon: str = "🔝"
-    title: str = "Optimize images (high quality)"
+    icon = "🔝"
+    title = "Optimize images (high quality)"
     is_show_output = True
 
     def execute(self, *args, **kwargs):

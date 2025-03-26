@@ -12,7 +12,7 @@ config = h.dev.load_config("config/config.json")
 
 
 class on_diary_new(action_base.ActionBase):
-    icon: str = "📖"
+    icon = "📖"
     title = "New diary note"
 
     def execute(self, *args, **kwargs):
@@ -22,7 +22,7 @@ class on_diary_new(action_base.ActionBase):
 
 
 class on_diary_new_dream(action_base.ActionBase):
-    icon: str = "💤"
+    icon = "💤"
     title = "New dream note"
 
     def execute(self, *args, **kwargs):
@@ -32,7 +32,7 @@ class on_diary_new_dream(action_base.ActionBase):
 
 
 class on_diary_new_with_images(action_base.ActionBase):
-    icon: str = "📚"
+    icon = "📚"
     title = "New diary note with images"
 
     def execute(self, *args, **kwargs):
@@ -44,8 +44,8 @@ class on_diary_new_with_images(action_base.ActionBase):
 
 
 class on_download_and_replace_images(action_base.ActionBase):
-    icon: str = "📥"
-    title: str = "Download images in one MD"
+    icon = "📥"
+    title = "Download images in one MD"
 
     def execute(self, *args, **kwargs):
         filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
@@ -59,7 +59,7 @@ class on_download_and_replace_images(action_base.ActionBase):
 
 
 class on_download_and_replace_images_folder(action_base.ActionBase):
-    icon: str = "📥"
+    icon = "📥"
     title = "Download images in …"
 
     def execute(self, *args, **kwargs):
@@ -74,7 +74,7 @@ class on_download_and_replace_images_folder(action_base.ActionBase):
 
 
 class on_format_yaml(action_base.ActionBase):
-    icon: str = "✨"
+    icon = "✨"
     title = "Format YAML"
     is_show_output = True
 
@@ -90,8 +90,8 @@ class on_format_yaml(action_base.ActionBase):
 
 
 class on_generate_author_book(action_base.ActionBase):
-    icon: str = "❞"
-    title: str = "Quotes. Add author and title"
+    icon = "❞"
+    title = "Quotes. Add author and title"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -110,8 +110,8 @@ class on_generate_author_book(action_base.ActionBase):
 
 
 class on_generate_image_captions(action_base.ActionBase):
-    icon: str = "🌄"
-    title: str = "Add image captions in one MD"
+    icon = "🌄"
+    title = "Add image captions in one MD"
 
     def execute(self, *args, **kwargs):
         filename = self.get_open_filename(
@@ -127,7 +127,7 @@ class on_generate_image_captions(action_base.ActionBase):
 
 
 class on_generate_image_captions_folder(action_base.ActionBase):
-    icon: str = "🌄"
+    icon = "🌄"
     title = "Add image captions in …"
 
     def execute(self, *args, **kwargs):
@@ -142,7 +142,7 @@ class on_generate_image_captions_folder(action_base.ActionBase):
 
 
 class on_generate_toc(action_base.ActionBase):
-    icon: str = "📑"
+    icon = "📑"
     title = "Generate TOC in one MD"
     is_show_output = True
 
@@ -160,7 +160,7 @@ class on_generate_toc(action_base.ActionBase):
 
 
 class on_generate_toc_folder(action_base.ActionBase):
-    icon: str = "📑"
+    icon = "📑"
     title = "Generate TOC in …"
     is_show_output = True
 
@@ -176,7 +176,7 @@ class on_generate_toc_folder(action_base.ActionBase):
 
 
 class on_get_list_movies_books(action_base.ActionBase):
-    icon: str = "🎬"
+    icon = "🎬"
     title = "Get a list of movies, books for web"
 
     def execute(self, *args, **kwargs):
@@ -197,7 +197,7 @@ class on_get_list_movies_books(action_base.ActionBase):
 
 
 class on_increase_heading_level_content(action_base.ActionBase):
-    icon: str = "👉"
+    icon = "👉"
     title = "Increase heading level"
 
     def execute(self, *args, **kwargs):
@@ -210,7 +210,7 @@ class on_increase_heading_level_content(action_base.ActionBase):
 
 
 class on_new_article(action_base.ActionBase):
-    icon: str = "✍️"
+    icon = "✍️"
     title = "New article"
 
     def execute(self, *args, **kwargs):
@@ -231,7 +231,7 @@ class on_new_article(action_base.ActionBase):
 
 
 class on_new_note_dialog(action_base.ActionBase):
-    icon: str = "📓"
+    icon = "📓"
     title = "New note"
 
     def execute(self, *args, **kwargs):
@@ -252,7 +252,7 @@ class on_new_note_dialog(action_base.ActionBase):
 
 
 class on_new_note_dialog_with_images(action_base.ActionBase):
-    icon: str = "📓"
+    icon = "📓"
     title = "New note with images"
 
     def execute(self, *args, **kwargs):
@@ -260,7 +260,7 @@ class on_new_note_dialog_with_images(action_base.ActionBase):
 
 
 class on_prettier_folder(action_base.ActionBase):
-    icon: str = "✨"
+    icon = "✨"
     title = "Prettier in …"
     is_show_output = True
 
@@ -275,8 +275,8 @@ class on_prettier_folder(action_base.ActionBase):
 
 
 class on_sort_sections(action_base.ActionBase):
-    icon: str = "📶"
-    title: str = "Sort sections in one MD"
+    icon = "📶"
+    title = "Sort sections in one MD"
 
     def execute(self, *args, **kwargs):
         filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
@@ -291,7 +291,7 @@ class on_sort_sections(action_base.ActionBase):
 
 
 class on_sort_sections_folder(action_base.ActionBase):
-    icon: str = "📶"
+    icon = "📶"
     title = "Sort sections in …"
 
     def execute(self, *args, **kwargs):
@@ -495,7 +495,7 @@ def combine_markdown_files_recursively(folder_path):
 
 
 class on_combine_markdown_files(action_base.ActionBase):
-    icon: str = "🔗"
+    icon = "🔗"
     title = "Combine MD files in …"
     is_show_output = True
 

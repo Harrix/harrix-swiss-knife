@@ -8,8 +8,8 @@ config = h.dev.load_config("config/config.json")
 
 
 class on_exit(action_base.ActionBase):
-    icon: str = "×"
-    title: str = "Exit"
+    icon = "×"
+    title = "Exit"
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -20,8 +20,8 @@ class on_exit(action_base.ActionBase):
 
 
 class on_get_menu(action_base.ActionBase):
-    icon: str = "☰"
-    title: str = "Get the list of items from this menu"
+    icon = "☰"
+    title = "Get the list of items from this menu"
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -34,8 +34,8 @@ class on_get_menu(action_base.ActionBase):
 
 
 class on_npm_install_packages(action_base.ActionBase):
-    icon: str = "📥"
-    title: str = "Install global NPM packages"
+    icon = "📥"
+    title = "Install global NPM packages"
 
     def execute(self, *args, **kwargs):
         self.toast = toast_countdown_notification.ToastCountdownNotification(on_npm_update_packages.title)
@@ -68,8 +68,8 @@ class on_npm_install_packages(action_base.ActionBase):
 
 
 class on_npm_update_packages(action_base.ActionBase):
-    icon: str = "📥"
-    title: str = "Update NPM and global NPM packages"
+    icon = "📥"
+    title = "Update NPM and global NPM packages"
 
     def execute(self, *args, **kwargs):
         self.toast = toast_countdown_notification.ToastCountdownNotification(on_npm_update_packages.title)
@@ -102,8 +102,8 @@ class on_npm_update_packages(action_base.ActionBase):
 
 
 class on_open_config_json(action_base.ActionBase):
-    icon: str = "⚙️"
-    title: str = "Open config.json"
+    icon = "⚙️"
+    title = "Open config.json"
 
     def execute(self, *args, **kwargs):
         commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"

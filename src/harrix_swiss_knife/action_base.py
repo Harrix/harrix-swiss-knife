@@ -34,8 +34,8 @@ class ActionBase:
     - `file` (`Path`): Path to the output file where results are written.
     """
 
-    icon: str = ""
-    title: str = ""
+    icon = ""
+    title = ""
 
     def __init__(self, **kwargs):
         """
@@ -220,7 +220,7 @@ class ActionBase:
             self.add_line("❌ Dialog was canceled.")
             return None
 
-    def show_text_textarea(self, text: str, title: str = "Result") -> str | None:
+    def show_text_textarea(self, text: str, title = "Result") -> str | None:
         """
         Opens a dialog to display text with a copy button.
 

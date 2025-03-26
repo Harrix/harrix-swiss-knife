@@ -24,7 +24,7 @@ class MainMenuBase:
         """
         self.menu = QMenu()
 
-    def add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
+    def add_item(self, menu: QMenu, class_action: Callable, icon = "") -> None:
         """
         Adds an item to the given menu.
 

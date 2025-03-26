@@ -11,8 +11,8 @@ config = h.dev.load_config("config/config.json")
 
 
 class on_extract_functions_and_classes(action_base.ActionBase):
-    icon: str = "⬇️"
-    title: str = "Extracts list of funcs to a MD list from one PY file"
+    icon = "⬇️"
+    title = "Extracts list of funcs to a MD list from one PY file"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -27,8 +27,8 @@ class on_extract_functions_and_classes(action_base.ActionBase):
 
 
 class on_generate_md_docs(action_base.ActionBase):
-    icon: str = "🏗️"
-    title: str = "Generate MD documentation in …"
+    icon = "🏗️"
+    title = "Generate MD documentation in …"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -48,8 +48,8 @@ class on_generate_md_docs(action_base.ActionBase):
 
 
 class on_harrix_pylib_01_prepare(action_base.ActionBase):
-    icon: str = "👩🏻‍🍳"
-    title: str = "01 Prepare harrix-pylib"
+    icon = "👩🏻‍🍳"
+    title = "01 Prepare harrix-pylib"
 
     def execute(self, *args, **kwargs):
         folder_path = Path(config["path_github"]) / "harrix-pylib"
@@ -70,8 +70,8 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
 
 
 class on_harrix_pylib_02_publish(action_base.ActionBase):
-    icon: str = "👷‍♂️"
-    title: str = "02 Publish and update harrix-pylib"
+    icon = "👷‍♂️"
+    title = "02 Publish and update harrix-pylib"
     is_show_output = True
 
     def execute(self, *args, **kwargs):
@@ -136,8 +136,8 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
 
 
 class on_sort_code(action_base.ActionBase):
-    icon: str = "📶"
-    title: str = "Sort classes, methods, functions in one PY file"
+    icon = "📶"
+    title = "Sort classes, methods, functions in one PY file"
 
     def execute(self, *args, **kwargs):
         filename = self.get_open_filename(
@@ -154,8 +154,8 @@ class on_sort_code(action_base.ActionBase):
 
 
 class on_sort_code_folder(action_base.ActionBase):
-    icon: str = "📶"
-    title: str = "Sort classes, methods, functions in PY files"
+    icon = "📶"
+    title = "Sort classes, methods, functions in PY files"
 
     def execute(self, *args, **kwargs):
         folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
@@ -169,8 +169,8 @@ class on_sort_code_folder(action_base.ActionBase):
 
 
 class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
-    icon: str = "🌟"
-    title: str = "isort, ruff format, sort in PY files"
+    icon = "🌟"
+    title = "isort, ruff format, sort in PY files"
 
     def execute(self, *args, **kwargs):
         folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
@@ -183,8 +183,8 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
 
 
 class on_uv_new_project(action_base.ActionBase):
-    icon: str = "🐍"
-    title: str = "New uv project in Projects"
+    icon = "🐍"
+    title = "New uv project in Projects"
 
     def execute(self, *args, **kwargs):
         path = config["path_py_projects"]
@@ -195,8 +195,8 @@ class on_uv_new_project(action_base.ActionBase):
 
 
 class on_uv_new_project_dialog(action_base.ActionBase):
-    icon: str = "🐍"
-    title: str = "New uv project in …"
+    icon = "🐍"
+    title = "New uv project in …"
 
     def execute(self, *args, **kwargs):
         project_name = self.get_text_input("Project name", "Enter the name of the project (English, without spaces):")

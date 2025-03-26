@@ -6,8 +6,8 @@ config = h.dev.load_config("config/config.json")
 
 
 class on_fitness(action_base.ActionBase):
-    icon: str = "🏃🏻"
-    title: str = "Fitness tracker"
+    icon = "🏃🏻"
+    title = "Fitness tracker"
 
     def __init__(self, **kwargs):
         super().__init__()
