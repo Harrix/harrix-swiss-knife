@@ -1,6 +1,6 @@
-from PySide6.QtCore import Qt, QPoint
-from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QMouseEvent
+from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout
 
 
 class ToastNotificationBase(QDialog):
@@ -64,6 +64,18 @@ class ToastNotificationBase(QDialog):
         # Set cursor to indicate draggable window
         self.setCursor(Qt.OpenHandCursor)
 
+    def mouseMoveEvent(self, event: QMouseEvent):
+        """
+        Handles the mouse move event to update the position of the notification during dragging.
+
+        Args:
+
+        - `event` (`QMouseEvent`): The mouse event triggering the move action.
+        """
+        if event.buttons() & Qt.LeftButton and self.dragging:
+            self.move(event.globalPosition().toPoint() - self.drag_position)
+            event.accept()
+
     def mousePressEvent(self, event: QMouseEvent):
         """
         Handles the mouse press event to initiate dragging of the notification.
@@ -76,18 +88,6 @@ class ToastNotificationBase(QDialog):
             self.dragging = True
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             self.setCursor(Qt.ClosedHandCursor)  # Change cursor to indicate active dragging
-            event.accept()
-
-    def mouseMoveEvent(self, event: QMouseEvent):
-        """
-        Handles the mouse move event to update the position of the notification during dragging.
-
-        Args:
-
-        - `event` (`QMouseEvent`): The mouse event triggering the move action.
-        """
-        if event.buttons() & Qt.LeftButton and self.dragging:
-            self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
 
     def mouseReleaseEvent(self, event: QMouseEvent):
