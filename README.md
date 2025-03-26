@@ -34,8 +34,8 @@ _Figure 1: Screenshot_
   - 📂 Open the folder optimized_images
 - **File operations**
   - 🗂️ Moves and flattens files from nested folders
-  - ✅ Check featured_image.\* in …
-  - ✅ Check featured_image.\*
+  - ✅ Check featured_image.* in …
+  - ✅ Check featured_image.*
   - 🔒 Block disks
   - 📸 Open Camera Uploads
   - ├ Tree view of a folder (ignore hidden folders)
@@ -158,34 +158,22 @@ class on_sort_sections(action_base.ActionBase):
 Example an action with QThread:
 
 ```python
-class on_npm_install_packages(action_base.ActionBase):
+class on_npm_update_packages(action_base.ActionBase):
     icon = "📥"
-    title = "Install global NPM packages"
+    title = "Update NPM and global NPM packages"
 
     def execute(self, *args, **kwargs):
-        self.show_toast_countdown(on_npm_update_packages.title)
+        self.show_toast_countdown(self.title)
+        self.start_thread(self.in_thread, self.thread_after)
 
-        class Worker(QThread):
-            finished = Signal(str)
+    def in_thread(self):
+        commands = "npm update npm -g\nnpm update -g"
+        result = h.dev.run_powershell_script(commands)
+        return result
 
-            def __init__(self, parent=None):
-                super().__init__(parent)
-
-            def run(self):
-                commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
-                result = h.dev.run_powershell_script(commands)
-                self.finished.emit(result)
-
-        self.worker = Worker()
-        self.worker.finished.connect(self.on_update_finished)
-        self.worker.start()
-
-    @Slot(str)
-    def on_update_finished(self, result: str):
+    def thread_after(self, result):
         self.close_toast_countdown()
-
-        self.show_toast("Install completed", duration=2000)
-
+        self.show_toast("Update completed")
         self.show_text_textarea(result)
         self.add_line(result)
 ```

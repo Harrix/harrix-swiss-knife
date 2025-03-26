@@ -1,6 +1,8 @@
 from pathlib import Path
+from typing import Callable
 
 import harrix_pylib as h
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import (
     QDialog,
@@ -14,8 +16,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-
-from harrix_swiss_knife import toast_notification, toast_countdown_notification
+from harrix_swiss_knife import toast_countdown_notification, toast_notification
 
 config = h.dev.load_config("config/config.json")
 
@@ -78,6 +79,12 @@ class ActionBase:
         with open(self.file, "a", encoding="utf8") as f:
             f.write(line + "\n")
         print(line)
+
+    def close_toast_countdown(self):
+        """
+        Closes a toast countdown notification.
+        """
+        self.toast.close()
 
     def execute(self, *args, **kwargs):
         """
@@ -220,7 +227,7 @@ class ActionBase:
             self.add_line("❌ Dialog was canceled.")
             return None
 
-    def show_text_textarea(self, text: str, title = "Result") -> str | None:
+    def show_text_textarea(self, text: str, title="Result") -> str | None:
         """
         Opens a dialog to display text with a copy button.
 
@@ -281,7 +288,7 @@ class ActionBase:
         else:
             return None
 
-    def show_toast(self, message: str, duration: int = 1000):
+    def show_toast(self, message: str, duration: int = 1000) -> None:
         """
         Displays a toast notification.
 
@@ -293,7 +300,7 @@ class ActionBase:
         toast = toast_notification.ToastNotification(message=message, duration=duration)
         toast.exec()
 
-    def show_toast_countdown(self, message: str):
+    def show_toast_countdown(self, message: str) -> None:
         """
         Displays a toast countdown notification.
 
@@ -305,13 +312,45 @@ class ActionBase:
         self.toast.show()
         self.toast.start_countdown()
 
-    def close_toast_countdown(self):
+    def start_thread(self, work_function: Callable, callback_function: Callable) -> None:
         """
-        Closes a toast countdown notification.
-        """
-        self.toast.close()
+        Start a worker thread with the provided work function and callback.
 
-    def text_to_clipboard(self, text: str):
+        This method creates a worker thread that executes the given function
+        and calls the callback function with the result when completed.
+
+        Args:
+
+        - `work_function` (`Callable`): Function to execute in the thread that returns a result.
+        - `callback_function` (`Callable`): Function to call when thread completes, receiving the result.
+
+        Returns:
+
+        - `None`: This method does not return a value.
+
+        Note:
+
+        - The worker thread reference is stored in `self._current_worker` to prevent garbage collection.
+        """
+
+        class WorkerForThread(QThread):
+            finished = Signal(object)
+
+            def __init__(self, work_function: Callable, parent=None):
+                super().__init__(parent)
+                self.work_function = work_function
+
+            def run(self):
+                result = self.work_function()
+                self.finished.emit(result)
+
+        worker = WorkerForThread(work_function)
+        worker.finished.connect(callback_function)
+        worker.start()
+        # Store reference to prevent garbage collection
+        self._current_worker = worker
+
+    def text_to_clipboard(self, text: str) -> None:
         """
         Copies the given text to the system clipboard.
 
