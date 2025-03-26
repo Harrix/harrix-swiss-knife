@@ -56,14 +56,17 @@ class on_check_featured_image(action_base.ActionBase):
 class on_check_featured_image_in_folders(action_base.ActionBase):
     icon: str = "✅"
     title: str = "Check featured_image.*"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
+        result_lines = []
         for path in config["paths_with_featured_image"]:
             try:
-                self.add_line(h.file.check_featured_image(path)[1])
+                result = h.file.check_featured_image(path)[1]
             except Exception as e:
-                self.add_line(f"❌ Error: {e}")
+                result = f"❌ Error: {e}"
+            self.add_line(result)
+            result_lines.append(result)
+        self.show_text_textarea("\n".join(result_lines))
 
 
 class on_open_camera_uploads(action_base.ActionBase):
