@@ -31,13 +31,11 @@ class ActionBase:
 
     - `icon` (`str`): Icon identifier for the action. Defaults to `""`.
     - `title` (`str`): Display title of the action. Defaults to `""`.
-    - `is_show_output` (`bool`): Whether to automatically display output after execution. Defaults to `False`.
     - `file` (`Path`): Path to the output file where results are written.
     """
 
     icon: str = ""
     title: str = ""
-    is_show_output: bool = False
 
     def __init__(self, **kwargs):
         """
@@ -65,11 +63,8 @@ class ActionBase:
 
         The result returned by the execute method.
         """
-        open(self.file, "w").close()  # create or clear
+        open(self.file, "w").close()  # create or clear output.txt
         result = self.execute(*args, **kwargs)
-
-        if self.is_show_output:
-            h.file.open_file_or_folder(self.file)
         return result
 
     def add_line(self, line):
