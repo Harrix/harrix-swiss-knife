@@ -38,9 +38,10 @@ class on_open_images(action_base.ActionBase):
         path = h.dev.get_project_root() / "temp/images"
         if path.exists():
             h.file.open_file_or_folder(path)
-            self.add_line(f"Folder `{path}` is opened.")
+            result = f"Folder `{path}` is opened."
         else:
-            self.add_line(f"❌ Folder `{path}` is not exist.")
+            result = f"❌ Folder `{path}` is not exist."
+        self.add_line(result)
 
 
 class on_open_optimized_images(action_base.ActionBase):
@@ -51,9 +52,10 @@ class on_open_optimized_images(action_base.ActionBase):
         path = h.dev.get_project_root() / "temp/optimized_images"
         if path.exists():
             h.file.open_file_or_folder(path)
-            self.add_line(f"Folder `{path}` is opened.")
+            result = f"Folder `{path}` is opened."
         else:
-            self.add_line(f"❌ Folder `{path}` is not exist.")
+            result = f"❌ Folder `{path}` is not exist."
+        self.add_line(result)
 
 
 class on_optimize(action_base.ActionBase):
