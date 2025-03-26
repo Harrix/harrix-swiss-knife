@@ -16,14 +16,18 @@ class on_clear_images(action_base.ActionBase):
     title = "Clear folders images"
 
     def execute(self, *args, **kwargs):
+        result_lines = []
         paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp" / "optimized_images"]
         for path in paths:
             if path.exists():
                 shutil.rmtree(path)
                 path.mkdir(parents=True)
-                self.add_line(f"Folder `{path}` is clean.")
+                result = f"Folder `{path}` is clean."
             else:
-                self.add_line(f"❌ Folder `{path}` is not exist.")
+                result = f"❌ Folder `{path}` is not exist."
+            self.add_line(result)
+            result_lines.append(result)
+        self.show_text_textarea("\n".join(result_lines))
 
 
 class on_open_images(action_base.ActionBase):
