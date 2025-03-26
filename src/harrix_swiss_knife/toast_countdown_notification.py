@@ -1,5 +1,4 @@
 from PySide6.QtCore import QTime, QTimer
-from PySide6.QtWidgets import QDialog
 
 from harrix_swiss_knife import toast_notification_base
 

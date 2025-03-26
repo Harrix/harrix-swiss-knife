@@ -76,7 +76,7 @@ class on_open_camera_uploads(action_base.ActionBase):
     def execute(self, *args, **kwargs):
         for path in config["paths_camera_uploads"]:
             h.file.open_file_or_folder(Path(path))
-        self.add_line("The folders from \"Camera Uploads\" is opened.")
+        self.add_line('The folders from "Camera Uploads" is opened.')
 
 
 class on_tree_view_folder(action_base.ActionBase):
