@@ -60,10 +60,10 @@ const processImage = async (file) => {
       .avif({ quality: qualityValue })
       .toFile(outputFilePath)
       .then(() => {
-        console.log(`File ${file} successfully converted to AVIF.`);
+        console.log(`✅ File ${file} successfully converted to AVIF.`);
       })
       .catch((err) => {
-        console.error(`Error while converting file ${file}:`, err);
+        console.error(`❌ Error while converting file ${file}:`, err);
       });
   } else if (ext === ".gif" || ext === ".mp4") {
     // Converting GIF to animated AVIF
@@ -71,10 +71,10 @@ const processImage = async (file) => {
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.error(`Error while converting file ${file}:`, error);
+        console.error(`❌ Error while converting file ${file}:`, error);
         return;
       }
-      console.log(`File ${file} successfully converted to AVIF.`);
+      console.log(`✅ File ${file} successfully converted to AVIF.`);
     });
   } else if (ext === ".png") {
     try {
@@ -104,16 +104,16 @@ const processImage = async (file) => {
         // Write the optimized image to the output folder
         fs.writeFileSync(path.join(outputFolder, `${outputFileName}.png`), pngQuantBuffer);
 
-        console.log(`File ${file} successfully optimized.`);
+        console.log(`✅ File ${file} successfully optimized.`);
       }
     } catch (error) {
-      console.error(`Error while processing file ${file}:`, error);
+      console.error(`❌ Error while processing file ${file}:`, error);
     }
   } else if (ext === ".svg") {
     // Optimize svg
     fs.readFile(filePath, "utf8", (err, data) => {
       if (err) {
-        console.error(`File reading error ${file}:`, err);
+        console.error(`❌ File reading error ${file}:`, err);
         return;
       }
 
@@ -130,14 +130,14 @@ const processImage = async (file) => {
 
       fs.writeFile(outputFilePath, result.data, (err) => {
         if (err) {
-          console.error(`Error writing the file ${file}:`, err);
+          console.error(`❌ Error writing the file ${file}:`, err);
         } else {
-          console.log(`File ${file} successfully optimized.`);
+          console.log(`✅ File ${file} successfully optimized.`);
         }
       });
     });
   } else {
-    console.log(`File ${file} is skipped because its format is not supported.`);
+    console.log(`❗ File ${file} is skipped because its format is not supported.`);
   }
 };
 
@@ -151,7 +151,7 @@ if (!imagesFolder) {
   } else if (!outputFolder) {
     const tempFolderPath = path.join(dictionary.imagesFolder, "temp");
     fs.mkdir(tempFolderPath, { recursive: true }, (err) => {
-      if (err) return console.error(`Error creating the folder: ${err.message}`);
+      if (err) return console.error(`❌ Error creating the folder: ${err.message}`);
     });
     outputFolder = path.join(imagesFolder, `temp`);
   }
@@ -162,7 +162,7 @@ console.log(`outputFolder: ${outputFolder}`);
 
 fs.readdir(imagesFolder, async (err, files) => {
   if (err) {
-    console.error("Error reading the image folder:", err);
+    console.error("❌ Error reading the image folder:", err);
     return;
   }
 

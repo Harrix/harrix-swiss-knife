@@ -61,12 +61,20 @@ class on_open_optimized_images(action_base.ActionBase):
 class on_optimize(action_base.ActionBase):
     icon = "🚀"
     title = "Optimize images"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        result = h.dev.run_powershell_script("npm run optimize")
+        self.show_toast_countdown(self.title)
+        self.start_thread(self.in_thread, self.thread_after)
+
+    def in_thread(self):
+        return h.dev.run_powershell_script("npm run optimize")
+
+    def thread_after(self, result):
+        self.close_toast_countdown()
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
+        self.show_toast("Optimize completed")
+        self.show_text_textarea(result)
         self.add_line(result)
 
 
