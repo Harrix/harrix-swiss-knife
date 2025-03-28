@@ -192,7 +192,6 @@ class on_optimize_dialog_replace(action_base.ActionBase):
 class on_optimize_file(action_base.ActionBase):
     icon = "🖼️"
     title = "Optimize one image"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
         filename = self.get_open_filename(
@@ -212,15 +211,25 @@ class on_optimize_file(action_base.ActionBase):
 
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_optimize_quality(action_base.ActionBase):
     icon = "🔝"
     title = "Optimize images (high quality)"
-    is_show_output = True
+
 
     def execute(self, *args, **kwargs):
-        result = h.dev.run_powershell_script("npm run optimize quality=true")
+        self.show_toast_countdown(self.title)
+        self.start_thread(self.in_thread, self.thread_after)
+
+    def in_thread(self):
+        return h.dev.run_powershell_script("npm run optimize quality=true")
+
+    def thread_after(self, result):
+        self.close_toast_countdown()
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
+        self.show_toast("Optimize completed")
         self.add_line(result)
+        self.show_text_textarea(result)
