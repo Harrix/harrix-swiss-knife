@@ -31,7 +31,7 @@ class on_generate_md_docs(action_base.ActionBase):
     title = "Generate MD documentation in …"
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
+        folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not folder_path:
             return
 
@@ -158,7 +158,7 @@ class on_sort_code_folder(action_base.ActionBase):
     title = "Sort classes, methods, functions in PY files"
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
+        folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not folder_path:
             return
 
@@ -173,7 +173,7 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
     title = "isort, ruff format, sort in PY files"
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
+        folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not folder_path:
             return
 
@@ -203,7 +203,7 @@ class on_uv_new_project_dialog(action_base.ActionBase):
         if not project_name:
             return
 
-        folder_path = self.get_existing_directory("Select a Project folder", config["path_py_projects"])
+        folder_path = self.get_existing_directory("Select Project folder", config["path_py_projects"])
         if not folder_path:
             return
 
