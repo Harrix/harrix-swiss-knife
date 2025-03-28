@@ -132,15 +132,23 @@ class on_optimize_clipboard_dialog(action_base.ActionBase):
 class on_optimize_dialog(action_base.ActionBase):
     icon = "⬆️"
     title = "Optimize images in …/temp"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
+        if not self.folder_path:
             return
 
-        result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{folder_path}"')
-        h.file.open_file_or_folder(Path(folder_path) / "temp")
+        self.show_toast_countdown(self.title)
+        self.start_thread(self.in_thread, self.thread_after)
+
+    def in_thread(self):
+        return h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
+
+    def thread_after(self, result):
+        self.close_toast_countdown()
+        h.file.open_file_or_folder(Path(self.folder_path) / "temp")
+        self.show_toast("Optimize completed")
+        self.show_text_textarea(result)
         self.add_line(result)
 
 
