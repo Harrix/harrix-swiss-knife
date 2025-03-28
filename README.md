@@ -174,8 +174,8 @@ class on_npm_update_packages(action_base.ActionBase):
     def thread_after(self, result):
         self.close_toast_countdown()
         self.show_toast("Update completed")
-        self.show_text_textarea(result)
         self.add_line(result)
+        self.show_result()
 ```
 
 ### Update `harrix-pylib`

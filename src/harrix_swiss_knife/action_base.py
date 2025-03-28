@@ -46,6 +46,7 @@ class ActionBase:
 
         - `**kwargs`: Additional keyword arguments for customization.
         """
+        self.result_lines = []
         temp_path = h.dev.get_project_root() / "temp"
         if not temp_path.exists():
             temp_path.mkdir(parents=True, exist_ok=True)
@@ -64,6 +65,7 @@ class ActionBase:
 
         The result returned by the execute method.
         """
+        self.result_lines.clear()
         open(self.file, "w").close()  # create or clear output.txt
         result = self.execute(*args, **kwargs)
         return result
@@ -79,6 +81,7 @@ class ActionBase:
         with open(self.file, "a", encoding="utf8") as f:
             f.write(line + "\n")
         print(line)
+        self.result_lines.append(line)
 
     def close_toast_countdown(self):
         """
@@ -227,7 +230,16 @@ class ActionBase:
             self.add_line("❌ Dialog was canceled.")
             return None
 
-    def show_text_textarea(self, text: str, title="Result") -> str | None:
+    def show_result(self) -> str | None:
+        """
+        Opens a dialog to display result of `execute`.
+
+        Returns:
+        - `str | None`: The displayed text, or `None` if cancelled.
+        """
+        return self.show_text_multiline("\n".join(self.result_lines), "Result")
+
+    def show_text_multiline(self, text: str, title="Result") -> str | None:
         """
         Opens a dialog to display text with a copy button.
 

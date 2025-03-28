@@ -23,7 +23,7 @@ class on_extract_functions_and_classes(action_base.ActionBase):
 
         result = h.py.extract_functions_and_classes(filename)
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_generate_md_docs(action_base.ActionBase):
@@ -44,7 +44,7 @@ class on_generate_md_docs(action_base.ActionBase):
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_harrix_pylib_01_prepare(action_base.ActionBase):
@@ -67,7 +67,7 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
 
         result = h.dev.run_powershell_script(f"github {folder_path} ")
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_harrix_pylib_02_publish(action_base.ActionBase):
@@ -133,7 +133,7 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
                 git commit -m "⬆️ Update {path_library.parts[-1]}" """
             result = h.dev.run_powershell_script(commands)
             self.add_line(result)
-            self.show_text_textarea(result)
+            self.show_result()
 
 
 class on_sort_code(action_base.ActionBase):

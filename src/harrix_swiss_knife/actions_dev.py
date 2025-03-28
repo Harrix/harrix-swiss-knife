@@ -29,7 +29,7 @@ class on_get_menu(action_base.ActionBase):
     def execute(self, *args, **kwargs):
         result = self.parent.get_menu()
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_npm_install_packages(action_base.ActionBase):
@@ -49,7 +49,7 @@ class on_npm_install_packages(action_base.ActionBase):
         self.close_toast_countdown()
         self.show_toast("Install completed")
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_npm_update_packages(action_base.ActionBase):
@@ -69,7 +69,7 @@ class on_npm_update_packages(action_base.ActionBase):
         self.close_toast_countdown()
         self.show_toast("Update completed")
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_open_config_json(action_base.ActionBase):

@@ -21,7 +21,7 @@ class on_all_files_to_parent_folder(action_base.ActionBase):
 
         result = h.file.all_to_parent_folder(folder_path)
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_block_disks(action_base.ActionBase):
@@ -32,7 +32,7 @@ class on_block_disks(action_base.ActionBase):
         commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in config["block_drives"]])
         result = h.dev.run_powershell_script_as_admin(commands)
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_check_featured_image(action_base.ActionBase):
@@ -50,7 +50,7 @@ class on_check_featured_image(action_base.ActionBase):
         except Exception as e:
             result = f"❌ Error: {e}"
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_check_featured_image_in_folders(action_base.ActionBase):
@@ -58,15 +58,13 @@ class on_check_featured_image_in_folders(action_base.ActionBase):
     title = "Check featured_image.*"
 
     def execute(self, *args, **kwargs):
-        result_lines = []
         for path in config["paths_with_featured_image"]:
             try:
                 result = h.file.check_featured_image(path)[1]
             except Exception as e:
                 result = f"❌ Error: {e}"
             self.add_line(result)
-            result_lines.append(result)
-        self.show_text_textarea("\n".join(result_lines))
+        self.show_result()
 
 
 class on_open_camera_uploads(action_base.ActionBase):
@@ -90,7 +88,7 @@ class on_tree_view_folder(action_base.ActionBase):
 
         result = h.file.tree_view_folder(folder_path, kwargs.get("is_ignore_hidden_folders", False))
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_tree_view_folder_ignore_hidden_folders(action_base.ActionBase):

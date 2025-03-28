@@ -16,7 +16,6 @@ class on_clear_images(action_base.ActionBase):
     title = "Clear folders images"
 
     def execute(self, *args, **kwargs):
-        result_lines = []
         paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp/optimized_images"]
         for path in paths:
             if path.exists():
@@ -26,8 +25,7 @@ class on_clear_images(action_base.ActionBase):
             else:
                 result = f"❌ Folder `{path}` is not exist."
             self.add_line(result)
-            result_lines.append(result)
-        self.show_text_textarea("\n".join(result_lines))
+        self.show_result()
 
 
 class on_open_images(action_base.ActionBase):
@@ -75,7 +73,7 @@ class on_optimize(action_base.ActionBase):
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_optimize_clipboard(action_base.ActionBase):
@@ -149,7 +147,7 @@ class on_optimize_dialog(action_base.ActionBase):
         h.file.open_file_or_folder(Path(self.folder_path) / "temp")
         self.show_toast("Optimize completed")
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_optimize_dialog_replace(action_base.ActionBase):
@@ -186,7 +184,7 @@ class on_optimize_dialog_replace(action_base.ActionBase):
         h.file.open_file_or_folder(self.folder_path)
         self.show_toast("Optimize completed")
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_optimize_file(action_base.ActionBase):
@@ -211,7 +209,7 @@ class on_optimize_file(action_base.ActionBase):
 
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
 
 
 class on_optimize_quality(action_base.ActionBase):
@@ -232,4 +230,4 @@ class on_optimize_quality(action_base.ActionBase):
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
         self.add_line(result)
-        self.show_text_textarea(result)
+        self.show_result()
