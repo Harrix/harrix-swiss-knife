@@ -67,6 +67,7 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
 
         result = h.dev.run_powershell_script(f"github {folder_path} ")
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_harrix_pylib_02_publish(action_base.ActionBase):
