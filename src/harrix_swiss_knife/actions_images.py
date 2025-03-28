@@ -158,25 +158,35 @@ class on_optimize_dialog_replace(action_base.ActionBase):
     is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
+        if not self.folder_path:
             return
 
-        result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{folder_path}"')
+        self.show_toast_countdown(self.title)
+        self.start_thread(self.in_thread, self.thread_after)
 
-        for item in folder_path.iterdir():
+    def in_thread(self):
+        result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
+
+        for item in self.folder_path.iterdir():
             if item.is_file():
                 item.unlink()
 
-        temp_folder = folder_path / "temp"
+        temp_folder = self.folder_path / "temp"
 
         for item in temp_folder.iterdir():
             if item.is_file() or item.is_symlink():
-                shutil.copy2(item, folder_path / item.name)
+                shutil.copy2(item, self.folder_path / item.name)
 
         shutil.rmtree(temp_folder)
 
-        h.file.open_file_or_folder(folder_path)
+        return result
+
+    def thread_after(self, result):
+        self.close_toast_countdown()
+        h.file.open_file_or_folder(self.folder_path)
+        self.show_toast("Optimize completed")
+        self.show_text_textarea(result)
         self.add_line(result)
 
 
