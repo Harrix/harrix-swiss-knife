@@ -288,14 +288,14 @@ class ActionBase:
         else:
             return None
 
-    def show_toast(self, message: str, duration: int = 1000) -> None:
+    def show_toast(self, message: str, duration: int = 2000) -> None:
         """
         Displays a toast notification.
 
         Args:
 
         - `message` (`str`): The text of the message.
-        - `duration` (`int`): The display duration in milliseconds. Defaults to `1000`.
+        - `duration` (`int`): The display duration in milliseconds. Defaults to `2000`.
         """
         toast = toast_notification.ToastNotification(message=message, duration=duration)
         toast.exec()
