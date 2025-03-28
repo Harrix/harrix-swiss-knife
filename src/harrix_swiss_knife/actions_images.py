@@ -74,8 +74,8 @@ class on_optimize(action_base.ActionBase):
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
-        self.show_text_textarea(result)
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_optimize_clipboard(action_base.ActionBase):
@@ -148,14 +148,13 @@ class on_optimize_dialog(action_base.ActionBase):
         self.close_toast_countdown()
         h.file.open_file_or_folder(Path(self.folder_path) / "temp")
         self.show_toast("Optimize completed")
-        self.show_text_textarea(result)
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_optimize_dialog_replace(action_base.ActionBase):
     icon = "⬆️"
     title = "Optimize images in … and replace"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
         self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
@@ -186,8 +185,8 @@ class on_optimize_dialog_replace(action_base.ActionBase):
         self.close_toast_countdown()
         h.file.open_file_or_folder(self.folder_path)
         self.show_toast("Optimize completed")
-        self.show_text_textarea(result)
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_optimize_file(action_base.ActionBase):

@@ -48,8 +48,8 @@ class on_npm_install_packages(action_base.ActionBase):
     def thread_after(self, result):
         self.close_toast_countdown()
         self.show_toast("Install completed")
-        self.show_text_textarea(result)
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_npm_update_packages(action_base.ActionBase):
@@ -68,8 +68,8 @@ class on_npm_update_packages(action_base.ActionBase):
     def thread_after(self, result):
         self.close_toast_countdown()
         self.show_toast("Update completed")
-        self.show_text_textarea(result)
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_open_config_json(action_base.ActionBase):
