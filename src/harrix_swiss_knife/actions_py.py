@@ -13,7 +13,6 @@ config = h.dev.load_config("config/config.json")
 class on_extract_functions_and_classes(action_base.ActionBase):
     icon = "⬇️"
     title = "Extracts list of funcs to a MD list from one PY file"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
         filename = self.get_open_filename(
@@ -24,12 +23,12 @@ class on_extract_functions_and_classes(action_base.ActionBase):
 
         result = h.py.extract_functions_and_classes(filename)
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_generate_md_docs(action_base.ActionBase):
     icon = "🏗️"
     title = "Generate MD documentation in …"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
         folder_path = self.get_existing_directory("Select a Project folder", config["path_github"])
@@ -45,6 +44,7 @@ class on_generate_md_docs(action_base.ActionBase):
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
+        self.show_text_textarea(result)
 
 
 class on_harrix_pylib_01_prepare(action_base.ActionBase):
@@ -72,7 +72,6 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
 class on_harrix_pylib_02_publish(action_base.ActionBase):
     icon = "👷‍♂️"
     title = "02 Publish and update harrix-pylib"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
         token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
@@ -133,6 +132,7 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
                 git commit -m "⬆️ Update {path_library.parts[-1]}" """
             result = h.dev.run_powershell_script(commands)
             self.add_line(result)
+            self.show_text_textarea(result)
 
 
 class on_sort_code(action_base.ActionBase):
