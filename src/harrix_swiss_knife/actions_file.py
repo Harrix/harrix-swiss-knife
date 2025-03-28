@@ -10,9 +10,6 @@ config = h.dev.load_config("config/config.json")
 class on_all_files_to_parent_folder(action_base.ActionBase):
     icon = "🗂️"
     title = "Moves and flattens files from nested folders"
-    tip: str = (
-        "The function moves all files from subfolders to their parent folder, removing any then-empty subfolders."
-    )
 
     def execute(self, *args, **kwargs):
         folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
@@ -38,7 +35,6 @@ class on_block_disks(action_base.ActionBase):
 class on_check_featured_image(action_base.ActionBase):
     icon = "✅"
     title = "Check featured_image.* in …"
-    tip: str = "Checks for the presence of `featured_image.*` files in every child folder, not recursively."
 
     def execute(self, *args, **kwargs):
         folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
