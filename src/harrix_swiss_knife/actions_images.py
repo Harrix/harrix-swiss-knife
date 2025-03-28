@@ -216,7 +216,6 @@ class on_optimize_quality(action_base.ActionBase):
     icon = "🔝"
     title = "Optimize images (high quality)"
 
-
     def execute(self, *args, **kwargs):
         self.show_toast_countdown(self.title)
         self.start_thread(self.in_thread, self.thread_after)
