@@ -139,20 +139,18 @@ CLI commands after installation.
 Example an action:
 
 ```python
-class on_sort_sections(action_base.ActionBase):
-    icon = "⬆️"
-    title = "Sort sections in one MD"
+class on_check_featured_image_in_folders(action_base.ActionBase):
+    icon = "✅"
+    title = "Check featured_image.*"
 
     def execute(self, *args, **kwargs):
-        filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
-        if not filename:
-            return
-
-        try:
-            self.add_line(h.md.sort_sections(filename))
-            self.add_line(h.md.generate_image_captions(filename))
-        except Exception as e:
-            self.add_line(f"❌ Ошибка: {e}")
+        for path in config["paths_with_featured_image"]:
+            try:
+                result = h.file.check_featured_image(path)[1]
+            except Exception as e:
+                result = f"❌ Error: {e}"
+            self.add_line(result)
+        self.show_result()
 ```
 
 Example an action with QThread:
