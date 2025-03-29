@@ -37,24 +37,17 @@ const clearFolder = (folderPath) => {
   if (fs.existsSync(folderPath)) {
     fs.readdirSync(folderPath).forEach((file) => {
       const filePath = path.join(folderPath, file);
-      if (fs.lstatSync(filePath).isDirectory()) {
-        fs.rmSync(filePath, { recursive: true, force: true });
-      } else {
-        fs.unlinkSync(filePath);
-      }
+      if (fs.lstatSync(filePath).isDirectory()) fs.rmSync(filePath, { recursive: true, force: true });
+      else fs.unlinkSync(filePath);
     });
-  } else {
-    fs.mkdirSync(folderPath, { recursive: true });
-  }
+  } else fs.mkdirSync(folderPath, { recursive: true });
 };
 
 const processImage = async (file) => {
   const filePath = path.join(imagesFolder, file);
 
   // Skip directories silently
-  if (fs.lstatSync(filePath).isDirectory()) {
-    return;
-  }
+  if (fs.lstatSync(filePath).isDirectory()) return;
 
   const ext = path.extname(file).toLowerCase();
   const outputFileName = path.parse(file).name;
@@ -135,16 +128,11 @@ const processImage = async (file) => {
       const outputFilePath = path.join(outputFolder, `${outputFileName}.svg`);
 
       fs.writeFile(outputFilePath, result.data, (err) => {
-        if (err) {
-          console.error(`❌ Error writing the file ${file}:`, err);
-        } else {
-          console.log(`✅ File ${file} successfully optimized.`);
-        }
+        if (err) console.error(`❌ Error writing the file ${file}:`, err);
+        else console.log(`✅ File ${file} successfully optimized.`);
       });
     });
-  } else {
-    console.log(`❗ File ${file} is skipped because its format is not supported.`);
-  }
+  } else console.log(`❗ File ${file} is skipped because its format is not supported.`);
 };
 
 if (!imagesFolder) {
@@ -152,9 +140,8 @@ if (!imagesFolder) {
   outputFolder = path.join(__foldername, "../../temp/optimized_images");
   clearFolder(outputFolder);
 } else {
-  if (outputFolder == "optimized_images") {
-    outputFolder = path.join(__foldername, "../../temp/optimized_images");
-  } else if (!outputFolder) {
+  if (outputFolder == "optimized_images") outputFolder = path.join(__foldername, "../../temp/optimized_images");
+  else if (!outputFolder) {
     const tempFolderPath = path.join(dictionary.imagesFolder, "temp");
     fs.mkdir(tempFolderPath, { recursive: true }, (err) => {
       if (err) return console.error(`❌ Error creating the folder: ${err.message}`);
@@ -172,7 +159,5 @@ fs.readdir(imagesFolder, async (err, files) => {
     return;
   }
 
-  for (const file of files) {
-    processImage(file);
-  }
+  for (const file of files) processImage(file);
 });
