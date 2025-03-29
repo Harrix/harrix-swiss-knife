@@ -82,45 +82,51 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
         self.show_result()
 
 
-class on_harrix_pylib_02_publish(action_base.ActionBase): # ⚠️ TODO
+class on_harrix_pylib_02_publish(action_base.ActionBase):
     icon = "👷‍♂️"
     title = "02 Publish and update harrix-pylib"
 
     def execute(self, *args, **kwargs):
-        token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
-        if not token:
+        self.token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
+        if not self.token:
             return
 
-        path_library = Path(config["path_github"]) / "harrix-pylib"
-        projects = [Path(config["path_github"]) / "harrix-swiss-knife"]
+        self.show_toast_countdown("Increase version, build and publish")
+        self.start_thread(self.in_thread_01, self.thread_after_01)
+
+    def in_thread_01(self):
+        self.path_library = Path(config["path_github"]) / "harrix-pylib"
+        self.projects = [Path(config["path_github"]) / "harrix-swiss-knife"]
 
         # Increase version of library
-        path_toml = path_library / "pyproject.toml"
+        path_toml = self.path_library / "pyproject.toml"
         content = path_toml.read_text(encoding="utf8")
         pattern = r'version = "(\d+)\.(\d+)"'
         find = re.search(pattern, content, re.DOTALL)
-        new_version = f"{find.group(1)}.{int(find.group(2)) + 1}"
+        self.new_version = f"{find.group(1)}.{int(find.group(2)) + 1}"
         new_content = re.sub(pattern, lambda m: f'version = "{m.group(1)}.{int(m.group(2)) + 1}"', content)
         path_toml.write_text(new_content)
-        self.add_line(f"New version {new_version}")
+        self.add_line(f"🆕 New version {self.new_version}")
 
+        # Build and publish
         commands = f"""
-            cd {path_library}
+            cd {self.path_library}
             uv sync --upgrade
-            Remove-Item -Path "{path_library}/dist/*" -Recurse -Force
+            Remove-Item -Path "{self.path_library}/dist/*" -Recurse -Force
             uv build
-            uv publish --token {token}
+            uv publish --token {self.token}
             git add pyproject.toml
             git add uv.lock
-            git commit -m "🚀 Build version {new_version}" """
+            git commit -m "🚀 Build version {self.new_version}" """
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
 
-        time_waiting_seconds = 20
-        QMessageBox.information(None, "Copy", f"Wait {time_waiting_seconds} seconds for the package to be published.")
-        time.sleep(time_waiting_seconds)
+    def in_thread_02(self):
+        time.sleep(self.time_waiting_seconds)
 
-        for project in projects:
+    def in_thread_03(self):
+        # Update harrix-pylib in projects
+        for project in self.projects:
             project = Path(project)
 
             commands = f"""
@@ -130,11 +136,11 @@ class on_harrix_pylib_02_publish(action_base.ActionBase): # ⚠️ TODO
             result = h.dev.run_powershell_script(commands)
             self.add_line(result)
 
-            # Increase version of library
+            # Increase version of harrix-pylib in project
             path_toml = project / "pyproject.toml"
             content = path_toml.read_text(encoding="utf8")
-            pattern = path_library.parts[-1] + r">=(\d+)\.(\d+)"
-            new_content = re.sub(pattern, lambda m: f"{path_library.parts[-1]}>={new_version}", content)
+            pattern = self.path_library.parts[-1] + r">=(\d+)\.(\d+)"
+            new_content = re.sub(pattern, lambda m: f"{self.path_library.parts[-1]}>={self.new_version}", content)
             path_toml.write_text(new_content)
 
             commands = f"""
@@ -142,10 +148,27 @@ class on_harrix_pylib_02_publish(action_base.ActionBase): # ⚠️ TODO
                 uv sync --upgrade
                 git add pyproject.toml
                 git add uv.lock
-                git commit -m "⬆️ Update {path_library.parts[-1]}" """
+                git commit -m "⬆️ Update {self.path_library.parts[-1]}" """
             result = h.dev.run_powershell_script(commands)
             self.add_line(result)
-            self.show_result()
+
+    def thread_after_01(self, result):
+        self.close_toast_countdown()
+
+        self.time_waiting_seconds = 20
+        message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
+        self.show_toast_countdown(message)
+        self.start_thread(self.in_thread_02, self.thread_after_02)
+
+    def thread_after_02(self, result):
+        self.close_toast_countdown()
+        self.show_toast_countdown("Update harrix-pylib in projects")
+        self.start_thread(self.in_thread_03, self.thread_after_03)
+
+    def thread_after_03(self, result):
+        self.close_toast_countdown()
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
 
 
 class on_sort_code(action_base.ActionBase): # ⚠️ TODO
