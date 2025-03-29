@@ -47,26 +47,38 @@ class on_generate_md_docs(action_base.ActionBase):
         self.show_result()
 
 
-class on_harrix_pylib_01_prepare(action_base.ActionBase): # ⚠️ TODO
+class on_harrix_pylib_01_prepare(action_base.ActionBase):
     icon = "👩🏻‍🍳"
     title = "01 Prepare harrix-pylib"
 
     def execute(self, *args, **kwargs):
+        self.show_toast_countdown(self.title)
+        self.start_thread(self.in_thread, self.thread_after)
+
+    def in_thread(self):
         folder_path = Path(config["path_github"]) / "harrix-pylib"
 
+        # Beautify the code
         commands = f"cd {folder_path}\nisort .\nruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
+        # Generate Markdown documentation
         domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
         result = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
         self.add_line(result)
+
+        # Format Markdown files using Prettier
         commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
 
+        # Open GitHub
         result = h.dev.run_powershell_script(f"github {folder_path} ")
-        self.add_line(result)
+
+    def thread_after(self, result):
+        self.close_toast_countdown()
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 
 
