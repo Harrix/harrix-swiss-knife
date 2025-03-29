@@ -41,8 +41,7 @@ class on_npm_install_packages(action_base.ActionBase):
 
     def in_thread(self):
         commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
-        result = h.dev.run_powershell_script(commands)
-        return result
+        return h.dev.run_powershell_script(commands)
 
     def thread_after(self, result):
         self.show_toast("Install completed")
@@ -59,8 +58,7 @@ class on_npm_update_packages(action_base.ActionBase):
 
     def in_thread(self):
         commands = "npm update npm -g\nnpm update -g"
-        result = h.dev.run_powershell_script(commands)
-        return result
+        return h.dev.run_powershell_script(commands)
 
     def thread_after(self, result):
         self.show_toast("Update completed")

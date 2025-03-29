@@ -67,8 +67,7 @@ class ActionBase:
         """
         self.result_lines.clear()
         open(self.file, "w").close()  # create or clear output.txt
-        result = self.execute(*args, **kwargs)
-        return result
+        return self.execute(*args, **kwargs)
 
     def add_line(self, line):
         """
