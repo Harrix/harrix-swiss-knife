@@ -20,11 +20,11 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
     Args:
 
     - `message` (`str`, optional): The text to be displayed in the notification.
-      Defaults to `"Process is running..."`.
+      Defaults to `"Process is running…"`.
     - `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
     """
 
-    def __init__(self, message: str = "Process is running...", parent=None):
+    def __init__(self, message: str = "Process is running…", parent=None):
         super().__init__(message, parent)
 
         self.elapsed_seconds = 0
