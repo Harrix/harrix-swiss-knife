@@ -226,33 +226,47 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
         self.show_result()
 
 
-class on_uv_new_project(action_base.ActionBase): # ⚠️ TODO
+class on_uv_new_project(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in Projects"
 
     def execute(self, *args, **kwargs):
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
         path = config["path_py_projects"]
         max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
         name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
 
         self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
 
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
 
-class on_uv_new_project_dialog(action_base.ActionBase): # ⚠️ TODO
+
+class on_uv_new_project_dialog(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in …"
 
     def execute(self, *args, **kwargs):
-        project_name = self.get_text_input("Project name", "Enter the name of the project (English, without spaces):")
-        if not project_name:
+        self.project_name = self.get_text_input("Project name", "Enter the name of the project (English, without spaces):")
+        if not self.project_name:
             return
 
-        folder_path = self.get_existing_directory("Select Project folder", config["path_py_projects"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select Project folder", config["path_py_projects"])
+        if not self.folder_path:
             return
 
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
         self.add_line(
             h.py.create_uv_new_project(
-                project_name.replace(" ", "-"), folder_path, config["editor"], config["cli_commands"]
+                self.project_name.replace(" ", "-"), self.folder_path, config["editor"], config["cli_commands"]
             )
         )
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
