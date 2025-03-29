@@ -10,7 +10,7 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
-class on_extract_functions_and_classes(action_base.ActionBase):
+class OnExtractFunctionsAndClasses(action_base.ActionBase):
     icon = "⬇️"
     title = "Extracts list of funcs to a MD list from one PY file"
 
@@ -26,7 +26,7 @@ class on_extract_functions_and_classes(action_base.ActionBase):
         self.show_result()
 
 
-class on_generate_md_docs(action_base.ActionBase):
+class OnGenerateMdDocs(action_base.ActionBase):
     icon = "🏗️"
     title = "Generate MD documentation in …"
 
@@ -47,7 +47,7 @@ class on_generate_md_docs(action_base.ActionBase):
         self.show_result()
 
 
-class on_harrix_pylib_01_prepare(action_base.ActionBase):
+class OnHarrixPylib01Prepare(action_base.ActionBase):
     icon = "👩🏻‍🍳"
     title = "01 Prepare harrix-pylib"
 
@@ -80,7 +80,7 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
         self.show_result()
 
 
-class on_harrix_pylib_02_publish(action_base.ActionBase):
+class OnHarrixPylib02Publish(action_base.ActionBase):
     icon = "👷‍♂️"
     title = "02 Publish and update harrix-pylib"
 
@@ -162,7 +162,7 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
         self.show_result()
 
 
-class on_sort_code(action_base.ActionBase):
+class OnSortCode(action_base.ActionBase):
     icon = "📶"
     title = "Sort classes, methods, functions in one PY file"
 
@@ -183,7 +183,7 @@ class on_sort_code(action_base.ActionBase):
         self.show_toast(result)
 
 
-class on_sort_code_folder(action_base.ActionBase):
+class OnSortCodeFolder(action_base.ActionBase):
     icon = "📶"
     title = "Sort classes, methods, functions in PY files"
 
@@ -205,7 +205,7 @@ class on_sort_code_folder(action_base.ActionBase):
         self.show_result()
 
 
-class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
+class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
 
@@ -226,7 +226,7 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
         self.show_result()
 
 
-class on_uv_new_project(action_base.ActionBase):
+class OnUvNewProject(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in Projects"
 
@@ -245,7 +245,7 @@ class on_uv_new_project(action_base.ActionBase):
         self.show_result()
 
 
-class on_uv_new_project_dialog(action_base.ActionBase):
+class OnUvNewProjectDialog(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in …"
 

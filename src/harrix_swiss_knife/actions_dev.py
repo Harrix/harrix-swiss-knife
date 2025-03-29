@@ -6,7 +6,7 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
-class on_exit(action_base.ActionBase):
+class OnExit(action_base.ActionBase):
     icon = "×"
     title = "Exit"
 
@@ -18,7 +18,7 @@ class on_exit(action_base.ActionBase):
         QApplication.quit()
 
 
-class on_get_menu(action_base.ActionBase):
+class OnGetMenu(action_base.ActionBase):
     icon = "☰"
     title = "Get the list of items from this menu"
 
@@ -32,7 +32,7 @@ class on_get_menu(action_base.ActionBase):
         self.show_result()
 
 
-class on_npm_install_packages(action_base.ActionBase):
+class OnNpmInstallPackages(action_base.ActionBase):
     icon = "📥"
     title = "Install global NPM packages"
 
@@ -49,7 +49,7 @@ class on_npm_install_packages(action_base.ActionBase):
         self.show_result()
 
 
-class on_npm_update_packages(action_base.ActionBase):
+class OnNpmUpdatePackages(action_base.ActionBase):
     icon = "📥"
     title = "Update NPM and global NPM packages"
 
@@ -66,7 +66,7 @@ class on_npm_update_packages(action_base.ActionBase):
         self.show_result()
 
 
-class on_open_config_json(action_base.ActionBase):
+class OnOpenConfigJson(action_base.ActionBase):
     icon = "⚙️"
     title = "Open config.json"
 

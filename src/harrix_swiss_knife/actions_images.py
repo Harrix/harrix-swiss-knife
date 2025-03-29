@@ -11,7 +11,7 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
-class on_clear_images(action_base.ActionBase):
+class OnClearImages(action_base.ActionBase):
     icon = "🧹"
     title = "Clear folders images"
 
@@ -28,7 +28,7 @@ class on_clear_images(action_base.ActionBase):
         self.show_result()
 
 
-class on_open_images(action_base.ActionBase):
+class OnOpenImages(action_base.ActionBase):
     icon = "📂"
     title = "Open the folder images"
 
@@ -42,7 +42,7 @@ class on_open_images(action_base.ActionBase):
         self.add_line(result)
 
 
-class on_open_optimized_images(action_base.ActionBase):
+class OnOpenOptimizedImages(action_base.ActionBase):
     icon = "📂"
     title = "Open the folder optimized_images"
 
@@ -56,7 +56,7 @@ class on_open_optimized_images(action_base.ActionBase):
         self.add_line(result)
 
 
-class on_optimize(action_base.ActionBase):
+class OnOptimize(action_base.ActionBase):
     icon = "🚀"
     title = "Optimize images"
 
@@ -74,7 +74,7 @@ class on_optimize(action_base.ActionBase):
         self.show_result()
 
 
-class on_optimize_clipboard(action_base.ActionBase):
+class OnOptimizeClipboard(action_base.ActionBase):
     icon = "🚀"
     title = "Optimize image from clipboard"
 
@@ -117,15 +117,15 @@ class on_optimize_clipboard(action_base.ActionBase):
         self.add_line("Image is optimized and copied to clipboard.")
 
 
-class on_optimize_clipboard_dialog(action_base.ActionBase):
+class OnOptimizeClipboardDialog(action_base.ActionBase):
     icon = "🚀"
     title = "Optimize image from clipboard as …"
 
     def execute(self, *args, **kwargs):
-        on_optimize_clipboard.execute(self, is_dialog=True)
+        OnOptimizeClipboard.execute(self, is_dialog=True)
 
 
-class on_optimize_dialog(action_base.ActionBase):
+class OnOptimizeDialog(action_base.ActionBase):
     icon = "⬆️"
     title = "Optimize images in …/temp"
 
@@ -146,7 +146,7 @@ class on_optimize_dialog(action_base.ActionBase):
         self.show_result()
 
 
-class on_optimize_dialog_replace(action_base.ActionBase):
+class OnOptimizeDialogReplace(action_base.ActionBase):
     icon = "⬆️"
     title = "Optimize images in … and replace"
 
@@ -181,7 +181,7 @@ class on_optimize_dialog_replace(action_base.ActionBase):
         self.show_result()
 
 
-class on_optimize_file(action_base.ActionBase):
+class OnOptimizeFile(action_base.ActionBase):
     icon = "🖼️"
     title = "Optimize one image"
 
@@ -206,7 +206,7 @@ class on_optimize_file(action_base.ActionBase):
         self.show_result()
 
 
-class on_optimize_quality(action_base.ActionBase):
+class OnOptimizeQuality(action_base.ActionBase):
     icon = "🔝"
     title = "Optimize images (high quality)"
 

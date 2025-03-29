@@ -7,7 +7,7 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
-class on_all_files_to_parent_folder(action_base.ActionBase):
+class OnAllFilesToParentFolder(action_base.ActionBase):
     icon = "🗂️"
     title = "Moves and flattens files from nested folders"
 
@@ -21,7 +21,7 @@ class on_all_files_to_parent_folder(action_base.ActionBase):
         self.show_result()
 
 
-class on_block_disks(action_base.ActionBase):
+class OnBlockDisks(action_base.ActionBase):
     icon = "🔒"
     title = "Block disks"
 
@@ -32,7 +32,7 @@ class on_block_disks(action_base.ActionBase):
         self.show_result()
 
 
-class on_check_featured_image(action_base.ActionBase):
+class OnCheckFeaturedImage(action_base.ActionBase):
     icon = "✅"
     title = "Check featured_image.* in …"
 
@@ -49,7 +49,7 @@ class on_check_featured_image(action_base.ActionBase):
         self.show_result()
 
 
-class on_check_featured_image_in_folders(action_base.ActionBase):
+class OnCheckFeaturedImageInFolders(action_base.ActionBase):
     icon = "✅"
     title = "Check featured_image.*"
 
@@ -63,7 +63,7 @@ class on_check_featured_image_in_folders(action_base.ActionBase):
         self.show_result()
 
 
-class on_open_camera_uploads(action_base.ActionBase):
+class OnOpenCameraUploads(action_base.ActionBase):
     icon = "📸"
     title = "Open Camera Uploads"
 
@@ -73,7 +73,7 @@ class on_open_camera_uploads(action_base.ActionBase):
         self.add_line('The folders from "Camera Uploads" is opened.')
 
 
-class on_tree_view_folder(action_base.ActionBase):
+class OnTreeViewFolder(action_base.ActionBase):
     icon = "├"
     title = "Tree view of a folder"
 
@@ -87,9 +87,9 @@ class on_tree_view_folder(action_base.ActionBase):
         self.show_result()
 
 
-class on_tree_view_folder_ignore_hidden_folders(action_base.ActionBase):
+class OnTreeViewFolderIgnoreHiddenFolders(action_base.ActionBase):
     icon = "├"
     title = "Tree view of a folder (ignore hidden folders)"
 
     def execute(self, *args, **kwargs):
-        on_tree_view_folder.execute(self, is_ignore_hidden_folders=True)
+        OnTreeViewFolder.execute(self, is_ignore_hidden_folders=True)
