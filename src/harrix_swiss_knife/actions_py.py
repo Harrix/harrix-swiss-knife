@@ -47,7 +47,7 @@ class on_generate_md_docs(action_base.ActionBase):
         self.show_result()
 
 
-class on_harrix_pylib_01_prepare(action_base.ActionBase):
+class on_harrix_pylib_01_prepare(action_base.ActionBase): # ⚠️ TODO
     icon = "👩🏻‍🍳"
     title = "01 Prepare harrix-pylib"
 
@@ -70,7 +70,7 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
         self.show_result()
 
 
-class on_harrix_pylib_02_publish(action_base.ActionBase):
+class on_harrix_pylib_02_publish(action_base.ActionBase): # ⚠️ TODO
     icon = "👷‍♂️"
     title = "02 Publish and update harrix-pylib"
 
@@ -136,7 +136,7 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
             self.show_result()
 
 
-class on_sort_code(action_base.ActionBase):
+class on_sort_code(action_base.ActionBase): # ⚠️ TODO
     icon = "📶"
     title = "Sort classes, methods, functions in one PY file"
 
@@ -154,7 +154,7 @@ class on_sort_code(action_base.ActionBase):
             self.add_line(f"❌ File {filename} is not applied.")
 
 
-class on_sort_code_folder(action_base.ActionBase):
+class on_sort_code_folder(action_base.ActionBase): # ⚠️ TODO
     icon = "📶"
     title = "Sort classes, methods, functions in PY files"
 
@@ -169,7 +169,7 @@ class on_sort_code_folder(action_base.ActionBase):
             self.add_line(f"❌ Error: {e}")
 
 
-class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
+class on_sort_isort_fmt_python_code_folder(action_base.ActionBase): # ⚠️ TODO
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
 
@@ -183,7 +183,7 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
         self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
 
-class on_uv_new_project(action_base.ActionBase):
+class on_uv_new_project(action_base.ActionBase): # ⚠️ TODO
     icon = "🐍"
     title = "New uv project in Projects"
 
@@ -195,7 +195,7 @@ class on_uv_new_project(action_base.ActionBase):
         self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
 
 
-class on_uv_new_project_dialog(action_base.ActionBase):
+class on_uv_new_project_dialog(action_base.ActionBase): # ⚠️ TODO
     icon = "🐍"
     title = "New uv project in …"
 

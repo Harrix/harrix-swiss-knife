@@ -5,7 +5,7 @@ from harrix_swiss_knife import action_base, fitness
 config = h.dev.load_config("config/config.json")
 
 
-class on_fitness(action_base.ActionBase):
+class on_fitness(action_base.ActionBase): # ⚠️ TODO
     icon = "🏃🏻"
     title = "Fitness tracker"
 
