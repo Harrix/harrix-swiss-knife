@@ -175,6 +175,61 @@ class on_npm_update_packages(action_base.ActionBase):
         self.show_result()
 ```
 
+Example an action with sequence of QThread:
+
+```python
+class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
+    icon = "👷‍♂️"
+    title = "Sequence of thread"
+
+    def execute(self, *args, **kwargs):
+        self.show_toast_countdown(self.title)
+        self.start_thread(self.in_thread_01, self.thread_after_01)
+        return "Started the process chain"
+
+    def in_thread_01(self):
+        # First operation
+        self.add_line("Starting first operation")
+        time.sleep(5)  # Simulating work
+        return "First operation completed"
+
+    def thread_after_01(self, result):
+        self.close_toast_countdown()
+        self.add_line(result)  # Log the result from the first thread
+
+        # Start the second operation
+        self.time_waiting_seconds = 20
+        message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
+        self.show_toast_countdown(message)
+        self.start_thread(self.in_thread_02, self.thread_after_02)
+
+    def in_thread_02(self):
+        # Second operation
+        self.add_line("Starting second operation")
+        time.sleep(self.time_waiting_seconds)  # Simulating work
+        return "Second operation completed"
+
+    def thread_after_02(self, result):
+        self.close_toast_countdown()
+        self.add_line(result)  # Log the result from the second thread
+
+        # Start the third operation
+        self.show_toast_countdown(self.title)
+        self.start_thread(self.in_thread_03, self.thread_after_03)
+
+    def in_thread_03(self):
+        # Third operation
+        self.add_line("Starting third operation")
+        time.sleep(5)  # Simulating work
+        return "Third operation completed"
+
+    def thread_after_03(self, result):
+        self.close_toast_countdown()
+        self.add_line(result)  # Log the result from the third thread
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
 ### Update `harrix-pylib`
 
 - Run `uv sync --upgrade` (maybe twice).
