@@ -61,14 +61,12 @@ class on_optimize(action_base.ActionBase):
     title = "Optimize images"
 
     def execute(self, *args, **kwargs):
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread, self.thread_after)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         return h.dev.run_powershell_script("npm run optimize")
 
     def thread_after(self, result):
-        self.close_toast_countdown()
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
@@ -136,14 +134,12 @@ class on_optimize_dialog(action_base.ActionBase):
         if not self.folder_path:
             return
 
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread, self.thread_after)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         return h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
 
     def thread_after(self, result):
-        self.close_toast_countdown()
         h.file.open_file_or_folder(Path(self.folder_path) / "temp")
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -159,8 +155,7 @@ class on_optimize_dialog_replace(action_base.ActionBase):
         if not self.folder_path:
             return
 
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread, self.thread_after)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
@@ -180,7 +175,6 @@ class on_optimize_dialog_replace(action_base.ActionBase):
         return result
 
     def thread_after(self, result):
-        self.close_toast_countdown()
         h.file.open_file_or_folder(self.folder_path)
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -217,14 +211,12 @@ class on_optimize_quality(action_base.ActionBase):
     title = "Optimize images (high quality)"
 
     def execute(self, *args, **kwargs):
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread, self.thread_after)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         return h.dev.run_powershell_script("npm run optimize quality=true")
 
     def thread_after(self, result):
-        self.close_toast_countdown()
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")

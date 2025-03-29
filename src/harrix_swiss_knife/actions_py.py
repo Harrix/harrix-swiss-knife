@@ -52,8 +52,7 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
     title = "01 Prepare harrix-pylib"
 
     def execute(self, *args, **kwargs):
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread, self.thread_after)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         folder_path = Path(config["path_github"]) / "harrix-pylib"
@@ -77,7 +76,6 @@ class on_harrix_pylib_01_prepare(action_base.ActionBase):
         result = h.dev.run_powershell_script(f"github {folder_path} ")
 
     def thread_after(self, result):
-        self.close_toast_countdown()
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
@@ -91,8 +89,7 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
         if not self.token:
             return
 
-        self.show_toast_countdown("Increase version, build and publish")
-        self.start_thread(self.in_thread_01, self.thread_after_01)
+        self.start_thread(self.in_thread_01, self.thread_after_01, "Increase version, build and publish")
 
     def in_thread_01(self):
         self.path_library = Path(config["path_github"]) / "harrix-pylib"
@@ -153,20 +150,14 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
             self.add_line(result)
 
     def thread_after_01(self, result):
-        self.close_toast_countdown()
-
         self.time_waiting_seconds = 20
         message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
-        self.show_toast_countdown(message)
-        self.start_thread(self.in_thread_02, self.thread_after_02)
+        self.start_thread(self.in_thread_02, self.thread_after_02, message)
 
     def thread_after_02(self, result):
-        self.close_toast_countdown()
-        self.show_toast_countdown("Update harrix-pylib in projects")
-        self.start_thread(self.in_thread_03, self.thread_after_03)
+        self.start_thread(self.in_thread_03, self.thread_after_03, "Update harrix-pylib in projects")
 
     def thread_after_03(self, result):
-        self.close_toast_countdown()
         self.show_toast(f"{self.title} completed")
         self.show_result()
 

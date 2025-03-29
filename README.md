@@ -160,8 +160,7 @@ class on_npm_update_packages(action_base.ActionBase):
     title = "Update NPM and global NPM packages"
 
     def execute(self, *args, **kwargs):
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread, self.thread_after)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         commands = "npm update npm -g\nnpm update -g"
@@ -169,7 +168,6 @@ class on_npm_update_packages(action_base.ActionBase):
         return result
 
     def thread_after(self, result):
-        self.close_toast_countdown()
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
@@ -183,8 +181,7 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
     title = "Sequence of thread"
 
     def execute(self, *args, **kwargs):
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread_01, self.thread_after_01)
+        self.start_thread(self.in_thread_01, self.thread_after_01, self.title)
         return "Started the process chain"
 
     def in_thread_01(self):
@@ -194,14 +191,12 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
         return "First operation completed"
 
     def thread_after_01(self, result):
-        self.close_toast_countdown()
         self.add_line(result)  # Log the result from the first thread
 
         # Start the second operation
         self.time_waiting_seconds = 20
         message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
-        self.show_toast_countdown(message)
-        self.start_thread(self.in_thread_02, self.thread_after_02)
+        self.start_thread(self.in_thread_02, self.thread_after_02, message)
 
     def in_thread_02(self):
         # Second operation
@@ -210,12 +205,10 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
         return "Second operation completed"
 
     def thread_after_02(self, result):
-        self.close_toast_countdown()
         self.add_line(result)  # Log the result from the second thread
 
         # Start the third operation
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread_03, self.thread_after_03)
+        self.start_thread(self.in_thread_03, self.thread_after_03, self.title)
 
     def in_thread_03(self):
         # Third operation
@@ -224,7 +217,6 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
         return "Third operation completed"
 
     def thread_after_03(self, result):
-        self.close_toast_countdown()
         self.add_line(result)  # Log the result from the third thread
         self.show_toast(f"{self.title} completed")
         self.show_result()

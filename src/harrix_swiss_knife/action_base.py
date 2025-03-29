@@ -83,12 +83,6 @@ class ActionBase:
         print(line)
         self.result_lines.append(line)
 
-    def close_toast_countdown(self):
-        """
-        Closes a toast countdown notification.
-        """
-        self.toast.close()
-
     def execute(self, *args, **kwargs):
         """
         Execute the action logic (must be implemented by subclasses).
@@ -312,19 +306,7 @@ class ActionBase:
         toast = toast_notification.ToastNotification(message=message, duration=duration)
         toast.exec()
 
-    def show_toast_countdown(self, message: str) -> None:
-        """
-        Displays a toast countdown notification.
-
-        Args:
-
-        - `message` (`str`): The text of the message.
-        """
-        self.toast = toast_countdown_notification.ToastCountdownNotification(message)
-        self.toast.show()
-        self.toast.start_countdown()
-
-    def start_thread(self, work_function: Callable, callback_function: Callable) -> None:
+    def start_thread(self, work_function: Callable, callback_function: Callable, message: str = "") -> None:
         """
         Start a worker thread with the provided work function and callback.
 
@@ -335,6 +317,7 @@ class ActionBase:
 
         - `work_function` (`Callable`): Function to execute in the thread that returns a result.
         - `callback_function` (`Callable`): Function to call when thread completes, receiving the result.
+        - `message` (`str`): Optional message to display in a toast notification during processing.
 
         Returns:
 
@@ -343,6 +326,7 @@ class ActionBase:
         Note:
 
         - The worker thread reference is stored in `self._current_worker` to prevent garbage collection.
+        - Automatically closes any toast countdown notification before executing the callback.
         """
 
         class WorkerForThread(QThread):
@@ -356,8 +340,19 @@ class ActionBase:
                 result = self.work_function()
                 self.finished.emit(result)
 
+        # Create a wrapper for the callback function that first closes the toast
+        def callback_wrapper(result):
+            if message:  # Only try to close if we opened one
+                self.toast.close()
+            callback_function(result)
+
+        if message:
+            self.toast = toast_countdown_notification.ToastCountdownNotification(message)
+            self.toast.show()
+            self.toast.start_countdown()
+
         worker = WorkerForThread(work_function)
-        worker.finished.connect(callback_function)
+        worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
         self._current_worker = worker

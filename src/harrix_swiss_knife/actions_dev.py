@@ -37,8 +37,7 @@ class on_npm_install_packages(action_base.ActionBase):
     title = "Install global NPM packages"
 
     def execute(self, *args, **kwargs):
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread, self.thread_after)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
@@ -46,7 +45,6 @@ class on_npm_install_packages(action_base.ActionBase):
         return result
 
     def thread_after(self, result):
-        self.close_toast_countdown()
         self.show_toast("Install completed")
         self.add_line(result)
         self.show_result()
@@ -57,8 +55,7 @@ class on_npm_update_packages(action_base.ActionBase):
     title = "Update NPM and global NPM packages"
 
     def execute(self, *args, **kwargs):
-        self.show_toast_countdown(self.title)
-        self.start_thread(self.in_thread, self.thread_after)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         commands = "npm update npm -g\nnpm update -g"
@@ -66,7 +63,6 @@ class on_npm_update_packages(action_base.ActionBase):
         return result
 
     def thread_after(self, result):
-        self.close_toast_countdown()
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
