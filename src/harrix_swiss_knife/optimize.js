@@ -49,8 +49,14 @@ const clearFolder = (folderPath) => {
 };
 
 const processImage = async (file) => {
-  const ext = path.extname(file).toLowerCase();
   const filePath = path.join(imagesFolder, file);
+
+  // Skip directories silently
+  if (fs.lstatSync(filePath).isDirectory()) {
+    return;
+  }
+
+  const ext = path.extname(file).toLowerCase();
   const outputFileName = path.parse(file).name;
   const outputFilePath = path.join(outputFolder, `${outputFileName}.avif`);
 
