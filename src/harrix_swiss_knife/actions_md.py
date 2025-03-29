@@ -209,7 +209,7 @@ class OnIncreaseHeadingLevelContent(action_base.ActionBase): # ⚠️ TODO
         QMessageBox.information(None, "Copy", "Text copied to clipboard!")
 
 
-class OnNewArticle(action_base.ActionBase): # ⚠️ TODO
+class OnNewArticle(action_base.ActionBase):
     icon = "✍️"
     title = "New article"
 
@@ -230,7 +230,7 @@ class OnNewArticle(action_base.ActionBase): # ⚠️ TODO
         self.add_line(result)
 
 
-class OnNewNoteDialog(action_base.ActionBase): # ⚠️ TODO
+class OnNewNoteDialog(action_base.ActionBase):
     icon = "📓"
     title = "New note"
 
@@ -251,7 +251,7 @@ class OnNewNoteDialog(action_base.ActionBase): # ⚠️ TODO
         self.add_line(result)
 
 
-class OnNewNoteDialogWithImages(action_base.ActionBase): # ⚠️ TODO
+class OnNewNoteDialogWithImages(action_base.ActionBase):
     icon = "📓"
     title = "New note with images"
 
