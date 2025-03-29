@@ -183,19 +183,26 @@ class on_sort_code(action_base.ActionBase):
         self.show_toast(result)
 
 
-class on_sort_code_folder(action_base.ActionBase): # ⚠️ TODO
+class on_sort_code_folder(action_base.ActionBase):
     icon = "📶"
     title = "Sort classes, methods, functions in PY files"
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
+        if not self.folder_path:
             return
 
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
         try:
-            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+            self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
 
 
 class on_sort_isort_fmt_python_code_folder(action_base.ActionBase): # ⚠️ TODO
