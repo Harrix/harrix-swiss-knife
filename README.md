@@ -152,7 +152,7 @@ class on_check_featured_image_in_folders(action_base.ActionBase):
         self.show_result()
 ```
 
-Example an action with QThread:
+Examples an action with QThread:
 
 ```python
 class on_npm_update_packages(action_base.ActionBase):
@@ -169,6 +169,28 @@ class on_npm_update_packages(action_base.ActionBase):
     def thread_after(self, result):
         self.show_toast("Update completed")
         self.add_line(result)
+        self.show_result()
+```
+
+```python
+class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
+    icon = "🌟"
+    title = "isort, ruff format, sort in PY files"
+
+    def execute(self, *args, **kwargs):
+        self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        commands = f"cd {self.folder_path}\nisort .\nruff format"
+        self.add_line(h.dev.run_powershell_script(commands))
+        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 

@@ -205,18 +205,25 @@ class on_sort_code_folder(action_base.ActionBase):
         self.show_result()
 
 
-class on_sort_isort_fmt_python_code_folder(action_base.ActionBase): # ⚠️ TODO
+class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
+        if not self.folder_path:
             return
 
-        commands = f"cd {folder_path}\nisort .\nruff format"
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        commands = f"cd {self.folder_path}\nisort .\nruff format"
         self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
 
 
 class on_uv_new_project(action_base.ActionBase): # ⚠️ TODO
