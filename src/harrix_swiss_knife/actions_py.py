@@ -162,7 +162,7 @@ class on_harrix_pylib_02_publish(action_base.ActionBase):
         self.show_result()
 
 
-class on_sort_code(action_base.ActionBase): # ⚠️ TODO
+class on_sort_code(action_base.ActionBase):
     icon = "📶"
     title = "Sort classes, methods, functions in one PY file"
 
@@ -175,9 +175,12 @@ class on_sort_code(action_base.ActionBase): # ⚠️ TODO
 
         try:
             h.py.sort_py_code(filename)
-            self.add_line(f"File {filename} is applied.")
+            result = f"✅ File {filename} is applied."
         except Exception:
-            self.add_line(f"❌ File {filename} is not applied.")
+            result = f"❌ File {filename} is not applied."
+
+        self.add_line(result)
+        self.show_toast(result)
 
 
 class on_sort_code_folder(action_base.ActionBase): # ⚠️ TODO
