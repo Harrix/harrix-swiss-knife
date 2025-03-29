@@ -47,9 +47,9 @@ class MainMenu(main_menu_base.MainMenuBase):
 
         # Menu Markdown
         self.menu_md = self.new_menu("Markdown", "📓")
-        self.add_item(self.menu_md, hsk.md.OnDiaryNewDream)
-        self.add_item(self.menu_md, hsk.md.OnDiaryNewWithImages)
-        self.add_item(self.menu_md, hsk.md.OnDiaryNew)
+        self.add_item(self.menu_md, hsk.md.OnNewDiaryDream)
+        self.add_item(self.menu_md, hsk.md.OnNewDiaryWithImages)
+        self.add_item(self.menu_md, hsk.md.OnNewDiary)
         self.add_item(self.menu_md, hsk.md.OnNewArticle)
         self.add_item(self.menu_md, hsk.md.OnNewNoteDialogWithImages)
         self.add_item(self.menu_md, hsk.md.OnNewNoteDialog)

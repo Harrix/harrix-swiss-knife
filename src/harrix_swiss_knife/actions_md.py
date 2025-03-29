@@ -11,7 +11,7 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
-class OnDiaryNew(action_base.ActionBase):
+class OnNewDiary(action_base.ActionBase):
     icon = "📖"
     title = "New diary note"
 
@@ -21,7 +21,7 @@ class OnDiaryNew(action_base.ActionBase):
         self.add_line(result)
 
 
-class OnDiaryNewDream(action_base.ActionBase): # ⚠️ TODO
+class OnNewDiaryDream(action_base.ActionBase):
     icon = "💤"
     title = "New dream note"
 
@@ -31,7 +31,7 @@ class OnDiaryNewDream(action_base.ActionBase): # ⚠️ TODO
         self.add_line(result)
 
 
-class OnDiaryNewWithImages(action_base.ActionBase): # ⚠️ TODO
+class OnNewDiaryWithImages(action_base.ActionBase):
     icon = "📚"
     title = "New diary note with images"
 
