@@ -128,24 +128,32 @@ class OnGenerateAuthorBook(action_base.ActionBase):
             self.add_line(f"❌ Ошибка: {e}")
 
     def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
 
 
-class OnGenerateImageCaptions(action_base.ActionBase): # ⚠️ TODO
+class OnGenerateImageCaptions(action_base.ActionBase):
     icon = "🌄"
     title = "Add image captions in one MD"
 
     def execute(self, *args, **kwargs):
-        filename = self.get_open_filename(
+        self.filename = self.get_open_filename(
             "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)"
         )
-        if not filename:
+        if not self.filename:
             return
 
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
         try:
-            self.add_line(h.md.generate_image_captions(filename))
+            self.add_line(h.md.generate_image_captions(self.filename))
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
 
 
 class OnGenerateImageCaptionsFolder(action_base.ActionBase): # ⚠️ TODO
