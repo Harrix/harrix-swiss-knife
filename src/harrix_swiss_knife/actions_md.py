@@ -309,19 +309,25 @@ class OnNewNoteDialogWithImages(action_base.ActionBase):
         OnNewNoteDialog.execute(self, is_with_images=True)
 
 
-class OnPettierFolder(action_base.ActionBase): # ⚠️ TODO
+class OnPettierFolder(action_base.ActionBase):
     icon = "✨"
     title = "Prettier in …"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_github"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_github"])
+        if not self.folder_path:
             return
 
-        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
 
 
 class OnSortSections(action_base.ActionBase): # ⚠️ TODO
