@@ -330,20 +330,27 @@ class OnPettierFolder(action_base.ActionBase):
         self.show_result()
 
 
-class OnSortSections(action_base.ActionBase): # ⚠️ TODO
+class OnSortSections(action_base.ActionBase):
     icon = "📶"
     title = "Sort sections in one MD"
 
     def execute(self, *args, **kwargs):
-        filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
-        if not filename:
+        self.filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        if not self.filename:
             return
 
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
         try:
-            self.add_line(h.md.sort_sections(filename))
-            self.add_line(h.md.generate_image_captions(filename))
+            self.add_line(h.md.sort_sections(self.filename))
+            self.add_line(h.md.generate_image_captions(self.filename))
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
 
 
 class OnSortSectionsFolder(action_base.ActionBase): # ⚠️ TODO
