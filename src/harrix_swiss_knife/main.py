@@ -72,8 +72,8 @@ class MainMenu(main_menu_base.MainMenuBase):
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
         self.add_item(self.menu_python, hsk.py.OnSortIsortFmtPythonCodeFolder)
-        self.add_item(self.menu_python, hsk.py.OnUvNewProjectDialog)
-        self.add_item(self.menu_python, hsk.py.OnUvNewProject)
+        self.add_item(self.menu_python, hsk.py.OnNewUvProjectDialog)
+        self.add_item(self.menu_python, hsk.py.OnNewUvProject)
         self.add_item(self.menu_python, hsk.py.OnSortCode)
         self.add_item(self.menu_python, hsk.py.OnSortCodeFolder)
         self.add_item(self.menu_python, hsk.py.OnExtractFunctionsAndClasses)

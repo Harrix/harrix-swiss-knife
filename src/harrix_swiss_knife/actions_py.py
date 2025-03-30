@@ -226,7 +226,7 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
         self.show_result()
 
 
-class OnUvNewProject(action_base.ActionBase):
+class OnNewUvProject(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in Projects"
 
@@ -245,7 +245,7 @@ class OnUvNewProject(action_base.ActionBase):
         self.show_result()
 
 
-class OnUvNewProjectDialog(action_base.ActionBase):
+class OnNewUvProjectDialog(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in …"
 
