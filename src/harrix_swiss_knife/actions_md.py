@@ -43,19 +43,26 @@ class OnNewDiaryWithImages(action_base.ActionBase):
         self.add_line(result)
 
 
-class OnDownloadAndReplaceImages(action_base.ActionBase): # ⚠️ TODO
+class OnDownloadAndReplaceImages(action_base.ActionBase):
     icon = "📥"
     title = "Download images in one MD"
 
     def execute(self, *args, **kwargs):
-        filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
-        if not filename:
+        self.filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        if not self.filename:
             return
 
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
         try:
-            self.add_line(h.md.download_and_replace_images(filename))
+            self.add_line(h.md.download_and_replace_images(self.filename))
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
 
 
 class OnDownloadAndReplaceImagesFolder(action_base.ActionBase): # ⚠️ TODO
