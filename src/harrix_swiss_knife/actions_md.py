@@ -409,6 +409,7 @@ def combine_markdown_files(folder_path):
         markdown_text = md_file.read_text(encoding='utf-8')
         yaml_md, content_md = split_yaml_content(markdown_text)
 
+        # Delete old TOC
         content_md = h.md.remove_yaml_content(h.md.remove_toc_content(markdown_text))
 
         # Parse YAML and collect headers
