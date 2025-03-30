@@ -382,10 +382,10 @@ import harrix_pylib as h
 
 
 def identify_code_blocks(lines):
-    yield h.md.identify_code_blocks(lines)
+    return h.md.identify_code_blocks(lines)
 
 def identify_code_blocks_line(markdown_line):
-    yield h.md.identify_code_blocks_line(markdown_line)
+    return h.md.identify_code_blocks_line(markdown_line)
 
 def split_yaml_content(markdown_text):
     return h.md.split_yaml_content(markdown_text)
