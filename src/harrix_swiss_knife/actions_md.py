@@ -87,20 +87,26 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
         self.show_result()
 
 
-class OnFormatYaml(action_base.ActionBase): # ⚠️ TODO
+class OnFormatYaml(action_base.ActionBase):
     icon = "✨"
     title = "Format YAML"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not self.folder_path:
             return
 
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
         try:
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
 
 
 class OnGenerateAuthorBook(action_base.ActionBase): # ⚠️ TODO
