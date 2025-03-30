@@ -1,46 +1,11 @@
 from datetime import datetime
 from pathlib import Path
-import time
 
 import harrix_pylib as h
-from PySide6.QtGui import QClipboard
-from PySide6.QtWidgets import QApplication, QMessageBox
 
 from harrix_swiss_knife import action_base
 
 config = h.dev.load_config("config/config.json")
-
-
-class OnNewDiary(action_base.ActionBase):
-    icon = "📖"
-    title = "New diary note"
-
-    def execute(self, *args, **kwargs):
-        result, filename = h.md.add_diary_new_diary(config["path_diary"], config["beginning_of_md"])
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
-        self.add_line(result)
-
-
-class OnNewDiaryDream(action_base.ActionBase):
-    icon = "💤"
-    title = "New dream note"
-
-    def execute(self, *args, **kwargs):
-        result, filename = h.md.add_diary_new_dream(config["path_dream"], config["beginning_of_md"])
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
-        self.add_line(result)
-
-
-class OnNewDiaryWithImages(action_base.ActionBase):
-    icon = "📚"
-    title = "New diary note with images"
-
-    def execute(self, *args, **kwargs):
-        result, filename = h.md.add_diary_new_diary(
-            config["path_diary"], config["beginning_of_md"], is_with_images=True
-        )
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
-        self.add_line(result)
 
 
 class OnDownloadAndReplaceImages(action_base.ActionBase):
@@ -48,7 +13,9 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
     title = "Download images in one MD"
 
     def execute(self, *args, **kwargs):
-        self.filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        self.filename = self.get_open_filename(
+            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)"
+        )
         if not self.filename:
             return
 
@@ -280,6 +247,38 @@ class OnNewArticle(action_base.ActionBase):
         self.add_line(result)
 
 
+class OnNewDiary(action_base.ActionBase):
+    icon = "📖"
+    title = "New diary note"
+
+    def execute(self, *args, **kwargs):
+        result, filename = h.md.add_diary_new_diary(config["path_diary"], config["beginning_of_md"])
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
+        self.add_line(result)
+
+
+class OnNewDiaryDream(action_base.ActionBase):
+    icon = "💤"
+    title = "New dream note"
+
+    def execute(self, *args, **kwargs):
+        result, filename = h.md.add_diary_new_dream(config["path_dream"], config["beginning_of_md"])
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
+        self.add_line(result)
+
+
+class OnNewDiaryWithImages(action_base.ActionBase):
+    icon = "📚"
+    title = "New diary note with images"
+
+    def execute(self, *args, **kwargs):
+        result, filename = h.md.add_diary_new_diary(
+            config["path_diary"], config["beginning_of_md"], is_with_images=True
+        )
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
+        self.add_line(result)
+
+
 class OnNewNoteDialog(action_base.ActionBase):
     icon = "📓"
     title = "New note"
@@ -335,7 +334,9 @@ class OnSortSections(action_base.ActionBase):
     title = "Sort sections in one MD"
 
     def execute(self, *args, **kwargs):
-        self.filename = self.get_open_filename("Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        self.filename = self.get_open_filename(
+            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)"
+        )
         if not self.filename:
             return
 
@@ -375,89 +376,22 @@ class OnSortSectionsFolder(action_base.ActionBase):
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
 
-
 from pathlib import Path
 import yaml
 import harrix_pylib as h
-import re
 
 
 def identify_code_blocks(lines):
-    code_block_delimiter = None
-    for line in lines:
-        match = re.match(r"^(`{3,})(.*)", line)
-        if match:
-            delimiter = match.group(1)
-            if code_block_delimiter is None:
-                code_block_delimiter = delimiter
-            elif code_block_delimiter == delimiter:
-                code_block_delimiter = None
-            yield line, True
-            continue
-        if code_block_delimiter:
-            yield line, True
-        else:
-            yield line, False
+    yield h.md.identify_code_blocks(lines)
 
 def identify_code_blocks_line(markdown_line):
-    current_text = ""
-    in_code = False
-    backtick_count = 0
+    yield h.md.identify_code_blocks_line(markdown_line)
 
-    i = 0
-    while i < len(markdown_line):
-        if markdown_line[i] == "`":
-            # Counting the number of consecutive backquotes
-            count = 1
-            while i + 1 < len(markdown_line) and markdown_line[i + 1] == "`":
-                count += 1
-                i += 1
+def split_yaml_content(markdown_text):
+    return h.md.split_yaml_content(markdown_text)
 
-            if not in_code:
-                # Start of code block
-                if current_text:
-                    yield current_text, False
-                    current_text = ""
-                backtick_count = count
-                current_text = "`" * count
-                in_code = True
-            elif count == backtick_count:
-                # End of code block
-                current_text += "`" * count
-                yield current_text, True
-                current_text = ""
-                in_code = False
-            else:
-                # Backquotes inside the code
-                current_text += "`" * count
-        else:
-            current_text += markdown_line[i]
-
-        i += 1
-
-    if current_text:
-        yield current_text, False
-
-def split_yaml_content(markdown_text: str) -> tuple[str, str]:
-    if not markdown_text.startswith("---"):
-        return "", markdown_text
-    parts = markdown_text.split("---", 2)
-    if len(parts) < 3:
-        return "", markdown_text
-    return f"---{parts[1]}---", parts[2].lstrip()
-
-def append_path_to_local_links_images_line(markdown_line: str, adding_path: str) -> str:
-    def replace_path_in_links(match):
-        link_text = match.group(1)
-        file_path = match.group(2).replace("\\", "/")
-        if adding_path == "":
-            return f"[{link_text}]({file_path})"
-        return f"[{link_text}]({adding_path}/{file_path})"
-
-    adding_path = adding_path.replace("\\", "/")
-    if adding_path.endswith("/"):
-        adding_path = adding_path[:-1]
-    return re.sub(r"\[(.*?)\]\(((?!http).*?)\)", replace_path_in_links, markdown_line)
+def append_path_to_local_links_images_line(markdown_line, adding_path):
+    return h.md.append_path_to_local_links_images_line(markdown_line, adding_path)
 
 def combine_markdown_files(folder_path):
     folder_path = Path(folder_path)
@@ -576,4 +510,3 @@ class OnCombineMarkdownFiles(action_base.ActionBase): # ⚠️ TODO
             return
 
         self.add_line(combine_markdown_files_recursively(folder_path))
-

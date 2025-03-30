@@ -3,7 +3,7 @@ from typing import Callable
 
 import harrix_pylib as h
 from PySide6.QtCore import QThread, Signal
-from PySide6.QtGui import QFont, QGuiApplication, QClipboard
+from PySide6.QtGui import QClipboard, QFont, QGuiApplication
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,

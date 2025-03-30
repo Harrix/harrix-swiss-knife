@@ -162,6 +162,54 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
         self.show_result()
 
 
+class OnNewUvProject(action_base.ActionBase):
+    icon = "🐍"
+    title = "New uv project in Projects"
+
+    def execute(self, *args, **kwargs):
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        path = config["path_py_projects"]
+        max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
+        name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
+
+        self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+
+
+class OnNewUvProjectDialog(action_base.ActionBase):
+    icon = "🐍"
+    title = "New uv project in …"
+
+    def execute(self, *args, **kwargs):
+        self.project_name = self.get_text_input(
+            "Project name", "Enter the name of the project (English, without spaces):"
+        )
+        if not self.project_name:
+            return
+
+        self.folder_path = self.get_existing_directory("Select Project folder", config["path_py_projects"])
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        self.add_line(
+            h.py.create_uv_new_project(
+                self.project_name.replace(" ", "-"), self.folder_path, config["editor"], config["cli_commands"]
+            )
+        )
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+
+
 class OnSortCode(action_base.ActionBase):
     icon = "📶"
     title = "Sort classes, methods, functions in one PY file"
@@ -220,52 +268,6 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
         commands = f"cd {self.folder_path}\nisort .\nruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
-
-    def thread_after(self, result):
-        self.show_toast(f"{self.title} completed")
-        self.show_result()
-
-
-class OnNewUvProject(action_base.ActionBase):
-    icon = "🐍"
-    title = "New uv project in Projects"
-
-    def execute(self, *args, **kwargs):
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self):
-        path = config["path_py_projects"]
-        max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
-        name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
-
-        self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
-
-    def thread_after(self, result):
-        self.show_toast(f"{self.title} completed")
-        self.show_result()
-
-
-class OnNewUvProjectDialog(action_base.ActionBase):
-    icon = "🐍"
-    title = "New uv project in …"
-
-    def execute(self, *args, **kwargs):
-        self.project_name = self.get_text_input("Project name", "Enter the name of the project (English, without spaces):")
-        if not self.project_name:
-            return
-
-        self.folder_path = self.get_existing_directory("Select Project folder", config["path_py_projects"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self):
-        self.add_line(
-            h.py.create_uv_new_project(
-                self.project_name.replace(" ", "-"), self.folder_path, config["editor"], config["cli_commands"]
-            )
-        )
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} completed")
