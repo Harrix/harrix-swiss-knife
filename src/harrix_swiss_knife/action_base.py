@@ -191,6 +191,7 @@ class ActionBase:
         """
         dialog = QDialog()
         dialog.setWindowTitle(title)
+        dialog.resize(1024, 768)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
