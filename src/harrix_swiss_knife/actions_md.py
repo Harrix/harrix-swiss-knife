@@ -230,6 +230,9 @@ class OnGetListMoviesBooks(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         content = self.get_text_textarea("Markdown content", "Input Markdown content")
+        if not content:
+            return
+
         result = ""
         count = 0
         for line in content.splitlines():
@@ -248,6 +251,9 @@ class OnIncreaseHeadingLevelContent(action_base.ActionBase): # ⚠️ TODO
 
     def execute(self, *args, **kwargs):
         content = self.get_text_textarea("Markdown content", "Input Markdown content")
+        if not content:
+            return
+
         new_content = h.md.increase_heading_level_content(content)
         self.add_line(new_content)
         clipboard = QApplication.clipboard()
