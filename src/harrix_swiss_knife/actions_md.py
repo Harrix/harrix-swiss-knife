@@ -376,9 +376,7 @@ class OnSortSectionsFolder(action_base.ActionBase):
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
 
-from pathlib import Path
 import yaml
-import harrix_pylib as h
 
 
 def identify_code_blocks(lines):
@@ -396,6 +394,11 @@ def append_path_to_local_links_images_line(markdown_line, adding_path):
 def combine_markdown_files(folder_path):
     folder_path = Path(folder_path)
 
+    # Delete all files ending with .g.md
+    for path in folder_path.rglob('*.g.md'):
+        if path.is_file():
+            path.unlink()
+
     # Get all .md files excluding those ending with '.g.md'
     md_files = [f for f in folder_path.glob('**/*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
 
@@ -405,6 +408,8 @@ def combine_markdown_files(folder_path):
     for md_file in md_files:
         markdown_text = md_file.read_text(encoding='utf-8')
         yaml_md, content_md = split_yaml_content(markdown_text)
+
+        content_md = h.md.remove_yaml_content(h.md.remove_toc_content(markdown_text))
 
         # Parse YAML and collect headers
         if yaml_md:
@@ -502,11 +507,17 @@ def combine_markdown_files_recursively(folder_path):
 class OnCombineMarkdownFiles(action_base.ActionBase): # ⚠️ TODO
     icon = "🔗"
     title = "Combine MD files in …"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder with Markdown files",config["path_notes"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files",config["path_notes"])
+        if not self.folder_path:
             return
 
-        self.add_line(combine_markdown_files_recursively(folder_path))
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        self.add_line(combine_markdown_files_recursively(self.folder_path))
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
