@@ -109,24 +109,26 @@ class OnFormatYaml(action_base.ActionBase):
         self.show_result()
 
 
-class OnGenerateAuthorBook(action_base.ActionBase): # ⚠️ TODO
+class OnGenerateAuthorBook(action_base.ActionBase):
     icon = "❞"
     title = "Quotes. Add author and title"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder with quotes", config["path_quotes"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select a folder with quotes", config["path_quotes"])
+        if not self.folder_path:
             return
 
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
         try:
-            result = h.file.apply_func(folder_path, ".md", h.md.generate_author_book)
+            result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
             self.add_line(result)
-            clipboard = QApplication.clipboard()
-            clipboard.setText(result, QClipboard.Clipboard)
-            QMessageBox.information(None, "Copy", "Text copied to clipboard!")
         except Exception as e:
             self.add_line(f"❌ Ошибка: {e}")
+
+    def thread_after(self, result):
+        self.show_result()
 
 
 class OnGenerateImageCaptions(action_base.ActionBase): # ⚠️ TODO
