@@ -181,7 +181,6 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
 class OnGenerateToc(action_base.ActionBase):
     icon = "📑"
     title = "Generate TOC in one MD"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
         self.filename = self.get_open_filename(
@@ -203,20 +202,26 @@ class OnGenerateToc(action_base.ActionBase):
         self.show_result()
 
 
-class OnGenerateTocFolder(action_base.ActionBase): # ⚠️ TODO
+class OnGenerateTocFolder(action_base.ActionBase):
     icon = "📑"
     title = "Generate TOC in …"
-    is_show_output = True
 
     def execute(self, *args, **kwargs):
-        folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
-        if not folder_path:
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not self.folder_path:
             return
 
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
         try:
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
 
 
 class OnGetListMoviesBooks(action_base.ActionBase): # ⚠️ TODO
