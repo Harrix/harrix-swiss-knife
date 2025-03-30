@@ -224,7 +224,7 @@ class OnGenerateTocFolder(action_base.ActionBase):
         self.show_result()
 
 
-class OnGetListMoviesBooks(action_base.ActionBase): # ⚠️ TODO
+class OnGetListMoviesBooks(action_base.ActionBase):
     icon = "🎬"
     title = "Get a list of movies, books for web"
 
@@ -239,10 +239,7 @@ class OnGetListMoviesBooks(action_base.ActionBase): # ⚠️ TODO
 
         result += f"\nCount: {count}"
         self.add_line(result)
-
-        clipboard = QApplication.clipboard()
-        clipboard.setText(result, QClipboard.Clipboard)
-        QMessageBox.information(None, "Copy", "Text copied to clipboard!")
+        self.show_result()
 
 
 class OnIncreaseHeadingLevelContent(action_base.ActionBase): # ⚠️ TODO
