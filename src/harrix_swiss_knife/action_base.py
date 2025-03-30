@@ -3,8 +3,9 @@ from typing import Callable
 
 import harrix_pylib as h
 from PySide6.QtCore import QThread, Signal
-from PySide6.QtGui import QFont, QGuiApplication
+from PySide6.QtGui import QFont, QGuiApplication, QClipboard
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -372,5 +373,6 @@ class ActionBase:
 
         - This function uses `QGuiApplication` to interact with the system clipboard.
         """
-        QGuiApplication.clipboard().setText(text)
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text, QClipboard.Clipboard)
         self.show_toast("Copied to Clipboard")
