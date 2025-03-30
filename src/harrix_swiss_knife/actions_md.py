@@ -245,7 +245,7 @@ class OnGetListMoviesBooks(action_base.ActionBase):
         self.show_result()
 
 
-class OnIncreaseHeadingLevelContent(action_base.ActionBase): # ⚠️ TODO
+class OnIncreaseHeadingLevelContent(action_base.ActionBase):
     icon = "👉"
     title = "Increase heading level"
 
@@ -256,9 +256,7 @@ class OnIncreaseHeadingLevelContent(action_base.ActionBase): # ⚠️ TODO
 
         new_content = h.md.increase_heading_level_content(content)
         self.add_line(new_content)
-        clipboard = QApplication.clipboard()
-        clipboard.setText(new_content, QClipboard.Clipboard)
-        QMessageBox.information(None, "Copy", "Text copied to clipboard!")
+        self.show_result()
 
 
 class OnNewArticle(action_base.ActionBase):
