@@ -401,15 +401,34 @@ def combine_markdown_files(folder_path, recursive=False):
 
     # Get all .md files based on the recursive flag
     if recursive:
-        # Recursive - get files from subfolders
-        md_files = [f for f in folder_path.rglob('*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
+        # Для рекурсивного режима мы будем структурировать файлы по папкам
+        md_files = []
+
+        # Сначала добавляем файлы из текущей папки
+        current_folder_files = [f for f in folder_path.glob('*.md')
+                               if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
+        md_files.extend(current_folder_files)
+
+        # Затем обрабатываем подпапки в алфавитном порядке
+        subfolders = sorted([d for d in folder_path.iterdir() if d.is_dir()])
+        for subfolder in subfolders:
+            subfolder_files = []
+            # Рекурсивно собираем файлы из каждой подпапки
+            for file_path in subfolder.rglob('*.md'):
+                if file_path.is_file() and file_path.suffix == '.md' and not file_path.name.endswith('.g.md'):
+                    subfolder_files.append(file_path)
+
+            # Сортируем файлы в подпапке
+            subfolder_files.sort()
+            md_files.extend(subfolder_files)
     else:
         # Non-recursive - only get files in the current folder
-        md_files = [f for f in folder_path.glob('*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
+        md_files = sorted([f for f in folder_path.glob('*.md')
+                          if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')])
 
-    # Если в папке нет достаточного количества .md файлов, выходим
-    if len(md_files) < 2:
-        return f"Skipped {folder_path}: not enough markdown files."
+    # Если в папке нет markdown файлов вообще, выходим
+    if len(md_files) < 1:
+        return f"Skipped {folder_path}: no markdown files found."
 
     data_yaml_headers = []
     contents = []
@@ -457,7 +476,15 @@ def combine_markdown_files(folder_path, recursive=False):
             new_lines.append(line_new)
         content_md = "\n".join(new_lines)
 
-        # Collect content
+        # # Добавляем заголовок с именем файла перед содержимым
+        # file_title = md_file.stem
+        # # Опционально: добавляем информацию о пути к файлу в иерархии
+        # if recursive and md_file.parent != folder_path:
+        #     relative_path = md_file.relative_to(folder_path)
+        #     path_parts = list(relative_path.parent.parts)
+        #     path_info = " (из " + "/".join(path_parts) + ")"
+        #     file_title += path_info
+
         contents.append(content_md.strip())
 
     # Combine YAML headers
