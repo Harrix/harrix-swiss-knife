@@ -8,6 +8,25 @@ from harrix_swiss_knife import action_base
 config = h.dev.load_config("config/config.json")
 
 
+class OnCombineMarkdownFiles(action_base.ActionBase):
+    icon = "🔗"
+    title = "Combine MD files in …"
+
+    def execute(self, *args, **kwargs):
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_notes"])
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        self.add_line(h.md.combine_markdown_files_recursively(self.folder_path))
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+
+
 class OnDownloadAndReplaceImages(action_base.ActionBase):
     icon = "📥"
     title = "Download images in one MD"
@@ -374,22 +393,4 @@ class OnSortSectionsFolder(action_base.ActionBase):
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-
-class OnCombineMarkdownFiles(action_base.ActionBase): # ⚠️ TODO
-    icon = "🔗"
-    title = "Combine MD files in …"
-
-    def execute(self, *args, **kwargs):
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files",config["path_notes"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self):
-        self.add_line(h.md.combine_markdown_files_recursively(self.folder_path))
-
-    def thread_after(self, result):
-        self.show_toast(f"{self.title} completed")
         self.show_result()
