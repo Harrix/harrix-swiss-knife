@@ -437,6 +437,11 @@ def combine_markdown_files(folder_path, recursive=False):
         markdown_text = md_file.read_text(encoding='utf-8')
         yaml_md, content_md = split_yaml_content(markdown_text)
 
+        data_yaml = yaml.safe_load(yaml_md.strip("---\n"))
+        published = data_yaml.get("published") if data_yaml and "published" in data_yaml else True
+        if not published:
+            continue
+
         # Delete old TOC
         content_md = h.md.remove_yaml_content(h.md.remove_toc_content(markdown_text))
 
@@ -476,15 +481,6 @@ def combine_markdown_files(folder_path, recursive=False):
             new_lines.append(line_new)
         content_md = "\n".join(new_lines)
 
-        # # Добавляем заголовок с именем файла перед содержимым
-        # file_title = md_file.stem
-        # # Опционально: добавляем информацию о пути к файлу в иерархии
-        # if recursive and md_file.parent != folder_path:
-        #     relative_path = md_file.relative_to(folder_path)
-        #     path_parts = list(relative_path.parent.parts)
-        #     path_info = " (из " + "/".join(path_parts) + ")"
-        #     file_title += path_info
-
         contents.append(content_md.strip())
 
     # Combine YAML headers
@@ -511,7 +507,7 @@ def combine_markdown_files(folder_path, recursive=False):
     # Write to the output file
     output_file.write_text(final_content, encoding='utf-8')
 
-    return f"File {output_file} is created."
+    return f"✅ File {output_file} is created."
 
 
 def combine_markdown_files_recursively(folder_path):
