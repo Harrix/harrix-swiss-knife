@@ -391,16 +391,25 @@ def split_yaml_content(markdown_text):
 def append_path_to_local_links_images_line(markdown_line, adding_path):
     return h.md.append_path_to_local_links_images_line(markdown_line, adding_path)
 
-def combine_markdown_files(folder_path):
+def combine_markdown_files(folder_path, recursive=False):
     folder_path = Path(folder_path)
 
     # Delete all files ending with .g.md
-    for path in folder_path.rglob('*.g.md'):
+    for path in folder_path.glob('*.g.md'):
         if path.is_file():
             path.unlink()
 
-    # Get all .md files excluding those ending with '.g.md'
-    md_files = [f for f in folder_path.glob('**/*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
+    # Get all .md files based on the recursive flag
+    if recursive:
+        # Recursive - get files from subfolders
+        md_files = [f for f in folder_path.rglob('*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
+    else:
+        # Non-recursive - only get files in the current folder
+        md_files = [f for f in folder_path.glob('*.md') if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
+
+    # Если в папке нет достаточного количества .md файлов, выходим
+    if len(md_files) < 2:
+        return f"Skipped {folder_path}: not enough markdown files."
 
     data_yaml_headers = []
     contents = []
@@ -482,25 +491,47 @@ def combine_markdown_files_recursively(folder_path):
     result_lines = []
     folder_path = Path(folder_path)
 
+    # Удаляем все существующие .g.md файлы
     for file in filter(
             lambda path: not any((part for part in path.parts if part.startswith("."))),
-            Path(folder_path).rglob("*"),
+            Path(folder_path).rglob("*.g.md"),
             ):
-        if file.is_file() and file.name.endswith(".g.md"):
+        if file.is_file():
             file.unlink()
 
-    for folder in filter(
+    # Собираем все папки, включая корневую
+    all_folders = [folder_path]  # Начинаем с корневой папки
+
+    # Добавляем все подпапки
+    for subfolder in filter(
             lambda path: not any((part for part in path.parts if part.startswith("."))),
             Path(folder_path).rglob("*"),
             ):
-        if not folder.is_dir():
-            continue
-        if len(list(folder.rglob("*.md"))) < 2:
-            continue
-        try:
-            result_lines.append(combine_markdown_files(folder))
-        except Exception as e:
-            result_lines.append(f"❌ Error: {e}")
+        if subfolder.is_dir():
+            all_folders.append(subfolder)
+
+    # Обрабатываем каждую папку
+    for folder in all_folders:
+        # Получаем все .md файлы в этой папке (не рекурсивно)
+        md_files_in_folder = [f for f in folder.glob("*.md") if f.is_file() and not f.name.endswith('.g.md')]
+
+        # Получаем все .md файлы в этой папке и её подпапках (рекурсивно)
+        md_files_recursive = [f for f in folder.rglob("*.md") if f.is_file() and not f.name.endswith('.g.md')]
+
+        # Проверяем, есть ли непосредственно в подпапках markdown файлы
+        subfolders = [f for f in folder.iterdir() if f.is_dir()]
+        md_files_in_subfolders = []
+        for subfolder in subfolders:
+            md_files_in_subfolders.extend([f for f in subfolder.rglob("*.md") if f.is_file() and not f.name.endswith('.g.md')])
+
+        # Создаем объединенный файл, если:
+        # 1. В папке непосредственно есть как минимум 2 .md файла
+        # 2. ИЛИ в папке и её подпапках есть как минимум 2 .md файла (включая случаи, когда все файлы в подпапках)
+        if len(md_files_in_folder) >= 2 or (len(md_files_recursive) >= 2 and len(md_files_recursive) > len(md_files_in_folder)):
+            try:
+                result_lines.append(combine_markdown_files(folder, recursive=True))
+            except Exception as e:
+                result_lines.append(f"❌ Error processing {folder}: {e}")
 
     return "\n".join(result_lines)
 
