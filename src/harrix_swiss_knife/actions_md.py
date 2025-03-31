@@ -545,6 +545,8 @@ def combine_markdown_files(folder_path, recursive=False):
     # Fix final YAML
     if "related-id" in combined_yaml:
         del combined_yaml["related-id"]
+    if "date" in combined_yaml:
+        del combined_yaml["date"]
     if "lang" in combined_yaml and isinstance(combined_yaml["lang"], list):
             combined_yaml["lang"] = "en" if "en" in combined_yaml["lang"] else combined_yaml["lang"][0]
     combined_yaml["update"] = date.today()
