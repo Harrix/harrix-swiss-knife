@@ -377,6 +377,7 @@ class OnSortSectionsFolder(action_base.ActionBase):
         self.show_result()
 
 import yaml
+from datetime import date
 
 
 def identify_code_blocks(lines):
@@ -546,13 +547,14 @@ def combine_markdown_files(folder_path, recursive=False):
         del combined_yaml["related-id"]
     if "lang" in combined_yaml and isinstance(combined_yaml["lang"], list):
             combined_yaml["lang"] = "en" if "en" in combined_yaml["lang"] else combined_yaml["lang"][0]
+    combined_yaml["update"] = date.today()
 
     # Prepare the final content
     folder_name = folder_path.name
     output_file = folder_path / f'_{folder_name}.g.md'
 
     # Dump combined YAML
-    yaml_md = yaml.safe_dump(combined_yaml, sort_keys=False)
+    yaml_md = yaml.safe_dump(combined_yaml, allow_unicode=True, sort_keys=False)
     final_content = ""
     if combined_yaml:
         final_content += f'---\n{yaml_md}---\n\n'
