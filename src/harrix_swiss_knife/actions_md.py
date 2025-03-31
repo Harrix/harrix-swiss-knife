@@ -392,6 +392,38 @@ def append_path_to_local_links_images_line(markdown_line, adding_path):
     return h.md.append_path_to_local_links_images_line(markdown_line, adding_path)
 
 def combine_markdown_files(folder_path, recursive=False):
+    def merge_yaml_values(key, value, combined_dict):
+        if key not in combined_dict:
+            combined_dict[key] = value
+            return
+
+        # If current value and new value are the same, do nothing
+        if combined_dict[key] == value:
+            return
+
+        # Handling lists
+        if isinstance(combined_dict[key], list):
+            if isinstance(value, list):
+                # Merge two lists, removing duplicates
+                for item in value:
+                    if item not in combined_dict[key]:
+                        combined_dict[key].append(item)
+            else:
+                # Add new value to the list if it's not already there
+                if value not in combined_dict[key]:
+                    combined_dict[key].append(value)
+        else:
+            # Current value is not a list - convert it to a list and add the new value
+            current_value = combined_dict[key]
+            if isinstance(value, list):
+                combined_dict[key] = [current_value]
+                for item in value:
+                    if item != current_value and item not in combined_dict[key]:
+                        combined_dict[key].append(item)
+            else:
+                if current_value != value:
+                    combined_dict[key] = [current_value, value]
+
     folder_path = Path(folder_path)
 
     # Delete all files ending with .g.md
@@ -437,10 +469,12 @@ def combine_markdown_files(folder_path, recursive=False):
         markdown_text = md_file.read_text(encoding='utf-8')
         yaml_md, content_md = split_yaml_content(markdown_text)
 
-        data_yaml = yaml.safe_load(yaml_md.strip("---\n"))
-        published = data_yaml.get("published") if data_yaml and "published" in data_yaml else True
-        if not published:
-            continue
+        # Check published flag
+        if yaml_md:
+            data_yaml = yaml.safe_load(yaml_md.strip("---\n"))
+            published = data_yaml.get("published") if data_yaml and "published" in data_yaml else True
+            if not published:
+                continue
 
         # Delete old TOC
         content_md = h.md.remove_yaml_content(h.md.remove_toc_content(markdown_text))
@@ -483,10 +517,28 @@ def combine_markdown_files(folder_path, recursive=False):
 
         contents.append(content_md.strip())
 
-    # Combine YAML headers
+    # Combine YAML headers intelligently
     combined_yaml = {}
-    for y in data_yaml_headers:
-        combined_yaml.update(y)
+
+    # Special processing for the attribution field
+    all_attributions = []
+
+    # Process all YAML headers
+    for yaml_header in data_yaml_headers:
+        for key, value in yaml_header.items():
+            if key == 'attribution':
+                # Collect all attributions in a separate list
+                if isinstance(value, list):
+                    all_attributions.extend(value)
+                else:
+                    all_attributions.append(value)
+            else:
+                # For all other fields, use standard merging
+                merge_yaml_values(key, value, combined_yaml)
+
+    # Add collected attributions to the final YAML
+    if all_attributions:
+        combined_yaml['attribution'] = all_attributions
 
     # Prepare the final content
     folder_name = folder_path.name
