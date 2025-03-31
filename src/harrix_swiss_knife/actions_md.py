@@ -401,32 +401,32 @@ def combine_markdown_files(folder_path, recursive=False):
 
     # Get all .md files based on the recursive flag
     if recursive:
-        # Для рекурсивного режима мы будем структурировать файлы по папкам
+        # For recursive mode, we will structure files by folders
         md_files = []
 
-        # Сначала добавляем файлы из текущей папки
+        # First add files from the current folder
         current_folder_files = [f for f in folder_path.glob('*.md')
-                               if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
+                            if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')]
         md_files.extend(current_folder_files)
 
-        # Затем обрабатываем подпапки в алфавитном порядке
+        # Then process subfolders in alphabetical order
         subfolders = sorted([d for d in folder_path.iterdir() if d.is_dir()])
         for subfolder in subfolders:
             subfolder_files = []
-            # Рекурсивно собираем файлы из каждой подпапки
+            # Recursively collect files from each subfolder
             for file_path in subfolder.rglob('*.md'):
                 if file_path.is_file() and file_path.suffix == '.md' and not file_path.name.endswith('.g.md'):
                     subfolder_files.append(file_path)
 
-            # Сортируем файлы в подпапке
+            # Sort files in the subfolder
             subfolder_files.sort()
             md_files.extend(subfolder_files)
     else:
         # Non-recursive - only get files in the current folder
         md_files = sorted([f for f in folder_path.glob('*.md')
-                          if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')])
+                        if f.is_file() and f.suffix == '.md' and not f.name.endswith('.g.md')])
 
-    # Если в папке нет markdown файлов вообще, выходим
+    # If there are no markdown files in the folder at all, exit
     if len(md_files) < 1:
         return f"Skipped {folder_path}: no markdown files found."
 
