@@ -22,6 +22,10 @@ class OnCombineMarkdownFiles(action_base.ActionBase):
     def in_thread(self):
         self.add_line(h.md.combine_markdown_files_recursively(self.folder_path))
 
+        commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
+
     def thread_after(self, result):
         self.show_toast(f"{self.title} completed")
         self.show_result()
