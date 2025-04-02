@@ -85,7 +85,9 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
     title = "02 Publish and update harrix-pylib"
 
     def execute(self, *args, **kwargs):
-        self.token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
+        self.token = config["pypi_token"]
+        if not self.token:
+            self.token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
         if not self.token:
             return
 

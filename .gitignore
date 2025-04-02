@@ -1,6 +1,7 @@
 ### Harrix ###
 temp/
 ffmpeg.exe
+pypi-token.txt
 
 ### Python ###
 # python generated files

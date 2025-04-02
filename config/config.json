@@ -42,6 +42,7 @@
     "D:/Dropbox/IT/3D printer/Models - Science/Printed",
     "D:/Dropbox/IT/3D printer/Models - Science/Unprinted"
   ],
+  "pypi_token": "snippet:config/pypi-token.txt",
   "start_pattern_py_projects": "python_project_",
   "sqlite_fitness": "D:/Dropbox/Lists/fitness.db",
   "vscode_workspace_articles": "D:/Dropbox/_Temp/_VS Code Workspaces/_content__harrix-dev.code-workspace",
