@@ -9,7 +9,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "harrix-pylib>=0.86",
+    "harrix-pylib>=0.87",
     "libcst>=1.5.1",
     "pillow>=11.1.0",
     "pyside6>=6.8.1.1",
