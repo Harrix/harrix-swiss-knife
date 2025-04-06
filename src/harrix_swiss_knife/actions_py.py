@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 
 import harrix_pylib as h
-from PySide6.QtWidgets import QMessageBox
 
 from harrix_swiss_knife import action_base
 
