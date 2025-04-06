@@ -585,6 +585,9 @@ def combine_markdown_files(folder_path, recursive=False):
                 data_yaml = yaml.safe_load(yaml_md.strip("---\n"))
                 data_yaml_headers.append(data_yaml)
 
+            # Delete old TOC
+            content_md = remove_yaml_content(remove_toc_content(markdown_text))
+
             # Increase heading levels for the content
             content_md = increase_heading_level_content(content_md)
 
