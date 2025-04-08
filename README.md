@@ -47,6 +47,8 @@ _Figure 1: Screenshot_
   - ✍️ New article
   - 📓 New note with images
   - 📓 New note
+  - 🎬 Get a list of movies, books for web
+  - 👉 Increase heading level
   - 📥 Download images in one MD
   - 📥 Download images in …
   - ✨ Format YAML
@@ -55,8 +57,6 @@ _Figure 1: Screenshot_
   - 🌄 Add image captions in one MD
   - 📑 Generate TOC in …
   - 📑 Generate TOC in one MD
-  - 🎬 Get a list of movies, books for web
-  - 👉 Increase heading level
   - ✨ Prettier in …
   - 📶 Sort sections in …
   - 📶 Sort sections in one MD
