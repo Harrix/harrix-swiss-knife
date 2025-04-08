@@ -3,7 +3,7 @@ from pathlib import Path
 
 import harrix_pylib as h
 
-from harrix_swiss_knife import action_base
+from harrix_swiss_knife import action_base, funcs
 
 config = h.dev.load_config("config/config.json")
 
@@ -329,6 +329,52 @@ class OnNewNoteDialogWithImages(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         OnNewNoteDialog.execute(self, is_with_images=True)
+
+
+class OnOptimizeImages(action_base.ActionBase):
+    icon = "🖼️"
+    title = "Optimize images in one MD"
+
+    def execute(self, *args, **kwargs):
+        self.filename = self.get_open_filename(
+            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)"
+        )
+        if not self.filename:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        try:
+            self.add_line(funcs.optimize_images_in_md(self.filename))
+        except Exception as e:
+            self.add_line(f"❌ Ошибка: {e}")
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
+
+
+class OnOptimizeImagessFolder(action_base.ActionBase):
+    icon = "🖼️"
+    title = "Optimize images in …"
+
+    def execute(self, *args, **kwargs):
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        try:
+            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md))
+        except Exception as e:
+            self.add_line(f"❌ Error: {e}")
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
 
 
 class OnPettierFolder(action_base.ActionBase):

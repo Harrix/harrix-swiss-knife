@@ -61,6 +61,8 @@ _Figure 1: Screenshot_
   - 📶 Sort sections in …
   - 📶 Sort sections in one MD
   - 🔗 Combine MD files in …
+  - 🖼️ Optimize images in one MD
+  - 🖼️ Optimize images in …
 - **Python**
   - 🌟 isort, ruff format, sort in PY files
   - 🐍 New uv project in …
