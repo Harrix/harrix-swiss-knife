@@ -62,7 +62,7 @@ def optimize_images_in_md_content(markdown_text: str, path_md: Path | str, image
 
     def optimize_images_content_line(markdown_line, path_md, image_folder="img"):
         # Regular expression to match markdown image with remote URL (http or https)
-        pattern = r"^\!$$(.*?)$$$$(http.*?)$$$"
+        pattern = r"^\!\[(.*?)\]\((http.*?)\)$"
         match = re.search(pattern, markdown_line.strip())
 
         # If the line contains a remote image, return the line unchanged.
@@ -70,7 +70,7 @@ def optimize_images_in_md_content(markdown_text: str, path_md: Path | str, image
             return markdown_line
 
         # Regular expression to match markdown image with local path
-        local_pattern = r"^\!$$(.*?)$$$$(.*?)$$$"
+        local_pattern = r"^\!\[(.*?)\]\((.*?)\)$"
         local_match = re.search(local_pattern, markdown_line.strip())
 
         if not local_match:
