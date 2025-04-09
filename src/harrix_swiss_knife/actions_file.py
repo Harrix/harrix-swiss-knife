@@ -93,3 +93,20 @@ class OnTreeViewFolderIgnoreHiddenFolders(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         OnTreeViewFolder.execute(self, is_ignore_hidden_folders=True)
+
+
+class RenameLargestImagesToFeaturedImage(action_base.ActionBase):
+    icon = "🖲️"
+    title = "Rename largest images to featured_image.* in …"
+
+    def execute(self, *args, **kwargs):
+        folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
+        if folder_path is None:
+            return
+
+        try:
+            result = h.file.rename_largest_images_to_featured(folder_path)
+        except Exception as e:
+            result = f"❌ Error: {e}"
+        self.add_line(result)
+        self.show_result()

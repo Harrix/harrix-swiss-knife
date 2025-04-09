@@ -36,6 +36,7 @@ _Figure 1: Screenshot_
   - 🗂️ Moves and flattens files from nested folders
   - ✅ Check featured_image.* in …
   - ✅ Check featured_image.*
+  - 🖲️ Rename largest images to featured_image.* in …
   - 🔒 Block disks
   - 📸 Open Camera Uploads
   - ├ Tree view of a folder (ignore hidden folders)

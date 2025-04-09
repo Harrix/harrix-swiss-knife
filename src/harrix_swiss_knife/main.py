@@ -40,6 +40,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_file, hsk.file.OnAllFilesToParentFolder)
         self.add_item(self.menu_file, hsk.file.OnCheckFeaturedImage)
         self.add_item(self.menu_file, hsk.file.OnCheckFeaturedImageInFolders)
+        self.add_item(self.menu_file, hsk.file.RenameLargestImagesToFeaturedImage)
         self.add_item(self.menu_file, hsk.file.OnBlockDisks)
         self.add_item(self.menu_file, hsk.file.OnOpenCameraUploads)
         self.add_item(self.menu_file, hsk.file.OnTreeViewFolderIgnoreHiddenFolders)
