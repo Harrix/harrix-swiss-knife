@@ -1,6 +1,6 @@
+import re
 from datetime import datetime
 from pathlib import Path
-import re
 
 import harrix_pylib as h
 
@@ -289,6 +289,7 @@ class OnNewDiaryDream(action_base.ActionBase):
         result, filename = h.md.add_diary_new_dream_in_year(config["path_dream"], config["beginning_of_md"])
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
         self.add_line(result)
+
 
 class OnNewNoteDialog(action_base.ActionBase):
     icon = "📓"
