@@ -43,7 +43,6 @@ _Figure 1: Screenshot_
   - ├ Tree view of a folder
 - **Markdown**
   - 💤 New dream note
-  - 📚 New diary note with images
   - 📖 New diary note
   - ✍️ New article
   - 📓 New note with images
