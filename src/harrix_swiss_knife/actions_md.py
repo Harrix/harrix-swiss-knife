@@ -276,110 +276,9 @@ class OnNewDiary(action_base.ActionBase):
     title = "New diary note"
 
     def execute(self, *args, **kwargs):
-        result, filename = add_diary_new_dairy_in_year(config["path_diary"], config["beginning_of_md"])
+        result, filename = h.md.add_diary_new_dairy_in_year(config["path_diary"], config["beginning_of_md"])
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
         self.add_line(result)
-
-
-def add_diary_entry_in_year(path_dream: str | Path, beginning_of_md: str, entry_content: str) -> tuple[str, Path]:
-    """
-    Adds a new diary entry to the yearly markdown file.
-
-    If the yearly file doesn't exist, it creates one with the provided front matter.
-    If it exists, it adds a new entry after the year heading and the table of contents.
-
-    Args:
-        path_dream (str | Path): The base path where the yearly file is stored.
-        beginning_of_md (str): The YAML front matter to include if creating a new file.
-        entry_content (str): The content to add after the date and time headers.
-
-    Returns:
-        tuple[str, Path]: A message indicating success/failure and the path to the yearly file.
-    """
-    current_date = datetime.now()
-    year = current_date.strftime("%Y")
-
-    path_dream = Path(path_dream)
-    year_file = path_dream / f"{year}.md"
-
-    # Prepare the new entry
-    new_entry = f"## {current_date.strftime('%Y-%m-%d')}\n\n"
-    new_entry += f"### {current_date.strftime('%H:%M')}\n\n"
-    new_entry += entry_content
-
-    # Check if the yearly file exists
-    if not year_file.exists():
-        # Create new yearly file with front matter, year heading, TOC, and new entry
-        toc_section = "<details>\n<summary>📖 Contents</summary>\n\n## Contents\n\n</details>\n\n"
-        content = f"{beginning_of_md}\n# {year}\n\n{toc_section}{new_entry}"
-        year_file.write_text(content, encoding="utf-8")
-        return f"✅ File {year_file} created.", year_file
-    else:
-        # File exists, read its content
-        content = year_file.read_text(encoding="utf-8")
-
-        # Find the year heading
-        year_match = re.search(r'^# \d{4}', content, re.MULTILINE)
-        if not year_match:
-            # If no year heading, add it with TOC and the new entry
-            toc_section = "<details>\n<summary>📖 Contents</summary>\n\n## Contents\n\n</details>\n\n"
-            updated_content = f"{content}\n\n# {year}\n\n{toc_section}{new_entry}"
-        else:
-            # Find the table of contents section
-            toc_match = re.search(r'<details>[\s\S]*?<\/details>', content)
-
-            if toc_match:
-                # Insert new entry right after the TOC
-                toc_end_pos = toc_match.end()
-                updated_content = (
-                    content[:toc_end_pos] +
-                    "\n\n" + new_entry +
-                    content[toc_end_pos:].lstrip()
-                )
-            else:
-                # No TOC found, create one and add new entry after it
-                year_pos = year_match.end()
-                toc_section = "\n\n<details>\n<summary>📖 Contents</summary>\n\n## Contents\n\n</details>\n\n"
-                updated_content = (
-                    content[:year_pos] +
-                    toc_section +
-                    new_entry +
-                    content[year_pos:].lstrip()
-                )
-
-        # Write the updated content back to the file
-        year_file.write_text(updated_content, encoding="utf-8")
-        return f"✅ File {year_file} updated.", year_file
-
-
-def add_diary_new_dream_in_year(path_dream: str | Path, beginning_of_md: str) -> tuple[str, Path]:
-    """
-    Adds a new dream diary entry to the yearly dream file.
-
-    Args:
-        path_dream (str | Path): The base path where the yearly dream file is stored.
-        beginning_of_md (str): The YAML front matter to include if creating a new file.
-
-    Returns:
-        tuple[str, Path]: A message indicating success/failure and the path to the yearly dream file.
-    """
-    dream_content = "`` — I don't remember.\n\n" * 16
-    return add_diary_entry_in_year(path_dream, beginning_of_md, dream_content)
-
-
-def add_diary_new_dairy_in_year(path_dream: str | Path, beginning_of_md: str) -> tuple[str, Path]:
-    """
-    Adds a new diary entry to the yearly diary file.
-
-    Args:
-        path_dream (str | Path): The base path where the yearly diary file is stored.
-        beginning_of_md (str): The YAML front matter to include if creating a new file.
-
-    Returns:
-        tuple[str, Path]: A message indicating success/failure and the path to the yearly diary file.
-    """
-    diary_content = "Text. \n\n"
-    return add_diary_entry_in_year(path_dream, beginning_of_md, diary_content)
 
 
 class OnNewDiaryDream(action_base.ActionBase):
@@ -387,7 +286,7 @@ class OnNewDiaryDream(action_base.ActionBase):
     title = "New dream note"
 
     def execute(self, *args, **kwargs):
-        result, filename = add_diary_new_dream_in_year(config["path_dream"], config["beginning_of_md"])
+        result, filename = h.md.add_diary_new_dream_in_year(config["path_dream"], config["beginning_of_md"])
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
         self.add_line(result)
 
