@@ -25,6 +25,7 @@ _Figure 1: Screenshot_
   - 🏃🏻 Fitness tracker
 - **Images**
   - 🚀 Optimize images
+  - ➤ Optimize images (with PNG to AVIF)
   - 🔝 Optimize images (high quality)
   - ⬆️ Optimize images in … and replace
   - ⬆️ Optimize images in …/temp

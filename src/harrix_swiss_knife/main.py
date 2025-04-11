@@ -26,6 +26,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
         self.add_item(self.menu_images, hsk.images.OnOptimize)
+        self.add_item(self.menu_images, hsk.images.OnOptimizePngToAvif)
         self.add_item(self.menu_images, hsk.images.OnOptimizeQuality)
         self.add_item(self.menu_images, hsk.images.OnOptimizeDialogReplace)
         self.add_item(self.menu_images, hsk.images.OnOptimizeDialog)
