@@ -30,6 +30,7 @@ const dictionary = args.reduce((acc, item) => {
 }, {});
 
 const quality = "quality" in dictionary ? dictionary.quality : false;
+const convertPngToAvif = "convertPngToAvif" in dictionary ? dictionary.convertPngToAvif : false;
 let imagesFolder = "imagesFolder" in dictionary ? dictionary.imagesFolder : "";
 let outputFolder = "outputFolder" in dictionary ? dictionary.outputFolder : "";
 
@@ -77,33 +78,47 @@ const processImage = async (file) => {
     });
   } else if (ext === ".png") {
     try {
-      if (quality) {
-        // If quality is true, copy the file without changes
-        fs.copyFileSync(filePath, path.join(outputFolder, `${outputFileName}.png`));
-        console.log(`File ${file} copied without changes.`);
+      if (convertPngToAvif) {
+        // Convert PNG to AVIF
+        let qualityValue = quality ? 93 : 63;
+        sharp(filePath)
+          .avif({ quality: qualityValue })
+          .toFile(outputFilePath)
+          .then(() => {
+            console.log(`✅ File ${file} successfully converted from PNG to AVIF.`);
+          })
+          .catch((err) => {
+            console.error(`❌ Error while converting PNG file ${file} to AVIF:`, err);
+          });
       } else {
-        // Options for PNG
-        let pngOptions = { compressionLevel: 9, adaptiveFiltering: true };
-        pngOptions.colors = 256; // Reduce colors to 256 for 8-bit PNG
+        if (quality) {
+          // If quality is true, copy the file without changes
+          fs.copyFileSync(filePath, path.join(outputFolder, `${outputFileName}.png`));
+          console.log(`File ${file} copied without changes.`);
+        } else {
+          // Options for PNG
+          let pngOptions = { compressionLevel: 9, adaptiveFiltering: true };
+          pngOptions.colors = 256; // Reduce colors to 256 for 8-bit PNG
 
-        // Step 1: Optimize with sharp
-        const optimizedBuffer = await sharp(filePath).png(pngOptions).toBuffer();
+          // Step 1: Optimize with sharp
+          const optimizedBuffer = await sharp(filePath).png(pngOptions).toBuffer();
 
-        // Step 2: Further optimize with imagemin-pngquant
-        const pngQuantBuffer = await imagemin.buffer(optimizedBuffer, {
-          plugins: [
-            imageminPngquant({
-              quality: [0.6, 0.8], // Adjust quality as needed
-              strip: true, // Remove metadata
-              speed: 1, // Slowest speed for best compression
-            }),
-          ],
-        });
+          // Step 2: Further optimize with imagemin-pngquant
+          const pngQuantBuffer = await imagemin.buffer(optimizedBuffer, {
+            plugins: [
+              imageminPngquant({
+                quality: [0.6, 0.8], // Adjust quality as needed
+                strip: true, // Remove metadata
+                speed: 1, // Slowest speed for best compression
+              }),
+            ],
+          });
 
-        // Write the optimized image to the output folder
-        fs.writeFileSync(path.join(outputFolder, `${outputFileName}.png`), pngQuantBuffer);
+          // Write the optimized image to the output folder
+          fs.writeFileSync(path.join(outputFolder, `${outputFileName}.png`), pngQuantBuffer);
 
-        console.log(`✅ File ${file} successfully optimized.`);
+          console.log(`✅ File ${file} successfully optimized.`);
+        }
       }
     } catch (error) {
       console.error(`❌ Error while processing file ${file}:`, error);
