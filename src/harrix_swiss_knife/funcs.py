@@ -25,7 +25,7 @@ def optimize_images_in_md(filename: Path | str) -> str:
     with open(filename, "r", encoding="utf-8") as f:
         document = f.read()
 
-    document_new = optimize_images_in_md_content(document, filename.parent)
+    document_new = optimize_images_in_md_content(document, filename.parent, convert_png_to_avif=False)
 
     if document != document_new:
         with open(filename, "w", encoding="utf-8") as file:
@@ -34,7 +34,9 @@ def optimize_images_in_md(filename: Path | str) -> str:
     return "File is not changed."
 
 
-def optimize_images_in_md_content(markdown_text: str, path_md: Path | str, image_folder: str = "img") -> str:
+def optimize_images_in_md_content(
+    markdown_text: str, path_md: Path | str, image_folder: str = "img", convert_png_to_avif: bool = False
+) -> str:
     """
     Optimizes images referenced in markdown content by converting them to more efficient formats.
 
@@ -47,6 +49,7 @@ def optimize_images_in_md_content(markdown_text: str, path_md: Path | str, image
     - `markdown_text` (`str`): The markdown content to process.
     - `path_md` (`Path | str`): Path to the markdown file or its containing directory.
     - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
+    - `convert_png_to_avif` (`bool`): Flag for converting PNG to AVIF. Defaults to `False`.
 
     Returns:
 
@@ -110,7 +113,7 @@ def optimize_images_in_md_content(markdown_text: str, path_md: Path | str, image
 
         # Determine the new extension based on the current one
         new_ext = ext
-        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
+        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"] or (ext == ".png" and convert_png_to_avif):
             new_ext = ".avif"
         # For .png and .svg, keep the original extension
 
@@ -122,6 +125,8 @@ def optimize_images_in_md_content(markdown_text: str, path_md: Path | str, image
 
             # Run the optimization command
             commands = f'npm run optimize imagesFolder="{temp_folder}"'
+            if convert_png_to_avif:
+                commands += " convertPngToAvif=true"
             h.dev.run_powershell_script(commands)
 
             # Path to the optimized image
@@ -177,3 +182,31 @@ def optimize_images_in_md_content(markdown_text: str, path_md: Path | str, image
     content_md = "\n".join(new_lines)
 
     return yaml_md + "\n\n" + content_md
+
+
+def optimize_images_in_md_png_to_avif(filename: Path | str) -> str:
+    """
+    Optimizes images in a markdown file by converting them to more efficient formats. PNG converts to AVIF too.
+
+    This function reads a markdown file, processes any local images referenced in it,
+    optimizes them, and updates the markdown content to reference the optimized images.
+
+    Args:
+
+    - `filename` (`Path | str`): Path to the markdown file to process.
+
+    Returns:
+
+    - `str`: A status message indicating whether the file was modified.
+    """
+    filename = Path(filename)
+    with open(filename, "r", encoding="utf-8") as f:
+        document = f.read()
+
+    document_new = optimize_images_in_md_content(document, filename.parent, convert_png_to_avif=True)
+
+    if document != document_new:
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write(document_new)
+        return f"✅ File {filename} applied."
+    return "File is not changed."

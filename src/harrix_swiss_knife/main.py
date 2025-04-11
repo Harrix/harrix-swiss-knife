@@ -74,6 +74,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, hsk.md.OnCombineMarkdownFiles)
         self.add_item(self.menu_md, hsk.md.OnOptimizeImages)
         self.add_item(self.menu_md, hsk.md.OnOptimizeImagessFolder)
+        self.add_item(self.menu_md, hsk.md.OnOptimizeImagessFolderPngToAvif)
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")

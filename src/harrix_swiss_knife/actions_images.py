@@ -206,24 +206,6 @@ class OnOptimizeFile(action_base.ActionBase):
         self.show_result()
 
 
-class OnOptimizeQuality(action_base.ActionBase):
-    icon = "🔝"
-    title = "Optimize images (high quality)"
-
-    def execute(self, *args, **kwargs):
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self):
-        return h.dev.run_powershell_script("npm run optimize quality=true")
-
-    def thread_after(self, result):
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
-        self.show_toast("Optimize completed")
-        self.add_line(result)
-        self.show_result()
-
-
 class OnOptimizePngToAvif(action_base.ActionBase):
     icon = "➤"
     title = "Optimize images (with PNG to AVIF)"
@@ -233,6 +215,24 @@ class OnOptimizePngToAvif(action_base.ActionBase):
 
     def in_thread(self):
         return h.dev.run_powershell_script("npm run optimize convertPngToAvif=true")
+
+    def thread_after(self, result):
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
+        self.show_toast("Optimize completed")
+        self.add_line(result)
+        self.show_result()
+
+
+class OnOptimizeQuality(action_base.ActionBase):
+    icon = "🔝"
+    title = "Optimize images (high quality)"
+
+    def execute(self, *args, **kwargs):
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        return h.dev.run_powershell_script("npm run optimize quality=true")
 
     def thread_after(self, result):
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
