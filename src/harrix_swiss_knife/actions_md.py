@@ -79,7 +79,7 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
 
 class OnFormatYaml(action_base.ActionBase):
     icon = "✨"
-    title = "Format YAML"
+    title = "Format YAML in …"
 
     def execute(self, *args, **kwargs):
         self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
@@ -431,4 +431,53 @@ class OnSortSectionsFolder(action_base.ActionBase):
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
+
+
+class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
+    icon = "😎"
+    title = "Beautify MD notes (All in one)"
+
+    def execute(self, *args, **kwargs):
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        for path in config["paths_notes"]:
+            try:
+                # Generate image captions
+                self.add_line(f"❗ Generate image captions")
+                try:
+                    self.add_line(h.file.apply_func(path, ".md", h.md.generate_image_captions))
+                except Exception as e:
+                    self.add_line(f"❌ Error: {e}")
+
+                # Generate TOC
+                self.add_line(f"❗ Generate TOC")
+                try:
+                    self.add_line(h.file.apply_func(path, ".md", h.md.generate_toc_with_links))
+                except Exception as e:
+                    self.add_line(f"❌ Error: {e}")
+
+                # Combine MD files
+                self.add_line(f"❗ Combine MD files")
+                self.add_line(h.md.combine_markdown_files_recursively(path))
+
+                # Format YAML
+                self.add_line(f"❗ Format YAML")
+                try:
+                    self.add_line(h.file.apply_func(path, ".md", h.md.format_yaml))
+                except Exception as e:
+                    self.add_line(f"❌ Error: {e}")
+
+                # Prettier
+                self.add_line(f"❗ Prettier")
+                commands = f"cd {path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+                result = h.dev.run_powershell_script(commands)
+                self.add_line(result)
+            except Exception as e:
+                result = f"❌ Error: {e}"
+            self.add_line(result)
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} completed")
         self.show_result()

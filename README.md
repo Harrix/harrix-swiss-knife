@@ -49,9 +49,10 @@ _Figure 1: Screenshot_
   - 📓 New note
   - 🎬 Get a list of movies, books for web
   - 👉 Increase heading level
+  - 😎 Beautify MD notes (All in one)
   - 📥 Download images in one MD
   - 📥 Download images in …
-  - ✨ Format YAML
+  - ✨ Format YAML in …
   - ❞ Quotes. Add author and title
   - 🌄 Add image captions in …
   - 🌄 Add image captions in one MD

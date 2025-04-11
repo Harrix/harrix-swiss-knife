@@ -57,6 +57,8 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, hsk.md.OnGetListMoviesBooks)
         self.add_item(self.menu_md, hsk.md.OnIncreaseHeadingLevelContent)
         self.menu_md.addSeparator()
+        self.add_item(self.menu_md, hsk.md.OnBeautifyMdNotesAllInOne)
+        self.menu_md.addSeparator()
         self.add_item(self.menu_md, hsk.md.OnDownloadAndReplaceImages)
         self.add_item(self.menu_md, hsk.md.OnDownloadAndReplaceImagesFolder)
         self.add_item(self.menu_md, hsk.md.OnFormatYaml)
