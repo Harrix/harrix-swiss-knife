@@ -55,6 +55,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, hsk.md.OnNewNoteDialogWithImages)
         self.add_item(self.menu_md, hsk.md.OnNewNoteDialog)
         self.menu_md.addSeparator()
+        self.add_item(self.menu_md, hsk.md.OnFormatQuotesAsMarkdownContent)
         self.add_item(self.menu_md, hsk.md.OnGetListMoviesBooks)
         self.add_item(self.menu_md, hsk.md.OnIncreaseHeadingLevelContent)
         self.menu_md.addSeparator()

@@ -503,3 +503,18 @@ class OnSortSectionsFolder(action_base.ActionBase):
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
+
+
+class OnFormatQuotesAsMarkdownContent(action_base.ActionBase):
+    icon = "❞"
+    title = "Format quotes as markdown content"
+
+    def execute(self, *args, **kwargs):
+        content = self.get_text_textarea("Quotes", "Input quotes")
+        if not content:
+            return
+
+        result = h.md.format_quotes_as_markdown_content(content)
+
+        self.add_line(result)
+        self.show_result()
