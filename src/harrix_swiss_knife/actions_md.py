@@ -340,7 +340,7 @@ class OnNewDiary(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         result, filename = h.md.add_diary_new_dairy_in_year(config["path_diary"], config["beginning_of_md"])
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
@@ -350,7 +350,7 @@ class OnNewDiaryDream(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         result, filename = h.md.add_diary_new_dream_in_year(config["path_dream"], config["beginning_of_md"])
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_diaries"]}" "{filename}"')
+        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
