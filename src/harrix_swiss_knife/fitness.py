@@ -1,7 +1,7 @@
 import os
-import sys
 import re
-from collections import defaultdict
+import sys
+from collections import Counter, defaultdict
 from datetime import datetime
 
 import harrix_pylib as h
@@ -50,6 +50,47 @@ class DatabaseManager:
     def get_exercise_id(self, exercise_name):
         """Get exercise ID by name (maintained for compatibility)"""
         return self.get_id_by_name("exercises", "name", exercise_name)
+
+    def get_exercises_by_frequency(self, limit=500):
+        """Get exercises ordered by frequency of use in recent records"""
+        # First get all exercises to ensure we have a complete list
+        all_exercises_query = "SELECT _id, name FROM exercises"
+        query = self.execute_query(all_exercises_query)
+        all_exercises = {}
+        while query and query.next():
+            exercise_id = query.value(0)
+            exercise_name = query.value(1)
+            all_exercises[exercise_id] = exercise_name
+
+        # Get the latest records first, then count frequency of exercises
+        recent_records_query = f"""
+            SELECT _id_exercises
+            FROM process
+            ORDER BY _id DESC
+            LIMIT {limit}
+        """
+        query = self.execute_query(recent_records_query)
+
+        # Count frequency of each exercise in the latest records
+        exercise_counts = Counter()
+        while query and query.next():
+            exercise_id = query.value(0)
+            exercise_counts[exercise_id] += 1
+
+        # Sort exercises by frequency
+        sorted_exercises = []
+
+        # First add exercises that have been used recently
+        for exercise_id, count in exercise_counts.most_common():
+            if exercise_id in all_exercises:
+                sorted_exercises.append(all_exercises[exercise_id])
+
+        # Then add any remaining exercises that haven't been used recently
+        for exercise_id, name in all_exercises.items():
+            if name not in sorted_exercises:
+                sorted_exercises.append(name)
+
+        return sorted_exercises
 
     def get_id_by_name(self, table, name_column, name_value, id_column="_id"):
         """Generic method to get ID by name"""
@@ -140,22 +181,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             results.append(row)
         return results
 
-    def is_valid_date(self, date_str):
-        """
-        Validates if a date string is in format YYYY-MM-DD
-        and represents a valid date
-        """
-        # Check format with regex
-        if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
-            return False
-
-        # Try to parse the date
-        try:
-            datetime.strptime(date_str, '%Y-%m-%d')
-            return True
-        except ValueError:
-            return False
-
     def init_database(self):
         filename = config["sqlite_fitness"]
 
@@ -173,6 +198,22 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
             sys.exit(1)
+
+    def is_valid_date(self, date_str):
+        """
+        Validates if a date string is in format YYYY-MM-DD
+        and represents a valid date
+        """
+        # Check format with regex
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
+            return False
+
+        # Try to parse the date
+        try:
+            datetime.strptime(date_str, "%Y-%m-%d")
+            return True
+        except ValueError:
+            return False
 
     def on_add_exercise(self):
         exercise = self.lineEdit_exercise_name.text()
@@ -626,7 +667,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.set_current_date()
 
     def update_comboboxes(self):
-        exercises = self.db_manager.get_dropdown_items("exercises", "name")
+        # Get exercises sorted by frequency of use
+        exercises = self.db_manager.get_exercises_by_frequency(500)
 
         self.comboBox_exercise.clear()
         self.comboBox_exercise_name.clear()
