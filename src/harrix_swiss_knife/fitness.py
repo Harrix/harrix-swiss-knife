@@ -1,6 +1,8 @@
 import os
 import sys
+import re
 from collections import defaultdict
+from datetime import datetime
 
 import harrix_pylib as h
 from PySide6.QtCore import QDateTime, QSortFilterProxyModel, Qt
@@ -138,6 +140,22 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             results.append(row)
         return results
 
+    def is_valid_date(self, date_str):
+        """
+        Validates if a date string is in format YYYY-MM-DD
+        and represents a valid date
+        """
+        # Check format with regex
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+            return False
+
+        # Try to parse the date
+        try:
+            datetime.strptime(date_str, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
+
     def init_database(self):
         filename = config["sqlite_fitness"]
 
@@ -178,6 +196,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         type_name = self.comboBox_type.currentText()
         value = str(self.spinBox_count.value())
         date = self.lineEdit_date.text()
+
+        # Validate date format
+        if not self.is_valid_date(date):
+            QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
+            return
 
         exercise_id = self.db_manager.get_exercise_id(exercise_name)
         if exercise_id is None:
@@ -230,8 +253,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         value = str(self.doubleSpinBox_weight.value())
         date = self.lineEdit_weight_date.text()
 
-        if not date:
-            QMessageBox.warning(self, "Error", "Enter date")
+        # Validate date format
+        if not self.is_valid_date(date):
+            QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
             return
 
         query_text = "INSERT INTO weight (value, date) VALUES (:value, :date)"
@@ -388,6 +412,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         model_index_date = self.model_process.index(row, 3)
         date = self.model_process.data(model_index_date)
 
+        # Validate date format
+        if not self.is_valid_date(date):
+            QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
+            return
+
         exercise_id = self.db_manager.get_exercise_id(exercise)
         if exercise_id is None:
             return
@@ -462,6 +491,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         model_index_date = self.model_weight.index(row, 1)
         date = self.model_weight.data(model_index_date)
+
+        # Validate date format
+        if not self.is_valid_date(date):
+            QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
+            return
 
         query_text = """
             UPDATE weight
