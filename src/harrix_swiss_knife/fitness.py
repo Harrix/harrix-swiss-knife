@@ -2,10 +2,10 @@ import os
 import re
 import sys
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import harrix_pylib as h
-from PySide6.QtCore import QDateTime, QSortFilterProxyModel, Qt
+from PySide6.QtCore import QDate, QDateTime, QSortFilterProxyModel, Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
@@ -265,7 +265,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         result = self.db_manager.execute_query(query_text, params)
         if result:
             print("Record added")
-            self.update_all()
+            # Update date after adding a record
+            self.update_date_after_add()
+            # Update the rest of the UI
+            self.update_all(skip_date_update=True)
         else:
             QMessageBox.warning(self, "Error", "Failed to add record")
 
@@ -658,13 +661,16 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.tableView_weight.setModel(model)
         self.tableView_weight.resizeColumnsToContents()
 
-    def update_all(self):
+    def update_all(self, skip_date_update=False):
         self.show_process()
         self.show_exercises()
         self.show_types()
         self.show_weight()
         self.update_comboboxes()
-        self.set_current_date()
+
+        # Only update date if not skipped
+        if not skip_date_update:
+            self.set_current_date()
 
     def update_comboboxes(self):
         # Get exercises sorted by frequency of use
@@ -678,6 +684,38 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.comboBox_exercise_name.addItem(name)
 
         self.on_exercise_changed()
+
+    def update_date_after_add(self):
+        """
+        Update the date in lineEdit_date after adding a record.
+        If current date is today, keep it as today.
+        Otherwise, increment by one day.
+        """
+        current_date_str = self.lineEdit_date.text()
+
+        # Validate current date format
+        if not self.is_valid_date(current_date_str):
+            # If invalid, set to today's date
+            now = QDateTime.currentDateTime()
+            self.lineEdit_date.setText(now.toString("yyyy-MM-dd"))
+            return
+
+        # Get today's date
+        now = QDateTime.currentDateTime()
+        today_str = now.toString("yyyy-MM-dd")
+
+        # If current date is already today, leave it
+        if current_date_str == today_str:
+            return
+
+        # Otherwise, increment by one day
+        try:
+            current_date = datetime.strptime(current_date_str, "%Y-%m-%d")
+            next_date = current_date + timedelta(days=1)
+            self.lineEdit_date.setText(next_date.strftime("%Y-%m-%d"))
+        except ValueError:
+            # If there's any error, set to today's date
+            self.lineEdit_date.setText(today_str)
 
 
 class SetOfExercise:
