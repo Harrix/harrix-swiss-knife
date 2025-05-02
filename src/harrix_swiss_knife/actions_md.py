@@ -19,32 +19,32 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
         for path in config["paths_notes"]:
             try:
                 # Generate image captions
-                self.add_line(f"❗ Generate image captions")
+                self.add_line("❗ Generate image captions")
                 try:
                     self.add_line(h.file.apply_func(path, ".md", h.md.generate_image_captions))
                 except Exception as e:
                     self.add_line(f"❌ Error: {e}")
 
                 # Generate TOC
-                self.add_line(f"❗ Generate TOC")
+                self.add_line("❗ Generate TOC")
                 try:
                     self.add_line(h.file.apply_func(path, ".md", h.md.generate_toc_with_links))
                 except Exception as e:
                     self.add_line(f"❌ Error: {e}")
 
                 # Combine MD files
-                self.add_line(f"❗ Combine MD files")
+                self.add_line("❗ Combine MD files")
                 self.add_line(h.md.combine_markdown_files_recursively(path))
 
                 # Format YAML
-                self.add_line(f"❗ Format YAML")
+                self.add_line("❗ Format YAML")
                 try:
                     self.add_line(h.file.apply_func(path, ".md", h.md.format_yaml))
                 except Exception as e:
                     self.add_line(f"❌ Error: {e}")
 
                 # Prettier
-                self.add_line(f"❗ Prettier")
+                self.add_line("❗ Prettier")
                 commands = f"cd {path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
                 result = h.dev.run_powershell_script(commands)
                 self.add_line(result)

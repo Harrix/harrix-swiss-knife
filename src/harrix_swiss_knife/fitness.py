@@ -233,7 +233,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         index = table_view.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Error", f"Select a record to delete")
+            QMessageBox.warning(self, "Error", "Select a record to delete")
             return
 
         row = index.row()
@@ -875,7 +875,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         index = table_view.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self, "Error", f"Select a record to update")
+            QMessageBox.warning(self, "Error", "Select a record to update")
             return
 
         row = index.row()
