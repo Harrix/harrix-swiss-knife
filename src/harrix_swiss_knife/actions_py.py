@@ -96,15 +96,11 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
         self.path_library = Path(config["path_github"]) / "harrix-pylib"
         self.projects = [Path(config["path_github"]) / "harrix-swiss-knife"]
 
-        # Increase version of library
-        path_toml = self.path_library / "pyproject.toml"
-        content = path_toml.read_text(encoding="utf8")
-        pattern = r'version = "(\d+)\.(\d+)"'
-        find = re.search(pattern, content, re.DOTALL)
-        self.new_version = f"{find.group(1)}.{int(find.group(2)) + 1}"
-        new_content = re.sub(pattern, lambda m: f'version = "{m.group(1)}.{int(m.group(2)) + 1}"', content)
-        path_toml.write_text(new_content)
-        self.add_line(f"🆕 New version {self.new_version}")
+        # Increase version of harrix-pylib
+        commands = f"""
+            cd {self.path_library}
+            uv version --bump minor """
+        self.new_version = h.dev.run_powershell_script(commands).strip().split(" => ")[1]
 
         # Build and publish
         commands = f"""
