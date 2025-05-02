@@ -11,7 +11,7 @@ from PySide6.QtCore import QDateTime, QSortFilterProxyModel, Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
-from harrix_swiss_knife import fitness_database_manager, fitness_window, funcs
+from harrix_swiss_knife import fitness_database_manager, fitness_window, fitness_funcs
 
 config = h.dev.load_config("config/config.json")
 
@@ -229,7 +229,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             "exercises", "INSERT INTO exercises (name, unit) VALUES (:name, :unit)", {"name": exercise, "unit": unit}
         )
 
-    @funcs.validate_date
+    @fitness_funcs.validate_date
     def on_add_record(self) -> None:
         """
         Handle adding a new fitness record to the database.
@@ -300,7 +300,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             {"exercise_id": exercise_id, "type": type_name},
         )
 
-    @funcs.validate_date
+    @fitness_funcs.validate_date
     def on_add_weight(self) -> None:
         """
         Handle adding a new weight record to the database.
