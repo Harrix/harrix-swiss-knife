@@ -233,8 +233,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to add exercise")
 
     def on_add_record(self):
-        exercise_name = self.comboBox_exercise.currentText()
-        type_name = self.comboBox_type.currentText()
+        # Save current selections
+        current_exercise = self.comboBox_exercise.currentText()
+        current_type = self.comboBox_type.currentText()
+
+        exercise_name = current_exercise
+        type_name = current_type
         value = str(self.spinBox_count.value())
         date = self.lineEdit_date.text()
 
@@ -268,7 +272,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             # Update date after adding a record
             self.update_date_after_add()
             # Update the rest of the UI
-            self.update_all(skip_date_update=True)
+            self.update_all(
+                skip_date_update=True,
+                preserve_selections=True,
+                current_exercise=current_exercise,
+                current_type=current_type,
+            )
         else:
             QMessageBox.warning(self, "Error", "Failed to add record")
 
@@ -661,20 +670,35 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.tableView_weight.setModel(model)
         self.tableView_weight.resizeColumnsToContents()
 
-    def update_all(self, skip_date_update=False):
+    def update_all(self, skip_date_update=False, preserve_selections=False, current_exercise=None, current_type=None):
+        # Save current selections if needed
+        if preserve_selections and current_exercise is None:
+            current_exercise = self.comboBox_exercise.currentText()
+            current_type = self.comboBox_type.currentText()
+
         self.show_process()
         self.show_exercises()
         self.show_types()
         self.show_weight()
-        self.update_comboboxes()
+
+        # Update comboboxes with preserved selections if needed
+        if preserve_selections and current_exercise:
+            self.update_comboboxes(selected_exercise=current_exercise, selected_type=current_type)
+        else:
+            self.update_comboboxes()
 
         # Only update date if not skipped
         if not skip_date_update:
             self.set_current_date()
 
-    def update_comboboxes(self):
+    def update_comboboxes(self, selected_exercise=None, selected_type=None):
         # Get exercises sorted by frequency of use
         exercises = self.db_manager.get_exercises_by_frequency(500)
+
+        # Save current index to restore after update
+        current_exercise_index = -1
+        if selected_exercise:
+            current_exercise_index = exercises.index(selected_exercise) if selected_exercise in exercises else -1
 
         self.comboBox_exercise.clear()
         self.comboBox_exercise_name.clear()
@@ -683,7 +707,31 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.comboBox_exercise.addItem(name)
             self.comboBox_exercise_name.addItem(name)
 
-        self.on_exercise_changed()
+        # Restore selection if needed
+        if current_exercise_index >= 0:
+            self.comboBox_exercise.setCurrentIndex(current_exercise_index)
+
+            # If we have a type to restore too, we need to make sure types are loaded
+            if selected_type:
+                # Make sure types for this exercise are loaded
+                exercise_id = self.db_manager.get_exercise_id(selected_exercise)
+                if exercise_id is not None:
+                    # Get types for this exercise
+                    types = self.db_manager.get_dropdown_items("types", "type", f"_id_exercises = {exercise_id}")
+
+                    self.comboBox_type.clear()
+                    self.comboBox_type.addItem("[No Type]")
+
+                    for type_name in types:
+                        self.comboBox_type.addItem(type_name)
+
+                    # Set the selected type
+                    type_index = self.comboBox_type.findText(selected_type)
+                    if type_index >= 0:
+                        self.comboBox_type.setCurrentIndex(type_index)
+        else:
+            # If no selection to restore, update types for current exercise
+            self.on_exercise_changed()
 
     def update_date_after_add(self):
         """
