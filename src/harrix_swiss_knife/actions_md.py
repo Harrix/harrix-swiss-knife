@@ -409,7 +409,7 @@ class OnOptimizeImages(action_base.ActionBase):
         self.show_result()
 
 
-class OnOptimizeImagessFolder(action_base.ActionBase):
+class OnOptimizeImagesFolder(action_base.ActionBase):
     icon = "🖼️"
     title = "Optimize images in …"
 
@@ -431,7 +431,7 @@ class OnOptimizeImagessFolder(action_base.ActionBase):
         self.show_result()
 
 
-class OnOptimizeImagessFolderPngToAvif(action_base.ActionBase):
+class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
     icon = "🖼️"
     title = "Optimize images (with PNG to AVIF) in …"
 
