@@ -3,7 +3,7 @@ import re
 import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from functools import wraps
+from functools import partial, wraps
 
 import harrix_pylib as h
 from PySide6.QtCore import QDateTime, QSortFilterProxyModel, Qt
@@ -20,12 +20,40 @@ EMPTY_TYPE = ""
 DATE_FORMAT = "yyyy-MM-dd"
 
 
+def validate_date(method):
+    """Decorator to validate date before executing a method"""
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        date = self.lineEdit_date.text()
+        if not self.is_valid_date(date):
+            QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
+            return
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
 class DatabaseManager:
     def __init__(self, db_filename):
         self.db = QSqlDatabase.addDatabase("QSQLITE")
         self.db.setDatabaseName(db_filename)
         if not self.db.open():
             raise Exception("Failed to open the database")
+
+    def _iter_query(self, query):
+        """Iterator for query results"""
+        if not query:
+            return
+        while query.next():
+            yield query
+
+    def _rows_from_query(self, query):
+        """Extract all rows from a query result"""
+        result = []
+        while query.next():
+            result.append([query.value(i) for i in range(query.record().count())])
+        return result
 
     def execute_query(self, query_text, params=None):
         query = QSqlQuery()
@@ -35,10 +63,7 @@ class DatabaseManager:
                 query.bindValue(f":{key}", value)
         else:
             query.prepare(query_text)
-        if not query.exec():
-            print(f"Error executing query: {query.lastError().text()}")
-            return None
-        return query
+        return query if query.exec() else None
 
     def get_exercises_by_frequency(self, limit=500):
         """Get exercises ordered by frequency of use in recent records"""
@@ -51,57 +76,34 @@ class DatabaseManager:
         # Count frequency of each exercise
         exercise_counts = Counter(row[0] for row in recent_records)
 
-        # Sort exercises by frequency
-        sorted_exercises = []
+        # Sort exercises by frequency and add any remaining exercises
+        sorted_exercises = [
+            all_exercises[ex_id] for ex_id, _ in exercise_counts.most_common() if ex_id in all_exercises
+        ]
 
-        # First add exercises that have been used recently
-        for exercise_id, count in exercise_counts.most_common():
-            if exercise_id in all_exercises:
-                sorted_exercises.append(all_exercises[exercise_id])
+        # Add any remaining exercises that haven't been used recently
+        return sorted_exercises + [name for ex_id, name in all_exercises.items() if name not in sorted_exercises]
 
-        # Then add any remaining exercises that haven't been used recently
-        for exercise_id, name in all_exercises.items():
-            if name not in sorted_exercises:
-                sorted_exercises.append(name)
-
-        return sorted_exercises
-
-    def get_id(self, table, name_column, name_value, id_column="_id"):
+    def get_id(self, table, name_column, name_value, id_column="_id", condition=None):
         """Generic method to get ID by name"""
         query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
+        query_text += f" AND {condition}" if condition else ""
         params = {"name": name_value}
         query = self.execute_query(query_text, params)
-        if query and query.next():
-            return query.value(0)
-        return None
+        return query.value(0) if query and query.next() else None
 
     def get_items(self, table, column, condition=None, order_by=None):
         """Generic method to get items from a table"""
         query_text = f"SELECT {column} FROM {table}"
-        if condition:
-            query_text += f" WHERE {condition}"
-        if order_by:
-            query_text += f" ORDER BY {order_by}"
+        query_text += f" WHERE {condition}" if condition else ""
+        query_text += f" ORDER BY {order_by}" if order_by else ""
 
-        query = self.execute_query(query_text)
-        items = []
-        while query and query.next():
-            items.append(query.value(0))
-        return items
+        return [query.value(0) for query in self._iter_query(self.execute_query(query_text))]
 
     def get_rows(self, query_text, params=None):
         """Execute a query and return all rows as a list of tuples"""
         query = self.execute_query(query_text, params)
-        if not query:
-            return []
-
-        results = []
-        while query.next():
-            row = []
-            for i in range(query.record().count()):
-                row.append(query.value(i))
-            results.append(row)
-        return results
+        return self._rows_from_query(query) if query else []
 
 
 class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
@@ -111,35 +113,51 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.db_manager = None
         self.models = {"process": None, "exercises": None, "types": None, "weight": None}
 
+        # Table configurations for generic operations
+        self.table_config = {
+            "process": (self.tableView_process, "process", ["Exercise", "Exercise Type", "Quantity", "Date"]),
+            "exercises": (self.tableView_exercises, "exercises", ["Exercise", "Unit of Measurement"]),
+            "types": (self.tableView_exercise_types, "types", ["Exercise", "Exercise Type"]),
+            "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
+        }
+
         self.init_database()
         self.connect_signals()
         self.update_all()
+
+    def add_record_generic(self, table_name, query_text, params):
+        """Generic method for adding records to any table"""
+        result = self.db_manager.execute_query(query_text, params)
+        if result:
+            print(f"{table_name} added")
+            self.update_all()
+            return True
+        else:
+            QMessageBox.warning(self, "Error", f"Failed to add {table_name}")
+            return False
 
     def connect_signals(self):
         # Main tab signals
         self.comboBox_exercise.currentIndexChanged.connect(self.on_exercise_changed)
         self.pushButton_add.clicked.connect(self.on_add_record)
-        self.pushButton_delete.clicked.connect(lambda: self.delete_record("process"))
-        self.pushButton_update.clicked.connect(self.on_update_record)
-        self.pushButton_refresh.clicked.connect(self.update_all)
 
-        # Exercise tab signals
+        # Connect signals using a loop and partial functions
+        for action, button_prefix in [("delete", "delete"), ("update", "update"), ("refresh", "refresh")]:
+            for table in self.table_config.keys():
+                button = getattr(
+                    self, f"pushButton_{button_prefix if table == 'process' else table + '_' + button_prefix}"
+                )
+                if action == "delete":
+                    button.clicked.connect(partial(self.delete_record, table))
+                elif action == "update":
+                    button.clicked.connect(getattr(self, f"on_update_{table}"))
+                else:  # refresh
+                    button.clicked.connect(self.update_all)
+
+        # Add actions
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
-        self.pushButton_exercise_delete.clicked.connect(lambda: self.delete_record("exercises"))
-        self.pushButton_exercise_update.clicked.connect(self.on_update_exercise)
-        self.pushButton_exercise_refresh.clicked.connect(self.update_all)
-
-        # Type tab signals
         self.pushButton_type_add.clicked.connect(self.on_add_type)
-        self.pushButton_type_delete.clicked.connect(lambda: self.delete_record("types"))
-        self.pushButton_type_update.clicked.connect(self.on_update_type)
-        self.pushButton_type_refresh.clicked.connect(self.update_all)
-
-        # Weight tab signals
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
-        self.pushButton_weight_delete.clicked.connect(lambda: self.delete_record("weight"))
-        self.pushButton_weight_update.clicked.connect(self.on_update_weight)
-        self.pushButton_weight_refresh.clicked.connect(self.update_all)
 
         # Statistics tab signals
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
@@ -151,10 +169,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         model.setHorizontalHeaderLabels(headers)
 
         for i, row in enumerate(data):
-            row_items = []
-            for j, value in enumerate(row):
-                if j != id_column:  # Skip ID column in display
-                    row_items.append(QStandardItem(str(value if value is not None else "")))
+            # Create row items using list comprehension
+            row_items = [
+                QStandardItem(str(value if value is not None else "")) for j, value in enumerate(row) if j != id_column
+            ]
+
             model.appendRow(row_items)
             model.setVerticalHeaderItem(i, QStandardItem(str(row[id_column])))
 
@@ -164,17 +183,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
     def delete_record(self, table_name):
         """Generic method for deleting records from any table"""
-        table_config = {
-            "process": (self.tableView_process, self.models["process"]),
-            "exercises": (self.tableView_exercises, self.models["exercises"]),
-            "types": (self.tableView_exercise_types, self.models["types"]),
-            "weight": (self.tableView_weight, self.models["weight"]),
-        }
-
-        if table_name not in table_config:
+        if table_name not in self.table_config:
             return
 
-        table_view, model = table_config[table_name]
+        table_view, model_key, _ = self.table_config[table_name]
+        model = self.models[model_key]
 
         index = table_view.currentIndex()
         if not index.isValid():
@@ -184,9 +197,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         row = index.row()
         _id = model.sourceModel().verticalHeaderItem(row).text()
 
-        query_text = f"DELETE FROM {table_name} WHERE _id = :id"
-        params = {"id": _id}
-        result = self.db_manager.execute_query(query_text, params)
+        result = self.db_manager.execute_query(f"DELETE FROM {table_name} WHERE _id = :id", {"id": _id})
+
         if result:
             print(f"Record deleted from {table_name}")
             self.update_all()
@@ -229,14 +241,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Enter exercise name")
             return
 
-        query_text = "INSERT INTO exercises (name, unit) VALUES (:name, :unit)"
-        params = {"name": exercise, "unit": unit}
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
-            print("Exercise added")
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add exercise")
+        self.add_record_generic(
+            "exercises", "INSERT INTO exercises (name, unit) VALUES (:name, :unit)", {"name": exercise, "unit": unit}
+        )
 
     @validate_date
     def on_add_record(self):
@@ -253,23 +260,23 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         type_id = -1
         if current_type:
-            type_id = self.db_manager.get_id("types", "type", current_type, condition=f"_id_exercises = {exercise_id}")
-            if type_id is None:
-                type_id = -1
+            type_id = (
+                self.db_manager.get_id("types", "type", current_type, condition=f"_id_exercises = {exercise_id}") or -1
+            )
 
-        query_text = """
-            INSERT INTO process (_id_exercises, _id_types, value, date)
-            VALUES (:exercise_id, :type_id, :value, :date)
-        """
         params = {
             "exercise_id": exercise_id,
             "type_id": type_id,
             "value": value,
             "date": date,
         }
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
-            print("Record added")
+
+        if self.add_record_generic(
+            "process",
+            """INSERT INTO process (_id_exercises, _id_types, value, date)
+                                    VALUES (:exercise_id, :type_id, :value, :date)""",
+            params,
+        ):
             # Update date after adding a record
             self.update_date_after_add()
             # Update the rest of the UI
@@ -279,8 +286,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 current_exercise=current_exercise,
                 current_type=current_type,
             )
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add record")
 
     def on_add_type(self):
         exercise_name = self.comboBox_exercise_name.currentText()
@@ -294,28 +299,20 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if exercise_id is None:
             return
 
-        query_text = "INSERT INTO types (_id_exercises, type) VALUES (:exercise_id, :type)"
-        params = {"exercise_id": exercise_id, "type": type_name}
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
-            print("Type added")
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add type")
+        self.add_record_generic(
+            "type",
+            "INSERT INTO types (_id_exercises, type) VALUES (:exercise_id, :type)",
+            {"exercise_id": exercise_id, "type": type_name},
+        )
 
     @validate_date
     def on_add_weight(self):
         value = str(self.doubleSpinBox_weight.value())
         date = self.lineEdit_weight_date.text()
 
-        query_text = "INSERT INTO weight (value, date) VALUES (:value, :date)"
-        params = {"value": value, "date": date}
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
-            print("Weight added")
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add weight")
+        self.add_record_generic(
+            "weight", "INSERT INTO weight (value, date) VALUES (:value, :date)", {"value": value, "date": date}
+        )
 
     def on_exercise_changed(self):
         exercise_name = self.comboBox_exercise.currentText()
@@ -331,29 +328,24 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.comboBox_type.clear()
         self.comboBox_type.addItem(EMPTY_TYPE)
-
-        for type_name in types:
-            self.comboBox_type.addItem(type_name)
+        self.comboBox_type.addItems(types)
 
     def on_export_csv(self):
         filename, _ = QFileDialog.getSaveFileName(self, "Save Table", "", "CSV (*.csv)")
-        if filename:
-            model = self.models["process"].sourceModel()
-            with open(filename, "w", encoding="utf-8") as f:
-                # Headers
-                headers = [model.headerData(i, Qt.Horizontal) for i in range(model.columnCount())]
-                headers = [header if header is not None else "" for header in headers]
-                f.write(";".join(headers) + "\n")
+        if not filename:
+            return
 
-                for row in range(model.rowCount()):
-                    row_data = []
-                    for column in range(model.columnCount()):
-                        index = model.index(row, column)
-                        data = model.data(index)
-                        data = data if data is not None else ""
-                        row_data.append(f'"{data}"')
-                    f.write(";".join(row_data) + "\n")
-            print("CSV saved")
+        model = self.models["process"].sourceModel()
+        with open(filename, "w", encoding="utf-8") as f:
+            # Headers using list comprehension
+            headers = [model.headerData(i, Qt.Horizontal) or "" for i in range(model.columnCount())]
+            f.write(";".join(headers) + "\n")
+
+            # Rows using list comprehension
+            for row in range(model.rowCount()):
+                row_data = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
+                f.write(";".join(row_data) + "\n")
+        print("CSV saved")
 
     def on_refresh_statistics(self):
         self.textEdit_statistics.clear()
@@ -369,77 +361,52 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         data = defaultdict(list)
         for row in rows:
-            exercise_name = row[0]
-            type_name = row[1]
-            value = row[2]
-            date = row[3]
-
+            exercise_name, type_name, value, date = row  # Unpack directly
             key = f"{exercise_name} {type_name}".strip()
             data[key].append(SetOfExercise(exercise_name, type_name, value, date))
 
-        result_text = ""
         now = QDateTime.currentDateTime()
         today = now.toString(DATE_FORMAT)
 
+        # Build result text using list comprehension and join
+        result_lines = []
         for key, exercises in data.items():
-            result_text += key + "\n"
             exercises.sort(reverse=True)
-            for i, exercise in enumerate(exercises[:4]):
-                today_marker = " <--- TODAY" if exercise.date == today else ""
-                result_text += f"{exercise}{today_marker}\n"
-            result_text += "--------\n"
+            result_lines.append(key)
+            result_lines.extend(
+                [f"{ex}{' <--- TODAY' if ex.date == today else ''}" for i, ex in enumerate(exercises[:4])]
+            )
+            result_lines.append("--------")
 
-        self.textEdit_statistics.setText(result_text)
+        self.textEdit_statistics.setText("\n".join(result_lines))
 
-    def on_update_exercise(self):
-        index = self.tableView_exercises.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Error", "Select an exercise to update")
-            return
+    def on_update_exercises(self):
+        self.update_record_generic(
+            "exercises",
+            "exercises",
+            """UPDATE exercises SET name = :name, unit = :unit WHERE _id = :id""",
+            lambda row, model, _id: {
+                "name": model.data(model.index(row, 0)),
+                "unit": model.data(model.index(row, 1)),
+                "id": _id,
+            },
+        )
 
-        row = index.row()
-        _id = self.models["exercises"].sourceModel().verticalHeaderItem(row).text()
-
-        model_index_name = self.models["exercises"].index(row, 0)
-        name = self.models["exercises"].data(model_index_name)
-
-        model_index_unit = self.models["exercises"].index(row, 1)
-        unit = self.models["exercises"].data(model_index_unit)
-
-        query_text = """
-            UPDATE exercises
-            SET name = :name, unit = :unit
-            WHERE _id = :id
-        """
-        params = {"name": name, "unit": unit, "id": _id}
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
-            print("Exercise updated")
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to update exercise")
-
-    def on_update_record(self):
+    def on_update_process(self):
         index = self.tableView_process.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Error", "Select a record to update")
             return
 
         row = index.row()
-        _id = self.models["process"].sourceModel().verticalHeaderItem(row).text()
+        model = self.models["process"]
+        _id = model.sourceModel().verticalHeaderItem(row).text()
 
-        model_index_exercise = self.models["process"].index(row, 0)
-        exercise = self.models["process"].data(model_index_exercise)
-
-        model_index_type = self.models["process"].index(row, 1)
-        type_name = self.models["process"].data(model_index_type)
-
-        model_index_value = self.models["process"].index(row, 2)
-        value_raw = self.models["process"].data(model_index_value)
+        exercise = model.data(model.index(row, 0))
+        type_name = model.data(model.index(row, 1))
+        value_raw = model.data(model.index(row, 2))
         value = value_raw.split(" ")[0]
-
-        model_index_date = self.models["process"].index(row, 3)
-        date = self.models["process"].data(model_index_date)
+        date = model.data(model.index(row, 3))
 
         if not self.is_valid_date(date):
             QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
@@ -449,11 +416,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if exercise_id is None:
             return
 
-        type_id = -1
-        if type_name:
-            type_id = self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {exercise_id}")
-            if type_id is None:
-                type_id = -1
+        # Use ternary operator for type_id
+        type_id = (
+            self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {exercise_id}")
+            if type_name
+            else -1
+        )
+        type_id = type_id if type_id is not None else -1
 
         query_text = """
             UPDATE process
@@ -474,69 +443,31 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         else:
             QMessageBox.warning(self, "Error", "Failed to update record")
 
-    def on_update_type(self):
-        index = self.tableView_exercise_types.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Error", "Select a type to update")
-            return
-
-        row = index.row()
-        _id = self.models["types"].sourceModel().verticalHeaderItem(row).text()
-
-        model_index_exercise = self.models["types"].index(row, 0)
-        exercise_name = self.models["types"].data(model_index_exercise)
-
-        model_index_type = self.models["types"].index(row, 1)
-        type_name = self.models["types"].data(model_index_type)
-
-        exercise_id = self.db_manager.get_id("exercises", "name", exercise_name)
-        if exercise_id is None:
-            return
-
-        query_text = """
-            UPDATE types
-            SET _id_exercises = :exercise_id, type = :type_name
-            WHERE _id = :id
-        """
-        params = {"exercise_id": exercise_id, "type_name": type_name, "id": _id}
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
-            print("Type updated")
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to update type")
+    def on_update_types(self):
+        self.update_record_generic(
+            "types",
+            "types",
+            """UPDATE types
+                                     SET _id_exercises = :exercise_id, type = :type_name
+                                     WHERE _id = :id""",
+            lambda row, model, _id: {
+                "exercise_id": self.db_manager.get_id("exercises", "name", model.data(model.index(row, 0))),
+                "type_name": model.data(model.index(row, 1)),
+                "id": _id,
+            },
+        )
 
     def on_update_weight(self):
-        index = self.tableView_weight.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Error", "Select a weight record to update")
-            return
-
-        row = index.row()
-        _id = self.models["weight"].sourceModel().verticalHeaderItem(row).text()
-
-        model_index_value = self.models["weight"].index(row, 0)
-        value = self.models["weight"].data(model_index_value)
-
-        model_index_date = self.models["weight"].index(row, 1)
-        date = self.models["weight"].data(model_index_date)
-
-        if not self.is_valid_date(date):
-            QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
-            return
-
-        query_text = """
-            UPDATE weight
-            SET value = :value, date = :date
-            WHERE _id = :id
-        """
-        params = {"value": value, "date": date, "id": _id}
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
-            print("Weight record updated")
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to update weight record")
+        self.update_record_generic(
+            "weight",
+            "weight",
+            """UPDATE weight SET value = :value, date = :date WHERE _id = :id""",
+            lambda row, model, _id: {
+                "value": model.data(model.index(row, 0)),
+                "date": model.data(model.index(row, 1)),
+                "id": _id,
+            },
+        )
 
     def set_current_date(self):
         now = QDateTime.currentDateTime()
@@ -547,51 +478,40 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
     def show_tables(self):
         """Show all tables at once"""
         # Show exercises table
-        query_text = "SELECT _id, name, unit FROM exercises"
-        data = self.db_manager.get_rows(query_text)
-        self.models["exercises"] = self.create_table_model(data, ["Exercise", "Unit of Measurement"])
+        data = self.db_manager.get_rows("SELECT _id, name, unit FROM exercises")
+        self.models["exercises"] = self.create_table_model(data, self.table_config["exercises"][2])
         self.tableView_exercises.setModel(self.models["exercises"])
         self.tableView_exercises.resizeColumnsToContents()
 
         # Show process table
-        query_text = """
+        rows = self.db_manager.get_rows("""
             SELECT p._id, e.name, IFNULL(t.type, ''), p.value, e.unit, p.date
             FROM process p
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
             ORDER BY p._id DESC
-        """
-        rows = self.db_manager.get_rows(query_text)
-        data = []
-        for row in rows:
-            _id = row[0]
-            exercise_name = row[1]
-            type_name = row[2]
-            value = row[3]
-            unit = row[4] or "times"
-            date = row[5]
-            formatted_value = f"{value} {unit}"
-            data.append([_id, exercise_name, type_name, formatted_value, date])
+        """)
 
-        self.models["process"] = self.create_table_model(data, ["Exercise", "Exercise Type", "Quantity", "Date"])
+        # Process data using list comprehension
+        data = [[row[0], row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]] for row in rows]
+
+        self.models["process"] = self.create_table_model(data, self.table_config["process"][2])
         self.tableView_process.setModel(self.models["process"])
         self.tableView_process.resizeColumnsToContents()
 
         # Show types table
-        query_text = """
+        data = self.db_manager.get_rows("""
             SELECT t._id, e.name, t.type
             FROM types t
             JOIN exercises e ON t._id_exercises = e._id
-        """
-        data = self.db_manager.get_rows(query_text)
-        self.models["types"] = self.create_table_model(data, ["Exercise", "Exercise Type"])
+        """)
+        self.models["types"] = self.create_table_model(data, self.table_config["types"][2])
         self.tableView_exercise_types.setModel(self.models["types"])
         self.tableView_exercise_types.resizeColumnsToContents()
 
         # Show weight table
-        query_text = "SELECT _id, value, date FROM weight ORDER BY date DESC"
-        data = self.db_manager.get_rows(query_text)
-        self.models["weight"] = self.create_table_model(data, ["Weight", "Date"])
+        data = self.db_manager.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
+        self.models["weight"] = self.create_table_model(data, self.table_config["weight"][2])
         self.tableView_weight.setModel(self.models["weight"])
         self.tableView_weight.resizeColumnsToContents()
 
@@ -619,16 +539,15 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         exercises = self.db_manager.get_exercises_by_frequency(500)
 
         # Save current index to restore after update
-        current_exercise_index = -1
-        if selected_exercise:
-            current_exercise_index = exercises.index(selected_exercise) if selected_exercise in exercises else -1
+        current_exercise_index = exercises.index(selected_exercise) if selected_exercise in exercises else -1
 
+        # Clear and populate comboboxes
         self.comboBox_exercise.clear()
         self.comboBox_exercise_name.clear()
 
-        for name in exercises:
-            self.comboBox_exercise.addItem(name)
-            self.comboBox_exercise_name.addItem(name)
+        # Add exercises to comboboxes
+        self.comboBox_exercise.addItems(exercises)
+        self.comboBox_exercise_name.addItems(exercises)
 
         # Restore selection if needed
         if current_exercise_index >= 0:
@@ -636,7 +555,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
             # If we have a type to restore too, we need to make sure types are loaded
             if selected_type:
-                # Make sure types for this exercise are loaded
                 exercise_id = self.db_manager.get_id("exercises", "name", selected_exercise)
                 if exercise_id is not None:
                     # Get types for this exercise
@@ -644,9 +562,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
                     self.comboBox_type.clear()
                     self.comboBox_type.addItem(EMPTY_TYPE)
-
-                    for type_name in types:
-                        self.comboBox_type.addItem(type_name)
+                    self.comboBox_type.addItems(types)
 
                     # Set the selected type
                     type_index = self.comboBox_type.findText(selected_type)
@@ -659,16 +575,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
     def update_date_after_add(self):
         """Update the date after adding a record"""
         current_date_str = self.lineEdit_date.text()
-
-        # Validate current date format
-        if not self.is_valid_date(current_date_str):
-            now = QDateTime.currentDateTime()
-            self.lineEdit_date.setText(now.toString(DATE_FORMAT))
-            return
-
-        # Get today's date
         now = QDateTime.currentDateTime()
         today_str = now.toString(DATE_FORMAT)
+
+        # If invalid date or already today, set to today or leave unchanged
+        if not self.is_valid_date(current_date_str):
+            self.lineEdit_date.setText(today_str)
+            return
 
         # If current date is already today, leave it
         if current_date_str == today_str:
@@ -683,6 +596,32 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             # If there's any error, set to today's date
             self.lineEdit_date.setText(today_str)
 
+    def update_record_generic(self, table_name, model_key, query_text, params_extractor):
+        """Generic method for updating records"""
+        table_view = next((tv for tv, mk, _ in self.table_config.values() if mk == model_key), None)
+        if not table_view:
+            return
+
+        index = table_view.currentIndex()
+        if not index.isValid():
+            QMessageBox.warning(self, "Error", f"Select a record to update")
+            return
+
+        row = index.row()
+        model = self.models[model_key]
+        _id = model.sourceModel().verticalHeaderItem(row).text()
+
+        params = params_extractor(row, model, _id)
+        if not params:
+            return
+
+        result = self.db_manager.execute_query(query_text, params)
+        if result:
+            print(f"{table_name} updated")
+            self.update_all()
+        else:
+            QMessageBox.warning(self, "Error", f"Failed to update {table_name}")
+
 
 class SetOfExercise:
     def __init__(self, name_exercises, type_types, value, date):
@@ -695,25 +634,12 @@ class SetOfExercise:
         return self.value < other.value
 
     def __str__(self):
-        # Format the string to avoid showing empty type
-        if self.type_types:
-            return f"{self.date}: {self.name_exercises} {self.type_types} {self.value}"
-        else:
-            return f"{self.date}: {self.name_exercises} {self.value}"
-
-
-def validate_date(method):
-    """Decorator to validate date before executing a method"""
-
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        date = self.lineEdit_date.text()
-        if not self.is_valid_date(date):
-            QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
-            return
-        return method(self, *args, **kwargs)
-
-    return wrapper
+        # Use ternary operator to format string
+        return (
+            f"{self.date}: {self.name_exercises} {self.type_types} {self.value}"
+            if self.type_types
+            else f"{self.date}: {self.name_exercises} {self.value}"
+        )
 
 
 if __name__ == "__main__":

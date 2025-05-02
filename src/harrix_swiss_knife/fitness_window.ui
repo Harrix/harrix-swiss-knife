@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -290,7 +290,7 @@
             <string>With the selected row:</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_exercise_delete">
+          <widget class="QPushButton" name="pushButton_exercises_delete">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -303,7 +303,7 @@
             <string>Delete</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_exercise_update">
+          <widget class="QPushButton" name="pushButton_exercises_update">
            <property name="geometry">
             <rect>
              <x>90</x>
@@ -316,7 +316,7 @@
             <string>Save</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_exercise_refresh">
+          <widget class="QPushButton" name="pushButton_exercises_refresh">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -414,7 +414,7 @@
             <string>With the selected row:</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_type_delete">
+          <widget class="QPushButton" name="pushButton_types_delete">
            <property name="geometry">
             <rect>
              <x>10</x>
@@ -427,7 +427,7 @@
             <string>Delete</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_type_update">
+          <widget class="QPushButton" name="pushButton_types_update">
            <property name="geometry">
             <rect>
              <x>100</x>
@@ -440,7 +440,7 @@
             <string>Save</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_type_refresh">
+          <widget class="QPushButton" name="pushButton_types_refresh">
            <property name="geometry">
             <rect>
              <x>10</x>
