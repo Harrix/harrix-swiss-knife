@@ -48,6 +48,7 @@ _Figure 1: Screenshot_
   - ✍️ New article
   - 📓 New note with images
   - 📓 New note
+  - ❞ Format quotes as markdown content
   - 🎬 Get a list of movies, books for web
   - 👉 Increase heading level
   - 😎 Beautify MD notes (All in one)
@@ -65,6 +66,7 @@ _Figure 1: Screenshot_
   - 🔗 Combine MD files in …
   - 🖼️ Optimize images in one MD
   - 🖼️ Optimize images in …
+  - 🖼️ Optimize images (with PNG to AVIF) in …
 - **Python**
   - 🌟 isort, ruff format, sort in PY files
   - 🐍 New uv project in …
