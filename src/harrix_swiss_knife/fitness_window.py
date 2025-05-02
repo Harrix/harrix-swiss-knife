@@ -42,7 +42,9 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
+    QDateEdit,
     QDoubleSpinBox,
     QFrame,
     QGroupBox,
@@ -76,6 +78,16 @@ class Ui_MainWindow(object):
         self.pushButton_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.pushButton_export_csv.setText(QCoreApplication.translate("MainWindow", "Export Table", None))
+        self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
+        self.label_filter_exercise.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
+        self.label_filter_type.setText(QCoreApplication.translate("MainWindow", "Type:", None))
+        self.label_filter_date.setText(QCoreApplication.translate("MainWindow", "Date:", None))
+        self.dateEdit_filter_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
+        self.label_filter_to.setText(QCoreApplication.translate("MainWindow", "to", None))
+        self.dateEdit_filter_to.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
+        self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
+        self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "List", None)
         )
@@ -176,6 +188,45 @@ class Ui_MainWindow(object):
         self.pushButton_export_csv = QPushButton(self.frame)
         self.pushButton_export_csv.setObjectName("pushButton_export_csv")
         self.pushButton_export_csv.setGeometry(QRect(10, 340, 161, 23))
+        self.groupBox_filter = QGroupBox(self.frame)
+        self.groupBox_filter.setObjectName("groupBox_filter")
+        self.groupBox_filter.setGeometry(QRect(10, 370, 281, 181))
+        self.label_filter_exercise = QLabel(self.groupBox_filter)
+        self.label_filter_exercise.setObjectName("label_filter_exercise")
+        self.label_filter_exercise.setGeometry(QRect(10, 20, 61, 16))
+        self.comboBox_filter_exercise = QComboBox(self.groupBox_filter)
+        self.comboBox_filter_exercise.setObjectName("comboBox_filter_exercise")
+        self.comboBox_filter_exercise.setGeometry(QRect(80, 20, 191, 22))
+        self.label_filter_type = QLabel(self.groupBox_filter)
+        self.label_filter_type.setObjectName("label_filter_type")
+        self.label_filter_type.setGeometry(QRect(10, 50, 61, 16))
+        self.comboBox_filter_type = QComboBox(self.groupBox_filter)
+        self.comboBox_filter_type.setObjectName("comboBox_filter_type")
+        self.comboBox_filter_type.setGeometry(QRect(80, 50, 191, 22))
+        self.label_filter_date = QLabel(self.groupBox_filter)
+        self.label_filter_date.setObjectName("label_filter_date")
+        self.label_filter_date.setGeometry(QRect(10, 80, 61, 16))
+        self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
+        self.dateEdit_filter_from.setObjectName("dateEdit_filter_from")
+        self.dateEdit_filter_from.setGeometry(QRect(80, 80, 81, 22))
+        self.dateEdit_filter_from.setCalendarPopup(True)
+        self.label_filter_to = QLabel(self.groupBox_filter)
+        self.label_filter_to.setObjectName("label_filter_to")
+        self.label_filter_to.setGeometry(QRect(170, 80, 21, 16))
+        self.label_filter_to.setAlignment(Qt.AlignCenter)
+        self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
+        self.dateEdit_filter_to.setObjectName("dateEdit_filter_to")
+        self.dateEdit_filter_to.setGeometry(QRect(190, 80, 81, 22))
+        self.dateEdit_filter_to.setCalendarPopup(True)
+        self.pushButton_apply_filter = QPushButton(self.groupBox_filter)
+        self.pushButton_apply_filter.setObjectName("pushButton_apply_filter")
+        self.pushButton_apply_filter.setGeometry(QRect(190, 150, 81, 23))
+        self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
+        self.pushButton_clear_filter.setObjectName("pushButton_clear_filter")
+        self.pushButton_clear_filter.setGeometry(QRect(100, 150, 81, 23))
+        self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
+        self.checkBox_use_date_filter.setObjectName("checkBox_use_date_filter")
+        self.checkBox_use_date_filter.setGeometry(QRect(10, 110, 131, 17))
 
         self.horizontalLayout_2.addWidget(self.frame)
 

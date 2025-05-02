@@ -11,7 +11,7 @@ from PySide6.QtCore import QDateTime, QSortFilterProxyModel, Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
-from harrix_swiss_knife import fitness_database_manager, fitness_window, fitness_funcs
+from harrix_swiss_knife import fitness_database_manager, fitness_funcs, fitness_window
 
 config = h.dev.load_config("config/config.json")
 
@@ -51,6 +51,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.init_database()
         self.connect_signals()
+        self.init_filter_controls()
         self.update_all()
 
     def add_record_generic(self, table_name: str, query_text: str, params: dict) -> bool:
@@ -75,6 +76,81 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         else:
             QMessageBox.warning(self, "Error", f"Failed to add {table_name}")
             return False
+
+    def apply_filter(self) -> None:
+        """
+        Apply the selected filters to the process table.
+        """
+        exercise = self.comboBox_filter_exercise.currentText()
+        exercise_type = self.comboBox_filter_type.currentText()
+        use_date_filter = self.checkBox_use_date_filter.isChecked()
+        date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else ""
+        date_to = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else ""
+
+        # Build query conditions
+        conditions = []
+        params = {}
+
+        if exercise:
+            conditions.append("e.name = :exercise")
+            params["exercise"] = exercise
+
+        if exercise_type:
+            conditions.append("t.type = :type")
+            params["type"] = exercise_type
+
+        if use_date_filter:
+            conditions.append("p.date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        # Build the full query
+        query_text = """
+            SELECT p._id, e.name, IFNULL(t.type, ''), p.value, e.unit, p.date
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+        """
+
+        if conditions:
+            query_text += " WHERE " + " AND ".join(conditions)
+
+        query_text += " ORDER BY p._id DESC"
+
+        # Execute the query - используем существующий метод get_rows
+        rows = self.db_manager.get_rows(query_text, params)
+
+        # Process data and update the table
+        data = [[row[0], row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]] for row in rows]
+        self.models["process"] = self.create_table_model(data, self.table_config["process"][2])
+        self.tableView_process.setModel(self.models["process"])
+        self.tableView_process.resizeColumnsToContents()
+
+        # Show filter status in status bar
+        filter_description = []
+        if exercise:
+            filter_description.append(f"Exercise: {exercise}")
+        if exercise_type:
+            filter_description.append(f"Type: {exercise_type}")
+        if use_date_filter:
+            filter_description.append(f"Date: {date_from} to {date_to}")
+
+    def clear_filter(self) -> None:
+        """
+        Clear all filters and reset the process table.
+        """
+        # Reset filter controls
+        self.comboBox_filter_exercise.setCurrentIndex(0)
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.checkBox_use_date_filter.setChecked(False)
+
+        # Reset date range to default (last month to today)
+        current_date = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_filter_to.setDate(current_date)
+
+        # Refresh the table with no filters
+        self.show_tables()
 
     def connect_signals(self) -> None:
         """
@@ -107,6 +183,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Statistics tab signals
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
         self.pushButton_export_csv.clicked.connect(self.on_export_csv)
+
+        # Tab change signal
+        self.tabWidget.currentChanged.connect(self.on_tab_changed)
 
     def create_table_model(self, data: list, headers: list[str], id_column: int = 0) -> QSortFilterProxyModel:
         """
@@ -191,6 +270,25 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
             sys.exit(1)
+
+    def init_filter_controls(self) -> None:
+        """
+        Initialize filter controls for the process table.
+
+        This method sets up the filter comboboxes and date selectors.
+        """
+        # Set up date filter controls
+        current_date = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_filter_to.setDate(current_date)
+
+        # Set checkbox state
+        self.checkBox_use_date_filter.setChecked(False)
+
+        # Connect filter signals
+        self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
+        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
+        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
     def is_valid_date(self, date_str: str) -> bool:
         """
@@ -406,6 +504,19 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.textEdit_statistics.setText("\n".join(result_lines))
 
+    def on_tab_changed(self, index: int) -> None:
+        """
+        Handle tab change event.
+
+        This method updates the filter comboboxes when the user switches to the main tab.
+
+        Args:
+            index (int): Index of the selected tab.
+        """
+        # If switching to the main tab (index 0), update filter comboboxes
+        if index == 0:
+            self.update_filter_comboboxes()
+
     def on_update_exercises(self) -> None:
         """
         Handle updating an exercise record.
@@ -605,6 +716,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if not skip_date_update:
             self.set_current_date()
 
+        # Update filter comboboxes
+        self.update_filter_comboboxes()
+
     def update_comboboxes(self, selected_exercise: str = None, selected_type: str = None) -> None:
         """
         Update the exercise and type comboboxes.
@@ -678,6 +792,65 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         except ValueError:
             # If there's any error, set to today's date
             self.lineEdit_date.setText(today_str)
+
+    def update_filter_comboboxes(self) -> None:
+        """
+        Update filter comboboxes with current data.
+
+        This method populates the exercise filter combobox and updates the type combobox.
+        """
+        # Save current selections
+        current_exercise = self.comboBox_filter_exercise.currentText()
+
+        # Update exercise combobox
+        self.comboBox_filter_exercise.blockSignals(True)
+        self.comboBox_filter_exercise.clear()
+        self.comboBox_filter_exercise.addItem("")  # Empty item for "All exercises"
+
+        # Get unique exercises from the process table
+        exercises = self.db_manager.get_items("exercises", "name")
+        self.comboBox_filter_exercise.addItems(exercises)
+
+        # Restore previous selection if possible
+        if current_exercise:
+            index = self.comboBox_filter_exercise.findText(current_exercise)
+            if index >= 0:
+                self.comboBox_filter_exercise.setCurrentIndex(index)
+
+        self.comboBox_filter_exercise.blockSignals(False)
+
+        # Update type combobox based on selected exercise
+        self.update_filter_type_combobox()
+
+    def update_filter_type_combobox(self) -> None:
+        """
+        Update the exercise type filter combobox based on the selected exercise.
+        """
+        # Save current selection
+        current_type = self.comboBox_filter_type.currentText()
+
+        # Clear and add empty item
+        self.comboBox_filter_type.clear()
+        self.comboBox_filter_type.addItem("")  # Empty item for "All types"
+
+        # Get exercise id for the selected exercise
+        exercise_name = self.comboBox_filter_exercise.currentText()
+        if not exercise_name:
+            return
+
+        exercise_id = self.db_manager.get_id("exercises", "name", exercise_name)
+        if exercise_id is None:
+            return
+
+        # Get types for this exercise
+        types = self.db_manager.get_items("types", "type", condition=f"_id_exercises = {exercise_id}")
+        self.comboBox_filter_type.addItems(types)
+
+        # Restore previous selection if possible
+        if current_type:
+            index = self.comboBox_filter_type.findText(current_type)
+            if index >= 0:
+                self.comboBox_filter_type.setCurrentIndex(index)
 
     def update_record_generic(
         self,

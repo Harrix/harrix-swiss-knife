@@ -3,6 +3,7 @@ from typing import Callable
 
 from PySide6.QtWidgets import QMessageBox
 
+
 def validate_date(method: Callable) -> Callable:
     """
     Decorator to validate date before executing a method.

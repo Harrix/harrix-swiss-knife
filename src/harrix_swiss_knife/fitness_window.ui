@@ -179,6 +179,165 @@
             <string>Export Table</string>
            </property>
           </widget>
+          <widget class="QGroupBox" name="groupBox_filter">
+           <property name="geometry">
+            <rect>
+             <x>10</x>
+             <y>370</y>
+             <width>281</width>
+             <height>181</height>
+            </rect>
+           </property>
+           <property name="title">
+            <string>Filter</string>
+           </property>
+           <widget class="QLabel" name="label_filter_exercise">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>20</y>
+              <width>61</width>
+              <height>16</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Exercise:</string>
+            </property>
+           </widget>
+           <widget class="QComboBox" name="comboBox_filter_exercise">
+            <property name="geometry">
+             <rect>
+              <x>80</x>
+              <y>20</y>
+              <width>191</width>
+              <height>22</height>
+             </rect>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_filter_type">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>50</y>
+              <width>61</width>
+              <height>16</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Type:</string>
+            </property>
+           </widget>
+           <widget class="QComboBox" name="comboBox_filter_type">
+            <property name="geometry">
+             <rect>
+              <x>80</x>
+              <y>50</y>
+              <width>191</width>
+              <height>22</height>
+             </rect>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_filter_date">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>80</y>
+              <width>61</width>
+              <height>16</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Date:</string>
+            </property>
+           </widget>
+           <widget class="QDateEdit" name="dateEdit_filter_from">
+            <property name="geometry">
+             <rect>
+              <x>80</x>
+              <y>80</y>
+              <width>81</width>
+              <height>22</height>
+             </rect>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_filter_to">
+            <property name="geometry">
+             <rect>
+              <x>170</x>
+              <y>80</y>
+              <width>21</width>
+              <height>16</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>to</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QDateEdit" name="dateEdit_filter_to">
+            <property name="geometry">
+             <rect>
+              <x>190</x>
+              <y>80</y>
+              <width>81</width>
+              <height>22</height>
+             </rect>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="pushButton_apply_filter">
+            <property name="geometry">
+             <rect>
+              <x>190</x>
+              <y>150</y>
+              <width>81</width>
+              <height>23</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Apply Filter</string>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="pushButton_clear_filter">
+            <property name="geometry">
+             <rect>
+              <x>100</x>
+              <y>150</y>
+              <width>81</width>
+              <height>23</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Clear Filter</string>
+            </property>
+           </widget>
+           <widget class="QCheckBox" name="checkBox_use_date_filter">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>110</y>
+              <width>131</width>
+              <height>17</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Use date filter</string>
+            </property>
+           </widget>
+          </widget>
          </widget>
         </item>
        </layout>
