@@ -15,9 +15,6 @@ from harrix_swiss_knife import fitness_database_manager, fitness_window, funcs
 
 config = h.dev.load_config("config/config.json")
 
-EMPTY_TYPE = ""
-DATE_FORMAT = "yyyy-MM-dd"
-
 
 class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
     """
@@ -335,7 +332,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         types = self.db_manager.get_items("types", "type", condition=f"_id_exercises = {exercise_id}")
 
         self.comboBox_type.clear()
-        self.comboBox_type.addItem(EMPTY_TYPE)
+        self.comboBox_type.addItem("")
         self.comboBox_type.addItems(types)
 
     def on_export_csv(self) -> None:
@@ -384,7 +381,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             data[key].append([exercise_name, type_name, float(value), date])
 
         now = QDateTime.currentDateTime()
-        today = now.toString(DATE_FORMAT)
+        today = now.toString("yyyy-MM-dd")
 
         # Build result text
         result_lines = []
@@ -525,7 +522,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         This method sets today's date in the date fields for adding records.
         """
         now = QDateTime.currentDateTime()
-        date = now.toString(DATE_FORMAT)
+        date = now.toString("yyyy-MM-dd")
         self.lineEdit_date.setText(date)
         self.lineEdit_weight_date.setText(date)
 
@@ -643,7 +640,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                     types = self.db_manager.get_items("types", "type", condition=f"_id_exercises = {exercise_id}")
 
                     self.comboBox_type.clear()
-                    self.comboBox_type.addItem(EMPTY_TYPE)
+                    self.comboBox_type.addItem("")
                     self.comboBox_type.addItems(types)
 
                     # Set the selected type
@@ -662,7 +659,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """
         current_date_str = self.lineEdit_date.text()
         now = QDateTime.currentDateTime()
-        today_str = now.toString(DATE_FORMAT)
+        today_str = now.toString("yyyy-MM-dd")
 
         # If invalid date or already today, set to today or leave unchanged
         if not self.is_valid_date(current_date_str):
