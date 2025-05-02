@@ -347,21 +347,32 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         data = defaultdict(list)
         for row in rows:
-            exercise_name, type_name, value, date = row  # Unpack directly
+            exercise_name, type_name, value, date = row
             key = f"{exercise_name} {type_name}".strip()
-            data[key].append(SetOfExercise(exercise_name, type_name, value, date))
+            data[key].append([exercise_name, type_name, float(value), date])
 
         now = QDateTime.currentDateTime()
         today = now.toString(DATE_FORMAT)
 
-        # Build result text using list comprehension and join
+        # Build result text
         result_lines = []
         for key, exercises in data.items():
-            exercises.sort(reverse=True)
+            # Сортировка по значению (индекс 2)
+            exercises.sort(key=lambda x: x[2], reverse=True)
             result_lines.append(key)
-            result_lines.extend(
-                [f"{ex}{' <--- TODAY' if ex.date == today else ''}" for i, ex in enumerate(exercises[:4])]
-            )
+
+            for ex in exercises[:4]:
+                exercise_name, type_name, value, date = ex
+                if type_name:
+                    formatted = f"{date}: {exercise_name} {type_name} {value}"
+                else:
+                    formatted = f"{date}: {exercise_name} {value}"
+
+                if date == today:
+                    formatted += " <--- TODAY"
+
+                result_lines.append(formatted)
+
             result_lines.append("--------")
 
         self.textEdit_statistics.setText("\n".join(result_lines))
@@ -607,25 +618,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.update_all()
         else:
             QMessageBox.warning(self, "Error", f"Failed to update {table_name}")
-
-
-class SetOfExercise:
-    def __init__(self, name_exercises, type_types, value, date):
-        self.name_exercises = name_exercises
-        self.type_types = type_types
-        self.value = float(value)
-        self.date = date
-
-    def __lt__(self, other):
-        return self.value < other.value
-
-    def __str__(self):
-        # Use ternary operator to format string
-        return (
-            f"{self.date}: {self.name_exercises} {self.type_types} {self.value}"
-            if self.type_types
-            else f"{self.date}: {self.name_exercises} {self.value}"
-        )
 
 
 if __name__ == "__main__":
