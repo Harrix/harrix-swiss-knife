@@ -3,7 +3,7 @@ import re
 import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from functools import partial, wraps
+from functools import partial
 
 import harrix_pylib as h
 from PySide6.QtCore import QDateTime, QSortFilterProxyModel, Qt
@@ -11,27 +11,13 @@ from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 
-from harrix_swiss_knife import fitness_window
+from harrix_swiss_knife import fitness_window, funcs
 
 config = h.dev.load_config("config/config.json")
 
 # Constants
 EMPTY_TYPE = ""
 DATE_FORMAT = "yyyy-MM-dd"
-
-
-def validate_date(method):
-    """Decorator to validate date before executing a method"""
-
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        date = self.lineEdit_date.text()
-        if not self.is_valid_date(date):
-            QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
-            return
-        return method(self, *args, **kwargs)
-
-    return wrapper
 
 
 class DatabaseManager:
@@ -245,7 +231,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             "exercises", "INSERT INTO exercises (name, unit) VALUES (:name, :unit)", {"name": exercise, "unit": unit}
         )
 
-    @validate_date
+    @funcs.validate_date
     def on_add_record(self):
         # Save current selections
         current_exercise = self.comboBox_exercise.currentText()
@@ -305,7 +291,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             {"exercise_id": exercise_id, "type": type_name},
         )
 
-    @validate_date
+    @funcs.validate_date
     def on_add_weight(self):
         value = str(self.doubleSpinBox_weight.value())
         date = self.lineEdit_weight_date.text()
