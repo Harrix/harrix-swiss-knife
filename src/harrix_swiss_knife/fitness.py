@@ -10,7 +10,7 @@ from PySide6.QtCore import QDateTime, QSortFilterProxyModel, Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 
-from harrix_swiss_knife import fitness_window, funcs,fitness_database_manager
+from harrix_swiss_knife import fitness_database_manager, fitness_window, funcs
 
 config = h.dev.load_config("config/config.json")
 
