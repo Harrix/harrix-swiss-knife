@@ -25,12 +25,10 @@ class FitnessDatabaseManager:
 
     def execute_query(self, query_text, params=None):
         query = QSqlQuery()
+        query.prepare(query_text)
         if params:
-            query.prepare(query_text)
             for key, value in params.items():
                 query.bindValue(f":{key}", value)
-        else:
-            query.prepare(query_text)
         return query if query.exec() else None
 
     def get_exercises_by_frequency(self, limit=500):
@@ -50,7 +48,7 @@ class FitnessDatabaseManager:
         ]
 
         # Add any remaining exercises that haven't been used recently
-        return sorted_exercises + [name for ex_id, name in all_exercises.items() if name not in sorted_exercises]
+        return sorted_exercises + [name for _, name in all_exercises.items() if name not in sorted_exercises]
 
     def get_id(self, table, name_column, name_value, id_column="_id", condition=None):
         """Generic method to get ID by name"""
