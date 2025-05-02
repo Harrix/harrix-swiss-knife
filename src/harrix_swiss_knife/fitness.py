@@ -14,6 +14,9 @@ from harrix_swiss_knife import fitness_window
 
 config = h.dev.load_config("config/config.json")
 
+# Constant for empty type representation
+EMPTY_TYPE = ""  # Changed from "[No Type]"
+
 
 class DatabaseManager:
     def __init__(self, db_filename):
@@ -251,7 +254,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if exercise_id is None:
             return
 
-        if type_name != "[No Type]":
+        if type_name != EMPTY_TYPE:  # Changed from "[No Type]"
             type_id = self.db_manager.get_type_id(type_name, exercise_id)
         else:
             type_id = -1
@@ -364,7 +367,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         types = self.db_manager.get_dropdown_items("types", "type", f"_id_exercises = {exercise_id}")
 
         self.comboBox_type.clear()
-        self.comboBox_type.addItem("[No Type]")
+        self.comboBox_type.addItem(EMPTY_TYPE)  # Changed from "[No Type]"
 
         for type_name in types:
             self.comboBox_type.addItem(type_name)
@@ -378,7 +381,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.textEdit_statistics.clear()
 
         query_text = """
-            SELECT e.name, IFNULL(t.type, '[No Type]'), p.value, p.date
+            SELECT e.name, IFNULL(t.type, ''), p.value, p.date
             FROM process p
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t ON p._id_types = t._id
@@ -397,7 +400,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             value = query.value(2)
             date = query.value(3)
 
-            key = f"{exercise_name} {type_name}"
+            key = f"{exercise_name} {type_name}".strip()  # Strip to remove trailing space if type is empty
             data[key].append(SetOfExercise(exercise_name, type_name, value, date))
 
         result_text = ""
@@ -474,7 +477,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if exercise_id is None:
             return
 
-        if type_name != "[No Type]":
+        if type_name != EMPTY_TYPE:  # Changed from "[No Type]"
             type_id = self.db_manager.get_type_id(type_name, exercise_id)
         else:
             type_id = -1
@@ -607,7 +610,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
     def show_process(self):
         query_text = """
-            SELECT p._id, e.name, IFNULL(t.type, '[No Type]'), p.value, e.unit, p.date
+            SELECT p._id, e.name, IFNULL(t.type, ''), p.value, e.unit, p.date
             FROM process p
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
@@ -720,7 +723,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                     types = self.db_manager.get_dropdown_items("types", "type", f"_id_exercises = {exercise_id}")
 
                     self.comboBox_type.clear()
-                    self.comboBox_type.addItem("[No Type]")
+                    self.comboBox_type.addItem(EMPTY_TYPE)  # Changed from "[No Type]"
 
                     for type_name in types:
                         self.comboBox_type.addItem(type_name)
@@ -777,7 +780,11 @@ class SetOfExercise:
         return self.value < other.value
 
     def __str__(self):
-        return f"{self.date}: {self.name_exercises} {self.type_types} {self.value}"
+        # Format the string to avoid showing empty type
+        if self.type_types:
+            return f"{self.date}: {self.name_exercises} {self.type_types} {self.value}"
+        else:
+            return f"{self.date}: {self.name_exercises} {self.value}"
 
 
 if __name__ == "__main__":
