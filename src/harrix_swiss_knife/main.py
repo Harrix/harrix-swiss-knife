@@ -67,6 +67,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, hsk.md.OnGenerateAuthorBook)
         self.add_item(self.menu_md, hsk.md.OnGenerateImageCaptionsFolder)
         self.add_item(self.menu_md, hsk.md.OnGenerateImageCaptions)
+        self.add_item(self.menu_md, hsk.md.OnGenerateShortNoteTocWithLinks)
         self.add_item(self.menu_md, hsk.md.OnGenerateTocFolder)
         self.add_item(self.menu_md, hsk.md.OnGenerateToc)
         self.add_item(self.menu_md, hsk.md.OnPettierFolder)

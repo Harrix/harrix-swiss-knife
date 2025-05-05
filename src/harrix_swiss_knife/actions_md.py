@@ -232,6 +232,29 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
         self.show_result()
 
 
+class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
+    icon = "🤏"
+    title = "Generate a short version with only TOC"
+
+    def execute(self, *args, **kwargs):
+        self.filename = self.get_open_filename(
+            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)"
+        )
+        if not self.filename:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self):
+        try:
+            self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
+        except Exception as e:
+            self.add_line(f"❌ Ошибка: {e}")
+
+    def thread_after(self, result):
+        self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
+
 class OnGenerateToc(action_base.ActionBase):
     icon = "📑"
     title = "Generate TOC in one MD"
