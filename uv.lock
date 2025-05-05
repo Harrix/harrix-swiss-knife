@@ -161,7 +161,7 @@ wheels = [
 
 [[package]]
 name = "harrix-pylib"
-version = "0.103"
+version = "0.104"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "libcst" },
@@ -169,9 +169,9 @@ dependencies = [
     { name = "requests" },
     { name = "ruff" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a4/cf/c4ad9557a58b574793a8a470d8418780951277e73387216ba4ae2955dae4/harrix_pylib-0.103.tar.gz", hash = "sha256:ba5257f27c202af1b3c3f50695b3cf3edb8e2ae6b428bed5714b8e6291a464b1", size = 101184, upload-time = "2025-05-05T19:43:30.745Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/0a/64a0dc6a903733a9f55262e1ef8445bd3f7f356b9ca3f315e1448d46ba2d/harrix_pylib-0.104.tar.gz", hash = "sha256:e74e0f00af0aa2ad2f81e2361950a878bdb89906edf6b06fdd3251909a748bec", size = 101264, upload-time = "2025-05-05T20:14:12.87Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1a/ba/45eb868171b4271fa9bc6aa97a08384492e8e6f9eddc39154a4af38ed224/harrix_pylib-0.103-py3-none-any.whl", hash = "sha256:291ede12024ee4c7e9b7360e7fdf1779a552dd85b3ec41fbebacecd86472f96f", size = 37506, upload-time = "2025-05-05T19:43:29.311Z" },
+    { url = "https://files.pythonhosted.org/packages/40/b5/7fc7e1958e7246824cfc7c308a481f5168c04f2eda2d1a3f6189d72ce402/harrix_pylib-0.104-py3-none-any.whl", hash = "sha256:028eb6a2449011671b4b2e1566ae78052c2bfb108a6cb49778e0502a1fec2ca9", size = 37509, upload-time = "2025-05-05T20:14:09.079Z" },
 ]
 
 [[package]]
@@ -197,7 +197,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "harrix-pylib", specifier = ">=0.103" },
+    { name = "harrix-pylib", specifier = ">=0.104" },
     { name = "libcst", specifier = ">=1.5.1" },
     { name = "pillow", specifier = ">=11.1.0" },
     { name = "pyside6", specifier = ">=6.8.1.1" },
