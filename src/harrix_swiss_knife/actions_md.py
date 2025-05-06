@@ -104,7 +104,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
         try:
             self.add_line(h.md.download_and_replace_images(self.filename))
         except Exception as e:
-            self.add_line(f"❌ Ошибка: {e}")
+            self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -186,7 +186,7 @@ class OnGenerateAuthorBook(action_base.ActionBase):
             result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
             self.add_line(result)
         except Exception as e:
-            self.add_line(f"❌ Ошибка: {e}")
+            self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -210,7 +210,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
         try:
             self.add_line(h.md.generate_image_captions(self.filename))
         except Exception as e:
-            self.add_line(f"❌ Ошибка: {e}")
+            self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -256,7 +256,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
         try:
             self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
         except Exception as e:
-            self.add_line(f"❌ Ошибка: {e}")
+            self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -279,7 +279,7 @@ class OnGenerateToc(action_base.ActionBase):
         try:
             self.add_line(h.md.generate_toc_with_links(self.filename))
         except Exception as e:
-            self.add_line(f"❌ Ошибка: {e}")
+            self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -432,7 +432,7 @@ class OnOptimizeImages(action_base.ActionBase):
         try:
             self.add_line(funcs.optimize_images_in_md(self.filename))
         except Exception as e:
-            self.add_line(f"❌ Ошибка: {e}")
+            self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -522,7 +522,7 @@ class OnSortSections(action_base.ActionBase):
             self.add_line(h.md.sort_sections(self.filename))
             self.add_line(h.md.generate_image_captions(self.filename))
         except Exception as e:
-            self.add_line(f"❌ Ошибка: {e}")
+            self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.filename} completed")
