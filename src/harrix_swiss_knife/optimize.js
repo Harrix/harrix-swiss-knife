@@ -147,7 +147,7 @@ const processImage = async (file) => {
         else console.log(`✅ File ${file} successfully optimized.`);
       });
     });
-  } else console.log(`❗ File ${file} is skipped because its format is not supported.`);
+  } else console.log(`ℹ️ File ${file} is skipped because its format is not supported.`);
 };
 
 if (!imagesFolder) {
