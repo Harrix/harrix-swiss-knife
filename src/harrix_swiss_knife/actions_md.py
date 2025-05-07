@@ -32,10 +32,6 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
                 except Exception as e:
                     self.add_line(f"❌ Error: {e}")
 
-                # Combine MD files
-                self.add_line("ℹ️ Combine MD files")
-                self.add_line(h.md.combine_markdown_files_recursively(path))
-
                 # Generate summaries
                 for path_notes_for_summaries in config["paths_notes_for_summaries"]:
                     if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(path).resolve()):
@@ -43,6 +39,10 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
                             self.add_line(h.md.generate_summaries(path_notes_for_summaries))
                         except Exception as e:
                             self.add_line(f"❌ Error: {e}")
+
+                # Combine MD files
+                self.add_line("ℹ️ Combine MD files")
+                self.add_line(h.md.combine_markdown_files_recursively(path))
 
                 # Format YAML
                 self.add_line("ℹ️ Format YAML")
@@ -261,6 +261,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
     def thread_after(self, result):
         self.show_toast(f"{self.title} {self.filename} completed")
         self.show_result()
+
 
 class OnGenerateToc(action_base.ActionBase):
     icon = "📑"
