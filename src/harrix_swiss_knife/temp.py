@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -5,9 +6,6 @@ import harrix_pylib as h
 
 config = h.dev.load_config("config/config.json")
 
-from pathlib import Path
-import re
-from datetime import datetime
 
 def generate_summaries(folder: Path | str) -> str:
     """
@@ -61,23 +59,23 @@ def generate_summaries(folder: Path | str) -> str:
     year_entries = {}
 
     # Regular expressions
-    heading_pattern = re.compile(r'^## (.+?)(?:: (\d+))?$', re.MULTILINE)
+    heading_pattern = re.compile(r"^## (.+?)(?:: (\d+))?$", re.MULTILINE)
 
     # YAML frontmatter to use for both files
     yaml_frontmatter = ""
 
     # Scan the directory for year-named Markdown files
-    for file_path in path.glob('*.md'):
+    for file_path in path.glob("*.md"):
         # Check if the filename is a 4-digit year
         if file_path.stem.isdigit() and len(file_path.stem) == 4:
             year = int(file_path.stem)
 
             # Read the file content
-            content = file_path.read_text(encoding='utf-8')
+            content = file_path.read_text(encoding="utf-8")
 
             # If we haven't extracted the YAML frontmatter yet, extract it from this file
-            if not yaml_frontmatter and '---' in content:
-                yaml_end = content.find('---', content.find('---') + 3) + 3
+            if not yaml_frontmatter and "---" in content:
+                yaml_end = content.find("---", content.find("---") + 3) + 3
                 yaml_frontmatter = content[:yaml_end]
 
             # Find all second-level headings
@@ -98,7 +96,7 @@ def generate_summaries(folder: Path | str) -> str:
                             section_text = content[section_start:section_end]
 
                             # Look for rating in format ": N" at the end of the heading
-                            rating_match = re.search(r': (\d+)$', section_text.split('\n')[0])
+                            rating_match = re.search(r": (\d+)$", section_text.split("\n")[0])
                             if rating_match:
                                 rating = rating_match.group(1)
 
@@ -131,7 +129,7 @@ def generate_summaries(folder: Path | str) -> str:
     # Write the table to Table.md
     table_file = path / "Table.md"
     table_content_with_yaml = f"{yaml_frontmatter}\n{table_content}" if yaml_frontmatter else table_content
-    table_file.write_text(table_content_with_yaml, encoding='utf-8')
+    table_file.write_text(table_content_with_yaml, encoding="utf-8")
 
     # --- Create short summary file ---
     summary_content = f"\n# {dir_name}: short\n\n"
@@ -151,7 +149,7 @@ def generate_summaries(folder: Path | str) -> str:
     summary_content_with_yaml = f"{yaml_frontmatter}\n{summary_content}" if yaml_frontmatter else summary_content
 
     # Write the file
-    short_file.write_text(summary_content_with_yaml, encoding='utf-8')
+    short_file.write_text(summary_content_with_yaml, encoding="utf-8")
 
     return f"✅ File {table_file} is created\n✅ File {short_file} is created"
 
