@@ -36,11 +36,11 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
                 self.add_line("ℹ️ Combine MD files")
                 self.add_line(h.md.combine_markdown_files_recursively(path))
 
-                # Generate a short version with only TOC
-                for path_notes_for_short in config["paths_notes_for_short"]:
-                    if (Path(path_notes_for_short).resolve()).is_relative_to(Path(path).resolve()):
+                # Generate summaries
+                for path_notes_for_summaries in config["paths_notes_for_summaries"]:
+                    if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(path).resolve()):
                         try:
-                            self.add_line(h.md.generate_short_note_toc_with_links(path_notes_for_short))
+                            self.add_line(h.md.generate_summaries(path_notes_for_summaries))
                         except Exception as e:
                             self.add_line(f"❌ Error: {e}")
 
