@@ -128,8 +128,8 @@ CLI commands after installation.
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
 - `isort .` — sort imports.
 - `ruff format` — format the project's Python files.
-- `ruff check --select ALL` — lint the project's Python files.
-- `ruff check --select ALL --fix` — lint and fix the project's Python files.
+- `ruff check` — lint the project's Python files.
+- `ruff check --fix` — lint and fix the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
 - `vermin src` — determines the minimum version of Python.
 - `ncu -u` + `npm install` + `npm audit fix --force` — update NPM packages.
