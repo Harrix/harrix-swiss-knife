@@ -22,13 +22,13 @@ def optimize_images_in_md(filename: Path | str) -> str:
 
     """
     filename = Path(filename)
-    with open(filename, encoding="utf-8") as f:
+    with Path.open(filename, encoding="utf-8") as f:
         document = f.read()
 
     document_new = optimize_images_in_md_content(document, filename.parent, convert_png_to_avif=False)
 
     if document != document_new:
-        with open(filename, "w", encoding="utf-8") as file:
+        with Path.open(filename, "w", encoding="utf-8") as file:
             file.write(document_new)
         return f"✅ File {filename} applied."
     return "File is not changed."
@@ -200,13 +200,13 @@ def optimize_images_in_md_png_to_avif(filename: Path | str) -> str:
 
     """
     filename = Path(filename)
-    with open(filename, encoding="utf-8") as f:
+    with Path.open(filename, encoding="utf-8") as f:
         document = f.read()
 
     document_new = optimize_images_in_md_content(document, filename.parent, convert_png_to_avif=True)
 
     if document != document_new:
-        with open(filename, "w", encoding="utf-8") as file:
+        with Path.open(filename, "w", encoding="utf-8") as file:
             file.write(document_new)
         return f"✅ File {filename} applied."
     return "File is not changed."

@@ -52,7 +52,7 @@ def generate_summaries(folder: Path | str) -> str:
     dir_name = path.name
 
     # Get the current year
-    current_year = datetime.now().year
+    current_year = datetime.now(tz=datetime.now().astimezone().tzinfo).year
 
     # Dictionary to store counts and entries by year
     year_counts = {}

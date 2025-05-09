@@ -432,7 +432,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return
 
         model = self.models["process"].sourceModel()
-        with open(filename, "w", encoding="utf-8") as f:
+        with Path.open(filename, "w", encoding="utf-8") as f:
             # Headers using list comprehension
             headers = [model.headerData(i, Qt.Horizontal) or "" for i in range(model.columnCount())]
             f.write(";".join(headers) + "\n")

@@ -78,7 +78,7 @@ class ActionBase:
         - `line` (`str`): The text line to add to the output.
 
         """
-        with open(self.file, "a", encoding="utf8") as f:
+        with Path.open(self.file, "a", encoding="utf8") as f:
             f.write(line + "\n")
         print(line)
         self.result_lines.append(line)
