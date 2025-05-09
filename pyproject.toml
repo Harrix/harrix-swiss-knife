@@ -37,10 +37,11 @@ line-length = 120
 
 # Disable specific checks in test files:
 # S101 — Use of assert detected
+# S603 — subprocess call: check for execution of untrusted input
 # D103 (pydocstyle (D)) — Missing docstring in public function
 # INP001 — File {filename} is part of an implicit namespace package. Add an __init__.py.
 [tool.ruff.per-file-ignores]
-"tests/*" = ["S101", "D103", "INP001"]
+"tests/*" = ["S101", "S603", "D103", "INP001"]
 
 [tool.pytest.ini_options]
 addopts = "-m 'not slow'"
