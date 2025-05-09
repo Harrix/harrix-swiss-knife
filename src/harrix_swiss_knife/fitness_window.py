@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
 class Ui_MainWindow:
     # setupUi
 
-    def retranslateUi(self, MainWindow):
+    def retranslateUi(self, MainWindow) -> None:
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Fitness tracker", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Add Exercise", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -90,7 +90,7 @@ class Ui_MainWindow:
             self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None),
         )
 
-    def setupUi(self, MainWindow):
+    def setupUi(self, MainWindow) -> None:
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1191, 822)

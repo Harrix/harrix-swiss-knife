@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
 
     """
 
-    def __init__(self, menu):
+    def __init__(self, menu) -> None:
         """Initializes the `MainWindow` with the given menu.
 
         Args:
@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         # Connect the itemClicked signal to an event handler
         self.list_widget.itemClicked.connect(self.on_item_clicked)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         """Overrides the close event to hide the window instead of closing it.
 
         Args:
@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
         event.ignore()
         self.hide()
 
-    def on_item_clicked(self, item):
+    def on_item_clicked(self, item) -> None:
         """Handles the event when an item in the list widget is clicked.
 
         Args:
@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
             output_txt = (h.dev.get_project_root() / "temp/output.txt").read_text(encoding="utf8")
             self.text_edit.setPlainText(output_txt)
 
-    def populate_list(self, actions, indent_level=0):
+    def populate_list(self, actions, indent_level=0) -> None:
         """Populates the list widget with actions, handling submenus recursively.
 
         Args:

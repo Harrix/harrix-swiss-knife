@@ -24,19 +24,18 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
 
     """
 
-    def __init__(self, message: str = "Process is running…", parent=None):
+    def __init__(self, message: str = "Process is running…", parent=None) -> None:
         super().__init__(message, parent)
 
         self.elapsed_seconds = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
 
-    def _refresh_label_text(self):
-        """Updates the notification text with the current elapsed time.
-        """
+    def _refresh_label_text(self) -> None:
+        """Updates the notification text with the current elapsed time."""
         self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         """Handles the notification close event.
 
         Stops the timer when the notification is closed to prevent memory leaks.
@@ -49,14 +48,13 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         self.timer.stop()
         super().closeEvent(event)
 
-    def start_countdown(self):
-        """Starts the countdown timer and initializes the display.
-        """
+    def start_countdown(self) -> None:
+        """Starts the countdown timer and initializes the display."""
         self.start_time = QTime.currentTime()
         self.timer.start(1000)
         self._refresh_label_text()
 
-    def update_time(self):
+    def update_time(self) -> None:
         """Updates the elapsed time counter.
 
         This method is called automatically every second when the timer is active.

@@ -10,11 +10,11 @@ class OnExit(action_base.ActionBase):
     icon = "×"
     title = "Exit"
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
         self.parent = kwargs.get("parent")
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> None:
         QApplication.quit()
 
 
@@ -22,11 +22,11 @@ class OnGetMenu(action_base.ActionBase):
     icon = "☰"
     title = "Get the list of items from this menu"
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
         self.parent = kwargs.get("parent")
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> None:
         result = self.parent.get_menu()
         self.add_line(result)
         self.show_result()
@@ -36,14 +36,14 @@ class OnNpmInstallPackages(action_base.ActionBase):
     icon = "📥"
     title = "Install global NPM packages"
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> None:
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
         return h.dev.run_powershell_script(commands)
 
-    def thread_after(self, result):
+    def thread_after(self, result) -> None:
         self.show_toast("Install completed")
         self.add_line(result)
         self.show_result()
@@ -53,14 +53,14 @@ class OnNpmUpdatePackages(action_base.ActionBase):
     icon = "📥"
     title = "Update NPM and global NPM packages"
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> None:
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         commands = "npm update npm -g\nnpm update -g"
         return h.dev.run_powershell_script(commands)
 
-    def thread_after(self, result):
+    def thread_after(self, result) -> None:
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
@@ -70,7 +70,7 @@ class OnOpenConfigJson(action_base.ActionBase):
     icon = "⚙️"
     title = "Open config.json"
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> None:
         commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)

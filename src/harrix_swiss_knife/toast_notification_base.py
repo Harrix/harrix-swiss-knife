@@ -20,7 +20,7 @@ class ToastNotificationBase(QDialog):
 
     """
 
-    def __init__(self, message: str, parent=None):
+    def __init__(self, message: str, parent=None) -> None:
         """Initializes the toast notification with the specified message and parent widget.
 
         Args:
@@ -64,7 +64,7 @@ class ToastNotificationBase(QDialog):
         # Set cursor to indicate draggable window
         self.setCursor(Qt.OpenHandCursor)
 
-    def mouseMoveEvent(self, event: QMouseEvent):
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """Handles the mouse move event to update the position of the notification during dragging.
 
         Args:
@@ -76,7 +76,7 @@ class ToastNotificationBase(QDialog):
             self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
 
-    def mousePressEvent(self, event: QMouseEvent):
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         """Handles the mouse press event to initiate dragging of the notification.
 
         Args:
@@ -90,7 +90,7 @@ class ToastNotificationBase(QDialog):
             self.setCursor(Qt.ClosedHandCursor)  # Change cursor to indicate active dragging
             event.accept()
 
-    def mouseReleaseEvent(self, event: QMouseEvent):
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         """Handles the mouse release event to conclude the dragging of the notification.
 
         Args:

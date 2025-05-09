@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
+from typing import NoReturn
 
 import harrix_pylib as h
 from PySide6.QtCore import QThread, Signal
@@ -39,7 +40,7 @@ class ActionBase:
     icon = ""
     title = ""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         """Initialize the action with a temporary output file.
 
         Args:
@@ -70,7 +71,7 @@ class ActionBase:
         open(self.file, "w").close()  # create or clear output.txt
         return self.execute(*args, **kwargs)
 
-    def add_line(self, line):
+    def add_line(self, line) -> None:
         """Add a line to the output file and print it to the console.
 
         Args:
@@ -83,7 +84,7 @@ class ActionBase:
         print(line)
         self.result_lines.append(line)
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> NoReturn:
         """Execute the action logic (must be implemented by subclasses).
 
         Args:
@@ -96,7 +97,8 @@ class ActionBase:
         - `NotImplementedError`: When this method is not overridden in a subclass.
 
         """
-        raise NotImplementedError("The execute method must be implemented in subclasses")
+        msg = "The execute method must be implemented in subclasses"
+        raise NotImplementedError(msg)
 
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         """Opens a dialog to select an existing directory.
@@ -269,7 +271,7 @@ class ActionBase:
         # Add a Copy button
         copy_button = QPushButton("Copy to Clipboard")
 
-        def click_copy_button():
+        def click_copy_button() -> None:
             QGuiApplication.clipboard().setText(text_edit.toPlainText())
             self.show_toast("Copied to Clipboard")
 
@@ -331,16 +333,16 @@ class ActionBase:
         class WorkerForThread(QThread):
             finished = Signal(object)
 
-            def __init__(self, work_function: Callable, parent=None):
+            def __init__(self, work_function: Callable, parent=None) -> None:
                 super().__init__(parent)
                 self.work_function = work_function
 
-            def run(self):
+            def run(self) -> None:
                 result = self.work_function()
                 self.finished.emit(result)
 
         # Create a wrapper for the callback function that first closes the toast
-        def callback_wrapper(result):
+        def callback_wrapper(result) -> None:
             if message:  # Only try to close if we opened one
                 self.toast.close()
             callback_function(result)

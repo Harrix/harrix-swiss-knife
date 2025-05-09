@@ -12,7 +12,7 @@ from harrix_swiss_knife import (
 
 
 class MainMenu(main_menu_base.MainMenuBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         # Menu Dev

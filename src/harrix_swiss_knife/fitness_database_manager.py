@@ -36,7 +36,8 @@ class FitnessDatabaseManager:
         self.db = QSqlDatabase.addDatabase("QSQLITE")
         self.db.setDatabaseName(db_filename)
         if not self.db.open():
-            raise Exception("Failed to open the database")
+            msg = "Failed to open the database"
+            raise Exception(msg)
 
     def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
         """Creates an iterator for SQL query results.

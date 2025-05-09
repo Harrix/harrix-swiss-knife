@@ -18,9 +18,8 @@ class MainMenuBase:
 
     """
 
-    def __init__(self):
-        """Initializes the `MainMenuBase` with an empty QMenu.
-        """
+    def __init__(self) -> None:
+        """Initializes the `MainMenuBase` with an empty QMenu."""
         self.menu = QMenu()
 
     def add_item(self, menu: QMenu, class_action: Callable, icon="") -> None:

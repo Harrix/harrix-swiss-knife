@@ -15,7 +15,7 @@ class TrayIcon(QSystemTrayIcon):
 
     """
 
-    def __init__(self, icon, menu, parent=None):
+    def __init__(self, icon, menu, parent=None) -> None:
         """Initializes the `TrayIcon` with the given icon and menu.
 
         Args:
@@ -37,7 +37,7 @@ class TrayIcon(QSystemTrayIcon):
         self.main_window = None
         self.menu = menu
 
-    def on_activated(self, reason):
+    def on_activated(self, reason) -> None:
         """Handles the activation event of the system tray icon.
 
         Args:

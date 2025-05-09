@@ -148,7 +148,7 @@ class on_check_featured_image_in_folders(action_base.ActionBase):
     icon = "✅"
     title = "Check featured_image.*"
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> None:
         for path in config["paths_with_featured_image"]:
             try:
                 result = h.file.check_featured_image(path)[1]
@@ -165,14 +165,14 @@ class on_npm_update_packages(action_base.ActionBase):
     icon = "📥"
     title = "Update NPM and global NPM packages"
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> None:
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self):
+    def in_thread(self) -> None:
         commands = "npm update npm -g\nnpm update -g"
         return h.dev.run_powershell_script(commands)
 
-    def thread_after(self, result):
+    def thread_after(self, result) -> None:
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
@@ -183,19 +183,19 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> None:
         self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not self.folder_path:
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self):
+    def in_thread(self) -> None:
         commands = f"cd {self.folder_path}\nisort .\nruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
-    def thread_after(self, result):
+    def thread_after(self, result) -> None:
         self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
@@ -207,17 +207,29 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
     icon = "👷‍♂️"
     title = "Sequence of thread"
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> None:
         self.start_thread(self.in_thread_01, self.thread_after_01, self.title)
         return "Started the process chain"
 
-    def in_thread_01(self):
+    def in_thread_01(self) -> None
         # First operation
         self.add_line("Starting first operation")
         time.sleep(5)  # Simulating work
         return "First operation completed"
 
-    def thread_after_01(self, result):
+    def in_thread_02(self) -> None
+        # Second operation
+        self.add_line("Starting second operation")
+        time.sleep(self.time_waiting_seconds)  # Simulating work
+        return "Second operation completed"
+
+    def in_thread_03(self) -> None
+        # Third operation
+        self.add_line("Starting third operation")
+        time.sleep(5)  # Simulating work
+        return "Third operation completed"
+
+    def thread_after_01(self, result) -> None:
         self.add_line(result)  # Log the result from the first thread
 
         # Start the second operation
@@ -225,25 +237,13 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
         message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
         self.start_thread(self.in_thread_02, self.thread_after_02, message)
 
-    def in_thread_02(self):
-        # Second operation
-        self.add_line("Starting second operation")
-        time.sleep(self.time_waiting_seconds)  # Simulating work
-        return "Second operation completed"
-
-    def thread_after_02(self, result):
+    def thread_after_02(self, result) -> None:
         self.add_line(result)  # Log the result from the second thread
 
         # Start the third operation
         self.start_thread(self.in_thread_03, self.thread_after_03, self.title)
 
-    def in_thread_03(self):
-        # Third operation
-        self.add_line("Starting third operation")
-        time.sleep(5)  # Simulating work
-        return "Third operation completed"
-
-    def thread_after_03(self, result):
+    def thread_after_03(self, result) -> None:
         self.add_line(result)  # Log the result from the third thread
         self.show_toast(f"{self.title} completed")
         self.show_result()

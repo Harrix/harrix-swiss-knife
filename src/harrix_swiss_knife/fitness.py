@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import re
 import sys
 from collections import defaultdict
@@ -30,7 +31,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
         self.db_manager: fitness_database_manager.FitnessDatabaseManager | None = None
@@ -70,15 +71,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """
         result = self.db_manager.execute_query(query_text, params)
         if result:
-            print(f"{table_name} added")
             self.update_all()
             return True
         QMessageBox.warning(self, "Error", f"Failed to add {table_name}")
         return False
 
     def apply_filter(self) -> None:
-        """Apply the selected filters to the process table.
-        """
+        """Apply the selected filters to the process table."""
         exercise = self.comboBox_filter_exercise.currentText()
         exercise_type = self.comboBox_filter_type.currentText()
         use_date_filter = self.checkBox_use_date_filter.isChecked()
@@ -134,8 +133,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             filter_description.append(f"Date: {date_from} to {date_to}")
 
     def clear_filter(self) -> None:
-        """Clear all filters and reset the process table.
-        """
+        """Clear all filters and reset the process table."""
         # Reset filter controls
         self.comboBox_filter_exercise.setCurrentIndex(0)
         self.comboBox_filter_type.setCurrentIndex(0)
@@ -160,7 +158,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         # Connect signals using a loop and partial functions
         for action, button_prefix in [("delete", "delete"), ("update", "update"), ("refresh", "refresh")]:
-            for table in self.table_config.keys():
+            for table in self.table_config:
                 button = getattr(
                     self, f"pushButton_{button_prefix if table == 'process' else table + '_' + button_prefix}",
                 )
@@ -666,8 +664,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self,
         skip_date_update: bool = False,
         preserve_selections: bool = False,
-        current_exercise: str = None,
-        current_type: str = None,
+        current_exercise: str | None = None,
+        current_type: str | None = None,
     ) -> None:
         """Update all UI elements.
 
@@ -700,7 +698,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Update filter comboboxes
         self.update_filter_comboboxes()
 
-    def update_comboboxes(self, selected_exercise: str = None, selected_type: str = None) -> None:
+    def update_comboboxes(self, selected_exercise: str | None = None, selected_type: str | None = None) -> None:
         """Update the exercise and type comboboxes.
 
         Args:
@@ -802,8 +800,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.update_filter_type_combobox()
 
     def update_filter_type_combobox(self) -> None:
-        """Update the exercise type filter combobox based on the selected exercise.
-        """
+        """Update the exercise type filter combobox based on the selected exercise."""
         # Save current selection
         current_type = self.comboBox_filter_type.currentText()
 
