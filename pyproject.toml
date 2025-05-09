@@ -32,9 +32,10 @@ dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
 # D417 (pydocstyle (D)) — Missing argument description in the docstring for {definition}: {name}
 # Other rules:
 # PLR0915 — Too many statements ({statements} > {max_statements})
+# PLR0912 — Too many branches ({branches} > {max_branches})
 [tool.ruff]
 select = ["ALL"]
-ignore = ["D412", "D417", "PLR0915"]
+ignore = ["D412", "D417", "PLR0912", "PLR0915"]
 line-length = 120
 
 # Disable specific checks in test files:
