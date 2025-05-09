@@ -126,7 +126,12 @@ class FitnessDatabaseManager:
         return sorted_exercises + [name for _, name in all_exercises.items() if name not in sorted_exercises]
 
     def get_id(
-        self, table: str, name_column: str, name_value: str, id_column: str = "_id", condition: str | None = None,
+        self,
+        table: str,
+        name_column: str,
+        name_value: str,
+        id_column: str = "_id",
+        condition: str | None = None,
     ) -> int | None:
         """Generic method to get an ID by name from a specified table.
 
@@ -150,7 +155,11 @@ class FitnessDatabaseManager:
         return query.value(0) if query and query.next() else None
 
     def get_items(
-        self, table: str, column: str, condition: str | None = None, order_by: str | None = None,
+        self,
+        table: str,
+        column: str,
+        condition: str | None = None,
+        order_by: str | None = None,
     ) -> list[Any]:
         """Generic method to get items from a table.
 

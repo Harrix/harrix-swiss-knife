@@ -35,7 +35,10 @@ def optimize_images_in_md(filename: Path | str) -> str:
 
 
 def optimize_images_in_md_content(
-    markdown_text: str, path_md: Path | str, image_folder: str = "img", convert_png_to_avif: bool = False,
+    markdown_text: str,
+    path_md: Path | str,
+    image_folder: str = "img",
+    convert_png_to_avif: bool = False,
 ) -> str:
     """Optimizes images referenced in markdown content by converting them to more efficient formats.
 

@@ -1,11 +1,11 @@
 import os
-from pathlib import Path
 import re
 import sys
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import partial
+from pathlib import Path
 
 import harrix_pylib as h
 from PySide6.QtCore import QDateTime, QSortFilterProxyModel, Qt
@@ -160,7 +160,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         for action, button_prefix in [("delete", "delete"), ("update", "update"), ("refresh", "refresh")]:
             for table in self.table_config:
                 button = getattr(
-                    self, f"pushButton_{button_prefix if table == 'process' else table + '_' + button_prefix}",
+                    self,
+                    f"pushButton_{button_prefix if table == 'process' else table + '_' + button_prefix}",
                 )
                 if action == "delete":
                     button.clicked.connect(partial(self.delete_record, table))
@@ -251,7 +252,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         if not os.path.exists(filename):
             filename, _ = QFileDialog.getOpenFileName(
-                self, "Open Database", os.path.dirname(filename), "SQLite Database (*.db)",
+                self,
+                "Open Database",
+                os.path.dirname(filename),
+                "SQLite Database (*.db)",
             )
             if not filename:
                 QMessageBox.critical(self, "Error", "No database selected")
@@ -315,7 +319,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return
 
         self.add_record_generic(
-            "exercises", "INSERT INTO exercises (name, unit) VALUES (:name, :unit)", {"name": exercise, "unit": unit},
+            "exercises",
+            "INSERT INTO exercises (name, unit) VALUES (:name, :unit)",
+            {"name": exercise, "unit": unit},
         )
 
     @fitness_funcs.validate_date
@@ -397,7 +403,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         date = self.lineEdit_weight_date.text()
 
         self.add_record_generic(
-            "weight", "INSERT INTO weight (value, date) VALUES (:value, :date)", {"value": value, "date": date},
+            "weight",
+            "INSERT INTO weight (value, date) VALUES (:value, :date)",
+            {"value": value, "date": date},
         )
 
     def on_exercise_changed(self) -> None:

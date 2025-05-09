@@ -15,7 +15,9 @@ class OnExtractFunctionsAndClasses(action_base.ActionBase):
 
     def execute(self, *args, **kwargs) -> None:
         filename = self.get_open_filename(
-            "Select an Python File", config["path_github"], "Python Files (*.py);;All Files (*)",
+            "Select an Python File",
+            config["path_github"],
+            "Python Files (*.py);;All Files (*)",
         )
         if not filename:
             return
@@ -184,7 +186,8 @@ class OnNewUvProjectDialog(action_base.ActionBase):
 
     def execute(self, *args, **kwargs) -> None:
         self.project_name = self.get_text_input(
-            "Project name", "Enter the name of the project (English, without spaces):",
+            "Project name",
+            "Enter the name of the project (English, without spaces):",
         )
         if not self.project_name:
             return
@@ -198,7 +201,10 @@ class OnNewUvProjectDialog(action_base.ActionBase):
     def in_thread(self) -> None:
         self.add_line(
             h.py.create_uv_new_project(
-                self.project_name.replace(" ", "-"), self.folder_path, config["editor"], config["cli_commands"],
+                self.project_name.replace(" ", "-"),
+                self.folder_path,
+                config["editor"],
+                config["cli_commands"],
             ),
         )
 
@@ -213,7 +219,9 @@ class OnSortCode(action_base.ActionBase):
 
     def execute(self, *args, **kwargs) -> None:
         filename = self.get_open_filename(
-            "Select an Python File", config["path_github"], "Python Files (*.py);;All Files (*)",
+            "Select an Python File",
+            config["path_github"],
+            "Python Files (*.py);;All Files (*)",
         )
         if not filename:
             return

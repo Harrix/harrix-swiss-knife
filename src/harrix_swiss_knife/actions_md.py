@@ -93,7 +93,9 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
 
     def execute(self, *args, **kwargs) -> None:
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)",
+            "Open Markdown file",
+            config["path_notes"],
+            "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -199,7 +201,9 @@ class OnGenerateImageCaptions(action_base.ActionBase):
 
     def execute(self, *args, **kwargs) -> None:
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)",
+            "Open Markdown file",
+            config["path_articles"],
+            "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -245,7 +249,9 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
 
     def execute(self, *args, **kwargs) -> None:
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)",
+            "Open Markdown file",
+            config["path_articles"],
+            "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -269,7 +275,9 @@ class OnGenerateToc(action_base.ActionBase):
 
     def execute(self, *args, **kwargs) -> None:
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)",
+            "Open Markdown file",
+            config["path_articles"],
+            "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -355,7 +363,9 @@ class OnNewArticle(action_base.ActionBase):
 
         article_name = article_name.replace(" ", "-")
 
-        text = config["beginning_of_article"].replace("[YEAR]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y"))
+        text = config["beginning_of_article"].replace(
+            "[YEAR]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y")
+        )
         text = text.replace("[NAME]", article_name)
         text = text.replace("[DATE]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d"))
         text += f"\n# {article_name}\n\n\n"
@@ -422,7 +432,9 @@ class OnOptimizeImages(action_base.ActionBase):
 
     def execute(self, *args, **kwargs) -> None:
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)",
+            "Open Markdown file",
+            config["path_notes"],
+            "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -511,7 +523,9 @@ class OnSortSections(action_base.ActionBase):
 
     def execute(self, *args, **kwargs) -> None:
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)",
+            "Open Markdown file",
+            config["path_notes"],
+            "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
