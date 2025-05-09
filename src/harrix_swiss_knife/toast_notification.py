@@ -4,8 +4,7 @@ from harrix_swiss_knife import toast_notification_base
 
 
 class ToastNotification(toast_notification_base.ToastNotificationBase):
-    """
-    A temporary toast notification that automatically closes after a specified duration.
+    """A temporary toast notification that automatically closes after a specified duration.
 
     This class extends ToastNotificationBase to add automatic closing functionality.
     The notification will appear on screen and automatically disappear after
@@ -21,6 +20,7 @@ class ToastNotification(toast_notification_base.ToastNotificationBase):
     - `duration` (`int`, optional): Time in milliseconds before the notification
       automatically closes. Defaults to `1000`.
     - `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
+
     """
 
     def __init__(self, message: str, duration: int = 1000, parent=None):

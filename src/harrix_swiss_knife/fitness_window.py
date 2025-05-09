@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 ################################################################################
 ## Form generated from reading UI file 'fitness_window.ui'
@@ -32,7 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 
-class Ui_MainWindow(object):
+class Ui_MainWindow:
     # setupUi
 
     def retranslateUi(self, MainWindow):
@@ -55,7 +54,7 @@ class Ui_MainWindow(object):
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "List", None)
+            self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "List", None),
         )
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name", None))
@@ -66,7 +65,7 @@ class Ui_MainWindow(object):
         self.pushButton_exercises_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
+            self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None),
         )
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -75,7 +74,7 @@ class Ui_MainWindow(object):
         self.pushButton_types_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", "Exercise Types", None)
+            self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", "Exercise Types", None),
         )
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Data", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -84,11 +83,11 @@ class Ui_MainWindow(object):
         self.pushButton_weight_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None)
+            self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None),
         )
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
+            self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None),
         )
 
     def setupUi(self, MainWindow):

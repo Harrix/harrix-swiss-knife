@@ -87,7 +87,7 @@ class OnOptimizeClipboard(action_base.ActionBase):
 
         filename = "image.png"
 
-        if "is_dialog" in kwargs and kwargs["is_dialog"]:
+        if kwargs.get("is_dialog"):
             image_name = self.get_text_input("Image name", "Enter the name of the image (English, without spaces):")
             if not image_name:
                 return

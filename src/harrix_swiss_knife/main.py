@@ -4,8 +4,11 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 import harrix_swiss_knife as hsk
-from harrix_swiss_knife import resources_rc  # noqa
-from harrix_swiss_knife import main_menu_base, tray_icon
+from harrix_swiss_knife import (
+    main_menu_base,
+    resources_rc,  # noqa
+    tray_icon,
+)
 
 
 class MainMenu(main_menu_base.MainMenuBase):

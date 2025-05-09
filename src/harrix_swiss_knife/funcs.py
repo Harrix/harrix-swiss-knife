@@ -7,8 +7,7 @@ import harrix_pylib as h
 
 
 def optimize_images_in_md(filename: Path | str) -> str:
-    """
-    Optimizes images in a markdown file by converting them to more efficient formats.
+    """Optimizes images in a markdown file by converting them to more efficient formats.
 
     This function reads a markdown file, processes any local images referenced in it,
     optimizes them, and updates the markdown content to reference the optimized images.
@@ -20,9 +19,10 @@ def optimize_images_in_md(filename: Path | str) -> str:
     Returns:
 
     - `str`: A status message indicating whether the file was modified.
+
     """
     filename = Path(filename)
-    with open(filename, "r", encoding="utf-8") as f:
+    with open(filename, encoding="utf-8") as f:
         document = f.read()
 
     document_new = optimize_images_in_md_content(document, filename.parent, convert_png_to_avif=False)
@@ -35,10 +35,9 @@ def optimize_images_in_md(filename: Path | str) -> str:
 
 
 def optimize_images_in_md_content(
-    markdown_text: str, path_md: Path | str, image_folder: str = "img", convert_png_to_avif: bool = False
+    markdown_text: str, path_md: Path | str, image_folder: str = "img", convert_png_to_avif: bool = False,
 ) -> str:
-    """
-    Optimizes images referenced in markdown content by converting them to more efficient formats.
+    """Optimizes images referenced in markdown content by converting them to more efficient formats.
 
     This function processes markdown content to find local image references, optimizes those images,
     and updates the markdown content to reference the optimized versions. Remote images (URLs)
@@ -61,6 +60,7 @@ def optimize_images_in_md_content(
     - PNG and SVG files keep their original format but may still be optimized
     - The optimization process uses an external npm script
     - Code blocks in the markdown are preserved without changes
+
     """
 
     def optimize_images_content_line(markdown_line, path_md, image_folder="img"):
@@ -185,8 +185,7 @@ def optimize_images_in_md_content(
 
 
 def optimize_images_in_md_png_to_avif(filename: Path | str) -> str:
-    """
-    Optimizes images in a markdown file by converting them to more efficient formats. PNG converts to AVIF too.
+    """Optimizes images in a markdown file by converting them to more efficient formats. PNG converts to AVIF too.
 
     This function reads a markdown file, processes any local images referenced in it,
     optimizes them, and updates the markdown content to reference the optimized images.
@@ -198,9 +197,10 @@ def optimize_images_in_md_png_to_avif(filename: Path | str) -> str:
     Returns:
 
     - `str`: A status message indicating whether the file was modified.
+
     """
     filename = Path(filename)
-    with open(filename, "r", encoding="utf-8") as f:
+    with open(filename, encoding="utf-8") as f:
         document = f.read()
 
     document_new = optimize_images_in_md_content(document, filename.parent, convert_png_to_avif=True)

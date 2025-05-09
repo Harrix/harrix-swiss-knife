@@ -5,18 +5,17 @@ from PySide6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QMainWi
 
 
 class MainWindow(QMainWindow):
-    """
-    The main window of the application that displays a menu and handles user interactions.
+    """The main window of the application that displays a menu and handles user interactions.
 
     Attributes:
 
     - `list_widget` (`QListWidget`): Widget to display the list of menu actions.
     - `text_edit` (`QTextEdit`): Widget to display information about performed actions.
+
     """
 
     def __init__(self, menu):
-        """
-        Initializes the `MainWindow` with the given menu.
+        """Initializes the `MainWindow` with the given menu.
 
         Args:
 
@@ -24,6 +23,7 @@ class MainWindow(QMainWindow):
 
         Sets up the main window layout, initializes widgets, populates the list with menu actions,
         and connects signals to their respective handlers.
+
         """
         super().__init__()
 
@@ -53,21 +53,20 @@ class MainWindow(QMainWindow):
         self.list_widget.itemClicked.connect(self.on_item_clicked)
 
     def closeEvent(self, event):
-        """
-        Overrides the close event to hide the window instead of closing it.
+        """Overrides the close event to hide the window instead of closing it.
 
         Args:
 
         - `event` (`QCloseEvent`): The close event triggered when the window is requested to close.
 
         Prevents the window from closing and hides it instead.
+
         """
         event.ignore()
         self.hide()
 
     def on_item_clicked(self, item):
-        """
-        Handles the event when an item in the list widget is clicked.
+        """Handles the event when an item in the list widget is clicked.
 
         Args:
 
@@ -79,6 +78,7 @@ class MainWindow(QMainWindow):
         Returns:
 
         - None
+
         """
         # Check if the item is enabled
         if not item.flags() & Qt.ItemIsSelectable:
@@ -92,8 +92,7 @@ class MainWindow(QMainWindow):
             self.text_edit.setPlainText(output_txt)
 
     def populate_list(self, actions, indent_level=0):
-        """
-        Populates the list widget with actions, handling submenus recursively.
+        """Populates the list widget with actions, handling submenus recursively.
 
         Args:
 
@@ -106,6 +105,7 @@ class MainWindow(QMainWindow):
         Returns:
 
         - None
+
         """
         for action in actions:
             if not action.text():

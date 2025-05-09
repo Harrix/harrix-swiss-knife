@@ -11,7 +11,7 @@ class OnFitness(action_base.ActionBase):
 
     def __init__(self, **kwargs):
         super().__init__()
-        self.parent = kwargs.get("parent", None)
+        self.parent = kwargs.get("parent")
         self.main_window = None
 
     def execute(self, *args, **kwargs):

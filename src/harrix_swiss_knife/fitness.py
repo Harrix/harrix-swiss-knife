@@ -2,9 +2,9 @@ import os
 import re
 import sys
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Callable
 
 import harrix_pylib as h
 from PySide6.QtCore import QDateTime, QSortFilterProxyModel, Qt
@@ -17,8 +17,7 @@ config = h.dev.load_config("config/config.json")
 
 
 class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
-    """
-    Main window for the fitness tracking application.
+    """Main window for the fitness tracking application.
 
     This class handles the UI interactions, database operations, and display of fitness data.
     It inherits from QMainWindow and the UI class generated from Qt Designer.
@@ -28,6 +27,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
     - `db_manager` (`FitnessDatabaseManager | None`): Manager for database operations. Defaults to `None`.
     - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models for different views.
     - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for tables.
+
     """
 
     def __init__(self):
@@ -55,8 +55,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.update_all()
 
     def add_record_generic(self, table_name: str, query_text: str, params: dict) -> bool:
-        """
-        Generic method for adding records to any table.
+        """Generic method for adding records to any table.
 
         Args:
 
@@ -67,19 +66,18 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         Returns:
 
         - `bool`: True if the record was added successfully, False otherwise.
+
         """
         result = self.db_manager.execute_query(query_text, params)
         if result:
             print(f"{table_name} added")
             self.update_all()
             return True
-        else:
-            QMessageBox.warning(self, "Error", f"Failed to add {table_name}")
-            return False
+        QMessageBox.warning(self, "Error", f"Failed to add {table_name}")
+        return False
 
     def apply_filter(self) -> None:
-        """
-        Apply the selected filters to the process table.
+        """Apply the selected filters to the process table.
         """
         exercise = self.comboBox_filter_exercise.currentText()
         exercise_type = self.comboBox_filter_type.currentText()
@@ -136,8 +134,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             filter_description.append(f"Date: {date_from} to {date_to}")
 
     def clear_filter(self) -> None:
-        """
-        Clear all filters and reset the process table.
+        """Clear all filters and reset the process table.
         """
         # Reset filter controls
         self.comboBox_filter_exercise.setCurrentIndex(0)
@@ -153,8 +150,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.show_tables()
 
     def connect_signals(self) -> None:
-        """
-        Connect UI signals to their respective slots.
+        """Connect UI signals to their respective slots.
 
         This method sets up all event handlers for buttons, comboboxes, and other UI elements.
         """
@@ -166,7 +162,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         for action, button_prefix in [("delete", "delete"), ("update", "update"), ("refresh", "refresh")]:
             for table in self.table_config.keys():
                 button = getattr(
-                    self, f"pushButton_{button_prefix if table == 'process' else table + '_' + button_prefix}"
+                    self, f"pushButton_{button_prefix if table == 'process' else table + '_' + button_prefix}",
                 )
                 if action == "delete":
                     button.clicked.connect(partial(self.delete_record, table))
@@ -188,8 +184,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
 
     def create_table_model(self, data: list, headers: list[str], id_column: int = 0) -> QSortFilterProxyModel:
-        """
-        Create a table model from data.
+        """Create a table model from data.
 
         Args:
 
@@ -200,6 +195,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         Returns:
 
         - `QSortFilterProxyModel`: A proxy model containing the data.
+
         """
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
@@ -218,12 +214,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         return proxy_model
 
     def delete_record(self, table_name: str) -> None:
-        """
-        Generic method for deleting records from any table.
+        """Generic method for deleting records from any table.
 
         Args:
 
         - `table_name` (`str`): Name of the table to delete the record from.
+
         """
         if table_name not in self.table_config:
             return
@@ -248,8 +244,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", f"Failed to delete record from {table_name}")
 
     def init_database(self) -> None:
-        """
-        Initialize the database connection.
+        """Initialize the database connection.
 
         This method attempts to open the database file specified in the config.
         If the file doesn't exist, it prompts the user to select a database file.
@@ -258,7 +253,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         if not os.path.exists(filename):
             filename, _ = QFileDialog.getOpenFileName(
-                self, "Open Database", os.path.dirname(filename), "SQLite Database (*.db)"
+                self, "Open Database", os.path.dirname(filename), "SQLite Database (*.db)",
             )
             if not filename:
                 QMessageBox.critical(self, "Error", "No database selected")
@@ -272,8 +267,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             sys.exit(1)
 
     def init_filter_controls(self) -> None:
-        """
-        Initialize filter controls for the process table.
+        """Initialize filter controls for the process table.
 
         This method sets up the filter comboboxes and date selectors.
         """
@@ -291,8 +285,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
     def is_valid_date(self, date_str: str) -> bool:
-        """
-        Validates if a date string is in format YYYY-MM-DD and represents a valid date.
+        """Validates if a date string is in format YYYY-MM-DD and represents a valid date.
 
         Args:
 
@@ -301,6 +294,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         Returns:
 
         - `bool`: True if the date is valid, False otherwise.
+
         """
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
             return False
@@ -311,8 +305,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return False
 
     def on_add_exercise(self) -> None:
-        """
-        Handle adding a new exercise to the database.
+        """Handle adding a new exercise to the database.
 
         This method is triggered when the user clicks the "Add Exercise" button.
         """
@@ -324,13 +317,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return
 
         self.add_record_generic(
-            "exercises", "INSERT INTO exercises (name, unit) VALUES (:name, :unit)", {"name": exercise, "unit": unit}
+            "exercises", "INSERT INTO exercises (name, unit) VALUES (:name, :unit)", {"name": exercise, "unit": unit},
         )
 
     @fitness_funcs.validate_date
     def on_add_record(self) -> None:
-        """
-        Handle adding a new fitness record to the database.
+        """Handle adding a new fitness record to the database.
 
         This method is triggered when the user clicks the "Add" button on the main tab.
         It adds a new entry to the process table.
@@ -376,8 +368,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             )
 
     def on_add_type(self) -> None:
-        """
-        Handle adding a new exercise type to the database.
+        """Handle adding a new exercise type to the database.
 
         This method is triggered when the user clicks the "Add Type" button.
         """
@@ -400,8 +391,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
     @fitness_funcs.validate_date
     def on_add_weight(self) -> None:
-        """
-        Handle adding a new weight record to the database.
+        """Handle adding a new weight record to the database.
 
         This method is triggered when the user clicks the "Add Weight" button.
         """
@@ -409,12 +399,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         date = self.lineEdit_weight_date.text()
 
         self.add_record_generic(
-            "weight", "INSERT INTO weight (value, date) VALUES (:value, :date)", {"value": value, "date": date}
+            "weight", "INSERT INTO weight (value, date) VALUES (:value, :date)", {"value": value, "date": date},
         )
 
     def on_exercise_changed(self) -> None:
-        """
-        Handle exercise selection change.
+        """Handle exercise selection change.
 
         This method updates the exercise type combobox when the selected exercise changes.
         """
@@ -434,8 +423,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.comboBox_type.addItems(types)
 
     def on_export_csv(self) -> None:
-        """
-        Export the process table to a CSV file.
+        """Export the process table to a CSV file.
 
         This method is triggered when the user clicks the "Export CSV" button.
         """
@@ -456,8 +444,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         print("CSV saved")
 
     def on_refresh_statistics(self) -> None:
-        """
-        Refresh the statistics display.
+        """Refresh the statistics display.
 
         This method queries the database for exercise data and displays statistics in the text edit.
         """
@@ -505,21 +492,20 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.textEdit_statistics.setText("\n".join(result_lines))
 
     def on_tab_changed(self, index: int) -> None:
-        """
-        Handle tab change event.
+        """Handle tab change event.
 
         This method updates the filter comboboxes when the user switches to the main tab.
 
         Args:
             index (int): Index of the selected tab.
+
         """
         # If switching to the main tab (index 0), update filter comboboxes
         if index == 0:
             self.update_filter_comboboxes()
 
     def on_update_exercises(self) -> None:
-        """
-        Handle updating an exercise record.
+        """Handle updating an exercise record.
 
         This method is triggered when the user clicks the "Update" button on the exercises tab.
         """
@@ -535,8 +521,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         )
 
     def on_update_process(self) -> None:
-        """
-        Handle updating a fitness record.
+        """Handle updating a fitness record.
 
         This method is triggered when the user clicks the "Update" button on the main tab.
         """
@@ -591,8 +576,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to update record")
 
     def on_update_types(self) -> None:
-        """
-        Handle updating an exercise type record.
+        """Handle updating an exercise type record.
 
         This method is triggered when the user clicks the "Update" button on the types tab.
         """
@@ -610,8 +594,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         )
 
     def on_update_weight(self) -> None:
-        """
-        Handle updating a weight record.
+        """Handle updating a weight record.
 
         This method is triggered when the user clicks the "Update" button on the weight tab.
         """
@@ -627,8 +610,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         )
 
     def set_current_date(self) -> None:
-        """
-        Set the current date in date input fields.
+        """Set the current date in date input fields.
 
         This method sets today's date in the date fields for adding records.
         """
@@ -638,8 +620,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.lineEdit_weight_date.setText(date)
 
     def show_tables(self) -> None:
-        """
-        Show all tables at once.
+        """Show all tables at once.
 
         This method fetches data from the database and populates all table views.
         """
@@ -688,8 +669,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         current_exercise: str = None,
         current_type: str = None,
     ) -> None:
-        """
-        Update all UI elements.
+        """Update all UI elements.
 
         Args:
 
@@ -697,6 +677,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - `preserve_selections` (`bool`): Whether to preserve current selections. Defaults to `False`.
         - `current_exercise` (`str`): Current selected exercise to preserve. Defaults to `None`.
         - `current_type` (`str`): Current selected exercise type to preserve. Defaults to `None`.
+
         """
         # Save current selections if needed
         if preserve_selections and current_exercise is None:
@@ -720,13 +701,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.update_filter_comboboxes()
 
     def update_comboboxes(self, selected_exercise: str = None, selected_type: str = None) -> None:
-        """
-        Update the exercise and type comboboxes.
+        """Update the exercise and type comboboxes.
 
         Args:
 
         - `selected_exercise` (`str`): Exercise to select after update. Defaults to `None`.
         - `selected_type` (`str`): Exercise type to select after update. Defaults to `None`.
+
         """
         # Get exercises sorted by frequency of use
         exercises = self.db_manager.get_exercises_by_frequency(500)
@@ -766,8 +747,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.on_exercise_changed()
 
     def update_date_after_add(self) -> None:
-        """
-        Update the date after adding a record.
+        """Update the date after adding a record.
 
         This method increments the date by one day if it's not today's date.
         """
@@ -794,8 +774,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.lineEdit_date.setText(today_str)
 
     def update_filter_comboboxes(self) -> None:
-        """
-        Update filter comboboxes with current data.
+        """Update filter comboboxes with current data.
 
         This method populates the exercise filter combobox and updates the type combobox.
         """
@@ -823,8 +802,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.update_filter_type_combobox()
 
     def update_filter_type_combobox(self) -> None:
-        """
-        Update the exercise type filter combobox based on the selected exercise.
+        """Update the exercise type filter combobox based on the selected exercise.
         """
         # Save current selection
         current_type = self.comboBox_filter_type.currentText()
@@ -859,8 +837,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         query_text: str,
         params_extractor: Callable[[int, QSortFilterProxyModel, str], dict],
     ) -> None:
-        """
-        Generic method for updating records.
+        """Generic method for updating records.
 
         Args:
 
@@ -868,6 +845,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - `model_key` (`str`): Key of the model in the models dictionary.
         - `query_text` (`str`): SQL query for updating the record.
         - `params_extractor` (`Callable`): Function to extract parameters from the selected row.
+
         """
         table_view = next((tv for tv, mk, _ in self.table_config.values() if mk == model_key), None)
         if not table_view:

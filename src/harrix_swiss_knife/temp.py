@@ -8,8 +8,7 @@ config = h.dev.load_config("config/config.json")
 
 
 def generate_summaries(folder: Path | str) -> str:
-    """
-    Create two summary files for a directory of year-based Markdown files:
+    """Create two summary files for a directory of year-based Markdown files:
 
     1. Table.md - A statistical table showing the count of book entries by year
     2. _[directory_name].short.g.md - A hierarchical list of all book entries organized by year
@@ -40,6 +39,7 @@ def generate_summaries(folder: Path | str) -> str:
     # Output: ✅ File ./books/Table.md is created.
     #         ✅ File ./books/_books.short.g.md is created.
     ```
+
     """
     # Convert input to Path object if it's a string
     path = Path(folder) if isinstance(folder, str) else folder

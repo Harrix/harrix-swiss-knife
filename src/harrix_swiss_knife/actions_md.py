@@ -93,7 +93,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)"
+            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -199,7 +199,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)"
+            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -245,7 +245,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)"
+            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -269,7 +269,7 @@ class OnGenerateToc(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)"
+            "Open Markdown file", config["path_articles"], "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -422,7 +422,7 @@ class OnOptimizeImages(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)"
+            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return
@@ -511,7 +511,7 @@ class OnSortSections(action_base.ActionBase):
 
     def execute(self, *args, **kwargs):
         self.filename = self.get_open_filename(
-            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)"
+            "Open Markdown file", config["path_notes"], "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
             return

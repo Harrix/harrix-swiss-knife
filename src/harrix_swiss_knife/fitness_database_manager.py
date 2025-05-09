@@ -1,12 +1,12 @@
 from collections import Counter
-from typing import Any, Dict, Iterator, List, Optional
+from collections.abc import Iterator
+from typing import Any
 
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
 
 class FitnessDatabaseManager:
-    """
-    Manages the connection and operations for a fitness tracking database.
+    """Manages the connection and operations for a fitness tracking database.
 
     This class provides methods to execute SQL queries, retrieve exercise data,
     and perform common database operations for a fitness application.
@@ -18,11 +18,11 @@ class FitnessDatabaseManager:
     Raises:
 
     - `Exception`: If the database connection cannot be established.
+
     """
 
     def __init__(self, db_filename: str) -> None:
-        """
-        Initialize the database manager with a connection to the specified database file.
+        """Initialize the database manager with a connection to the specified database file.
 
         Args:
 
@@ -31,15 +31,15 @@ class FitnessDatabaseManager:
         Raises:
 
         - `Exception`: If the database connection fails.
+
         """
         self.db = QSqlDatabase.addDatabase("QSQLITE")
         self.db.setDatabaseName(db_filename)
         if not self.db.open():
             raise Exception("Failed to open the database")
 
-    def _iter_query(self, query: Optional[QSqlQuery]) -> Iterator[QSqlQuery]:
-        """
-        Creates an iterator for SQL query results.
+    def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
+        """Creates an iterator for SQL query results.
 
         Args:
 
@@ -48,15 +48,15 @@ class FitnessDatabaseManager:
         Returns:
 
         - `Iterator[QSqlQuery]`: An iterator that yields each row of the query result.
+
         """
         if not query:
             return
         while query.next():
             yield query
 
-    def _rows_from_query(self, query: QSqlQuery) -> List[List]:
-        """
-        Extracts all rows from a query result.
+    def _rows_from_query(self, query: QSqlQuery) -> list[list]:
+        """Extracts all rows from a query result.
 
         Args:
 
@@ -65,15 +65,15 @@ class FitnessDatabaseManager:
         Returns:
 
         - `List[List]`: A list of rows, where each row is a list of column values.
+
         """
         result = []
         while query.next():
             result.append([query.value(i) for i in range(query.record().count())])
         return result
 
-    def execute_query(self, query_text: str, params: Optional[Dict[str, Any]] = None) -> Optional[QSqlQuery]:
-        """
-        Prepares and executes an SQL query with optional parameter binding.
+    def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None:
+        """Prepares and executes an SQL query with optional parameter binding.
 
         Args:
 
@@ -83,6 +83,7 @@ class FitnessDatabaseManager:
         Returns:
 
         - `Optional[QSqlQuery]`: The executed query object if successful, `None` otherwise.
+
         """
         query = QSqlQuery()
         query.prepare(query_text)
@@ -91,9 +92,8 @@ class FitnessDatabaseManager:
                 query.bindValue(f":{key}", value)
         return query if query.exec() else None
 
-    def get_exercises_by_frequency(self, limit: int = 500) -> List[str]:
-        """
-        Get exercises ordered by frequency of use in recent records.
+    def get_exercises_by_frequency(self, limit: int = 500) -> list[str]:
+        """Get exercises ordered by frequency of use in recent records.
 
         This method retrieves exercise names sorted by how frequently they appear
         in the most recent workout records.
@@ -105,6 +105,7 @@ class FitnessDatabaseManager:
         Returns:
 
         - `List[str]`: List of exercise names ordered by frequency of use.
+
         """
         # Get all exercises
         all_exercises = {row[0]: row[1] for row in self.get_rows("SELECT _id, name FROM exercises")}
@@ -124,10 +125,9 @@ class FitnessDatabaseManager:
         return sorted_exercises + [name for _, name in all_exercises.items() if name not in sorted_exercises]
 
     def get_id(
-        self, table: str, name_column: str, name_value: str, id_column: str = "_id", condition: Optional[str] = None
-    ) -> Optional[int]:
-        """
-        Generic method to get an ID by name from a specified table.
+        self, table: str, name_column: str, name_value: str, id_column: str = "_id", condition: str | None = None,
+    ) -> int | None:
+        """Generic method to get an ID by name from a specified table.
 
         Args:
 
@@ -140,6 +140,7 @@ class FitnessDatabaseManager:
         Returns:
 
         - `Optional[int]`: The ID if found, `None` otherwise.
+
         """
         query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
         query_text += f" AND {condition}" if condition else ""
@@ -148,10 +149,9 @@ class FitnessDatabaseManager:
         return query.value(0) if query and query.next() else None
 
     def get_items(
-        self, table: str, column: str, condition: Optional[str] = None, order_by: Optional[str] = None
-    ) -> List[Any]:
-        """
-        Generic method to get items from a table.
+        self, table: str, column: str, condition: str | None = None, order_by: str | None = None,
+    ) -> list[Any]:
+        """Generic method to get items from a table.
 
         Args:
 
@@ -163,6 +163,7 @@ class FitnessDatabaseManager:
         Returns:
 
         - `List[Any]`: List of values from the specified column.
+
         """
         query_text = f"SELECT {column} FROM {table}"
         query_text += f" WHERE {condition}" if condition else ""
@@ -170,9 +171,8 @@ class FitnessDatabaseManager:
 
         return [query.value(0) for query in self._iter_query(self.execute_query(query_text))]
 
-    def get_rows(self, query_text: str, params: Optional[Dict[str, Any]] = None) -> List[List[Any]]:
-        """
-        Execute a query and return all rows as a list of lists.
+    def get_rows(self, query_text: str, params: dict[str, Any] | None = None) -> list[list[Any]]:
+        """Execute a query and return all rows as a list of lists.
 
         Args:
 
@@ -182,6 +182,7 @@ class FitnessDatabaseManager:
         Returns:
 
         - `List[List[Any]]`: A list containing all rows, where each row is a list of column values.
+
         """
         query = self.execute_query(query_text, params)
         return self._rows_from_query(query) if query else []

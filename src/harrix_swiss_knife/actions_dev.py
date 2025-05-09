@@ -12,7 +12,7 @@ class OnExit(action_base.ActionBase):
 
     def __init__(self, **kwargs):
         super().__init__()
-        self.parent = kwargs.get("parent", None)
+        self.parent = kwargs.get("parent")
 
     def execute(self, *args, **kwargs):
         QApplication.quit()
@@ -24,7 +24,7 @@ class OnGetMenu(action_base.ActionBase):
 
     def __init__(self, **kwargs):
         super().__init__()
-        self.parent = kwargs.get("parent", None)
+        self.parent = kwargs.get("parent")
 
     def execute(self, *args, **kwargs):
         result = self.parent.get_menu()
