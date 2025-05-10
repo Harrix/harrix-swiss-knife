@@ -26,11 +26,15 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
 
-# Disabling some pydocstyle rules that conflict with Markdown-style documentation
-# We use Markdown for docstrings instead of traditional reST/Napoleon/Google formats
-# D205 (pydocstyle (D)) — 1 blank line required between summary line and description
-# D412 (pydocstyle (D)) — No blank lines allowed between a section header and its content ("{name}")
-# D417 (pydocstyle (D)) — Missing argument description in the docstring for {definition}: {name}
+# Disabling some pydocstyle rules that conflict with Markdown-style documentation.
+# We use Markdown for docstrings instead of traditional reST/Napoleon/Google formats:
+# D205 — 1 blank line required between summary line and description
+# D412 — No blank lines allowed between a section header and its content ("{name}")
+# D417 — Missing argument description in the docstring for {definition}: {name}
+# Recommendations from Ruff itself:
+# D203 — 1 blank line required before class docstring
+# D213 — Multi-line docstring summary should start at the second line
+# COM812 — Trailing comma missing
 # Other rules:
 # PLR0915 — Too many statements ({statements} > {max_statements})
 # PLR0912 — Too many branches ({branches} > {max_branches})
@@ -38,15 +42,27 @@ dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
 # S603 — subprocess call: check for execution of untrusted input
 # T201 — print found
 [tool.ruff]
-select = ["ALL"]
-ignore = ["D205", "D412", "D417", "PLR0912", "PLR0915", "C901", "S603", "T201"]
+lint.select = ["ALL"]
+lint.ignore = [
+    "D205",
+    "D412",
+    "D417",
+    "PLR0912",
+    "PLR0915",
+    "C901",
+    "S603",
+    "T201",
+    "D203",
+    "D213",
+    "COM812",
+]
 line-length = 120
 
 # Disable specific checks in test files:
 # S101 — Use of assert detected
 # D103 (pydocstyle (D)) — Missing docstring in public function
 # INP001 — File {filename} is part of an implicit namespace package. Add an __init__.py.
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "D103", "INP001"]
 
 [tool.pytest.ini_options]
