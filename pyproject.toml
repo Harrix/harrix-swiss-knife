@@ -35,9 +35,10 @@ dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
 # PLR0912 — Too many branches ({branches} > {max_branches})
 # C901 — {name} is too complex ({complexity} > {max_complexity})
 # S603 — subprocess call: check for execution of untrusted input
+# T201 — print found
 [tool.ruff]
 select = ["ALL"]
-ignore = ["D412", "D417", "PLR0912", "PLR0915", "C901", "S603"]
+ignore = ["D412", "D417", "PLR0912", "PLR0915", "C901", "S603", "T201"]
 line-length = 120
 
 # Disable specific checks in test files:
