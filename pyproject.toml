@@ -28,6 +28,7 @@ dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
 
 # Disabling some pydocstyle rules that conflict with Markdown-style documentation
 # We use Markdown for docstrings instead of traditional reST/Napoleon/Google formats
+# D205 (pydocstyle (D)) — 1 blank line required between summary line and description
 # D412 (pydocstyle (D)) — No blank lines allowed between a section header and its content ("{name}")
 # D417 (pydocstyle (D)) — Missing argument description in the docstring for {definition}: {name}
 # Other rules:
@@ -38,7 +39,7 @@ dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
 # T201 — print found
 [tool.ruff]
 select = ["ALL"]
-ignore = ["D412", "D417", "PLR0912", "PLR0915", "C901", "S603", "T201"]
+ignore = ["D205", "D412", "D417", "PLR0912", "PLR0915", "C901", "S603", "T201"]
 line-length = 120
 
 # Disable specific checks in test files:
