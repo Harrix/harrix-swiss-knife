@@ -1,15 +1,31 @@
+"""Main module for Harrix Swiss Knife application.
+
+This module contains the main application logic for the Harrix Swiss Knife tool,
+including the menu structure and application initialization.
+"""
+
 import sys
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 import harrix_swiss_knife as hsk
-from harrix_swiss_knife import resources_rc  # noqa
+from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife import main_menu_base, tray_icon
 
 
 class MainMenu(main_menu_base.MainMenuBase):
+    """Main menu class that defines the application's menu structure.
+
+    This class extends the MainMenuBase class and creates all the menu items
+    and submenus for the application.
+    """
+
     def __init__(self) -> None:
+        """Initialize the main menu with all submenus and actions.
+
+        Create and organizes all menu categories and their respective items.
+        """
         super().__init__()
 
         # Menu Dev
