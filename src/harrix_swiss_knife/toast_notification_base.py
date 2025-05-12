@@ -1,6 +1,12 @@
+"""Toast notification implementation for PySide6 applications.
+
+This module provides a base class for creating toast-style notifications
+that can be displayed temporarily on screen with customizable messages.
+"""
+
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout, QWidget
 
 
 class ToastNotificationBase(QDialog):
@@ -20,7 +26,7 @@ class ToastNotificationBase(QDialog):
 
     """
 
-    def __init__(self, message: str, parent=None) -> None:
+    def __init__(self, message: str, parent: QWidget | None = None) -> None:
         """Initialize the toast notification with the specified message and parent widget.
 
         Args:
