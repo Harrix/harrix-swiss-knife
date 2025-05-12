@@ -1,7 +1,22 @@
+"""Main window module for the harrix-swiss-knife application.
+
+This module provides the MainWindow class that serves as the primary user interface
+for the application, displaying menu actions and handling user interactions.
+"""
+
 import harrix_pylib as h
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QMainWindow, QSplitter, QTextEdit, QWidget
+from PySide6.QtGui import QAction, QCloseEvent
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMenu,
+    QSplitter,
+    QTextEdit,
+    QWidget,
+)
 
 
 class MainWindow(QMainWindow):
@@ -14,8 +29,8 @@ class MainWindow(QMainWindow):
 
     """
 
-    def __init__(self, menu) -> None:
-        """Initializes the `MainWindow` with the given menu.
+    def __init__(self, menu: QMenu) -> None:
+        """Initialize the `MainWindow` with the given menu.
 
         Args:
 
@@ -52,7 +67,7 @@ class MainWindow(QMainWindow):
         # Connect the itemClicked signal to an event handler
         self.list_widget.itemClicked.connect(self.on_item_clicked)
 
-    def closeEvent(self, event) -> None:  # noqa: N802
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Override the close event to hide the window instead of closing it.
 
         Args:
@@ -65,7 +80,7 @@ class MainWindow(QMainWindow):
         event.ignore()
         self.hide()
 
-    def on_item_clicked(self, item) -> None:
+    def on_item_clicked(self, item: QListWidgetItem) -> None:
         """Handle the event when an item in the list widget is clicked.
 
         Args:
@@ -91,7 +106,7 @@ class MainWindow(QMainWindow):
             output_txt = (h.dev.get_project_root() / "temp/output.txt").read_text(encoding="utf8")
             self.text_edit.setPlainText(output_txt)
 
-    def populate_list(self, actions, indent_level=0) -> None:
+    def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
         """Populate the list widget with actions, handling submenus recursively.
 
         Args:
