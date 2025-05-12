@@ -1,4 +1,11 @@
+"""Toast countdown notification module with elapsed time display.
+
+This module provides a toast notification that displays a running counter of elapsed time,
+useful for indicating ongoing processes while showing how much time has passed.
+"""
+
 from PySide6.QtCore import QTime, QTimer
+from PySide6.QtWidgets import QWidget
 
 from harrix_swiss_knife import toast_notification_base
 
@@ -25,6 +32,15 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
     """
 
     def __init__(self, message: str = "Process is running…", parent: QWidget | None = None) -> None:
+        """Initialize the countdown notification with timer functionality.
+
+        Args:
+
+        - `message` (`str`, optional): The text to be displayed in the notification.
+          Defaults to `"Process is running…"`.
+        - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
+
+        """
         super().__init__(message, parent)
 
         self.elapsed_seconds = 0
@@ -32,17 +48,21 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         self.timer.timeout.connect(self.update_time)
 
     def _refresh_label_text(self) -> None:
-        """Updates the notification text with the current elapsed time."""
+        """Update the notification text with the current elapsed time.
+
+        Refreshes the label to show the original message and the number of seconds
+        that have elapsed since the countdown started.
+        """
         self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 
-    def closeEvent(self, event) -> None:  # noqa: N802
+    def closeEvent(self, event: object) -> None:  # noqa: N802
         """Handle the notification close event.
 
         Stops the timer when the notification is closed to prevent memory leaks.
 
         Args:
 
-        - `event`: The close event object.
+        - `event` (`object`): The close event object.
 
         """
         self.timer.stop()
