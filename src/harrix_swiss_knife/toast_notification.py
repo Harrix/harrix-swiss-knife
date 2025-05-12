@@ -39,6 +39,7 @@ class ToastNotification(toast_notification_base.ToastNotificationBase):
         - `duration` (`int`, optional): Time in milliseconds before the notification
           automatically closes. Defaults to `1000`.
         - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
+
         """
         super().__init__(message, parent)
         QTimer.singleShot(duration, self.close)
