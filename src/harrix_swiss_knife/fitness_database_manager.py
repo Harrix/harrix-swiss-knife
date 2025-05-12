@@ -173,7 +173,8 @@ class FitnessDatabaseManager:
         name_column = _safe_identifier(name_column)
         id_column = _safe_identifier(id_column)
 
-        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
+        # nosec B608 - identifiers are validated by _safe_identifier
+        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"  # noqa: S608
         if condition:
             query_text += f" AND {condition}"
 
@@ -206,7 +207,8 @@ class FitnessDatabaseManager:
         table = _safe_identifier(table)
         column = _safe_identifier(column)
 
-        query_text = f"SELECT {column} FROM {table}"
+        # nosec B608 - identifiers are validated by _safe_identifier
+        query_text = f"SELECT {column} FROM {table}"  # noqa: S608
         if condition:
             query_text += f" WHERE {condition}"
         if order_by:
