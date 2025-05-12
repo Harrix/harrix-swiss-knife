@@ -333,7 +333,7 @@ class ActionBase:
         class WorkerForThread(QThread):
             finished = Signal(object)
 
-            def __init__(self, work_function: Callable, parent=None) -> None:
+            def __init__(self, work_function: Callable, parent: QWidget | None = None) -> None:
                 super().__init__(parent)
                 self.work_function = work_function
 

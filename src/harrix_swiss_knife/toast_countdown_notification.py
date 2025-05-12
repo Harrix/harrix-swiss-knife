@@ -24,7 +24,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
 
     """
 
-    def __init__(self, message: str = "Process is running…", parent=None) -> None:
+    def __init__(self, message: str = "Process is running…", parent: QWidget | None = None) -> None:
         super().__init__(message, parent)
 
         self.elapsed_seconds = 0

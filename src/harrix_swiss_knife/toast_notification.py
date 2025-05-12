@@ -23,6 +23,6 @@ class ToastNotification(toast_notification_base.ToastNotificationBase):
 
     """
 
-    def __init__(self, message: str, duration: int = 1000, parent=None) -> None:
+    def __init__(self, message: str, duration: int = 1000, parent: QWidget | None = None) -> None:
         super().__init__(message, parent)
         QTimer.singleShot(duration, self.close)
