@@ -42,10 +42,10 @@ class MainMenuBase:
 
         if icon:
             action = QAction(self.get_icon(icon), action_instance.title, triggered=action_instance)
-            setattr(action, "icon_name", icon)
+            action.icon_name = icon
         elif hasattr(action_instance, "icon") and action_instance.icon:
             action = QAction(self.get_icon(action_instance.icon), action_instance.title, triggered=action_instance)
-            setattr(action, "icon_name", action_instance.icon)
+            action.icon_name = action_instance.icon
         else:
             action = QAction(action_instance.title, triggered=action_instance)
         setattr(self, f"action_{class_action.__name__}", action)
