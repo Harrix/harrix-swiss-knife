@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         # Connect the itemClicked signal to an event handler
         self.list_widget.itemClicked.connect(self.on_item_clicked)
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event) -> None:  # noqa: N802
         """Override the close event to hide the window instead of closing it.
 
         Args:

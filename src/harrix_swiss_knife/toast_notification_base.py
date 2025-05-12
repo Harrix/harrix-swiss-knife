@@ -64,7 +64,7 @@ class ToastNotificationBase(QDialog):
         # Set cursor to indicate draggable window
         self.setCursor(Qt.OpenHandCursor)
 
-    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Handle the mouse move event to update the position of the notification during dragging.
 
         Args:
@@ -76,7 +76,7 @@ class ToastNotificationBase(QDialog):
             self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
 
-    def mousePressEvent(self, event: QMouseEvent) -> None:
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Handle the mouse press event to initiate dragging of the notification.
 
         Args:
@@ -90,7 +90,7 @@ class ToastNotificationBase(QDialog):
             self.setCursor(Qt.ClosedHandCursor)  # Change cursor to indicate active dragging
             event.accept()
 
-    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Handle the mouse release event to conclude the dragging of the notification.
 
         Args:

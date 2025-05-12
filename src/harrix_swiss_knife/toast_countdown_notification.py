@@ -35,7 +35,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         """Updates the notification text with the current elapsed time."""
         self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event) -> None:  # noqa: N802
         """Handle the notification close event.
 
         Stops the timer when the notification is closed to prevent memory leaks.
