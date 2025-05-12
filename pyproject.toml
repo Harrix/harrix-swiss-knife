@@ -59,6 +59,10 @@ lint.ignore = [
     "T201",
 ]
 line-length = 120
+exclude = [
+    "src/harrix_swiss_knife/resources_rc.py",
+    "src/harrix_swiss_knife/fitness_window.py",
+]
 
 # Disable specific checks in test files:
 # S101 - Use of assert detected
