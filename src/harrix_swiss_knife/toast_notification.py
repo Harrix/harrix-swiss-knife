@@ -34,9 +34,11 @@ class ToastNotification(toast_notification_base.ToastNotificationBase):
         """Initialize the toast notification with automatic closing functionality.
 
         Args:
-            message: The text to be displayed in the notification.
-            duration: Time in milliseconds before the notification automatically closes.
-            parent: The parent widget.
+
+        - `message` (`str`): The text to be displayed in the notification.
+        - `duration` (`int`, optional): Time in milliseconds before the notification
+          automatically closes. Defaults to `1000`.
+        - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
         """
         super().__init__(message, parent)
         QTimer.singleShot(duration, self.close)
