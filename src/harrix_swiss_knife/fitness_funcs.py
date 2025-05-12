@@ -1,5 +1,8 @@
+"""Utility functions for fitness-related operations and validations."""
+
 from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 from PySide6.QtWidgets import QMessageBox
 
@@ -31,7 +34,7 @@ def validate_date(method: Callable) -> Callable:
     """
 
     @wraps(method)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         date = self.lineEdit_date.text()
         if not self.is_valid_date(date):
             QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
