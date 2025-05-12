@@ -1,5 +1,4 @@
-"""
-Module providing a system tray icon implementation for the Harrix Swiss Knife application.
+"""Module providing a system tray icon implementation for the Harrix Swiss Knife application.
 
 This module defines the TrayIcon class, which extends QSystemTrayIcon to provide
 functionality for displaying the application in the system tray with appropriate
