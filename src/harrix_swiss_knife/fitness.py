@@ -293,10 +293,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """
         exercises = self.db_manager.get_exercises_by_frequency(500)
 
-        self.comboBox_exercise.blockSignals(True)
+        self.comboBox_exercise.blockSignals(True)  # noqa: FBT003
         self.comboBox_exercise.clear()
         self.comboBox_exercise.addItems(exercises)
-        self.comboBox_exercise.blockSignals(False)
+        self.comboBox_exercise.blockSignals(False)  # noqa: FBT003
 
         self.comboBox_exercise_name.clear()
         self.comboBox_exercise_name.addItems(exercises)
@@ -956,7 +956,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """
         current_exercise = self.comboBox_filter_exercise.currentText()
 
-        self.comboBox_filter_exercise.blockSignals(True)
+        self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
         self.comboBox_filter_exercise.clear()
         self.comboBox_filter_exercise.addItem("")  # all exercises
         self.comboBox_filter_exercise.addItems(
@@ -966,7 +966,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             idx = self.comboBox_filter_exercise.findText(current_exercise)
             if idx >= 0:
                 self.comboBox_filter_exercise.setCurrentIndex(idx)
-        self.comboBox_filter_exercise.blockSignals(False)
+        self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
 
         self.update_filter_type_combobox()
 
