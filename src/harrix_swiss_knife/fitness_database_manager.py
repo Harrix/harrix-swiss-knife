@@ -120,7 +120,7 @@ class FitnessDatabaseManager:
           not encountered in the inspected slice are appended afterwards.
 
         """
-        # Validate *limit* and bind it instead of inlining to avoid S608.
+        # Validate *limit*
         if limit <= 0:
             return []
 
@@ -174,7 +174,7 @@ class FitnessDatabaseManager:
         id_column = _safe_identifier(id_column)
 
         # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"  # noqa: S608
+        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
         if condition:
             query_text += f" AND {condition}"
 
@@ -208,7 +208,7 @@ class FitnessDatabaseManager:
         column = _safe_identifier(column)
 
         # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {column} FROM {table}"  # noqa: S608
+        query_text = f"SELECT {column} FROM {table}"
         if condition:
             query_text += f" WHERE {condition}"
         if order_by:
