@@ -7,7 +7,7 @@ license = { file = "LICENSE.md" }
 authors = [{ name = "Anton Sergienko", email = "anton.b.sergienko@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
-    "harrix-pylib>=0.121",
+    "harrix-pylib>=0.122",
     "libcst>=1.5.1",
     "pillow>=11.1.0",
     "pyside6>=6.8.1.1",
@@ -42,6 +42,7 @@ dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
 # S603 - subprocess call: check for execution of untrusted input
 # T201 - print found
 # ANN401 - Dynamically typed expressions (typing.Any) are disallowed in {name}
+# S608 - Possible SQL injection vector through string-based query construction
 [tool.ruff]
 lint.select = ["ALL"]
 lint.ignore = [
@@ -56,6 +57,7 @@ lint.ignore = [
     "PLR0912",
     "PLR0915",
     "S603",
+    "S608",
     "T201",
 ]
 line-length = 120
