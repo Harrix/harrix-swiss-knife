@@ -1,7 +1,10 @@
+"""Module for optimizing images in markdown files and content."""
+
 import re
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Tuple
 
 import harrix_pylib as h
 
@@ -38,6 +41,7 @@ def optimize_images_in_md_content(
     markdown_text: str,
     path_md: Path | str,
     image_folder: str = "img",
+    *,
     convert_png_to_avif: bool = False,
 ) -> str:
     """Optimize images referenced in markdown content by converting them to more efficient formats.
@@ -66,7 +70,20 @@ def optimize_images_in_md_content(
 
     """
 
-    def optimize_images_content_line(markdown_line, path_md, image_folder="img"):
+    def optimize_images_content_line(markdown_line: str, path_md: Path | str, image_folder: str = "img") -> str:
+        """Process a single line of markdown to optimize any image reference it contains.
+
+        Args:
+
+        - `markdown_line` (`str`): A single line from the markdown document.
+        - `path_md` (`Path | str`): Path to the markdown file or its containing directory.
+        - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
+
+        Returns:
+
+        - `str`: The processed markdown line, with image references updated if needed.
+
+        """
         # Regular expression to match markdown image with remote URL (http or https)
         pattern = r"^\!\[(.*?)\]\((http.*?)\)$"
         match = re.search(pattern, markdown_line.strip())
@@ -97,11 +114,7 @@ def optimize_images_in_md_content(
         md_dir = path_md.parent if path_md.is_file() else path_md
 
         # Determine the complete path to the image
-        if Path(image_path).is_absolute():
-            image_filename = Path(image_path)
-        else:
-            # Relative path - join with markdown directory
-            image_filename = md_dir / image_path
+        image_filename = Path(image_path) if Path(image_path).is_absolute() else md_dir / image_path
 
         # Check if the image exists
         if not image_filename.exists():
@@ -175,13 +188,13 @@ def optimize_images_in_md_content(
 
     new_lines = []
     lines = content_md.split("\n")
-    for line, is_code_block in h.md.identify_code_blocks(lines):
+    for line_content, is_code_block in h.md.identify_code_blocks(lines):
         if is_code_block:
-            new_lines.append(line)
+            new_lines.append(line_content)
             continue
 
-        line = optimize_images_content_line(line, path_md, image_folder)
-        new_lines.append(line)
+        processed_line = optimize_images_content_line(line_content, path_md, image_folder)
+        new_lines.append(processed_line)
     content_md = "\n".join(new_lines)
 
     return yaml_md + "\n\n" + content_md
