@@ -1,3 +1,9 @@
+"""Toast notification module providing temporary popup notifications.
+
+This module contains the ToastNotification class which extends the base toast
+notification functionality by adding automatic closing behavior after a specified duration.
+"""
+
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QWidget
 
@@ -25,5 +31,12 @@ class ToastNotification(toast_notification_base.ToastNotificationBase):
     """
 
     def __init__(self, message: str, duration: int = 1000, parent: QWidget | None = None) -> None:
+        """Initialize the toast notification with automatic closing functionality.
+
+        Args:
+            message: The text to be displayed in the notification.
+            duration: Time in milliseconds before the notification automatically closes.
+            parent: The parent widget.
+        """
         super().__init__(message, parent)
         QTimer.singleShot(duration, self.close)
