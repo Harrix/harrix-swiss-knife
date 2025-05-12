@@ -11,10 +11,9 @@ from PySide6.QtWidgets import QApplication
 
 import harrix_swiss_knife as hsk
 from harrix_swiss_knife import resources_rc  # noqa: F401
-from harrix_swiss_knife import main_menu_base, tray_icon
 
 
-class MainMenu(main_menu_base.MainMenuBase):
+class MainMenu(hsk.main_menu_base.MainMenuBase):
     """Main menu class that defines the application's menu structure.
 
     This class extends the MainMenuBase class and creates all the menu items
@@ -128,7 +127,7 @@ if __name__ == "__main__":
 
     main_menu = MainMenu()
 
-    tray_icon = tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu, parent=app)
+    tray_icon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu, parent=app)
     tray_icon.setToolTip("harrix-swiss-knife")
     tray_icon.show()
     sys.exit(app.exec())
