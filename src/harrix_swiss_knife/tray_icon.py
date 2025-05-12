@@ -1,4 +1,13 @@
-from PySide6.QtWidgets import QSystemTrayIcon
+"""
+Module providing a system tray icon implementation for the Harrix Swiss Knife application.
+
+This module defines the TrayIcon class, which extends QSystemTrayIcon to provide
+functionality for displaying the application in the system tray with appropriate
+context menu and interaction handling.
+"""
+
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget
 
 from harrix_swiss_knife import main_window
 
@@ -15,7 +24,7 @@ class TrayIcon(QSystemTrayIcon):
 
     """
 
-    def __init__(self, icon, menu, parent=None) -> None:
+    def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None) -> None:
         """Initialize the `TrayIcon` with the given icon and menu.
 
         Args:
@@ -34,8 +43,8 @@ class TrayIcon(QSystemTrayIcon):
         super().__init__(icon, parent)
         self.setContextMenu(menu)
         self.activated.connect(self.on_activated)
-        self.main_window = None
-        self.menu = menu
+        self.main_window: main_window.MainWindow | None = None
+        self.menu: QMenu = menu
 
     def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         """Handle the activation event of the system tray icon.
