@@ -36,7 +36,7 @@ def validate_date(method: Callable) -> Callable:
     @wraps(method)
     def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         date = self.lineEdit_date.text()
-        if not self.is_valid_date(date):
+        if not self._is_valid_date(date):
             QMessageBox.warning(self, "Error", "Invalid date format. Use YYYY-MM-DD")
             return None
         return method(self, *args, **kwargs)
