@@ -287,7 +287,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
     def is_valid_date(self, date_str: str) -> bool:
-        """Validates if a date string is in format YYYY-MM-DD and represents a valid date.
+        """Validate if a date string is in format YYYY-MM-DD and represents a valid date.
 
         Args:
 

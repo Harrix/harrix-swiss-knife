@@ -101,7 +101,7 @@ class ActionBase:
         raise NotImplementedError(msg)
 
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
-        """Opens a dialog to select an existing directory.
+        """Open a dialog to select an existing directory.
 
         Args:
 
@@ -120,7 +120,7 @@ class ActionBase:
         return Path(folder_path)
 
     def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
-        """Opens a dialog to select a file to open.
+        """Open a dialog to select a file to open.
 
         Args:
 
@@ -140,7 +140,7 @@ class ActionBase:
         return Path(filename)
 
     def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
-        """Opens a dialog to specify a filename for saving.
+        """Open a dialog to specify a filename for saving.
 
         Args:
 
@@ -160,7 +160,7 @@ class ActionBase:
         return Path(filename)
 
     def get_text_input(self, title: str, label: str) -> str | None:
-        """Prompts the user for text input via a simple dialog.
+        """Prompt the user for text input via a simple dialog.
 
         Args:
 
@@ -179,7 +179,7 @@ class ActionBase:
         return text
 
     def get_text_textarea(self, title: str, label: str) -> str | None:
-        """Opens a dialog for multi-line text entry.
+        """Open a dialog for multi-line text entry.
 
         Args:
 
@@ -227,7 +227,7 @@ class ActionBase:
         return None
 
     def show_result(self) -> str | None:
-        """Opens a dialog to display result of `execute`.
+        """Open a dialog to display result of `execute`.
 
         Returns:
         - `str | None`: The displayed text, or `None` if cancelled.
@@ -236,7 +236,7 @@ class ActionBase:
         return self.show_text_multiline("\n".join(self.result_lines), "Result")
 
     def show_text_multiline(self, text: str, title="Result") -> str | None:
-        """Opens a dialog to display text with a copy button.
+        """Open a dialog to display text with a copy button.
 
         Args:
         - `text` (`str`): The text to display in the textarea.
@@ -296,7 +296,7 @@ class ActionBase:
         return None
 
     def show_toast(self, message: str, duration: int = 2000) -> None:
-        """Displays a toast notification.
+        """Display a toast notification.
 
         Args:
 
@@ -359,7 +359,7 @@ class ActionBase:
         self._current_worker = worker
 
     def text_to_clipboard(self, text: str) -> None:
-        """Copies the given text to the system clipboard.
+        """Copy the given text to the system clipboard.
 
         Args:
 

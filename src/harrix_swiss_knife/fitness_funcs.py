@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QMessageBox
 
 
 def validate_date(method: Callable) -> Callable:
-    """Decorator to validate date before executing a method.
+    """Decorate to validate date before executing a method.
 
     This decorator checks if the date in the lineEdit_date field has a valid format
     before executing the decorated method. If the date is invalid, it shows a warning

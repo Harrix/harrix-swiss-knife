@@ -4,7 +4,7 @@ from harrix_swiss_knife import main_window
 
 
 class TrayIcon(QSystemTrayIcon):
-    """Represents a system tray icon with an associated context menu and main window.
+    """Represent a system tray icon with an associated context menu and main window.
 
     Attributes:
 
@@ -16,7 +16,7 @@ class TrayIcon(QSystemTrayIcon):
     """
 
     def __init__(self, icon, menu, parent=None) -> None:
-        """Initializes the `TrayIcon` with the given icon and menu.
+        """Initialize the `TrayIcon` with the given icon and menu.
 
         Args:
 
@@ -38,7 +38,7 @@ class TrayIcon(QSystemTrayIcon):
         self.menu = menu
 
     def on_activated(self, reason) -> None:
-        """Handles the activation event of the system tray icon.
+        """Handle the activation event of the system tray icon.
 
         Args:
 

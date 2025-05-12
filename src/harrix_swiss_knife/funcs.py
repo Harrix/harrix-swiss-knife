@@ -7,7 +7,7 @@ import harrix_pylib as h
 
 
 def optimize_images_in_md(filename: Path | str) -> str:
-    """Optimizes images in a markdown file by converting them to more efficient formats.
+    """Optimize images in a markdown file by converting them to more efficient formats.
 
     This function reads a markdown file, processes any local images referenced in it,
     optimizes them, and updates the markdown content to reference the optimized images.
@@ -40,7 +40,7 @@ def optimize_images_in_md_content(
     image_folder: str = "img",
     convert_png_to_avif: bool = False,
 ) -> str:
-    """Optimizes images referenced in markdown content by converting them to more efficient formats.
+    """Optimize images referenced in markdown content by converting them to more efficient formats.
 
     This function processes markdown content to find local image references, optimizes those images,
     and updates the markdown content to reference the optimized versions. Remote images (URLs)
@@ -188,7 +188,7 @@ def optimize_images_in_md_content(
 
 
 def optimize_images_in_md_png_to_avif(filename: Path | str) -> str:
-    """Optimizes images in a markdown file by converting them to more efficient formats. PNG converts to AVIF too.
+    """Optimize images in a markdown file by converting them to more efficient formats. PNG converts to AVIF too.
 
     This function reads a markdown file, processes any local images referenced in it,
     optimizes them, and updates the markdown content to reference the optimized images.

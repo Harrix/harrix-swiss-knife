@@ -23,7 +23,7 @@ class MainMenuBase:
         self.menu = QMenu()
 
     def add_item(self, menu: QMenu, class_action: Callable, icon="") -> None:
-        """Adds an item to the given menu.
+        """Add an item to the given menu.
 
         Args:
 
@@ -51,7 +51,7 @@ class MainMenuBase:
         menu.addAction(action)
 
     def create_emoji_icon(self, emoji: str, size: int = 32) -> QIcon:
-        """Creates an icon with the given emoji.
+        """Create an icon with the given emoji.
 
         Args:
 
@@ -76,7 +76,7 @@ class MainMenuBase:
         return QIcon(pixmap)
 
     def generate_markdown_from_qmenu(self, menu: QMenu, level: int = 0) -> list[str]:
-        """Generates a markdown representation of a QMenu structure.
+        """Generate a markdown representation of a QMenu structure.
 
         This function traverses the QMenu and its submenus to produce a nested list in markdown format.
 
@@ -105,7 +105,7 @@ class MainMenuBase:
         return markdown_lines
 
     def get_icon(self, icon: str, size: int = 32) -> QIcon:
-        """Retrieves an icon for menu items.
+        """Retrieve an icon for menu items.
 
         Args:
 
@@ -131,7 +131,7 @@ class MainMenuBase:
         return self.create_emoji_icon(icon, size)
 
     def get_menu(self) -> str:
-        """Updates the README.md file with the current menu structure.
+        """Update the README.md file with the current menu structure.
 
         This method:
 
@@ -156,7 +156,7 @@ class MainMenuBase:
         return list_of_menu
 
     def new_menu(self, title: str, icon: str) -> QMenu:
-        """Creates and returns a new QMenu with a title and an icon.
+        """Create and returns a new QMenu with a title and an icon.
 
         Args:
 

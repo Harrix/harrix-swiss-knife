@@ -82,7 +82,9 @@ class OnTreeViewFolder(action_base.ActionBase):
         if folder_path is None:
             return
 
-        result = h.file.tree_view_folder(folder_path, is_ignore_hidden_folders = kwargs.get("is_ignore_hidden_folders", False))
+        result = h.file.tree_view_folder(
+            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False)
+        )
         self.add_line(result)
         self.show_result()
 

@@ -36,7 +36,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 
     def closeEvent(self, event) -> None:
-        """Handles the notification close event.
+        """Handle the notification close event.
 
         Stops the timer when the notification is closed to prevent memory leaks.
 
@@ -49,13 +49,13 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         super().closeEvent(event)
 
     def start_countdown(self) -> None:
-        """Starts the countdown timer and initializes the display."""
+        """Start the countdown timer and initializes the display."""
         self.start_time = QTime.currentTime()
         self.timer.start(1000)
         self._refresh_label_text()
 
     def update_time(self) -> None:
-        """Updates the elapsed time counter.
+        """Update the elapsed time counter.
 
         This method is called automatically every second when the timer is active.
         """

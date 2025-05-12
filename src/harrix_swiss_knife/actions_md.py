@@ -364,7 +364,8 @@ class OnNewArticle(action_base.ActionBase):
         article_name = article_name.replace(" ", "-")
 
         text = config["beginning_of_article"].replace(
-            "[YEAR]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y"),
+            "[YEAR]",
+            datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y"),
         )
         text = text.replace("[NAME]", article_name)
         text = text.replace("[DATE]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d"))

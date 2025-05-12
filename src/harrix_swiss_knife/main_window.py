@@ -53,7 +53,7 @@ class MainWindow(QMainWindow):
         self.list_widget.itemClicked.connect(self.on_item_clicked)
 
     def closeEvent(self, event) -> None:
-        """Overrides the close event to hide the window instead of closing it.
+        """Override the close event to hide the window instead of closing it.
 
         Args:
 
@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
         self.hide()
 
     def on_item_clicked(self, item) -> None:
-        """Handles the event when an item in the list widget is clicked.
+        """Handle the event when an item in the list widget is clicked.
 
         Args:
 
@@ -92,7 +92,7 @@ class MainWindow(QMainWindow):
             self.text_edit.setPlainText(output_txt)
 
     def populate_list(self, actions, indent_level=0) -> None:
-        """Populates the list widget with actions, handling submenus recursively.
+        """Populate the list widget with actions, handling submenus recursively.
 
         Args:
 

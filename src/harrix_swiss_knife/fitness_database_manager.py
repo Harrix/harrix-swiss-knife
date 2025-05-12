@@ -6,7 +6,7 @@ from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
 
 class FitnessDatabaseManager:
-    """Manages the connection and operations for a fitness tracking database.
+    """Manage the connection and operations for a fitness tracking database.
 
     This class provides methods to execute SQL queries, retrieve exercise data,
     and perform common database operations for a fitness application.
@@ -40,7 +40,7 @@ class FitnessDatabaseManager:
             raise Exception(msg)
 
     def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        """Creates an iterator for SQL query results.
+        """Create an iterator for SQL query results.
 
         Args:
 
@@ -57,7 +57,7 @@ class FitnessDatabaseManager:
             yield query
 
     def _rows_from_query(self, query: QSqlQuery) -> list[list]:
-        """Extracts all rows from a query result.
+        """Extract all rows from a query result.
 
         Args:
 
@@ -74,7 +74,7 @@ class FitnessDatabaseManager:
         return result
 
     def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None:
-        """Prepares and executes an SQL query with optional parameter binding.
+        """Prepare and executes an SQL query with optional parameter binding.
 
         Args:
 
