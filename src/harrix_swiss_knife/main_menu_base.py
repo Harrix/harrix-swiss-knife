@@ -1,3 +1,5 @@
+"""Base class for handling menu operations in a PySide application."""
+
 from collections.abc import Callable
 
 import harrix_pylib as h
@@ -7,7 +9,7 @@ from PySide6.QtWidgets import QMenu
 
 
 class MainMenuBase:
-    """A base class for handling menu operations in a PyQt application.
+    """A base class for handling menu operations in a PySide application.
 
     This class provides methods to create and manage menu items,
     retrieve icons, and generate documentation for menu items in a README file.
@@ -19,10 +21,10 @@ class MainMenuBase:
     """
 
     def __init__(self) -> None:
-        """Initializes the `MainMenuBase` with an empty QMenu."""
+        """Initialize the `MainMenuBase` with an empty QMenu."""
         self.menu = QMenu()
 
-    def add_item(self, menu: QMenu, class_action: Callable, icon="") -> None:
+    def add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
         """Add an item to the given menu.
 
         Args:
@@ -40,10 +42,10 @@ class MainMenuBase:
 
         if icon:
             action = QAction(self.get_icon(icon), action_instance.title, triggered=action_instance)
-            action._icon = icon
+            setattr(action, "icon_name", icon)
         elif hasattr(action_instance, "icon") and action_instance.icon:
             action = QAction(self.get_icon(action_instance.icon), action_instance.title, triggered=action_instance)
-            action._icon = action_instance.icon
+            setattr(action, "icon_name", action_instance.icon)
         else:
             action = QAction(action_instance.title, triggered=action_instance)
         setattr(self, f"action_{class_action.__name__}", action)
@@ -99,7 +101,11 @@ class MainMenuBase:
                 markdown_lines.extend(self.generate_markdown_from_qmenu(action.menu(), level + 1))
             else:
                 # Add a regular menu item
-                icon = action._icon if hasattr(action, "_icon") and "." not in action._icon else ""
+                icon = (
+                    getattr(action, "icon_name", "")
+                    if hasattr(action, "icon_name") and "." not in getattr(action, "icon_name", "")
+                    else ""
+                )
                 if action.text():
                     markdown_lines.append(f"{'  ' * level}- {icon} {action.text()}")
         return markdown_lines
@@ -140,8 +146,6 @@ class MainMenuBase:
         - Inserts the current menu structure into the file between these markers.
         - Overwrites the README.md with the updated content.
         - Returns the markdown representation of the menu.
-
-        Args:
 
         Returns:
 
