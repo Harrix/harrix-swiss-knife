@@ -9,6 +9,12 @@ config = h.dev.load_config("config/config.json")
 
 
 class OnExit(action_base.ActionBase):
+    """Exit the application.
+
+    This action terminates the current Qt application instance,
+    closing all windows and ending the program execution.
+    """
+
     icon = "×"
     title = "Exit"
 
@@ -22,6 +28,13 @@ class OnExit(action_base.ActionBase):
 
 
 class OnGetMenu(action_base.ActionBase):
+    """Display a list of all available menu items.
+
+    This action retrieves and displays a complete list of all menu items
+    from the parent menu, providing a convenient overview of all available
+    actions in the current context.
+    """
+
     icon = "☰"
     title = "Get the list of items from this menu"
 
@@ -37,6 +50,13 @@ class OnGetMenu(action_base.ActionBase):
 
 
 class OnNpmInstallPackages(action_base.ActionBase):
+    """Install configured NPM packages globally.
+
+    This action installs all NPM packages specified in the `config["npm_packages"]`
+    list as global packages, making them available system-wide for command-line
+    use and other applications.
+    """
+
     icon = "📥"
     title = "Install global NPM packages"
 
@@ -56,6 +76,13 @@ class OnNpmInstallPackages(action_base.ActionBase):
 
 
 class OnNpmUpdatePackages(action_base.ActionBase):
+    """Update NPM itself and all globally installed packages.
+
+    This action first updates the npm package manager to its latest version,
+    then updates all globally installed npm packages to their latest versions,
+    ensuring the development environment has the most current tools available.
+    """
+
     icon = "📥"
     title = "Update NPM and global NPM packages"
 
@@ -75,6 +102,13 @@ class OnNpmUpdatePackages(action_base.ActionBase):
 
 
 class OnOpenConfigJson(action_base.ActionBase):
+    """Open the application's configuration file.
+
+    This action opens the `config.json` file in the configured editor,
+    allowing direct viewing and editing of the application's settings
+    and configuration parameters.
+    """
+
     icon = "⚙️"
     title = "Open config.json"
 
