@@ -333,7 +333,7 @@ class OnSortCode(action_base.ActionBase):
         try:
             h.py.sort_py_code(filename)
             result = f"✅ File {filename} is applied."
-        except Exception:
+        except Exception:  # noqa: BLE001
             result = f"❌ File {filename} is not applied."
 
         self.add_line(result)
