@@ -214,15 +214,18 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
             result = h.dev.run_powershell_script(commands)
             self.add_line(result)
 
-    def thread_after_01(self, result) -> None:
+    def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread_01(). For handling the results of thread execution."""
         self.time_waiting_seconds = 20
         message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
         self.start_thread(self.in_thread_02, self.thread_after_02, message)
 
-    def thread_after_02(self, result) -> None:
+    def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread_02(). For handling the results of thread execution."""
         self.start_thread(self.in_thread_03, self.thread_after_03, "Update harrix-pylib in projects")
 
-    def thread_after_03(self, result) -> None:
+    def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread_03(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
 

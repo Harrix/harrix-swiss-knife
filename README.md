@@ -145,6 +145,8 @@ Example an action:
 
 ```python
 class on_check_featured_image_in_folders(action_base.ActionBase):
+    """Docstring."""
+
     icon = "✅"
     title = "Check featured_image.*"
 
@@ -163,6 +165,8 @@ Examples an action with QThread:
 
 ```python
 class on_npm_update_packages(action_base.ActionBase):
+    """Docstring."""
+
     icon = "📥"
     title = "Update NPM and global NPM packages"
 
@@ -184,6 +188,8 @@ class on_npm_update_packages(action_base.ActionBase):
 
 ```python
 class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
+    """Docstring."""
+
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
 
@@ -211,6 +217,8 @@ Example an action with sequence of QThread:
 
 ```python
 class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
+    """Docstring."""
+
     icon = "👷‍♂️"
     title = "Sequence of thread"
 
@@ -219,25 +227,29 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
         self.start_thread(self.in_thread_01, self.thread_after_01, self.title)
         return "Started the process chain"
 
-    def in_thread_01(self) -> None
+    def in_thread_01(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         # First operation
         self.add_line("Starting first operation")
         time.sleep(5)  # Simulating work
         return "First operation completed"
 
-    def in_thread_02(self) -> None
+    def in_thread_02(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         # Second operation
         self.add_line("Starting second operation")
         time.sleep(self.time_waiting_seconds)  # Simulating work
         return "Second operation completed"
 
-    def in_thread_03(self) -> None
+    def in_thread_03(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         # Third operation
         self.add_line("Starting third operation")
         time.sleep(5)  # Simulating work
         return "Third operation completed"
 
-    def thread_after_01(self, result) -> None:
+    def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread_01(). For handling the results of thread execution."""
         self.add_line(result)  # Log the result from the first thread
 
         # Start the second operation
@@ -245,13 +257,15 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
         message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
         self.start_thread(self.in_thread_02, self.thread_after_02, message)
 
-    def thread_after_02(self, result) -> None:
+    def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread_02(). For handling the results of thread execution."""
         self.add_line(result)  # Log the result from the second thread
 
         # Start the third operation
         self.start_thread(self.in_thread_03, self.thread_after_03, self.title)
 
-    def thread_after_03(self, result) -> None:
+    def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread_03(). For handling the results of thread execution."""
         self.add_line(result)  # Log the result from the third thread
         self.show_toast(f"{self.title} completed")
         self.show_result()
