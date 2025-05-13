@@ -10,6 +10,22 @@ config = h.dev.load_config("config/config.json")
 
 
 class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
+    """Apply comprehensive beautification to all Markdown notes.
+
+    This action performs multiple enhancement operations on Markdown files across
+    all configured note directories, including:
+
+    - Adding image captions
+    - Generating tables of contents
+    - Creating summaries for specified directories
+    - Combining related Markdown files
+    - Formatting YAML frontmatter
+    - Running Prettier for consistent formatting
+
+    It provides a one-click solution for maintaining a high-quality, consistently
+    formatted collection of Markdown documents.
+    """
+
     icon = "😎"
     title = "Beautify MD notes (All in one)"
 
@@ -69,6 +85,13 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
 
 
 class OnCombineMarkdownFiles(action_base.ActionBase):
+    """Combine related Markdown files in a directory structure.
+
+    This action processes a selected folder to find and combine related Markdown files
+    based on predefined patterns or references between files. After combining the files,
+    it applies Prettier formatting to ensure consistent styling across all documents.
+    """
+
     icon = "🔗"
     title = "Combine MD files in …"
 
@@ -95,6 +118,13 @@ class OnCombineMarkdownFiles(action_base.ActionBase):
 
 
 class OnDownloadAndReplaceImages(action_base.ActionBase):
+    """Download remote images and replace URLs with local references in a Markdown file.
+
+    This action processes a selected Markdown file to find image URLs, downloads the images
+    to a local directory, and updates the Markdown to reference these local copies instead
+    of the remote URLs, improving document portability and reducing external dependencies.
+    """
+
     icon = "📥"
     title = "Download images in one MD"
 
@@ -124,6 +154,14 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
 
 
 class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
+    """Download remote images and replace URLs with local references in multiple Markdown files.
+
+    This action processes all Markdown files in a selected folder to find image URLs,
+    downloads the images to local directories, and updates the Markdown files to reference
+    these local copies instead of the remote URLs, improving document portability and
+    reducing external dependencies across an entire collection of documents.
+    """
+
     icon = "📥"
     title = "Download images in …"
 
@@ -149,6 +187,8 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
 
 
 class OnFormatQuotesAsMarkdownContent(action_base.ActionBase):
+    """Format plain text quotes into properly structured Markdown."""
+
     icon = "❞"
     title = "Format quotes as markdown content"
 
@@ -165,6 +205,8 @@ class OnFormatQuotesAsMarkdownContent(action_base.ActionBase):
 
 
 class OnFormatYaml(action_base.ActionBase):
+    """Format YAML frontmatter in Markdown files within a folder."""
+
     icon = "✨"
     title = "Format YAML in …"
 
@@ -190,6 +232,13 @@ class OnFormatYaml(action_base.ActionBase):
 
 
 class OnGenerateAuthorBook(action_base.ActionBase):
+    """Process quote files to add author and book information.
+
+    This action traverses a folder of quote markdown files and processes each file
+    to generate or update author and book information based on the content structure.
+    Useful for maintaining a consistent format in a collection of literary quotes.
+    """
+
     icon = "❞"
     title = "Quotes. Add author and title"
 
@@ -216,6 +265,13 @@ class OnGenerateAuthorBook(action_base.ActionBase):
 
 
 class OnGenerateImageCaptions(action_base.ActionBase):
+    """Add captions to images in a single Markdown file.
+
+    This action processes a selected Markdown file to add or update captions
+    for all images found in the document, enhancing readability and accessibility
+    of image content.
+    """
+
     icon = "🌄"
     title = "Add image captions in one MD"
 
@@ -245,6 +301,13 @@ class OnGenerateImageCaptions(action_base.ActionBase):
 
 
 class OnGenerateImageCaptionsFolder(action_base.ActionBase):
+    """Add captions to images in all Markdown files within a folder.
+
+    This action processes all Markdown files in a selected folder to add or update captions
+    for all images found in the documents, enhancing readability and accessibility
+    of image content across an entire collection of documents.
+    """
+
     icon = "🌄"
     title = "Add image captions in …"
 
@@ -270,6 +333,13 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
 
 
 class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
+    """Generate a condensed version of a document with only its table of contents.
+
+    This action creates a shortened version of a selected Markdown file that
+    includes only the document's title and table of contents with working links.
+    Useful for creating quick reference documents or previews of longer content.
+    """
+
     icon = "🤏"
     title = "Generate a short version with only TOC"
 
@@ -299,6 +369,12 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
 
 
 class OnGenerateToc(action_base.ActionBase):
+    """Generate a table of contents for a single Markdown file.
+
+    This action prompts the user to select a Markdown file and generates
+    a table of contents with links to all headings in the file.
+    """
+
     icon = "📑"
     title = "Generate TOC in one MD"
 
@@ -328,6 +404,13 @@ class OnGenerateToc(action_base.ActionBase):
 
 
 class OnGenerateTocFolder(action_base.ActionBase):
+    """Generate tables of contents for all Markdown files in a folder.
+
+    This action prompts the user to select a folder and generates
+    tables of contents with links to all headings in every Markdown file
+    found in that folder.
+    """
+
     icon = "📑"
     title = "Generate TOC in …"
 
@@ -353,6 +436,13 @@ class OnGenerateTocFolder(action_base.ActionBase):
 
 
 class OnGetListMoviesBooks(action_base.ActionBase):
+    """Extract and format a list of movies or books from Markdown content.
+
+    This action takes Markdown content with level-3 headings (`### Title`)
+    and converts them into a bulleted list, counting the total number of items.
+    Useful for creating web-friendly lists from structured Markdown content.
+    """
+
     icon = "🎬"
     title = "Get a list of movies, books for web"
 
@@ -375,6 +465,13 @@ class OnGetListMoviesBooks(action_base.ActionBase):
 
 
 class OnIncreaseHeadingLevelContent(action_base.ActionBase):
+    """Increase the heading level of all headings in Markdown content.
+
+    This action takes Markdown content and increases the level of all headings
+    by adding an additional '#' character to each heading, making them one level
+    deeper in the document hierarchy.
+    """
+
     icon = "👉"
     title = "Increase heading level"
 
@@ -390,6 +487,12 @@ class OnIncreaseHeadingLevelContent(action_base.ActionBase):
 
 
 class OnNewArticle(action_base.ActionBase):
+    """Create a new article with predefined template.
+
+    This action prompts the user for an article title, creates a new markdown file
+    in the configured articles directory, and opens it in the configured editor.
+    """
+
     icon = "✍️"
     title = "New article"
 
@@ -415,6 +518,13 @@ class OnNewArticle(action_base.ActionBase):
 
 
 class OnNewDiary(action_base.ActionBase):
+    """Create a new diary entry for the current date.
+
+    This action creates a new diary markdown file in the configured diary directory
+    using the current date, adds the configured template content, and opens it
+    in the configured editor.
+    """
+
     icon = "📖"
     title = "New diary note"
 
@@ -426,6 +536,13 @@ class OnNewDiary(action_base.ActionBase):
 
 
 class OnNewDiaryDream(action_base.ActionBase):
+    """Create a new dream journal entry for the current date.
+
+    This action creates a new dream journal markdown file in the configured dream directory
+    using the current date, adds the configured template content, and opens it
+    in the configured editor.
+    """
+
     icon = "💤"
     title = "New dream note"
 
@@ -437,6 +554,13 @@ class OnNewDiaryDream(action_base.ActionBase):
 
 
 class OnNewNoteDialog(action_base.ActionBase):
+    """Create a new general note with a user-specified filename.
+
+    This action prompts the user to save a new markdown file in the configured notes directory,
+    adds template content with the filename as the title, and opens it in the configured editor.
+    Supports optional image directory creation.
+    """
+
     icon = "📓"
     title = "New note"
 
@@ -461,6 +585,12 @@ class OnNewNoteDialog(action_base.ActionBase):
 
 
 class OnNewNoteDialogWithImages(action_base.ActionBase):
+    """Create a new general note with image support.
+
+    This action extends the OnNewNoteDialog action by automatically creating
+    an associated images directory for the new note.
+    """
+
     icon = "📓"
     title = "New note with images"
 
@@ -470,6 +600,12 @@ class OnNewNoteDialogWithImages(action_base.ActionBase):
 
 
 class OnOptimizeImages(action_base.ActionBase):
+    """Optimize images referenced in a Markdown file.
+
+    This action allows the user to select a Markdown file and optimizes
+    all images referenced within it using the optimize_images_in_md function.
+    """
+
     icon = "🖼️"
     title = "Optimize images in one MD"
 
@@ -499,6 +635,13 @@ class OnOptimizeImages(action_base.ActionBase):
 
 
 class OnOptimizeImagesFolder(action_base.ActionBase):
+    """Optimize images referenced in Markdown files within a selected folder.
+
+    This action processes all Markdown files in a selected directory, identifying image
+    references and performing various optimizations to improve image quality, reduce file size,
+    and enhance overall performance.
+    """
+
     icon = "🖼️"
     title = "Optimize images in …"
 
@@ -524,6 +667,8 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
 
 
 class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
+    """Optimize images in Markdown files and convert PNG images to AVIF format too."""
+
     icon = "🖼️"
     title = "Optimize images (with PNG to AVIF) in …"
 
@@ -549,6 +694,8 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
 
 
 class OnPettierFolder(action_base.ActionBase):
+    """Format Markdown files in a selected folder using Prettier."""
+
     icon = "✨"
     title = "Prettier in …"
 
@@ -573,6 +720,27 @@ class OnPettierFolder(action_base.ActionBase):
 
 
 class OnSortSections(action_base.ActionBase):
+    """Organize and enhance a single Markdown file by sorting sections and generating image captions.
+
+    This action processes a user-selected Markdown file, performing two key operations
+    to improve its structure and readability:
+
+    1. Section sorting:
+       - Identifies sections (headings) within the Markdown file
+       - Sorts sections in a logical order based on heading level and content
+       - Maintains the hierarchy and structure of nested sections
+       - Preserves the content within each section while reordering
+
+    2. Image caption generation:
+       - Identifies images within the Markdown file
+       - Creates or updates captions for images based on their context or filename
+       - Ensures consistent formatting for image references
+
+    Unlike the folder-based version of this action, this operates on a single file selected
+    by the user. The user is prompted to select a Markdown file, with the default location
+    being the notes directory specified in the configuration.
+    """
+
     icon = "📶"
     title = "Sort sections in one MD"
 
@@ -603,6 +771,23 @@ class OnSortSections(action_base.ActionBase):
 
 
 class OnSortSectionsFolder(action_base.ActionBase):
+    """Organize and enhance Markdown files by sorting sections and generating image captions.
+
+    This action processes all Markdown files in a selected directory, performing two
+    key operations to improve their structure and readability:
+
+    1. Section sorting:
+       - Identifies sections (headings) within each Markdown file
+       - Sorts sections in a logical order based on heading level and content
+       - Maintains the hierarchy and structure of nested sections
+       - Preserves the content within each section while reordering
+
+    2. Image caption generation:
+       - Identifies images within the Markdown files
+       - Creates or updates captions for images based on their context or filename
+       - Ensures consistent formatting for image references
+    """
+
     icon = "📶"
     title = "Sort sections in …"
 
