@@ -1,3 +1,5 @@
+"""Actions for launching applications."""
+
 from typing import Any
 
 import harrix_pylib as h

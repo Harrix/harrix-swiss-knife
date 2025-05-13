@@ -1,3 +1,5 @@
+"""Actions for Python development and Markdown file management."""
+
 from datetime import datetime
 from pathlib import Path
 from typing import Any

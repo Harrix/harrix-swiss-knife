@@ -1,3 +1,5 @@
+"""Actions for file operations and management of directory structures."""
+
 from pathlib import Path
 from typing import Any
 

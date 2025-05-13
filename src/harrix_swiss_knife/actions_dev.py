@@ -1,3 +1,5 @@
+"""Actions for Python development and code management."""
+
 from typing import Any
 
 import harrix_pylib as h

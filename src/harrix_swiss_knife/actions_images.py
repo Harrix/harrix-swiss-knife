@@ -1,3 +1,5 @@
+"""Image optimization and management actions."""
+
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
