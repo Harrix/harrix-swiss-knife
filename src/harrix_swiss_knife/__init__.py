@@ -8,4 +8,4 @@ from harrix_swiss_knife import actions_md as md
 from harrix_swiss_knife import actions_py as py
 from harrix_swiss_knife import main_menu_base, tray_icon
 
-__all__ = ["apps", "dev", "file", "images", "md", "py", "main_menu_base", "tray_icon"]
+__all__ = ["apps", "dev", "file", "images", "main_menu_base", "md", "py", "tray_icon"]
