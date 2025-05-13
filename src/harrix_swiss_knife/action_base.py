@@ -48,7 +48,7 @@ class ActionBase:
     icon = ""
     title = ""
 
-    def __init__(self, **kwargs: Any) -> None: # noqa: ARG002
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ARG002
         """Initialize the action with a temporary output file.
 
         Args:
@@ -244,7 +244,7 @@ class ActionBase:
         """
         return self.show_text_multiline("\n".join(self.result_lines), "Result")
 
-    def show_text_multiline(self, text: str, title: str="Result") -> str | None:
+    def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
         """Open a dialog to display text with a copy button.
 
         Args:
