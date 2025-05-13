@@ -82,6 +82,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
     files named `featured_image` with any extension, providing a status
     report for each directory.
     """
+
     icon = "✅"
     title = "Check featured_image.*"
 
@@ -103,6 +104,7 @@ class OnOpenCameraUploads(action_base.ActionBase):
     configuration setting in the system's file explorer, providing quick access
     to folders where camera photos are typically uploaded or stored.
     """
+
     icon = "📸"
     title = "Open Camera Uploads"
 

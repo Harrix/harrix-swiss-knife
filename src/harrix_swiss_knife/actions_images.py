@@ -312,7 +312,7 @@ class OnOptimizeQuality(action_base.ActionBase):
     that prioritize visual quality over file size reduction, suitable for
     images where detail preservation is important.
     """
-    
+
     icon = "🔝"
     title = "Optimize images (high quality)"
 
