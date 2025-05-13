@@ -13,6 +13,13 @@ config = h.dev.load_config("config/config.json")
 
 
 class OnClearImages(action_base.ActionBase):
+    """Clear temporary image directories.
+
+    This action removes all files from the temporary image folders
+    (`images` and `optimized_images`) and recreates the empty directories,
+    providing a clean workspace for new image operations.
+    """
+
     icon = "🧹"
     title = "Clear folders images"
 
@@ -31,6 +38,13 @@ class OnClearImages(action_base.ActionBase):
 
 
 class OnOpenImages(action_base.ActionBase):
+    """Open the source images temporary folder.
+
+    This action opens the temporary directory containing original images
+    (`images`) in the system's file explorer, allowing quick access
+    to view or manage the source image files.
+    """
+
     icon = "📂"
     title = "Open the folder images"
 
@@ -46,6 +60,13 @@ class OnOpenImages(action_base.ActionBase):
 
 
 class OnOpenOptimizedImages(action_base.ActionBase):
+    """Open the optimized images temporary folder.
+
+    This action opens the temporary directory containing optimized images
+    (`optimized_images`) in the system's file explorer, allowing quick access
+    to view or use the processed image files.
+    """
+
     icon = "📂"
     title = "Open the folder optimized_images"
 
@@ -61,6 +82,13 @@ class OnOpenOptimizedImages(action_base.ActionBase):
 
 
 class OnOptimize(action_base.ActionBase):
+    """Run standard image optimization on all images in the temp folder.
+
+    This action executes the npm optimize script to process all images
+    in the temporary `images` directory using default optimization settings,
+    creating compressed versions in the `optimized_images` directory.
+    """
+
     icon = "🚀"
     title = "Optimize images"
 
@@ -81,6 +109,13 @@ class OnOptimize(action_base.ActionBase):
 
 
 class OnOptimizeClipboard(action_base.ActionBase):
+    """Optimize an image from the clipboard with default naming.
+
+    This action takes an image from the clipboard, saves it as a temporary file,
+    optimizes it using the npm optimize script, and then places the optimized
+    image path back into the clipboard for easy pasting into documents.
+    """
+
     icon = "🚀"
     title = "Optimize image from clipboard"
 
@@ -125,6 +160,13 @@ class OnOptimizeClipboard(action_base.ActionBase):
 
 
 class OnOptimizeClipboardDialog(action_base.ActionBase):
+    """Optimize an image from the clipboard with custom naming.
+
+    This action extends OnOptimizeClipboard by prompting the user to provide
+    a custom filename for the optimized image, allowing for more organized
+    image management in the output directory.
+    """
+
     icon = "🚀"
     title = "Optimize image from clipboard as …"
 
@@ -134,6 +176,13 @@ class OnOptimizeClipboardDialog(action_base.ActionBase):
 
 
 class OnOptimizeDialog(action_base.ActionBase):
+    """Optimize images in a selected folder, saving to a temp subdirectory.
+
+    This action allows the user to select a folder containing images, processes
+    all images using the npm optimize script, and saves the optimized versions
+    to a `temp` subdirectory within the selected folder.
+    """
+
     icon = "⬆️"
     title = "Optimize images in …/temp"
 
@@ -157,6 +206,13 @@ class OnOptimizeDialog(action_base.ActionBase):
 
 
 class OnOptimizeDialogReplace(action_base.ActionBase):
+    """Optimize images in a selected folder and replace the originals.
+
+    This action allows the user to select a folder containing images, processes
+    all images using the npm optimize script, and then replaces the original files
+    with their optimized versions, maintaining a clean directory structure.
+    """
+
     icon = "⬆️"
     title = "Optimize images in … and replace"
 
@@ -194,6 +250,13 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
 
 class OnOptimizeFile(action_base.ActionBase):
+    """Optimize a single image file.
+
+    This action prompts the user to select a single image file, processes it
+    using the npm optimize script, and saves the optimized version to the
+    `optimized_images` directory for easy access.
+    """
+
     icon = "🖼️"
     title = "Optimize one image"
 
@@ -220,6 +283,8 @@ class OnOptimizeFile(action_base.ActionBase):
 
 
 class OnOptimizePngToAvif(action_base.ActionBase):
+    """Optimize images and convert PNG files to AVIF format too."""
+
     icon = "➤"
     title = "Optimize images (with PNG to AVIF)"
 
@@ -240,6 +305,14 @@ class OnOptimizePngToAvif(action_base.ActionBase):
 
 
 class OnOptimizeQuality(action_base.ActionBase):
+    """Optimize images with higher quality settings.
+
+    This action runs the npm optimize script with the quality flag enabled,
+    which processes all images in the temp/images directory using settings
+    that prioritize visual quality over file size reduction, suitable for
+    images where detail preservation is important.
+    """
+    
     icon = "🔝"
     title = "Optimize images (high quality)"
 
