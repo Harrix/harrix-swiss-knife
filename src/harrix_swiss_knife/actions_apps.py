@@ -15,7 +15,7 @@ class OnFitness(action_base.ActionBase):
     allows users to record, monitor, and analyze their physical activities and
     exercise routines.
     """
-    
+
     icon = "🏃🏻"
     title = "Fitness tracker"
 
