@@ -38,28 +38,20 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
         for path in config["paths_notes"]:
+            self.add_line("🔵 Starting processing for path: " + path)
             try:
                 # Generate image captions
                 self.add_line("🔵 Generate image captions")
-                try:
-                    self.add_line(h.file.apply_func(path, ".md", h.md.generate_image_captions))
-                except Exception as e:  # noqa: BLE001
-                    self.add_line(f"❌ Error: {e}")
+                self.add_line(h.file.apply_func(path, ".md", h.md.generate_image_captions))
 
                 # Generate TOC
                 self.add_line("🔵 Generate TOC")
-                try:
-                    self.add_line(h.file.apply_func(path, ".md", h.md.generate_toc_with_links))
-                except Exception as e:  # noqa: BLE001
-                    self.add_line(f"❌ Error: {e}")
+                self.add_line(h.file.apply_func(path, ".md", h.md.generate_toc_with_links))
 
                 # Generate summaries
                 for path_notes_for_summaries in config["paths_notes_for_summaries"]:
                     if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(path).resolve()):
-                        try:
-                            self.add_line(h.md.generate_summaries(path_notes_for_summaries))
-                        except Exception as e:  # noqa: BLE001
-                            self.add_line(f"❌ Error: {e}")
+                        self.add_line(h.md.generate_summaries(path_notes_for_summaries))
 
                 # Combine MD files
                 self.add_line("🔵 Combine MD files")
@@ -67,10 +59,7 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
 
                 # Format YAML
                 self.add_line("🔵 Format YAML")
-                try:
-                    self.add_line(h.file.apply_func(path, ".md", h.md.format_yaml))
-                except Exception as e:  # noqa: BLE001
-                    self.add_line(f"❌ Error: {e}")
+                self.add_line(h.file.apply_func(path, ".md", h.md.format_yaml))
 
                 # Prettier
                 self.add_line("🔵 Prettier")
@@ -78,7 +67,7 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
                 result = h.dev.run_powershell_script(commands)
                 self.add_line(result)
             except Exception as e:  # noqa: BLE001
-                self.add_line(f"❌ Error: {e}")
+                self.add_line(f"❌ Error processing path {path}: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""

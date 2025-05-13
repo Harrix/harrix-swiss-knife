@@ -190,8 +190,8 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
     def in_thread_03(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Update harrix-pylib in projects
-        for project in self.projects:
-            project = Path(project)
+        for project_path in self.projects:
+            project = Path(project_path)
 
             commands = f"""
                 cd {project}
