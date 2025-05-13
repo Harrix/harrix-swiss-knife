@@ -1,6 +1,7 @@
 import re
 import time
 from pathlib import Path
+from typing import Any
 
 import harrix_pylib as h
 
@@ -13,7 +14,7 @@ class OnExtractFunctionsAndClasses(action_base.ActionBase):
     icon = "⬇️"
     title = "Extracts list of funcs to a MD list from one PY file"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         filename = self.get_open_filename(
             "Select an Python File",
             config["path_github"],
@@ -31,7 +32,7 @@ class OnGenerateMdDocs(action_base.ActionBase):
     icon = "🏗️"
     title = "Generate MD documentation in …"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not folder_path:
             return
@@ -52,7 +53,7 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
     icon = "👩🏻‍🍳"
     title = "01 Prepare harrix-pylib"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
@@ -76,7 +77,7 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
         # Open GitHub
         result = h.dev.run_powershell_script(f"github {folder_path} ")
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
@@ -85,7 +86,7 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
     icon = "👷‍♂️"
     title = "02 Publish and update harrix-pylib"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.token = config["pypi_token"]
         if not self.token:
             self.token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
@@ -165,7 +166,7 @@ class OnNewUvProject(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in Projects"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
@@ -175,7 +176,7 @@ class OnNewUvProject(action_base.ActionBase):
 
         self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
@@ -184,7 +185,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in …"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.project_name = self.get_text_input(
             "Project name",
             "Enter the name of the project (English, without spaces):",
@@ -208,7 +209,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
             ),
         )
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
@@ -217,7 +218,7 @@ class OnSortCode(action_base.ActionBase):
     icon = "📶"
     title = "Sort classes, methods, functions in one PY file"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         filename = self.get_open_filename(
             "Select an Python File",
             config["path_github"],
@@ -240,7 +241,7 @@ class OnSortCodeFolder(action_base.ActionBase):
     icon = "📶"
     title = "Sort classes, methods, functions in PY files"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not self.folder_path:
             return
@@ -250,10 +251,10 @@ class OnSortCodeFolder(action_base.ActionBase):
     def in_thread(self) -> None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.add_line(f"❌ Error: {e}")
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
@@ -262,7 +263,7 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not self.folder_path:
             return
@@ -274,6 +275,28 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
+        self.show_result()
+
+
+class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
+    icon = "📥"
+    title = "Download images in …"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        try:
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
+        except Exception as e:  # noqa: BLE001
+            self.add_line(f"❌ Error: {e}")
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()

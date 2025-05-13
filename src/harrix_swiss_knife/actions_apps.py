@@ -1,3 +1,4 @@
+from typing import Any
 import harrix_pylib as h
 
 from harrix_swiss_knife import action_base, fitness
@@ -14,7 +15,7 @@ class OnFitness(action_base.ActionBase):
         self.parent = kwargs.get("parent")
         self.main_window = None
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if self.main_window is None:
             self.main_window = fitness.MainWindow()
         self.main_window.show()

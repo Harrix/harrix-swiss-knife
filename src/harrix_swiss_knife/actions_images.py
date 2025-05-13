@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 
 import clr
 import harrix_pylib as h
@@ -15,7 +16,7 @@ class OnClearImages(action_base.ActionBase):
     icon = "🧹"
     title = "Clear folders images"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp/optimized_images"]
         for path in paths:
             if path.exists():
@@ -32,7 +33,7 @@ class OnOpenImages(action_base.ActionBase):
     icon = "📂"
     title = "Open the folder images"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         path = h.dev.get_project_root() / "temp/images"
         if path.exists():
             h.file.open_file_or_folder(path)
@@ -46,7 +47,7 @@ class OnOpenOptimizedImages(action_base.ActionBase):
     icon = "📂"
     title = "Open the folder optimized_images"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         path = h.dev.get_project_root() / "temp/optimized_images"
         if path.exists():
             h.file.open_file_or_folder(path)
@@ -60,13 +61,13 @@ class OnOptimize(action_base.ActionBase):
     icon = "🚀"
     title = "Optimize images"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         return h.dev.run_powershell_script("npm run optimize")
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
@@ -78,7 +79,7 @@ class OnOptimizeClipboard(action_base.ActionBase):
     icon = "🚀"
     title = "Optimize image from clipboard"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         image = ImageGrab.grabclipboard()
 
         if not isinstance(image, Image.Image):
@@ -121,7 +122,7 @@ class OnOptimizeClipboardDialog(action_base.ActionBase):
     icon = "🚀"
     title = "Optimize image from clipboard as …"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         OnOptimizeClipboard.execute(self, is_dialog=True)
 
 
@@ -129,7 +130,7 @@ class OnOptimizeDialog(action_base.ActionBase):
     icon = "⬆️"
     title = "Optimize images in …/temp"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
         if not self.folder_path:
             return
@@ -139,7 +140,7 @@ class OnOptimizeDialog(action_base.ActionBase):
     def in_thread(self):
         return h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         h.file.open_file_or_folder(Path(self.folder_path) / "temp")
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -150,7 +151,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
     icon = "⬆️"
     title = "Optimize images in … and replace"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
         if not self.folder_path:
             return
@@ -174,7 +175,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
         return result
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         h.file.open_file_or_folder(self.folder_path)
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -185,7 +186,7 @@ class OnOptimizeFile(action_base.ActionBase):
     icon = "🖼️"
     title = "Optimize one image"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         filename = self.get_open_filename(
             "Select an Image File",
             config["path_articles"],
@@ -210,13 +211,13 @@ class OnOptimizePngToAvif(action_base.ActionBase):
     icon = "➤"
     title = "Optimize images (with PNG to AVIF)"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         return h.dev.run_powershell_script("npm run optimize convertPngToAvif=true")
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
@@ -228,13 +229,13 @@ class OnOptimizeQuality(action_base.ActionBase):
     icon = "🔝"
     title = "Optimize images (high quality)"
 
-    def execute(self, *args, **kwargs) -> None:
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
         return h.dev.run_powershell_script("npm run optimize quality=true")
 
-    def thread_after(self, result) -> None:
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")

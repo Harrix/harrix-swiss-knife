@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
-from typing import NoReturn
+from typing import Any, NoReturn
 
 import harrix_pylib as h
 from PySide6.QtCore import QThread, Signal
@@ -55,7 +55,7 @@ class ActionBase:
             temp_path.mkdir(parents=True, exist_ok=True)
         self.file = Path(temp_path / "output.txt")
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         """Execute the action and handle the output display.
 
         Args:
@@ -85,7 +85,7 @@ class ActionBase:
         print(line)
         self.result_lines.append(line)
 
-    def execute(self, *args, **kwargs) -> NoReturn:
+    def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
         """Execute the action logic (must be implemented by subclasses).
 
         Args:
