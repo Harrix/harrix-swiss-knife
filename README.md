@@ -35,9 +35,9 @@ _Figure 1: Screenshot_
   - 📂 Open the folder optimized_images
 - **File operations**
   - 🗂️ Moves and flattens files from nested folders
-  - ✅ Check featured_image.\* in …
-  - ✅ Check featured_image.\*
-  - 🖲️ Rename largest images to featured_image.\* in …
+  - ✅ Check featured_image. in …
+  - ✅ Check featured_image.
+  - 🖲️ Rename largest images to featured_image.* in …
   - 🔒 Block disks
   - 📸 Open Camera Uploads
   - ├ Tree view of a folder (ignore hidden folders)
@@ -58,6 +58,7 @@ _Figure 1: Screenshot_
   - ❞ Quotes. Add author and title
   - 🌄 Add image captions in …
   - 🌄 Add image captions in one MD
+  - 🤏 Generate a short version with only TOC
   - 📑 Generate TOC in …
   - 📑 Generate TOC in one MD
   - ✨ Prettier in …
