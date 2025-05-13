@@ -278,25 +278,3 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
-
-
-class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
-    icon = "📥"
-    title = "Download images in …"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self) -> None:
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
-        except Exception as e:  # noqa: BLE001
-            self.add_line(f"❌ Error: {e}")
-
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
