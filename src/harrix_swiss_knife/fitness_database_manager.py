@@ -164,7 +164,7 @@ class FitnessDatabaseManager:
 
         Returns:
 
-        - `Optional[int]`: The found identifier or `None` when the query yields
+        - `int | None`: The found identifier or `None` when the query yields
           no rows.
 
         """
