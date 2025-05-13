@@ -48,7 +48,7 @@ class ActionBase:
     icon = ""
     title = ""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None: # noqa: ARG002
         """Initialize the action with a temporary output file.
 
         Args:
@@ -62,7 +62,7 @@ class ActionBase:
             temp_path.mkdir(parents=True, exist_ok=True)
         self.file = Path(temp_path / "output.txt")
 
-    def __call__(self, *args: Any, **kwargs: Any):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Execute the action and handle the output display.
 
         Args:
@@ -79,7 +79,7 @@ class ActionBase:
         Path.open(self.file, "w").close()  # create or clear output.txt
         return self.execute(*args, **kwargs)
 
-    def add_line(self, line) -> None:
+    def add_line(self, line: str) -> None:
         """Add a line to the output file and print it to the console.
 
         Args:
@@ -244,7 +244,7 @@ class ActionBase:
         """
         return self.show_text_multiline("\n".join(self.result_lines), "Result")
 
-    def show_text_multiline(self, text: str, title="Result") -> str | None:
+    def show_text_multiline(self, text: str, title: str="Result") -> str | None:
         """Open a dialog to display text with a copy button.
 
         Args:
