@@ -76,7 +76,7 @@ class ActionBase:
 
         """
         self.result_lines.clear()
-        open(self.file, "w").close()  # create or clear output.txt
+        Path.open(self.file, "w").close()  # create or clear output.txt
         return self.execute(*args, **kwargs)
 
     def add_line(self, line) -> None:
@@ -238,6 +238,7 @@ class ActionBase:
         """Open a dialog to display result of `execute`.
 
         Returns:
+
         - `str | None`: The displayed text, or `None` if cancelled.
 
         """
@@ -247,10 +248,12 @@ class ActionBase:
         """Open a dialog to display text with a copy button.
 
         Args:
+
         - `text` (`str`): The text to display in the textarea.
         - `title` (`str`): The title of the text area dialog.
 
         Returns:
+
         - `str | None`: The displayed text, or `None` if cancelled.
 
         """
@@ -350,7 +353,7 @@ class ActionBase:
                 self.finished.emit(result)
 
         # Create a wrapper for the callback function that first closes the toast
-        def callback_wrapper(result) -> None:
+        def callback_wrapper(result: Any) -> None:
             if message:  # Only try to close if we opened one
                 self.toast.close()
             callback_function(result)
