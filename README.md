@@ -149,6 +149,7 @@ class on_check_featured_image_in_folders(action_base.ActionBase):
     title = "Check featured_image.*"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         for path in config["paths_with_featured_image"]:
             try:
                 result = h.file.check_featured_image(path)[1]
@@ -166,13 +167,16 @@ class on_npm_update_packages(action_base.ActionBase):
     title = "Update NPM and global NPM packages"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         commands = "npm update npm -g\nnpm update -g"
         return h.dev.run_powershell_script(commands)
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
@@ -184,6 +188,7 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
     title = "isort, ruff format, sort in PY files"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not self.folder_path:
             return
@@ -191,11 +196,13 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nisort .\nruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
@@ -208,6 +215,7 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
     title = "Sequence of thread"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread_01, self.thread_after_01, self.title)
         return "Started the process chain"
 

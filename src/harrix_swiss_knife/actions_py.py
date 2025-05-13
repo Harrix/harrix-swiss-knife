@@ -15,6 +15,7 @@ class OnExtractFunctionsAndClasses(action_base.ActionBase):
     title = "Extracts list of funcs to a MD list from one PY file"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         filename = self.get_open_filename(
             "Select an Python File",
             config["path_github"],
@@ -33,6 +34,7 @@ class OnGenerateMdDocs(action_base.ActionBase):
     title = "Generate MD documentation in …"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not folder_path:
             return
@@ -54,9 +56,11 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
     title = "01 Prepare harrix-pylib"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         folder_path = Path(config["path_github"]) / "harrix-pylib"
 
         # Beautify the code
@@ -78,6 +82,7 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
         result = h.dev.run_powershell_script(f"github {folder_path} ")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
@@ -87,6 +92,7 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
     title = "02 Publish and update harrix-pylib"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.token = config["pypi_token"]
         if not self.token:
             self.token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
@@ -96,6 +102,7 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
         self.start_thread(self.in_thread_01, self.thread_after_01, "Increase version, build and publish")
 
     def in_thread_01(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         self.path_library = Path(config["path_github"]) / "harrix-pylib"
         self.projects = [Path(config["path_github"]) / "harrix-swiss-knife"]
 
@@ -119,9 +126,11 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
         self.add_line(result)
 
     def in_thread_02(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         time.sleep(self.time_waiting_seconds)
 
     def in_thread_03(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         # Update harrix-pylib in projects
         for project in self.projects:
             project = Path(project)
@@ -167,9 +176,11 @@ class OnNewUvProject(action_base.ActionBase):
     title = "New uv project in Projects"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         path = config["path_py_projects"]
         max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
         name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
@@ -177,6 +188,7 @@ class OnNewUvProject(action_base.ActionBase):
         self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
@@ -186,6 +198,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
     title = "New uv project in …"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.project_name = self.get_text_input(
             "Project name",
             "Enter the name of the project (English, without spaces):",
@@ -200,6 +213,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(
             h.py.create_uv_new_project(
                 self.project_name.replace(" ", "-"),
@@ -210,6 +224,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
         )
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
@@ -219,6 +234,7 @@ class OnSortCode(action_base.ActionBase):
     title = "Sort classes, methods, functions in one PY file"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         filename = self.get_open_filename(
             "Select an Python File",
             config["path_github"],
@@ -242,6 +258,7 @@ class OnSortCodeFolder(action_base.ActionBase):
     title = "Sort classes, methods, functions in PY files"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not self.folder_path:
             return
@@ -249,21 +266,26 @@ class OnSortCodeFolder(action_base.ActionBase):
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
         except Exception as e:  # noqa: BLE001
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
 
 class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
+    """Format and sort Python code in a selected folder."""
+
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
         if not self.folder_path:
             return
@@ -271,10 +293,12 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nisort .\nruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()

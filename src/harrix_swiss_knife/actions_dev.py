@@ -1,4 +1,5 @@
 from typing import Any
+
 import harrix_pylib as h
 from PySide6.QtWidgets import QApplication
 
@@ -16,6 +17,7 @@ class OnExit(action_base.ActionBase):
         self.parent = kwargs.get("parent")
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         QApplication.quit()
 
 
@@ -28,6 +30,7 @@ class OnGetMenu(action_base.ActionBase):
         self.parent = kwargs.get("parent")
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         result = self.parent.get_menu()
         self.add_line(result)
         self.show_result()
@@ -38,6 +41,7 @@ class OnNpmInstallPackages(action_base.ActionBase):
     title = "Install global NPM packages"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
@@ -45,6 +49,7 @@ class OnNpmInstallPackages(action_base.ActionBase):
         return h.dev.run_powershell_script(commands)
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Install completed")
         self.add_line(result)
         self.show_result()
@@ -55,6 +60,7 @@ class OnNpmUpdatePackages(action_base.ActionBase):
     title = "Update NPM and global NPM packages"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self):
@@ -62,6 +68,7 @@ class OnNpmUpdatePackages(action_base.ActionBase):
         return h.dev.run_powershell_script(commands)
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
@@ -72,6 +79,7 @@ class OnOpenConfigJson(action_base.ActionBase):
     title = "Open config.json"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
         commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
