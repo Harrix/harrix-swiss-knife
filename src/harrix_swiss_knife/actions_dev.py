@@ -17,10 +17,11 @@ class OnExit(action_base.ActionBase):
     closing all windows and ending the program execution.
     """
 
-    icon = "×"
+    icon = "×"  # noqa: RUF001
     title = "Exit"
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+        """Initialize the OnExit action."""
         super().__init__()
         self.parent = kwargs.get("parent")
 
@@ -40,7 +41,8 @@ class OnGetMenu(action_base.ActionBase):
     icon = "☰"
     title = "Get the list of items from this menu"
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+        """Initialize the OnGetMenu action."""
         super().__init__()
         self.parent = kwargs.get("parent")
 
@@ -66,11 +68,12 @@ class OnNpmInstallPackages(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self):
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
         return h.dev.run_powershell_script(commands)
 
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Install completed")
         self.add_line(result)
@@ -92,11 +95,12 @@ class OnNpmUpdatePackages(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self):
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         commands = "npm update npm -g\nnpm update -g"
         return h.dev.run_powershell_script(commands)
 
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Update completed")
         self.add_line(result)

@@ -204,7 +204,7 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
             path_toml = project / "pyproject.toml"
             content = path_toml.read_text(encoding="utf8")
             pattern = self.path_library.parts[-1] + r">=(\d+)\.(\d+)"
-            new_content = re.sub(pattern, lambda m: f"{self.path_library.parts[-1]}>={self.new_version}", content)
+            new_content = re.sub(pattern, lambda _: f"{self.path_library.parts[-1]}>={self.new_version}", content)
             path_toml.write_text(new_content)
 
             commands = f"""

@@ -21,7 +21,8 @@ class OnFitness(action_base.ActionBase):
     icon = "🏃🏻"
     title = "Fitness tracker"
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+        """Initialize the OnFitness action."""
         super().__init__()
         self.parent = kwargs.get("parent")
         self.main_window = None

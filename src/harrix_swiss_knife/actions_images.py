@@ -98,10 +98,11 @@ class OnOptimize(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self):
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_powershell_script("npm run optimize")
 
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
@@ -196,10 +197,11 @@ class OnOptimizeDialog(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self):
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
 
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(Path(self.folder_path) / "temp")
         self.show_toast("Optimize completed")
@@ -226,7 +228,8 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self):
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
 
         for item in self.folder_path.iterdir():
@@ -243,7 +246,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
         return result
 
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(self.folder_path)
         self.show_toast("Optimize completed")
@@ -294,10 +297,11 @@ class OnOptimizePngToAvif(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self):
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_powershell_script("npm run optimize convertPngToAvif=true")
 
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
@@ -322,10 +326,11 @@ class OnOptimizeQuality(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self):
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_powershell_script("npm run optimize quality=true")
 
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")

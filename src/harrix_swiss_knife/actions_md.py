@@ -514,7 +514,7 @@ class OnNewArticle(action_base.ActionBase):
         text = text.replace("[DATE]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d"))
         text += f"\n# {article_name}\n\n\n"
 
-        result, filename = h.md.add_note(Path(config["path_articles"]), article_name, text, True)
+        result, filename = h.md.add_note(Path(config["path_articles"]), article_name, text, is_with_images=True)
         h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{filename}"')
         self.add_line(result)
 
