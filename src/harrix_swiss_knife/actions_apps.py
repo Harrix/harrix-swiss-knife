@@ -8,6 +8,14 @@ config = h.dev.load_config("config/config.json")
 
 
 class OnFitness(action_base.ActionBase):
+    """Launch the fitness tracking application.
+
+    This action opens the fitness tracker application in a new window or brings
+    the existing window to the foreground if it's already open. The fitness tracker
+    allows users to record, monitor, and analyze their physical activities and
+    exercise routines.
+    """
+    
     icon = "🏃🏻"
     title = "Fitness tracker"
 
