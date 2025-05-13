@@ -11,6 +11,13 @@ config = h.dev.load_config("config/config.json")
 
 
 class OnExtractFunctionsAndClasses(action_base.ActionBase):
+    """Extract a formatted Markdown list of functions and classes from a Python file.
+
+    This action analyzes a selected Python file and generates a Markdown-formatted list
+    of all functions and classes defined within it. The output is presented in a hierarchical
+    structure that makes it easy to understand the file's organization and contents.
+    """
+
     icon = "⬇️"
     title = "Extracts list of funcs to a MD list from one PY file"
 
@@ -30,6 +37,12 @@ class OnExtractFunctionsAndClasses(action_base.ActionBase):
 
 
 class OnGenerateMdDocs(action_base.ActionBase):
+    """Generate and format Markdown documentation for a Python project.
+
+    This action creates comprehensive Markdown documentation for a selected Python project
+    by extracting information from docstrings, function signatures, and module structure.
+    """
+
     icon = "🏗️"
     title = "Generate MD documentation in …"
 
@@ -52,6 +65,28 @@ class OnGenerateMdDocs(action_base.ActionBase):
 
 
 class OnHarrixPylib01Prepare(action_base.ActionBase):
+    """Prepare the harrix-pylib repository for publication by performing multiple optimization steps.
+
+    This action automates several preparatory tasks for the harrix-pylib package before
+    it can be published to PyPI. The process consists of four main steps:
+
+    1. Code beautification and standardization:
+       - Running isort to organize imports
+       - Applying ruff format to enforce consistent code style
+       - Using a custom sorting function to organize code elements (classes, methods, functions)
+
+    2. Documentation generation:
+       - Creating Markdown documentation from the codebase
+       - Using the GitHub repository URL as the base for documentation links
+       - Applying a standardized header to documentation files
+
+    3. Markdown formatting:
+       - Using Prettier to format all Markdown files consistently
+
+    4. Repository access:
+       - Opening the GitHub repository in the default browser for final review
+    """
+
     icon = "👩🏻‍🍳"
     title = "01 Prepare harrix-pylib"
 
@@ -88,6 +123,27 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
 
 
 class OnHarrixPylib02Publish(action_base.ActionBase):
+    """Publish a new version of harrix-pylib to PyPI and update dependent projects.
+
+    This action automates the process of updating, building, and publishing the harrix-pylib
+    package to PyPI, then updating all projects that depend on it. The process follows
+    these steps:
+
+    1. Bump the minor version number of harrix-pylib
+    2. Build the package and publish it to PyPI using the provided token
+    3. Commit the version changes to the harrix-pylib repository
+    4. Wait for the package to be available on PyPI (20 seconds delay)
+    5. Update all dependent projects (defined in self.projects) to use the new version
+    6. Commit the dependency updates to each project's repository
+
+    The action requires a PyPI token, which can be provided in the configuration or
+    entered when prompted. The entire process is executed in background threads to
+    maintain UI responsiveness, with each major step running in its own thread.
+
+    This automation significantly reduces the manual work involved in publishing library
+    updates and ensuring dependent projects stay synchronized with the latest version.
+    """
+
     icon = "👷‍♂️"
     title = "02 Publish and update harrix-pylib"
 
@@ -172,6 +228,18 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
 
 
 class OnNewUvProject(action_base.ActionBase):
+    """Create a new Python project with uv package manager using automatic naming.
+
+    This action automatically creates a new Python project using the uv package manager
+    in the configured projects directory. Unlike the dialog version, this action doesn't
+    prompt for a project name or location - it automatically generates a sequential
+    project name (e.g., "python_project_07") based on existing projects in the directory.
+
+    The uv package manager (<https://github.com/astral-sh/uv>) is used to set up the project
+    structure, virtual environment, and dependencies. The project is then opened in the
+    configured editor specified in the application settings..
+    """
+
     icon = "🐍"
     title = "New uv project in Projects"
 
@@ -194,6 +262,18 @@ class OnNewUvProject(action_base.ActionBase):
 
 
 class OnNewUvProjectDialog(action_base.ActionBase):
+    """Create a new Python project with uv package manager in a specified directory.
+
+    This action guides the user through creating a new Python project using the uv package manager.
+    It prompts for a project name and destination folder, then sets up a new project with the
+    appropriate structure and configuration.
+
+    The uv package manager (<https://github.com/astral-sh/uv>) is a fast, reliable Python package
+    manager and resolver. This action automates the project setup process, creating the necessary
+    files and directories, initializing the virtual environment, and opening the project in the
+    configured editor.
+    """
+
     icon = "🐍"
     title = "New uv project in …"
 
@@ -230,6 +310,13 @@ class OnNewUvProjectDialog(action_base.ActionBase):
 
 
 class OnSortCode(action_base.ActionBase):
+    """Sort Python code elements (classes, methods, functions) in a single Python file.
+
+    This action prompts the user to select a specific Python file and then applies
+    a sorting function to organize its content. The sorting arranges class definitions,
+    methods, and functions in a consistent order to improve code readability and maintainability.
+    """
+
     icon = "📶"
     title = "Sort classes, methods, functions in one PY file"
 
@@ -254,6 +341,13 @@ class OnSortCode(action_base.ActionBase):
 
 
 class OnSortCodeFolder(action_base.ActionBase):
+    """Sort Python code elements (classes, methods, functions) in all Python files within a selected folder.
+
+    This action allows the user to select a project folder and then applies a sorting function
+    to all Python files in that folder. The sorting organizes class definitions, methods, and
+    functions in a consistent order to improve code readability and maintainability.
+    """
+
     icon = "📶"
     title = "Sort classes, methods, functions in PY files"
 
@@ -279,7 +373,16 @@ class OnSortCodeFolder(action_base.ActionBase):
 
 
 class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
-    """Format and sort Python code in a selected folder."""
+    """Format and sort Python code in a selected folder using multiple tools.
+
+    This action applies a comprehensive code formatting and organization workflow to all
+    Python files in a user-selected directory. The process consists of three steps:
+
+    1. Running isort to organize and standardize imports
+    2. Applying ruff format to enforce consistent code style and formatting
+    3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
+       such as classes, methods, and functions in a consistent order
+    """
 
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
