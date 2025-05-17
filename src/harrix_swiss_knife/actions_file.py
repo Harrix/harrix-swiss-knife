@@ -60,7 +60,7 @@ class OnCheckFeaturedImage(action_base.ActionBase):
     """
 
     icon = "✅"
-    title = "Check featured_image. in …"
+    title = "Check featured_image in …"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -86,7 +86,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
     """
 
     icon = "✅"
-    title = "Check featured_image."
+    title = "Check featured_image"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -167,7 +167,7 @@ class RenameLargestImagesToFeaturedImage(action_base.ActionBase):
     """
 
     icon = "🖲️"
-    title = "Rename largest images to featured_image.* in …"
+    title = "Rename largest images to featured_image in …"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
