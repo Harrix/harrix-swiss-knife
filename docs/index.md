@@ -1,3 +1,9 @@
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
+
 # harrix-swiss-knife
 
 ![harrix-swiss-knife](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/featured-image.svg)
