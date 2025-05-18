@@ -76,6 +76,68 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
         self.show_result()
 
 
+class OnCheckMd(action_base.ActionBase):
+    """Action to check a Markdown file for errors with Harrix rules."""
+
+    icon = "🚧"
+    title = "Check one MD"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.filename = self.get_open_filename(
+            "Open Markdown file",
+            config["path_notes"],
+            "Markdown (*.md);;All Files (*)",
+        )
+        if not self.filename:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        errors = check_md(self.filename)  # h.md.check_md(self.filename)
+        if errors:
+            self.add_line("\n".join(errors))
+        else:
+            self.add_line(f"✅ There are no errors in {self.filename}.")
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
+
+class OnCheckMdFolder(action_base.ActionBase):
+    """Action to check all Markdown files in a folder for errors with Harrix rules."""
+
+    icon = "🚧"
+    title = "Check in …"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        try:
+            errors = h.file.check_func(self.folder_path, ".md", check_md)  # h.md.check_md
+            if errors:
+                self.add_line("\n".join(errors))
+            else:
+                self.add_line(f"✅ There are no errors in {self.folder_path}.")
+        except Exception as e:  # noqa: BLE001
+            self.add_line(f"❌ Error: {e}")
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
+
+
 class OnCombineMarkdownFiles(action_base.ActionBase):
     """Combine related Markdown files in a directory structure.
 
@@ -803,3 +865,50 @@ class OnSortSectionsFolder(action_base.ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
+
+
+def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
+    """Check Markdown file for compliance with specified rules.
+
+    Args:
+
+    - `filename` (`Path | str`): Path to the Markdown file to check.
+    - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
+
+    Returns:
+
+    - `list`: List of error messages found during checking.
+
+    Rules:
+
+    - **H001** - Presence of a space in the Markdown file name.
+    - **H002** - Presence of a space in the path to the Markdown file.
+
+    Example:
+
+    ```python
+    import harrix_pylib as h
+    from pathlib import Path
+
+    errors = h.check_md("C:/Notes/Note.md")
+    for error in errors:
+        print(error)
+    ```
+
+    """
+    number_rules = 2
+    rules = {f"H{i:03d}" for i in range(number_rules)} - set() if exclude_rules is None else exclude_rules
+    errors = []
+
+    filename = Path(filename)
+
+    ## Check filename
+    if "H001" in rules and " " in str(filename.name):
+        errors.append(f"❌ Presence of a space in the Markdown file name {filename}.")
+    elif "H002" in rules and " " in str(filename.name):
+        errors.append(f"❌ Presence of a space in the path to the Markdown file {filename}.")
+
+    with Path.open(filename, encoding="utf-8") as f:
+        document = f.read()
+
+    return errors
