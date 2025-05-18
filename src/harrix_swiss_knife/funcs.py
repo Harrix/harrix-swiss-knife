@@ -1,4 +1,4 @@
-"""Module for optimizing images in markdown files and content."""
+"""Module for optimizing images in Markdown files and content."""
 
 import re
 import shutil
@@ -9,14 +9,14 @@ import harrix_pylib as h
 
 
 def optimize_images_in_md(filename: Path | str) -> str:
-    """Optimize images in a markdown file by converting them to more efficient formats.
+    """Optimize images in a Markdown file by converting them to more efficient formats.
 
-    This function reads a markdown file, processes any local images referenced in it,
-    optimizes them, and updates the markdown content to reference the optimized images.
+    This function reads a Markdown file, processes any local images referenced in it,
+    optimizes them, and updates the Markdown content to reference the optimized images.
 
     Args:
 
-    - `filename` (`Path | str`): Path to the markdown file to process.
+    - `filename` (`Path | str`): Path to the Markdown file to process.
 
     Returns:
 
@@ -43,50 +43,50 @@ def optimize_images_in_md_content(
     *,
     convert_png_to_avif: bool = False,
 ) -> str:
-    """Optimize images referenced in markdown content by converting them to more efficient formats.
+    """Optimize images referenced in Markdown content by converting them to more efficient formats.
 
-    This function processes markdown content to find local image references, optimizes those images,
-    and updates the markdown content to reference the optimized versions. Remote images (URLs)
+    This function processes Markdown content to find local image references, optimizes those images,
+    and updates the Markdown content to reference the optimized versions. Remote images (URLs)
     are left unchanged.
 
     Args:
 
-    - `markdown_text` (`str`): The markdown content to process.
-    - `path_md` (`Path | str`): Path to the markdown file or its containing directory.
+    - `markdown_text` (`str`): The Markdown content to process.
+    - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
     - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
     - `convert_png_to_avif` (`bool`): Flag for converting PNG to AVIF. Defaults to `False`.
 
     Returns:
 
-    - `str`: The updated markdown content with references to optimized images.
+    - `str`: The updated Markdown content with references to optimized images.
 
     Notes:
 
     - Images with extensions .jpg, .jpeg, .webp, .gif, and .mp4 will be converted to .avif
     - PNG and SVG files keep their original format but may still be optimized
     - The optimization process uses an external npm script
-    - Code blocks in the markdown are preserved without changes
+    - Code blocks in the Markdown are preserved without changes
 
     """
 
     def optimize_images_content_line(markdown_line: str, path_md: Path | str, image_folder: str = "img") -> str:
-        """Process a single line of markdown to optimize any image reference it contains.
+        """Process a single line of Markdown to optimize any image reference it contains.
 
         Args:
 
-        - `markdown_line` (`str`): A single line from the markdown document.
-        - `path_md` (`Path | str`): Path to the markdown file or its containing directory.
+        - `markdown_line` (`str`): A single line from the Markdown document.
+        - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
         - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
 
         Returns:
 
-        - `str`: The processed markdown line, with image references updated if needed.
+        - `str`: The processed Markdown line, with image references updated if needed.
 
         """
         result_line = markdown_line
         should_process = True
 
-        # Regular expression to match markdown image with remote URL (http or https)
+        # Regular expression to match Markdown image with remote URL (http or https)
         pattern = r"^\!\[(.*?)\]\((http.*?)\)$"
         match = re.search(pattern, markdown_line.strip())
 
@@ -94,7 +94,7 @@ def optimize_images_in_md_content(
         if match:
             should_process = False
 
-        # Regular expression to match markdown image with local path
+        # Regular expression to match Markdown image with local path
         local_pattern = r"^\!\[(.*?)\]\((.*?)\)$"
         local_match = re.search(local_pattern, markdown_line.strip())
 
@@ -108,7 +108,7 @@ def optimize_images_in_md_content(
                 if isinstance(path_md, str):
                     path_md = Path(path_md)
 
-                # Get the directory containing the markdown file
+                # Get the directory containing the Markdown file
                 md_dir = path_md.parent if path_md.is_file() else path_md
 
                 # Determine the complete path to the image
@@ -166,7 +166,7 @@ def optimize_images_in_md_content(
                                 # Copy the optimized image to the target location
                                 shutil.copy(optimized_image, new_image_path)
 
-                                # Create the new markdown line with updated path
+                                # Create the new Markdown line with updated path
                                 result_line = f"![{alt_text}]({new_image_rel_path})"
 
         return result_line
@@ -188,14 +188,14 @@ def optimize_images_in_md_content(
 
 
 def optimize_images_in_md_png_to_avif(filename: Path | str) -> str:
-    """Optimize images in a markdown file by converting them to more efficient formats. PNG converts to AVIF too.
+    """Optimize images in a Markdown file by converting them to more efficient formats. PNG converts to AVIF too.
 
-    This function reads a markdown file, processes any local images referenced in it,
-    optimizes them, and updates the markdown content to reference the optimized images.
+    This function reads a Markdown file, processes any local images referenced in it,
+    optimizes them, and updates the Markdown content to reference the optimized images.
 
     Args:
 
-    - `filename` (`Path | str`): Path to the markdown file to process.
+    - `filename` (`Path | str`): Path to the Markdown file to process.
 
     Returns:
 

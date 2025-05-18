@@ -101,18 +101,18 @@ class MainMenuBase:
         return QIcon(pixmap)
 
     def generate_markdown_from_qmenu(self, menu: QMenu, level: int = 0) -> list[str]:
-        """Generate a markdown representation of a QMenu structure.
+        """Generate a Markdown representation of a QMenu structure.
 
-        This function traverses the QMenu and its submenus to produce a nested list in markdown format.
+        This function traverses the QMenu and its submenus to produce a nested list in Markdown format.
 
         Args:
 
-        - `menu` (`QMenu`): The QMenu object to convert to markdown.
+        - `menu` (`QMenu`): The QMenu object to convert to Markdown.
         - `level` (`int`, optional): The current indentation level for nested menus. Defaults to `0`.
 
         Returns:
 
-        - `List[str]`: A list of strings, each representing a line of markdown text that describes the menu structure.
+        - `List[str]`: A list of strings, each representing a line of Markdown text that describes the menu structure.
 
         """
         markdown_lines: list[str] = []
@@ -168,11 +168,11 @@ class MainMenuBase:
         - Locates the section to update by looking for "## List of commands" and the next heading.
         - Inserts the current menu structure into the file between these markers.
         - Overwrites the README.md with the updated content.
-        - Returns the markdown representation of the menu.
+        - Returns the Markdown representation of the menu.
 
         Returns:
 
-        - `str`: The markdown formatted menu list.
+        - `str`: The Markdown formatted menu list.
 
         """
         filename = h.dev.get_project_root() / "README.md"
@@ -303,18 +303,18 @@ def create_emoji_icon(self, emoji: str, size: int = 32) -> QIcon:
 def generate_markdown_from_qmenu(self, menu: QMenu, level: int = 0) -> list[str]
 ```
 
-Generate a markdown representation of a QMenu structure.
+Generate a Markdown representation of a QMenu structure.
 
-This function traverses the QMenu and its submenus to produce a nested list in markdown format.
+This function traverses the QMenu and its submenus to produce a nested list in Markdown format.
 
 Args:
 
-- `menu` (`QMenu`): The QMenu object to convert to markdown.
+- `menu` (`QMenu`): The QMenu object to convert to Markdown.
 - `level` (`int`, optional): The current indentation level for nested menus. Defaults to `0`.
 
 Returns:
 
-- `List[str]`: A list of strings, each representing a line of markdown text that describes the menu structure.
+- `List[str]`: A list of strings, each representing a line of Markdown text that describes the menu structure.
 
 <details>
 <summary>Code:</summary>
@@ -394,11 +394,11 @@ This method:
 - Locates the section to update by looking for "## List of commands" and the next heading.
 - Inserts the current menu structure into the file between these markers.
 - Overwrites the README.md with the updated content.
-- Returns the markdown representation of the menu.
+- Returns the Markdown representation of the menu.
 
 Returns:
 
-- `str`: The markdown formatted menu list.
+- `str`: The Markdown formatted menu list.
 
 <details>
 <summary>Code:</summary>

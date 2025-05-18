@@ -182,7 +182,7 @@ class OnFormatQuotesAsMarkdownContent(action_base.ActionBase):
     """Format plain text quotes into properly structured Markdown."""
 
     icon = "❞"
-    title = "Format quotes as markdown content"
+    title = "Format quotes as Markdown content"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -226,7 +226,7 @@ class OnFormatYaml(action_base.ActionBase):
 class OnGenerateAuthorBook(action_base.ActionBase):
     """Process quote files to add author and book information.
 
-    This action traverses a folder of quote markdown files and processes each file
+    This action traverses a folder of quote Markdown files and processes each file
     to generate or update author and book information based on the content structure.
     Useful for maintaining a consistent format in a collection of literary quotes.
     """
@@ -481,7 +481,7 @@ class OnIncreaseHeadingLevelContent(action_base.ActionBase):
 class OnNewArticle(action_base.ActionBase):
     """Create a new article with predefined template.
 
-    This action prompts the user for an article title, creates a new markdown file
+    This action prompts the user for an article title, creates a new Markdown file
     in the configured articles directory, and opens it in the configured editor.
     """
 
@@ -512,7 +512,7 @@ class OnNewArticle(action_base.ActionBase):
 class OnNewDiary(action_base.ActionBase):
     """Create a new diary entry for the current date.
 
-    This action creates a new diary markdown file in the configured diary directory
+    This action creates a new diary Markdown file in the configured diary directory
     using the current date, adds the configured template content, and opens it
     in the configured editor.
     """
@@ -530,7 +530,7 @@ class OnNewDiary(action_base.ActionBase):
 class OnNewDiaryDream(action_base.ActionBase):
     """Create a new dream journal entry for the current date.
 
-    This action creates a new dream journal markdown file in the configured dream directory
+    This action creates a new dream journal Markdown file in the configured dream directory
     using the current date, adds the configured template content, and opens it
     in the configured editor.
     """
@@ -548,7 +548,7 @@ class OnNewDiaryDream(action_base.ActionBase):
 class OnNewNoteDialog(action_base.ActionBase):
     """Create a new general note with a user-specified filename.
 
-    This action prompts the user to save a new markdown file in the configured notes directory,
+    This action prompts the user to save a new Markdown file in the configured notes directory,
     adds template content with the filename as the title, and opens it in the configured editor.
     Supports optional image directory creation.
     """

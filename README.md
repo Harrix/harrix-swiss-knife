@@ -48,7 +48,7 @@ _Figure 1: Screenshot_
   - ✍️ New article
   - 📓 New note with images
   - 📓 New note
-  - ❞ Format quotes as markdown content
+  - ❞ Format quotes as Markdown content
   - 🎬 Get a list of movies, books for web
   - 👉 Increase heading level
   - 😎 Beautify MD notes (All in one)
