@@ -27,6 +27,10 @@ lang: en
   - [Method `thread_after`](#method-thread_after-1)
 - [Class `OnOpenConfigJson`](#class-onopenconfigjson)
   - [Method `execute`](#method-execute-4)
+- [Class `OnUvUpdate`](#class-onuvupdate)
+  - [Method `execute`](#method-execute-5)
+  - [Method `in_thread`](#method-in_thread-2)
+  - [Method `thread_after`](#method-thread_after-2)
 
 </details>
 
@@ -411,6 +415,102 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
+```
+
+</details>
+
+## Class `OnUvUpdate`
+
+```python
+class OnUvUpdate(action_base.ActionBase)
+```
+
+Update uv package manager to its latest version.
+
+This action updates the uv Python package manager to its latest version
+using the 'uv self update' command, ensuring the development environment
+has the most current version of this package management tool.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnUvUpdate(action_base.ActionBase):
+
+    icon = "📥"
+    title = "Update uv"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        commands = "uv self update"
+        return h.dev.run_powershell_script(commands)
+
+    def thread_after(self, result: Any) -> None:
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast("Update completed")
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### Method `in_thread`
+
+```python
+def in_thread(self) -> None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> None:
+        commands = "uv self update"
+        return h.dev.run_powershell_script(commands)
+```
+
+</details>
+
+### Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:
+        self.show_toast("Update completed")
+        self.add_line(result)
+        self.show_result()
 ```
 
 </details>

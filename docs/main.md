@@ -46,6 +46,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_item(self.menu_dev, hsk.dev.OnOpenConfigJson)
         self.add_item(self.menu_dev, hsk.dev.OnNpmInstallPackages)
         self.add_item(self.menu_dev, hsk.dev.OnNpmUpdatePackages)
+        self.add_item(self.menu_dev, hsk.dev.OnUvUpdate)
 
         # Menu Apps
         self.menu_apps = self.new_menu("Apps", "💻")
@@ -158,6 +159,7 @@ def __init__(self) -> None:
         self.add_item(self.menu_dev, hsk.dev.OnOpenConfigJson)
         self.add_item(self.menu_dev, hsk.dev.OnNpmInstallPackages)
         self.add_item(self.menu_dev, hsk.dev.OnNpmUpdatePackages)
+        self.add_item(self.menu_dev, hsk.dev.OnUvUpdate)
 
         # Menu Apps
         self.menu_apps = self.new_menu("Apps", "💻")

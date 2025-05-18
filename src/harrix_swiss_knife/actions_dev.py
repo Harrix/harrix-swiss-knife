@@ -123,3 +123,30 @@ class OnOpenConfigJson(action_base.ActionBase):
         commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
+
+
+class OnUvUpdate(action_base.ActionBase):
+    """Update uv package manager to its latest version.
+
+    This action updates the uv Python package manager to its latest version
+    using the 'uv self update' command, ensuring the development environment
+    has the most current version of this package management tool.
+    """
+
+    icon = "📥"
+    title = "Update uv"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        commands = "uv self update"
+        return h.dev.run_powershell_script(commands)
+
+    def thread_after(self, result: Any) -> None:
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast("Update completed")
+        self.add_line(result)
+        self.show_result()
