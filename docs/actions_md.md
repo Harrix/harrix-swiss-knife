@@ -146,6 +146,7 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
                 self.add_line(h.file.apply_func(path, ".md", h.md.generate_toc_with_links))
 
                 # Generate summaries
+                self.add_line("🔵 Generate summaries")
                 for path_notes_for_summaries in config["paths_notes_for_summaries"]:
                     if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(path).resolve()):
                         self.add_line(h.md.generate_summaries(path_notes_for_summaries))
@@ -217,6 +218,7 @@ def in_thread(self) -> None:
                 self.add_line(h.file.apply_func(path, ".md", h.md.generate_toc_with_links))
 
                 # Generate summaries
+                self.add_line("🔵 Generate summaries")
                 for path_notes_for_summaries in config["paths_notes_for_summaries"]:
                     if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(path).resolve()):
                         self.add_line(h.md.generate_summaries(path_notes_for_summaries))
