@@ -96,7 +96,7 @@ class OnCheckMd(action_base.ActionBase):
 
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
-        errors = check_md(self.filename)  # h.md.check_md(self.filename)
+        errors = check_md(self.filename)  # h.md.check_md(self.filename) TODO
         if errors:
             self.add_line("\n".join(errors))
         else:
@@ -124,7 +124,7 @@ class OnCheckMdFolder(action_base.ActionBase):
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
-            errors = h.file.check_func(self.folder_path, ".md", check_md)  # h.md.check_md
+            errors = h.file.check_func(self.folder_path, ".md", check_md)  # h.md.check_md TODO
             if errors:
                 self.add_line("\n".join(errors))
             else:
@@ -883,6 +883,9 @@ def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
 
     - **H001** - Presence of a space in the Markdown file name.
     - **H002** - Presence of a space in the path to the Markdown file.
+    - **H003** - YAML is missing.
+    - **H004** - The lang field is missing in YAML.
+    - **H005** - In YAML, lang is not set to `en` or `ru`.
 
     Example:
 
@@ -902,13 +905,35 @@ def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
 
     filename = Path(filename)
 
-    ## Check filename
+    # Check filename
     if "H001" in rules and " " in str(filename.name):
-        errors.append(f"❌ Presence of a space in the Markdown file name {filename}.")
+        errors.append(f"❌ H001 Presence of a space in the Markdown file name {filename}.")
     elif "H002" in rules and " " in str(filename.name):
-        errors.append(f"❌ Presence of a space in the path to the Markdown file {filename}.")
+        errors.append(f"❌ H002 Presence of a space in the path to the Markdown file {filename}.")
 
     with Path.open(filename, encoding="utf-8") as f:
-        document = f.read()
+        markdown_text = f.read()
+
+    yaml_md, content_md = h.md.split_yaml_content(markdown_text)
+
+    # Check YAML
+    data_yaml = h.md.yaml.safe_load(yaml_md.strip("---\n")) # TODO h.md. убрать
+    if not data_yaml:
+       errors.append(f"❌ H003 YAML is missing in {filename}.")
+    else:
+        lang = data_yaml.get("lang")
+        if "H004" in rules and not lang:
+            errors.append(f"❌ H004 The lang field is missing in YAML in {filename}.")
+        elif "H005" in rules and not lang:
+            errors.append(f"❌ H005 In YAML, lang is not set to en or ru in {filename}.")
+
+    # Check nocode lines
+    new_lines = []
+    lines = content_md.split("\n")
+    for i, (line, is_code_block) in enumerate(h.md.identify_code_blocks(lines)): # TODO h.md. убрать
+        if is_code_block:
+            new_lines.append(line)
+            continue
+
 
     return errors
