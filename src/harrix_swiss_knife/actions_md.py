@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pathlib import Path
+import re
 from typing import Any
 
 import harrix_pylib as h
@@ -99,6 +100,7 @@ class OnCheckMd(action_base.ActionBase):
         errors = check_md(self.filename)  # h.md.check_md(self.filename) TODO
         if errors:
             self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
         else:
             self.add_line(f"✅ There are no errors in {self.filename}.")
 
@@ -127,6 +129,7 @@ class OnCheckMdFolder(action_base.ActionBase):
             errors = h.file.check_func(self.folder_path, ".md", check_md)  # h.md.check_md TODO
             if errors:
                 self.add_line("\n".join(errors))
+                self.add_line(f"🔢 Count errors = {len(errors)}")
             else:
                 self.add_line(f"✅ There are no errors in {self.folder_path}.")
         except Exception as e:  # noqa: BLE001
@@ -886,6 +889,7 @@ def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
     - **H003** - YAML is missing.
     - **H004** - The lang field is missing in YAML.
     - **H005** - In YAML, lang is not set to `en` or `ru`.
+    - **H006** - Markdown is written with a small letter.
 
     Example:
 
@@ -899,8 +903,8 @@ def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
     ```
 
     """
-    number_rules = 2
-    rules = {f"H{i:03d}" for i in range(number_rules)} - set() if exclude_rules is None else exclude_rules
+    number_rules = 6
+    rules = {f"H{i:03d}" for i in range(1, number_rules + 1)} - set() if exclude_rules is None else exclude_rules
     errors = []
 
     filename = Path(filename)
@@ -914,10 +918,10 @@ def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
     with Path.open(filename, encoding="utf-8") as f:
         markdown_text = f.read()
 
-    yaml_md, content_md = h.md.split_yaml_content(markdown_text)
+    yaml_md, content_md = h.md.split_yaml_content(markdown_text) # TODO h.md. delete
 
     # Check YAML
-    data_yaml = h.md.yaml.safe_load(yaml_md.strip("---\n")) # TODO h.md. убрать
+    data_yaml = h.md.yaml.safe_load(yaml_md.strip("---\n")) # TODO h.md. delete
     if not data_yaml:
        errors.append(f"❌ H003 YAML is missing in {filename}.")
     else:
@@ -927,13 +931,19 @@ def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
         elif "H005" in rules and not lang:
             errors.append(f"❌ H005 In YAML, lang is not set to en or ru in {filename}.")
 
-    # Check nocode lines
-    new_lines = []
+    # Check content
     lines = content_md.split("\n")
-    for i, (line, is_code_block) in enumerate(h.md.identify_code_blocks(lines)): # TODO h.md. убрать
+    for i, (line, is_code_block) in enumerate(h.md.identify_code_blocks(lines)): # TODO h.md. delete
         if is_code_block:
-            new_lines.append(line)
+            # Check code lines
             continue
-
+        # Check nocode lines
+        clean_line = ""
+        for segment, in_code in h.md.identify_code_blocks_line(line): # TODO h.md. delete
+            if not in_code:
+                clean_line += segment
+        words = re.findall(r'\b\w+\b', clean_line)
+        if "H006" in rules and "markdown" in words:
+             errors.append(f"❌ H006 {i} - Markdown is written with a small letter in {filename}: {line}")
 
     return errors
