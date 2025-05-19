@@ -942,7 +942,7 @@ def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
         for segment, in_code in h.md.identify_code_blocks_line(line): # TODO h.md. delete
             if not in_code:
                 clean_line += segment
-        words = re.findall(r'\b\w+\b', clean_line)
+        words = re.findall(r'\b[\w-]+\b', line)
         if "H006" in rules and "markdown" in words:
              errors.append(f"❌ H006 {i} - Markdown is written with a small letter in {filename}: {line}")
 
