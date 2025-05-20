@@ -1,13 +1,13 @@
 """Actions for Python development and Markdown file management."""
 
+import re
 from datetime import datetime
 from pathlib import Path
-import re
 from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife import action_base, funcs
+from harrix_swiss_knife import action_base, funcs, markdown_checker
 
 config = h.dev.load_config("config/config.json")
 
@@ -97,7 +97,8 @@ class OnCheckMd(action_base.ActionBase):
 
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
-        errors = check_md(self.filename)  # h.md.check_md(self.filename) TODO
+        checker = markdown_checker.MarkdownChecker()
+        errors = checker(self.filename)  # h.md.check_md(self.filename) TODO
         if errors:
             self.add_line("\n".join(errors))
             self.add_line(f"🔢 Count errors = {len(errors)}")
@@ -108,6 +109,7 @@ class OnCheckMd(action_base.ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
         self.show_result()
+
 
 class OnCheckMdFolder(action_base.ActionBase):
     """Action to check all Markdown files in a folder for errors with Harrix rules."""
@@ -126,7 +128,8 @@ class OnCheckMdFolder(action_base.ActionBase):
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
-            errors = h.file.check_func(self.folder_path, ".md", check_md)  # h.md.check_md TODO
+            checker = markdown_checker.MarkdownChecker()
+            errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
             if errors:
                 self.add_line("\n".join(errors))
                 self.add_line(f"🔢 Count errors = {len(errors)}")
@@ -868,87 +871,3 @@ class OnSortSectionsFolder(action_base.ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
-
-
-def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
-    """Check Markdown file for compliance with specified rules.
-
-    Args:
-
-    - `filename` (`Path | str`): Path to the Markdown file to check.
-    - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
-
-    Returns:
-
-    - `list`: List of error messages found during checking.
-
-    Rules:
-
-    - **H001** - Presence of a space in the Markdown file name.
-    - **H002** - Presence of a space in the path to the Markdown file.
-    - **H003** - YAML is missing.
-    - **H004** - The lang field is missing in YAML.
-    - **H005** - In YAML, lang is not set to `en` or `ru`.
-    - **H006** - Markdown is written with a small letter.
-
-    Example:
-
-    ```python
-    import harrix_pylib as h
-    from pathlib import Path
-
-    errors = h.check_md("C:/Notes/Note.md")
-    for error in errors:
-        print(error)
-    ```
-
-    """
-    number_rules = 6
-    rules = {f"H{i:03d}" for i in range(1, number_rules + 1)} - set() if exclude_rules is None else exclude_rules
-    errors = []
-
-    filename = Path(filename)
-
-    # Check filename
-    if "H001" in rules and " " in str(filename.name):
-        errors.append(f"❌ H001 Presence of a space in the Markdown file name {filename}.")
-    elif "H002" in rules and " " in str(filename.name):
-        errors.append(f"❌ H002 Presence of a space in the path to the Markdown file {filename}.")
-
-    with Path.open(filename, encoding="utf-8") as f:
-        markdown_text = f.read()
-
-    yaml_md, content_md = h.md.split_yaml_content(markdown_text) # TODO h.md. delete
-
-    # Check YAML
-    try:
-        data_yaml = h.md.yaml.safe_load(yaml_md.strip("---\n")) # TODO h.md. delete
-        if not data_yaml:
-            errors.append(f"❌ H003 YAML is missing in {filename}.")
-        else:
-            lang = data_yaml.get("lang")
-            if "H004" in rules and not lang:
-                errors.append(f"❌ H004 The lang field is missing in YAML in {filename}.")
-            elif "H005" in rules and not lang:
-                errors.append(f"❌ H005 In YAML, lang is not set to en or ru in {filename}.")
-    except Exception as e:
-        errors.append(f"❌ YAML {e} in {filename}.")
-
-    # Check content
-    lines = content_md.split("\n")
-    for i, (line, is_code_block) in enumerate(h.md.identify_code_blocks(lines)): # TODO h.md. delete
-        if is_code_block:
-            # Check code lines
-            continue
-        # Check nocode lines
-        clean_line = ""
-        for segment, in_code in h.md.identify_code_blocks_line(line): # TODO h.md. delete
-            if not in_code:
-                clean_line += segment
-        words = re.findall(r'\b[\w/\\.-]+\b', clean_line)
-        words = [word.strip('.') for word in words]
-
-        if "H006" in rules and "markdown" in words:
-             errors.append(f"❌ H006 {i} - Markdown is written with a small letter in {filename}: {line}")
-
-    return errors
