@@ -921,15 +921,18 @@ def check_md(filename: Path | str, exclude_rules: set | None = None) -> list:
     yaml_md, content_md = h.md.split_yaml_content(markdown_text) # TODO h.md. delete
 
     # Check YAML
-    data_yaml = h.md.yaml.safe_load(yaml_md.strip("---\n")) # TODO h.md. delete
-    if not data_yaml:
-       errors.append(f"❌ H003 YAML is missing in {filename}.")
-    else:
-        lang = data_yaml.get("lang")
-        if "H004" in rules and not lang:
-            errors.append(f"❌ H004 The lang field is missing in YAML in {filename}.")
-        elif "H005" in rules and not lang:
-            errors.append(f"❌ H005 In YAML, lang is not set to en or ru in {filename}.")
+    try:
+        data_yaml = h.md.yaml.safe_load(yaml_md.strip("---\n")) # TODO h.md. delete
+        if not data_yaml:
+            errors.append(f"❌ H003 YAML is missing in {filename}.")
+        else:
+            lang = data_yaml.get("lang")
+            if "H004" in rules and not lang:
+                errors.append(f"❌ H004 The lang field is missing in YAML in {filename}.")
+            elif "H005" in rules and not lang:
+                errors.append(f"❌ H005 In YAML, lang is not set to en or ru in {filename}.")
+    except Exception as e:
+        errors.append(f"❌ YAML {e} in {filename}.")
 
     # Check content
     lines = content_md.split("\n")
