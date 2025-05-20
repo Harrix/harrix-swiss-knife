@@ -1,3 +1,5 @@
+"""Module providing functionality for checking Markdown files for compliance with specified rules."""
+
 import re
 from pathlib import Path
 
@@ -34,7 +36,8 @@ class MarkdownChecker:
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the MarkdownChecker with all available rules."""
         number_rules = 6
         self.all_rules = {f"H{i:03d}" for i in range(1, number_rules + 1)}
 
@@ -93,7 +96,7 @@ class MarkdownChecker:
         errors = []
 
         try:
-            data_yaml = yaml.safe_load(yaml_md.strip("---\n"))
+            data_yaml = yaml.safe_load(yaml_md.replace("---\n", "").replace("\n---", ""))
             if not data_yaml:
                 errors.append(f"❌ H003 YAML is missing in {filename}.")
             else:
@@ -102,7 +105,7 @@ class MarkdownChecker:
                     errors.append(f"❌ H004 The lang field is missing in YAML in {filename}.")
                 elif "H005" in rules and lang not in ["en", "ru"]:
                     errors.append(f"❌ H005 In YAML, lang is not set to en or ru in {filename}.")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             errors.append(f"❌ YAML {e} in {filename}.")
 
         return errors
@@ -139,7 +142,7 @@ class MarkdownChecker:
             # Check content
             errors.extend(self._check_content(filename, content_md, rules))
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             errors.append(f"❌ Error reading or processing file: {e} in {filename}.")
 
         return errors
