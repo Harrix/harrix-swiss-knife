@@ -20,7 +20,7 @@ lang: en
 ## Class `Ui_MainWindow`
 
 ```python
-class Ui_MainWindow
+class Ui_MainWindow(object)
 ```
 
 _No docstring provided._
@@ -29,13 +29,14 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-class Ui_MainWindow:
+class Ui_MainWindow(object):
     # setupUi
 
-    def retranslateUi(self, MainWindow) -> None:
+    def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Fitness tracker", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Add Exercise", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.label.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
         self.pushButton_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
@@ -52,8 +53,7 @@ class Ui_MainWindow:
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab),
-            QCoreApplication.translate("MainWindow", "List", None),
+            self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "List", None)
         )
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name", None))
@@ -64,8 +64,7 @@ class Ui_MainWindow:
         self.pushButton_exercises_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_2),
-            QCoreApplication.translate("MainWindow", "Exercises", None),
+            self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
         )
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -74,8 +73,7 @@ class Ui_MainWindow:
         self.pushButton_types_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_3),
-            QCoreApplication.translate("MainWindow", "Exercise Types", None),
+            self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", "Exercise Types", None)
         )
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Data", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -84,16 +82,14 @@ class Ui_MainWindow:
         self.pushButton_weight_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_5),
-            QCoreApplication.translate("MainWindow", "Weight", None),
+            self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None)
         )
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_4),
-            QCoreApplication.translate("MainWindow", "Statistics", None),
+            self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
         )
 
-    def setupUi(self, MainWindow) -> None:
+    def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1191, 822)
@@ -133,14 +129,15 @@ class Ui_MainWindow:
         self.comboBox_type = QComboBox(self.groupBox)
         self.comboBox_type.setObjectName("comboBox_type")
         self.comboBox_type.setGeometry(QRect(10, 60, 261, 22))
-        self.lineEdit_date = QLineEdit(self.groupBox)
-        self.lineEdit_date.setObjectName("lineEdit_date")
-        self.lineEdit_date.setGeometry(QRect(10, 140, 261, 20))
         self.spinBox_count = QSpinBox(self.groupBox)
         self.spinBox_count.setObjectName("spinBox_count")
         self.spinBox_count.setGeometry(QRect(10, 100, 261, 22))
         self.spinBox_count.setMaximum(1000000)
         self.spinBox_count.setValue(100)
+        self.dateEdit = QDateEdit(self.groupBox)
+        self.dateEdit.setObjectName("dateEdit")
+        self.dateEdit.setGeometry(QRect(10, 140, 261, 22))
+        self.dateEdit.setCalendarPopup(True)
         self.pushButton_delete = QPushButton(self.frame)
         self.pushButton_delete.setObjectName("pushButton_delete")
         self.pushButton_delete.setGeometry(QRect(10, 260, 75, 23))
@@ -158,7 +155,7 @@ class Ui_MainWindow:
         self.pushButton_export_csv.setGeometry(QRect(10, 340, 161, 23))
         self.groupBox_filter = QGroupBox(self.frame)
         self.groupBox_filter.setObjectName("groupBox_filter")
-        self.groupBox_filter.setGeometry(QRect(10, 370, 281, 181))
+        self.groupBox_filter.setGeometry(QRect(10, 380, 281, 221))
         self.label_filter_exercise = QLabel(self.groupBox_filter)
         self.label_filter_exercise.setObjectName("label_filter_exercise")
         self.label_filter_exercise.setGeometry(QRect(10, 20, 61, 16))
@@ -176,25 +173,25 @@ class Ui_MainWindow:
         self.label_filter_date.setGeometry(QRect(10, 80, 61, 16))
         self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_from.setObjectName("dateEdit_filter_from")
-        self.dateEdit_filter_from.setGeometry(QRect(80, 80, 81, 22))
+        self.dateEdit_filter_from.setGeometry(QRect(80, 80, 191, 22))
         self.dateEdit_filter_from.setCalendarPopup(True)
         self.label_filter_to = QLabel(self.groupBox_filter)
         self.label_filter_to.setObjectName("label_filter_to")
-        self.label_filter_to.setGeometry(QRect(170, 80, 21, 16))
+        self.label_filter_to.setGeometry(QRect(20, 110, 21, 16))
         self.label_filter_to.setAlignment(Qt.AlignCenter)
         self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_to.setObjectName("dateEdit_filter_to")
-        self.dateEdit_filter_to.setGeometry(QRect(190, 80, 81, 22))
+        self.dateEdit_filter_to.setGeometry(QRect(80, 110, 191, 22))
         self.dateEdit_filter_to.setCalendarPopup(True)
         self.pushButton_apply_filter = QPushButton(self.groupBox_filter)
         self.pushButton_apply_filter.setObjectName("pushButton_apply_filter")
-        self.pushButton_apply_filter.setGeometry(QRect(190, 150, 81, 23))
+        self.pushButton_apply_filter.setGeometry(QRect(190, 180, 81, 23))
         self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
         self.pushButton_clear_filter.setObjectName("pushButton_clear_filter")
-        self.pushButton_clear_filter.setGeometry(QRect(100, 150, 81, 23))
+        self.pushButton_clear_filter.setGeometry(QRect(100, 180, 81, 23))
         self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
         self.checkBox_use_date_filter.setObjectName("checkBox_use_date_filter")
-        self.checkBox_use_date_filter.setGeometry(QRect(10, 110, 131, 17))
+        self.checkBox_use_date_filter.setGeometry(QRect(10, 160, 131, 17))
 
         self.horizontalLayout_2.addWidget(self.frame)
 
@@ -393,7 +390,7 @@ class Ui_MainWindow:
 ### Method `retranslateUi`
 
 ```python
-def retranslateUi(self, MainWindow) -> None
+def retranslateUi(self, MainWindow)
 ```
 
 _No docstring provided._
@@ -402,10 +399,11 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def retranslateUi(self, MainWindow) -> None:
+def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Fitness tracker", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Add Exercise", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.label.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
         self.pushButton_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
@@ -422,8 +420,7 @@ def retranslateUi(self, MainWindow) -> None:
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab),
-            QCoreApplication.translate("MainWindow", "List", None),
+            self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "List", None)
         )
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name", None))
@@ -434,8 +431,7 @@ def retranslateUi(self, MainWindow) -> None:
         self.pushButton_exercises_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_2),
-            QCoreApplication.translate("MainWindow", "Exercises", None),
+            self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
         )
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -444,8 +440,7 @@ def retranslateUi(self, MainWindow) -> None:
         self.pushButton_types_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_3),
-            QCoreApplication.translate("MainWindow", "Exercise Types", None),
+            self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", "Exercise Types", None)
         )
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Data", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -454,13 +449,11 @@ def retranslateUi(self, MainWindow) -> None:
         self.pushButton_weight_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_5),
-            QCoreApplication.translate("MainWindow", "Weight", None),
+            self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None)
         )
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_4),
-            QCoreApplication.translate("MainWindow", "Statistics", None),
+            self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
         )
 ```
 
@@ -469,7 +462,7 @@ def retranslateUi(self, MainWindow) -> None:
 ### Method `setupUi`
 
 ```python
-def setupUi(self, MainWindow) -> None
+def setupUi(self, MainWindow)
 ```
 
 _No docstring provided._
@@ -478,7 +471,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def setupUi(self, MainWindow) -> None:
+def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1191, 822)
@@ -518,14 +511,15 @@ def setupUi(self, MainWindow) -> None:
         self.comboBox_type = QComboBox(self.groupBox)
         self.comboBox_type.setObjectName("comboBox_type")
         self.comboBox_type.setGeometry(QRect(10, 60, 261, 22))
-        self.lineEdit_date = QLineEdit(self.groupBox)
-        self.lineEdit_date.setObjectName("lineEdit_date")
-        self.lineEdit_date.setGeometry(QRect(10, 140, 261, 20))
         self.spinBox_count = QSpinBox(self.groupBox)
         self.spinBox_count.setObjectName("spinBox_count")
         self.spinBox_count.setGeometry(QRect(10, 100, 261, 22))
         self.spinBox_count.setMaximum(1000000)
         self.spinBox_count.setValue(100)
+        self.dateEdit = QDateEdit(self.groupBox)
+        self.dateEdit.setObjectName("dateEdit")
+        self.dateEdit.setGeometry(QRect(10, 140, 261, 22))
+        self.dateEdit.setCalendarPopup(True)
         self.pushButton_delete = QPushButton(self.frame)
         self.pushButton_delete.setObjectName("pushButton_delete")
         self.pushButton_delete.setGeometry(QRect(10, 260, 75, 23))
@@ -543,7 +537,7 @@ def setupUi(self, MainWindow) -> None:
         self.pushButton_export_csv.setGeometry(QRect(10, 340, 161, 23))
         self.groupBox_filter = QGroupBox(self.frame)
         self.groupBox_filter.setObjectName("groupBox_filter")
-        self.groupBox_filter.setGeometry(QRect(10, 370, 281, 181))
+        self.groupBox_filter.setGeometry(QRect(10, 380, 281, 221))
         self.label_filter_exercise = QLabel(self.groupBox_filter)
         self.label_filter_exercise.setObjectName("label_filter_exercise")
         self.label_filter_exercise.setGeometry(QRect(10, 20, 61, 16))
@@ -561,25 +555,25 @@ def setupUi(self, MainWindow) -> None:
         self.label_filter_date.setGeometry(QRect(10, 80, 61, 16))
         self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_from.setObjectName("dateEdit_filter_from")
-        self.dateEdit_filter_from.setGeometry(QRect(80, 80, 81, 22))
+        self.dateEdit_filter_from.setGeometry(QRect(80, 80, 191, 22))
         self.dateEdit_filter_from.setCalendarPopup(True)
         self.label_filter_to = QLabel(self.groupBox_filter)
         self.label_filter_to.setObjectName("label_filter_to")
-        self.label_filter_to.setGeometry(QRect(170, 80, 21, 16))
+        self.label_filter_to.setGeometry(QRect(20, 110, 21, 16))
         self.label_filter_to.setAlignment(Qt.AlignCenter)
         self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_to.setObjectName("dateEdit_filter_to")
-        self.dateEdit_filter_to.setGeometry(QRect(190, 80, 81, 22))
+        self.dateEdit_filter_to.setGeometry(QRect(80, 110, 191, 22))
         self.dateEdit_filter_to.setCalendarPopup(True)
         self.pushButton_apply_filter = QPushButton(self.groupBox_filter)
         self.pushButton_apply_filter.setObjectName("pushButton_apply_filter")
-        self.pushButton_apply_filter.setGeometry(QRect(190, 150, 81, 23))
+        self.pushButton_apply_filter.setGeometry(QRect(190, 180, 81, 23))
         self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
         self.pushButton_clear_filter.setObjectName("pushButton_clear_filter")
-        self.pushButton_clear_filter.setGeometry(QRect(100, 150, 81, 23))
+        self.pushButton_clear_filter.setGeometry(QRect(100, 180, 81, 23))
         self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
         self.checkBox_use_date_filter.setObjectName("checkBox_use_date_filter")
-        self.checkBox_use_date_filter.setGeometry(QRect(10, 110, 131, 17))
+        self.checkBox_use_date_filter.setGeometry(QRect(10, 160, 131, 17))
 
         self.horizontalLayout_2.addWidget(self.frame)
 

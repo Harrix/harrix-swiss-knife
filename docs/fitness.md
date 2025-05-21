@@ -207,24 +207,22 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
     def _increment_date_after_add(self) -> None:
         """Move *date* edit one day forward unless it already shows today.
 
-        After adding a record, this method advances the date in the input field
+        After adding a record, this method advances the date in the date edit
         by one day to make it easier to add consecutive daily entries. If the
         current date is already set to today, it remains unchanged.
         """
-        current_str = self.lineEdit_date.text()
-        today_str = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+        current_date = self.dateEdit.date()  # Get the current QDate from dateEdit
+        today = QDate.currentDate()  # Get today's date as QDate
 
-        if not self._is_valid_date(current_str):
-            self.lineEdit_date.setText(today_str)
-            return
-        if current_str == today_str:
+        # If current date is today, do nothing
+        if current_date >= today:
             return
 
-        current_dt = datetime.strptime(current_str, "%Y-%m-%d").replace(
-            tzinfo=timezone.utc,
-        )
-        next_dt = current_dt + timedelta(days=1)
-        self.lineEdit_date.setText(next_dt.strftime("%Y-%m-%d"))
+        # Add one day to the current date
+        next_date = current_date.addDays(1)
+
+        # Set the new date
+        self.dateEdit.setDate(next_date)
 
     def _init_database(self) -> None:
         """Open the SQLite file from *config* (ask the user if missing).
@@ -554,7 +552,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             {"name": exercise, "unit": unit},
         )
 
-    @fitness_funcs.validate_date
     def on_add_record(self) -> None:
         """Insert a new *process* row.
 
@@ -582,7 +579,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             "exercise_id": ex_id,
             "type_id": type_id or -1,
             "value": str(self.spinBox_count.value()),
-            "date": self.lineEdit_date.text(),
+            "date": self.dateEdit.date().toString("yyyy-MM-dd"),
         }
 
         if self.add_record_generic(
@@ -624,7 +621,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             {"ex": ex_id, "tp": type_name},
         )
 
-    @fitness_funcs.validate_date
     def on_add_weight(self) -> None:
         """Insert a new weight measurement.
 
@@ -853,14 +849,19 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         )
 
     def set_current_date(self) -> None:
-        """Put today's date into the two *date* line edits.
+        """Set today's date in the date edit fields.
 
-        Sets both the main date input field and the weight date input field
-        to today's date in YYYY-MM-DD format.
+        Sets both the main date input field (QDateEdit) and the weight date input field
+        (assuming it's still a QLineEdit) to today's date.
         """
-        today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-        self.lineEdit_date.setText(today)
-        self.lineEdit_weight_date.setText(today)
+        today_qdate = QDate.currentDate()
+        today_str = today_qdate.toString("yyyy-MM-dd")
+
+        # Set the QDateEdit to today's date
+        self.dateEdit.setDate(today_qdate)
+
+        # Assuming lineEdit_weight_date is still a QLineEdit
+        self.lineEdit_weight_date.setText(today_str)
 
     def show_tables(self) -> None:
         """Populate all four `QTableView`s from the database.
@@ -1196,7 +1197,7 @@ def _increment_date_after_add(self) -> None
 
 Move _date_ edit one day forward unless it already shows today.
 
-After adding a record, this method advances the date in the input field
+After adding a record, this method advances the date in the date edit
 by one day to make it easier to add consecutive daily entries. If the
 current date is already set to today, it remains unchanged.
 
@@ -1205,20 +1206,18 @@ current date is already set to today, it remains unchanged.
 
 ```python
 def _increment_date_after_add(self) -> None:
-        current_str = self.lineEdit_date.text()
-        today_str = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+        current_date = self.dateEdit.date()  # Get the current QDate from dateEdit
+        today = QDate.currentDate()  # Get today's date as QDate
 
-        if not self._is_valid_date(current_str):
-            self.lineEdit_date.setText(today_str)
-            return
-        if current_str == today_str:
+        # If current date is today, do nothing
+        if current_date >= today:
             return
 
-        current_dt = datetime.strptime(current_str, "%Y-%m-%d").replace(
-            tzinfo=timezone.utc,
-        )
-        next_dt = current_dt + timedelta(days=1)
-        self.lineEdit_date.setText(next_dt.strftime("%Y-%m-%d"))
+        # Add one day to the current date
+        next_date = current_date.addDays(1)
+
+        # Set the new date
+        self.dateEdit.setDate(next_date)
 ```
 
 </details>
@@ -1712,7 +1711,7 @@ def on_add_record(self) -> None:
             "exercise_id": ex_id,
             "type_id": type_id or -1,
             "value": str(self.spinBox_count.value()),
-            "date": self.lineEdit_date.text(),
+            "date": self.dateEdit.date().toString("yyyy-MM-dd"),
         }
 
         if self.add_record_generic(
@@ -2119,19 +2118,24 @@ def on_update_weight(self) -> None:
 def set_current_date(self) -> None
 ```
 
-Put today's date into the two _date_ line edits.
+Set today's date in the date edit fields.
 
-Sets both the main date input field and the weight date input field
-to today's date in YYYY-MM-DD format.
+Sets both the main date input field (QDateEdit) and the weight date input field
+(assuming it's still a QLineEdit) to today's date.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def set_current_date(self) -> None:
-        today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-        self.lineEdit_date.setText(today)
-        self.lineEdit_weight_date.setText(today)
+        today_qdate = QDate.currentDate()
+        today_str = today_qdate.toString("yyyy-MM-dd")
+
+        # Set the QDateEdit to today's date
+        self.dateEdit.setDate(today_qdate)
+
+        # Assuming lineEdit_weight_date is still a QLineEdit
+        self.lineEdit_weight_date.setText(today_str)
 ```
 
 </details>
