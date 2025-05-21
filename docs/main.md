@@ -106,6 +106,8 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, hsk.md.OnOptimizeImages)
         self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolder)
         self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolderPngToAvif)
+        self.add_item(self.menu_md, hsk.md.OnCheckMd)
+        self.add_item(self.menu_md, hsk.md.OnCheckMdFolder)
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
@@ -219,6 +221,8 @@ def __init__(self) -> None:
         self.add_item(self.menu_md, hsk.md.OnOptimizeImages)
         self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolder)
         self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolderPngToAvif)
+        self.add_item(self.menu_md, hsk.md.OnCheckMd)
+        self.add_item(self.menu_md, hsk.md.OnCheckMdFolder)
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")

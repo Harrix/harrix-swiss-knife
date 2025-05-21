@@ -15,86 +15,94 @@ lang: en
   - [Method `execute`](#method-execute)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
-- [Class `OnCombineMarkdownFiles`](#class-oncombinemarkdownfiles)
+- [Class `OnCheckMd`](#class-oncheckmd)
   - [Method `execute`](#method-execute-1)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnDownloadAndReplaceImages`](#class-ondownloadandreplaceimages)
+- [Class `OnCheckMdFolder`](#class-oncheckmdfolder)
   - [Method `execute`](#method-execute-2)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnDownloadAndReplaceImagesFolder`](#class-ondownloadandreplaceimagesfolder)
+- [Class `OnCombineMarkdownFiles`](#class-oncombinemarkdownfiles)
   - [Method `execute`](#method-execute-3)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
-- [Class `OnFormatQuotesAsMarkdownContent`](#class-onformatquotesasmarkdowncontent)
+- [Class `OnDownloadAndReplaceImages`](#class-ondownloadandreplaceimages)
   - [Method `execute`](#method-execute-4)
-- [Class `OnFormatYaml`](#class-onformatyaml)
-  - [Method `execute`](#method-execute-5)
   - [Method `in_thread`](#method-in_thread-4)
   - [Method `thread_after`](#method-thread_after-4)
-- [Class `OnGenerateAuthorBook`](#class-ongenerateauthorbook)
-  - [Method `execute`](#method-execute-6)
+- [Class `OnDownloadAndReplaceImagesFolder`](#class-ondownloadandreplaceimagesfolder)
+  - [Method `execute`](#method-execute-5)
   - [Method `in_thread`](#method-in_thread-5)
   - [Method `thread_after`](#method-thread_after-5)
-- [Class `OnGenerateImageCaptions`](#class-ongenerateimagecaptions)
+- [Class `OnFormatQuotesAsMarkdownContent`](#class-onformatquotesasmarkdowncontent)
+  - [Method `execute`](#method-execute-6)
+- [Class `OnFormatYaml`](#class-onformatyaml)
   - [Method `execute`](#method-execute-7)
   - [Method `in_thread`](#method-in_thread-6)
   - [Method `thread_after`](#method-thread_after-6)
-- [Class `OnGenerateImageCaptionsFolder`](#class-ongenerateimagecaptionsfolder)
+- [Class `OnGenerateAuthorBook`](#class-ongenerateauthorbook)
   - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-7)
   - [Method `thread_after`](#method-thread_after-7)
-- [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
+- [Class `OnGenerateImageCaptions`](#class-ongenerateimagecaptions)
   - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-8)
   - [Method `thread_after`](#method-thread_after-8)
-- [Class `OnGenerateToc`](#class-ongeneratetoc)
+- [Class `OnGenerateImageCaptionsFolder`](#class-ongenerateimagecaptionsfolder)
   - [Method `execute`](#method-execute-10)
   - [Method `in_thread`](#method-in_thread-9)
   - [Method `thread_after`](#method-thread_after-9)
-- [Class `OnGenerateTocFolder`](#class-ongeneratetocfolder)
+- [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
   - [Method `execute`](#method-execute-11)
   - [Method `in_thread`](#method-in_thread-10)
   - [Method `thread_after`](#method-thread_after-10)
-- [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
+- [Class `OnGenerateToc`](#class-ongeneratetoc)
   - [Method `execute`](#method-execute-12)
-- [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
-  - [Method `execute`](#method-execute-13)
-- [Class `OnNewArticle`](#class-onnewarticle)
-  - [Method `execute`](#method-execute-14)
-- [Class `OnNewDiary`](#class-onnewdiary)
-  - [Method `execute`](#method-execute-15)
-- [Class `OnNewDiaryDream`](#class-onnewdiarydream)
-  - [Method `execute`](#method-execute-16)
-- [Class `OnNewNoteDialog`](#class-onnewnotedialog)
-  - [Method `execute`](#method-execute-17)
-- [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
-  - [Method `execute`](#method-execute-18)
-- [Class `OnOptimizeImages`](#class-onoptimizeimages)
-  - [Method `execute`](#method-execute-19)
   - [Method `in_thread`](#method-in_thread-11)
   - [Method `thread_after`](#method-thread_after-11)
-- [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
-  - [Method `execute`](#method-execute-20)
+- [Class `OnGenerateTocFolder`](#class-ongeneratetocfolder)
+  - [Method `execute`](#method-execute-13)
   - [Method `in_thread`](#method-in_thread-12)
   - [Method `thread_after`](#method-thread_after-12)
-- [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
+- [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
+  - [Method `execute`](#method-execute-14)
+- [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
+  - [Method `execute`](#method-execute-15)
+- [Class `OnNewArticle`](#class-onnewarticle)
+  - [Method `execute`](#method-execute-16)
+- [Class `OnNewDiary`](#class-onnewdiary)
+  - [Method `execute`](#method-execute-17)
+- [Class `OnNewDiaryDream`](#class-onnewdiarydream)
+  - [Method `execute`](#method-execute-18)
+- [Class `OnNewNoteDialog`](#class-onnewnotedialog)
+  - [Method `execute`](#method-execute-19)
+- [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
+  - [Method `execute`](#method-execute-20)
+- [Class `OnOptimizeImages`](#class-onoptimizeimages)
   - [Method `execute`](#method-execute-21)
   - [Method `in_thread`](#method-in_thread-13)
   - [Method `thread_after`](#method-thread_after-13)
-- [Class `OnPettierFolder`](#class-onpettierfolder)
+- [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
   - [Method `execute`](#method-execute-22)
   - [Method `in_thread`](#method-in_thread-14)
   - [Method `thread_after`](#method-thread_after-14)
-- [Class `OnSortSections`](#class-onsortsections)
+- [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
   - [Method `execute`](#method-execute-23)
   - [Method `in_thread`](#method-in_thread-15)
   - [Method `thread_after`](#method-thread_after-15)
-- [Class `OnSortSectionsFolder`](#class-onsortsectionsfolder)
+- [Class `OnPettierFolder`](#class-onpettierfolder)
   - [Method `execute`](#method-execute-24)
   - [Method `in_thread`](#method-in_thread-16)
   - [Method `thread_after`](#method-thread_after-16)
+- [Class `OnSortSections`](#class-onsortsections)
+  - [Method `execute`](#method-execute-25)
+  - [Method `in_thread`](#method-in_thread-17)
+  - [Method `thread_after`](#method-thread_after-17)
+- [Class `OnSortSectionsFolder`](#class-onsortsectionsfolder)
+  - [Method `execute`](#method-execute-26)
+  - [Method `in_thread`](#method-in_thread-18)
+  - [Method `thread_after`](#method-thread_after-18)
 
 </details>
 
@@ -256,6 +264,236 @@ Execute code in the main thread after in_thread(). For handling the results of t
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+## Class `OnCheckMd`
+
+```python
+class OnCheckMd(action_base.ActionBase)
+```
+
+Action to check a Markdown file for errors with Harrix rules.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnCheckMd(action_base.ActionBase):
+
+    icon = "🚧"
+    title = "Check one MD"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.filename = self.get_open_filename(
+            "Open Markdown file",
+            config["path_notes"],
+            "Markdown (*.md);;All Files (*)",
+        )
+        if not self.filename:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        checker = markdown_checker.MarkdownChecker()
+        errors = checker(self.filename)  # h.md.check_md(self.filename) TODO
+        if errors:
+            self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
+        else:
+            self.add_line(f"✅ There are no errors in {self.filename}.")
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.filename = self.get_open_filename(
+            "Open Markdown file",
+            config["path_notes"],
+            "Markdown (*.md);;All Files (*)",
+        )
+        if not self.filename:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### Method `in_thread`
+
+```python
+def in_thread(self) -> None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> None:
+        checker = markdown_checker.MarkdownChecker()
+        errors = checker(self.filename)  # h.md.check_md(self.filename) TODO
+        if errors:
+            self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
+        else:
+            self.add_line(f"✅ There are no errors in {self.filename}.")
+```
+
+</details>
+
+### Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
+```
+
+</details>
+
+## Class `OnCheckMdFolder`
+
+```python
+class OnCheckMdFolder(action_base.ActionBase)
+```
+
+Action to check all Markdown files in a folder for errors with Harrix rules.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnCheckMdFolder(action_base.ActionBase):
+
+    icon = "🚧"
+    title = "Check in …"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        try:
+            checker = markdown_checker.MarkdownChecker()
+            errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
+            if errors:
+                self.add_line("\n".join(errors))
+                self.add_line(f"🔢 Count errors = {len(errors)}")
+            else:
+                self.add_line(f"✅ There are no errors in {self.folder_path}.")
+        except Exception as e:  # noqa: BLE001
+            self.add_line(f"❌ Error: {e}")
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### Method `in_thread`
+
+```python
+def in_thread(self) -> None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> None:
+        try:
+            checker = markdown_checker.MarkdownChecker()
+            errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
+            if errors:
+                self.add_line("\n".join(errors))
+                self.add_line(f"🔢 Count errors = {len(errors)}")
+            else:
+                self.add_line(f"✅ There are no errors in {self.folder_path}.")
+        except Exception as e:  # noqa: BLE001
+            self.add_line(f"❌ Error: {e}")
+```
+
+</details>
+
+### Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
 ```
 
