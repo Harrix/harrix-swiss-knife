@@ -214,7 +214,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         current_date = self.dateEdit.date()  # Get the current QDate from dateEdit
         today = QDate.currentDate()  # Get today's date as QDate
 
-        # If current date is today, do nothing
+        # If current date is today or later, do nothing
         if current_date >= today:
             return
 
@@ -575,29 +575,37 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             if type_name
             else -1
         )
+
+        # Store current date before adding record
+        current_date = self.dateEdit.date()
+
         params = {
             "exercise_id": ex_id,
             "type_id": type_id or -1,
             "value": str(self.spinBox_count.value()),
-            "date": self.dateEdit.date().toString("yyyy-MM-dd"),
+            "date": current_date.toString("yyyy-MM-dd"),
         }
 
-        if self.add_record_generic(
-            "process",
-            (
-                "INSERT INTO process "
-                "(_id_exercises, _id_types, value, date) "
-                "VALUES (:exercise_id, :type_id, :value, :date)"
-            ),
-            params,
-        ):
+        # Execute the query directly instead of using add_record_generic
+        # to avoid triggering update_all() which resets the date
+        query_text = (
+            "INSERT INTO process (_id_exercises, _id_types, value, date) VALUES (:exercise_id, :type_id, :value, :date)"
+        )
+
+        result = self.db_manager.execute_query(query_text, params)
+        if result:
+            # Apply date increment logic
             self._increment_date_after_add()
-            self.update_all(
-                skip_date_update=True,
-                preserve_selections=True,
-                current_exercise=exercise,
-                current_type=type_name,
+
+            # Update UI without resetting the date
+            self.show_tables()
+            self._update_comboboxes(
+                selected_exercise=exercise,
+                selected_type=type_name,
             )
+            self.update_filter_comboboxes()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to add to process")
 
     def on_add_type(self) -> None:
         """Insert a new exercise *type* for the selected exercise.
@@ -1209,7 +1217,7 @@ def _increment_date_after_add(self) -> None:
         current_date = self.dateEdit.date()  # Get the current QDate from dateEdit
         today = QDate.currentDate()  # Get today's date as QDate
 
-        # If current date is today, do nothing
+        # If current date is today or later, do nothing
         if current_date >= today:
             return
 
@@ -1707,29 +1715,37 @@ def on_add_record(self) -> None:
             if type_name
             else -1
         )
+
+        # Store current date before adding record
+        current_date = self.dateEdit.date()
+
         params = {
             "exercise_id": ex_id,
             "type_id": type_id or -1,
             "value": str(self.spinBox_count.value()),
-            "date": self.dateEdit.date().toString("yyyy-MM-dd"),
+            "date": current_date.toString("yyyy-MM-dd"),
         }
 
-        if self.add_record_generic(
-            "process",
-            (
-                "INSERT INTO process "
-                "(_id_exercises, _id_types, value, date) "
-                "VALUES (:exercise_id, :type_id, :value, :date)"
-            ),
-            params,
-        ):
+        # Execute the query directly instead of using add_record_generic
+        # to avoid triggering update_all() which resets the date
+        query_text = (
+            "INSERT INTO process (_id_exercises, _id_types, value, date) VALUES (:exercise_id, :type_id, :value, :date)"
+        )
+
+        result = self.db_manager.execute_query(query_text, params)
+        if result:
+            # Apply date increment logic
             self._increment_date_after_add()
-            self.update_all(
-                skip_date_update=True,
-                preserve_selections=True,
-                current_exercise=exercise,
-                current_type=type_name,
+
+            # Update UI without resetting the date
+            self.show_tables()
+            self._update_comboboxes(
+                selected_exercise=exercise,
+                selected_type=type_name,
             )
+            self.update_filter_comboboxes()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to add to process")
 ```
 
 </details>
