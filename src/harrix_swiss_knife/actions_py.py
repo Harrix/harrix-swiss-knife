@@ -377,6 +377,50 @@ class OnSortCodeFolder(action_base.ActionBase):
         self.show_result()
 
 
+class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
+    """Format, sort Python code and generate documentation in a selected folder.
+
+    This action applies a comprehensive code formatting, organization and documentation
+    workflow to all Python files in a user-selected directory. The process consists of
+    five steps:
+
+    1. Running isort to organize and standardize imports
+    2. Applying ruff format to enforce consistent code style and formatting
+    3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
+       such as classes, methods, and functions in a consistent order
+    4. Generating markdown documentation from Python code using `h.py.generate_md_docs`
+    5. Formatting generated markdown files with prettier for consistent styling
+    """
+
+    icon = "⭐"
+    title = "isort, ruff format, sort, make docs in PY files"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        commands = f"cd {self.folder_path}\nisort .\nruff format"
+        self.add_line(h.dev.run_powershell_script(commands))
+        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
+
+        domain = f"https://github.com/{config['github_user']}/{self.folder_path.parts[-1]}"
+        self.add_line(h.py.generate_md_docs(self.folder_path, config["beginning_of_md_docs"], domain))
+
+        commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+        self.add_line(h.dev.run_powershell_script(commands))
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+
+
 class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
     """Format and sort Python code in a selected folder using multiple tools.
 
