@@ -305,7 +305,7 @@ In the file `resources.qrc` add line for example `<file>assets/logo.svg</file>`:
 Generate `resources_rc.py`:
 
 ```shell
-pyside6-rcc src\harrix_swiss_knife\resources.qrc -o src\harrix_swiss_knife\resources_rc.py
+pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resources_rc.py
 ```
 
 ### Convert UI file to PY class
