@@ -38,34 +38,6 @@ class OnExtractFunctionsAndClasses(action_base.ActionBase):
         self.show_result()
 
 
-class OnGenerateMdDocs(action_base.ActionBase):
-    """Generate and format Markdown documentation for a Python project.
-
-    This action creates comprehensive Markdown documentation for a selected Python project
-    by extracting information from docstrings, function signatures, and module structure.
-    """
-
-    icon = "🏗️"
-    title = "Generate MD documentation in …"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
-        if not folder_path:
-            return
-
-        folder_path = Path(folder_path)
-        domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
-
-        result = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
-        self.add_line(result)
-
-        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        result = h.dev.run_powershell_script(commands)
-        self.add_line(result)
-        self.show_result()
-
-
 class OnHarrixPylib01Prepare(action_base.ActionBase):
     """Prepare the harrix-pylib repository for publication by performing multiple optimization steps.
 

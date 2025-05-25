@@ -48,14 +48,9 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_item(self.menu_dev, hsk.dev.OnOpenConfigJson)
         self.add_item(self.menu_dev, hsk.dev.OnUvUpdate)
 
-        # Menu Apps
-        self.menu_apps = self.new_menu("Apps", "💻")
-        self.add_item(self.menu_apps, hsk.apps.OnFitness)
-
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
         self.add_item(self.menu_images, hsk.images.OnOptimize)
-        self.add_item(self.menu_images, hsk.images.OnOptimizeDialog)
         self.add_item(self.menu_images, hsk.images.OnOptimizeDialogReplace)
         self.add_item(self.menu_images, hsk.images.OnOptimizeFile)
         self.add_item(self.menu_images, hsk.images.OnOptimizePngToAvif)
@@ -99,7 +94,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolderPngToAvif)
         self.add_item(self.menu_md, hsk.md.OnPettierFolder)
         self.add_item(self.menu_md, hsk.md.OnSortSections)
-        self.add_item(self.menu_md, hsk.md.OnSortSectionsFolder)
 
         # New Markdown
         self.menu_new_md = self.new_menu("New Markdown", "𝐌")  # noqa: RUF001
@@ -112,7 +106,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
         self.add_item(self.menu_python, hsk.py.OnExtractFunctionsAndClasses)
-        self.add_item(self.menu_python, hsk.py.OnGenerateMdDocs)
         self.add_item(self.menu_python, hsk.py.OnNewUvProject)
         self.add_item(self.menu_python, hsk.py.OnNewUvProjectDialog)
         self.add_item(self.menu_python, hsk.py.OnSortCode)
@@ -125,14 +118,15 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
 
         # MainMenu
         self.menu.addMenu(self.menu_dev)
-        self.menu.addMenu(self.menu_apps)
         self.menu.addMenu(self.menu_images)
         self.menu.addMenu(self.menu_file)
         self.menu.addMenu(self.menu_md)
         self.menu.addMenu(self.menu_new_md)
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
+        self.add_item(self.menu, hsk.apps.OnFitness)
         self.add_item(self.menu, hsk.md.OnBeautifyMdNotesAllInOne)
+        self.menu.addSeparator()
         self.add_item(self.menu, hsk.images.OnOptimizeClipboard)
         self.add_item(self.menu, hsk.images.OnOptimizeClipboardDialog)
         self.menu.addSeparator()
@@ -166,14 +160,9 @@ def __init__(self) -> None:
         self.add_item(self.menu_dev, hsk.dev.OnOpenConfigJson)
         self.add_item(self.menu_dev, hsk.dev.OnUvUpdate)
 
-        # Menu Apps
-        self.menu_apps = self.new_menu("Apps", "💻")
-        self.add_item(self.menu_apps, hsk.apps.OnFitness)
-
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
         self.add_item(self.menu_images, hsk.images.OnOptimize)
-        self.add_item(self.menu_images, hsk.images.OnOptimizeDialog)
         self.add_item(self.menu_images, hsk.images.OnOptimizeDialogReplace)
         self.add_item(self.menu_images, hsk.images.OnOptimizeFile)
         self.add_item(self.menu_images, hsk.images.OnOptimizePngToAvif)
@@ -217,7 +206,6 @@ def __init__(self) -> None:
         self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolderPngToAvif)
         self.add_item(self.menu_md, hsk.md.OnPettierFolder)
         self.add_item(self.menu_md, hsk.md.OnSortSections)
-        self.add_item(self.menu_md, hsk.md.OnSortSectionsFolder)
 
         # New Markdown
         self.menu_new_md = self.new_menu("New Markdown", "𝐌")  # noqa: RUF001
@@ -230,7 +218,6 @@ def __init__(self) -> None:
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
         self.add_item(self.menu_python, hsk.py.OnExtractFunctionsAndClasses)
-        self.add_item(self.menu_python, hsk.py.OnGenerateMdDocs)
         self.add_item(self.menu_python, hsk.py.OnNewUvProject)
         self.add_item(self.menu_python, hsk.py.OnNewUvProjectDialog)
         self.add_item(self.menu_python, hsk.py.OnSortCode)
@@ -243,14 +230,15 @@ def __init__(self) -> None:
 
         # MainMenu
         self.menu.addMenu(self.menu_dev)
-        self.menu.addMenu(self.menu_apps)
         self.menu.addMenu(self.menu_images)
         self.menu.addMenu(self.menu_file)
         self.menu.addMenu(self.menu_md)
         self.menu.addMenu(self.menu_new_md)
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
+        self.add_item(self.menu, hsk.apps.OnFitness)
         self.add_item(self.menu, hsk.md.OnBeautifyMdNotesAllInOne)
+        self.menu.addSeparator()
         self.add_item(self.menu, hsk.images.OnOptimizeClipboard)
         self.add_item(self.menu, hsk.images.OnOptimizeClipboardDialog)
         self.menu.addSeparator()

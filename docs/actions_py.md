@@ -13,14 +13,12 @@ lang: en
 
 - [Class `OnExtractFunctionsAndClasses`](#class-onextractfunctionsandclasses)
   - [Method `execute`](#method-execute)
-- [Class `OnGenerateMdDocs`](#class-ongeneratemddocs)
-  - [Method `execute`](#method-execute-1)
 - [Class `OnHarrixPylib01Prepare`](#class-onharrixpylib01prepare)
-  - [Method `execute`](#method-execute-2)
+  - [Method `execute`](#method-execute-1)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
 - [Class `OnHarrixPylib02Publish`](#class-onharrixpylib02publish)
-  - [Method `execute`](#method-execute-3)
+  - [Method `execute`](#method-execute-2)
   - [Method `in_thread_01`](#method-in_thread_01)
   - [Method `in_thread_02`](#method-in_thread_02)
   - [Method `in_thread_03`](#method-in_thread_03)
@@ -28,25 +26,25 @@ lang: en
   - [Method `thread_after_02`](#method-thread_after_02)
   - [Method `thread_after_03`](#method-thread_after_03)
 - [Class `OnNewUvProject`](#class-onnewuvproject)
-  - [Method `execute`](#method-execute-4)
+  - [Method `execute`](#method-execute-3)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
 - [Class `OnNewUvProjectDialog`](#class-onnewuvprojectdialog)
-  - [Method `execute`](#method-execute-5)
+  - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
 - [Class `OnSortCode`](#class-onsortcode)
-  - [Method `execute`](#method-execute-6)
+  - [Method `execute`](#method-execute-5)
 - [Class `OnSortCodeFolder`](#class-onsortcodefolder)
-  - [Method `execute`](#method-execute-7)
+  - [Method `execute`](#method-execute-6)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
 - [Class `OnSortIsortFmtDocsPythonCodeFolder`](#class-onsortisortfmtdocspythoncodefolder)
-  - [Method `execute`](#method-execute-8)
+  - [Method `execute`](#method-execute-7)
   - [Method `in_thread`](#method-in_thread-4)
   - [Method `thread_after`](#method-thread_after-4)
 - [Class `OnSortIsortFmtPythonCodeFolder`](#class-onsortisortfmtpythoncodefolder)
-  - [Method `execute`](#method-execute-9)
+  - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-5)
   - [Method `thread_after`](#method-thread_after-5)
 
@@ -112,77 +110,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             return
 
         result = h.py.extract_functions_and_classes(filename)
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-## Class `OnGenerateMdDocs`
-
-```python
-class OnGenerateMdDocs(action_base.ActionBase)
-```
-
-Generate and format Markdown documentation for a Python project.
-
-This action creates comprehensive Markdown documentation for a selected Python project
-by extracting information from docstrings, function signatures, and module structure.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnGenerateMdDocs(action_base.ActionBase):
-
-    icon = "🏗️"
-    title = "Generate MD documentation in …"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
-        if not folder_path:
-            return
-
-        folder_path = Path(folder_path)
-        domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
-
-        result = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
-        self.add_line(result)
-
-        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        result = h.dev.run_powershell_script(commands)
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
-        if not folder_path:
-            return
-
-        folder_path = Path(folder_path)
-        domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
-
-        result = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
-        self.add_line(result)
-
-        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        result = h.dev.run_powershell_script(commands)
         self.add_line(result)
         self.show_result()
 ```

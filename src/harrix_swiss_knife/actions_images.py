@@ -178,37 +178,6 @@ class OnOptimizeClipboardDialog(action_base.ActionBase):
         OnOptimizeClipboard.execute(self, is_dialog=True)
 
 
-class OnOptimizeDialog(action_base.ActionBase):
-    """Optimize images in a selected folder, saving to a temp subdirectory.
-
-    This action allows the user to select a folder containing images, processes
-    all images using the npm optimize script, and saves the optimized versions
-    to a `temp` subdirectory within the selected folder.
-    """
-
-    icon = "⬆️"
-    title = "Optimize images in …/temp"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self) -> None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        return h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
-
-    def thread_after(self, result: Any) -> None:
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        h.file.open_file_or_folder(Path(self.folder_path) / "temp")
-        self.show_toast("Optimize completed")
-        self.add_line(result)
-        self.show_result()
-
-
 class OnOptimizeDialogReplace(action_base.ActionBase):
     """Optimize images in a selected folder and replace the originals.
 

@@ -25,24 +25,20 @@ lang: en
   - [Method `execute`](#method-execute-4)
 - [Class `OnOptimizeClipboardDialog`](#class-onoptimizeclipboarddialog)
   - [Method `execute`](#method-execute-5)
-- [Class `OnOptimizeDialog`](#class-onoptimizedialog)
+- [Class `OnOptimizeDialogReplace`](#class-onoptimizedialogreplace)
   - [Method `execute`](#method-execute-6)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnOptimizeDialogReplace`](#class-onoptimizedialogreplace)
+- [Class `OnOptimizeFile`](#class-onoptimizefile)
   - [Method `execute`](#method-execute-7)
+- [Class `OnOptimizePngToAvif`](#class-onoptimizepngtoavif)
+  - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnOptimizeFile`](#class-onoptimizefile)
-  - [Method `execute`](#method-execute-8)
-- [Class `OnOptimizePngToAvif`](#class-onoptimizepngtoavif)
+- [Class `OnOptimizeQuality`](#class-onoptimizequality)
   - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
-- [Class `OnOptimizeQuality`](#class-onoptimizequality)
-  - [Method `execute`](#method-execute-10)
-  - [Method `in_thread`](#method-in_thread-4)
-  - [Method `thread_after`](#method-thread_after-4)
 
 </details>
 
@@ -482,110 +478,6 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         OnOptimizeClipboard.execute(self, is_dialog=True)
-```
-
-</details>
-
-## Class `OnOptimizeDialog`
-
-```python
-class OnOptimizeDialog(action_base.ActionBase)
-```
-
-Optimize images in a selected folder, saving to a temp subdirectory.
-
-This action allows the user to select a folder containing images, processes
-all images using the npm optimize script, and saves the optimized versions
-to a `temp` subdirectory within the selected folder.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnOptimizeDialog(action_base.ActionBase):
-
-    icon = "⬆️"
-    title = "Optimize images in …/temp"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self) -> None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        return h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
-
-    def thread_after(self, result: Any) -> None:
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        h.file.open_file_or_folder(Path(self.folder_path) / "temp")
-        self.show_toast("Optimize completed")
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-```
-
-</details>
-
-### Method `in_thread`
-
-```python
-def in_thread(self) -> None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> None:
-        return h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
-```
-
-</details>
-
-### Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:
-        h.file.open_file_or_folder(Path(self.folder_path) / "temp")
-        self.show_toast("Optimize completed")
-        self.add_line(result)
-        self.show_result()
 ```
 
 </details>
