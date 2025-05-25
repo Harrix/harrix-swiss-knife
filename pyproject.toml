@@ -7,7 +7,17 @@ license = { file = "LICENSE.md" }
 authors = [{ name = "Anton Sergienko", email = "anton.b.sergienko@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
-    "harrix-pylib>=0.128",
+    "harrix-pylib>=0.129
+
+warning: `VIRTUAL_ENV=C:\GitHub\harrix-swiss-knife\.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+Resolved 19 packages in 371ms
+   Building harrix-pylib @ file:///C:/GitHub/harrix-pylib
+      Built harrix-pylib @ file:///C:/GitHub/harrix-pylib
+Prepared 1 package in 2.22s
+Uninstalled 1 package in 9ms
+Installed 1 package in 8ms
+ - harrix-pylib==0.128 (from file:///C:/GitHub/harrix-pylib)
+ + harrix-pylib==0.129 (from file:///C:/GitHub/harrix-pylib)",
     "libcst>=1.5.1",
     "pillow>=11.1.0",
     "pyside6>=6.8.1.1",
