@@ -40,6 +40,10 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
         for path in config["paths_notes"]:
             self.add_line("🔵 Starting processing for path: " + path)
             try:
+                # Delete *.g.md files
+                self.add_line("🔵 Delete *.g.md files")
+                self.add_line(h.file.apply_func(path, ".md", h.md.delete_g_md_files_recursively))
+
                 # Generate image captions
                 self.add_line("🔵 Generate image captions")
                 self.add_line(h.file.apply_func(path, ".md", h.md.generate_image_captions))
@@ -56,7 +60,7 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
 
                 # Combine MD files
                 self.add_line("🔵 Combine MD files")
-                self.add_line(h.md.combine_markdown_files_recursively(path))
+                self.add_line(h.md.combine_markdown_files_recursively(path, delete_g_md_files=False))
 
                 # Format YAML
                 self.add_line("🔵 Format YAML")
