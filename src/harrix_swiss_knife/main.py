@@ -95,8 +95,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_item(self.menu_python, hsk.py.OnExtractFunctionsAndClasses)
         self.add_item(self.menu_python, hsk.py.OnNewUvProject)
         self.add_item(self.menu_python, hsk.py.OnNewUvProjectDialog)
-        self.add_item(self.menu_python, hsk.py.OnSortCode)
-        self.add_item(self.menu_python, hsk.py.OnSortCodeFolder)
         self.add_item(self.menu_python, hsk.py.OnSortIsortFmtPythonCodeFolder)
         self.add_item(self.menu_python, hsk.py.OnSortIsortFmtDocsPythonCodeFolder)
         self.menu_python.addSeparator()
