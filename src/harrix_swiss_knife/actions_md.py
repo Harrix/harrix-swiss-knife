@@ -29,11 +29,11 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
     """
 
     icon = "😎"
-    title = "Beautify MD notes"
+    title = "Beautify MD notes in …"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        text_choice_folder = "Choice a folder ..."
+        text_choice_folder = "Choice a folder …"
         list_folder = config["paths_notes"] + [text_choice_folder]
         self.folder_path = self.get_choice_from_list("Select a folder with Markdown files", "Folders", list_folder)
         if not self.folder_path:
