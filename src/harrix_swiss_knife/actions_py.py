@@ -286,69 +286,6 @@ class OnNewUvProjectDialog(action_base.ActionBase):
         self.show_result()
 
 
-class OnSortCode(action_base.ActionBase):
-    """Sort Python code elements (classes, methods, functions) in a single Python file.
-
-    This action prompts the user to select a specific Python file and then applies
-    a sorting function to organize its content. The sorting arranges class definitions,
-    methods, and functions in a consistent order to improve code readability and maintainability.
-    """
-
-    icon = "📶"
-    title = "Sort classes, methods, functions in one PY file"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        filename = self.get_open_filename(
-            "Select an Python File",
-            config["path_github"],
-            "Python Files (*.py);;All Files (*)",
-        )
-        if not filename:
-            return
-
-        try:
-            h.py.sort_py_code(filename)
-            result = f"✅ File {filename} is applied."
-        except Exception:  # noqa: BLE001
-            result = f"❌ File {filename} is not applied."
-
-        self.add_line(result)
-        self.show_toast(result)
-
-
-class OnSortCodeFolder(action_base.ActionBase):
-    """Sort Python code elements (classes, methods, functions) in all Python files within a selected folder.
-
-    This action allows the user to select a project folder and then applies a sorting function
-    to all Python files in that folder. The sorting organizes class definitions, methods, and
-    functions in a consistent order to improve code readability and maintainability.
-    """
-
-    icon = "📶"
-    title = "Sort classes, methods, functions in PY files"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self) -> None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
-        except Exception as e:  # noqa: BLE001
-            self.add_line(f"❌ Error: {e}")
-
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} completed")
-        self.show_result()
-
-
 class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
     """Format, sort Python code and generate documentation in a selected folder.
 
