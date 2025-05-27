@@ -33,46 +33,46 @@ class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
+        self.path = self.get_choice_from_list("Select a folder with Markdown files","Folders",config["paths_notes"])
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
-        for path in config["paths_notes"]:
-            self.add_line("🔵 Starting processing for path: " + path)
-            try:
-                # Delete *.g.md files
-                self.add_line("🔵 Delete *.g.md files")
-                self.add_line(h.file.apply_func(path, ".md", h.md.delete_g_md_files_recursively))
+        self.add_line("🔵 Starting processing for path: " + self.path)
+        try:
+            # Delete *.g.md files
+            self.add_line("🔵 Delete *.g.md files")
+            self.add_line(h.file.apply_func(self.path, ".md", h.md.delete_g_md_files_recursively))
 
-                # Generate image captions
-                self.add_line("🔵 Generate image captions")
-                self.add_line(h.file.apply_func(path, ".md", h.md.generate_image_captions))
+            # Generate image captions
+            self.add_line("🔵 Generate image captions")
+            self.add_line(h.file.apply_func(self.path, ".md", h.md.generate_image_captions))
 
-                # Generate TOC
-                self.add_line("🔵 Generate TOC")
-                self.add_line(h.file.apply_func(path, ".md", h.md.generate_toc_with_links))
+            # Generate TOC
+            self.add_line("🔵 Generate TOC")
+            self.add_line(h.file.apply_func(self.path, ".md", h.md.generate_toc_with_links))
 
-                # Generate summaries
-                self.add_line("🔵 Generate summaries")
-                for path_notes_for_summaries in config["paths_notes_for_summaries"]:
-                    if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(path).resolve()):
-                        self.add_line(h.md.generate_summaries(path_notes_for_summaries))
+            # Generate summaries
+            self.add_line("🔵 Generate summaries")
+            for path_notes_for_summaries in config["paths_notes_for_summaries"]:
+                if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(self.path).resolve()):
+                    self.add_line(h.md.generate_summaries(path_notes_for_summaries))
 
-                # Combine MD files
-                self.add_line("🔵 Combine MD files")
-                self.add_line(h.md.combine_markdown_files_recursively(path, delete_g_md_files=False))
+            # Combine MD files
+            self.add_line("🔵 Combine MD files")
+            self.add_line(h.md.combine_markdown_files_recursively(self.path, delete_g_md_files=False))
 
-                # Format YAML
-                self.add_line("🔵 Format YAML")
-                self.add_line(h.file.apply_func(path, ".md", h.md.format_yaml))
+            # Format YAML
+            self.add_line("🔵 Format YAML")
+            self.add_line(h.file.apply_func(self.path, ".md", h.md.format_yaml))
 
-                # Prettier
-                self.add_line("🔵 Prettier")
-                commands = f"cd {path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-                result = h.dev.run_powershell_script(commands)
-                self.add_line(result)
-            except Exception as e:  # noqa: BLE001
-                self.add_line(f"❌ Error processing path {path}: {e}")
+            # Prettier
+            self.add_line("🔵 Prettier")
+            commands = f"cd {self.path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
+        except Exception as e:  # noqa: BLE001
+            self.add_line(f"❌ Error processing path {self.path}: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
