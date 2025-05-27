@@ -172,7 +172,6 @@ class ActionBase:
         self.add_line("❌ Dialog was canceled.")
         return None
 
-
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         """Open a dialog to select an existing directory.
 

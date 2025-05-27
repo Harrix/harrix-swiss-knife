@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [Class `OnBeautifyMdNotesAllInOne`](#class-onbeautifymdnotesallinone)
+- [Class `OnBeautifyMdNotesFolder`](#class-onbeautifymdnotesfolder)
   - [Method `execute`](#method-execute)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
@@ -102,10 +102,10 @@ lang: en
 
 </details>
 
-## Class `OnBeautifyMdNotesAllInOne`
+## Class `OnBeautifyMdNotesFolder`
 
 ```python
-class OnBeautifyMdNotesAllInOne(action_base.ActionBase)
+class OnBeautifyMdNotesFolder(action_base.ActionBase)
 ```
 
 Apply comprehensive beautification to all Markdown notes.
@@ -127,49 +127,62 @@ formatted collection of Markdown documents.
 <summary>Code:</summary>
 
 ```python
-class OnBeautifyMdNotesAllInOne(action_base.ActionBase):
+class OnBeautifyMdNotesFolder(action_base.ActionBase):
 
     icon = "😎"
-    title = "Beautify MD notes (All in one)"
+    title = "Beautify MD notes"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
+        text_choice_folder = "Choice a folder ..."
+        list_folder = config["paths_notes"] + [text_choice_folder]
+        self.folder_path = self.get_choice_from_list("Select a folder with Markdown files", "Folders", list_folder)
+        if not self.folder_path:
+            return
+        if self.folder_path == text_choice_folder:
+            self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_notes"])
+        if not self.folder_path:
+            return
+
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
-        for path in config["paths_notes"]:
-            self.add_line("🔵 Starting processing for path: " + path)
-            try:
-                # Generate image captions
-                self.add_line("🔵 Generate image captions")
-                self.add_line(h.file.apply_func(path, ".md", h.md.generate_image_captions))
+        self.add_line("🔵 Starting processing for path: " + self.folder_path)
+        try:
+            # Delete *.g.md files
+            self.add_line("🔵 Delete *.g.md files")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.delete_g_md_files_recursively))
 
-                # Generate TOC
-                self.add_line("🔵 Generate TOC")
-                self.add_line(h.file.apply_func(path, ".md", h.md.generate_toc_with_links))
+            # Generate image captions
+            self.add_line("🔵 Generate image captions")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
 
-                # Generate summaries
-                self.add_line("🔵 Generate summaries")
-                for path_notes_for_summaries in config["paths_notes_for_summaries"]:
-                    if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(path).resolve()):
-                        self.add_line(h.md.generate_summaries(path_notes_for_summaries))
+            # Generate TOC
+            self.add_line("🔵 Generate TOC")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
 
-                # Combine MD files
-                self.add_line("🔵 Combine MD files")
-                self.add_line(h.md.combine_markdown_files_recursively(path))
+            # Generate summaries
+            self.add_line("🔵 Generate summaries")
+            for path_notes_for_summaries in config["paths_notes_for_summaries"]:
+                if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(self.folder_path).resolve()):
+                    self.add_line(h.md.generate_summaries(path_notes_for_summaries))
 
-                # Format YAML
-                self.add_line("🔵 Format YAML")
-                self.add_line(h.file.apply_func(path, ".md", h.md.format_yaml))
+            # Combine MD files
+            self.add_line("🔵 Combine MD files")
+            self.add_line(h.md.combine_markdown_files_recursively(self.folder_path, delete_g_md_files=False))
 
-                # Prettier
-                self.add_line("🔵 Prettier")
-                commands = f"cd {path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-                result = h.dev.run_powershell_script(commands)
-                self.add_line(result)
-            except Exception as e:  # noqa: BLE001
-                self.add_line(f"❌ Error processing path {path}: {e}")
+            # Format YAML
+            self.add_line("🔵 Format YAML")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
+
+            # Prettier
+            self.add_line("🔵 Prettier")
+            commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
+        except Exception as e:  # noqa: BLE001
+            self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -192,6 +205,16 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        text_choice_folder = "Choice a folder ..."
+        list_folder = config["paths_notes"] + [text_choice_folder]
+        self.folder_path = self.get_choice_from_list("Select a folder with Markdown files", "Folders", list_folder)
+        if not self.folder_path:
+            return
+        if self.folder_path == text_choice_folder:
+            self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_notes"])
+        if not self.folder_path:
+            return
+
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
@@ -210,38 +233,41 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> None:
-        for path in config["paths_notes"]:
-            self.add_line("🔵 Starting processing for path: " + path)
-            try:
-                # Generate image captions
-                self.add_line("🔵 Generate image captions")
-                self.add_line(h.file.apply_func(path, ".md", h.md.generate_image_captions))
+        self.add_line("🔵 Starting processing for path: " + self.folder_path)
+        try:
+            # Delete *.g.md files
+            self.add_line("🔵 Delete *.g.md files")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.delete_g_md_files_recursively))
 
-                # Generate TOC
-                self.add_line("🔵 Generate TOC")
-                self.add_line(h.file.apply_func(path, ".md", h.md.generate_toc_with_links))
+            # Generate image captions
+            self.add_line("🔵 Generate image captions")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
 
-                # Generate summaries
-                self.add_line("🔵 Generate summaries")
-                for path_notes_for_summaries in config["paths_notes_for_summaries"]:
-                    if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(path).resolve()):
-                        self.add_line(h.md.generate_summaries(path_notes_for_summaries))
+            # Generate TOC
+            self.add_line("🔵 Generate TOC")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
 
-                # Combine MD files
-                self.add_line("🔵 Combine MD files")
-                self.add_line(h.md.combine_markdown_files_recursively(path))
+            # Generate summaries
+            self.add_line("🔵 Generate summaries")
+            for path_notes_for_summaries in config["paths_notes_for_summaries"]:
+                if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(self.folder_path).resolve()):
+                    self.add_line(h.md.generate_summaries(path_notes_for_summaries))
 
-                # Format YAML
-                self.add_line("🔵 Format YAML")
-                self.add_line(h.file.apply_func(path, ".md", h.md.format_yaml))
+            # Combine MD files
+            self.add_line("🔵 Combine MD files")
+            self.add_line(h.md.combine_markdown_files_recursively(self.folder_path, delete_g_md_files=False))
 
-                # Prettier
-                self.add_line("🔵 Prettier")
-                commands = f"cd {path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-                result = h.dev.run_powershell_script(commands)
-                self.add_line(result)
-            except Exception as e:  # noqa: BLE001
-                self.add_line(f"❌ Error processing path {path}: {e}")
+            # Format YAML
+            self.add_line("🔵 Format YAML")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
+
+            # Prettier
+            self.add_line("🔵 Prettier")
+            commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
+        except Exception as e:  # noqa: BLE001
+            self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 ```
 
 </details>

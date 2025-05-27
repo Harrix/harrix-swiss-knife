@@ -112,7 +112,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
         self.add_item(self.menu, hsk.apps.OnFitness)
-        self.add_item(self.menu, hsk.md.OnBeautifyMdNotesAllInOne)
+        self.add_item(self.menu, hsk.md.OnBeautifyMdNotesFolder)
         self.menu.addSeparator()
         self.add_item(self.menu, hsk.images.OnOptimizeClipboard)
         self.add_item(self.menu, hsk.images.OnOptimizeClipboardDialog)

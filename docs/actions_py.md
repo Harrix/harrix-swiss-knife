@@ -316,7 +316,7 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
         commands = f"""
             cd {self.path_library}
             uv version --bump minor """
-        self.new_version = h.dev.run_powershell_script(commands).strip().split(" => ")[1]
+        self.new_version = h.dev.run_powershell_script(commands).strip().split(" => ")[1].splitlines()[0]
 
         # Build and publish
         commands = f"""
@@ -426,7 +426,7 @@ def in_thread_01(self) -> None:
         commands = f"""
             cd {self.path_library}
             uv version --bump minor """
-        self.new_version = h.dev.run_powershell_script(commands).strip().split(" => ")[1]
+        self.new_version = h.dev.run_powershell_script(commands).strip().split(" => ")[1].splitlines()[0]
 
         # Build and publish
         commands = f"""

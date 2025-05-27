@@ -16,6 +16,7 @@ lang: en
   - [Method `__call__`](#method-__call__)
   - [Method `add_line`](#method-add_line)
   - [Method `execute`](#method-execute)
+  - [Method `get_choice_from_list`](#method-get_choice_from_list)
   - [Method `get_existing_directory`](#method-get_existing_directory)
   - [Method `get_open_filename`](#method-get_open_filename)
   - [Method `get_save_filename`](#method-get_save_filename)
@@ -114,6 +115,68 @@ class ActionBase:
         """
         msg = "The execute method must be implemented in subclasses"
         raise NotImplementedError(msg)
+
+    def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> str | None:
+        """Open a dialog to select one item from a list of choices.
+
+        Args:
+
+        - `title` (`str`): The title of the selection dialog.
+        - `label` (`str`): The label prompting the user for selection.
+        - `choices` (`list[str]`): List of string options to choose from.
+
+        Returns:
+
+        - `str | None`: The selected choice, or `None` if cancelled or no selection made.
+
+        """
+        if not choices:
+            self.add_line("❌ No choices provided.")
+            return None
+
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(800, 600)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create a list widget
+        list_widget = QListWidget()
+        for choice in choices:
+            item = QListWidgetItem(choice)
+            list_widget.addItem(item)
+
+        # Set the first item as selected by default if available
+        if list_widget.count() > 0:
+            list_widget.setCurrentRow(0)
+
+        layout.addWidget(list_widget)
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.Accepted:
+            current_item = list_widget.currentItem()
+            if current_item:
+                return current_item.text()
+            self.add_line("❌ No item was selected.")
+            return None
+
+        self.add_line("❌ Dialog was canceled.")
+        return None
 
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         """Open a dialog to select an existing directory.
@@ -503,6 +566,80 @@ Raises:
 def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
         msg = "The execute method must be implemented in subclasses"
         raise NotImplementedError(msg)
+```
+
+</details>
+
+### Method `get_choice_from_list`
+
+```python
+def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> str | None
+```
+
+Open a dialog to select one item from a list of choices.
+
+Args:
+
+- `title` (`str`): The title of the selection dialog.
+- `label` (`str`): The label prompting the user for selection.
+- `choices` (`list[str]`): List of string options to choose from.
+
+Returns:
+
+- `str | None`: The selected choice, or `None` if cancelled or no selection made.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> str | None:
+        if not choices:
+            self.add_line("❌ No choices provided.")
+            return None
+
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(800, 600)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create a list widget
+        list_widget = QListWidget()
+        for choice in choices:
+            item = QListWidgetItem(choice)
+            list_widget.addItem(item)
+
+        # Set the first item as selected by default if available
+        if list_widget.count() > 0:
+            list_widget.setCurrentRow(0)
+
+        layout.addWidget(list_widget)
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.Accepted:
+            current_item = list_widget.currentItem()
+            if current_item:
+                return current_item.text()
+            self.add_line("❌ No item was selected.")
+            return None
+
+        self.add_line("❌ Dialog was canceled.")
+        return None
 ```
 
 </details>
