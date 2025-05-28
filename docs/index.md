@@ -84,7 +84,7 @@ _Figure 1: Screenshot_
   - 👩🏻‍🍳 01 Prepare harrix-pylib
   - 👷‍♂️ 02 Publish and update harrix-pylib
 - 🏃🏻 Fitness tracker
-- 😎 Beautify MD notes (All in one)
+- 😎 Beautify MD notes
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit
