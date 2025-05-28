@@ -155,6 +155,9 @@ class ActionBase:
         if list_widget.count() > 0:
             list_widget.setCurrentRow(0)
 
+        # Connect double-click to accept dialog
+        list_widget.itemDoubleClicked.connect(dialog.accept)
+
         layout.addWidget(list_widget)
 
         # Add OK and Cancel buttons
@@ -617,6 +620,9 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
         # Set the first item as selected by default if available
         if list_widget.count() > 0:
             list_widget.setCurrentRow(0)
+
+        # Connect double-click to accept dialog
+        list_widget.itemDoubleClicked.connect(dialog.accept)
 
         layout.addWidget(list_widget)
 
