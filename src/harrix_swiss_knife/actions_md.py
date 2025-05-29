@@ -43,7 +43,7 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
 
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
-        self.add_line("🔵 Starting processing for path: " + self.folder_path)
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         try:
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
