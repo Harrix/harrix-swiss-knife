@@ -18,6 +18,7 @@ lang: en
   - [Method `execute`](#method-execute)
   - [Method `get_choice_from_list`](#method-get_choice_from_list)
   - [Method `get_existing_directory`](#method-get_existing_directory)
+  - [Method `get_folder_with_choice_option`](#method-get_folder_with_choice_option)
   - [Method `get_open_filename`](#method-get_open_filename)
   - [Method `get_save_filename`](#method-get_save_filename)
   - [Method `get_text_input`](#method-get_text_input)
@@ -199,6 +200,41 @@ class ActionBase:
             self.add_line("❌ Folder was not selected.")
             return None
         return Path(folder_path)
+
+    def get_folder_with_choice_option(
+        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "Choice a folder …"
+    ) -> Path | None:
+        """Open a dialog to select a folder from a predefined list or browse for a new one.
+
+        This method first shows a list of predefined folders with an option to browse
+        for a different folder. If the user selects the browse option, a file dialog opens.
+
+        Args:
+
+        - `title` (`str`): The title for both the list dialog and file dialog.
+        - `folders_list` (`list[str]`): List of predefined folder paths to choose from.
+        - `default_path` (`str`): Default directory for the file dialog if browse option is selected.
+        - `choice_text` (`str`): Text for the browse option. Defaults to `"Choice a folder …"`.
+
+        Returns:
+
+        - `Path | None`: The selected folder as a `Path` object, or `None` if cancelled or no selection made.
+
+        """
+        # Create the full list with the choice option at the end
+        full_list = folders_list + [choice_text]
+
+        # Get user's choice from the list
+        selected_folder = self.get_choice_from_list(title, "Folders", full_list)
+        if not selected_folder:
+            return None
+
+        # If user selected the browse option, open file dialog
+        if selected_folder == choice_text:
+            return self.get_existing_directory(title, default_path)
+
+        # Return the selected predefined folder as Path
+        return Path(selected_folder)
 
     def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Open a dialog to select a file to open.
@@ -677,6 +713,53 @@ def get_existing_directory(self, title: str, default_path: str) -> Path | None:
             self.add_line("❌ Folder was not selected.")
             return None
         return Path(folder_path)
+```
+
+</details>
+
+### Method `get_folder_with_choice_option`
+
+```python
+def get_folder_with_choice_option(self, title: str, folders_list: list[str], default_path: str, choice_text: str = "Choice a folder …") -> Path | None
+```
+
+Open a dialog to select a folder from a predefined list or browse for a new one.
+
+This method first shows a list of predefined folders with an option to browse
+for a different folder. If the user selects the browse option, a file dialog opens.
+
+Args:
+
+- `title` (`str`): The title for both the list dialog and file dialog.
+- `folders_list` (`list[str]`): List of predefined folder paths to choose from.
+- `default_path` (`str`): Default directory for the file dialog if browse option is selected.
+- `choice_text` (`str`): Text for the browse option. Defaults to `"Choice a folder …"`.
+
+Returns:
+
+- `Path | None`: The selected folder as a `Path` object, or `None` if cancelled or no selection made.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_folder_with_choice_option(
+        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "Choice a folder …"
+    ) -> Path | None:
+        # Create the full list with the choice option at the end
+        full_list = folders_list + [choice_text]
+
+        # Get user's choice from the list
+        selected_folder = self.get_choice_from_list(title, "Folders", full_list)
+        if not selected_folder:
+            return None
+
+        # If user selected the browse option, open file dialog
+        if selected_folder == choice_text:
+            return self.get_existing_directory(title, default_path)
+
+        # Return the selected predefined folder as Path
+        return Path(selected_folder)
 ```
 
 </details>

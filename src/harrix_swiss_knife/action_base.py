@@ -194,6 +194,41 @@ class ActionBase:
             return None
         return Path(folder_path)
 
+    def get_folder_with_choice_option(
+        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "Choice a folder …"
+    ) -> Path | None:
+        """Open a dialog to select a folder from a predefined list or browse for a new one.
+
+        This method first shows a list of predefined folders with an option to browse
+        for a different folder. If the user selects the browse option, a file dialog opens.
+
+        Args:
+
+        - `title` (`str`): The title for both the list dialog and file dialog.
+        - `folders_list` (`list[str]`): List of predefined folder paths to choose from.
+        - `default_path` (`str`): Default directory for the file dialog if browse option is selected.
+        - `choice_text` (`str`): Text for the browse option. Defaults to `"Choice a folder …"`.
+
+        Returns:
+
+        - `Path | None`: The selected folder as a `Path` object, or `None` if cancelled or no selection made.
+
+        """
+        # Create the full list with the choice option at the end
+        full_list = folders_list + [choice_text]
+
+        # Get user's choice from the list
+        selected_folder = self.get_choice_from_list(title, "Folders", full_list)
+        if not selected_folder:
+            return None
+
+        # If user selected the browse option, open file dialog
+        if selected_folder == choice_text:
+            return self.get_existing_directory(title, default_path)
+
+        # Return the selected predefined folder as Path
+        return Path(selected_folder)
+
     def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Open a dialog to select a file to open.
 

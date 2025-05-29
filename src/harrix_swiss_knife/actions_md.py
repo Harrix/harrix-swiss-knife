@@ -33,13 +33,9 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        text_choice_folder = "Choice a folder …"
-        list_folder = config["paths_notes"] + [text_choice_folder]
-        self.folder_path = self.get_choice_from_list("Select a folder with Markdown files", "Folders", list_folder)
-        if not self.folder_path:
-            return
-        if self.folder_path == text_choice_folder:
-            self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_notes"])
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with Markdown files", config["paths_notes"], config["path_notes"]
+        )
         if not self.folder_path:
             return
 
