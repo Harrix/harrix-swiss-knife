@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 import sys
 from collections import defaultdict
+from contextlib import suppress
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
@@ -78,7 +79,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             "exercises": (
                 self.tableView_exercises,
                 "exercises",
-                ["Exercise", "Unit of Measurement"],
+                ["Exercise", "Unit of Measurement", "Type Required"],
             ),
             "types": (
                 self.tableView_exercise_types,
@@ -392,7 +393,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         return False
 
     def apply_filter(self) -> None:
-        """Apply combo-box/date filters to the *process* table.
+        """Apply combo-box/date filters to the `process` table.
 
         Applies the currently selected filters to the process table:
 
@@ -521,18 +522,21 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Enter exercise name")
             return
 
+        # Получаем значение чекбокса
+        is_type_required = 1 if self.check_box_is_type_required.isChecked() else 0
+
         self.add_record_generic(
             "exercises",
-            "INSERT INTO exercises (name, unit) VALUES (:name, :unit)",
-            {"name": exercise, "unit": unit},
+            "INSERT INTO exercises (name, unit, is_type_required) VALUES (:name, :unit, :is_type_required)",
+            {"name": exercise, "unit": unit, "is_type_required": is_type_required},
         )
 
     def on_add_record(self) -> None:
-        """Insert a new *process* row.
+        """Insert a new `process` row.
 
         Adds a new exercise record to the process table using the currently selected
-        exercise, type, count, and date values. Automatically advances the date
-        after successful addition.
+        exercise, type, count, and date values. Validates that exercise type is provided
+        when required. Automatically advances the date after successful addition.
         """
         exercise = self.comboBox_exercise.currentText()
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
@@ -540,6 +544,15 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return
 
         type_name = self.comboBox_type.currentText()
+
+        # Check if exercise type is required
+        is_type_required_query = "SELECT is_type_required FROM exercises WHERE _id = :ex_id"
+        rows = self.db_manager.get_rows(is_type_required_query, {"ex_id": ex_id})
+
+        if rows and rows[0][0] == 1 and not type_name.strip():
+            QMessageBox.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
+            return
+
         type_id = (
             self.db_manager.get_id(
                 "types",
@@ -663,8 +676,34 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 self.comboBox_type.setCurrentIndex(type_index)
             # If last_type is empty string, index 0 (empty item) will be selected by default
 
+    def on_exercise_selection_changed(self) -> None:
+        """Update form fields when exercise selection changes in the table.
+
+        Synchronizes the form fields (name, unit, is_type_required checkbox)
+        with the currently selected exercise in the table.
+        """
+        index = self.tableView_exercises.currentIndex()
+        if not index.isValid():
+            # Clear the fields if nothing is selected
+            self.lineEdit_exercise_name.clear()
+            self.lineEdit_exercise_unit.clear()
+            self.check_box_is_type_required.setChecked(False)
+            return
+
+        model = self.models["exercises"]
+        row = index.row()
+
+        # Fill in the fields with data from the selected row
+        name = model.data(model.index(row, 0)) or ""
+        unit = model.data(model.index(row, 1)) or ""
+        is_required = model.data(model.index(row, 2)) or "0"
+
+        self.lineEdit_exercise_name.setText(name)
+        self.lineEdit_exercise_unit.setText(unit)
+        self.check_box_is_type_required.setChecked(is_required == "1")
+
     def on_export_csv(self) -> None:
-        """Save current *process* view to a CSV file (semicolon-separated).
+        """Save current `process` view to a CSV file (semicolon-separated).
 
         Opens a file save dialog and exports the current process table view
         to a CSV file with semicolon-separated values.
@@ -745,16 +784,17 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
     def on_update_exercises(self) -> None:
         """Update the selected exercise row.
 
-        Updates the name and unit of the currently selected exercise in the
+        Updates the name, unit, and is_type_required of the currently selected exercise in the
         exercises table.
         """
         self._update_record_generic(
             "exercises",
             "exercises",
-            "UPDATE exercises SET name = :n, unit = :u WHERE _id = :id",
+            "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr WHERE _id = :id",
             lambda r, m, _id: {
                 "n": m.data(m.index(r, 0)),
                 "u": m.data(m.index(r, 1)),
+                "itr": 1 if m.data(m.index(r, 2)) == "1" else 0,
                 "id": _id,
             },
         )
@@ -881,29 +921,38 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - Exercise types table
         - Weight table
         """
-        # exercises
-        rows = self.db_manager.get_rows("SELECT _id, name, unit FROM exercises")
+        # exercises - adding new field
+        rows = self.db_manager.get_rows("SELECT _id, name, unit, is_type_required FROM exercises")
+        # Update column headers
+        exercises_headers = ["Exercise", "Unit of Measurement", "Type Required"]
         self.models["exercises"] = self._create_table_model(
             rows,
-            self.table_config["exercises"][2],
+            exercises_headers,
         )
         self.tableView_exercises.setModel(self.models["exercises"])
         self.tableView_exercises.resizeColumnsToContents()
 
+        # Connect selection change signal AFTER setting the model
+        selection_model = self.tableView_exercises.selectionModel()
+        if selection_model:
+            # Qt automatically avoids duplicate connections
+            selection_model.currentRowChanged.connect(self.on_exercise_selection_changed)
+
+        # Other tables remain unchanged...
         # process
         rows = self.db_manager.get_rows(
             """
             SELECT p._id,
-                   e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   e.unit,
-                   p.date
+                e.name,
+                IFNULL(t.type, ''),
+                p.value,
+                e.unit,
+                p.date
             FROM process p
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t
-                   ON p._id_types = t._id
-                  AND t._id_exercises = e._id
+                ON p._id_types = t._id
+                AND t._id_exercises = e._id
             ORDER BY p._id DESC
         """,
         )
@@ -919,8 +968,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         rows = self.db_manager.get_rows(
             """
             SELECT t._id, e.name, t.type
-              FROM types t
-              JOIN exercises e ON t._id_exercises = e._id
+            FROM types t
+            JOIN exercises e ON t._id_exercises = e._id
         """,
         )
         self.models["types"] = self._create_table_model(
@@ -941,7 +990,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.tableView_weight.setModel(self.models["weight"])
         self.tableView_weight.resizeColumnsToContents()
 
-    # NOTE: keyword-only boolean parameters silence FBT00{1,2}
     def update_all(
         self,
         *,
@@ -980,6 +1028,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.set_current_date()
 
         self.update_filter_comboboxes()
+
+        # Clear the exercise addition form after updating
+        self.lineEdit_exercise_name.clear()
+        self.lineEdit_exercise_unit.clear()
+        self.check_box_is_type_required.setChecked(False)
 
     def update_filter_comboboxes(self) -> None:
         """Refresh *exercise* and *type* combo-boxes in the filter group.

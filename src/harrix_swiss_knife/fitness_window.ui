@@ -441,6 +441,19 @@
              <string>Add</string>
             </property>
            </widget>
+           <widget class="QCheckBox" name="check_box_is_type_required">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>80</y>
+              <width>251</width>
+              <height>17</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>is type required</string>
+            </property>
+           </widget>
           </widget>
           <widget class="QLabel" name="label_3">
            <property name="geometry">
