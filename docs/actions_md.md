@@ -144,7 +144,7 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
 
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
-        self.add_line("🔵 Starting processing for path: " + self.folder_path)
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         try:
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
@@ -225,7 +225,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> None:
-        self.add_line("🔵 Starting processing for path: " + self.folder_path)
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         try:
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
@@ -418,7 +418,9 @@ class OnCheckMdFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with Markdown files", config["paths_notes"], config["path_notes"]
+        )
         if not self.folder_path:
             return
 
@@ -426,16 +428,13 @@ class OnCheckMdFolder(action_base.ActionBase):
 
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
-        try:
-            checker = markdown_checker.MarkdownChecker()
-            errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
-            if errors:
-                self.add_line("\n".join(errors))
-                self.add_line(f"🔢 Count errors = {len(errors)}")
-            else:
-                self.add_line(f"✅ There are no errors in {self.folder_path}.")
-        except Exception as e:  # noqa: BLE001
-            self.add_line(f"❌ Error: {e}")
+        checker = markdown_checker.MarkdownChecker()
+        errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
+        if errors:
+            self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
+        else:
+            self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -458,7 +457,9 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with Markdown files", config["paths_notes"], config["path_notes"]
+        )
         if not self.folder_path:
             return
 
@@ -480,16 +481,13 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> None:
-        try:
-            checker = markdown_checker.MarkdownChecker()
-            errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
-            if errors:
-                self.add_line("\n".join(errors))
-                self.add_line(f"🔢 Count errors = {len(errors)}")
-            else:
-                self.add_line(f"✅ There are no errors in {self.folder_path}.")
-        except Exception as e:  # noqa: BLE001
-            self.add_line(f"❌ Error: {e}")
+        checker = markdown_checker.MarkdownChecker()
+        errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
+        if errors:
+            self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
+        else:
+            self.add_line(f"✅ There are no errors in {self.folder_path}.")
 ```
 
 </details>

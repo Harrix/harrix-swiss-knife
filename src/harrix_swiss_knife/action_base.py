@@ -215,7 +215,7 @@ class ActionBase:
 
         """
         # Create the full list with the choice option at the end
-        full_list = folders_list + [choice_text]
+        full_list = [*folders_list, choice_text]
 
         # Get user's choice from the list
         selected_folder = self.get_choice_from_list(title, "Folders", full_list)

@@ -137,7 +137,7 @@ class ActionBase:
 
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(800, 600)
+        dialog.resize(600, 400)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -222,7 +222,7 @@ class ActionBase:
 
         """
         # Create the full list with the choice option at the end
-        full_list = folders_list + [choice_text]
+        full_list = [*folders_list, choice_text]
 
         # Get user's choice from the list
         selected_folder = self.get_choice_from_list(title, "Folders", full_list)
@@ -638,7 +638,7 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
 
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(800, 600)
+        dialog.resize(600, 400)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -747,7 +747,7 @@ def get_folder_with_choice_option(
         self, title: str, folders_list: list[str], default_path: str, choice_text: str = "Choice a folder …"
     ) -> Path | None:
         # Create the full list with the choice option at the end
-        full_list = folders_list + [choice_text]
+        full_list = [*folders_list, choice_text]
 
         # Get user's choice from the list
         selected_folder = self.get_choice_from_list(title, "Folders", full_list)

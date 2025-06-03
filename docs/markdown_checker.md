@@ -14,9 +14,11 @@ lang: en
 - [Class `MarkdownChecker`](#class-markdownchecker)
   - [Method `__init__`](#method-__init__)
   - [Method `__call__`](#method-__call__)
-  - [Method `_check_content`](#method-_check_content)
-  - [Method `_check_filename`](#method-_check_filename)
-  - [Method `_check_yaml`](#method-_check_yaml)
+  - [Method `_check_all_rules`](#method-_check_all_rules)
+  - [Method `_check_content_rules`](#method-_check_content_rules)
+  - [Method `_check_filename_rules`](#method-_check_filename_rules)
+  - [Method `_check_yaml_rules`](#method-_check_yaml_rules)
+  - [Method `_format_error`](#method-_format_error)
   - [Method `check`](#method-check)
 
 </details>
@@ -38,137 +40,171 @@ Rules:
 - **H005** - In YAML, lang is not set to `en` or `ru`.
 - **H006** - Markdown is written with a small letter.
 
-Example:
-
-```python
-import harrix_pylib as h
-from pathlib import Path
-
-checker = MarkdownChecker()
-errors = checker("C:/Notes/Note.md")
-# or
-errors = checker.check("C:/Notes/Note.md")
-
-for error in errors:
-    print(error)
-```
-
 <details>
 <summary>Code:</summary>
 
 ```python
 class MarkdownChecker:
 
+    # Rule constants for easier maintenance
+    RULES: ClassVar[dict[str, str]] = {
+        "H001": "Presence of a space in the Markdown file name",
+        "H002": "Presence of a space in the path to the Markdown file",
+        "H003": "YAML is missing",
+        "H004": "The lang field is missing in YAML",
+        "H005": "In YAML, lang is not set to en or ru",
+        "H006": "Markdown is written with a small letter",
+    }
+
     def __init__(self) -> None:
         """Initialize the MarkdownChecker with all available rules."""
-        number_rules = 6
-        self.all_rules = {f"H{i:03d}" for i in range(1, number_rules + 1)}
+        self.all_rules = set(self.RULES.keys())
 
-    def __call__(self, filename: Path | str, exclude_rules: set | None = None) -> list:
-        """Check Markdown file for compliance with specified rules.
-
-        Args:
-        - `filename` (`Path | str`): Path to the Markdown file to check.
-        - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
-
-        Returns:
-
-        - `list`: List of error messages found during checking.
-
-        """
+    def __call__(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
+        """Check Markdown file for compliance with specified rules."""
         return self.check(filename, exclude_rules)
 
-    def _check_content(self, filename: Path, content_md: str, rules: set) -> list:
-        """Check markdown content for style issues."""
-        errors = []
+    def _check_all_rules(self, filename: Path, rules: set) -> Generator[str, None, None]:
+        """Generate all errors found during checking.
 
-        lines = content_md.split("\n")
-        for i, (line, is_code_block) in enumerate(h.md.identify_code_blocks(lines)):
+        Args:
+
+        - `filename` (`Path`): Path to the Markdown file being checked.
+        - `rules` (`set`): Set of rule codes to apply during checking.
+
+        Yields:
+
+        - `str`: Error message for each found issue.
+
+        """
+        yield from self._check_filename_rules(filename, rules)
+
+        # Read file only once for performance
+        try:
+            content = filename.read_text(encoding="utf-8")
+            yaml_part, markdown_part = h.md.split_yaml_content(content)
+
+            yield from self._check_yaml_rules(filename, yaml_part, rules)
+            yield from self._check_content_rules(filename, markdown_part, rules)
+
+        except Exception as e:  # noqa: BLE001
+            yield self._format_error("H000", f"Exception error: {e}", filename)
+
+    def _check_content_rules(self, filename: Path, content: str, rules: set) -> Generator[str, None, None]:
+        """Check content-related rules.
+
+        Args:
+
+        - `filename` (`Path`): Path to the Markdown file being checked.
+        - `content` (`str`): The content part of the markdown file (without YAML).
+        - `rules` (`set`): Set of rule codes to apply during checking.
+
+        Yields:
+
+        - `str`: Error message for each content-related issue found.
+
+        """
+        for line_num, (line, is_code_block) in enumerate(h.md.identify_code_blocks(content.splitlines()), 1):
             if is_code_block:
-                # Skip code lines
                 continue
 
-            # Check non-code lines
+            # Remove inline code from line before checking
             clean_line = ""
             for segment, in_code in h.md.identify_code_blocks_line(line):
                 if not in_code:
                     clean_line += segment
 
-            words = re.findall(r"\b[\w/\\.-]+\b", clean_line)
-            words = [word.strip(".") for word in words]
+            words = [word.strip(".") for word in re.findall(r"\b[\w/\\.-]+\b", clean_line)]
 
             if "H006" in rules and "markdown" in words:
-                errors.append(f"❌ H006 {i} - Markdown is written with a small letter in {filename}: {line}")
+                yield self._format_error("H006", self.RULES["H006"], filename, line=line, line_num=line_num)
 
-        return errors
+    def _check_filename_rules(self, filename: Path, rules: set) -> Generator[str, None, None]:
+        """Check filename-related rules.
 
-    def _check_filename(self, filename: Path, rules: set) -> list:
-        """Check filename for spaces."""
-        errors = []
+        Args:
 
-        if "H001" in rules and " " in str(filename.name):
-            errors.append(f"❌ H001 Presence of a space in the Markdown file name {filename}.")
+        - `filename` (`Path`): Path to the Markdown file being checked.
+        - `rules` (`set`): Set of rule codes to apply during checking.
+
+        Yields:
+
+        - `str`: Error message for each filename-related issue found.
+
+        """
+        if "H001" in rules and " " in filename.name:
+            yield self._format_error("H001", self.RULES["H001"], filename)
 
         if "H002" in rules and " " in str(filename):
-            errors.append(f"❌ H002 Presence of a space in the path to the Markdown file {filename}.")
+            yield self._format_error("H002", self.RULES["H002"], filename)
 
-        return errors
+    def _check_yaml_rules(self, filename: Path, yaml_content: str, rules: set) -> Generator[str, None, None]:
+        """Check YAML-related rules.
 
-    def _check_yaml(self, filename: Path, yaml_md: str, rules: set) -> list:
-        """Check YAML for required fields."""
-        errors = []
+        Args:
 
+        - `filename` (`Path`): Path to the Markdown file being checked.
+        - `yaml_content` (`str`): The YAML frontmatter content from the markdown file.
+        - `rules` (`set`): Set of rule codes to apply during checking.
+
+        Yields:
+
+        - `str`: Error message for each YAML-related issue found.
+
+        """
         try:
-            data_yaml = yaml.safe_load(yaml_md.replace("---\n", "").replace("\n---", ""))
-            if not data_yaml:
-                errors.append(f"❌ H003 YAML is missing in {filename}.")
-            else:
-                lang = data_yaml.get("lang")
+            data = yaml.safe_load(yaml_content.replace("---\n", "").replace("\n---", "")) if yaml_content else None
+
+            if not data and "H003" in rules:
+                yield self._format_error("H003", self.RULES["H003"], filename)
+                return
+
+            if data:
+                lang = data.get("lang")
                 if "H004" in rules and not lang:
-                    errors.append(f"❌ H004 The lang field is missing in YAML in {filename}.")
-                elif "H005" in rules and lang not in ["en", "ru"]:
-                    errors.append(f"❌ H005 In YAML, lang is not set to en or ru in {filename}.")
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"❌ YAML {e} in {filename}.")
+                    yield self._format_error("H004", self.RULES["H004"], filename)
+                elif "H005" in rules and lang and lang not in ["en", "ru"]:
+                    yield self._format_error("H005", self.RULES["H005"], filename)
 
-        return errors
+        except yaml.YAMLError as e:
+            yield self._format_error("H000", f"YAML parsing error: {e}", filename)
 
-    def check(self, filename: Path | str, exclude_rules: set | None = None) -> list:
+    def _format_error(self, error_code: str, message: str, filename: Path, *, line: str = "", line_num: int = 0) -> str:
+        """Format error message consistently.
+
+        Args:
+
+        - `error_code` (`str`): The error code (e.g., "H001").
+        - `message` (`str`): Description of the error.
+        - `filename` (`Path`): Path to the file where the error was found.
+        - `line` (`str`): The specific line where the error occurred. Defaults to `""`.
+        - `line_num` (`int`): Line number where the error occurred. Defaults to `0`.
+
+        Returns:
+
+        - `str`: Formatted error message.
+
+        """
+        result = f"❌ {error_code} {message}:\n{filename}\n"
+        if line:
+            result += f"Line {line_num}: {line}\n"
+        return result
+
+    def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
         """Check Markdown file for compliance with specified rules.
 
         Args:
+
         - `filename` (`Path | str`): Path to the Markdown file to check.
         - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
 
         Returns:
 
-        - `list`: List of error messages found during checking.
+        - `list[str]`: List of error messages found during checking.
 
         """
-        rules = self.all_rules - (set() if exclude_rules is None else exclude_rules)
-        errors = []
-
         filename = Path(filename)
-
-        # Check filename and path
-        errors.extend(self._check_filename(filename, rules))
-
-        try:
-            with Path.open(filename, encoding="utf-8") as f:
-                markdown_text = f.read()
-
-            yaml_md, content_md = h.md.split_yaml_content(markdown_text)
-
-            # Check YAML
-            errors.extend(self._check_yaml(filename, yaml_md, rules))
-
-            # Check content
-            errors.extend(self._check_content(filename, content_md, rules))
-
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"❌ Error reading or processing file: {e} in {filename}.")
-
-        return errors
+        return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
 ```
 
 </details>
@@ -186,8 +222,7 @@ Initialize the MarkdownChecker with all available rules.
 
 ```python
 def __init__(self) -> None:
-        number_rules = 6
-        self.all_rules = {f"H{i:03d}" for i in range(1, number_rules + 1)}
+        self.all_rules = set(self.RULES.keys())
 ```
 
 </details>
@@ -195,123 +230,203 @@ def __init__(self) -> None:
 ### Method `__call__`
 
 ```python
-def __call__(self, filename: Path | str, exclude_rules: set | None = None) -> list
+def __call__(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]
 ```
 
 Check Markdown file for compliance with specified rules.
-
-Args:
-
-- `filename` (`Path | str`): Path to the Markdown file to check.
-- `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
-
-Returns:
-
-- `list`: List of error messages found during checking.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __call__(self, filename: Path | str, exclude_rules: set | None = None) -> list:
+def __call__(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
         return self.check(filename, exclude_rules)
 ```
 
 </details>
 
-### Method `_check_content`
+### Method `_check_all_rules`
 
 ```python
-def _check_content(self, filename: Path, content_md: str, rules: set) -> list
+def _check_all_rules(self, filename: Path, rules: set) -> Generator[str, None, None]
 ```
 
-Check markdown content for style issues.
+Generate all errors found during checking.
+
+Args:
+
+- `filename` (`Path`): Path to the Markdown file being checked.
+- `rules` (`set`): Set of rule codes to apply during checking.
+
+Yields:
+
+- `str`: Error message for each found issue.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _check_content(self, filename: Path, content_md: str, rules: set) -> list:
-        errors = []
+def _check_all_rules(self, filename: Path, rules: set) -> Generator[str, None, None]:
+        yield from self._check_filename_rules(filename, rules)
 
-        lines = content_md.split("\n")
-        for i, (line, is_code_block) in enumerate(h.md.identify_code_blocks(lines)):
+        # Read file only once for performance
+        try:
+            content = filename.read_text(encoding="utf-8")
+            yaml_part, markdown_part = h.md.split_yaml_content(content)
+
+            yield from self._check_yaml_rules(filename, yaml_part, rules)
+            yield from self._check_content_rules(filename, markdown_part, rules)
+
+        except Exception as e:  # noqa: BLE001
+            yield self._format_error("H000", f"Exception error: {e}", filename)
+```
+
+</details>
+
+### Method `_check_content_rules`
+
+```python
+def _check_content_rules(self, filename: Path, content: str, rules: set) -> Generator[str, None, None]
+```
+
+Check content-related rules.
+
+Args:
+
+- `filename` (`Path`): Path to the Markdown file being checked.
+- `content` (`str`): The content part of the markdown file (without YAML).
+- `rules` (`set`): Set of rule codes to apply during checking.
+
+Yields:
+
+- `str`: Error message for each content-related issue found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _check_content_rules(self, filename: Path, content: str, rules: set) -> Generator[str, None, None]:
+        for line_num, (line, is_code_block) in enumerate(h.md.identify_code_blocks(content.splitlines()), 1):
             if is_code_block:
-                # Skip code lines
                 continue
 
-            # Check non-code lines
+            # Remove inline code from line before checking
             clean_line = ""
             for segment, in_code in h.md.identify_code_blocks_line(line):
                 if not in_code:
                     clean_line += segment
 
-            words = re.findall(r"\b[\w/\\.-]+\b", clean_line)
-            words = [word.strip(".") for word in words]
+            words = [word.strip(".") for word in re.findall(r"\b[\w/\\.-]+\b", clean_line)]
 
             if "H006" in rules and "markdown" in words:
-                errors.append(f"❌ H006 {i} - Markdown is written with a small letter in {filename}: {line}")
-
-        return errors
+                yield self._format_error("H006", self.RULES["H006"], filename, line=line, line_num=line_num)
 ```
 
 </details>
 
-### Method `_check_filename`
+### Method `_check_filename_rules`
 
 ```python
-def _check_filename(self, filename: Path, rules: set) -> list
+def _check_filename_rules(self, filename: Path, rules: set) -> Generator[str, None, None]
 ```
 
-Check filename for spaces.
+Check filename-related rules.
+
+Args:
+
+- `filename` (`Path`): Path to the Markdown file being checked.
+- `rules` (`set`): Set of rule codes to apply during checking.
+
+Yields:
+
+- `str`: Error message for each filename-related issue found.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _check_filename(self, filename: Path, rules: set) -> list:
-        errors = []
-
-        if "H001" in rules and " " in str(filename.name):
-            errors.append(f"❌ H001 Presence of a space in the Markdown file name {filename}.")
+def _check_filename_rules(self, filename: Path, rules: set) -> Generator[str, None, None]:
+        if "H001" in rules and " " in filename.name:
+            yield self._format_error("H001", self.RULES["H001"], filename)
 
         if "H002" in rules and " " in str(filename):
-            errors.append(f"❌ H002 Presence of a space in the path to the Markdown file {filename}.")
-
-        return errors
+            yield self._format_error("H002", self.RULES["H002"], filename)
 ```
 
 </details>
 
-### Method `_check_yaml`
+### Method `_check_yaml_rules`
 
 ```python
-def _check_yaml(self, filename: Path, yaml_md: str, rules: set) -> list
+def _check_yaml_rules(self, filename: Path, yaml_content: str, rules: set) -> Generator[str, None, None]
 ```
 
-Check YAML for required fields.
+Check YAML-related rules.
+
+Args:
+
+- `filename` (`Path`): Path to the Markdown file being checked.
+- `yaml_content` (`str`): The YAML frontmatter content from the markdown file.
+- `rules` (`set`): Set of rule codes to apply during checking.
+
+Yields:
+
+- `str`: Error message for each YAML-related issue found.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _check_yaml(self, filename: Path, yaml_md: str, rules: set) -> list:
-        errors = []
-
+def _check_yaml_rules(self, filename: Path, yaml_content: str, rules: set) -> Generator[str, None, None]:
         try:
-            data_yaml = yaml.safe_load(yaml_md.replace("---\n", "").replace("\n---", ""))
-            if not data_yaml:
-                errors.append(f"❌ H003 YAML is missing in {filename}.")
-            else:
-                lang = data_yaml.get("lang")
-                if "H004" in rules and not lang:
-                    errors.append(f"❌ H004 The lang field is missing in YAML in {filename}.")
-                elif "H005" in rules and lang not in ["en", "ru"]:
-                    errors.append(f"❌ H005 In YAML, lang is not set to en or ru in {filename}.")
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"❌ YAML {e} in {filename}.")
+            data = yaml.safe_load(yaml_content.replace("---\n", "").replace("\n---", "")) if yaml_content else None
 
-        return errors
+            if not data and "H003" in rules:
+                yield self._format_error("H003", self.RULES["H003"], filename)
+                return
+
+            if data:
+                lang = data.get("lang")
+                if "H004" in rules and not lang:
+                    yield self._format_error("H004", self.RULES["H004"], filename)
+                elif "H005" in rules and lang and lang not in ["en", "ru"]:
+                    yield self._format_error("H005", self.RULES["H005"], filename)
+
+        except yaml.YAMLError as e:
+            yield self._format_error("H000", f"YAML parsing error: {e}", filename)
+```
+
+</details>
+
+### Method `_format_error`
+
+```python
+def _format_error(self, error_code: str, message: str, filename: Path) -> str
+```
+
+Format error message consistently.
+
+Args:
+
+- `error_code` (`str`): The error code (e.g., "H001").
+- `message` (`str`): Description of the error.
+- `filename` (`Path`): Path to the file where the error was found.
+- `line` (`str`): The specific line where the error occurred. Defaults to `""`.
+- `line_num` (`int`): Line number where the error occurred. Defaults to `0`.
+
+Returns:
+
+- `str`: Formatted error message.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_error(self, error_code: str, message: str, filename: Path, *, line: str = "", line_num: int = 0) -> str:
+        result = f"❌ {error_code} {message}:\n{filename}\n"
+        if line:
+            result += f"Line {line_num}: {line}\n"
+        return result
 ```
 
 </details>
@@ -319,7 +434,7 @@ def _check_yaml(self, filename: Path, yaml_md: str, rules: set) -> list:
 ### Method `check`
 
 ```python
-def check(self, filename: Path | str, exclude_rules: set | None = None) -> list
+def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]
 ```
 
 Check Markdown file for compliance with specified rules.
@@ -331,37 +446,15 @@ Args:
 
 Returns:
 
-- `list`: List of error messages found during checking.
+- `list[str]`: List of error messages found during checking.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def check(self, filename: Path | str, exclude_rules: set | None = None) -> list:
-        rules = self.all_rules - (set() if exclude_rules is None else exclude_rules)
-        errors = []
-
+def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
         filename = Path(filename)
-
-        # Check filename and path
-        errors.extend(self._check_filename(filename, rules))
-
-        try:
-            with Path.open(filename, encoding="utf-8") as f:
-                markdown_text = f.read()
-
-            yaml_md, content_md = h.md.split_yaml_content(markdown_text)
-
-            # Check YAML
-            errors.extend(self._check_yaml(filename, yaml_md, rules))
-
-            # Check content
-            errors.extend(self._check_content(filename, content_md, rules))
-
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"❌ Error reading or processing file: {e} in {filename}.")
-
-        return errors
+        return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
 ```
 
 </details>
