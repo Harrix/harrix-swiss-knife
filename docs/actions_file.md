@@ -169,7 +169,7 @@ class OnCheckFeaturedImage(action_base.ActionBase):
 
         try:
             result = h.file.check_featured_image(folder_path)[1]
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             result = f"❌ Error: {e}"
         self.add_line(result)
         self.show_result()
@@ -196,7 +196,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         try:
             result = h.file.check_featured_image(folder_path)[1]
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             result = f"❌ Error: {e}"
         self.add_line(result)
         self.show_result()
@@ -231,7 +231,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
         for path in config["paths_with_featured_image"]:
             try:
                 result = h.file.check_featured_image(path)[1]
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 result = f"❌ Error: {e}"
             self.add_line(result)
         self.show_result()
@@ -255,7 +255,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         for path in config["paths_with_featured_image"]:
             try:
                 result = h.file.check_featured_image(path)[1]
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 result = f"❌ Error: {e}"
             self.add_line(result)
         self.show_result()
@@ -451,7 +451,7 @@ class RenameLargestImagesToFeaturedImage(action_base.ActionBase):
 
         try:
             result = h.file.rename_largest_images_to_featured(folder_path)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             result = f"❌ Error: {e}"
         self.add_line(result)
         self.show_result()
@@ -478,7 +478,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         try:
             result = h.file.rename_largest_images_to_featured(folder_path)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             result = f"❌ Error: {e}"
         self.add_line(result)
         self.show_result()

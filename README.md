@@ -155,7 +155,7 @@ class on_check_featured_image_in_folders(action_base.ActionBase):
         for path in config["paths_with_featured_image"]:
             try:
                 result = h.file.check_featured_image(path)[1]
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 result = f"❌ Error: {e}"
             self.add_line(result)
         self.show_result()

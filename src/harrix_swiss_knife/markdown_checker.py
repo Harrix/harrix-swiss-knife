@@ -64,7 +64,7 @@ class MarkdownChecker:
             yield from self._check_yaml_rules(filename, yaml_part, rules)
             yield from self._check_content_rules(filename, markdown_part, rules)
 
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             yield self._format_error("H000", f"Exception error: {e}", filename)
 
     def _check_content_rules(self, filename: Path, content: str, rules: set) -> Generator[str, None, None]:

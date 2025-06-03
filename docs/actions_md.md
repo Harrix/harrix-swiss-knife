@@ -177,7 +177,7 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
             commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
             result = h.dev.run_powershell_script(commands)
             self.add_line(result)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -258,7 +258,7 @@ def in_thread(self) -> None:
             commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
             result = h.dev.run_powershell_script(commands)
             self.add_line(result)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 ```
 
@@ -656,7 +656,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.download_and_replace_images(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -708,7 +708,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.md.download_and_replace_images(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -767,7 +767,7 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -815,7 +815,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -925,7 +925,7 @@ class OnFormatYaml(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -973,7 +973,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -1032,7 +1032,7 @@ class OnGenerateAuthorBook(action_base.ActionBase):
         try:
             result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
             self.add_line(result)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1081,7 +1081,7 @@ def in_thread(self) -> None:
         try:
             result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
             self.add_line(result)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -1143,7 +1143,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.generate_image_captions(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1195,7 +1195,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.md.generate_image_captions(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -1253,7 +1253,7 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1301,7 +1301,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -1363,7 +1363,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1415,7 +1415,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -1476,7 +1476,7 @@ class OnGenerateToc(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.generate_toc_with_links(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1528,7 +1528,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.md.generate_toc_with_links(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -1586,7 +1586,7 @@ class OnGenerateTocFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1634,7 +1634,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -2123,7 +2123,7 @@ class OnOptimizeImages(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(funcs.optimize_images_in_md(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -2175,7 +2175,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(funcs.optimize_images_in_md(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -2233,7 +2233,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -2281,7 +2281,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -2335,7 +2335,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md_png_to_avif))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -2383,7 +2383,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md_png_to_avif))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
@@ -2561,7 +2561,7 @@ class OnSortSections(action_base.ActionBase):
         try:
             self.add_line(h.md.sort_sections(self.filename))
             self.add_line(h.md.generate_image_captions(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -2614,7 +2614,7 @@ def in_thread(self) -> None:
         try:
             self.add_line(h.md.sort_sections(self.filename))
             self.add_line(h.md.generate_image_captions(self.filename))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
 
