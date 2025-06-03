@@ -12,6 +12,7 @@ class MarkdownChecker:
 
     Rules:
 
+    - **H000** - Exception error.
     - **H001** - Presence of a space in the Markdown file name.
     - **H002** - Presence of a space in the path to the Markdown file.
     - **H003** - YAML is missing.
@@ -75,7 +76,7 @@ class MarkdownChecker:
             words = [word.strip(".") for word in words]
 
             if "H006" in rules and "markdown" in words:
-                errors.append(f"❌ H006 {i} - Markdown is written with a small letter in {filename}: {line}")
+                errors.append(self._format_error("H006", "Markdown is written with a small letter in", filename, line))
 
         return errors
 
@@ -84,10 +85,10 @@ class MarkdownChecker:
         errors = []
 
         if "H001" in rules and " " in str(filename.name):
-            errors.append(f"❌ H001 Presence of a space in the Markdown file name {filename}.")
+            errors.append(self._format_error("H001", "Presence of a space in the Markdown file name", filename))
 
         if "H002" in rules and " " in str(filename):
-            errors.append(f"❌ H002 Presence of a space in the path to the Markdown file {filename}.")
+            errors.append(self._format_error("H002", "Presence of a space in the path to the Markdown file", filename))
 
         return errors
 
@@ -98,17 +99,24 @@ class MarkdownChecker:
         try:
             data_yaml = yaml.safe_load(yaml_md.replace("---\n", "").replace("\n---", ""))
             if not data_yaml:
-                errors.append(f"❌ H003 YAML is missing in {filename}.")
+                errors.append(self._format_error("H003", "YAML is missing in", filename))
             else:
                 lang = data_yaml.get("lang")
                 if "H004" in rules and not lang:
-                    errors.append(f"❌ H004 The lang field is missing in YAML in {filename}.")
+                    errors.append(self._format_error("H004", "The lang field is missing in YAML in", filename))
                 elif "H005" in rules and lang not in ["en", "ru"]:
-                    errors.append(f"❌ H005 In YAML, lang is not set to en or ru in {filename}.")
+                    errors.append(self._format_error("H005", "In YAML, lang is not set to en or ru in", filename))
         except Exception as e:  # noqa: BLE001
-            errors.append(f"❌ YAML {e} in {filename}.")
+            errors.append(self._format_error("H000", f"YAML {e} in", filename))
 
         return errors
+
+    def _format_error(self, type_error: str, text: str, filename: str | Path, line: str = ""):
+        message = f"❌ {type_error} {text}: \n{filename}\n"
+        if line:
+            message += f"{line}\n"
+        return message
+
 
     def check(self, filename: Path | str, exclude_rules: set | None = None) -> list:
         """Check Markdown file for compliance with specified rules.
@@ -123,26 +131,22 @@ class MarkdownChecker:
 
         """
         rules = self.all_rules - (set() if exclude_rules is None else exclude_rules)
-        errors = []
+        self.errors = []
 
         filename = Path(filename)
 
         # Check filename and path
-        errors.extend(self._check_filename(filename, rules))
+        self.errors.extend(self._check_filename(filename, rules))
 
-        try:
-            with Path.open(filename, encoding="utf-8") as f:
-                markdown_text = f.read()
+        with Path.open(filename, encoding="utf-8") as f:
+            markdown_text = f.read()
 
-            yaml_md, content_md = h.md.split_yaml_content(markdown_text)
+        yaml_md, content_md = h.md.split_yaml_content(markdown_text)
 
-            # Check YAML
-            errors.extend(self._check_yaml(filename, yaml_md, rules))
+        # Check YAML
+        self.errors.extend(self._check_yaml(filename, yaml_md, rules))
 
-            # Check content
-            errors.extend(self._check_content(filename, content_md, rules))
+        # Check content
+        self.errors.extend(self._check_content(filename, content_md, rules))
 
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"❌ Error reading or processing file: {e} in {filename}.")
-
-        return errors
+        return self.errors
