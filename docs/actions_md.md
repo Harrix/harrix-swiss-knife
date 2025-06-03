@@ -166,7 +166,7 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
 
             # Combine MD files
             self.add_line("🔵 Combine MD files")
-            self.add_line(h.md.combine_markdown_files_recursively(self.folder_path, delete_g_md_files=False))
+            self.add_line(h.md.combine_markdown_files_recursively(self.folder_path, is_delete_g_md_files=False))
 
             # Format YAML
             self.add_line("🔵 Format YAML")
@@ -247,7 +247,7 @@ def in_thread(self) -> None:
 
             # Combine MD files
             self.add_line("🔵 Combine MD files")
-            self.add_line(h.md.combine_markdown_files_recursively(self.folder_path, delete_g_md_files=False))
+            self.add_line(h.md.combine_markdown_files_recursively(self.folder_path, is_delete_g_md_files=False))
 
             # Format YAML
             self.add_line("🔵 Format YAML")
