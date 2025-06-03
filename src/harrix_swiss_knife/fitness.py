@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 import harrix_pylib as h
-from PySide6.QtCore import QDate, QDateTime, QSortFilterProxyModel, Qt
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtCore import QDate, QDateTime, QSize, QSortFilterProxyModel, Qt
+from PySide6.QtGui import QMovie, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife import fitness_database_manager, fitness_window
@@ -61,6 +61,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.setupUi(self)
 
         self.db_manager: fitness_database_manager.FitnessDatabaseManager | None = None
+
+        self.current_movie: QMovie | None = None
 
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
@@ -179,6 +181,33 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         proxy.setSourceModel(model)
         return proxy
 
+    def _get_exercise_gif_path(self, exercise_name: str) -> Path | None:
+        """Get the path to the GIF file for the given exercise.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise.
+
+        Returns:
+
+        - `Path | None`: Path to the GIF file if it exists, None otherwise.
+
+        """
+        if not exercise_name or not self.db_manager:
+            return None
+
+        # Get exercise ID
+        exercise_id = self.db_manager.get_id("exercises", "name", exercise_name)
+        if exercise_id is None:
+            return None
+
+        # Form path to GIF file
+        db_path = Path(config["sqlite_fitness"])
+        gif_dir = db_path.parent / "fitness_img"
+        gif_path = gif_dir / f"{exercise_id}.gif"
+
+        return gif_path if gif_path.exists() else None
+
     def _increment_date_after_add(self) -> None:
         """Move *date* edit one day forward unless it already shows today.
 
@@ -271,6 +300,52 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return False
         else:
             return True
+
+    def _load_exercise_gif(self, exercise_name: str) -> None:
+        """Load and display GIF animation for the given exercise.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise to display GIF for.
+
+        """
+        # Stop current animation if exists
+        if self.current_movie:
+            self.current_movie.stop()
+            self.current_movie = None
+
+        # Clear label
+        self.label_exercise_gif.clear()
+
+        if not exercise_name:
+            self.label_exercise_gif.setText("No exercise selected")
+            return
+
+        # Get path to GIF
+        gif_path = self._get_exercise_gif_path(exercise_name)
+
+        if gif_path is None:
+            self.label_exercise_gif.setText(f"No GIF found for:\n{exercise_name}")
+            return
+
+        try:
+            # Load and start animation
+            self.current_movie = QMovie(str(gif_path))
+
+            # Check that file is valid
+            if not self.current_movie.isValid():
+                self.label_exercise_gif.setText(f"Invalid GIF file:\n{exercise_name}")
+                return
+
+            # Set animation size with aspect ratio preservation
+            self.current_movie.setScaledSize(QSize(281, 150))
+
+            # Bind animation to label and start
+            self.label_exercise_gif.setMovie(self.current_movie)
+            self.current_movie.start()
+
+        except Exception as e:
+            self.label_exercise_gif.setText(f"Error loading GIF:\n{exercise_name}\n{e}")
 
     def _update_comboboxes(
         self,
@@ -636,9 +711,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         Updates the exercise type combo box with the types associated with the
         currently selected exercise. Automatically selects the most recently used
-        type for this exercise from the process table.
+        type for this exercise from the process table. Also loads the exercise GIF.
         """
         exercise = self.comboBox_exercise.currentText()
+
+        # Загружаем GIF для выбранного упражнения
+        self._load_exercise_gif(exercise)
+
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
             return
@@ -673,7 +752,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             type_index = self.comboBox_type.findText(last_type)
             if type_index >= 0:
                 self.comboBox_type.setCurrentIndex(type_index)
-            # If last_type is empty string, index 0 (empty item) will be selected by default
 
     def on_exercise_selection_changed(self) -> None:
         """Update form fields when exercise selection changes in the table.
@@ -1032,6 +1110,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.lineEdit_exercise_name.clear()
         self.lineEdit_exercise_unit.clear()
         self.check_box_is_type_required.setChecked(False)
+
+        # Upload a GIF for the currently selected exercise
+        current_exercise_name = self.comboBox_exercise.currentText()
+        self._load_exercise_gif(current_exercise_name)
 
     def update_filter_comboboxes(self) -> None:
         """Refresh *exercise* and *type* combo-boxes in the filter group.

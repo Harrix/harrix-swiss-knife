@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1191</width>
-    <height>822</height>
+    <height>926</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -343,6 +343,28 @@
              <string>Use date filter</string>
             </property>
            </widget>
+          </widget>
+          <widget class="QLabel" name="label_exercise_gif">
+           <property name="geometry">
+            <rect>
+             <x>10</x>
+             <y>610</y>
+             <width>281</width>
+             <height>150</height>
+            </rect>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">border: 1px solid gray;</string>
+           </property>
+           <property name="text">
+            <string>No exercise selected</string>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
           </widget>
          </widget>
         </item>

@@ -52,6 +52,7 @@ class Ui_MainWindow(object):
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
+        self.label_exercise_gif.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "List", None)
         )
@@ -93,7 +94,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1191, 822)
+        MainWindow.resize(1191, 926)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -193,6 +194,12 @@ class Ui_MainWindow(object):
         self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
         self.checkBox_use_date_filter.setObjectName("checkBox_use_date_filter")
         self.checkBox_use_date_filter.setGeometry(QRect(10, 160, 131, 17))
+        self.label_exercise_gif = QLabel(self.frame)
+        self.label_exercise_gif.setObjectName("label_exercise_gif")
+        self.label_exercise_gif.setGeometry(QRect(10, 610, 281, 150))
+        self.label_exercise_gif.setStyleSheet("border: 1px solid gray;")
+        self.label_exercise_gif.setScaledContents(True)
+        self.label_exercise_gif.setAlignment(Qt.AlignCenter)
 
         self.horizontalLayout_2.addWidget(self.frame)
 
@@ -423,6 +430,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
+        self.label_exercise_gif.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "List", None)
         )
@@ -479,7 +487,7 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1191, 822)
+        MainWindow.resize(1191, 926)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -579,6 +587,12 @@ def setupUi(self, MainWindow):
         self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
         self.checkBox_use_date_filter.setObjectName("checkBox_use_date_filter")
         self.checkBox_use_date_filter.setGeometry(QRect(10, 160, 131, 17))
+        self.label_exercise_gif = QLabel(self.frame)
+        self.label_exercise_gif.setObjectName("label_exercise_gif")
+        self.label_exercise_gif.setGeometry(QRect(10, 610, 281, 150))
+        self.label_exercise_gif.setStyleSheet("border: 1px solid gray;")
+        self.label_exercise_gif.setScaledContents(True)
+        self.label_exercise_gif.setAlignment(Qt.AlignCenter)
 
         self.horizontalLayout_2.addWidget(self.frame)
 
