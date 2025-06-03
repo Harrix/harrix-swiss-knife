@@ -623,20 +623,45 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """Load exercise types for the newly selected exercise in *comboBox_type*.
 
         Updates the exercise type combo box with the types associated with the
-        currently selected exercise.
+        currently selected exercise. Automatically selects the most recently used
+        type for this exercise from the process table.
         """
         exercise = self.comboBox_exercise.currentText()
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
             return
+
+        # Get all types for this exercise
         types = self.db_manager.get_items(
             "types",
             "type",
             condition=f"_id_exercises = {ex_id}",
         )
+
+        # Clear and populate the combobox
         self.comboBox_type.clear()
         self.comboBox_type.addItem("")
         self.comboBox_type.addItems(types)
+
+        # Find the most recently used type for this exercise
+        last_type_query = """
+            SELECT t.type
+            FROM process p
+            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = p._id_exercises
+            WHERE p._id_exercises = :ex_id
+            ORDER BY p._id DESC
+            LIMIT 1
+        """
+
+        rows = self.db_manager.get_rows(last_type_query, {"ex_id": ex_id})
+
+        if rows:
+            last_type = rows[0][0] if rows[0][0] is not None else ""
+            # Find and select this type in the combobox
+            type_index = self.comboBox_type.findText(last_type)
+            if type_index >= 0:
+                self.comboBox_type.setCurrentIndex(type_index)
+            # If last_type is empty string, index 0 (empty item) will be selected by default
 
     def on_export_csv(self) -> None:
         """Save current *process* view to a CSV file (semicolon-separated).
