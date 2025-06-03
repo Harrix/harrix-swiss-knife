@@ -451,7 +451,7 @@
              </rect>
             </property>
             <property name="text">
-             <string>is type required</string>
+             <string>Type required</string>
             </property>
            </widget>
           </widget>

@@ -11,7 +11,6 @@ from __future__ import annotations
 import re
 import sys
 from collections import defaultdict
-from contextlib import suppress
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
