@@ -224,15 +224,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if not exercise_name or not self.db_manager:
             return None
 
-        # Get exercise ID
-        exercise_id = self.db_manager.get_id("exercises", "name", exercise_name)
-        if exercise_id is None:
-            return None
-
-        # Form path to GIF file
+        # Form path to GIF file using exercise name directly
         db_path = Path(config["sqlite_fitness"])
         gif_dir = db_path.parent / "fitness_img"
-        gif_path = gif_dir / f"{exercise_id}.gif"
+        gif_path = gif_dir / f"{exercise_name}.gif"
 
         return gif_path if gif_path.exists() else None
 
@@ -342,8 +337,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.current_movie.stop()
             self.current_movie = None
 
-        # Clear label
+        # Clear label and reset alignment
         self.label_exercise_gif.clear()
+        self.label_exercise_gif.setAlignment(Qt.AlignCenter)
 
         if not exercise_name:
             self.label_exercise_gif.setText("No exercise selected")
@@ -357,7 +353,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return
 
         try:
-            # Load and start animation
+            # Load animation
             self.current_movie = QMovie(str(gif_path))
 
             # Check that file is valid
@@ -365,15 +361,44 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 self.label_exercise_gif.setText(f"Invalid GIF file:\n{exercise_name}")
                 return
 
-            # Set animation size with aspect ratio preservation
-            self.current_movie.setScaledSize(QSize(281, 150))
+            # Get dimensions
+            label_width = self.label_exercise_gif.width()
+            label_height = self.label_exercise_gif.height()
+
+            # Wait for the first frame to get original size
+            self.current_movie.jumpToFrame(0)
+            original_size = self.current_movie.currentPixmap().size()
+
+            if original_size.isEmpty():
+                # Fallback if we can't get the size
+                scaled_size = QSize(label_width, label_height)
+            else:
+                # Calculate aspect ratio
+                original_width = original_size.width()
+                original_height = original_size.height()
+
+                # Calculate scale factors
+                width_scale = label_width / original_width
+                height_scale = label_height / original_height
+
+                # Use the smaller scale to maintain aspect ratio
+                scale = min(width_scale, height_scale)
+
+                # Calculate new dimensions
+                new_width = int(original_width * scale)
+                new_height = int(original_height * scale)
+
+                scaled_size = QSize(new_width, new_height)
+
+            # Set scaled size
+            self.current_movie.setScaledSize(scaled_size)
 
             # Bind animation to label and start
             self.label_exercise_gif.setMovie(self.current_movie)
             self.current_movie.start()
 
         except Exception as e:
-            self.label_exercise_gif.setText(f"Error loading GIF:\n{exercise_name}\n{str(e)}")
+            self.label_exercise_gif.setText(f"Error loading GIF:\n{exercise_name}\n{e}")
 
     def _update_comboboxes(
         self,
@@ -1385,15 +1410,10 @@ def _get_exercise_gif_path(self, exercise_name: str) -> Path | None:
         if not exercise_name or not self.db_manager:
             return None
 
-        # Get exercise ID
-        exercise_id = self.db_manager.get_id("exercises", "name", exercise_name)
-        if exercise_id is None:
-            return None
-
-        # Form path to GIF file
+        # Form path to GIF file using exercise name directly
         db_path = Path(config["sqlite_fitness"])
         gif_dir = db_path.parent / "fitness_img"
-        gif_path = gif_dir / f"{exercise_id}.gif"
+        gif_path = gif_dir / f"{exercise_name}.gif"
 
         return gif_path if gif_path.exists() else None
 ```
@@ -1565,8 +1585,9 @@ def _load_exercise_gif(self, exercise_name: str) -> None:
             self.current_movie.stop()
             self.current_movie = None
 
-        # Clear label
+        # Clear label and reset alignment
         self.label_exercise_gif.clear()
+        self.label_exercise_gif.setAlignment(Qt.AlignCenter)
 
         if not exercise_name:
             self.label_exercise_gif.setText("No exercise selected")
@@ -1580,7 +1601,7 @@ def _load_exercise_gif(self, exercise_name: str) -> None:
             return
 
         try:
-            # Load and start animation
+            # Load animation
             self.current_movie = QMovie(str(gif_path))
 
             # Check that file is valid
@@ -1588,15 +1609,44 @@ def _load_exercise_gif(self, exercise_name: str) -> None:
                 self.label_exercise_gif.setText(f"Invalid GIF file:\n{exercise_name}")
                 return
 
-            # Set animation size with aspect ratio preservation
-            self.current_movie.setScaledSize(QSize(281, 150))
+            # Get dimensions
+            label_width = self.label_exercise_gif.width()
+            label_height = self.label_exercise_gif.height()
+
+            # Wait for the first frame to get original size
+            self.current_movie.jumpToFrame(0)
+            original_size = self.current_movie.currentPixmap().size()
+
+            if original_size.isEmpty():
+                # Fallback if we can't get the size
+                scaled_size = QSize(label_width, label_height)
+            else:
+                # Calculate aspect ratio
+                original_width = original_size.width()
+                original_height = original_size.height()
+
+                # Calculate scale factors
+                width_scale = label_width / original_width
+                height_scale = label_height / original_height
+
+                # Use the smaller scale to maintain aspect ratio
+                scale = min(width_scale, height_scale)
+
+                # Calculate new dimensions
+                new_width = int(original_width * scale)
+                new_height = int(original_height * scale)
+
+                scaled_size = QSize(new_width, new_height)
+
+            # Set scaled size
+            self.current_movie.setScaledSize(scaled_size)
 
             # Bind animation to label and start
             self.label_exercise_gif.setMovie(self.current_movie)
             self.current_movie.start()
 
         except Exception as e:
-            self.label_exercise_gif.setText(f"Error loading GIF:\n{exercise_name}\n{str(e)}")
+            self.label_exercise_gif.setText(f"Error loading GIF:\n{exercise_name}\n{e}")
 ```
 
 </details>

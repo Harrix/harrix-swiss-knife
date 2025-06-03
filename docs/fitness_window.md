@@ -198,7 +198,7 @@ class Ui_MainWindow(object):
         self.label_exercise_gif.setObjectName("label_exercise_gif")
         self.label_exercise_gif.setGeometry(QRect(10, 610, 281, 150))
         self.label_exercise_gif.setStyleSheet("border: 1px solid gray;")
-        self.label_exercise_gif.setScaledContents(True)
+        self.label_exercise_gif.setScaledContents(False)
         self.label_exercise_gif.setAlignment(Qt.AlignCenter)
 
         self.horizontalLayout_2.addWidget(self.frame)
@@ -591,7 +591,7 @@ def setupUi(self, MainWindow):
         self.label_exercise_gif.setObjectName("label_exercise_gif")
         self.label_exercise_gif.setGeometry(QRect(10, 610, 281, 150))
         self.label_exercise_gif.setStyleSheet("border: 1px solid gray;")
-        self.label_exercise_gif.setScaledContents(True)
+        self.label_exercise_gif.setScaledContents(False)
         self.label_exercise_gif.setAlignment(Qt.AlignCenter)
 
         self.horizontalLayout_2.addWidget(self.frame)
