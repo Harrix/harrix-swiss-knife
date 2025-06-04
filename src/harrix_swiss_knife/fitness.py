@@ -157,7 +157,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         headers: list[str],
         id_column: int = 0,
     ) -> QSortFilterProxyModel:
-        """Return a proxy model filled with *data*.
+        """Return a proxy model filled with `data`.
 
         Args:
 
@@ -212,7 +212,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         return avif_path if avif_path.exists() else None
 
     def _increment_date_after_add(self) -> None:
-        """Move *date* edit one day forward unless it already shows today.
+        """Move `date` edit one day forward unless it already shows today.
 
         After adding a record, this method advances the date in the date edit
         by one day to make it easier to add consecutive daily entries. If the
@@ -232,7 +232,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.dateEdit.setDate(next_date)
 
     def _init_database(self) -> None:
-        """Open the SQLite file from *config* (ask the user if missing).
+        """Open the SQLite file from `config` (ask the user if missing).
 
         Attempts to open the database file specified in the configuration.
         If the file doesn't exist, prompts the user to select a database file.
@@ -261,7 +261,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             sys.exit(1)
 
     def _init_filter_controls(self) -> None:
-        """Prepare widgets on the *Filters* group box.
+        """Prepare widgets on the `Filters` group box.
 
         Initializes the filter controls with default values:
 
@@ -283,7 +283,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
     @staticmethod
     def _is_valid_date(date_str: str) -> bool:
-        """Return *True* if `YYYY-MM-DD` formatted *date_str* is correct.
+        """Return `True` if `YYYY-MM-DD` formatted `date_str` is correct.
 
         Args:
 
@@ -548,17 +548,17 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         query_text: str,
         params: dict,
     ) -> bool:
-        """Add a single row to *any* table.
+        """Add a single row to `any` table.
 
         Args:
 
         - `table_name` (`str`): Target table (must be one of `self._SAFE_TABLES`).
-        - `query_text` (`str`): SQL *INSERT* statement with named placeholders.
+        - `query_text` (`str`): SQL `INSERT` statement with named placeholders.
         - `params` (`dict`): Mapping for the placeholders.
 
         Returns:
 
-        - `bool`: *True* if the row was written successfully.
+        - `bool`: `True` if the row was written successfully.
 
         Raises:
 
@@ -669,7 +669,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         event.accept()
 
     def delete_record(self, table_name: str) -> None:
-        """Delete selected row from *table_name* (must be safe).
+        """Delete selected row from `table_name` (must be safe).
 
         Args:
 
@@ -791,7 +791,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Failed to add to process")
 
     def on_add_type(self) -> None:
-        """Insert a new exercise *type* for the selected exercise.
+        """Insert a new exercise `type` for the selected exercise.
 
         Adds a new exercise type for the selected exercise. Shows an error
         message if the type name is empty.
@@ -828,7 +828,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         )
 
     def on_exercise_changed(self) -> None:
-        """Load exercise types for the newly selected exercise in *comboBox_type*.
+        """Load exercise types for the newly selected exercise in `comboBox_type`.
 
         Updates the exercise type combo box with the types associated with the
         currently selected exercise. Automatically selects the most recently used
@@ -1055,7 +1055,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.update_all()
 
     def on_update_types(self) -> None:
-        """Update the selected *types* row.
+        """Update the selected `types` row.
 
         Updates the exercise and type of the currently selected record in the
         types table.
@@ -1236,7 +1236,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._load_exercise_avif(current_exercise_name)
 
     def update_filter_comboboxes(self) -> None:
-        """Refresh *exercise* and *type* combo-boxes in the filter group.
+        """Refresh `exercise` and `type` combo-boxes in the filter group.
 
         Updates the exercise and type comboboxes in the filter section with
         the latest data from the database, attempting to preserve the current
@@ -1259,7 +1259,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.update_filter_type_combobox()
 
     def update_filter_type_combobox(self) -> None:
-        """Populate *type* filter based on the *exercise* filter selection.
+        """Populate `type` filter based on the `exercise` filter selection.
 
         Updates the exercise type combobox in the filter section based on the
         currently selected exercise, attempting to preserve the current type
