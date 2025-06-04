@@ -8,6 +8,7 @@ static-analysis friendliness in mind (flake8-family, pylint, mypy, etc.).
 
 from __future__ import annotations
 
+import io
 import re
 import sys
 from collections import defaultdict
@@ -16,12 +17,14 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from PIL import Image
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 import harrix_pylib as h
-from PySide6.QtCore import QDate, QDateTime, QSize, QSortFilterProxyModel, Qt
-from PySide6.QtGui import QMovie, QStandardItem, QStandardItemModel
+from PySide6.QtCore import QDate, QDateTime, QSortFilterProxyModel, Qt, QTimer
+from PySide6.QtGui import QCloseEvent, QMovie, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife import fitness_database_manager, fitness_window
@@ -63,6 +66,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.db_manager: fitness_database_manager.FitnessDatabaseManager | None = None
 
         self.current_movie: QMovie | None = None
+
+        # Add attributes for AVI animation
+        self.avif_frames: list = []
+        self.current_frame_index: int = 0
+        self.avif_timer: QTimer | None = None
 
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
@@ -181,8 +189,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         proxy.setSourceModel(model)
         return proxy
 
-    def _get_exercise_gif_path(self, exercise_name: str) -> Path | None:
-        """Get the path to the GIF file for the given exercise.
+    def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
+        """Get the path to the AVIF file for the given exercise.
 
         Args:
 
@@ -190,18 +198,18 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         Returns:
 
-        - `Path | None`: Path to the GIF file if it exists, None otherwise.
+        - `Path | None`: Path to the AVIF file if it exists, None otherwise.
 
         """
         if not exercise_name or not self.db_manager:
             return None
 
-        # Form path to GIF file using exercise name directly
+        # Form path to AVIF file using exercise name directly
         db_path = Path(config["sqlite_fitness"])
-        gif_dir = db_path.parent / "fitness_img"
-        gif_path = gif_dir / f"{exercise_name}.gif"
+        avif_dir = db_path.parent / "fitness_img"
+        avif_path = avif_dir / f"{exercise_name}.avif"
 
-        return gif_path if gif_path.exists() else None
+        return avif_path if avif_path.exists() else None
 
     def _increment_date_after_add(self) -> None:
         """Move *date* edit one day forward unless it already shows today.
@@ -296,81 +304,159 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         else:
             return True
 
-    def _load_exercise_gif(self, exercise_name: str) -> None:
-        """Load and display GIF animation for the given exercise.
-
-        Args:
-
-        - `exercise_name` (`str`): Name of the exercise to display GIF for.
-
-        """
+    def _load_exercise_avif(self, exercise_name: str) -> None:
+        """Load and display AVIF animation for the given exercise using Pillow with AVIF support."""
         # Stop current animation if exists
         if self.current_movie:
             self.current_movie.stop()
             self.current_movie = None
 
+        # Stop AVIF animation if exists
+        if self.avif_timer:
+            self.avif_timer.stop()
+            self.avif_timer = None
+
+        self.avif_frames = []
+        self.current_frame_index = 0
+
         # Clear label and reset alignment
-        self.label_exercise_gif.clear()
-        self.label_exercise_gif.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif.clear()
+        self.label_exercise_avif.setAlignment(Qt.AlignCenter)
 
         if not exercise_name:
-            self.label_exercise_gif.setText("No exercise selected")
+            self.label_exercise_avif.setText("No exercise selected")
             return
 
-        # Get path to GIF
-        gif_path = self._get_exercise_gif_path(exercise_name)
+        # Get path to AVIF
+        avif_path = self._get_exercise_avif_path(exercise_name)
 
-        if gif_path is None:
-            self.label_exercise_gif.setText(f"No GIF found for:\n{exercise_name}")
+        if avif_path is None:
+            self.label_exercise_avif.setText(f"No AVIF found for:\n{exercise_name}")
             return
 
         try:
-            # Load animation
-            self.current_movie = QMovie(str(gif_path))
+            # Try Qt native first
+            from PySide6.QtGui import QPixmap
 
-            # Check that file is valid
-            if not self.current_movie.isValid():
-                self.label_exercise_gif.setText(f"Invalid GIF file:\n{exercise_name}")
+            pixmap = QPixmap(str(avif_path))
+
+            if not pixmap.isNull():
+                label_size = self.label_exercise_avif.size()
+                scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                self.label_exercise_avif.setPixmap(scaled_pixmap)
                 return
 
-            # Get dimensions
-            label_width = self.label_exercise_gif.width()
-            label_height = self.label_exercise_gif.height()
+            # Fallback to Pillow with AVIF plugin for animation
+            try:
+                import pillow_avif  # noqa: I001, F401
 
-            # Wait for the first frame to get original size
-            self.current_movie.jumpToFrame(0)
-            original_size = self.current_movie.currentPixmap().size()
+                # Open with Pillow
+                pil_image = Image.open(avif_path)
 
-            if original_size.isEmpty():
-                # Fallback if we can't get the size
-                scaled_size = QSize(label_width, label_height)
-            else:
-                # Calculate aspect ratio
-                original_width = original_size.width()
-                original_height = original_size.height()
+                # Handle animated AVIF
+                if hasattr(pil_image, "is_animated") and pil_image.is_animated:
+                    # Extract all frames
+                    self.avif_frames = []
+                    label_size = self.label_exercise_avif.size()
 
-                # Calculate scale factors
-                width_scale = label_width / original_width
-                height_scale = label_height / original_height
+                    for frame_index in range(pil_image.n_frames):
+                        pil_image.seek(frame_index)
 
-                # Use the smaller scale to maintain aspect ratio
-                scale = min(width_scale, height_scale)
+                        # Create a copy of the frame
+                        frame = pil_image.copy()
 
-                # Calculate new dimensions
-                new_width = int(original_width * scale)
-                new_height = int(original_height * scale)
+                        # Convert to RGB if needed
+                        if frame.mode in ("RGBA", "LA", "P"):
+                            background = Image.new("RGB", frame.size, (255, 255, 255))
+                            if frame.mode == "P":
+                                frame = frame.convert("RGBA")
+                            if frame.mode in ("RGBA", "LA"):
+                                background.paste(frame, mask=frame.split()[-1])
+                            else:
+                                background.paste(frame)
+                            frame = background
+                        elif frame.mode != "RGB":
+                            frame = frame.convert("RGB")
 
-                scaled_size = QSize(new_width, new_height)
+                        # Convert PIL image to QPixmap
+                        buffer = io.BytesIO()
+                        frame.save(buffer, format="PNG")
+                        buffer.seek(0)
 
-            # Set scaled size
-            self.current_movie.setScaledSize(scaled_size)
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(buffer.getvalue())
 
-            # Bind animation to label and start
-            self.label_exercise_gif.setMovie(self.current_movie)
-            self.current_movie.start()
+                        if not pixmap.isNull():
+                            scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                            self.avif_frames.append(scaled_pixmap)
+
+                    if self.avif_frames:
+                        # Show first frame
+                        self.label_exercise_avif.setPixmap(self.avif_frames[0])
+
+                        # Start animation timer
+                        self.avif_timer = QTimer()
+                        self.avif_timer.timeout.connect(self._next_avif_frame)
+
+                        # Get frame duration (default 100ms if not available)
+                        try:
+                            duration = pil_image.info.get("duration", 100)
+                        except Exception:
+                            duration = 100
+
+                        self.avif_timer.start(duration)
+                        return
+                else:
+                    # Static image
+                    frame = pil_image
+
+                    # Convert to RGB if needed
+                    if frame.mode in ("RGBA", "LA", "P"):
+                        background = Image.new("RGB", frame.size, (255, 255, 255))
+                        if frame.mode == "P":
+                            frame = frame.convert("RGBA")
+                        if frame.mode in ("RGBA", "LA"):
+                            background.paste(frame, mask=frame.split()[-1])
+                        else:
+                            background.paste(frame)
+                        frame = background
+                    elif frame.mode != "RGB":
+                        frame = frame.convert("RGB")
+
+                    # Convert PIL image to QPixmap
+                    buffer = io.BytesIO()
+                    frame.save(buffer, format="PNG")
+                    buffer.seek(0)
+
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(buffer.getvalue())
+
+                    if not pixmap.isNull():
+                        label_size = self.label_exercise_avif.size()
+                        scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                        self.label_exercise_avif.setPixmap(scaled_pixmap)
+                        return
+
+            except ImportError as import_error:
+                print(f"Import error: {import_error}")
+                self.label_exercise_avif.setText(f"AVIF plugin not available:\n{exercise_name}")
+                return
+            except Exception as pil_error:
+                print(f"Pillow error: {pil_error}")
+
+            self.label_exercise_avif.setText(f"Cannot load AVIF:\n{exercise_name}")
 
         except Exception as e:
-            self.label_exercise_gif.setText(f"Error loading GIF:\n{exercise_name}\n{e}")
+            print(f"General error: {e}")
+            self.label_exercise_avif.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+
+    def _next_avif_frame(self) -> None:
+        """Show next frame in AVIF animation."""
+        if not self.avif_frames:
+            return
+
+        self.current_frame_index = (self.current_frame_index + 1) % len(self.avif_frames)
+        self.label_exercise_avif.setPixmap(self.avif_frames[self.current_frame_index])
 
     def _update_comboboxes(
         self,
@@ -572,6 +658,16 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.show_tables()
 
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        """Handle application close event."""
+        # Stop animations
+        if self.current_movie:
+            self.current_movie.stop()
+        if self.avif_timer:
+            self.avif_timer.stop()
+
+        event.accept()
+
     def delete_record(self, table_name: str) -> None:
         """Delete selected row from *table_name* (must be safe).
 
@@ -736,12 +832,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         Updates the exercise type combo box with the types associated with the
         currently selected exercise. Automatically selects the most recently used
-        type for this exercise from the process table. Also loads the exercise GIF.
+        type for this exercise from the process table. Also loads the exercise AVIF.
         """
         exercise = self.comboBox_exercise.currentText()
 
-        # Загружаем GIF для выбранного упражнения
-        self._load_exercise_gif(exercise)
+        self._load_exercise_avif(exercise)
 
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
@@ -1136,9 +1231,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.lineEdit_exercise_unit.clear()
         self.check_box_is_type_required.setChecked(False)
 
-        # Upload a GIF for the currently selected exercise
+        # Upload a AVIF for the currently selected exercise
         current_exercise_name = self.comboBox_exercise.currentText()
-        self._load_exercise_gif(current_exercise_name)
+        self._load_exercise_avif(current_exercise_name)
 
     def update_filter_comboboxes(self) -> None:
         """Refresh *exercise* and *type* combo-boxes in the filter group.

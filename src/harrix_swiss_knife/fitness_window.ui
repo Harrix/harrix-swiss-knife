@@ -344,7 +344,7 @@
             </property>
            </widget>
           </widget>
-          <widget class="QLabel" name="label_exercise_gif">
+          <widget class="QLabel" name="label_exercise_avif">
             <property name="geometry">
               <rect>
               <x>10</x>
