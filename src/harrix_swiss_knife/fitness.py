@@ -1377,16 +1377,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Create plot
         ax = fig.add_subplot(111)
 
-        # Plot line with points
+        # Plot line
         ax.plot(
             dates,
             weights,
             "b-",
             linewidth=2,
-            markersize=4,
-            marker="o",
-            markerfacecolor="blue",
-            markeredgecolor="darkblue",
             alpha=0.8,
         )
 
