@@ -19,6 +19,7 @@ lang: en
   - [Method `_increment_date_after_add`](#method-_increment_date_after_add)
   - [Method `_init_database`](#method-_init_database)
   - [Method `_init_filter_controls`](#method-_init_filter_controls)
+  - [Method `_init_weight_chart_controls`](#method-_init_weight_chart_controls)
   - [Method `_is_valid_date`](#method-_is_valid_date)
   - [Method `_load_exercise_avif`](#method-_load_exercise_avif)
   - [Method `_next_avif_frame`](#method-_next_avif_frame)
@@ -43,10 +44,14 @@ lang: en
   - [Method `on_update_types`](#method-on_update_types)
   - [Method `on_update_weight`](#method-on_update_weight)
   - [Method `set_current_date`](#method-set_current_date)
+  - [Method `set_weight_all_time`](#method-set_weight_all_time)
+  - [Method `set_weight_last_month`](#method-set_weight_last_month)
+  - [Method `set_weight_last_year`](#method-set_weight_last_year)
   - [Method `show_tables`](#method-show_tables)
   - [Method `update_all`](#method-update_all)
   - [Method `update_filter_comboboxes`](#method-update_filter_comboboxes)
   - [Method `update_filter_type_combobox`](#method-update_filter_type_combobox)
+  - [Method `update_weight_chart`](#method-update_weight_chart)
 
 </details>
 
@@ -128,6 +133,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._init_database()
         self._connect_signals()
         self._init_filter_controls()
+        self._init_weight_chart_controls()
         self.update_all()
 
     def _connect_signals(self) -> None:
@@ -177,6 +183,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         # Tab change
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
+
+        # Weight chart signals
+        self.pushButton_update_weight_chart.clicked.connect(self.update_weight_chart)
+        self.pushButton_weight_last_month.clicked.connect(self.set_weight_last_month)
+        self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
+        self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
 
     def _create_table_model(
         self,
@@ -308,6 +320,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
+    def _init_weight_chart_controls(self) -> None:
+        """Initialize weight chart date controls."""
+        current_date = QDate.currentDate()
+        self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_weight_to.setDate(current_date)
+
     @staticmethod
     def _is_valid_date(date_str: str) -> bool:
         """Return `True` if `YYYY-MM-DD` formatted `date_str` is correct.
@@ -375,7 +393,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
             # Fallback to Pillow with AVIF plugin for animation
             try:
-                import pillow_avif  # noqa: I001, F401
+                import pillow_avif  # noqa: F401
 
                 # Open with Pillow
                 pil_image = Image.open(avif_path)
@@ -1002,8 +1020,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - `index` (`int`): The index of the newly selected tab.
 
         """
+        index_tab_weight = 5
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
+        elif index == index_tab_weight:
+            self.set_weight_all_time()
 
     def on_update_exercises(self) -> None:
         """Update the selected exercise row.
@@ -1134,6 +1155,36 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         # Assuming lineEdit_weight_date is still a QLineEdit
         self.lineEdit_weight_date.setText(today_str)
+
+    def set_weight_all_time(self) -> None:
+        """Set weight chart date range to all available data."""
+        # Get the earliest weight record
+        rows = self.db_manager.get_rows("SELECT MIN(date) FROM weight WHERE date IS NOT NULL")
+
+        if rows and rows[0][0]:
+            earliest_date = QDate.fromString(rows[0][0], "yyyy-MM-dd")
+            self.dateEdit_weight_from.setDate(earliest_date)
+        else:
+            # Fallback to one year ago if no data
+            current_date = QDate.currentDate()
+            self.dateEdit_weight_from.setDate(current_date.addYears(-1))
+
+        self.dateEdit_weight_to.setDate(QDate.currentDate())
+        self.update_weight_chart()
+
+    def set_weight_last_month(self) -> None:
+        """Set weight chart date range to last month."""
+        current_date = QDate.currentDate()
+        self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_weight_to.setDate(current_date)
+        self.update_weight_chart()
+
+    def set_weight_last_year(self) -> None:
+        """Set weight chart date range to last year."""
+        current_date = QDate.currentDate()
+        self.dateEdit_weight_from.setDate(current_date.addYears(-1))
+        self.dateEdit_weight_to.setDate(current_date)
+        self.update_weight_chart()
 
     def show_tables(self) -> None:
         """Populate all four `QTableView`s from the database.
@@ -1311,6 +1362,119 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             idx = self.comboBox_filter_type.findText(current_type)
             if idx >= 0:
                 self.comboBox_filter_type.setCurrentIndex(idx)
+
+    def update_weight_chart(self) -> None:
+        """Update the weight chart with current date range."""
+        date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
+
+        # Clear existing chart
+        layout = self.verticalLayout_weight_chart_content
+        for i in reversed(range(layout.count())):
+            child = layout.takeAt(i).widget()
+            if child:
+                child.setParent(None)
+
+        # Get weight data
+        query = """
+            SELECT value, date
+            FROM weight
+            WHERE date BETWEEN :date_from AND :date_to
+            AND date IS NOT NULL
+            ORDER BY date ASC
+        """
+
+        rows = self.db_manager.get_rows(query, {"date_from": date_from, "date_to": date_to})
+
+        if not rows:
+            from PySide6.QtWidgets import QLabel
+
+            no_data_label = QLabel("No weight data found for the selected period")
+            no_data_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(no_data_label)
+            return
+
+        # Create matplotlib figure
+        fig = Figure(figsize=(12, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+
+        # Parse data
+        weights = [float(row[0]) for row in rows]
+        dates = [datetime.strptime(row[1], "%Y-%m-%d").replace(tzinfo=timezone.utc) for row in rows]
+
+        # Create plot
+        ax = fig.add_subplot(111)
+
+        # Plot line with points
+        ax.plot(
+            dates,
+            weights,
+            "b-",
+            linewidth=2,
+            markersize=4,
+            marker="o",
+            markerfacecolor="blue",
+            markeredgecolor="darkblue",
+            alpha=0.8,
+        )
+
+        # Customize the plot
+        ax.set_xlabel("Date", fontsize=12)
+        ax.set_ylabel("Weight (kg)", fontsize=12)
+        ax.set_title("Weight Progress", fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+
+        # Define constants at the top of your file or function
+        days_in_month = 31
+        days_in_year = 365
+
+        # Format x-axis dates
+        if len(dates) > 0:
+            date_range = (max(dates) - min(dates)).days
+
+            if date_range <= days_in_month:  # Less than a month
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 10)))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+            elif date_range <= days_in_year:  # Less than a year
+                ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=max(1, len(dates) // 10)))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+            else:  # More than a year
+                ax.xaxis.set_major_locator(mdates.MonthLocator(interval=max(1, date_range // days_in_year)))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+
+        # Rotate date labels
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+        # Add statistics
+        if len(weights) > 1:
+            min_weight = min(weights)
+            max_weight = max(weights)
+            avg_weight = sum(weights) / len(weights)
+            weight_change = weights[-1] - weights[0]
+
+            stats_text = (
+                f"Min: {min_weight:.1f} kg | Max: {max_weight:.1f} kg | "
+                f"Avg: {avg_weight:.1f} kg | Change: {weight_change:+.1f} kg"
+            )
+            ax.text(
+                0.5,
+                0.02,
+                stats_text,
+                transform=ax.transAxes,
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
+            )
+
+        # Adjust layout to prevent label cutoff
+        fig.tight_layout()
+
+        # Add canvas to layout
+        layout.addWidget(canvas)
+
+        # Force update
+        canvas.draw()
 ```
 
 </details>
@@ -1369,6 +1533,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self._init_database()
         self._connect_signals()
         self._init_filter_controls()
+        self._init_weight_chart_controls()
         self.update_all()
 ```
 
@@ -1431,6 +1596,12 @@ def _connect_signals(self) -> None:
 
         # Tab change
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
+
+        # Weight chart signals
+        self.pushButton_update_weight_chart.clicked.connect(self.update_weight_chart)
+        self.pushButton_weight_last_month.clicked.connect(self.set_weight_last_month)
+        self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
+        self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
 ```
 
 </details>
@@ -1628,6 +1799,26 @@ def _init_filter_controls(self) -> None:
 
 </details>
 
+### Method `_init_weight_chart_controls`
+
+```python
+def _init_weight_chart_controls(self) -> None
+```
+
+Initialize weight chart date controls.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_weight_chart_controls(self) -> None:
+        current_date = QDate.currentDate()
+        self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_weight_to.setDate(current_date)
+```
+
+</details>
+
 ### Method `_is_valid_date`
 
 ```python
@@ -1717,7 +1908,7 @@ def _load_exercise_avif(self, exercise_name: str) -> None:
 
             # Fallback to Pillow with AVIF plugin for animation
             try:
-                import pillow_avif  # noqa: I001, F401
+                import pillow_avif  # noqa: F401
 
                 # Open with Pillow
                 pil_image = Image.open(avif_path)
@@ -2562,8 +2753,11 @@ Args:
 
 ```python
 def on_tab_changed(self, index: int) -> None:
+        index_tab_weight = 5
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
+        elif index == index_tab_weight:
+            self.set_weight_all_time()
 ```
 
 </details>
@@ -2759,6 +2953,78 @@ def set_current_date(self) -> None:
 
         # Assuming lineEdit_weight_date is still a QLineEdit
         self.lineEdit_weight_date.setText(today_str)
+```
+
+</details>
+
+### Method `set_weight_all_time`
+
+```python
+def set_weight_all_time(self) -> None
+```
+
+Set weight chart date range to all available data.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_weight_all_time(self) -> None:
+        # Get the earliest weight record
+        rows = self.db_manager.get_rows("SELECT MIN(date) FROM weight WHERE date IS NOT NULL")
+
+        if rows and rows[0][0]:
+            earliest_date = QDate.fromString(rows[0][0], "yyyy-MM-dd")
+            self.dateEdit_weight_from.setDate(earliest_date)
+        else:
+            # Fallback to one year ago if no data
+            current_date = QDate.currentDate()
+            self.dateEdit_weight_from.setDate(current_date.addYears(-1))
+
+        self.dateEdit_weight_to.setDate(QDate.currentDate())
+        self.update_weight_chart()
+```
+
+</details>
+
+### Method `set_weight_last_month`
+
+```python
+def set_weight_last_month(self) -> None
+```
+
+Set weight chart date range to last month.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_weight_last_month(self) -> None:
+        current_date = QDate.currentDate()
+        self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_weight_to.setDate(current_date)
+        self.update_weight_chart()
+```
+
+</details>
+
+### Method `set_weight_last_year`
+
+```python
+def set_weight_last_year(self) -> None
+```
+
+Set weight chart date range to last year.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_weight_last_year(self) -> None:
+        current_date = QDate.currentDate()
+        self.dateEdit_weight_from.setDate(current_date.addYears(-1))
+        self.dateEdit_weight_to.setDate(current_date)
+        self.update_weight_chart()
 ```
 
 </details>
@@ -2987,6 +3253,133 @@ def update_filter_type_combobox(self) -> None:
             idx = self.comboBox_filter_type.findText(current_type)
             if idx >= 0:
                 self.comboBox_filter_type.setCurrentIndex(idx)
+```
+
+</details>
+
+### Method `update_weight_chart`
+
+```python
+def update_weight_chart(self) -> None
+```
+
+Update the weight chart with current date range.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_weight_chart(self) -> None:
+        date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
+
+        # Clear existing chart
+        layout = self.verticalLayout_weight_chart_content
+        for i in reversed(range(layout.count())):
+            child = layout.takeAt(i).widget()
+            if child:
+                child.setParent(None)
+
+        # Get weight data
+        query = """
+            SELECT value, date
+            FROM weight
+            WHERE date BETWEEN :date_from AND :date_to
+            AND date IS NOT NULL
+            ORDER BY date ASC
+        """
+
+        rows = self.db_manager.get_rows(query, {"date_from": date_from, "date_to": date_to})
+
+        if not rows:
+            from PySide6.QtWidgets import QLabel
+
+            no_data_label = QLabel("No weight data found for the selected period")
+            no_data_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(no_data_label)
+            return
+
+        # Create matplotlib figure
+        fig = Figure(figsize=(12, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+
+        # Parse data
+        weights = [float(row[0]) for row in rows]
+        dates = [datetime.strptime(row[1], "%Y-%m-%d").replace(tzinfo=timezone.utc) for row in rows]
+
+        # Create plot
+        ax = fig.add_subplot(111)
+
+        # Plot line with points
+        ax.plot(
+            dates,
+            weights,
+            "b-",
+            linewidth=2,
+            markersize=4,
+            marker="o",
+            markerfacecolor="blue",
+            markeredgecolor="darkblue",
+            alpha=0.8,
+        )
+
+        # Customize the plot
+        ax.set_xlabel("Date", fontsize=12)
+        ax.set_ylabel("Weight (kg)", fontsize=12)
+        ax.set_title("Weight Progress", fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+
+        # Define constants at the top of your file or function
+        days_in_month = 31
+        days_in_year = 365
+
+        # Format x-axis dates
+        if len(dates) > 0:
+            date_range = (max(dates) - min(dates)).days
+
+            if date_range <= days_in_month:  # Less than a month
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 10)))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+            elif date_range <= days_in_year:  # Less than a year
+                ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=max(1, len(dates) // 10)))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+            else:  # More than a year
+                ax.xaxis.set_major_locator(mdates.MonthLocator(interval=max(1, date_range // days_in_year)))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+
+        # Rotate date labels
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+        # Add statistics
+        if len(weights) > 1:
+            min_weight = min(weights)
+            max_weight = max(weights)
+            avg_weight = sum(weights) / len(weights)
+            weight_change = weights[-1] - weights[0]
+
+            stats_text = (
+                f"Min: {min_weight:.1f} kg | Max: {max_weight:.1f} kg | "
+                f"Avg: {avg_weight:.1f} kg | Change: {weight_change:+.1f} kg"
+            )
+            ax.text(
+                0.5,
+                0.02,
+                stats_text,
+                transform=ax.transAxes,
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
+            )
+
+        # Adjust layout to prevent label cutoff
+        fig.tight_layout()
+
+        # Add canvas to layout
+        layout.addWidget(canvas)
+
+        # Force update
+        canvas.draw()
 ```
 
 </details>
