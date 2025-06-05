@@ -142,7 +142,7 @@ class Ui_MainWindow(object):
         self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Charts", None)
+            self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
         self.label_weight_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_weight_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))

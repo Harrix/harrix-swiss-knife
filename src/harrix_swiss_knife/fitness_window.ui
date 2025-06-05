@@ -789,7 +789,7 @@
       </widget>
       <widget class="QWidget" name="tab_charts">
         <attribute name="title">
-          <string>Exercise Charts</string>
+          <string>Exercise Chart</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_charts">
           <item>

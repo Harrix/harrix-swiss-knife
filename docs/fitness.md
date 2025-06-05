@@ -1140,7 +1140,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
-        elif index == index_tab_charts:  # Exercise Charts tab
+        elif index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
         elif index == index_tab_weight:
@@ -3215,7 +3215,7 @@ def on_tab_changed(self, index: int) -> None:
 
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
-        elif index == index_tab_charts:  # Exercise Charts tab
+        elif index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
         elif index == index_tab_weight:
