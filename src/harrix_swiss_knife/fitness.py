@@ -106,6 +106,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._connect_signals()
         self._init_filter_controls()
         self._init_weight_chart_controls()
+        self._init_exercise_chart_controls()
         self.update_all()
 
     def _connect_signals(self) -> None:
@@ -162,6 +163,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
         self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
 
+        # Exercise chart signals
+        self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
+        self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
+        self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
+        self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
+        self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
+
     def _create_table_model(
         self,
         data: list[list[str]],
@@ -200,6 +208,36 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         proxy.setSourceModel(model)
         return proxy
 
+    def _format_chart_x_axis(self, ax, dates: list, period: str) -> None:
+        """Format x-axis for exercise charts based on period and data range."""
+        if not dates:
+            return
+
+        from matplotlib.ticker import MaxNLocator
+
+        if period == "Days":
+            # Limit to max 10-15 ticks
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
+
+            date_range = (max(dates) - min(dates)).days
+            if date_range <= 31:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+            elif date_range <= 365:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+            else:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+
+        elif period == "Months":
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=12, prune="both"))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+
+        elif period == "Years":
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+
+        # Rotate date labels for better readability
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
     def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
         """Get the path to the AVIF file for the given exercise.
 
@@ -221,6 +259,34 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         avif_path = avif_dir / f"{exercise_name}.avif"
 
         return avif_path if avif_path.exists() else None
+
+    def _group_exercise_data_by_period(self, rows: list, period: str) -> dict:
+        """Group exercise data by the specified period (Days, Months, Years)."""
+        grouped = defaultdict(float)
+
+        for date_str, value_str in rows:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                value = float(value_str)
+
+                if period == "Days":
+                    key = date_obj
+                elif period == "Months":
+                    # Group by first day of month
+                    key = date_obj.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                elif period == "Years":
+                    # Group by first day of year
+                    key = date_obj.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                else:
+                    key = date_obj
+
+                grouped[key] += value
+
+            except (ValueError, TypeError):
+                continue
+
+        # Sort by date
+        return dict(sorted(grouped.items()))
 
     def _increment_date_after_add(self) -> None:
         """Move `date` edit one day forward unless it already shows today.
@@ -271,6 +337,15 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.critical(self, "Error", str(exc))
             sys.exit(1)
 
+    def _init_exercise_chart_controls(self) -> None:
+        """Initialize exercise chart controls."""
+        current_date = QDate.currentDate()
+        self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_chart_to.setDate(current_date)
+
+        # Initialize exercise combobox
+        self.update_chart_comboboxes()
+
     def _init_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box.
 
@@ -320,6 +395,26 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return False
         else:
             return True
+
+    def _load_default_exercise_chart(self) -> None:
+        """Load default exercise chart on first visit to charts tab."""
+        if not hasattr(self, "_charts_initialized"):
+            self._charts_initialized = True
+
+            # Set period to Months
+            self.comboBox_chart_period.setCurrentText("Months")
+
+            # Try to set exercise with _id = 39
+            if self.db_manager:
+                rows = self.db_manager.get_rows("SELECT name FROM exercises WHERE _id = 39")
+                if rows:
+                    exercise_name = rows[0][0]
+                    index = self.comboBox_chart_exercise.findText(exercise_name)
+                    if index >= 0:
+                        self.comboBox_chart_exercise.setCurrentIndex(index)
+
+            # Load chart with all time data
+            self.set_chart_all_time()
 
     def _load_exercise_avif(self, exercise_name: str) -> None:
         """Load and display AVIF animation for the given exercise using Pillow with AVIF support."""
@@ -993,8 +1088,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         """
         index_tab_weight = 5
+        index_tab_charts = 4
+
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
+        elif index == index_tab_charts:  # Exercise Charts tab
+            self.update_chart_comboboxes()
+            self._load_default_exercise_chart()
         elif index == index_tab_weight:
             self.set_weight_all_time()
 
@@ -1112,6 +1212,36 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 "id": _id,
             },
         )
+
+    def set_chart_all_time(self) -> None:
+        """Set chart date range to all available data."""
+        # Get the earliest process record
+        rows = self.db_manager.get_rows("SELECT MIN(date) FROM process WHERE date IS NOT NULL")
+
+        if rows and rows[0][0]:
+            earliest_date = QDate.fromString(rows[0][0], "yyyy-MM-dd")
+            self.dateEdit_chart_from.setDate(earliest_date)
+        else:
+            # Fallback to one year ago if no data
+            current_date = QDate.currentDate()
+            self.dateEdit_chart_from.setDate(current_date.addYears(-1))
+
+        self.dateEdit_chart_to.setDate(QDate.currentDate())
+        self.update_exercise_chart()
+
+    def set_chart_last_month(self) -> None:
+        """Set chart date range to last month."""
+        current_date = QDate.currentDate()
+        self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_chart_to.setDate(current_date)
+        self.update_exercise_chart()
+
+    def set_chart_last_year(self) -> None:
+        """Set chart date range to last year."""
+        current_date = QDate.currentDate()
+        self.dateEdit_chart_from.setDate(current_date.addYears(-1))
+        self.dateEdit_chart_to.setDate(current_date)
+        self.update_exercise_chart()
 
     def set_current_date(self) -> None:
         """Set today's date in the date edit fields.
@@ -1284,6 +1414,156 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Upload a AVIF for the currently selected exercise
         current_exercise_name = self.comboBox_exercise.currentText()
         self._load_exercise_avif(current_exercise_name)
+
+    def update_chart_comboboxes(self) -> None:
+        """Update exercise and type comboboxes for charts."""
+        # Update exercise combobox
+        exercises = self.db_manager.get_items("exercises", "name")
+
+        self.comboBox_chart_exercise.blockSignals(True)
+        self.comboBox_chart_exercise.clear()
+        if exercises:
+            self.comboBox_chart_exercise.addItems(exercises)
+        self.comboBox_chart_exercise.blockSignals(False)
+
+        # Update type combobox
+        self.update_chart_type_combobox()
+
+    def update_chart_type_combobox(self) -> None:
+        """Update chart type combobox based on selected exercise."""
+        self.comboBox_chart_type.clear()
+        self.comboBox_chart_type.addItem("All types")
+
+        exercise = self.comboBox_chart_exercise.currentText()
+        if exercise:
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is not None:
+                types = self.db_manager.get_items(
+                    "types",
+                    "type",
+                    condition=f"_id_exercises = {ex_id}",
+                )
+                self.comboBox_chart_type.addItems(types)
+
+    def update_exercise_chart(self) -> None:
+        """Update the exercise chart with current filters."""
+        exercise = self.comboBox_chart_exercise.currentText()
+        exercise_type = self.comboBox_chart_type.currentText()
+        period = self.comboBox_chart_period.currentText()
+        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+
+        # Clear existing chart
+        layout = self.verticalLayout_charts_content
+        for i in reversed(range(layout.count())):
+            child = layout.takeAt(i).widget()
+            if child:
+                child.setParent(None)
+
+        if not exercise:
+            from PySide6.QtWidgets import QLabel
+
+            no_data_label = QLabel("Please select an exercise")
+            no_data_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(no_data_label)
+            return
+
+        # Build query based on filters
+        conditions = ["e.name = :exercise", "p.date BETWEEN :date_from AND :date_to"]
+        params = {"exercise": exercise, "date_from": date_from, "date_to": date_to}
+
+        if exercise_type and exercise_type != "All types":
+            conditions.append("t.type = :type")
+            params["type"] = exercise_type
+
+        query = f"""
+            SELECT p.date, p.value
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+            WHERE {" AND ".join(conditions)}
+            ORDER BY p.date ASC
+        """
+
+        rows = self.db_manager.get_rows(query, params)
+
+        if not rows:
+            from PySide6.QtWidgets import QLabel
+
+            no_data_label = QLabel("No data found for the selected filters")
+            no_data_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(no_data_label)
+            return
+
+        # Group data by period
+        grouped_data = self._group_exercise_data_by_period(rows, period)
+
+        if not grouped_data:
+            from PySide6.QtWidgets import QLabel
+
+            no_data_label = QLabel("No data to display")
+            no_data_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(no_data_label)
+            return
+
+        # Create matplotlib figure
+        fig = Figure(figsize=(12, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+
+        # Create plot
+        ax = fig.add_subplot(111)
+
+        # Extract dates and values
+        dates = list(grouped_data.keys())
+        values = list(grouped_data.values())
+
+        # Plot line without markers
+        ax.plot(dates, values, "b-", linewidth=2, alpha=0.8)
+
+        # Customize the plot
+        ax.set_xlabel("Date", fontsize=12)
+        ax.set_ylabel("Total Value", fontsize=12)
+
+        chart_title = f"{exercise}"
+        if exercise_type and exercise_type != "All types":
+            chart_title += f" - {exercise_type}"
+        chart_title += f" ({period})"
+
+        ax.set_title(chart_title, fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+
+        # Format x-axis dates
+        self._format_chart_x_axis(ax, dates, period)
+
+        # Add statistics
+        if len(values) > 1:
+            min_value = min(values)
+            max_value = max(values)
+            avg_value = sum(values) / len(values)
+            total_value = sum(values)
+
+            stats_text = (
+                f"Min: {min_value:.1f} | Max: {max_value:.1f} | Avg: {avg_value:.1f} | Total: {total_value:.1f}"
+            )
+            ax.text(
+                0.5,
+                0.02,
+                stats_text,
+                transform=ax.transAxes,
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
+            )
+
+        # Adjust layout to prevent label cutoff
+        fig.tight_layout()
+
+        # Add canvas to layout
+        layout.addWidget(canvas)
+
+        # Force update
+        canvas.draw()
 
     def update_filter_comboboxes(self) -> None:
         """Refresh `exercise` and `type` combo-boxes in the filter group.
