@@ -348,7 +348,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
             # Fallback to Pillow with AVIF plugin for animation
             try:
-                import pillow_avif  # noqa: I001, F401
+                import pillow_avif  # noqa: F401
 
                 # Open with Pillow
                 pil_image = Image.open(avif_path)
