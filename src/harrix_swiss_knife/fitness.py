@@ -208,21 +208,22 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         proxy.setSourceModel(model)
         return proxy
 
-    def _format_chart_x_axis(self, ax, dates: list, period: str) -> None:
+    def _format_chart_x_axis(self, ax: plt.Axes, dates: list, period: str) -> None:
         """Format x-axis for exercise charts based on period and data range."""
         if not dates:
             return
 
         from matplotlib.ticker import MaxNLocator
 
+        days_in_month = 31
+        days_in_year = 365
+
         if period == "Days":
             # Limit to max 10-15 ticks
             ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
 
             date_range = (max(dates) - min(dates)).days
-            if date_range <= 31:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            elif date_range <= 365:
+            if date_range <= days_in_month or date_range <= days_in_year:
                 ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
             else:
                 ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
@@ -264,28 +265,33 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """Group exercise data by the specified period (Days, Months, Years)."""
         grouped = defaultdict(float)
 
+        # Regex pattern for YYYY-MM-DD format
+        date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
         for date_str, value_str in rows:
+            # Quick validation without exceptions
+            if not date_pattern.match(date_str):
+                continue
+
             try:
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 value = float(value_str)
-
-                if period == "Days":
-                    key = date_obj
-                elif period == "Months":
-                    # Group by first day of month
-                    key = date_obj.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                elif period == "Years":
-                    # Group by first day of year
-                    key = date_obj.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-                else:
-                    key = date_obj
-
-                grouped[key] += value
-
             except (ValueError, TypeError):
                 continue
 
-        # Sort by date
+            # Safe date parsing (format already validated)
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+
+            if period == "Days":
+                key = date_obj
+            elif period == "Months":
+                key = date_obj.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            elif period == "Years":
+                key = date_obj.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            else:
+                key = date_obj
+
+            grouped[key] += value
+
         return dict(sorted(grouped.items()))
 
     def _increment_date_after_add(self) -> None:
@@ -1420,11 +1426,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Update exercise combobox
         exercises = self.db_manager.get_items("exercises", "name")
 
-        self.comboBox_chart_exercise.blockSignals(True)
+        self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
         self.comboBox_chart_exercise.clear()
         if exercises:
             self.comboBox_chart_exercise.addItems(exercises)
-        self.comboBox_chart_exercise.blockSignals(False)
+        self.comboBox_chart_exercise.blockSignals(False)  # noqa: FBT003
 
         # Update type combobox
         self.update_chart_type_combobox()
