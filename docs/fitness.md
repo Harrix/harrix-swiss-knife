@@ -316,8 +316,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             except (ValueError, TypeError):
                 continue
 
-            # Safe date parsing (format already validated)
-            date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            # Safe date parsing with proper error handling
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
+                continue
 
             if period == "Days":
                 key = date_obj
@@ -2063,8 +2067,12 @@ def _group_exercise_data_by_period(self, rows: list, period: str) -> dict:
             except (ValueError, TypeError):
                 continue
 
-            # Safe date parsing (format already validated)
-            date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            # Safe date parsing with proper error handling
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
+                continue
 
             if period == "Days":
                 key = date_obj
