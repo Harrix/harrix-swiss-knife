@@ -1447,8 +1447,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
             # Add value labels on points
             for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                label_text = f"{int(value)} ({date.year})" if period == "Years" else f"{int(value)}"
+
                 ax.annotate(
-                    f"{int(value)}",  # Show as integer for set counts
+                    label_text,
                     (date, value),
                     textcoords="offset points",
                     xytext=(0, 10),
@@ -1742,8 +1744,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
             # Add value labels on points
             for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                label_text = f"{value:.1f} ({date.year})" if period == "Years" else f"{value:.1f}"
+
                 ax.annotate(
-                    f"{value:.1f}",
+                    label_text,
                     (date, value),
                     textcoords="offset points",
                     xytext=(0, 10),
@@ -3907,8 +3911,10 @@ def show_sets_chart(self) -> None:
 
             # Add value labels on points
             for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                label_text = f"{int(value)} ({date.year})" if period == "Years" else f"{int(value)}"
+
                 ax.annotate(
-                    f"{int(value)}",  # Show as integer for set counts
+                    label_text,
                     (date, value),
                     textcoords="offset points",
                     xytext=(0, 10),
@@ -4269,8 +4275,10 @@ def update_exercise_chart(self) -> None:
 
             # Add value labels on points
             for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                label_text = f"{value:.1f} ({date.year})" if period == "Years" else f"{value:.1f}"
+
                 ax.annotate(
-                    f"{value:.1f}",
+                    label_text,
                     (date, value),
                     textcoords="offset points",
                     xytext=(0, 10),
