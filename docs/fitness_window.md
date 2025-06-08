@@ -94,7 +94,7 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
         self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.pushButton_show_sets_chart.setText(QCoreApplication.translate("MainWindow", "Show Visits Chart", None))
+        self.pushButton_show_sets_chart.setText(QCoreApplication.translate("MainWindow", "Show Sets Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
@@ -711,7 +711,7 @@ def retranslateUi(self, MainWindow):
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
         self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.pushButton_show_sets_chart.setText(QCoreApplication.translate("MainWindow", "Show Visits Chart", None))
+        self.pushButton_show_sets_chart.setText(QCoreApplication.translate("MainWindow", "Show Sets Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
