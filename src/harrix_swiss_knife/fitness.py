@@ -83,6 +83,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             "weight": None,
         }
 
+        self.max_count_points_in_charts = 41
+
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "process": (
                 self.tableView_process,
@@ -1492,8 +1494,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
             WHERE {" AND ".join(conditions)}
-            ORDER BY p.date ASC
-        """
+            ORDER BY p.date ASC"""
 
         rows = self.db_manager.get_rows(query, params)
 
@@ -1527,8 +1528,33 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         dates = list(grouped_data.keys())
         values = list(grouped_data.values())
 
-        # Plot line without markers
-        ax.plot(dates, values, "b-", linewidth=2, alpha=0.8)
+        # Plot line with markers if self.max_count_points or fewer data points
+        self.max_count_points_in_charts = 21
+        if len(values) <= self.max_count_points_in_charts:
+            ax.plot(
+                dates,
+                values,
+                "b-o",
+                linewidth=2,
+                alpha=0.8,
+                markersize=6,
+                markerfacecolor="blue",
+                markeredgecolor="darkblue",
+            )
+
+            # Add value labels on points
+            for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                ax.annotate(
+                    f"{value:.1f}",
+                    (date, value),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                )
+        else:
+            ax.plot(dates, values, "b-", linewidth=2, alpha=0.8)
 
         # Customize the plot
         ax.set_xlabel("Date", fontsize=12)
@@ -1667,14 +1693,38 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Create plot
         ax = fig.add_subplot(111)
 
-        # Plot line
-        ax.plot(
-            dates,
-            weights,
-            "b-",
-            linewidth=2,
-            alpha=0.8,
-        )
+        # Plot line with markers if self.max_count_points or fewer data points
+        if len(weights) <= self.max_count_points_in_charts:
+            ax.plot(
+                dates,
+                weights,
+                "b-o",
+                linewidth=2,
+                alpha=0.8,
+                markersize=6,
+                markerfacecolor="blue",
+                markeredgecolor="darkblue",
+            )
+
+            # Add value labels on points
+            for _i, (date, weight) in enumerate(zip(dates, weights, strict=False)):
+                ax.annotate(
+                    f"{weight:.1f}",
+                    (date, weight),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                )
+        else:
+            ax.plot(
+                dates,
+                weights,
+                "b-",
+                linewidth=2,
+                alpha=0.8,
+            )
 
         # Customize the plot
         ax.set_xlabel("Date", fontsize=12)
