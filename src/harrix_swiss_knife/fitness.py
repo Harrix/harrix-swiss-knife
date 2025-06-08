@@ -167,6 +167,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         # Exercise chart signals
         self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
+        self.pushButton_show_sets_chart.clicked.connect(self.show_sets_chart)
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
@@ -300,6 +301,43 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         return dict(sorted(grouped.items()))
 
+    def _group_sets_data_by_period(self, rows: list, period: str) -> dict:
+        """Group sets data by the specified period (Days, Months, Years)."""
+        grouped = defaultdict(int)
+
+        # Regex pattern for YYYY-MM-DD format
+        date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+        for date_str, count in rows:
+            # Quick validation without exceptions
+            if not date_pattern.match(date_str):
+                continue
+
+            try:
+                set_count = int(count)
+            except (ValueError, TypeError):
+                continue
+
+            # Safe date parsing with proper error handling
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
+                continue
+
+            if period == "Days":
+                key = date_obj
+            elif period == "Months":
+                key = date_obj.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            elif period == "Years":
+                key = date_obj.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            else:
+                key = date_obj
+
+            grouped[key] += set_count
+
+        return dict(sorted(grouped.items()))
+
     def _increment_date_after_add(self) -> None:
         """Move `date` edit one day forward unless it already shows today.
 
@@ -409,7 +447,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return True
 
     def _load_default_exercise_chart(self) -> None:
-        """Load default exercise chart on first visit to charts tab."""
+        """Load default exercise chart on first set to charts tab."""
         if not hasattr(self, "_charts_initialized"):
             self._charts_initialized = True
 
@@ -1299,6 +1337,126 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.dateEdit_weight_from.setDate(current_date.addYears(-1))
         self.dateEdit_weight_to.setDate(current_date)
         self.update_weight_chart()
+
+    def show_sets_chart(self) -> None:
+        """Show chart of total sets (records count) by period."""
+        period = self.comboBox_chart_period.currentText()
+        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+
+        # Clear existing chart
+        layout = self.verticalLayout_charts_content
+        for i in reversed(range(layout.count())):
+            child = layout.takeAt(i).widget()
+            if child:
+                child.setParent(None)
+
+        # Get sets data (count of records by date)
+        query = """
+            SELECT date, COUNT(*) as set_count
+            FROM process
+            WHERE date BETWEEN :date_from AND :date_to
+            AND date IS NOT NULL
+            GROUP BY date
+            ORDER BY date ASC"""
+
+        rows = self.db_manager.get_rows(query, {"date_from": date_from, "date_to": date_to})
+
+        if not rows:
+            from PySide6.QtWidgets import QLabel
+
+            no_data_label = QLabel("No set data found for the selected period")
+            no_data_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(no_data_label)
+            return
+
+        # Group data by period
+        grouped_data = self._group_sets_data_by_period(rows, period)
+
+        if not grouped_data:
+            from PySide6.QtWidgets import QLabel
+
+            no_data_label = QLabel("No data to display")
+            no_data_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(no_data_label)
+            return
+
+        # Create matplotlib figure
+        fig = Figure(figsize=(12, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+
+        # Create plot
+        ax = fig.add_subplot(111)
+
+        # Extract dates and values
+        dates = list(grouped_data.keys())
+        values = list(grouped_data.values())
+
+        # Plot line with markers if self.max_count_points or fewer data points
+        if len(values) <= self.max_count_points_in_charts:
+            ax.plot(
+                dates,
+                values,
+                "g-o",  # Green color for sets
+                linewidth=2,
+                alpha=0.8,
+                markersize=6,
+                markerfacecolor="green",
+                markeredgecolor="darkgreen",
+            )
+
+            # Add value labels on points
+            for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                ax.annotate(
+                    f"{int(value)}",  # Show as integer for set counts
+                    (date, value),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                )
+        else:
+            ax.plot(dates, values, "g-", linewidth=2, alpha=0.8)
+
+        # Customize the plot
+        ax.set_xlabel("Date", fontsize=12)
+        ax.set_ylabel("Number of sets", fontsize=12)
+
+        chart_title = f"Training sets ({period})"
+        ax.set_title(chart_title, fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+
+        # Format x-axis dates
+        self._format_chart_x_axis(ax, dates, period)
+
+        # Add statistics
+        if len(values) > 1:
+            min_value = int(min(values))
+            max_value = int(max(values))
+            avg_value = sum(values) / len(values)
+            total_value = int(sum(values))
+
+            stats_text = f"Min: {min_value} | Max: {max_value} | Avg: {avg_value:.1f} | Total: {total_value}"
+            ax.text(
+                0.5,
+                0.02,
+                stats_text,
+                transform=ax.transAxes,
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgreen", "alpha": 0.8},
+            )
+
+        # Adjust layout to prevent label cutoff
+        fig.tight_layout()
+
+        # Add canvas to layout
+        layout.addWidget(canvas)
+
+        # Force update
+        canvas.draw()
 
     def show_tables(self) -> None:
         """Populate all four `QTableView`s from the database.

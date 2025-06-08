@@ -863,6 +863,13 @@
                       </widget>
                     </item>
                     <item>
+                      <widget class="QPushButton" name="pushButton_show_sets_chart">
+                        <property name="text">
+                          <string>Show Sets Chart</string>
+                        </property>
+                      </widget>
+                    </item>
+                    <item>
                       <spacer name="horizontalSpacer_charts">
                         <property name="orientation">
                           <enum>Qt::Horizontal</enum>

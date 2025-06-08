@@ -94,6 +94,7 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
         self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
+        self.pushButton_show_sets_chart.setText(QCoreApplication.translate("MainWindow", "Show Visits Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
@@ -433,6 +434,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_update_chart)
 
+        self.pushButton_show_sets_chart = QPushButton(self.frame_charts_controls)
+        self.pushButton_show_sets_chart.setObjectName("pushButton_show_sets_chart")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_show_sets_chart)
+
         self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
@@ -705,6 +711,7 @@ def retranslateUi(self, MainWindow):
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
         self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
+        self.pushButton_show_sets_chart.setText(QCoreApplication.translate("MainWindow", "Show Visits Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
@@ -1058,6 +1065,11 @@ def setupUi(self, MainWindow):
         self.pushButton_update_chart.setObjectName("pushButton_update_chart")
 
         self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_update_chart)
+
+        self.pushButton_show_sets_chart = QPushButton(self.frame_charts_controls)
+        self.pushButton_show_sets_chart.setObjectName("pushButton_show_sets_chart")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_show_sets_chart)
 
         self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
