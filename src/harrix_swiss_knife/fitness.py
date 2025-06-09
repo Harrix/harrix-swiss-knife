@@ -57,6 +57,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
     - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
       table, mapping table names to tuples of (table view widget, model key, column headers).
 
+    - `exercises_list_model` (`QStandardItemModel | None`): Model for the exercises list view.
+
     """
 
     _SAFE_TABLES: frozenset[str] = frozenset(
@@ -75,6 +77,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.avif_frames: list = []
         self.current_frame_index: int = 0
         self.avif_timer: QTimer | None = None
+
+        # Add model for exercises list
+        self.exercises_list_model: QStandardItemModel | None = None
 
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
@@ -110,6 +115,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._init_filter_controls()
         self._init_weight_chart_controls()
         self._init_exercise_chart_controls()
+        self._init_exercises_list()
         self.update_all()
 
     def _connect_signals(self) -> None:
@@ -117,14 +123,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         Connects all UI elements to their respective handler methods, including:
 
-        - ComboBox change events
         - Button click events for adding, updating, and deleting records
         - Tab change events
         - Statistics and export functionality
+
+        Note: ListView selection signal is connected later in _init_exercises_list()
         """
-        self.comboBox_exercise.currentIndexChanged.connect(
-            self.on_exercise_changed,
-        )
         self.pushButton_add.clicked.connect(self.on_add_record)
 
         for action, button_prefix in [
@@ -243,6 +247,23 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         # Rotate date labels for better readability
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+    def _get_current_selected_exercise(self) -> str | None:
+        """Get the currently selected exercise from the list view.
+
+        Returns:
+        - `str | None`: The name of the selected exercise, or None if nothing is selected.
+        """
+        selection_model = self.listView_exercises.selectionModel()
+        if not selection_model or not self.exercises_list_model:
+            return None
+
+        current_index = selection_model.currentIndex()
+        if not current_index.isValid():
+            return None
+
+        item = self.exercises_list_model.itemFromIndex(current_index)
+        return item.text() if item else None
 
     def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
         """Get the path to the AVIF file for the given exercise.
@@ -397,6 +418,16 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         # Initialize exercise combobox
         self.update_chart_comboboxes()
+
+    def _init_exercises_list(self) -> None:
+        """Initialize the exercises list view with a model and connect signals."""
+        self.exercises_list_model = QStandardItemModel()
+        self.listView_exercises.setModel(self.exercises_list_model)
+
+        # Connect selection change signal after model is set
+        selection_model = self.listView_exercises.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_exercise_selection_changed_list)
 
     def _init_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box.
@@ -622,15 +653,35 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.current_frame_index = (self.current_frame_index + 1) % len(self.avif_frames)
         self.label_exercise_avif.setPixmap(self.avif_frames[self.current_frame_index])
 
+    def _select_exercise_in_list(self, exercise_name: str) -> None:
+        """Select an exercise in the list view by name.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise to select.
+        """
+        if not self.exercises_list_model or not exercise_name:
+            return
+
+        # Find the item with the matching exercise name
+        for row in range(self.exercises_list_model.rowCount()):
+            item = self.exercises_list_model.item(row)
+            if item and item.text() == exercise_name:
+                index = self.exercises_list_model.indexFromItem(item)
+                selection_model = self.listView_exercises.selectionModel()
+                if selection_model:
+                    selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                break
+
     def _update_comboboxes(
         self,
         *,
         selected_exercise: str | None = None,
         selected_type: str | None = None,
     ) -> None:
-        """Refresh exercise/type combo-boxes (optionally keep a selection).
+        """Refresh exercise list and type combo-box (optionally keep a selection).
 
-        Updates the exercise and exercise type comboboxes with current data from the database.
+        Updates the exercise list view and exercise type combobox with current data from the database.
         Can optionally maintain the current selections.
 
         Args:
@@ -641,17 +692,19 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """
         exercises = self.db_manager.get_exercises_by_frequency(500)
 
-        self.comboBox_exercise.blockSignals(True)  # noqa: FBT003
-        self.comboBox_exercise.clear()
-        self.comboBox_exercise.addItems(exercises)
-        self.comboBox_exercise.blockSignals(False)  # noqa: FBT003
+        # Update exercises list model
+        self.exercises_list_model.clear()
+        for exercise in exercises:
+            item = QStandardItem(exercise)
+            self.exercises_list_model.appendRow(item)
 
+        # Update comboBox_exercise_name for adding types
         self.comboBox_exercise_name.clear()
         self.comboBox_exercise_name.addItems(exercises)
 
         if selected_exercise and selected_exercise in exercises:
-            idx = exercises.index(selected_exercise)
-            self.comboBox_exercise.setCurrentIndex(idx)
+            # Select the exercise in the list view
+            self._select_exercise_in_list(selected_exercise)
 
             if selected_type:
                 ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
@@ -668,7 +721,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                     if t_idx >= 0:
                         self.comboBox_type.setCurrentIndex(t_idx)
         else:
-            self.on_exercise_changed()
+            # If no specific selection, select the first exercise by default
+            if exercises:
+                self._select_exercise_in_list(exercises[0])
 
     def _update_record_generic(
         self,
@@ -881,7 +936,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Enter exercise name")
             return
 
-        # Получаем значение чекбокса
+        # Get checkbox value
         is_type_required = 1 if self.check_box_is_type_required.isChecked() else 0
 
         self.add_record_generic(
@@ -897,7 +952,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         exercise, type, count, and date values. Validates that exercise type is provided
         when required. Automatically advances the date after successful addition.
         """
-        exercise = self.comboBox_exercise.currentText()
+        exercise = self._get_current_selected_exercise()
+        if not exercise:
+            QMessageBox.warning(self, "Error", "Please select an exercise")
+            return
+
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
             return
@@ -991,8 +1050,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             },
         )
 
-    def on_exercise_changed(self) -> None:
-        """Load exercise types for the newly selected exercise in `comboBox_type`.
+    def on_exercise_selection_changed_list(self) -> None:
+        """Handle exercise selection change in the list view.
 
         Updates the exercise type combo box with the types associated with the
         currently selected exercise. Automatically selects the most recently used
@@ -1000,7 +1059,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         For exercise with _id=self.id_steps (Steps), sets spinBox_count to empty (0).
         For other exercises, sets the value from the last performed exercise.
         """
-        exercise = self.comboBox_exercise.currentText()
+        exercise = self._get_current_selected_exercise()
+        if not exercise:
+            return
 
         self._load_exercise_avif(exercise)
 
@@ -1575,7 +1636,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         current_exercise: str | None = None,
         current_type: str | None = None,
     ) -> None:
-        """Refresh tables, combo-boxes and (optionally) dates.
+        """Refresh tables, list view and (optionally) dates.
 
         Updates all UI elements with the latest data from the database.
 
@@ -1588,7 +1649,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         """
         if preserve_selections and current_exercise is None:
-            current_exercise = self.comboBox_exercise.currentText()
+            current_exercise = self._get_current_selected_exercise()
             current_type = self.comboBox_type.currentText()
 
         self.show_tables()
@@ -1611,9 +1672,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.lineEdit_exercise_unit.clear()
         self.check_box_is_type_required.setChecked(False)
 
-        # Upload a AVIF for the currently selected exercise
-        current_exercise_name = self.comboBox_exercise.currentText()
-        self._load_exercise_avif(current_exercise_name)
+        # Load AVIF for the currently selected exercise
+        current_exercise_name = self._get_current_selected_exercise()
+        if current_exercise_name:
+            self._load_exercise_avif(current_exercise_name)
 
     def update_chart_comboboxes(self) -> None:
         """Update exercise and type comboboxes for charts."""
@@ -1922,12 +1984,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         ax.set_title("Weight Progress", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
 
-        # Добавьте эти строки для более детальной сетки по Y-оси
+        # Add more detailed Y-axis grid
         from matplotlib.ticker import MultipleLocator
-        ax.yaxis.set_major_locator(MultipleLocator(1))  # Основные деления через 1 кг
-        ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Дополнительные деления через 0.5 кг
-        ax.grid(visible=True, which='major', alpha=0.3)  # Основная сетка
-        ax.grid(visible=True, which='minor', alpha=0.1)  # Дополнительная сетка (более прозрачная)
+        ax.yaxis.set_major_locator(MultipleLocator(1))  # Major divisions every 1 kg
+        ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Minor divisions every 0.5 kg
+        ax.grid(visible=True, which='major', alpha=0.3)  # Major grid
+        ax.grid(visible=True, which='minor', alpha=0.1)  # Minor grid (more transparent)
 
         # Define constants at the top of your file or function
         days_in_month = 31
