@@ -51,10 +51,11 @@ lang: en
   - [Method `set_chart_all_time`](#method-set_chart_all_time)
   - [Method `set_chart_last_month`](#method-set_chart_last_month)
   - [Method `set_chart_last_year`](#method-set_chart_last_year)
-  - [Method `set_current_date`](#method-set_current_date)
+  - [Method `set_today_date`](#method-set_today_date)
   - [Method `set_weight_all_time`](#method-set_weight_all_time)
   - [Method `set_weight_last_month`](#method-set_weight_last_month)
   - [Method `set_weight_last_year`](#method-set_weight_last_year)
+  - [Method `set_yesterday_date`](#method-set_yesterday_date)
   - [Method `show_sets_chart`](#method-show_sets_chart)
   - [Method `show_tables`](#method-show_tables)
   - [Method `update_all`](#method-update_all)
@@ -190,6 +191,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
+        self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
 
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(
@@ -1351,7 +1353,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.dateEdit_chart_to.setDate(current_date)
         self.update_exercise_chart()
 
-    def set_current_date(self) -> None:
+    def set_today_date(self) -> None:
         """Set today's date in the date edit fields.
 
         Sets both the main date input field (QDateEdit) and the weight date input field
@@ -1395,6 +1397,15 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.dateEdit_weight_from.setDate(current_date.addYears(-1))
         self.dateEdit_weight_to.setDate(current_date)
         self.update_weight_chart()
+
+    def set_yesterday_date(self) -> None:
+        """Set yesterday's date in the main date edit field.
+
+        Sets the dateEdit widget to yesterday's date for convenient entry
+        of exercise records from the previous day.
+        """
+        yesterday = QDate.currentDate().addDays(-1)
+        self.dateEdit.setDate(yesterday)
 
     def show_sets_chart(self) -> None:
         """Show chart of total sets (records count) by period."""
@@ -1632,7 +1643,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self._update_comboboxes()
 
         if not skip_date_update:
-            self.set_current_date()
+            self.set_today_date()
 
         self.update_filter_comboboxes()
 
@@ -2119,6 +2130,7 @@ def _connect_signals(self) -> None:
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
+        self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
 
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(
@@ -3766,10 +3778,10 @@ def set_chart_last_year(self) -> None:
 
 </details>
 
-### Method `set_current_date`
+### Method `set_today_date`
 
 ```python
-def set_current_date(self) -> None
+def set_today_date(self) -> None
 ```
 
 Set today's date in the date edit fields.
@@ -3781,7 +3793,7 @@ Sets both the main date input field (QDateEdit) and the weight date input field
 <summary>Code:</summary>
 
 ```python
-def set_current_date(self) -> None:
+def set_today_date(self) -> None:
         today_qdate = QDate.currentDate()
         today_str = today_qdate.toString("yyyy-MM-dd")
 
@@ -3862,6 +3874,28 @@ def set_weight_last_year(self) -> None:
         self.dateEdit_weight_from.setDate(current_date.addYears(-1))
         self.dateEdit_weight_to.setDate(current_date)
         self.update_weight_chart()
+```
+
+</details>
+
+### Method `set_yesterday_date`
+
+```python
+def set_yesterday_date(self) -> None
+```
+
+Set yesterday's date in the main date edit field.
+
+Sets the dateEdit widget to yesterday's date for convenient entry
+of exercise records from the previous day.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_yesterday_date(self) -> None:
+        yesterday = QDate.currentDate().addDays(-1)
+        self.dateEdit.setDate(yesterday)
 ```
 
 </details>
@@ -4138,7 +4172,7 @@ def update_all(
             self._update_comboboxes()
 
         if not skip_date_update:
-            self.set_current_date()
+            self.set_today_date()
 
         self.update_filter_comboboxes()
 
