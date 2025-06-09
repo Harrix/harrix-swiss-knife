@@ -84,6 +84,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         }
 
         self.max_count_points_in_charts = 41
+        self.id_steps = 39
 
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "process": (
@@ -454,9 +455,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             # Set period to Months
             self.comboBox_chart_period.setCurrentText("Months")
 
-            # Try to set exercise with _id = 39
+            # Try to set exercise with _id = self.id_steps
             if self.db_manager:
-                rows = self.db_manager.get_rows("SELECT name FROM exercises WHERE _id = 39")
+                rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
                 if rows:
                     exercise_name = rows[0][0]
                     index = self.comboBox_chart_exercise.findText(exercise_name)
@@ -995,6 +996,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         Updates the exercise type combo box with the types associated with the
         currently selected exercise. Automatically selects the most recently used
         type for this exercise from the process table. Also loads the exercise AVIF.
+        For exercise with _id=self.id_steps (Steps), sets spinBox_count to empty (0).
+        For other exercises, sets the value from the last performed exercise.
         """
         exercise = self.comboBox_exercise.currentText()
 
@@ -1016,24 +1019,39 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.comboBox_type.addItem("")
         self.comboBox_type.addItems(types)
 
-        # Find the most recently used type for this exercise
-        last_type_query = """
-            SELECT t.type
+        # Find the most recently used type and value for this exercise
+        last_record_query = """
+            SELECT t.type, p.value
             FROM process p
             LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = p._id_exercises
             WHERE p._id_exercises = :ex_id
             ORDER BY p._id DESC
-            LIMIT 1
-        """
+            LIMIT 1"""
 
-        rows = self.db_manager.get_rows(last_type_query, {"ex_id": ex_id})
+        rows = self.db_manager.get_rows(last_record_query, {"ex_id": ex_id})
 
         if rows:
             last_type = rows[0][0] if rows[0][0] is not None else ""
+            last_value = rows[0][1] if rows[0][1] is not None else ""
+
             # Find and select this type in the combobox
             type_index = self.comboBox_type.findText(last_type)
             if type_index >= 0:
                 self.comboBox_type.setCurrentIndex(type_index)
+
+            # Set spinBox_count value based on exercise _id
+            if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+                self.spinBox_count.setValue(0)
+            else:  # Other exercises - use last value
+                try:
+                    value = int(float(last_value))
+                    self.spinBox_count.setValue(value)
+                except (ValueError, TypeError):
+                    # If conversion fails, keep default value
+                    pass
+        elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+            self.spinBox_count.setValue(0)
+        # For other exercises without history, keep the current default value (100)
 
     def on_exercise_selection_changed(self) -> None:
         """Update form fields when exercise selection changes in the table.
