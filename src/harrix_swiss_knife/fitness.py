@@ -1922,6 +1922,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         ax.set_title("Weight Progress", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
 
+        # Добавьте эти строки для более детальной сетки по Y-оси
+        from matplotlib.ticker import MultipleLocator
+        ax.yaxis.set_major_locator(MultipleLocator(1))  # Основные деления через 1 кг
+        ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Дополнительные деления через 0.5 кг
+        ax.grid(visible=True, which='major', alpha=0.3)  # Основная сетка
+        ax.grid(visible=True, which='minor', alpha=0.1)  # Дополнительная сетка (более прозрачная)
+
         # Define constants at the top of your file or function
         days_in_month = 31
         days_in_year = 365
