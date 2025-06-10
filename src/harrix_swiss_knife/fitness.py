@@ -92,7 +92,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             "weight": None,
         }
 
-        self.max_count_points_in_charts = 41
+        self.max_count_points_in_charts = 40
         self.id_steps = 39
 
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -1783,7 +1783,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         values = list(grouped_data.values())
 
         # Plot line with markers if self.max_count_points or fewer data points
-        self.max_count_points_in_charts = 21
         if len(values) <= self.max_count_points_in_charts:
             ax.plot(
                 dates,
