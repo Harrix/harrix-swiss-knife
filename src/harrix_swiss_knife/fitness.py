@@ -1088,9 +1088,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         type for this exercise from the process table. Also loads the exercise AVIF.
         For exercise with _id=self.id_steps (Steps), sets spinBox_count to empty (0).
         For other exercises, sets the value from the last performed exercise.
+        Enables/disables comboBox_type based on whether types are available.
         """
         exercise = self._get_current_selected_exercise()
         if not exercise:
+            self.comboBox_type.setEnabled(False)
             return
 
         # Check if a new AVIF needs to be uploaded
@@ -1101,6 +1103,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
+            self.comboBox_type.setEnabled(False)
             return
 
         # Get all types for this exercise
@@ -1114,6 +1117,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.comboBox_type.clear()
         self.comboBox_type.addItem("")
         self.comboBox_type.addItems(types)
+
+        # Enable/disable comboBox_type based on whether types are available
+        self.comboBox_type.setEnabled(len(types) > 0)
 
         # Find the most recently used type and value for this exercise
         last_record_query = """
