@@ -683,24 +683,23 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         selected_exercise: str | None = None,
         selected_type: str | None = None,
     ) -> None:
-        """Refresh exercise list and type combo-box (optionally keep a selection).
-
-        Updates the exercise list view and exercise type combobox with current data from the database.
-        Can optionally maintain the current selections.
-
-        Args:
-
-        - `selected_exercise` (`str | None`): Exercise name to select after refresh. Defaults to `None`.
-        - `selected_type` (`str | None`): Exercise type to select after refresh. Defaults to `None`.
-
-        """
+        """Refresh exercise list and type combo-box (optionally keep a selection)."""
         exercises = self.db_manager.get_exercises_by_frequency(500)
+
+        # Block signals during model update
+        selection_model = self.listView_exercises.selectionModel()
+        if selection_model:
+            selection_model.blockSignals(True)
 
         # Update exercises list model
         self.exercises_list_model.clear()
         for exercise in exercises:
             item = QStandardItem(exercise)
             self.exercises_list_model.appendRow(item)
+
+        # Unblock signals
+        if selection_model:
+            selection_model.blockSignals(False)
 
         # Update comboBox_exercise_name for adding types
         self.comboBox_exercise_name.clear()
@@ -963,6 +962,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
+            QMessageBox.warning(self, "Error", f"Exercise '{exercise}' not found in database")
             return
 
         type_name = self.comboBox_type.currentText()
@@ -1093,7 +1093,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if not exercise:
             return
 
-        self._load_exercise_avif(exercise)
+        # Check if a new AVIF needs to be uploaded
+        current_avif_exercise = getattr(self, "_current_avif_exercise", None)
+        if current_avif_exercise != exercise:
+            self._current_avif_exercise = exercise
+            self._load_exercise_avif(exercise)
 
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
