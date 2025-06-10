@@ -69,6 +69,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
+        self.splitter.setStretchFactor(0, 3)  # tableView gets more space
+        self.splitter.setStretchFactor(1, 1)  # listView gets less space
+        self.splitter.setStretchFactor(2, 0)  # frame with fixed size
+
         self.db_manager: fitness_database_manager.FitnessDatabaseManager | None = None
 
         self.current_movie: QMovie | None = None
@@ -1050,6 +1054,32 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             },
         )
 
+    def on_exercise_selection_changed(self) -> None:
+        """Update form fields when exercise selection changes in the table.
+
+        Synchronizes the form fields (name, unit, is_type_required checkbox)
+        with the currently selected exercise in the table.
+        """
+        index = self.tableView_exercises.currentIndex()
+        if not index.isValid():
+            # Clear the fields if nothing is selected
+            self.lineEdit_exercise_name.clear()
+            self.lineEdit_exercise_unit.clear()
+            self.check_box_is_type_required.setChecked(False)
+            return
+
+        model = self.models["exercises"]
+        row = index.row()
+
+        # Fill in the fields with data from the selected row
+        name = model.data(model.index(row, 0)) or ""
+        unit = model.data(model.index(row, 1)) or ""
+        is_required = model.data(model.index(row, 2)) or "0"
+
+        self.lineEdit_exercise_name.setText(name)
+        self.lineEdit_exercise_unit.setText(unit)
+        self.check_box_is_type_required.setChecked(is_required == "1")
+
     def on_exercise_selection_changed_list(self) -> None:
         """Handle exercise selection change in the list view.
 
@@ -1114,32 +1144,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
             self.spinBox_count.setValue(0)
         # For other exercises without history, keep the current default value (100)
-
-    def on_exercise_selection_changed(self) -> None:
-        """Update form fields when exercise selection changes in the table.
-
-        Synchronizes the form fields (name, unit, is_type_required checkbox)
-        with the currently selected exercise in the table.
-        """
-        index = self.tableView_exercises.currentIndex()
-        if not index.isValid():
-            # Clear the fields if nothing is selected
-            self.lineEdit_exercise_name.clear()
-            self.lineEdit_exercise_unit.clear()
-            self.check_box_is_type_required.setChecked(False)
-            return
-
-        model = self.models["exercises"]
-        row = index.row()
-
-        # Fill in the fields with data from the selected row
-        name = model.data(model.index(row, 0)) or ""
-        unit = model.data(model.index(row, 1)) or ""
-        is_required = model.data(model.index(row, 2)) or "0"
-
-        self.lineEdit_exercise_name.setText(name)
-        self.lineEdit_exercise_unit.setText(unit)
-        self.check_box_is_type_required.setChecked(is_required == "1")
 
     def on_export_csv(self) -> None:
         """Save current `process` view to a CSV file (semicolon-separated).
@@ -1986,10 +1990,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         # Add more detailed Y-axis grid
         from matplotlib.ticker import MultipleLocator
+
         ax.yaxis.set_major_locator(MultipleLocator(1))  # Major divisions every 1 kg
         ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Minor divisions every 0.5 kg
-        ax.grid(visible=True, which='major', alpha=0.3)  # Major grid
-        ax.grid(visible=True, which='minor', alpha=0.1)  # Minor grid (more transparent)
+        ax.grid(visible=True, which="major", alpha=0.3)  # Major grid
+        ax.grid(visible=True, which="minor", alpha=0.1)  # Minor grid (more transparent)
 
         # Define constants at the top of your file or function
         days_in_month = 31
