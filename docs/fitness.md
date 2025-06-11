@@ -18,6 +18,7 @@ lang: en
   - [Method `_format_chart_x_axis`](#method-_format_chart_x_axis)
   - [Method `_get_current_selected_exercise`](#method-_get_current_selected_exercise)
   - [Method `_get_exercise_avif_path`](#method-_get_exercise_avif_path)
+  - [Method `_get_last_weight`](#method-_get_last_weight)
   - [Method `_group_exercise_data_by_period`](#method-_group_exercise_data_by_period)
   - [Method `_group_sets_data_by_period`](#method-_group_sets_data_by_period)
   - [Method `_increment_date_after_add`](#method-_increment_date_after_add)
@@ -26,6 +27,7 @@ lang: en
   - [Method `_init_exercises_list`](#method-_init_exercises_list)
   - [Method `_init_filter_controls`](#method-_init_filter_controls)
   - [Method `_init_weight_chart_controls`](#method-_init_weight_chart_controls)
+  - [Method `_init_weight_controls`](#method-_init_weight_controls)
   - [Method `_is_valid_date`](#method-_is_valid_date)
   - [Method `_load_default_exercise_chart`](#method-_load_default_exercise_chart)
   - [Method `_load_exercise_avif`](#method-_load_exercise_avif)
@@ -169,6 +171,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._connect_signals()
         self._init_filter_controls()
         self._init_weight_chart_controls()
+        self._init_weight_controls()
         self._init_exercise_chart_controls()
         self._init_exercises_list()
         self.update_all()
@@ -345,6 +348,28 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         return avif_path if avif_path.exists() else None
 
+    def _get_last_weight(self) -> float:
+        """Get the last recorded weight value from database.
+
+        Returns:
+
+        - `float`: The most recent weight value, or initial_weight as default if no records found.
+
+        """
+        initial_weight = 89.0
+        if not self.db_manager:
+            return initial_weight
+
+        rows = self.db_manager.get_rows("SELECT value FROM weight ORDER BY date DESC, _id DESC LIMIT 1")
+
+        if rows and rows[0][0] is not None:
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return initial_weight
+
+        return initial_weight
+
     def _group_exercise_data_by_period(self, rows: list, period: str) -> dict:
         """Group exercise data by the specified period (Days, Months, Years)."""
         grouped = defaultdict(float)
@@ -517,6 +542,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         current_date = QDate.currentDate()
         self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
         self.dateEdit_weight_to.setDate(current_date)
+
+    def _init_weight_controls(self) -> None:
+        """Initialize weight input controls with last recorded values."""
+        last_weight = self._get_last_weight()
+        self.doubleSpinBox_weight.setValue(last_weight)
+        self.dateEdit_weight.setDate(QDate.currentDate())
 
     @staticmethod
     def _is_valid_date(date_str: str) -> bool:
@@ -1109,16 +1140,53 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """Insert a new weight measurement.
 
         Adds a new weight record to the database using the current weight value
-        and date from the input fields.
+        and date from the input fields. After successful addition, updates the UI
+        and advances the date for convenient consecutive entries.
         """
-        self.add_record_generic(
-            "weight",
-            "INSERT INTO weight (value, date) VALUES (:val, :dt)",
-            {
-                "val": str(self.doubleSpinBox_weight.value()),
-                "dt": self.dateEdit_weight.date().toString("yyyy-MM-dd"),
-            },
-        )
+        weight_value = self.doubleSpinBox_weight.value()
+        weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
+
+        # Validate the date
+        if not self._is_valid_date(weight_date):
+            QMessageBox.warning(self, "Error", "Invalid date format")
+            return
+
+        # Store current date before adding record
+        current_date = self.dateEdit_weight.date()
+
+        # Execute the query directly instead of using add_record_generic
+        # to have more control over the update process
+        query_text = "INSERT INTO weight (value, date) VALUES (:val, :dt)"
+        params = {
+            "val": weight_value,
+            "dt": weight_date,
+        }
+
+        result = self.db_manager.execute_query(query_text, params)
+        if result:
+            # Apply date increment logic similar to exercise records
+            today = QDate.currentDate()
+
+            # If current date is today or later, do nothing
+            if current_date >= today:
+                pass  # Keep the current date
+            else:
+                # Add one day to the current date
+                next_date = current_date.addDays(1)
+                self.dateEdit_weight.setDate(next_date)
+
+            # Update UI without resetting the weight value (keep the newly added weight)
+            self.show_tables()
+
+            # The weight spinbox will keep the current value since it's now the "last weight"
+            # Update weight chart if we're on the weight tab
+            current_tab_index = self.tabWidget.currentIndex()
+            weight_tab_index = 3  # Adjust this if weight tab index changes
+            if current_tab_index == weight_tab_index:
+                self.update_weight_chart()
+
+        else:
+            QMessageBox.warning(self, "Error", "Failed to add weight record")
 
     def on_exercise_selection_changed(self) -> None:
         """Update form fields when exercise selection changes in the table.
@@ -1465,8 +1533,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """
         index = self.tableView_weight.currentIndex()
         if not index.isValid():
-            # Clear the fields if nothing is selected
-            self.doubleSpinBox_weight.setValue(89.0)  # Default value
+            # Clear the fields if nothing is selected - use last weight
+            last_weight = self._get_last_weight()
+            self.doubleSpinBox_weight.setValue(last_weight)
             self.dateEdit_weight.setDate(QDate.currentDate())
             return
 
@@ -1474,13 +1543,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         row = index.row()
 
         # Fill in the fields with data from the selected row
-        weight_value = model.data(model.index(row, 0)) or "89.0"
+        weight_value = model.data(model.index(row, 0)) or str(self._get_last_weight())
         weight_date = model.data(model.index(row, 1)) or QDate.currentDate().toString("yyyy-MM-dd")
 
         try:
             self.doubleSpinBox_weight.setValue(float(weight_value))
         except (ValueError, TypeError):
-            self.doubleSpinBox_weight.setValue(89.0)
+            self.doubleSpinBox_weight.setValue(self._get_last_weight())
 
         # Parse and set the date
         try:
@@ -1523,10 +1592,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.update_exercise_chart()
 
     def set_today_date(self) -> None:
-        """Set today's date in the date edit fields.
+        """Set today's date in the date edit fields and last weight value.
 
         Sets both the main date input field (QDateEdit) and the weight date input field
-        (now also QDateEdit) to today's date.
+        (now also QDateEdit) to today's date. Also sets the weight spinbox to the last recorded weight.
         """
         today_qdate = QDate.currentDate()
 
@@ -1535,6 +1604,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         # Set the weight QDateEdit to today's date
         self.dateEdit_weight.setDate(today_qdate)
+
+        # Set the weight spinbox to the last recorded weight
+        last_weight = self._get_last_weight()
+        self.doubleSpinBox_weight.setValue(last_weight)
 
     def set_weight_all_time(self) -> None:
         """Set weight chart date range to all available data."""
@@ -2270,6 +2343,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self._connect_signals()
         self._init_filter_controls()
         self._init_weight_chart_controls()
+        self._init_weight_controls()
         self._init_exercise_chart_controls()
         self._init_exercises_list()
         self.update_all()
@@ -2509,6 +2583,40 @@ def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
         avif_path = avif_dir / f"{exercise_name}.avif"
 
         return avif_path if avif_path.exists() else None
+```
+
+</details>
+
+### Method `_get_last_weight`
+
+```python
+def _get_last_weight(self) -> float
+```
+
+Get the last recorded weight value from database.
+
+Returns:
+
+- `float`: The most recent weight value, or initial_weight as default if no records found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_last_weight(self) -> float:
+        initial_weight = 89.0
+        if not self.db_manager:
+            return initial_weight
+
+        rows = self.db_manager.get_rows("SELECT value FROM weight ORDER BY date DESC, _id DESC LIMIT 1")
+
+        if rows and rows[0][0] is not None:
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return initial_weight
+
+        return initial_weight
 ```
 
 </details>
@@ -2791,6 +2899,26 @@ def _init_weight_chart_controls(self) -> None:
         current_date = QDate.currentDate()
         self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
         self.dateEdit_weight_to.setDate(current_date)
+```
+
+</details>
+
+### Method `_init_weight_controls`
+
+```python
+def _init_weight_controls(self) -> None
+```
+
+Initialize weight input controls with last recorded values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_weight_controls(self) -> None:
+        last_weight = self._get_last_weight()
+        self.doubleSpinBox_weight.setValue(last_weight)
+        self.dateEdit_weight.setDate(QDate.currentDate())
 ```
 
 </details>
@@ -3599,21 +3727,58 @@ def on_add_weight(self) -> None
 Insert a new weight measurement.
 
 Adds a new weight record to the database using the current weight value
-and date from the input fields.
+and date from the input fields. After successful addition, updates the UI
+and advances the date for convenient consecutive entries.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_add_weight(self) -> None:
-        self.add_record_generic(
-            "weight",
-            "INSERT INTO weight (value, date) VALUES (:val, :dt)",
-            {
-                "val": str(self.doubleSpinBox_weight.value()),
-                "dt": self.dateEdit_weight.date().toString("yyyy-MM-dd"),
-            },
-        )
+        weight_value = self.doubleSpinBox_weight.value()
+        weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
+
+        # Validate the date
+        if not self._is_valid_date(weight_date):
+            QMessageBox.warning(self, "Error", "Invalid date format")
+            return
+
+        # Store current date before adding record
+        current_date = self.dateEdit_weight.date()
+
+        # Execute the query directly instead of using add_record_generic
+        # to have more control over the update process
+        query_text = "INSERT INTO weight (value, date) VALUES (:val, :dt)"
+        params = {
+            "val": weight_value,
+            "dt": weight_date,
+        }
+
+        result = self.db_manager.execute_query(query_text, params)
+        if result:
+            # Apply date increment logic similar to exercise records
+            today = QDate.currentDate()
+
+            # If current date is today or later, do nothing
+            if current_date >= today:
+                pass  # Keep the current date
+            else:
+                # Add one day to the current date
+                next_date = current_date.addDays(1)
+                self.dateEdit_weight.setDate(next_date)
+
+            # Update UI without resetting the weight value (keep the newly added weight)
+            self.show_tables()
+
+            # The weight spinbox will keep the current value since it's now the "last weight"
+            # Update weight chart if we're on the weight tab
+            current_tab_index = self.tabWidget.currentIndex()
+            weight_tab_index = 3  # Adjust this if weight tab index changes
+            if current_tab_index == weight_tab_index:
+                self.update_weight_chart()
+
+        else:
+            QMessageBox.warning(self, "Error", "Failed to add weight record")
 ```
 
 </details>
@@ -4088,8 +4253,9 @@ selected weight record in the table.
 def on_weight_selection_changed(self) -> None:
         index = self.tableView_weight.currentIndex()
         if not index.isValid():
-            # Clear the fields if nothing is selected
-            self.doubleSpinBox_weight.setValue(89.0)  # Default value
+            # Clear the fields if nothing is selected - use last weight
+            last_weight = self._get_last_weight()
+            self.doubleSpinBox_weight.setValue(last_weight)
             self.dateEdit_weight.setDate(QDate.currentDate())
             return
 
@@ -4097,13 +4263,13 @@ def on_weight_selection_changed(self) -> None:
         row = index.row()
 
         # Fill in the fields with data from the selected row
-        weight_value = model.data(model.index(row, 0)) or "89.0"
+        weight_value = model.data(model.index(row, 0)) or str(self._get_last_weight())
         weight_date = model.data(model.index(row, 1)) or QDate.currentDate().toString("yyyy-MM-dd")
 
         try:
             self.doubleSpinBox_weight.setValue(float(weight_value))
         except (ValueError, TypeError):
-            self.doubleSpinBox_weight.setValue(89.0)
+            self.doubleSpinBox_weight.setValue(self._get_last_weight())
 
         # Parse and set the date
         try:
@@ -4196,10 +4362,10 @@ def set_chart_last_year(self) -> None:
 def set_today_date(self) -> None
 ```
 
-Set today's date in the date edit fields.
+Set today's date in the date edit fields and last weight value.
 
 Sets both the main date input field (QDateEdit) and the weight date input field
-(now also QDateEdit) to today's date.
+(now also QDateEdit) to today's date. Also sets the weight spinbox to the last recorded weight.
 
 <details>
 <summary>Code:</summary>
@@ -4213,6 +4379,10 @@ def set_today_date(self) -> None:
 
         # Set the weight QDateEdit to today's date
         self.dateEdit_weight.setDate(today_qdate)
+
+        # Set the weight spinbox to the last recorded weight
+        last_weight = self._get_last_weight()
+        self.doubleSpinBox_weight.setValue(last_weight)
 ```
 
 </details>
