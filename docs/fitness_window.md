@@ -160,6 +160,24 @@ class Ui_MainWindow(object):
         self.listView_exercises = QListView(self.widget_middle)
         self.listView_exercises.setObjectName("listView_exercises")
         self.listView_exercises.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_exercises.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
 
         self.verticalLayout.addWidget(self.listView_exercises)
 
@@ -194,6 +212,11 @@ class Ui_MainWindow(object):
         self.spinBox_count.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
         self.spinBox_count.setMaximum(1000000)
         self.spinBox_count.setValue(100)
+        self.spinBox_count.setStyleSheet(
+            "QSpinBox {\n"
+            "                                          background-color: lightgreen;\n"
+            "                                          }"
+        )
 
         self.horizontalLayout_14.addWidget(self.spinBox_count)
 
@@ -994,6 +1017,24 @@ def setupUi(self, MainWindow):
         self.listView_exercises = QListView(self.widget_middle)
         self.listView_exercises.setObjectName("listView_exercises")
         self.listView_exercises.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_exercises.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
 
         self.verticalLayout.addWidget(self.listView_exercises)
 
@@ -1028,6 +1069,11 @@ def setupUi(self, MainWindow):
         self.spinBox_count.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
         self.spinBox_count.setMaximum(1000000)
         self.spinBox_count.setValue(100)
+        self.spinBox_count.setStyleSheet(
+            "QSpinBox {\n"
+            "                                          background-color: lightgreen;\n"
+            "                                          }"
+        )
 
         self.horizontalLayout_14.addWidget(self.spinBox_count)
 

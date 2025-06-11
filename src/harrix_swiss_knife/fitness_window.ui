@@ -51,6 +51,24 @@
                                 <height>16777215</height>
                               </size>
                             </property>
+                            <property name="styleSheet">
+                              <string notr="true">QListView {
+                                border: 2px solid #4CAF50;
+                                border-radius: 4px;
+                                background-color: white;
+                                }
+                                QListView::item {
+                                padding: 4px;
+                                border-bottom: 1px solid #e0e0e0;
+                                }
+                                QListView::item:selected {
+                                background-color: #e8f5e8;
+                                color: black;
+                                }
+                                QListView::item:hover {
+                                background-color: #f0f8f0;
+                                }</string>
+                            </property>
                           </widget>
                         </item>
                       </layout>
@@ -120,6 +138,11 @@
                                       </property>
                                       <property name="value">
                                         <number>100</number>
+                                      </property>
+                                      <property name="styleSheet">
+                                        <string notr="true">QSpinBox {
+                                          background-color: lightgreen;
+                                          }</string>
                                       </property>
                                     </widget>
                                   </item>
