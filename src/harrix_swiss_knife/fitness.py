@@ -436,6 +436,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
 
+        # Initialize labels with default values
+        self.label_exercise.setText("No exercise selected")
+        self.label_unit.setText("")
+
         # Connect selection change signal after model is set
         selection_model = self.listView_exercises.selectionModel()
         if selection_model:
@@ -662,6 +666,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         current_exercise_name = self._get_current_selected_exercise()
         if current_exercise_name:
             self._load_exercise_avif(current_exercise_name)
+            # Trigger the selection change to update labels
+            self.on_exercise_selection_changed_list()
 
     def _next_avif_frame(self) -> None:
         """Show next frame in AVIF animation."""
@@ -1103,11 +1109,18 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         For exercise with _id=self.id_steps (Steps), sets spinBox_count to empty (0).
         For other exercises, sets the value from the last performed exercise.
         Enables/disables comboBox_type based on whether types are available.
+        Updates exercise name and unit labels.
         """
         exercise = self._get_current_selected_exercise()
         if not exercise:
             self.comboBox_type.setEnabled(False)
+            # Clear labels when no exercise is selected
+            self.label_exercise.setText("No exercise selected")
+            self.label_unit.setText("")
             return
+
+        # Update exercise name label
+        self.label_exercise.setText(exercise)
 
         # Check if a new AVIF needs to be uploaded
         current_avif_exercise = getattr(self, "_current_avif_exercise", None)
@@ -1118,7 +1131,17 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
             self.comboBox_type.setEnabled(False)
+            self.label_unit.setText("")
             return
+
+        # Get exercise unit and update label
+        unit_query = "SELECT unit FROM exercises WHERE _id = :ex_id"
+        unit_rows = self.db_manager.get_rows(unit_query, {"ex_id": ex_id})
+        if unit_rows and unit_rows[0][0]:
+            unit = unit_rows[0][0]
+            self.label_unit.setText(unit)
+        else:
+            self.label_unit.setText("times")  # Default unit
 
         # Get all types for this exercise
         types = self.db_manager.get_items(
@@ -1245,7 +1268,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - `index` (`int`): The index of the newly selected tab.
 
         """
-        index_tab_weight = 5
+        index_tab_weight = 3
         index_tab_charts = 4
 
         if index == 0:  # Main tab
