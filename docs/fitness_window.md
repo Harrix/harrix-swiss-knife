@@ -65,8 +65,9 @@ class Ui_MainWindow(object):
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement", None))
-        self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", "Type required", None))
+        self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
         self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_exercises_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
@@ -76,6 +77,7 @@ class Ui_MainWindow(object):
         )
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.label_4.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
         self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_types_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
@@ -91,7 +93,7 @@ class Ui_MainWindow(object):
         self.pushButton_weight_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_weight_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.pushButton_update_weight_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Data", None))
+        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Weight", None))
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
@@ -209,14 +211,14 @@ class Ui_MainWindow(object):
         self.spinBox_count = QSpinBox(self.groupBox)
         self.spinBox_count.setObjectName("spinBox_count")
         self.spinBox_count.setFont(font)
-        self.spinBox_count.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
-        self.spinBox_count.setMaximum(1000000)
-        self.spinBox_count.setValue(100)
         self.spinBox_count.setStyleSheet(
             "QSpinBox {\n"
             "                                          background-color: lightgreen;\n"
             "                                          }"
         )
+        self.spinBox_count.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.spinBox_count.setMaximum(1000000)
+        self.spinBox_count.setValue(100)
 
         self.horizontalLayout_14.addWidget(self.spinBox_count)
 
@@ -455,41 +457,100 @@ class Ui_MainWindow(object):
         self.frame_2 = QFrame(self.tab_2)
         self.frame_2.setObjectName("frame_2")
         self.frame_2.setMinimumSize(QSize(300, 0))
+        self.frame_2.setMaximumSize(QSize(301, 16777215))
         self.frame_2.setFrameShape(QFrame.StyledPanel)
         self.frame_2.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_12 = QVBoxLayout(self.frame_2)
+        self.verticalLayout_12.setObjectName("verticalLayout_12")
         self.groupBox_2 = QGroupBox(self.frame_2)
         self.groupBox_2.setObjectName("groupBox_2")
-        self.groupBox_2.setGeometry(QRect(10, 10, 281, 151))
+        self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
+        self.verticalLayout_10.setObjectName("verticalLayout_10")
+        self.horizontalLayout_17 = QHBoxLayout()
+        self.horizontalLayout_17.setObjectName("horizontalLayout_17")
         self.lineEdit_exercise_name = QLineEdit(self.groupBox_2)
         self.lineEdit_exercise_name.setObjectName("lineEdit_exercise_name")
-        self.lineEdit_exercise_name.setGeometry(QRect(10, 20, 113, 20))
+        self.lineEdit_exercise_name.setMinimumSize(QSize(113, 0))
+
+        self.horizontalLayout_17.addWidget(self.lineEdit_exercise_name)
+
         self.label_5 = QLabel(self.groupBox_2)
         self.label_5.setObjectName("label_5")
-        self.label_5.setGeometry(QRect(160, 20, 47, 13))
-        self.label_6 = QLabel(self.groupBox_2)
-        self.label_6.setObjectName("label_6")
-        self.label_6.setGeometry(QRect(160, 50, 111, 16))
+        self.label_5.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_17.addWidget(self.label_5)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_17)
+
+        self.horizontalLayout_18 = QHBoxLayout()
+        self.horizontalLayout_18.setObjectName("horizontalLayout_18")
         self.lineEdit_exercise_unit = QLineEdit(self.groupBox_2)
         self.lineEdit_exercise_unit.setObjectName("lineEdit_exercise_unit")
-        self.lineEdit_exercise_unit.setGeometry(QRect(10, 50, 113, 20))
-        self.pushButton_exercise_add = QPushButton(self.groupBox_2)
-        self.pushButton_exercise_add.setObjectName("pushButton_exercise_add")
-        self.pushButton_exercise_add.setGeometry(QRect(190, 120, 75, 23))
+        self.lineEdit_exercise_unit.setMinimumSize(QSize(113, 0))
+
+        self.horizontalLayout_18.addWidget(self.lineEdit_exercise_unit)
+
+        self.label_6 = QLabel(self.groupBox_2)
+        self.label_6.setObjectName("label_6")
+        self.label_6.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_18.addWidget(self.label_6)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_18)
+
         self.check_box_is_type_required = QCheckBox(self.groupBox_2)
         self.check_box_is_type_required.setObjectName("check_box_is_type_required")
-        self.check_box_is_type_required.setGeometry(QRect(10, 80, 251, 17))
-        self.label_3 = QLabel(self.frame_2)
+
+        self.verticalLayout_10.addWidget(self.check_box_is_type_required)
+
+        self.horizontalLayout_19 = QHBoxLayout()
+        self.horizontalLayout_19.setObjectName("horizontalLayout_19")
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_19.addItem(self.horizontalSpacer_4)
+
+        self.pushButton_exercise_add = QPushButton(self.groupBox_2)
+        self.pushButton_exercise_add.setObjectName("pushButton_exercise_add")
+
+        self.horizontalLayout_19.addWidget(self.pushButton_exercise_add)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_19)
+
+        self.verticalLayout_12.addWidget(self.groupBox_2)
+
+        self.groupBox_7 = QGroupBox(self.frame_2)
+        self.groupBox_7.setObjectName("groupBox_7")
+        self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
+        self.verticalLayout_11.setObjectName("verticalLayout_11")
+        self.label_3 = QLabel(self.groupBox_7)
         self.label_3.setObjectName("label_3")
-        self.label_3.setGeometry(QRect(10, 170, 141, 16))
-        self.pushButton_exercises_delete = QPushButton(self.frame_2)
+
+        self.verticalLayout_11.addWidget(self.label_3)
+
+        self.horizontalLayout_20 = QHBoxLayout()
+        self.horizontalLayout_20.setObjectName("horizontalLayout_20")
+        self.pushButton_exercises_delete = QPushButton(self.groupBox_7)
         self.pushButton_exercises_delete.setObjectName("pushButton_exercises_delete")
-        self.pushButton_exercises_delete.setGeometry(QRect(10, 200, 75, 23))
-        self.pushButton_exercises_update = QPushButton(self.frame_2)
+
+        self.horizontalLayout_20.addWidget(self.pushButton_exercises_delete)
+
+        self.pushButton_exercises_update = QPushButton(self.groupBox_7)
         self.pushButton_exercises_update.setObjectName("pushButton_exercises_update")
-        self.pushButton_exercises_update.setGeometry(QRect(90, 200, 75, 23))
-        self.pushButton_exercises_refresh = QPushButton(self.frame_2)
+
+        self.horizontalLayout_20.addWidget(self.pushButton_exercises_update)
+
+        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
+
+        self.pushButton_exercises_refresh = QPushButton(self.groupBox_7)
         self.pushButton_exercises_refresh.setObjectName("pushButton_exercises_refresh")
-        self.pushButton_exercises_refresh.setGeometry(QRect(10, 230, 151, 23))
+
+        self.verticalLayout_11.addWidget(self.pushButton_exercises_refresh)
+
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_11.addItem(self.verticalSpacer_2)
+
+        self.verticalLayout_12.addWidget(self.groupBox_7)
 
         self.horizontalLayout_3.addWidget(self.frame_2)
 
@@ -506,32 +567,73 @@ class Ui_MainWindow(object):
         self.frame_3 = QFrame(self.tab_3)
         self.frame_3.setObjectName("frame_3")
         self.frame_3.setMinimumSize(QSize(300, 0))
+        self.frame_3.setMaximumSize(QSize(300, 16777215))
         self.frame_3.setFrameShape(QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_15 = QVBoxLayout(self.frame_3)
+        self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.groupBox_3 = QGroupBox(self.frame_3)
         self.groupBox_3.setObjectName("groupBox_3")
-        self.groupBox_3.setGeometry(QRect(10, 10, 291, 161))
+        self.verticalLayout_14 = QVBoxLayout(self.groupBox_3)
+        self.verticalLayout_14.setObjectName("verticalLayout_14")
         self.comboBox_exercise_name = QComboBox(self.groupBox_3)
         self.comboBox_exercise_name.setObjectName("comboBox_exercise_name")
-        self.comboBox_exercise_name.setGeometry(QRect(20, 30, 241, 22))
+
+        self.verticalLayout_14.addWidget(self.comboBox_exercise_name)
+
         self.lineEdit_exercise_type = QLineEdit(self.groupBox_3)
         self.lineEdit_exercise_type.setObjectName("lineEdit_exercise_type")
-        self.lineEdit_exercise_type.setGeometry(QRect(20, 70, 241, 20))
+
+        self.verticalLayout_14.addWidget(self.lineEdit_exercise_type)
+
+        self.horizontalLayout_22 = QHBoxLayout()
+        self.horizontalLayout_22.setObjectName("horizontalLayout_22")
+        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_22.addItem(self.horizontalSpacer_5)
+
         self.pushButton_type_add = QPushButton(self.groupBox_3)
         self.pushButton_type_add.setObjectName("pushButton_type_add")
-        self.pushButton_type_add.setGeometry(QRect(190, 110, 75, 23))
-        self.label_4 = QLabel(self.frame_3)
+
+        self.horizontalLayout_22.addWidget(self.pushButton_type_add)
+
+        self.verticalLayout_14.addLayout(self.horizontalLayout_22)
+
+        self.verticalLayout_15.addWidget(self.groupBox_3)
+
+        self.groupBox_8 = QGroupBox(self.frame_3)
+        self.groupBox_8.setObjectName("groupBox_8")
+        self.verticalLayout_13 = QVBoxLayout(self.groupBox_8)
+        self.verticalLayout_13.setObjectName("verticalLayout_13")
+        self.label_4 = QLabel(self.groupBox_8)
         self.label_4.setObjectName("label_4")
-        self.label_4.setGeometry(QRect(10, 180, 141, 16))
-        self.pushButton_types_delete = QPushButton(self.frame_3)
+
+        self.verticalLayout_13.addWidget(self.label_4)
+
+        self.horizontalLayout_21 = QHBoxLayout()
+        self.horizontalLayout_21.setObjectName("horizontalLayout_21")
+        self.pushButton_types_delete = QPushButton(self.groupBox_8)
         self.pushButton_types_delete.setObjectName("pushButton_types_delete")
-        self.pushButton_types_delete.setGeometry(QRect(10, 220, 75, 23))
-        self.pushButton_types_update = QPushButton(self.frame_3)
+
+        self.horizontalLayout_21.addWidget(self.pushButton_types_delete)
+
+        self.pushButton_types_update = QPushButton(self.groupBox_8)
         self.pushButton_types_update.setObjectName("pushButton_types_update")
-        self.pushButton_types_update.setGeometry(QRect(100, 220, 75, 23))
-        self.pushButton_types_refresh = QPushButton(self.frame_3)
+
+        self.horizontalLayout_21.addWidget(self.pushButton_types_update)
+
+        self.verticalLayout_13.addLayout(self.horizontalLayout_21)
+
+        self.pushButton_types_refresh = QPushButton(self.groupBox_8)
         self.pushButton_types_refresh.setObjectName("pushButton_types_refresh")
-        self.pushButton_types_refresh.setGeometry(QRect(10, 260, 151, 23))
+
+        self.verticalLayout_13.addWidget(self.pushButton_types_refresh)
+
+        self.verticalLayout_15.addWidget(self.groupBox_8)
+
+        self.verticalSpacer_3 = QSpacerItem(20, 560, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_15.addItem(self.verticalSpacer_3)
 
         self.horizontalLayout_4.addWidget(self.frame_3)
 
@@ -829,11 +931,19 @@ class Ui_MainWindow(object):
         self.frame_5 = QFrame(self.tab_4)
         self.frame_5.setObjectName("frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
+        self.frame_5.setMaximumSize(QSize(300, 16777215))
         self.frame_5.setFrameShape(QFrame.StyledPanel)
         self.frame_5.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_16 = QVBoxLayout(self.frame_5)
+        self.verticalLayout_16.setObjectName("verticalLayout_16")
         self.pushButton_statistics_refresh = QPushButton(self.frame_5)
         self.pushButton_statistics_refresh.setObjectName("pushButton_statistics_refresh")
-        self.pushButton_statistics_refresh.setGeometry(QRect(20, 20, 75, 23))
+
+        self.verticalLayout_16.addWidget(self.pushButton_statistics_refresh)
+
+        self.verticalSpacer_4 = QSpacerItem(20, 759, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_16.addItem(self.verticalSpacer_4)
 
         self.horizontalLayout_6.addWidget(self.frame_5)
 
@@ -907,8 +1017,9 @@ def retranslateUi(self, MainWindow):
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement", None))
-        self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", "Type required", None))
+        self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
         self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_exercises_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
@@ -918,6 +1029,7 @@ def retranslateUi(self, MainWindow):
         )
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.label_4.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
         self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_types_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
@@ -933,7 +1045,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_weight_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_weight_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.pushButton_update_weight_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Data", None))
+        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Weight", None))
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
@@ -1066,14 +1178,14 @@ def setupUi(self, MainWindow):
         self.spinBox_count = QSpinBox(self.groupBox)
         self.spinBox_count.setObjectName("spinBox_count")
         self.spinBox_count.setFont(font)
-        self.spinBox_count.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
-        self.spinBox_count.setMaximum(1000000)
-        self.spinBox_count.setValue(100)
         self.spinBox_count.setStyleSheet(
             "QSpinBox {\n"
             "                                          background-color: lightgreen;\n"
             "                                          }"
         )
+        self.spinBox_count.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.spinBox_count.setMaximum(1000000)
+        self.spinBox_count.setValue(100)
 
         self.horizontalLayout_14.addWidget(self.spinBox_count)
 
@@ -1312,41 +1424,100 @@ def setupUi(self, MainWindow):
         self.frame_2 = QFrame(self.tab_2)
         self.frame_2.setObjectName("frame_2")
         self.frame_2.setMinimumSize(QSize(300, 0))
+        self.frame_2.setMaximumSize(QSize(301, 16777215))
         self.frame_2.setFrameShape(QFrame.StyledPanel)
         self.frame_2.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_12 = QVBoxLayout(self.frame_2)
+        self.verticalLayout_12.setObjectName("verticalLayout_12")
         self.groupBox_2 = QGroupBox(self.frame_2)
         self.groupBox_2.setObjectName("groupBox_2")
-        self.groupBox_2.setGeometry(QRect(10, 10, 281, 151))
+        self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
+        self.verticalLayout_10.setObjectName("verticalLayout_10")
+        self.horizontalLayout_17 = QHBoxLayout()
+        self.horizontalLayout_17.setObjectName("horizontalLayout_17")
         self.lineEdit_exercise_name = QLineEdit(self.groupBox_2)
         self.lineEdit_exercise_name.setObjectName("lineEdit_exercise_name")
-        self.lineEdit_exercise_name.setGeometry(QRect(10, 20, 113, 20))
+        self.lineEdit_exercise_name.setMinimumSize(QSize(113, 0))
+
+        self.horizontalLayout_17.addWidget(self.lineEdit_exercise_name)
+
         self.label_5 = QLabel(self.groupBox_2)
         self.label_5.setObjectName("label_5")
-        self.label_5.setGeometry(QRect(160, 20, 47, 13))
-        self.label_6 = QLabel(self.groupBox_2)
-        self.label_6.setObjectName("label_6")
-        self.label_6.setGeometry(QRect(160, 50, 111, 16))
+        self.label_5.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_17.addWidget(self.label_5)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_17)
+
+        self.horizontalLayout_18 = QHBoxLayout()
+        self.horizontalLayout_18.setObjectName("horizontalLayout_18")
         self.lineEdit_exercise_unit = QLineEdit(self.groupBox_2)
         self.lineEdit_exercise_unit.setObjectName("lineEdit_exercise_unit")
-        self.lineEdit_exercise_unit.setGeometry(QRect(10, 50, 113, 20))
-        self.pushButton_exercise_add = QPushButton(self.groupBox_2)
-        self.pushButton_exercise_add.setObjectName("pushButton_exercise_add")
-        self.pushButton_exercise_add.setGeometry(QRect(190, 120, 75, 23))
+        self.lineEdit_exercise_unit.setMinimumSize(QSize(113, 0))
+
+        self.horizontalLayout_18.addWidget(self.lineEdit_exercise_unit)
+
+        self.label_6 = QLabel(self.groupBox_2)
+        self.label_6.setObjectName("label_6")
+        self.label_6.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_18.addWidget(self.label_6)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_18)
+
         self.check_box_is_type_required = QCheckBox(self.groupBox_2)
         self.check_box_is_type_required.setObjectName("check_box_is_type_required")
-        self.check_box_is_type_required.setGeometry(QRect(10, 80, 251, 17))
-        self.label_3 = QLabel(self.frame_2)
+
+        self.verticalLayout_10.addWidget(self.check_box_is_type_required)
+
+        self.horizontalLayout_19 = QHBoxLayout()
+        self.horizontalLayout_19.setObjectName("horizontalLayout_19")
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_19.addItem(self.horizontalSpacer_4)
+
+        self.pushButton_exercise_add = QPushButton(self.groupBox_2)
+        self.pushButton_exercise_add.setObjectName("pushButton_exercise_add")
+
+        self.horizontalLayout_19.addWidget(self.pushButton_exercise_add)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_19)
+
+        self.verticalLayout_12.addWidget(self.groupBox_2)
+
+        self.groupBox_7 = QGroupBox(self.frame_2)
+        self.groupBox_7.setObjectName("groupBox_7")
+        self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
+        self.verticalLayout_11.setObjectName("verticalLayout_11")
+        self.label_3 = QLabel(self.groupBox_7)
         self.label_3.setObjectName("label_3")
-        self.label_3.setGeometry(QRect(10, 170, 141, 16))
-        self.pushButton_exercises_delete = QPushButton(self.frame_2)
+
+        self.verticalLayout_11.addWidget(self.label_3)
+
+        self.horizontalLayout_20 = QHBoxLayout()
+        self.horizontalLayout_20.setObjectName("horizontalLayout_20")
+        self.pushButton_exercises_delete = QPushButton(self.groupBox_7)
         self.pushButton_exercises_delete.setObjectName("pushButton_exercises_delete")
-        self.pushButton_exercises_delete.setGeometry(QRect(10, 200, 75, 23))
-        self.pushButton_exercises_update = QPushButton(self.frame_2)
+
+        self.horizontalLayout_20.addWidget(self.pushButton_exercises_delete)
+
+        self.pushButton_exercises_update = QPushButton(self.groupBox_7)
         self.pushButton_exercises_update.setObjectName("pushButton_exercises_update")
-        self.pushButton_exercises_update.setGeometry(QRect(90, 200, 75, 23))
-        self.pushButton_exercises_refresh = QPushButton(self.frame_2)
+
+        self.horizontalLayout_20.addWidget(self.pushButton_exercises_update)
+
+        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
+
+        self.pushButton_exercises_refresh = QPushButton(self.groupBox_7)
         self.pushButton_exercises_refresh.setObjectName("pushButton_exercises_refresh")
-        self.pushButton_exercises_refresh.setGeometry(QRect(10, 230, 151, 23))
+
+        self.verticalLayout_11.addWidget(self.pushButton_exercises_refresh)
+
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_11.addItem(self.verticalSpacer_2)
+
+        self.verticalLayout_12.addWidget(self.groupBox_7)
 
         self.horizontalLayout_3.addWidget(self.frame_2)
 
@@ -1363,32 +1534,73 @@ def setupUi(self, MainWindow):
         self.frame_3 = QFrame(self.tab_3)
         self.frame_3.setObjectName("frame_3")
         self.frame_3.setMinimumSize(QSize(300, 0))
+        self.frame_3.setMaximumSize(QSize(300, 16777215))
         self.frame_3.setFrameShape(QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_15 = QVBoxLayout(self.frame_3)
+        self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.groupBox_3 = QGroupBox(self.frame_3)
         self.groupBox_3.setObjectName("groupBox_3")
-        self.groupBox_3.setGeometry(QRect(10, 10, 291, 161))
+        self.verticalLayout_14 = QVBoxLayout(self.groupBox_3)
+        self.verticalLayout_14.setObjectName("verticalLayout_14")
         self.comboBox_exercise_name = QComboBox(self.groupBox_3)
         self.comboBox_exercise_name.setObjectName("comboBox_exercise_name")
-        self.comboBox_exercise_name.setGeometry(QRect(20, 30, 241, 22))
+
+        self.verticalLayout_14.addWidget(self.comboBox_exercise_name)
+
         self.lineEdit_exercise_type = QLineEdit(self.groupBox_3)
         self.lineEdit_exercise_type.setObjectName("lineEdit_exercise_type")
-        self.lineEdit_exercise_type.setGeometry(QRect(20, 70, 241, 20))
+
+        self.verticalLayout_14.addWidget(self.lineEdit_exercise_type)
+
+        self.horizontalLayout_22 = QHBoxLayout()
+        self.horizontalLayout_22.setObjectName("horizontalLayout_22")
+        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_22.addItem(self.horizontalSpacer_5)
+
         self.pushButton_type_add = QPushButton(self.groupBox_3)
         self.pushButton_type_add.setObjectName("pushButton_type_add")
-        self.pushButton_type_add.setGeometry(QRect(190, 110, 75, 23))
-        self.label_4 = QLabel(self.frame_3)
+
+        self.horizontalLayout_22.addWidget(self.pushButton_type_add)
+
+        self.verticalLayout_14.addLayout(self.horizontalLayout_22)
+
+        self.verticalLayout_15.addWidget(self.groupBox_3)
+
+        self.groupBox_8 = QGroupBox(self.frame_3)
+        self.groupBox_8.setObjectName("groupBox_8")
+        self.verticalLayout_13 = QVBoxLayout(self.groupBox_8)
+        self.verticalLayout_13.setObjectName("verticalLayout_13")
+        self.label_4 = QLabel(self.groupBox_8)
         self.label_4.setObjectName("label_4")
-        self.label_4.setGeometry(QRect(10, 180, 141, 16))
-        self.pushButton_types_delete = QPushButton(self.frame_3)
+
+        self.verticalLayout_13.addWidget(self.label_4)
+
+        self.horizontalLayout_21 = QHBoxLayout()
+        self.horizontalLayout_21.setObjectName("horizontalLayout_21")
+        self.pushButton_types_delete = QPushButton(self.groupBox_8)
         self.pushButton_types_delete.setObjectName("pushButton_types_delete")
-        self.pushButton_types_delete.setGeometry(QRect(10, 220, 75, 23))
-        self.pushButton_types_update = QPushButton(self.frame_3)
+
+        self.horizontalLayout_21.addWidget(self.pushButton_types_delete)
+
+        self.pushButton_types_update = QPushButton(self.groupBox_8)
         self.pushButton_types_update.setObjectName("pushButton_types_update")
-        self.pushButton_types_update.setGeometry(QRect(100, 220, 75, 23))
-        self.pushButton_types_refresh = QPushButton(self.frame_3)
+
+        self.horizontalLayout_21.addWidget(self.pushButton_types_update)
+
+        self.verticalLayout_13.addLayout(self.horizontalLayout_21)
+
+        self.pushButton_types_refresh = QPushButton(self.groupBox_8)
         self.pushButton_types_refresh.setObjectName("pushButton_types_refresh")
-        self.pushButton_types_refresh.setGeometry(QRect(10, 260, 151, 23))
+
+        self.verticalLayout_13.addWidget(self.pushButton_types_refresh)
+
+        self.verticalLayout_15.addWidget(self.groupBox_8)
+
+        self.verticalSpacer_3 = QSpacerItem(20, 560, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_15.addItem(self.verticalSpacer_3)
 
         self.horizontalLayout_4.addWidget(self.frame_3)
 
@@ -1686,11 +1898,19 @@ def setupUi(self, MainWindow):
         self.frame_5 = QFrame(self.tab_4)
         self.frame_5.setObjectName("frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
+        self.frame_5.setMaximumSize(QSize(300, 16777215))
         self.frame_5.setFrameShape(QFrame.StyledPanel)
         self.frame_5.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_16 = QVBoxLayout(self.frame_5)
+        self.verticalLayout_16.setObjectName("verticalLayout_16")
         self.pushButton_statistics_refresh = QPushButton(self.frame_5)
         self.pushButton_statistics_refresh.setObjectName("pushButton_statistics_refresh")
-        self.pushButton_statistics_refresh.setGeometry(QRect(20, 20, 75, 23))
+
+        self.verticalLayout_16.addWidget(self.pushButton_statistics_refresh)
+
+        self.verticalSpacer_4 = QSpacerItem(20, 759, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_16.addItem(self.verticalSpacer_4)
 
         self.horizontalLayout_6.addWidget(self.frame_5)
 
