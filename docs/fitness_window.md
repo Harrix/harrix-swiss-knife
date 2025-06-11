@@ -92,6 +92,7 @@ class Ui_MainWindow(object):
         self.pushButton_weight_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.pushButton_update_weight_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Data", None))
+        self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
@@ -606,10 +607,13 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_7.addWidget(self.doubleSpinBox_weight)
 
-        self.lineEdit_weight_date = QLineEdit(self.groupBox_4)
-        self.lineEdit_weight_date.setObjectName("lineEdit_weight_date")
+        self.dateEdit_weight = QDateEdit(self.groupBox_4)
+        self.dateEdit_weight.setObjectName("dateEdit_weight")
+        self.dateEdit_weight.setMinimumSize(QSize(191, 0))
+        self.dateEdit_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_weight.setCalendarPopup(True)
 
-        self.verticalLayout_7.addWidget(self.lineEdit_weight_date)
+        self.verticalLayout_7.addWidget(self.dateEdit_weight)
 
         self.horizontalLayout_15 = QHBoxLayout()
         self.horizontalLayout_15.setObjectName("horizontalLayout_15")
@@ -907,6 +911,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_weight_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.pushButton_update_weight_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Data", None))
+        self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
@@ -1436,10 +1441,13 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_7.addWidget(self.doubleSpinBox_weight)
 
-        self.lineEdit_weight_date = QLineEdit(self.groupBox_4)
-        self.lineEdit_weight_date.setObjectName("lineEdit_weight_date")
+        self.dateEdit_weight = QDateEdit(self.groupBox_4)
+        self.dateEdit_weight.setObjectName("dateEdit_weight")
+        self.dateEdit_weight.setMinimumSize(QSize(191, 0))
+        self.dateEdit_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_weight.setCalendarPopup(True)
 
-        self.verticalLayout_7.addWidget(self.lineEdit_weight_date)
+        self.verticalLayout_7.addWidget(self.dateEdit_weight)
 
         self.horizontalLayout_15 = QHBoxLayout()
         self.horizontalLayout_15.setObjectName("horizontalLayout_15")

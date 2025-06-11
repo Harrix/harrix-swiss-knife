@@ -52,6 +52,7 @@ lang: en
   - [Method `on_update_process`](#method-on_update_process)
   - [Method `on_update_types`](#method-on_update_types)
   - [Method `on_update_weight`](#method-on_update_weight)
+  - [Method `on_weight_selection_changed`](#method-on_weight_selection_changed)
   - [Method `set_chart_all_time`](#method-set_chart_all_time)
   - [Method `set_chart_last_month`](#method-set_chart_last_month)
   - [Method `set_chart_last_year`](#method-set_chart_last_year)
@@ -1115,7 +1116,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             "INSERT INTO weight (value, date) VALUES (:val, :dt)",
             {
                 "val": str(self.doubleSpinBox_weight.value()),
-                "dt": self.lineEdit_weight_date.text(),
+                "dt": self.dateEdit_weight.date().toString("yyyy-MM-dd"),
             },
         )
 
@@ -1428,16 +1429,68 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         Updates the value and date of the currently selected record in the
         weight table.
         """
-        self._update_record_generic(
-            "weight",
-            "weight",
-            "UPDATE weight SET value = :v, date = :d WHERE _id = :id",
-            lambda r, m, _id: {
-                "v": m.data(m.index(r, 0)),
-                "d": m.data(m.index(r, 1)),
-                "id": _id,
-            },
-        )
+        index = self.tableView_weight.currentIndex()
+        if not index.isValid():
+            QMessageBox.warning(self, "Error", "Select a record to update")
+            return
+
+        row = index.row()
+        model = self.models["weight"]
+        _id = model.sourceModel().verticalHeaderItem(row).text()
+
+        # Get values from the form
+        weight_value = str(self.doubleSpinBox_weight.value())
+        weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
+
+        if not self._is_valid_date(weight_date):
+            QMessageBox.warning(self, "Error", "Invalid date format")
+            return
+
+        params = {
+            "v": weight_value,
+            "d": weight_date,
+            "id": _id,
+        }
+
+        if self.db_manager.execute_query("UPDATE weight SET value = :v, date = :d WHERE _id = :id", params):
+            self.update_all()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to update weight record")
+
+    def on_weight_selection_changed(self) -> None:
+        """Update form fields when weight selection changes in the table.
+
+        Synchronizes the form fields (weight value and date) with the currently
+        selected weight record in the table.
+        """
+        index = self.tableView_weight.currentIndex()
+        if not index.isValid():
+            # Clear the fields if nothing is selected
+            self.doubleSpinBox_weight.setValue(89.0)  # Default value
+            self.dateEdit_weight.setDate(QDate.currentDate())
+            return
+
+        model = self.models["weight"]
+        row = index.row()
+
+        # Fill in the fields with data from the selected row
+        weight_value = model.data(model.index(row, 0)) or "89.0"
+        weight_date = model.data(model.index(row, 1)) or QDate.currentDate().toString("yyyy-MM-dd")
+
+        try:
+            self.doubleSpinBox_weight.setValue(float(weight_value))
+        except (ValueError, TypeError):
+            self.doubleSpinBox_weight.setValue(89.0)
+
+        # Parse and set the date
+        try:
+            date_obj = QDate.fromString(weight_date, "yyyy-MM-dd")
+            if date_obj.isValid():
+                self.dateEdit_weight.setDate(date_obj)
+            else:
+                self.dateEdit_weight.setDate(QDate.currentDate())
+        except Exception:
+            self.dateEdit_weight.setDate(QDate.currentDate())
 
     def set_chart_all_time(self) -> None:
         """Set chart date range to all available data."""
@@ -1473,16 +1526,15 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """Set today's date in the date edit fields.
 
         Sets both the main date input field (QDateEdit) and the weight date input field
-        (assuming it's still a QLineEdit) to today's date.
+        (now also QDateEdit) to today's date.
         """
         today_qdate = QDate.currentDate()
-        today_str = today_qdate.toString("yyyy-MM-dd")
 
-        # Set the QDateEdit to today's date
+        # Set the main QDateEdit to today's date
         self.dateEdit.setDate(today_qdate)
 
-        # Assuming lineEdit_weight_date is still a QLineEdit
-        self.lineEdit_weight_date.setText(today_str)
+        # Set the weight QDateEdit to today's date
+        self.dateEdit_weight.setDate(today_qdate)
 
     def set_weight_all_time(self) -> None:
         """Set weight chart date range to all available data."""
@@ -1723,6 +1775,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         )
         self.tableView_weight.setModel(self.models["weight"])
         self.tableView_weight.resizeColumnsToContents()
+
+        # Connect weight selection change signal AFTER setting the model
+        weight_selection_model = self.tableView_weight.selectionModel()
+        if weight_selection_model:
+            # Qt automatically avoids duplicate connections
+            weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
 
     def update_all(
         self,
@@ -3553,7 +3611,7 @@ def on_add_weight(self) -> None:
             "INSERT INTO weight (value, date) VALUES (:val, :dt)",
             {
                 "val": str(self.doubleSpinBox_weight.value()),
-                "dt": self.lineEdit_weight_date.text(),
+                "dt": self.dateEdit_weight.date().toString("yyyy-MM-dd"),
             },
         )
 ```
@@ -3981,16 +4039,81 @@ weight table.
 
 ```python
 def on_update_weight(self) -> None:
-        self._update_record_generic(
-            "weight",
-            "weight",
-            "UPDATE weight SET value = :v, date = :d WHERE _id = :id",
-            lambda r, m, _id: {
-                "v": m.data(m.index(r, 0)),
-                "d": m.data(m.index(r, 1)),
-                "id": _id,
-            },
-        )
+        index = self.tableView_weight.currentIndex()
+        if not index.isValid():
+            QMessageBox.warning(self, "Error", "Select a record to update")
+            return
+
+        row = index.row()
+        model = self.models["weight"]
+        _id = model.sourceModel().verticalHeaderItem(row).text()
+
+        # Get values from the form
+        weight_value = str(self.doubleSpinBox_weight.value())
+        weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
+
+        if not self._is_valid_date(weight_date):
+            QMessageBox.warning(self, "Error", "Invalid date format")
+            return
+
+        params = {
+            "v": weight_value,
+            "d": weight_date,
+            "id": _id,
+        }
+
+        if self.db_manager.execute_query("UPDATE weight SET value = :v, date = :d WHERE _id = :id", params):
+            self.update_all()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to update weight record")
+```
+
+</details>
+
+### Method `on_weight_selection_changed`
+
+```python
+def on_weight_selection_changed(self) -> None
+```
+
+Update form fields when weight selection changes in the table.
+
+Synchronizes the form fields (weight value and date) with the currently
+selected weight record in the table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_weight_selection_changed(self) -> None:
+        index = self.tableView_weight.currentIndex()
+        if not index.isValid():
+            # Clear the fields if nothing is selected
+            self.doubleSpinBox_weight.setValue(89.0)  # Default value
+            self.dateEdit_weight.setDate(QDate.currentDate())
+            return
+
+        model = self.models["weight"]
+        row = index.row()
+
+        # Fill in the fields with data from the selected row
+        weight_value = model.data(model.index(row, 0)) or "89.0"
+        weight_date = model.data(model.index(row, 1)) or QDate.currentDate().toString("yyyy-MM-dd")
+
+        try:
+            self.doubleSpinBox_weight.setValue(float(weight_value))
+        except (ValueError, TypeError):
+            self.doubleSpinBox_weight.setValue(89.0)
+
+        # Parse and set the date
+        try:
+            date_obj = QDate.fromString(weight_date, "yyyy-MM-dd")
+            if date_obj.isValid():
+                self.dateEdit_weight.setDate(date_obj)
+            else:
+                self.dateEdit_weight.setDate(QDate.currentDate())
+        except Exception:
+            self.dateEdit_weight.setDate(QDate.currentDate())
 ```
 
 </details>
@@ -4076,7 +4199,7 @@ def set_today_date(self) -> None
 Set today's date in the date edit fields.
 
 Sets both the main date input field (QDateEdit) and the weight date input field
-(assuming it's still a QLineEdit) to today's date.
+(now also QDateEdit) to today's date.
 
 <details>
 <summary>Code:</summary>
@@ -4084,13 +4207,12 @@ Sets both the main date input field (QDateEdit) and the weight date input field
 ```python
 def set_today_date(self) -> None:
         today_qdate = QDate.currentDate()
-        today_str = today_qdate.toString("yyyy-MM-dd")
 
-        # Set the QDateEdit to today's date
+        # Set the main QDateEdit to today's date
         self.dateEdit.setDate(today_qdate)
 
-        # Assuming lineEdit_weight_date is still a QLineEdit
-        self.lineEdit_weight_date.setText(today_str)
+        # Set the weight QDateEdit to today's date
+        self.dateEdit_weight.setDate(today_qdate)
 ```
 
 </details>
@@ -4413,6 +4535,12 @@ def show_tables(self) -> None:
         )
         self.tableView_weight.setModel(self.models["weight"])
         self.tableView_weight.resizeColumnsToContents()
+
+        # Connect weight selection change signal AFTER setting the model
+        weight_selection_model = self.tableView_weight.selectionModel()
+        if weight_selection_model:
+            # Qt automatically avoids duplicate connections
+            weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
 ```
 
 </details>
