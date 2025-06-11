@@ -29,6 +29,7 @@ lang: en
   - [Method `_is_valid_date`](#method-_is_valid_date)
   - [Method `_load_default_exercise_chart`](#method-_load_default_exercise_chart)
   - [Method `_load_exercise_avif`](#method-_load_exercise_avif)
+  - [Method `_load_initial_avif`](#method-_load_initial_avif)
   - [Method `_next_avif_frame`](#method-_next_avif_frame)
   - [Method `_select_exercise_in_list`](#method-_select_exercise_in_list)
   - [Method `_update_comboboxes`](#method-_update_comboboxes)
@@ -170,6 +171,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._init_exercise_chart_controls()
         self._init_exercises_list()
         self.update_all()
+
+        QTimer.singleShot(100, self._load_initial_avif)
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -698,6 +701,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         except Exception as e:
             print(f"General error: {e}")
             self.label_exercise_avif.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+
+    def _load_initial_avif(self) -> None:
+        """Load AVIF for the first exercise after complete UI initialization."""
+        current_exercise_name = self._get_current_selected_exercise()
+        if current_exercise_name:
+            self._load_exercise_avif(current_exercise_name)
 
     def _next_avif_frame(self) -> None:
         """Show next frame in AVIF animation."""
@@ -2183,6 +2192,8 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self._init_exercise_chart_controls()
         self._init_exercises_list()
         self.update_all()
+
+        QTimer.singleShot(100, self._load_initial_avif)
 ```
 
 </details>
@@ -2923,6 +2934,26 @@ def _load_exercise_avif(self, exercise_name: str) -> None:
         except Exception as e:
             print(f"General error: {e}")
             self.label_exercise_avif.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+```
+
+</details>
+
+### Method `_load_initial_avif`
+
+```python
+def _load_initial_avif(self) -> None
+```
+
+Load AVIF for the first exercise after complete UI initialization.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_initial_avif(self) -> None:
+        current_exercise_name = self._get_current_selected_exercise()
+        if current_exercise_name:
+            self._load_exercise_avif(current_exercise_name)
 ```
 
 </details>

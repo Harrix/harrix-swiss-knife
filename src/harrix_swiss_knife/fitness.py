@@ -127,6 +127,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._init_exercises_list()
         self.update_all()
 
+        QTimer.singleShot(100, self._load_initial_avif)
+
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
 
@@ -654,6 +656,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         except Exception as e:
             print(f"General error: {e}")
             self.label_exercise_avif.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+
+    def _load_initial_avif(self) -> None:
+        """Load AVIF for the first exercise after complete UI initialization."""
+        current_exercise_name = self._get_current_selected_exercise()
+        if current_exercise_name:
+            self._load_exercise_avif(current_exercise_name)
 
     def _next_avif_frame(self) -> None:
         """Show next frame in AVIF animation."""
