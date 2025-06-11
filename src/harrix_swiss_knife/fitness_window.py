@@ -78,12 +78,15 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Fitness tracker", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Set parameters", None))
-        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", "Yesterday", None))
-        self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
+        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.label_exercise_avif.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
+        self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.label.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
+        self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
+        self.label_8.setText(QCoreApplication.translate("MainWindow", "With the table:", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.pushButton_export_csv.setText(QCoreApplication.translate("MainWindow", "Export Table", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
@@ -93,10 +96,9 @@ class Ui_MainWindow(object):
         self.dateEdit_filter_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.label_filter_to.setText(QCoreApplication.translate("MainWindow", "to", None))
         self.dateEdit_filter_to.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
-        self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
-        self.label_exercise_avif.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
+        self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
@@ -169,20 +171,16 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1260, 926)
+        MainWindow.resize(1375, 926)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
-        self.horizontalLayout.setSpacing(6)
-        self.horizontalLayout.setContentsMargins(11, 11, 11, 11)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.tabWidget = QTabWidget(self.centralWidget)
         self.tabWidget.setObjectName("tabWidget")
         self.tab = QWidget()
         self.tab.setObjectName("tab")
         self.horizontalLayout_main = QHBoxLayout(self.tab)
-        self.horizontalLayout_main.setSpacing(6)
-        self.horizontalLayout_main.setContentsMargins(11, 11, 11, 11)
         self.horizontalLayout_main.setObjectName("horizontalLayout_main")
         self.splitter = QSplitter(self.tab)
         self.splitter.setObjectName("splitter")
@@ -194,8 +192,6 @@ class Ui_MainWindow(object):
         self.widget_middle = QWidget(self.splitter)
         self.widget_middle.setObjectName("widget_middle")
         self.verticalLayout = QVBoxLayout(self.widget_middle)
-        self.verticalLayout.setSpacing(6)
-        self.verticalLayout.setContentsMargins(11, 11, 11, 11)
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.label_7 = QLabel(self.widget_middle)
@@ -212,94 +208,239 @@ class Ui_MainWindow(object):
         self.splitter.addWidget(self.widget_middle)
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName("frame")
-        self.frame.setMinimumSize(QSize(301, 0))
+        self.frame.setMinimumSize(QSize(350, 0))
+        self.frame.setMaximumSize(QSize(16777215, 16777215))
         self.frame.setFrameShape(QFrame.StyledPanel)
         self.frame.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_3 = QVBoxLayout(self.frame)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.groupBox = QGroupBox(self.frame)
         self.groupBox.setObjectName("groupBox")
-        self.groupBox.setGeometry(QRect(10, 10, 281, 191))
-        self.pushButton_add = QPushButton(self.groupBox)
-        self.pushButton_add.setObjectName("pushButton_add")
-        self.pushButton_add.setGeometry(QRect(4, 150, 271, 31))
+        self.groupBox.setMinimumSize(QSize(0, 50))
+        self.verticalLayout_5 = QVBoxLayout(self.groupBox)
+        self.verticalLayout_5.setObjectName("verticalLayout_5")
+        self.spinBox_count = QSpinBox(self.groupBox)
+        self.spinBox_count.setObjectName("spinBox_count")
         font = QFont()
         font.setPointSize(12)
         font.setBold(True)
-        self.pushButton_add.setFont(font)
-        self.comboBox_type = QComboBox(self.groupBox)
-        self.comboBox_type.setObjectName("comboBox_type")
-        self.comboBox_type.setGeometry(QRect(10, 30, 261, 22))
-        self.spinBox_count = QSpinBox(self.groupBox)
-        self.spinBox_count.setObjectName("spinBox_count")
-        self.spinBox_count.setGeometry(QRect(10, 70, 261, 22))
+        self.spinBox_count.setFont(font)
+        self.spinBox_count.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
         self.spinBox_count.setMaximum(1000000)
         self.spinBox_count.setValue(100)
+
+        self.verticalLayout_5.addWidget(self.spinBox_count)
+
+        self.comboBox_type = QComboBox(self.groupBox)
+        self.comboBox_type.setObjectName("comboBox_type")
+
+        self.verticalLayout_5.addWidget(self.comboBox_type)
+
+        self.horizontalLayout_13 = QHBoxLayout()
+        self.horizontalLayout_13.setObjectName("horizontalLayout_13")
         self.dateEdit = QDateEdit(self.groupBox)
         self.dateEdit.setObjectName("dateEdit")
-        self.dateEdit.setGeometry(QRect(10, 110, 191, 22))
+        self.dateEdit.setMinimumSize(QSize(191, 0))
+        self.dateEdit.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
         self.dateEdit.setCalendarPopup(True)
+
+        self.horizontalLayout_13.addWidget(self.dateEdit)
+
         self.pushButton_yesterday = QPushButton(self.groupBox)
         self.pushButton_yesterday.setObjectName("pushButton_yesterday")
-        self.pushButton_yesterday.setGeometry(QRect(210, 110, 61, 22))
-        self.pushButton_delete = QPushButton(self.frame)
-        self.pushButton_delete.setObjectName("pushButton_delete")
-        self.pushButton_delete.setGeometry(QRect(10, 240, 75, 23))
-        self.label = QLabel(self.frame)
-        self.label.setObjectName("label")
-        self.label.setGeometry(QRect(10, 210, 131, 16))
-        self.pushButton_update = QPushButton(self.frame)
-        self.pushButton_update.setObjectName("pushButton_update")
-        self.pushButton_update.setGeometry(QRect(100, 240, 75, 23))
-        self.pushButton_refresh = QPushButton(self.frame)
-        self.pushButton_refresh.setObjectName("pushButton_refresh")
-        self.pushButton_refresh.setGeometry(QRect(10, 290, 161, 23))
-        self.pushButton_export_csv = QPushButton(self.frame)
-        self.pushButton_export_csv.setObjectName("pushButton_export_csv")
-        self.pushButton_export_csv.setGeometry(QRect(10, 320, 161, 23))
-        self.groupBox_filter = QGroupBox(self.frame)
-        self.groupBox_filter.setObjectName("groupBox_filter")
-        self.groupBox_filter.setGeometry(QRect(10, 360, 281, 221))
-        self.label_filter_exercise = QLabel(self.groupBox_filter)
-        self.label_filter_exercise.setObjectName("label_filter_exercise")
-        self.label_filter_exercise.setGeometry(QRect(10, 20, 61, 16))
-        self.comboBox_filter_exercise = QComboBox(self.groupBox_filter)
-        self.comboBox_filter_exercise.setObjectName("comboBox_filter_exercise")
-        self.comboBox_filter_exercise.setGeometry(QRect(80, 20, 191, 22))
-        self.label_filter_type = QLabel(self.groupBox_filter)
-        self.label_filter_type.setObjectName("label_filter_type")
-        self.label_filter_type.setGeometry(QRect(10, 50, 61, 16))
-        self.comboBox_filter_type = QComboBox(self.groupBox_filter)
-        self.comboBox_filter_type.setObjectName("comboBox_filter_type")
-        self.comboBox_filter_type.setGeometry(QRect(80, 50, 191, 22))
-        self.label_filter_date = QLabel(self.groupBox_filter)
-        self.label_filter_date.setObjectName("label_filter_date")
-        self.label_filter_date.setGeometry(QRect(10, 80, 61, 16))
-        self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
-        self.dateEdit_filter_from.setObjectName("dateEdit_filter_from")
-        self.dateEdit_filter_from.setGeometry(QRect(80, 80, 191, 22))
-        self.dateEdit_filter_from.setCalendarPopup(True)
-        self.label_filter_to = QLabel(self.groupBox_filter)
-        self.label_filter_to.setObjectName("label_filter_to")
-        self.label_filter_to.setGeometry(QRect(20, 110, 21, 16))
-        self.label_filter_to.setAlignment(Qt.AlignCenter)
-        self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
-        self.dateEdit_filter_to.setObjectName("dateEdit_filter_to")
-        self.dateEdit_filter_to.setGeometry(QRect(80, 110, 191, 22))
-        self.dateEdit_filter_to.setCalendarPopup(True)
-        self.pushButton_apply_filter = QPushButton(self.groupBox_filter)
-        self.pushButton_apply_filter.setObjectName("pushButton_apply_filter")
-        self.pushButton_apply_filter.setGeometry(QRect(190, 180, 81, 23))
-        self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
-        self.pushButton_clear_filter.setObjectName("pushButton_clear_filter")
-        self.pushButton_clear_filter.setGeometry(QRect(100, 180, 81, 23))
-        self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
-        self.checkBox_use_date_filter.setObjectName("checkBox_use_date_filter")
-        self.checkBox_use_date_filter.setGeometry(QRect(10, 160, 131, 17))
+        self.pushButton_yesterday.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_13.addWidget(self.pushButton_yesterday)
+
+        self.verticalLayout_5.addLayout(self.horizontalLayout_13)
+
+        self.pushButton_add = QPushButton(self.groupBox)
+        self.pushButton_add.setObjectName("pushButton_add")
+        self.pushButton_add.setMinimumSize(QSize(0, 41))
+        self.pushButton_add.setFont(font)
+        self.pushButton_add.setStyleSheet(
+            "QPushButton {\n"
+            "                                      background-color: lightgreen;\n"
+            "                                      border: 1px solid #4CAF50;\n"
+            "                                      border-radius: 4px;\n"
+            "                                      }\n"
+            "                                      QPushButton:hover {\n"
+            "                                      background-color: #90EE90;\n"
+            "                                      }\n"
+            "                                      QPushButton:pressed {\n"
+            "                                      background-color: #7FDD7F;\n"
+            "                                      }"
+        )
+
+        self.verticalLayout_5.addWidget(self.pushButton_add)
+
+        self.verticalLayout_3.addWidget(self.groupBox)
+
         self.label_exercise_avif = QLabel(self.frame)
         self.label_exercise_avif.setObjectName("label_exercise_avif")
-        self.label_exercise_avif.setGeometry(QRect(10, 590, 281, 150))
+        self.label_exercise_avif.setMinimumSize(QSize(0, 150))
         self.label_exercise_avif.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif.setScaledContents(False)
         self.label_exercise_avif.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_3.addWidget(self.label_exercise_avif)
+
+        self.groupBox_5 = QGroupBox(self.frame)
+        self.groupBox_5.setObjectName("groupBox_5")
+        self.groupBox_5.setMinimumSize(QSize(0, 83))
+        self.verticalLayout_2 = QVBoxLayout(self.groupBox_5)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.label = QLabel(self.groupBox_5)
+        self.label.setObjectName("label")
+
+        self.horizontalLayout_2.addWidget(self.label)
+
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_2.addItem(self.horizontalSpacer)
+
+        self.pushButton_delete = QPushButton(self.groupBox_5)
+        self.pushButton_delete.setObjectName("pushButton_delete")
+        self.pushButton_delete.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_2.addWidget(self.pushButton_delete)
+
+        self.pushButton_update = QPushButton(self.groupBox_5)
+        self.pushButton_update.setObjectName("pushButton_update")
+        self.pushButton_update.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_2.addWidget(self.pushButton_update)
+
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+
+        self.horizontalLayout_8 = QHBoxLayout()
+        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
+        self.label_8 = QLabel(self.groupBox_5)
+        self.label_8.setObjectName("label_8")
+
+        self.horizontalLayout_8.addWidget(self.label_8)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_8.addItem(self.horizontalSpacer_2)
+
+        self.pushButton_refresh = QPushButton(self.groupBox_5)
+        self.pushButton_refresh.setObjectName("pushButton_refresh")
+        self.pushButton_refresh.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_8.addWidget(self.pushButton_refresh)
+
+        self.pushButton_export_csv = QPushButton(self.groupBox_5)
+        self.pushButton_export_csv.setObjectName("pushButton_export_csv")
+        self.pushButton_export_csv.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_8.addWidget(self.pushButton_export_csv)
+
+        self.verticalLayout_2.addLayout(self.horizontalLayout_8)
+
+        self.verticalLayout_3.addWidget(self.groupBox_5)
+
+        self.groupBox_filter = QGroupBox(self.frame)
+        self.groupBox_filter.setObjectName("groupBox_filter")
+        self.groupBox_filter.setMinimumSize(QSize(0, 201))
+        self.verticalLayout_4 = QVBoxLayout(self.groupBox_filter)
+        self.verticalLayout_4.setObjectName("verticalLayout_4")
+        self.horizontalLayout_9 = QHBoxLayout()
+        self.horizontalLayout_9.setObjectName("horizontalLayout_9")
+        self.label_filter_exercise = QLabel(self.groupBox_filter)
+        self.label_filter_exercise.setObjectName("label_filter_exercise")
+        self.label_filter_exercise.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_9.addWidget(self.label_filter_exercise)
+
+        self.comboBox_filter_exercise = QComboBox(self.groupBox_filter)
+        self.comboBox_filter_exercise.setObjectName("comboBox_filter_exercise")
+        self.comboBox_filter_exercise.setMinimumSize(QSize(191, 0))
+
+        self.horizontalLayout_9.addWidget(self.comboBox_filter_exercise)
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_9)
+
+        self.horizontalLayout_10 = QHBoxLayout()
+        self.horizontalLayout_10.setObjectName("horizontalLayout_10")
+        self.label_filter_type = QLabel(self.groupBox_filter)
+        self.label_filter_type.setObjectName("label_filter_type")
+        self.label_filter_type.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_10.addWidget(self.label_filter_type)
+
+        self.comboBox_filter_type = QComboBox(self.groupBox_filter)
+        self.comboBox_filter_type.setObjectName("comboBox_filter_type")
+        self.comboBox_filter_type.setMinimumSize(QSize(191, 0))
+
+        self.horizontalLayout_10.addWidget(self.comboBox_filter_type)
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_10)
+
+        self.horizontalLayout_11 = QHBoxLayout()
+        self.horizontalLayout_11.setObjectName("horizontalLayout_11")
+        self.label_filter_date = QLabel(self.groupBox_filter)
+        self.label_filter_date.setObjectName("label_filter_date")
+        self.label_filter_date.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_11.addWidget(self.label_filter_date)
+
+        self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
+        self.dateEdit_filter_from.setObjectName("dateEdit_filter_from")
+        self.dateEdit_filter_from.setMinimumSize(QSize(191, 0))
+        self.dateEdit_filter_from.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_from.setCalendarPopup(True)
+
+        self.horizontalLayout_11.addWidget(self.dateEdit_filter_from)
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_11)
+
+        self.horizontalLayout_12 = QHBoxLayout()
+        self.horizontalLayout_12.setObjectName("horizontalLayout_12")
+        self.label_filter_to = QLabel(self.groupBox_filter)
+        self.label_filter_to.setObjectName("label_filter_to")
+        self.label_filter_to.setMinimumSize(QSize(61, 0))
+        self.label_filter_to.setAlignment(Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
+
+        self.horizontalLayout_12.addWidget(self.label_filter_to)
+
+        self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
+        self.dateEdit_filter_to.setObjectName("dateEdit_filter_to")
+        self.dateEdit_filter_to.setMinimumSize(QSize(191, 0))
+        self.dateEdit_filter_to.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_to.setCalendarPopup(True)
+
+        self.horizontalLayout_12.addWidget(self.dateEdit_filter_to)
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_12)
+
+        self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
+        self.checkBox_use_date_filter.setObjectName("checkBox_use_date_filter")
+
+        self.verticalLayout_4.addWidget(self.checkBox_use_date_filter)
+
+        self.horizontalLayout_7 = QHBoxLayout()
+        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
+        self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
+        self.pushButton_clear_filter.setObjectName("pushButton_clear_filter")
+
+        self.horizontalLayout_7.addWidget(self.pushButton_clear_filter)
+
+        self.pushButton_apply_filter = QPushButton(self.groupBox_filter)
+        self.pushButton_apply_filter.setObjectName("pushButton_apply_filter")
+
+        self.horizontalLayout_7.addWidget(self.pushButton_apply_filter)
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_7)
+
+        self.verticalLayout_3.addWidget(self.groupBox_filter)
+
+        self.verticalSpacer = QSpacerItem(20, 143, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_3.addItem(self.verticalSpacer)
+
         self.splitter.addWidget(self.frame)
 
         self.horizontalLayout_main.addWidget(self.splitter)
@@ -308,8 +449,6 @@ class Ui_MainWindow(object):
         self.tab_2 = QWidget()
         self.tab_2.setObjectName("tab_2")
         self.horizontalLayout_3 = QHBoxLayout(self.tab_2)
-        self.horizontalLayout_3.setSpacing(6)
-        self.horizontalLayout_3.setContentsMargins(11, 11, 11, 11)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.tableView_exercises = QTableView(self.tab_2)
         self.tableView_exercises.setObjectName("tableView_exercises")
@@ -361,8 +500,6 @@ class Ui_MainWindow(object):
         self.tab_3 = QWidget()
         self.tab_3.setObjectName("tab_3")
         self.horizontalLayout_4 = QHBoxLayout(self.tab_3)
-        self.horizontalLayout_4.setSpacing(6)
-        self.horizontalLayout_4.setContentsMargins(11, 11, 11, 11)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.tableView_exercise_types = QTableView(self.tab_3)
         self.tableView_exercise_types.setObjectName("tableView_exercise_types")
@@ -405,8 +542,6 @@ class Ui_MainWindow(object):
         self.tab_5 = QWidget()
         self.tab_5.setObjectName("tab_5")
         self.horizontalLayout_5 = QHBoxLayout(self.tab_5)
-        self.horizontalLayout_5.setSpacing(6)
-        self.horizontalLayout_5.setContentsMargins(11, 11, 11, 11)
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
         self.tableView_weight = QTableView(self.tab_5)
         self.tableView_weight.setObjectName("tableView_weight")
@@ -451,8 +586,6 @@ class Ui_MainWindow(object):
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName("tab_charts")
         self.verticalLayout_charts = QVBoxLayout(self.tab_charts)
-        self.verticalLayout_charts.setSpacing(6)
-        self.verticalLayout_charts.setContentsMargins(11, 11, 11, 11)
         self.verticalLayout_charts.setObjectName("verticalLayout_charts")
         self.frame_charts_controls = QFrame(self.tab_charts)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
@@ -460,11 +593,8 @@ class Ui_MainWindow(object):
         self.frame_charts_controls.setFrameShape(QFrame.StyledPanel)
         self.frame_charts_controls.setFrameShadow(QFrame.Raised)
         self.verticalLayout_charts_controls = QVBoxLayout(self.frame_charts_controls)
-        self.verticalLayout_charts_controls.setSpacing(6)
-        self.verticalLayout_charts_controls.setContentsMargins(11, 11, 11, 11)
         self.verticalLayout_charts_controls.setObjectName("verticalLayout_charts_controls")
         self.horizontalLayout_charts_controls_1 = QHBoxLayout()
-        self.horizontalLayout_charts_controls_1.setSpacing(6)
         self.horizontalLayout_charts_controls_1.setObjectName("horizontalLayout_charts_controls_1")
         self.label_chart_exercise = QLabel(self.frame_charts_controls)
         self.label_chart_exercise.setObjectName("label_chart_exercise")
@@ -516,7 +646,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_1)
 
         self.horizontalLayout_charts_controls_2 = QHBoxLayout()
-        self.horizontalLayout_charts_controls_2.setSpacing(6)
         self.horizontalLayout_charts_controls_2.setObjectName("horizontalLayout_charts_controls_2")
         self.label_chart_from = QLabel(self.frame_charts_controls)
         self.label_chart_from.setObjectName("label_chart_from")
@@ -568,10 +697,8 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1216, 727))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1331, 731))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
-        self.verticalLayout_charts_content.setSpacing(6)
-        self.verticalLayout_charts_content.setContentsMargins(11, 11, 11, 11)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
@@ -581,8 +708,6 @@ class Ui_MainWindow(object):
         self.tab_weight_chart = QWidget()
         self.tab_weight_chart.setObjectName("tab_weight_chart")
         self.verticalLayout_weight_chart = QVBoxLayout(self.tab_weight_chart)
-        self.verticalLayout_weight_chart.setSpacing(6)
-        self.verticalLayout_weight_chart.setContentsMargins(11, 11, 11, 11)
         self.verticalLayout_weight_chart.setObjectName("verticalLayout_weight_chart")
         self.frame_weight_controls = QFrame(self.tab_weight_chart)
         self.frame_weight_controls.setObjectName("frame_weight_controls")
@@ -590,8 +715,6 @@ class Ui_MainWindow(object):
         self.frame_weight_controls.setFrameShape(QFrame.StyledPanel)
         self.frame_weight_controls.setFrameShadow(QFrame.Raised)
         self.horizontalLayout_weight_controls = QHBoxLayout(self.frame_weight_controls)
-        self.horizontalLayout_weight_controls.setSpacing(6)
-        self.horizontalLayout_weight_controls.setContentsMargins(11, 11, 11, 11)
         self.horizontalLayout_weight_controls.setObjectName("horizontalLayout_weight_controls")
         self.label_weight_from = QLabel(self.frame_weight_controls)
         self.label_weight_from.setObjectName("label_weight_from")
@@ -646,10 +769,8 @@ class Ui_MainWindow(object):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1216, 760))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1331, 764))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
-        self.verticalLayout_weight_chart_content.setSpacing(6)
-        self.verticalLayout_weight_chart_content.setContentsMargins(11, 11, 11, 11)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
 
@@ -659,8 +780,6 @@ class Ui_MainWindow(object):
         self.tab_4 = QWidget()
         self.tab_4.setObjectName("tab_4")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_4)
-        self.horizontalLayout_6.setSpacing(6)
-        self.horizontalLayout_6.setContentsMargins(11, 11, 11, 11)
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
         self.textEdit_statistics = QTextEdit(self.tab_4)
         self.textEdit_statistics.setObjectName("textEdit_statistics")
@@ -689,7 +808,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1260, 21))
+        self.menuBar.setGeometry(QRect(0, 0, 1375, 22))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")

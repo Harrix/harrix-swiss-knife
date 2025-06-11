@@ -73,6 +73,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 0)  # frame with fixed size
 
+        screen_center = QApplication.primaryScreen().geometry().center()
+        self.setGeometry(
+            screen_center.x() - self.width() // 2, screen_center.y() - self.height() // 2, self.width(), self.height()
+        )
+
         self.db_manager: fitness_database_manager.FitnessDatabaseManager | None = None
 
         self.current_movie: QMovie | None = None
@@ -257,6 +262,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         Returns:
         - `str | None`: The name of the selected exercise, or None if nothing is selected.
+
         """
         selection_model = self.listView_exercises.selectionModel()
         if not selection_model or not self.exercises_list_model:
@@ -663,6 +669,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         Args:
 
         - `exercise_name` (`str`): Name of the exercise to select.
+
         """
         if not self.exercises_list_model or not exercise_name:
             return
@@ -689,7 +696,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Block signals during model update
         selection_model = self.listView_exercises.selectionModel()
         if selection_model:
-            selection_model.blockSignals(True)
+            selection_model.blockSignals(True)  # noqa: FBT003
 
         # Update exercises list model
         self.exercises_list_model.clear()
@@ -699,7 +706,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         # Unblock signals
         if selection_model:
-            selection_model.blockSignals(False)
+            selection_model.blockSignals(False)  # noqa: FBT003
 
         # Update comboBox_exercise_name for adding types
         self.comboBox_exercise_name.clear()
@@ -723,10 +730,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                     t_idx = self.comboBox_type.findText(selected_type)
                     if t_idx >= 0:
                         self.comboBox_type.setCurrentIndex(t_idx)
-        else:
-            # If no specific selection, select the first exercise by default
-            if exercises:
-                self._select_exercise_in_list(exercises[0])
+        # If no specific selection, select the first exercise by default
+        elif exercises:
+            self._select_exercise_in_list(exercises[0])
 
     def _update_record_generic(
         self,
