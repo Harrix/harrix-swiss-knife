@@ -13,7 +13,12 @@ lang: en
 
 - [Class `MainWindow`](#class-mainwindow)
   - [Method `__init__`](#method-__init__)
+  - [Method `_auto_save_exercises_row`](#method-_auto_save_exercises_row)
+  - [Method `_auto_save_process_row`](#method-_auto_save_process_row)
+  - [Method `_auto_save_types_row`](#method-_auto_save_types_row)
+  - [Method `_auto_save_weight_row`](#method-_auto_save_weight_row)
   - [Method `_connect_signals`](#method-_connect_signals)
+  - [Method `_connect_table_auto_save_signals`](#method-_connect_table_auto_save_signals)
   - [Method `_create_table_model`](#method-_create_table_model)
   - [Method `_format_chart_x_axis`](#method-_format_chart_x_axis)
   - [Method `_get_current_selected_exercise`](#method-_get_current_selected_exercise)
@@ -33,6 +38,7 @@ lang: en
   - [Method `_load_exercise_avif`](#method-_load_exercise_avif)
   - [Method `_load_initial_avif`](#method-_load_initial_avif)
   - [Method `_next_avif_frame`](#method-_next_avif_frame)
+  - [Method `_on_table_data_changed`](#method-_on_table_data_changed)
   - [Method `_select_exercise_in_list`](#method-_select_exercise_in_list)
   - [Method `_update_comboboxes`](#method-_update_comboboxes)
   - [Method `_update_record_generic`](#method-_update_record_generic)
@@ -178,6 +184,202 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         QTimer.singleShot(100, self._load_initial_avif)
 
+    def _auto_save_exercises_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        """Auto-save changes to exercises table row.
+
+        Args:
+        - `model` (`QStandardItemModel`): The source model
+        - `row` (`int`): Row index in the model
+        - `row_id` (`str`): Database ID of the row
+        """
+        try:
+            name = model.data(model.index(row, 0)) or ""
+            unit = model.data(model.index(row, 1)) or ""
+            is_type_required_str = model.data(model.index(row, 2)) or "0"
+
+            # Validate exercise name
+            if not name.strip():
+                QMessageBox.warning(self, "Validation Error", "Exercise name cannot be empty")
+                return
+
+            # Convert is_type_required to integer
+            is_type_required = 1 if is_type_required_str == "1" else 0
+
+            # Update database
+            query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr WHERE _id = :id"
+            params = {
+                "n": name.strip(),
+                "u": unit.strip(),
+                "itr": is_type_required,
+                "id": row_id,
+            }
+
+            if not self.db_manager.execute_query(query, params):
+                QMessageBox.warning(self, "Database Error", "Failed to save exercise record")
+            else:
+                # Update related UI elements
+                self._update_comboboxes()
+                self.update_filter_comboboxes()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save exercise row: {str(e)}")
+
+    def _auto_save_process_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        """Auto-save changes to process table row.
+
+        Args:
+        - `model` (`QStandardItemModel`): The source model
+        - `row` (`int`): Row index in the model
+        - `row_id` (`str`): Database ID of the row
+        """
+        try:
+            exercise = model.data(model.index(row, 0))
+            type_name = model.data(model.index(row, 1))
+            value_raw = model.data(model.index(row, 2))
+            date = model.data(model.index(row, 3))
+
+            # Extract value from "value unit" format
+            value = value_raw.split(" ")[0] if value_raw else ""
+
+            # Validate date format
+            if not self._is_valid_date(date):
+                QMessageBox.warning(self, "Validation Error", "Use YYYY-MM-DD date format")
+                return
+
+            # Get exercise ID
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                QMessageBox.warning(self, "Validation Error", f"Exercise '{exercise}' not found")
+                return
+
+            # Get type ID (can be -1 for no type)
+            tp_id = (
+                self.db_manager.get_id(
+                    "types",
+                    "type",
+                    type_name,
+                    condition=f"_id_exercises = {ex_id}",
+                )
+                if type_name
+                else -1
+            )
+
+            # Validate numeric value
+            try:
+                float(value)
+            except (ValueError, TypeError):
+                QMessageBox.warning(self, "Validation Error", f"Invalid numeric value: {value}")
+                return
+
+            # Update database
+            query = """
+                UPDATE process
+                SET _id_exercises = :ex,
+                    _id_types = :tp,
+                    date = :dt,
+                    value = :val
+                WHERE _id = :id
+            """
+            params = {
+                "ex": ex_id,
+                "tp": tp_id or -1,
+                "dt": date,
+                "val": value,
+                "id": row_id,
+            }
+
+            if not self.db_manager.execute_query(query, params):
+                QMessageBox.warning(self, "Database Error", "Failed to save process record")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save process row: {str(e)}")
+
+    def _auto_save_types_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        """Auto-save changes to types table row.
+
+        Args:
+        - `model` (`QStandardItemModel`): The source model
+        - `row` (`int`): Row index in the model
+        - `row_id` (`str`): Database ID of the row
+        """
+        try:
+            exercise_name = model.data(model.index(row, 0)) or ""
+            type_name = model.data(model.index(row, 1)) or ""
+
+            # Validate inputs
+            if not exercise_name.strip():
+                QMessageBox.warning(self, "Validation Error", "Exercise name cannot be empty")
+                return
+
+            if not type_name.strip():
+                QMessageBox.warning(self, "Validation Error", "Type name cannot be empty")
+                return
+
+            # Get exercise ID
+            ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
+            if ex_id is None:
+                QMessageBox.warning(self, "Validation Error", f"Exercise '{exercise_name}' not found")
+                return
+
+            # Update database
+            query = "UPDATE types SET _id_exercises = :ex, type = :tp WHERE _id = :id"
+            params = {
+                "ex": ex_id,
+                "tp": type_name.strip(),
+                "id": row_id,
+            }
+
+            if not self.db_manager.execute_query(query, params):
+                QMessageBox.warning(self, "Database Error", "Failed to save type record")
+            else:
+                # Update related UI elements
+                self._update_comboboxes()
+                self.update_filter_comboboxes()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save type row: {str(e)}")
+
+    def _auto_save_weight_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        """Auto-save changes to weight table row.
+
+        Args:
+        - `model` (`QStandardItemModel`): The source model
+        - `row` (`int`): Row index in the model
+        - `row_id` (`str`): Database ID of the row
+        """
+        try:
+            weight_str = model.data(model.index(row, 0)) or ""
+            date = model.data(model.index(row, 1)) or ""
+
+            # Validate weight value
+            try:
+                weight_value = float(weight_str)
+                if weight_value <= 0:
+                    QMessageBox.warning(self, "Validation Error", "Weight must be a positive number")
+                    return
+            except (ValueError, TypeError):
+                QMessageBox.warning(self, "Validation Error", f"Invalid weight value: {weight_str}")
+                return
+
+            # Validate date format
+            if not self._is_valid_date(date):
+                QMessageBox.warning(self, "Validation Error", "Use YYYY-MM-DD date format")
+                return
+
+            # Update database
+            query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
+            params = {
+                "v": weight_value,
+                "d": date,
+                "id": row_id,
+            }
+
+            if not self.db_manager.execute_query(query, params):
+                QMessageBox.warning(self, "Database Error", "Failed to save weight record")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save weight row: {str(e)}")
+
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
 
@@ -186,6 +388,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - Button click events for adding, updating, and deleting records
         - Tab change events
         - Statistics and export functionality
+        - Auto-save signals for table data changes
 
         Note: ListView selection signal is connected later in _init_exercises_list()
         """
@@ -238,6 +441,32 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
         self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
+
+    def _connect_table_auto_save_signals(self) -> None:
+        """Connect dataChanged signals for auto-save functionality.
+
+        This method should be called after models are created and set to table views.
+        """
+        # Connect auto-save signals for each table
+        if self.models["process"]:
+            self.models["process"].sourceModel().dataChanged.connect(
+                lambda top_left, bottom_right: self._on_table_data_changed("process", top_left, bottom_right)
+            )
+
+        if self.models["exercises"]:
+            self.models["exercises"].sourceModel().dataChanged.connect(
+                lambda top_left, bottom_right: self._on_table_data_changed("exercises", top_left, bottom_right)
+            )
+
+        if self.models["types"]:
+            self.models["types"].sourceModel().dataChanged.connect(
+                lambda top_left, bottom_right: self._on_table_data_changed("types", top_left, bottom_right)
+            )
+
+        if self.models["weight"]:
+            self.models["weight"].sourceModel().dataChanged.connect(
+                lambda top_left, bottom_right: self._on_table_data_changed("weight", top_left, bottom_right)
+            )
 
     def _create_table_model(
         self,
@@ -753,6 +982,36 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.current_frame_index = (self.current_frame_index + 1) % len(self.avif_frames)
         self.label_exercise_avif.setPixmap(self.avif_frames[self.current_frame_index])
+
+    def _on_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex) -> None:
+        """Handle data changes in table models and auto-save to database.
+
+        Args:
+        - `table_name` (`str`): Name of the table that was modified
+        - `top_left` (`QModelIndex`): Top-left index of the changed area
+        - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area
+        """
+        if table_name not in self._SAFE_TABLES:
+            return
+
+        try:
+            model = self.models[table_name].sourceModel()
+
+            # Process each changed row
+            for row in range(top_left.row(), bottom_right.row() + 1):
+                row_id = model.verticalHeaderItem(row).text()
+
+                if table_name == "process":
+                    self._auto_save_process_row(model, row, row_id)
+                elif table_name == "exercises":
+                    self._auto_save_exercises_row(model, row, row_id)
+                elif table_name == "types":
+                    self._auto_save_types_row(model, row, row_id)
+                elif table_name == "weight":
+                    self._auto_save_weight_row(model, row, row_id)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {str(e)}")
 
     def _select_exercise_in_list(self, exercise_name: str) -> None:
         """Select an exercise in the list view by name.
@@ -1855,6 +2114,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             # Qt automatically avoids duplicate connections
             weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
 
+        # Connect auto-save signals after all models are created
+        self._connect_table_auto_save_signals()
+
     def update_all(
         self,
         *,
@@ -2353,6 +2615,258 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
 </details>
 
+### Method `_auto_save_exercises_row`
+
+```python
+def _auto_save_exercises_row(self, model: QStandardItemModel, row: int, row_id: str) -> None
+```
+
+Auto-save changes to exercises table row.
+
+Args:
+
+- `model` (`QStandardItemModel`): The source model
+- `row` (`int`): Row index in the model
+- `row_id` (`str`): Database ID of the row
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _auto_save_exercises_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        try:
+            name = model.data(model.index(row, 0)) or ""
+            unit = model.data(model.index(row, 1)) or ""
+            is_type_required_str = model.data(model.index(row, 2)) or "0"
+
+            # Validate exercise name
+            if not name.strip():
+                QMessageBox.warning(self, "Validation Error", "Exercise name cannot be empty")
+                return
+
+            # Convert is_type_required to integer
+            is_type_required = 1 if is_type_required_str == "1" else 0
+
+            # Update database
+            query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr WHERE _id = :id"
+            params = {
+                "n": name.strip(),
+                "u": unit.strip(),
+                "itr": is_type_required,
+                "id": row_id,
+            }
+
+            if not self.db_manager.execute_query(query, params):
+                QMessageBox.warning(self, "Database Error", "Failed to save exercise record")
+            else:
+                # Update related UI elements
+                self._update_comboboxes()
+                self.update_filter_comboboxes()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save exercise row: {str(e)}")
+```
+
+</details>
+
+### Method `_auto_save_process_row`
+
+```python
+def _auto_save_process_row(self, model: QStandardItemModel, row: int, row_id: str) -> None
+```
+
+Auto-save changes to process table row.
+
+Args:
+
+- `model` (`QStandardItemModel`): The source model
+- `row` (`int`): Row index in the model
+- `row_id` (`str`): Database ID of the row
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _auto_save_process_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        try:
+            exercise = model.data(model.index(row, 0))
+            type_name = model.data(model.index(row, 1))
+            value_raw = model.data(model.index(row, 2))
+            date = model.data(model.index(row, 3))
+
+            # Extract value from "value unit" format
+            value = value_raw.split(" ")[0] if value_raw else ""
+
+            # Validate date format
+            if not self._is_valid_date(date):
+                QMessageBox.warning(self, "Validation Error", "Use YYYY-MM-DD date format")
+                return
+
+            # Get exercise ID
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                QMessageBox.warning(self, "Validation Error", f"Exercise '{exercise}' not found")
+                return
+
+            # Get type ID (can be -1 for no type)
+            tp_id = (
+                self.db_manager.get_id(
+                    "types",
+                    "type",
+                    type_name,
+                    condition=f"_id_exercises = {ex_id}",
+                )
+                if type_name
+                else -1
+            )
+
+            # Validate numeric value
+            try:
+                float(value)
+            except (ValueError, TypeError):
+                QMessageBox.warning(self, "Validation Error", f"Invalid numeric value: {value}")
+                return
+
+            # Update database
+            query = """
+                UPDATE process
+                SET _id_exercises = :ex,
+                    _id_types = :tp,
+                    date = :dt,
+                    value = :val
+                WHERE _id = :id
+            """
+            params = {
+                "ex": ex_id,
+                "tp": tp_id or -1,
+                "dt": date,
+                "val": value,
+                "id": row_id,
+            }
+
+            if not self.db_manager.execute_query(query, params):
+                QMessageBox.warning(self, "Database Error", "Failed to save process record")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save process row: {str(e)}")
+```
+
+</details>
+
+### Method `_auto_save_types_row`
+
+```python
+def _auto_save_types_row(self, model: QStandardItemModel, row: int, row_id: str) -> None
+```
+
+Auto-save changes to types table row.
+
+Args:
+
+- `model` (`QStandardItemModel`): The source model
+- `row` (`int`): Row index in the model
+- `row_id` (`str`): Database ID of the row
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _auto_save_types_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        try:
+            exercise_name = model.data(model.index(row, 0)) or ""
+            type_name = model.data(model.index(row, 1)) or ""
+
+            # Validate inputs
+            if not exercise_name.strip():
+                QMessageBox.warning(self, "Validation Error", "Exercise name cannot be empty")
+                return
+
+            if not type_name.strip():
+                QMessageBox.warning(self, "Validation Error", "Type name cannot be empty")
+                return
+
+            # Get exercise ID
+            ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
+            if ex_id is None:
+                QMessageBox.warning(self, "Validation Error", f"Exercise '{exercise_name}' not found")
+                return
+
+            # Update database
+            query = "UPDATE types SET _id_exercises = :ex, type = :tp WHERE _id = :id"
+            params = {
+                "ex": ex_id,
+                "tp": type_name.strip(),
+                "id": row_id,
+            }
+
+            if not self.db_manager.execute_query(query, params):
+                QMessageBox.warning(self, "Database Error", "Failed to save type record")
+            else:
+                # Update related UI elements
+                self._update_comboboxes()
+                self.update_filter_comboboxes()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save type row: {str(e)}")
+```
+
+</details>
+
+### Method `_auto_save_weight_row`
+
+```python
+def _auto_save_weight_row(self, model: QStandardItemModel, row: int, row_id: str) -> None
+```
+
+Auto-save changes to weight table row.
+
+Args:
+
+- `model` (`QStandardItemModel`): The source model
+- `row` (`int`): Row index in the model
+- `row_id` (`str`): Database ID of the row
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _auto_save_weight_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        try:
+            weight_str = model.data(model.index(row, 0)) or ""
+            date = model.data(model.index(row, 1)) or ""
+
+            # Validate weight value
+            try:
+                weight_value = float(weight_str)
+                if weight_value <= 0:
+                    QMessageBox.warning(self, "Validation Error", "Weight must be a positive number")
+                    return
+            except (ValueError, TypeError):
+                QMessageBox.warning(self, "Validation Error", f"Invalid weight value: {weight_str}")
+                return
+
+            # Validate date format
+            if not self._is_valid_date(date):
+                QMessageBox.warning(self, "Validation Error", "Use YYYY-MM-DD date format")
+                return
+
+            # Update database
+            query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
+            params = {
+                "v": weight_value,
+                "d": date,
+                "id": row_id,
+            }
+
+            if not self.db_manager.execute_query(query, params):
+                QMessageBox.warning(self, "Database Error", "Failed to save weight record")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save weight row: {str(e)}")
+```
+
+</details>
+
 ### Method `_connect_signals`
 
 ```python
@@ -2366,6 +2880,7 @@ Connects all UI elements to their respective handler methods, including:
 - Button click events for adding, updating, and deleting records
 - Tab change events
 - Statistics and export functionality
+- Auto-save signals for table data changes
 
 Note: ListView selection signal is connected later in \_init_exercises_list()
 
@@ -2423,6 +2938,45 @@ def _connect_signals(self) -> None:
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
         self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
+```
+
+</details>
+
+### Method `_connect_table_auto_save_signals`
+
+```python
+def _connect_table_auto_save_signals(self) -> None
+```
+
+Connect dataChanged signals for auto-save functionality.
+
+This method should be called after models are created and set to table views.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _connect_table_auto_save_signals(self) -> None:
+        # Connect auto-save signals for each table
+        if self.models["process"]:
+            self.models["process"].sourceModel().dataChanged.connect(
+                lambda top_left, bottom_right: self._on_table_data_changed("process", top_left, bottom_right)
+            )
+
+        if self.models["exercises"]:
+            self.models["exercises"].sourceModel().dataChanged.connect(
+                lambda top_left, bottom_right: self._on_table_data_changed("exercises", top_left, bottom_right)
+            )
+
+        if self.models["types"]:
+            self.models["types"].sourceModel().dataChanged.connect(
+                lambda top_left, bottom_right: self._on_table_data_changed("types", top_left, bottom_right)
+            )
+
+        if self.models["weight"]:
+            self.models["weight"].sourceModel().dataChanged.connect(
+                lambda top_left, bottom_right: self._on_table_data_changed("weight", top_left, bottom_right)
+            )
 ```
 
 </details>
@@ -3191,6 +3745,50 @@ def _next_avif_frame(self) -> None:
 
         self.current_frame_index = (self.current_frame_index + 1) % len(self.avif_frames)
         self.label_exercise_avif.setPixmap(self.avif_frames[self.current_frame_index])
+```
+
+</details>
+
+### Method `_on_table_data_changed`
+
+```python
+def _on_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex) -> None
+```
+
+Handle data changes in table models and auto-save to database.
+
+Args:
+
+- `table_name` (`str`): Name of the table that was modified
+- `top_left` (`QModelIndex`): Top-left index of the changed area
+- `bottom_right` (`QModelIndex`): Bottom-right index of the changed area
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex) -> None:
+        if table_name not in self._SAFE_TABLES:
+            return
+
+        try:
+            model = self.models[table_name].sourceModel()
+
+            # Process each changed row
+            for row in range(top_left.row(), bottom_right.row() + 1):
+                row_id = model.verticalHeaderItem(row).text()
+
+                if table_name == "process":
+                    self._auto_save_process_row(model, row, row_id)
+                elif table_name == "exercises":
+                    self._auto_save_exercises_row(model, row, row_id)
+                elif table_name == "types":
+                    self._auto_save_types_row(model, row, row_id)
+                elif table_name == "weight":
+                    self._auto_save_weight_row(model, row, row_id)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {str(e)}")
 ```
 
 </details>
@@ -4711,6 +5309,9 @@ def show_tables(self) -> None:
         if weight_selection_model:
             # Qt automatically avoids duplicate connections
             weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
+
+        # Connect auto-save signals after all models are created
+        self._connect_table_auto_save_signals()
 ```
 
 </details>
