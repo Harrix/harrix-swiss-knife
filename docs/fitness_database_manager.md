@@ -45,6 +45,7 @@ lang: en
   - [Method `get_last_weight`](#method-get_last_weight)
   - [Method `get_rows`](#method-get_rows)
   - [Method `get_sets_chart_data`](#method-get_sets_chart_data)
+  - [Method `get_sets_count_today`](#method-get_sets_count_today)
   - [Method `get_statistics_data`](#method-get_statistics_data)
   - [Method `get_weight_chart_data`](#method-get_weight_chart_data)
   - [Method `is_database_open`](#method-is_database_open)
@@ -775,6 +776,17 @@ class FitnessDatabaseManager:
         """
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(row[0], row[1]) for row in rows]
+
+    def get_sets_count_today(self) -> int:
+        """Get the count of sets (process records) for today.
+
+        Returns:
+        - `int`: Number of process records for today's date.
+
+        """
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
+        return rows[0][0] if rows else 0
 
     def get_statistics_data(self) -> list[tuple[str, str, float, str]]:
         """Get data for statistics display.
@@ -2057,6 +2069,30 @@ def get_sets_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, i
         """
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(row[0], row[1]) for row in rows]
+```
+
+</details>
+
+### Method `get_sets_count_today`
+
+```python
+def get_sets_count_today(self) -> int
+```
+
+Get the count of sets (process records) for today.
+
+Returns:
+
+- `int`: Number of process records for today's date.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_sets_count_today(self) -> int:
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
+        return rows[0][0] if rows else 0
 ```
 
 </details>

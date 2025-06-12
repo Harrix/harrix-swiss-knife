@@ -127,6 +127,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._init_weight_controls()
         self._init_exercise_chart_controls()
         self._init_exercises_list()
+        self._init_sets_count_display()
         self.update_all()
 
         # Load initial AVIF animation after UI is ready
@@ -658,6 +659,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.checkBox_use_date_filter.setChecked(False)
 
+    def _init_sets_count_display(self) -> None:
+        """Initialize the sets count display."""
+        self.update_sets_count_today()
+
     def _init_weight_chart_controls(self) -> None:
         """Initialize weight chart date controls."""
         current_date = QDate.currentDate()
@@ -1078,6 +1083,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         if success:
             self.update_all()
+            self.update_sets_count_today()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
@@ -1137,6 +1143,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.show_tables()
             self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
             self.update_filter_comboboxes()
+            self.update_sets_count_today()
         else:
             QMessageBox.warning(self, "Error", "Failed to add process record")
 
@@ -1645,6 +1652,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Connect auto-save signals after all models are created
         self._connect_table_auto_save_signals()
 
+        # Update sets count for today
+        self.update_sets_count_today()
+
     def update_all(
         self,
         *,
@@ -1900,6 +1910,19 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             idx = self.comboBox_filter_type.findText(current_type)
             if idx >= 0:
                 self.comboBox_filter_type.setCurrentIndex(idx)
+
+    def update_sets_count_today(self) -> None:
+        """Update the label showing count of sets done today."""
+        if not self.db_manager or not self.db_manager.is_database_open():
+            self.label_count_sets_today.setText("0")
+            return
+
+        try:
+            count = self.db_manager.get_sets_count_today()
+            self.label_count_sets_today.setText(str(count))
+        except Exception as e:
+            print(f"Error getting sets count for today: {e}")
+            self.label_count_sets_today.setText("0")
 
     def update_weight_chart(self) -> None:
         """Update the weight chart using database manager."""

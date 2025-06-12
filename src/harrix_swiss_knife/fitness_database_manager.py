@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -721,6 +722,17 @@ class FitnessDatabaseManager:
         """
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(row[0], row[1]) for row in rows]
+
+    def get_sets_count_today(self) -> int:
+        """Get the count of sets (process records) for today.
+
+        Returns:
+        - `int`: Number of process records for today's date.
+
+        """
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
+        return rows[0][0] if rows else 0
 
     def get_statistics_data(self) -> list[tuple[str, str, float, str]]:
         """Get data for statistics display.

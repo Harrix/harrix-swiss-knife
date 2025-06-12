@@ -31,6 +31,7 @@ lang: en
   - [Method `_init_exercise_chart_controls`](#method-_init_exercise_chart_controls)
   - [Method `_init_exercises_list`](#method-_init_exercises_list)
   - [Method `_init_filter_controls`](#method-_init_filter_controls)
+  - [Method `_init_sets_count_display`](#method-_init_sets_count_display)
   - [Method `_init_weight_chart_controls`](#method-_init_weight_chart_controls)
   - [Method `_init_weight_controls`](#method-_init_weight_controls)
   - [Method `_is_valid_date`](#method-_is_valid_date)
@@ -71,6 +72,7 @@ lang: en
   - [Method `update_exercise_chart`](#method-update_exercise_chart)
   - [Method `update_filter_comboboxes`](#method-update_filter_comboboxes)
   - [Method `update_filter_type_combobox`](#method-update_filter_type_combobox)
+  - [Method `update_sets_count_today`](#method-update_sets_count_today)
   - [Method `update_weight_chart`](#method-update_weight_chart)
 
 </details>
@@ -180,6 +182,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._init_weight_controls()
         self._init_exercise_chart_controls()
         self._init_exercises_list()
+        self._init_sets_count_display()
         self.update_all()
 
         # Load initial AVIF animation after UI is ready
@@ -711,6 +714,10 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         self.checkBox_use_date_filter.setChecked(False)
 
+    def _init_sets_count_display(self) -> None:
+        """Initialize the sets count display."""
+        self.update_sets_count_today()
+
     def _init_weight_chart_controls(self) -> None:
         """Initialize weight chart date controls."""
         current_date = QDate.currentDate()
@@ -1131,6 +1138,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         if success:
             self.update_all()
+            self.update_sets_count_today()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
@@ -1190,6 +1198,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.show_tables()
             self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
             self.update_filter_comboboxes()
+            self.update_sets_count_today()
         else:
             QMessageBox.warning(self, "Error", "Failed to add process record")
 
@@ -1698,6 +1707,9 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Connect auto-save signals after all models are created
         self._connect_table_auto_save_signals()
 
+        # Update sets count for today
+        self.update_sets_count_today()
+
     def update_all(
         self,
         *,
@@ -1954,6 +1966,19 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             if idx >= 0:
                 self.comboBox_filter_type.setCurrentIndex(idx)
 
+    def update_sets_count_today(self) -> None:
+        """Update the label showing count of sets done today."""
+        if not self.db_manager or not self.db_manager.is_database_open():
+            self.label_count_sets_today.setText("0")
+            return
+
+        try:
+            count = self.db_manager.get_sets_count_today()
+            self.label_count_sets_today.setText(str(count))
+        except Exception as e:
+            print(f"Error getting sets count for today: {e}")
+            self.label_count_sets_today.setText("0")
+
     def update_weight_chart(self) -> None:
         """Update the weight chart using database manager."""
         date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
@@ -2169,6 +2194,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self._init_weight_controls()
         self._init_exercise_chart_controls()
         self._init_exercises_list()
+        self._init_sets_count_display()
         self.update_all()
 
         # Load initial AVIF animation after UI is ready
@@ -2941,6 +2967,24 @@ def _init_filter_controls(self) -> None:
 
 </details>
 
+### Method `_init_sets_count_display`
+
+```python
+def _init_sets_count_display(self) -> None
+```
+
+Initialize the sets count display.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_sets_count_display(self) -> None:
+        self.update_sets_count_today()
+```
+
+</details>
+
 ### Method `_init_weight_chart_controls`
 
 ```python
@@ -3545,6 +3589,7 @@ def delete_record(self, table_name: str) -> None:
 
         if success:
             self.update_all()
+            self.update_sets_count_today()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 ```
@@ -3632,6 +3677,7 @@ def on_add_record(self) -> None:
             self.show_tables()
             self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
             self.update_filter_comboboxes()
+            self.update_sets_count_today()
         else:
             QMessageBox.warning(self, "Error", "Failed to add process record")
 ```
@@ -4383,6 +4429,9 @@ def show_tables(self) -> None:
 
         # Connect auto-save signals after all models are created
         self._connect_table_auto_save_signals()
+
+        # Update sets count for today
+        self.update_sets_count_today()
 ```
 
 </details>
@@ -4719,6 +4768,33 @@ def update_filter_type_combobox(self) -> None:
             idx = self.comboBox_filter_type.findText(current_type)
             if idx >= 0:
                 self.comboBox_filter_type.setCurrentIndex(idx)
+```
+
+</details>
+
+### Method `update_sets_count_today`
+
+```python
+def update_sets_count_today(self) -> None
+```
+
+Update the label showing count of sets done today.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_sets_count_today(self) -> None:
+        if not self.db_manager or not self.db_manager.is_database_open():
+            self.label_count_sets_today.setText("0")
+            return
+
+        try:
+            count = self.db_manager.get_sets_count_today()
+            self.label_count_sets_today.setText(str(count))
+        except Exception as e:
+            print(f"Error getting sets count for today: {e}")
+            self.label_count_sets_today.setText("0")
 ```
 
 </details>

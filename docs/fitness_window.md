@@ -56,6 +56,8 @@ class Ui_MainWindow(object):
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
+        self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", "Count of Sets Today", None))
+        self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
@@ -185,7 +187,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.groupBox = QGroupBox(self.frame)
         self.groupBox.setObjectName("groupBox")
-        self.groupBox.setMinimumSize(QSize(0, 50))
+        self.groupBox.setMinimumSize(QSize(0, 185))
         self.verticalLayout_5 = QVBoxLayout(self.groupBox)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.label_exercise = QLabel(self.groupBox)
@@ -398,6 +400,23 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addLayout(self.horizontalLayout_7)
 
         self.verticalLayout_3.addWidget(self.groupBox_filter)
+
+        self.groupBox_9 = QGroupBox(self.frame)
+        self.groupBox_9.setObjectName("groupBox_9")
+        self.groupBox_9.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_17 = QVBoxLayout(self.groupBox_9)
+        self.verticalLayout_17.setObjectName("verticalLayout_17")
+        self.label_count_sets_today = QLabel(self.groupBox_9)
+        self.label_count_sets_today.setObjectName("label_count_sets_today")
+        font1 = QFont()
+        font1.setPointSize(50)
+        font1.setBold(True)
+        self.label_count_sets_today.setFont(font1)
+        self.label_count_sets_today.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_17.addWidget(self.label_count_sets_today)
+
+        self.verticalLayout_3.addWidget(self.groupBox_9)
 
         self.verticalSpacer = QSpacerItem(20, 143, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -854,10 +873,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
         self.textEdit_statistics = QTextEdit(self.tab_4)
         self.textEdit_statistics.setObjectName("textEdit_statistics")
-        font1 = QFont()
-        font1.setFamilies(["JetBrains Mono"])
-        font1.setPointSize(9)
-        self.textEdit_statistics.setFont(font1)
+        font2 = QFont()
+        font2.setFamilies(["JetBrains Mono"])
+        font2.setPointSize(9)
+        self.textEdit_statistics.setFont(font2)
 
         self.horizontalLayout_6.addWidget(self.textEdit_statistics)
 
@@ -941,6 +960,8 @@ def retranslateUi(self, MainWindow):
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
+        self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", "Count of Sets Today", None))
+        self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
@@ -1085,7 +1106,7 @@ def setupUi(self, MainWindow):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.groupBox = QGroupBox(self.frame)
         self.groupBox.setObjectName("groupBox")
-        self.groupBox.setMinimumSize(QSize(0, 50))
+        self.groupBox.setMinimumSize(QSize(0, 185))
         self.verticalLayout_5 = QVBoxLayout(self.groupBox)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.label_exercise = QLabel(self.groupBox)
@@ -1298,6 +1319,23 @@ def setupUi(self, MainWindow):
         self.verticalLayout_4.addLayout(self.horizontalLayout_7)
 
         self.verticalLayout_3.addWidget(self.groupBox_filter)
+
+        self.groupBox_9 = QGroupBox(self.frame)
+        self.groupBox_9.setObjectName("groupBox_9")
+        self.groupBox_9.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_17 = QVBoxLayout(self.groupBox_9)
+        self.verticalLayout_17.setObjectName("verticalLayout_17")
+        self.label_count_sets_today = QLabel(self.groupBox_9)
+        self.label_count_sets_today.setObjectName("label_count_sets_today")
+        font1 = QFont()
+        font1.setPointSize(50)
+        font1.setBold(True)
+        self.label_count_sets_today.setFont(font1)
+        self.label_count_sets_today.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_17.addWidget(self.label_count_sets_today)
+
+        self.verticalLayout_3.addWidget(self.groupBox_9)
 
         self.verticalSpacer = QSpacerItem(20, 143, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -1754,10 +1792,10 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
         self.textEdit_statistics = QTextEdit(self.tab_4)
         self.textEdit_statistics.setObjectName("textEdit_statistics")
-        font1 = QFont()
-        font1.setFamilies(["JetBrains Mono"])
-        font1.setPointSize(9)
-        self.textEdit_statistics.setFont(font1)
+        font2 = QFont()
+        font2.setFamilies(["JetBrains Mono"])
+        font2.setPointSize(9)
+        self.textEdit_statistics.setFont(font2)
 
         self.horizontalLayout_6.addWidget(self.textEdit_statistics)
 
