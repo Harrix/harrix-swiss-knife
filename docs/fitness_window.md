@@ -546,11 +546,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_11.addWidget(self.pushButton_exercises_refresh)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_11.addItem(self.verticalSpacer_2)
-
         self.verticalLayout_12.addWidget(self.groupBox_7)
+
+        self.verticalSpacer_2 = QSpacerItem(20, 533, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_12.addItem(self.verticalSpacer_2)
 
         self.horizontalLayout_3.addWidget(self.frame_2)
 
@@ -1513,11 +1513,11 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_11.addWidget(self.pushButton_exercises_refresh)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_11.addItem(self.verticalSpacer_2)
-
         self.verticalLayout_12.addWidget(self.groupBox_7)
+
+        self.verticalSpacer_2 = QSpacerItem(20, 533, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_12.addItem(self.verticalSpacer_2)
 
         self.horizontalLayout_3.addWidget(self.frame_2)
 
