@@ -41,7 +41,6 @@ lang: en
   - [Method `_on_table_data_changed`](#method-_on_table_data_changed)
   - [Method `_select_exercise_in_list`](#method-_select_exercise_in_list)
   - [Method `_update_comboboxes`](#method-_update_comboboxes)
-  - [Method `add_record_generic`](#method-add_record_generic)
   - [Method `apply_filter`](#method-apply_filter)
   - [Method `clear_filter`](#method-clear_filter)
   - [Method `closeEvent`](#method-closeevent)
@@ -118,27 +117,30 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
+        # Configure splitter proportions
         self.splitter.setStretchFactor(0, 3)  # tableView gets more space
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 0)  # frame with fixed size
 
+        # Center window on screen
         screen_center = QApplication.primaryScreen().geometry().center()
         self.setGeometry(
             screen_center.x() - self.width() // 2, screen_center.y() - self.height() // 2, self.width(), self.height()
         )
 
+        # Initialize core attributes
         self.db_manager: fitness_database_manager.FitnessDatabaseManager | None = None
-
         self.current_movie: QMovie | None = None
 
-        # Add attributes for AVI animation
+        # AVIF animation attributes
         self.avif_frames: list = []
         self.current_frame_index: int = 0
         self.avif_timer: QTimer | None = None
 
-        # Add model for exercises list
+        # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
 
+        # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
             "exercises": None,
@@ -146,9 +148,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             "weight": None,
         }
 
+        # Chart configuration
         self.max_count_points_in_charts = 40
-        self.id_steps = 39
+        self.id_steps = 39  # ID for steps exercise
 
+        # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "process": (
                 self.tableView_process,
@@ -168,6 +172,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
         }
 
+        # Initialize application
         self._init_database()
         self._connect_signals()
         self._init_filter_controls()
@@ -177,6 +182,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self._init_exercises_list()
         self.update_all()
 
+        # Load initial AVIF animation after UI is ready
         QTimer.singleShot(100, self._load_initial_avif)
 
     def _auto_save_exercises_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
@@ -186,6 +192,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - `model` (`QStandardItemModel`): The source model
         - `row` (`int`): Row index in the model
         - `row_id` (`str`): Database ID of the row
+
         """
         try:
             name = model.data(model.index(row, 0)) or ""
@@ -197,19 +204,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 QMessageBox.warning(self, "Validation Error", "Exercise name cannot be empty")
                 return
 
-            # Convert is_type_required to integer
-            is_type_required = 1 if is_type_required_str == "1" else 0
+            # Convert is_type_required to boolean
+            is_type_required = is_type_required_str == "1"
 
-            # Update database
-            query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr WHERE _id = :id"
-            params = {
-                "n": name.strip(),
-                "u": unit.strip(),
-                "itr": is_type_required,
-                "id": row_id,
-            }
-
-            if not self.db_manager.execute_query(query, params):
+            # Update database using the database manager method
+            if not self.db_manager.update_exercise(int(row_id), name.strip(), unit.strip(), is_type_required):
                 QMessageBox.warning(self, "Database Error", "Failed to save exercise record")
             else:
                 # Update related UI elements
@@ -217,7 +216,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 self.update_filter_comboboxes()
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to save exercise row: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save exercise row: {e!s}")
 
     def _auto_save_process_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Auto-save changes to process table row.
@@ -226,6 +225,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - `model` (`QStandardItemModel`): The source model
         - `row` (`int`): Row index in the model
         - `row_id` (`str`): Database ID of the row
+
         """
         try:
             exercise = model.data(model.index(row, 0))
@@ -249,12 +249,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
             # Get type ID (can be -1 for no type)
             tp_id = (
-                self.db_manager.get_id(
-                    "types",
-                    "type",
-                    type_name,
-                    condition=f"_id_exercises = {ex_id}",
-                )
+                self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
                 if type_name
                 else -1
             )
@@ -266,28 +261,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 QMessageBox.warning(self, "Validation Error", f"Invalid numeric value: {value}")
                 return
 
-            # Update database
-            query = """
-                UPDATE process
-                SET _id_exercises = :ex,
-                    _id_types = :tp,
-                    date = :dt,
-                    value = :val
-                WHERE _id = :id
-            """
-            params = {
-                "ex": ex_id,
-                "tp": tp_id or -1,
-                "dt": date,
-                "val": value,
-                "id": row_id,
-            }
-
-            if not self.db_manager.execute_query(query, params):
+            # Update database using the database manager method
+            if not self.db_manager.update_process_record(int(row_id), ex_id, tp_id or -1, value, date):
                 QMessageBox.warning(self, "Database Error", "Failed to save process record")
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to save process row: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save process row: {e!s}")
 
     def _auto_save_types_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Auto-save changes to types table row.
@@ -296,6 +275,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - `model` (`QStandardItemModel`): The source model
         - `row` (`int`): Row index in the model
         - `row_id` (`str`): Database ID of the row
+
         """
         try:
             exercise_name = model.data(model.index(row, 0)) or ""
@@ -316,15 +296,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 QMessageBox.warning(self, "Validation Error", f"Exercise '{exercise_name}' not found")
                 return
 
-            # Update database
-            query = "UPDATE types SET _id_exercises = :ex, type = :tp WHERE _id = :id"
-            params = {
-                "ex": ex_id,
-                "tp": type_name.strip(),
-                "id": row_id,
-            }
-
-            if not self.db_manager.execute_query(query, params):
+            # Update database using the database manager method
+            if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip()):
                 QMessageBox.warning(self, "Database Error", "Failed to save type record")
             else:
                 # Update related UI elements
@@ -332,7 +305,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 self.update_filter_comboboxes()
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to save type row: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save type row: {e!s}")
 
     def _auto_save_weight_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Auto-save changes to weight table row.
@@ -341,6 +314,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - `model` (`QStandardItemModel`): The source model
         - `row` (`int`): Row index in the model
         - `row_id` (`str`): Database ID of the row
+
         """
         try:
             weight_str = model.data(model.index(row, 0)) or ""
@@ -361,19 +335,12 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 QMessageBox.warning(self, "Validation Error", "Use YYYY-MM-DD date format")
                 return
 
-            # Update database
-            query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
-            params = {
-                "v": weight_value,
-                "d": date,
-                "id": row_id,
-            }
-
-            if not self.db_manager.execute_query(query, params):
+            # Update database using the database manager method
+            if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
                 QMessageBox.warning(self, "Database Error", "Failed to save weight record")
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to save weight row: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save weight row: {e!s}")
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -408,9 +375,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
 
         # Stats & export
-        self.pushButton_statistics_refresh.clicked.connect(
-            self.on_refresh_statistics,
-        )
+        self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
         self.pushButton_export_csv.clicked.connect(self.on_export_csv)
 
         # Tab change
@@ -429,6 +394,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
         self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
+
+        # Filter signals
+        self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
+        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
+        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
@@ -566,26 +536,18 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         return avif_path if avif_path.exists() else None
 
     def _get_last_weight(self) -> float:
-        """Get the last recorded weight value from database.
-
-        Returns:
-
-        - `float`: The most recent weight value, or initial_weight as default if no records found.
-
-        """
+        """Get the last recorded weight value from database."""
         initial_weight = 89.0
-        if not self.db_manager:
+        if not self.db_manager or not self.db_manager.is_database_open():
+            print("Database manager not available or connection not open")
             return initial_weight
 
-        rows = self.db_manager.get_rows("SELECT value FROM weight ORDER BY date DESC, _id DESC LIMIT 1")
-
-        if rows and rows[0][0] is not None:
-            try:
-                return float(rows[0][0])
-            except (ValueError, TypeError):
-                return initial_weight
-
-        return initial_weight
+        try:
+            last_weight = self.db_manager.get_last_weight()
+            return last_weight if last_weight is not None else initial_weight
+        except Exception as e:
+            print(f"Error getting last weight: {e}")
+            return initial_weight
 
     def _group_exercise_data_by_period(self, rows: list, period: str) -> dict:
         """Group exercise data by the specified period (Days, Months, Years)."""
@@ -747,12 +709,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.dateEdit_filter_to.setDate(current_date)
 
         self.checkBox_use_date_filter.setChecked(False)
-
-        self.comboBox_filter_exercise.currentIndexChanged.connect(
-            self.update_filter_type_combobox,
-        )
-        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
-        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
     def _init_weight_chart_controls(self) -> None:
         """Initialize weight chart date controls."""
@@ -978,6 +934,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         - `table_name` (`str`): Name of the table that was modified
         - `top_left` (`QModelIndex`): Top-left index of the changed area
         - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area
+
         """
         if table_name not in self._SAFE_TABLES:
             return
@@ -999,7 +956,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                     self._auto_save_weight_row(model, row, row_id)
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
     def _select_exercise_in_list(self, exercise_name: str) -> None:
         """Select an exercise in the list view by name.
@@ -1029,142 +986,71 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         selected_type: str | None = None,
     ) -> None:
         """Refresh exercise list and type combo-box (optionally keep a selection)."""
-        exercises = self.db_manager.get_exercises_by_frequency(500)
+        if not self.db_manager or not self.db_manager.is_database_open():
+            print("Database manager not available or connection not open")
+            return
 
-        # Block signals during model update
-        selection_model = self.listView_exercises.selectionModel()
-        if selection_model:
-            selection_model.blockSignals(True)  # noqa: FBT003
+        try:
+            exercises = self.db_manager.get_exercises_by_frequency(500)
 
-        # Update exercises list model
-        self.exercises_list_model.clear()
-        for exercise in exercises:
-            item = QStandardItem(exercise)
-            self.exercises_list_model.appendRow(item)
+            # Block signals during model update
+            selection_model = self.listView_exercises.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
 
-        # Unblock signals
-        if selection_model:
-            selection_model.blockSignals(False)  # noqa: FBT003
+            # Update exercises list model
+            self.exercises_list_model.clear()
+            for exercise in exercises:
+                item = QStandardItem(exercise)
+                self.exercises_list_model.appendRow(item)
 
-        # Update comboBox_exercise_name for adding types
-        self.comboBox_exercise_name.clear()
-        self.comboBox_exercise_name.addItems(exercises)
+            # Unblock signals
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
 
-        if selected_exercise and selected_exercise in exercises:
-            # Select the exercise in the list view
-            self._select_exercise_in_list(selected_exercise)
+            # Update comboBox_exercise_name for adding types
+            self.comboBox_exercise_name.clear()
+            self.comboBox_exercise_name.addItems(exercises)
 
-            if selected_type:
-                ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
-                if ex_id is not None:
-                    types = self.db_manager.get_items(
-                        "types",
-                        "type",
-                        condition=f"_id_exercises = {ex_id}",
-                    )
-                    self.comboBox_type.clear()
-                    self.comboBox_type.addItem("")
-                    self.comboBox_type.addItems(types)
-                    t_idx = self.comboBox_type.findText(selected_type)
-                    if t_idx >= 0:
-                        self.comboBox_type.setCurrentIndex(t_idx)
-        # If no specific selection, select the first exercise by default
-        elif exercises:
-            self._select_exercise_in_list(exercises[0])
+            if selected_exercise and selected_exercise in exercises:
+                # Select the exercise in the list view
+                self._select_exercise_in_list(selected_exercise)
 
-    def add_record_generic(
-        self,
-        table_name: str,
-        query_text: str,
-        params: dict,
-    ) -> bool:
-        """Add a single row to `any` table.
+                if selected_type:
+                    ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
+                    if ex_id is not None:
+                        types = self.db_manager.get_exercise_types(ex_id)
+                        self.comboBox_type.clear()
+                        self.comboBox_type.addItem("")
+                        self.comboBox_type.addItems(types)
+                        t_idx = self.comboBox_type.findText(selected_type)
+                        if t_idx >= 0:
+                            self.comboBox_type.setCurrentIndex(t_idx)
+            # If no specific selection, select the first exercise by default
+            elif exercises:
+                self._select_exercise_in_list(exercises[0])
 
-        Args:
-
-        - `table_name` (`str`): Target table (must be one of `self._SAFE_TABLES`).
-        - `query_text` (`str`): SQL `INSERT` statement with named placeholders.
-        - `params` (`dict`): Mapping for the placeholders.
-
-        Returns:
-
-        - `bool`: `True` if the row was written successfully.
-
-        Raises:
-
-        - `ValueError`: If table_name is not in _SAFE_TABLES.
-
-        """
-        if table_name not in self._SAFE_TABLES:
-            error_message = f"Illegal table name: {table_name}"
-            raise ValueError(error_message)
-
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
-            self.update_all()
-            return True
-
-        QMessageBox.warning(self, "Error", f"Failed to add to {table_name}")
-        return False
+        except Exception as e:
+            print(f"Error updating comboboxes: {e}")
 
     def apply_filter(self) -> None:
-        """Apply combo-box/date filters to the `process` table.
-
-        Applies the currently selected filters to the process table:
-
-        - Exercise filter
-        - Exercise type filter
-        - Date range filter (if enabled)
-
-        Updates the process table view with the filtered results.
-        """
+        """Apply combo-box/date filters to the process table."""
         exercise = self.comboBox_filter_exercise.currentText()
         exercise_type = self.comboBox_filter_type.currentText()
         use_date_filter = self.checkBox_use_date_filter.isChecked()
-        date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else ""
-        date_to = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else ""
+        date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
+        date_to = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None
 
-        conditions: list[str] = []
-        params: dict[str, str] = {}
-
-        if exercise:
-            conditions.append("e.name = :exercise")
-            params["exercise"] = exercise
-
-        if exercise_type:
-            conditions.append("t.type = :type")
-            params["type"] = exercise_type
-
-        if use_date_filter:
-            conditions.append("p.date BETWEEN :date_from AND :date_to")
-            params["date_from"] = date_from
-            params["date_to"] = date_to
-
-        query_text = """
-            SELECT p._id,
-                   e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   e.unit,
-                   p.date
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t
-                 ON p._id_types = t._id
-                AND t._id_exercises = e._id
-        """
-
-        if conditions:
-            query_text += " WHERE " + " AND ".join(conditions)
-
-        query_text += " ORDER BY p._id DESC"
-
-        rows = self.db_manager.get_rows(query_text, params)
-        data = [[row[0], row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]] for row in rows]
-        self.models["process"] = self._create_table_model(
-            data,
-            self.table_config["process"][2],
+        # Use database manager method
+        rows = self.db_manager.get_filtered_process_records(
+            exercise_name=exercise if exercise else None,
+            exercise_type=exercise_type if exercise_type else None,
+            date_from=date_from,
+            date_to=date_to,
         )
+
+        data = [[row[0], row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]] for row in rows]
+        self.models["process"] = self._create_table_model(data, self.table_config["process"][2])
         self.tableView_process.setModel(self.models["process"])
         self.tableView_process.resizeColumnsToContents()
 
@@ -1196,10 +1082,14 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if self.avif_timer:
             self.avif_timer.stop()
 
+        # Close database connection
+        if self.db_manager:
+            self.db_manager.close()
+
         event.accept()
 
     def delete_record(self, table_name: str) -> None:
-        """Delete selected row from `table_name` (must be safe).
+        """Delete selected row from table using database manager methods.
 
         Args:
 
@@ -1225,21 +1115,26 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return
 
         row = index.row()
-        _id = model.sourceModel().verticalHeaderItem(row).text()
+        _id = int(model.sourceModel().verticalHeaderItem(row).text())
 
-        # Explicitly use a constant query and bind the identifier
-        query = f"DELETE FROM {table_name} WHERE _id = :id"
-        if self.db_manager.execute_query(query, {"id": _id}):
+        # Use appropriate database manager method
+        success = False
+        if table_name == "process":
+            success = self.db_manager.delete_process_record(_id)
+        elif table_name == "exercises":
+            success = self.db_manager.delete_exercise(_id)
+        elif table_name == "types":
+            success = self.db_manager.delete_exercise_type(_id)
+        elif table_name == "weight":
+            success = self.db_manager.delete_weight_record(_id)
+
+        if success:
             self.update_all()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
     def on_add_exercise(self) -> None:
-        """Insert a new exercise.
-
-        Adds a new exercise to the database using the name and unit values
-        from the input fields. Shows an error message if the exercise name is empty.
-        """
+        """Insert a new exercise using database manager."""
         exercise = self.lineEdit_exercise_name.text().strip()
         unit = self.lineEdit_exercise_unit.text().strip()
 
@@ -1248,21 +1143,15 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             return
 
         # Get checkbox value
-        is_type_required = 1 if self.check_box_is_type_required.isChecked() else 0
+        is_type_required = self.check_box_is_type_required.isChecked()
 
-        self.add_record_generic(
-            "exercises",
-            "INSERT INTO exercises (name, unit, is_type_required) VALUES (:name, :unit, :is_type_required)",
-            {"name": exercise, "unit": unit, "is_type_required": is_type_required},
-        )
+        if self.db_manager.add_exercise(exercise, unit, is_type_required):
+            self.update_all()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to add exercise")
 
     def on_add_record(self) -> None:
-        """Insert a new `process` row.
-
-        Adds a new exercise record to the process table using the currently selected
-        exercise, type, count, and date values. Validates that exercise type is provided
-        when required. Automatically advances the date after successful addition.
-        """
+        """Insert a new process record using database manager."""
         exercise = self._get_current_selected_exercise()
         if not exercise:
             QMessageBox.warning(self, "Error", "Please select an exercise")
@@ -1276,61 +1165,35 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         type_name = self.comboBox_type.currentText()
 
         # Check if exercise type is required
-        is_type_required_query = "SELECT is_type_required FROM exercises WHERE _id = :ex_id"
-        rows = self.db_manager.get_rows(is_type_required_query, {"ex_id": ex_id})
-
-        if rows and rows[0][0] == 1 and not type_name.strip():
+        if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
             QMessageBox.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
             return
 
         type_id = (
-            self.db_manager.get_id(
-                "types",
-                "type",
-                type_name,
-                condition=f"_id_exercises = {ex_id}",
-            )
+            self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
             if type_name
             else -1
         )
 
         # Store current date before adding record
         current_date = self.dateEdit.date()
+        value = str(self.spinBox_count.value())
+        date_str = current_date.toString("yyyy-MM-dd")
 
-        params = {
-            "exercise_id": ex_id,
-            "type_id": type_id or -1,
-            "value": str(self.spinBox_count.value()),
-            "date": current_date.toString("yyyy-MM-dd"),
-        }
-
-        # Execute the query directly instead of using add_record_generic
-        # to avoid triggering update_all() which resets the date
-        query_text = (
-            "INSERT INTO process (_id_exercises, _id_types, value, date) VALUES (:exercise_id, :type_id, :value, :date)"
-        )
-
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
+        # Use database manager method
+        if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
             # Apply date increment logic
             self._increment_date_after_add()
 
             # Update UI without resetting the date
             self.show_tables()
-            self._update_comboboxes(
-                selected_exercise=exercise,
-                selected_type=type_name,
-            )
+            self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
             self.update_filter_comboboxes()
         else:
-            QMessageBox.warning(self, "Error", "Failed to add to process")
+            QMessageBox.warning(self, "Error", "Failed to add process record")
 
     def on_add_type(self) -> None:
-        """Insert a new exercise `type` for the selected exercise.
-
-        Adds a new exercise type for the selected exercise. Shows an error
-        message if the type name is empty.
-        """
+        """Insert a new exercise type using database manager."""
         exercise = self.comboBox_exercise_name.currentText()
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
@@ -1341,19 +1204,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             QMessageBox.warning(self, "Error", "Enter type name")
             return
 
-        self.add_record_generic(
-            "types",
-            "INSERT INTO types (_id_exercises, type) VALUES (:ex, :tp)",
-            {"ex": ex_id, "tp": type_name},
-        )
+        if self.db_manager.add_exercise_type(ex_id, type_name):
+            self.update_all()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to add exercise type")
 
     def on_add_weight(self) -> None:
-        """Insert a new weight measurement.
-
-        Adds a new weight record to the database using the current weight value
-        and date from the input fields. After successful addition, updates the UI
-        and advances the date for convenient consecutive entries.
-        """
+        """Insert a new weight measurement using database manager."""
         weight_value = self.doubleSpinBox_weight.value()
         weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
 
@@ -1365,16 +1222,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         # Store current date before adding record
         current_date = self.dateEdit_weight.date()
 
-        # Execute the query directly instead of using add_record_generic
-        # to have more control over the update process
-        query_text = "INSERT INTO weight (value, date) VALUES (:val, :dt)"
-        params = {
-            "val": weight_value,
-            "dt": weight_date,
-        }
-
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
+        # Use database manager method
+        if self.db_manager.add_weight_record(weight_value, weight_date):
             # Apply date increment logic similar to exercise records
             today = QDate.currentDate()
 
@@ -1386,16 +1235,14 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 next_date = current_date.addDays(1)
                 self.dateEdit_weight.setDate(next_date)
 
-            # Update UI without resetting the weight value (keep the newly added weight)
+            # Update UI without resetting the weight value
             self.show_tables()
 
-            # The weight spinbox will keep the current value since it's now the "last weight"
             # Update weight chart if we're on the weight tab
             current_tab_index = self.tabWidget.currentIndex()
-            weight_tab_index = 3  # Adjust this if weight tab index changes
+            weight_tab_index = 3
             if current_tab_index == weight_tab_index:
                 self.update_weight_chart()
-
         else:
             QMessageBox.warning(self, "Error", "Failed to add weight record")
 
@@ -1426,28 +1273,26 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.check_box_is_type_required.setChecked(is_required == "1")
 
     def on_exercise_selection_changed_list(self) -> None:
-        """Handle exercise selection change in the list view.
-
-        Updates the exercise type combo box with the types associated with the
-        currently selected exercise. Automatically selects the most recently used
-        type for this exercise from the process table. Also loads the exercise AVIF.
-        For exercise with _id=self.id_steps (Steps), sets spinBox_count to empty (0).
-        For other exercises, sets the value from the last performed exercise.
-        Enables/disables comboBox_type based on whether types are available.
-        Updates exercise name and unit labels.
-        """
+        """Handle exercise selection change in the list view."""
         exercise = self._get_current_selected_exercise()
         if not exercise:
             self.comboBox_type.setEnabled(False)
-            # Clear labels when no exercise is selected
             self.label_exercise.setText("No exercise selected")
+            self.label_unit.setText("")
+            return
+
+        # Check if database manager is available and connection is open
+        if not self.db_manager or not self.db_manager.is_database_open():
+            print("Database manager not available or connection not open")
+            self.comboBox_type.setEnabled(False)
+            self.label_exercise.setText("Database error")
             self.label_unit.setText("")
             return
 
         # Update exercise name label
         self.label_exercise.setText(exercise)
 
-        # Check if a new AVIF needs to be uploaded
+        # Check if a new AVIF needs to be loaded
         current_avif_exercise = getattr(self, "_current_avif_exercise", None)
         if current_avif_exercise != exercise:
             self._current_avif_exercise = exercise
@@ -1455,25 +1300,17 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
+            print(f"Exercise '{exercise}' not found in database")
             self.comboBox_type.setEnabled(False)
             self.label_unit.setText("")
             return
 
         # Get exercise unit and update label
-        unit_query = "SELECT unit FROM exercises WHERE _id = :ex_id"
-        unit_rows = self.db_manager.get_rows(unit_query, {"ex_id": ex_id})
-        if unit_rows and unit_rows[0][0]:
-            unit = unit_rows[0][0]
-            self.label_unit.setText(unit)
-        else:
-            self.label_unit.setText("times")  # Default unit
+        unit = self.db_manager.get_exercise_unit(exercise)
+        self.label_unit.setText(unit)
 
         # Get all types for this exercise
-        types = self.db_manager.get_items(
-            "types",
-            "type",
-            condition=f"_id_exercises = {ex_id}",
-        )
+        types = self.db_manager.get_exercise_types(ex_id)
 
         # Clear and populate the combobox
         self.comboBox_type.clear()
@@ -1484,38 +1321,33 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.comboBox_type.setEnabled(len(types) > 0)
 
         # Find the most recently used type and value for this exercise
-        last_record_query = """
-            SELECT t.type, p.value
-            FROM process p
-            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = p._id_exercises
-            WHERE p._id_exercises = :ex_id
-            ORDER BY p._id DESC
-            LIMIT 1"""
+        try:
+            last_record = self.db_manager.get_last_exercise_record(ex_id)
 
-        rows = self.db_manager.get_rows(last_record_query, {"ex_id": ex_id})
+            if last_record:
+                last_type, last_value = last_record
 
-        if rows:
-            last_type = rows[0][0] if rows[0][0] is not None else ""
-            last_value = rows[0][1] if rows[0][1] is not None else ""
+                # Find and select this type in the combobox
+                type_index = self.comboBox_type.findText(last_type)
+                if type_index >= 0:
+                    self.comboBox_type.setCurrentIndex(type_index)
 
-            # Find and select this type in the combobox
-            type_index = self.comboBox_type.findText(last_type)
-            if type_index >= 0:
-                self.comboBox_type.setCurrentIndex(type_index)
-
-            # Set spinBox_count value based on exercise _id
-            if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+                # Set spinBox_count value based on exercise _id
+                if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+                    self.spinBox_count.setValue(0)
+                else:  # Other exercises - use last value
+                    try:
+                        value = int(float(last_value))
+                        self.spinBox_count.setValue(value)
+                    except (ValueError, TypeError):
+                        # If conversion fails, keep default value
+                        print(f"Could not convert last value '{last_value}' to int for exercise '{exercise}'")
+            elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                 self.spinBox_count.setValue(0)
-            else:  # Other exercises - use last value
-                try:
-                    value = int(float(last_value))
-                    self.spinBox_count.setValue(value)
-                except (ValueError, TypeError):
-                    # If conversion fails, keep default value
-                    pass
-        elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
-            self.spinBox_count.setValue(0)
-        # For other exercises without history, keep the current default value (100)
+
+        except Exception as e:
+            print(f"Error getting last exercise record for '{exercise}': {e}")
+            # Continue without setting last values
 
     def on_export_csv(self) -> None:
         """Save current `process` view to a CSV file (semicolon-separated).
@@ -1543,31 +1375,16 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 file.write(";".join(row_values) + "\n")
 
     def on_refresh_statistics(self) -> None:
-        """Populate the statistics text-edit with the four best results per key.
-
-        Retrieves exercise data from the database and displays the top four
-        results for each exercise/type combination in the statistics text edit.
-        Highlights today's entries.
-        """
+        """Populate the statistics text-edit using database manager."""
         self.textEdit_statistics.clear()
 
-        rows = self.db_manager.get_rows(
-            """
-            SELECT e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   p.date
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t ON p._id_types = t._id
-            ORDER BY p._id DESC
-        """,
-        )
+        # Get statistics data using database manager
+        rows = self.db_manager.get_statistics_data()
 
         grouped: defaultdict[str, list[list]] = defaultdict(list)
         for ex_name, tp_name, val, date in rows:
             key = f"{ex_name} {tp_name}".strip()
-            grouped[key].append([ex_name, tp_name, float(val), date])
+            grouped[key].append([ex_name, tp_name, val, date])
 
         today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
         lines: list[str] = []
@@ -1641,12 +1458,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self.dateEdit_weight.setDate(QDate.currentDate())
 
     def set_chart_all_time(self) -> None:
-        """Set chart date range to all available data."""
-        # Get the earliest process record
-        rows = self.db_manager.get_rows("SELECT MIN(date) FROM process WHERE date IS NOT NULL")
+        """Set chart date range to all available data using database manager."""
+        earliest_date_str = self.db_manager.get_earliest_process_date()
 
-        if rows and rows[0][0]:
-            earliest_date = QDate.fromString(rows[0][0], "yyyy-MM-dd")
+        if earliest_date_str:
+            earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
             self.dateEdit_chart_from.setDate(earliest_date)
         else:
             # Fallback to one year ago if no data
@@ -1689,12 +1505,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.doubleSpinBox_weight.setValue(last_weight)
 
     def set_weight_all_time(self) -> None:
-        """Set weight chart date range to all available data."""
-        # Get the earliest weight record
-        rows = self.db_manager.get_rows("SELECT MIN(date) FROM weight WHERE date IS NOT NULL")
+        """Set weight chart date range to all available data using database manager."""
+        earliest_date_str = self.db_manager.get_earliest_weight_date()
 
-        if rows and rows[0][0]:
-            earliest_date = QDate.fromString(rows[0][0], "yyyy-MM-dd")
+        if earliest_date_str:
+            earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
             self.dateEdit_weight_from.setDate(earliest_date)
         else:
             # Fallback to one year ago if no data
@@ -1728,7 +1543,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         self.dateEdit.setDate(yesterday)
 
     def show_sets_chart(self) -> None:
-        """Show chart of total sets (records count) by period."""
+        """Show chart of total sets using database manager."""
         period = self.comboBox_chart_period.currentText()
         date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
         date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
@@ -1740,16 +1555,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             if child:
                 child.setParent(None)
 
-        # Get sets data (count of records by date)
-        query = """
-            SELECT date, COUNT(*) as set_count
-            FROM process
-            WHERE date BETWEEN :date_from AND :date_to
-            AND date IS NOT NULL
-            GROUP BY date
-            ORDER BY date ASC"""
-
-        rows = self.db_manager.get_rows(query, {"date_from": date_from, "date_to": date_to})
+        # Get sets data using database manager
+        rows = self.db_manager.get_sets_chart_data(date_from, date_to)
 
         if not rows:
             from PySide6.QtWidgets import QLabel
@@ -1850,88 +1657,41 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         canvas.draw()
 
     def show_tables(self) -> None:
-        """Populate all four `QTableView`s from the database.
-
-        Loads data from the database into all table views:
-
-        - Process table (exercise records)
-        - Exercises table
-        - Exercise types table
-        - Weight table
-        """
-        # exercises - adding new field
-        rows = self.db_manager.get_rows("SELECT _id, name, unit, is_type_required FROM exercises")
-        # Update column headers
+        """Populate all QTableViews using database manager methods."""
+        # Exercises table
+        rows = self.db_manager.get_all_exercises()
         exercises_headers = ["Exercise", "Unit of Measurement", "Type Required"]
-        self.models["exercises"] = self._create_table_model(
-            rows,
-            exercises_headers,
-        )
+        self.models["exercises"] = self._create_table_model(rows, exercises_headers)
         self.tableView_exercises.setModel(self.models["exercises"])
         self.tableView_exercises.resizeColumnsToContents()
 
         # Connect selection change signal AFTER setting the model
         selection_model = self.tableView_exercises.selectionModel()
         if selection_model:
-            # Qt automatically avoids duplicate connections
             selection_model.currentRowChanged.connect(self.on_exercise_selection_changed)
 
-        # Other tables remain unchanged...
-        # process
-        rows = self.db_manager.get_rows(
-            """
-            SELECT p._id,
-                e.name,
-                IFNULL(t.type, ''),
-                p.value,
-                e.unit,
-                p.date
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t
-                ON p._id_types = t._id
-                AND t._id_exercises = e._id
-            ORDER BY p._id DESC
-        """,
-        )
+        # Process table
+        rows = self.db_manager.get_all_process_records()
         process_data = [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
-        self.models["process"] = self._create_table_model(
-            process_data,
-            self.table_config["process"][2],
-        )
+        self.models["process"] = self._create_table_model(process_data, self.table_config["process"][2])
         self.tableView_process.setModel(self.models["process"])
         self.tableView_process.resizeColumnsToContents()
 
-        # types
-        rows = self.db_manager.get_rows(
-            """
-            SELECT t._id, e.name, t.type
-            FROM types t
-            JOIN exercises e ON t._id_exercises = e._id
-        """,
-        )
-        self.models["types"] = self._create_table_model(
-            rows,
-            self.table_config["types"][2],
-        )
+        # Types table
+        rows = self.db_manager.get_all_exercise_types()
+        self.models["types"] = self._create_table_model(rows, self.table_config["types"][2])
         self.tableView_exercise_types.setModel(self.models["types"])
         self.tableView_exercise_types.resizeColumnsToContents()
 
-        # weight
-        rows = self.db_manager.get_rows(
-            "SELECT _id, value, date FROM weight ORDER BY date DESC",
-        )
-        self.models["weight"] = self._create_table_model(
-            rows,
-            self.table_config["weight"][2],
-        )
+        # Weight table
+        rows = self.db_manager.get_all_weight_records()
+        self.models["weight"] = self._create_table_model(rows, self.table_config["weight"][2])
         self.tableView_weight.setModel(self.models["weight"])
         self.tableView_weight.resizeColumnsToContents()
 
         # Connect weight selection change signal AFTER setting the model
         weight_selection_model = self.tableView_weight.selectionModel()
         if weight_selection_model:
-            # Qt automatically avoids duplicate connections
             weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
 
         # Connect auto-save signals after all models are created
@@ -2009,15 +1769,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if exercise:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is not None:
-                types = self.db_manager.get_items(
-                    "types",
-                    "type",
-                    condition=f"_id_exercises = {ex_id}",
-                )
+                types = self.db_manager.get_exercise_types(ex_id)
                 self.comboBox_chart_type.addItems(types)
 
     def update_exercise_chart(self) -> None:
-        """Update the exercise chart with current filters."""
+        """Update the exercise chart using database manager."""
         exercise = self.comboBox_chart_exercise.currentText()
         exercise_type = self.comboBox_chart_type.currentText()
         period = self.comboBox_chart_period.currentText()
@@ -2039,23 +1795,13 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             layout.addWidget(no_data_label)
             return
 
-        # Build query based on filters
-        conditions = ["e.name = :exercise", "p.date BETWEEN :date_from AND :date_to"]
-        params = {"exercise": exercise, "date_from": date_from, "date_to": date_to}
-
-        if exercise_type and exercise_type != "All types":
-            conditions.append("t.type = :type")
-            params["type"] = exercise_type
-
-        query = f"""
-            SELECT p.date, p.value
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
-            WHERE {" AND ".join(conditions)}
-            ORDER BY p.date ASC"""
-
-        rows = self.db_manager.get_rows(query, params)
+        # Get chart data using database manager
+        rows = self.db_manager.get_exercise_chart_data(
+            exercise_name=exercise,
+            exercise_type=exercise_type if exercise_type != "All types" else None,
+            date_from=date_from,
+            date_to=date_to,
+        )
 
         if not rows:
             from PySide6.QtWidgets import QLabel
@@ -2199,11 +1945,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         if exercise:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is not None:
-                types = self.db_manager.get_items(
-                    "types",
-                    "type",
-                    condition=f"_id_exercises = {ex_id}",
-                )
+                types = self.db_manager.get_exercise_types(ex_id)
                 self.comboBox_filter_type.addItems(types)
 
         if current_type:
@@ -2212,7 +1954,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
                 self.comboBox_filter_type.setCurrentIndex(idx)
 
     def update_weight_chart(self) -> None:
-        """Update the weight chart with current date range."""
+        """Update the weight chart using database manager."""
         date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
         date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
 
@@ -2223,16 +1965,8 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             if child:
                 child.setParent(None)
 
-        # Get weight data
-        query = """
-            SELECT value, date
-            FROM weight
-            WHERE date BETWEEN :date_from AND :date_to
-            AND date IS NOT NULL
-            ORDER BY date ASC
-        """
-
-        rows = self.db_manager.get_rows(query, {"date_from": date_from, "date_to": date_to})
+        # Get weight data using database manager
+        rows = self.db_manager.get_weight_chart_data(date_from, date_to)
 
         if not rows:
             from PySide6.QtWidgets import QLabel
@@ -2247,7 +1981,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         canvas = FigureCanvas(fig)
 
         # Parse data
-        weights = [float(row[0]) for row in rows]
+        weights = [row[0] for row in rows]
         dates = [datetime.strptime(row[1], "%Y-%m-%d").replace(tzinfo=timezone.utc) for row in rows]
 
         # Create plot
@@ -2371,27 +2105,30 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
         self.setupUi(self)
 
+        # Configure splitter proportions
         self.splitter.setStretchFactor(0, 3)  # tableView gets more space
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 0)  # frame with fixed size
 
+        # Center window on screen
         screen_center = QApplication.primaryScreen().geometry().center()
         self.setGeometry(
             screen_center.x() - self.width() // 2, screen_center.y() - self.height() // 2, self.width(), self.height()
         )
 
+        # Initialize core attributes
         self.db_manager: fitness_database_manager.FitnessDatabaseManager | None = None
-
         self.current_movie: QMovie | None = None
 
-        # Add attributes for AVI animation
+        # AVIF animation attributes
         self.avif_frames: list = []
         self.current_frame_index: int = 0
         self.avif_timer: QTimer | None = None
 
-        # Add model for exercises list
+        # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
 
+        # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
             "exercises": None,
@@ -2399,9 +2136,11 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             "weight": None,
         }
 
+        # Chart configuration
         self.max_count_points_in_charts = 40
-        self.id_steps = 39
+        self.id_steps = 39  # ID for steps exercise
 
+        # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "process": (
                 self.tableView_process,
@@ -2421,6 +2160,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
         }
 
+        # Initialize application
         self._init_database()
         self._connect_signals()
         self._init_filter_controls()
@@ -2430,6 +2170,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self._init_exercises_list()
         self.update_all()
 
+        # Load initial AVIF animation after UI is ready
         QTimer.singleShot(100, self._load_initial_avif)
 ```
 
@@ -2464,19 +2205,11 @@ def _auto_save_exercises_row(self, model: QStandardItemModel, row: int, row_id: 
                 QMessageBox.warning(self, "Validation Error", "Exercise name cannot be empty")
                 return
 
-            # Convert is_type_required to integer
-            is_type_required = 1 if is_type_required_str == "1" else 0
+            # Convert is_type_required to boolean
+            is_type_required = is_type_required_str == "1"
 
-            # Update database
-            query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr WHERE _id = :id"
-            params = {
-                "n": name.strip(),
-                "u": unit.strip(),
-                "itr": is_type_required,
-                "id": row_id,
-            }
-
-            if not self.db_manager.execute_query(query, params):
+            # Update database using the database manager method
+            if not self.db_manager.update_exercise(int(row_id), name.strip(), unit.strip(), is_type_required):
                 QMessageBox.warning(self, "Database Error", "Failed to save exercise record")
             else:
                 # Update related UI elements
@@ -2484,7 +2217,7 @@ def _auto_save_exercises_row(self, model: QStandardItemModel, row: int, row_id: 
                 self.update_filter_comboboxes()
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to save exercise row: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save exercise row: {e!s}")
 ```
 
 </details>
@@ -2530,12 +2263,7 @@ def _auto_save_process_row(self, model: QStandardItemModel, row: int, row_id: st
 
             # Get type ID (can be -1 for no type)
             tp_id = (
-                self.db_manager.get_id(
-                    "types",
-                    "type",
-                    type_name,
-                    condition=f"_id_exercises = {ex_id}",
-                )
+                self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
                 if type_name
                 else -1
             )
@@ -2547,28 +2275,12 @@ def _auto_save_process_row(self, model: QStandardItemModel, row: int, row_id: st
                 QMessageBox.warning(self, "Validation Error", f"Invalid numeric value: {value}")
                 return
 
-            # Update database
-            query = """
-                UPDATE process
-                SET _id_exercises = :ex,
-                    _id_types = :tp,
-                    date = :dt,
-                    value = :val
-                WHERE _id = :id
-            """
-            params = {
-                "ex": ex_id,
-                "tp": tp_id or -1,
-                "dt": date,
-                "val": value,
-                "id": row_id,
-            }
-
-            if not self.db_manager.execute_query(query, params):
+            # Update database using the database manager method
+            if not self.db_manager.update_process_record(int(row_id), ex_id, tp_id or -1, value, date):
                 QMessageBox.warning(self, "Database Error", "Failed to save process record")
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to save process row: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save process row: {e!s}")
 ```
 
 </details>
@@ -2611,15 +2323,8 @@ def _auto_save_types_row(self, model: QStandardItemModel, row: int, row_id: str)
                 QMessageBox.warning(self, "Validation Error", f"Exercise '{exercise_name}' not found")
                 return
 
-            # Update database
-            query = "UPDATE types SET _id_exercises = :ex, type = :tp WHERE _id = :id"
-            params = {
-                "ex": ex_id,
-                "tp": type_name.strip(),
-                "id": row_id,
-            }
-
-            if not self.db_manager.execute_query(query, params):
+            # Update database using the database manager method
+            if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip()):
                 QMessageBox.warning(self, "Database Error", "Failed to save type record")
             else:
                 # Update related UI elements
@@ -2627,7 +2332,7 @@ def _auto_save_types_row(self, model: QStandardItemModel, row: int, row_id: str)
                 self.update_filter_comboboxes()
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to save type row: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save type row: {e!s}")
 ```
 
 </details>
@@ -2670,19 +2375,12 @@ def _auto_save_weight_row(self, model: QStandardItemModel, row: int, row_id: str
                 QMessageBox.warning(self, "Validation Error", "Use YYYY-MM-DD date format")
                 return
 
-            # Update database
-            query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
-            params = {
-                "v": weight_value,
-                "d": date,
-                "id": row_id,
-            }
-
-            if not self.db_manager.execute_query(query, params):
+            # Update database using the database manager method
+            if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
                 QMessageBox.warning(self, "Database Error", "Failed to save weight record")
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to save weight row: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to save weight row: {e!s}")
 ```
 
 </details>
@@ -2730,9 +2428,7 @@ def _connect_signals(self) -> None:
         self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
 
         # Stats & export
-        self.pushButton_statistics_refresh.clicked.connect(
-            self.on_refresh_statistics,
-        )
+        self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
         self.pushButton_export_csv.clicked.connect(self.on_export_csv)
 
         # Tab change
@@ -2751,6 +2447,11 @@ def _connect_signals(self) -> None:
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
         self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
+
+        # Filter signals
+        self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
+        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
+        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 ```
 
 </details>
@@ -2962,28 +2663,22 @@ def _get_last_weight(self) -> float
 
 Get the last recorded weight value from database.
 
-Returns:
-
-- `float`: The most recent weight value, or initial_weight as default if no records found.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def _get_last_weight(self) -> float:
         initial_weight = 89.0
-        if not self.db_manager:
+        if not self.db_manager or not self.db_manager.is_database_open():
+            print("Database manager not available or connection not open")
             return initial_weight
 
-        rows = self.db_manager.get_rows("SELECT value FROM weight ORDER BY date DESC, _id DESC LIMIT 1")
-
-        if rows and rows[0][0] is not None:
-            try:
-                return float(rows[0][0])
-            except (ValueError, TypeError):
-                return initial_weight
-
-        return initial_weight
+        try:
+            last_weight = self.db_manager.get_last_weight()
+            return last_weight if last_weight is not None else initial_weight
+        except Exception as e:
+            print(f"Error getting last weight: {e}")
+            return initial_weight
 ```
 
 </details>
@@ -3240,12 +2935,6 @@ def _init_filter_controls(self) -> None:
         self.dateEdit_filter_to.setDate(current_date)
 
         self.checkBox_use_date_filter.setChecked(False)
-
-        self.comboBox_filter_exercise.currentIndexChanged.connect(
-            self.update_filter_type_combobox,
-        )
-        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
-        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 ```
 
 </details>
@@ -3601,7 +3290,7 @@ def _on_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_
                     self._auto_save_weight_row(model, row, row_id)
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 ```
 
 </details>
@@ -3657,95 +3346,52 @@ def _update_comboboxes(
         selected_exercise: str | None = None,
         selected_type: str | None = None,
     ) -> None:
-        exercises = self.db_manager.get_exercises_by_frequency(500)
+        if not self.db_manager or not self.db_manager.is_database_open():
+            print("Database manager not available or connection not open")
+            return
 
-        # Block signals during model update
-        selection_model = self.listView_exercises.selectionModel()
-        if selection_model:
-            selection_model.blockSignals(True)  # noqa: FBT003
+        try:
+            exercises = self.db_manager.get_exercises_by_frequency(500)
 
-        # Update exercises list model
-        self.exercises_list_model.clear()
-        for exercise in exercises:
-            item = QStandardItem(exercise)
-            self.exercises_list_model.appendRow(item)
+            # Block signals during model update
+            selection_model = self.listView_exercises.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
 
-        # Unblock signals
-        if selection_model:
-            selection_model.blockSignals(False)  # noqa: FBT003
+            # Update exercises list model
+            self.exercises_list_model.clear()
+            for exercise in exercises:
+                item = QStandardItem(exercise)
+                self.exercises_list_model.appendRow(item)
 
-        # Update comboBox_exercise_name for adding types
-        self.comboBox_exercise_name.clear()
-        self.comboBox_exercise_name.addItems(exercises)
+            # Unblock signals
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
 
-        if selected_exercise and selected_exercise in exercises:
-            # Select the exercise in the list view
-            self._select_exercise_in_list(selected_exercise)
+            # Update comboBox_exercise_name for adding types
+            self.comboBox_exercise_name.clear()
+            self.comboBox_exercise_name.addItems(exercises)
 
-            if selected_type:
-                ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
-                if ex_id is not None:
-                    types = self.db_manager.get_items(
-                        "types",
-                        "type",
-                        condition=f"_id_exercises = {ex_id}",
-                    )
-                    self.comboBox_type.clear()
-                    self.comboBox_type.addItem("")
-                    self.comboBox_type.addItems(types)
-                    t_idx = self.comboBox_type.findText(selected_type)
-                    if t_idx >= 0:
-                        self.comboBox_type.setCurrentIndex(t_idx)
-        # If no specific selection, select the first exercise by default
-        elif exercises:
-            self._select_exercise_in_list(exercises[0])
-```
+            if selected_exercise and selected_exercise in exercises:
+                # Select the exercise in the list view
+                self._select_exercise_in_list(selected_exercise)
 
-</details>
+                if selected_type:
+                    ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
+                    if ex_id is not None:
+                        types = self.db_manager.get_exercise_types(ex_id)
+                        self.comboBox_type.clear()
+                        self.comboBox_type.addItem("")
+                        self.comboBox_type.addItems(types)
+                        t_idx = self.comboBox_type.findText(selected_type)
+                        if t_idx >= 0:
+                            self.comboBox_type.setCurrentIndex(t_idx)
+            # If no specific selection, select the first exercise by default
+            elif exercises:
+                self._select_exercise_in_list(exercises[0])
 
-### Method `add_record_generic`
-
-```python
-def add_record_generic(self, table_name: str, query_text: str, params: dict) -> bool
-```
-
-Add a single row to `any` table.
-
-Args:
-
-- `table_name` (`str`): Target table (must be one of `self._SAFE_TABLES`).
-- `query_text` (`str`): SQL `INSERT` statement with named placeholders.
-- `params` (`dict`): Mapping for the placeholders.
-
-Returns:
-
-- `bool`: `True` if the row was written successfully.
-
-Raises:
-
-- `ValueError`: If table_name is not in \_SAFE_TABLES.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def add_record_generic(
-        self,
-        table_name: str,
-        query_text: str,
-        params: dict,
-    ) -> bool:
-        if table_name not in self._SAFE_TABLES:
-            error_message = f"Illegal table name: {table_name}"
-            raise ValueError(error_message)
-
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
-            self.update_all()
-            return True
-
-        QMessageBox.warning(self, "Error", f"Failed to add to {table_name}")
-        return False
+        except Exception as e:
+            print(f"Error updating comboboxes: {e}")
 ```
 
 </details>
@@ -3756,15 +3402,7 @@ def add_record_generic(
 def apply_filter(self) -> None
 ```
 
-Apply combo-box/date filters to the `process` table.
-
-Applies the currently selected filters to the process table:
-
-- Exercise filter
-- Exercise type filter
-- Date range filter (if enabled)
-
-Updates the process table view with the filtered results.
+Apply combo-box/date filters to the process table.
 
 <details>
 <summary>Code:</summary>
@@ -3774,50 +3412,19 @@ def apply_filter(self) -> None:
         exercise = self.comboBox_filter_exercise.currentText()
         exercise_type = self.comboBox_filter_type.currentText()
         use_date_filter = self.checkBox_use_date_filter.isChecked()
-        date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else ""
-        date_to = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else ""
+        date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
+        date_to = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None
 
-        conditions: list[str] = []
-        params: dict[str, str] = {}
-
-        if exercise:
-            conditions.append("e.name = :exercise")
-            params["exercise"] = exercise
-
-        if exercise_type:
-            conditions.append("t.type = :type")
-            params["type"] = exercise_type
-
-        if use_date_filter:
-            conditions.append("p.date BETWEEN :date_from AND :date_to")
-            params["date_from"] = date_from
-            params["date_to"] = date_to
-
-        query_text = """
-            SELECT p._id,
-                   e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   e.unit,
-                   p.date
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t
-                 ON p._id_types = t._id
-                AND t._id_exercises = e._id
-        """
-
-        if conditions:
-            query_text += " WHERE " + " AND ".join(conditions)
-
-        query_text += " ORDER BY p._id DESC"
-
-        rows = self.db_manager.get_rows(query_text, params)
-        data = [[row[0], row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]] for row in rows]
-        self.models["process"] = self._create_table_model(
-            data,
-            self.table_config["process"][2],
+        # Use database manager method
+        rows = self.db_manager.get_filtered_process_records(
+            exercise_name=exercise if exercise else None,
+            exercise_type=exercise_type if exercise_type else None,
+            date_from=date_from,
+            date_to=date_to,
         )
+
+        data = [[row[0], row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]] for row in rows]
+        self.models["process"] = self._create_table_model(data, self.table_config["process"][2])
         self.tableView_process.setModel(self.models["process"])
         self.tableView_process.resizeColumnsToContents()
 ```
@@ -3876,6 +3483,10 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         if self.avif_timer:
             self.avif_timer.stop()
 
+        # Close database connection
+        if self.db_manager:
+            self.db_manager.close()
+
         event.accept()
 ```
 
@@ -3887,7 +3498,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 def delete_record(self, table_name: str) -> None
 ```
 
-Delete selected row from `table_name` (must be safe).
+Delete selected row from table using database manager methods.
 
 Args:
 
@@ -3917,11 +3528,20 @@ def delete_record(self, table_name: str) -> None:
             return
 
         row = index.row()
-        _id = model.sourceModel().verticalHeaderItem(row).text()
+        _id = int(model.sourceModel().verticalHeaderItem(row).text())
 
-        # Explicitly use a constant query and bind the identifier
-        query = f"DELETE FROM {table_name} WHERE _id = :id"
-        if self.db_manager.execute_query(query, {"id": _id}):
+        # Use appropriate database manager method
+        success = False
+        if table_name == "process":
+            success = self.db_manager.delete_process_record(_id)
+        elif table_name == "exercises":
+            success = self.db_manager.delete_exercise(_id)
+        elif table_name == "types":
+            success = self.db_manager.delete_exercise_type(_id)
+        elif table_name == "weight":
+            success = self.db_manager.delete_weight_record(_id)
+
+        if success:
             self.update_all()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
@@ -3935,10 +3555,7 @@ def delete_record(self, table_name: str) -> None:
 def on_add_exercise(self) -> None
 ```
 
-Insert a new exercise.
-
-Adds a new exercise to the database using the name and unit values
-from the input fields. Shows an error message if the exercise name is empty.
+Insert a new exercise using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -3953,13 +3570,12 @@ def on_add_exercise(self) -> None:
             return
 
         # Get checkbox value
-        is_type_required = 1 if self.check_box_is_type_required.isChecked() else 0
+        is_type_required = self.check_box_is_type_required.isChecked()
 
-        self.add_record_generic(
-            "exercises",
-            "INSERT INTO exercises (name, unit, is_type_required) VALUES (:name, :unit, :is_type_required)",
-            {"name": exercise, "unit": unit, "is_type_required": is_type_required},
-        )
+        if self.db_manager.add_exercise(exercise, unit, is_type_required):
+            self.update_all()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to add exercise")
 ```
 
 </details>
@@ -3970,11 +3586,7 @@ def on_add_exercise(self) -> None:
 def on_add_record(self) -> None
 ```
 
-Insert a new `process` row.
-
-Adds a new exercise record to the process table using the currently selected
-exercise, type, count, and date values. Validates that exercise type is provided
-when required. Automatically advances the date after successful addition.
+Insert a new process record using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -3994,54 +3606,32 @@ def on_add_record(self) -> None:
         type_name = self.comboBox_type.currentText()
 
         # Check if exercise type is required
-        is_type_required_query = "SELECT is_type_required FROM exercises WHERE _id = :ex_id"
-        rows = self.db_manager.get_rows(is_type_required_query, {"ex_id": ex_id})
-
-        if rows and rows[0][0] == 1 and not type_name.strip():
+        if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
             QMessageBox.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
             return
 
         type_id = (
-            self.db_manager.get_id(
-                "types",
-                "type",
-                type_name,
-                condition=f"_id_exercises = {ex_id}",
-            )
+            self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
             if type_name
             else -1
         )
 
         # Store current date before adding record
         current_date = self.dateEdit.date()
+        value = str(self.spinBox_count.value())
+        date_str = current_date.toString("yyyy-MM-dd")
 
-        params = {
-            "exercise_id": ex_id,
-            "type_id": type_id or -1,
-            "value": str(self.spinBox_count.value()),
-            "date": current_date.toString("yyyy-MM-dd"),
-        }
-
-        # Execute the query directly instead of using add_record_generic
-        # to avoid triggering update_all() which resets the date
-        query_text = (
-            "INSERT INTO process (_id_exercises, _id_types, value, date) VALUES (:exercise_id, :type_id, :value, :date)"
-        )
-
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
+        # Use database manager method
+        if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
             # Apply date increment logic
             self._increment_date_after_add()
 
             # Update UI without resetting the date
             self.show_tables()
-            self._update_comboboxes(
-                selected_exercise=exercise,
-                selected_type=type_name,
-            )
+            self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
             self.update_filter_comboboxes()
         else:
-            QMessageBox.warning(self, "Error", "Failed to add to process")
+            QMessageBox.warning(self, "Error", "Failed to add process record")
 ```
 
 </details>
@@ -4052,10 +3642,7 @@ def on_add_record(self) -> None:
 def on_add_type(self) -> None
 ```
 
-Insert a new exercise `type` for the selected exercise.
-
-Adds a new exercise type for the selected exercise. Shows an error
-message if the type name is empty.
+Insert a new exercise type using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -4072,11 +3659,10 @@ def on_add_type(self) -> None:
             QMessageBox.warning(self, "Error", "Enter type name")
             return
 
-        self.add_record_generic(
-            "types",
-            "INSERT INTO types (_id_exercises, type) VALUES (:ex, :tp)",
-            {"ex": ex_id, "tp": type_name},
-        )
+        if self.db_manager.add_exercise_type(ex_id, type_name):
+            self.update_all()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to add exercise type")
 ```
 
 </details>
@@ -4087,11 +3673,7 @@ def on_add_type(self) -> None:
 def on_add_weight(self) -> None
 ```
 
-Insert a new weight measurement.
-
-Adds a new weight record to the database using the current weight value
-and date from the input fields. After successful addition, updates the UI
-and advances the date for convenient consecutive entries.
+Insert a new weight measurement using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -4109,16 +3691,8 @@ def on_add_weight(self) -> None:
         # Store current date before adding record
         current_date = self.dateEdit_weight.date()
 
-        # Execute the query directly instead of using add_record_generic
-        # to have more control over the update process
-        query_text = "INSERT INTO weight (value, date) VALUES (:val, :dt)"
-        params = {
-            "val": weight_value,
-            "dt": weight_date,
-        }
-
-        result = self.db_manager.execute_query(query_text, params)
-        if result:
+        # Use database manager method
+        if self.db_manager.add_weight_record(weight_value, weight_date):
             # Apply date increment logic similar to exercise records
             today = QDate.currentDate()
 
@@ -4130,16 +3704,14 @@ def on_add_weight(self) -> None:
                 next_date = current_date.addDays(1)
                 self.dateEdit_weight.setDate(next_date)
 
-            # Update UI without resetting the weight value (keep the newly added weight)
+            # Update UI without resetting the weight value
             self.show_tables()
 
-            # The weight spinbox will keep the current value since it's now the "last weight"
             # Update weight chart if we're on the weight tab
             current_tab_index = self.tabWidget.currentIndex()
-            weight_tab_index = 3  # Adjust this if weight tab index changes
+            weight_tab_index = 3
             if current_tab_index == weight_tab_index:
                 self.update_weight_chart()
-
         else:
             QMessageBox.warning(self, "Error", "Failed to add weight record")
 ```
@@ -4193,14 +3765,6 @@ def on_exercise_selection_changed_list(self) -> None
 
 Handle exercise selection change in the list view.
 
-Updates the exercise type combo box with the types associated with the
-currently selected exercise. Automatically selects the most recently used
-type for this exercise from the process table. Also loads the exercise AVIF.
-For exercise with \_id=self.id_steps (Steps), sets spinBox_count to empty (0).
-For other exercises, sets the value from the last performed exercise.
-Enables/disables comboBox_type based on whether types are available.
-Updates exercise name and unit labels.
-
 <details>
 <summary>Code:</summary>
 
@@ -4209,15 +3773,22 @@ def on_exercise_selection_changed_list(self) -> None:
         exercise = self._get_current_selected_exercise()
         if not exercise:
             self.comboBox_type.setEnabled(False)
-            # Clear labels when no exercise is selected
             self.label_exercise.setText("No exercise selected")
+            self.label_unit.setText("")
+            return
+
+        # Check if database manager is available and connection is open
+        if not self.db_manager or not self.db_manager.is_database_open():
+            print("Database manager not available or connection not open")
+            self.comboBox_type.setEnabled(False)
+            self.label_exercise.setText("Database error")
             self.label_unit.setText("")
             return
 
         # Update exercise name label
         self.label_exercise.setText(exercise)
 
-        # Check if a new AVIF needs to be uploaded
+        # Check if a new AVIF needs to be loaded
         current_avif_exercise = getattr(self, "_current_avif_exercise", None)
         if current_avif_exercise != exercise:
             self._current_avif_exercise = exercise
@@ -4225,25 +3796,17 @@ def on_exercise_selection_changed_list(self) -> None:
 
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
+            print(f"Exercise '{exercise}' not found in database")
             self.comboBox_type.setEnabled(False)
             self.label_unit.setText("")
             return
 
         # Get exercise unit and update label
-        unit_query = "SELECT unit FROM exercises WHERE _id = :ex_id"
-        unit_rows = self.db_manager.get_rows(unit_query, {"ex_id": ex_id})
-        if unit_rows and unit_rows[0][0]:
-            unit = unit_rows[0][0]
-            self.label_unit.setText(unit)
-        else:
-            self.label_unit.setText("times")  # Default unit
+        unit = self.db_manager.get_exercise_unit(exercise)
+        self.label_unit.setText(unit)
 
         # Get all types for this exercise
-        types = self.db_manager.get_items(
-            "types",
-            "type",
-            condition=f"_id_exercises = {ex_id}",
-        )
+        types = self.db_manager.get_exercise_types(ex_id)
 
         # Clear and populate the combobox
         self.comboBox_type.clear()
@@ -4254,37 +3817,32 @@ def on_exercise_selection_changed_list(self) -> None:
         self.comboBox_type.setEnabled(len(types) > 0)
 
         # Find the most recently used type and value for this exercise
-        last_record_query = """
-            SELECT t.type, p.value
-            FROM process p
-            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = p._id_exercises
-            WHERE p._id_exercises = :ex_id
-            ORDER BY p._id DESC
-            LIMIT 1"""
+        try:
+            last_record = self.db_manager.get_last_exercise_record(ex_id)
 
-        rows = self.db_manager.get_rows(last_record_query, {"ex_id": ex_id})
+            if last_record:
+                last_type, last_value = last_record
 
-        if rows:
-            last_type = rows[0][0] if rows[0][0] is not None else ""
-            last_value = rows[0][1] if rows[0][1] is not None else ""
+                # Find and select this type in the combobox
+                type_index = self.comboBox_type.findText(last_type)
+                if type_index >= 0:
+                    self.comboBox_type.setCurrentIndex(type_index)
 
-            # Find and select this type in the combobox
-            type_index = self.comboBox_type.findText(last_type)
-            if type_index >= 0:
-                self.comboBox_type.setCurrentIndex(type_index)
-
-            # Set spinBox_count value based on exercise _id
-            if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+                # Set spinBox_count value based on exercise _id
+                if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+                    self.spinBox_count.setValue(0)
+                else:  # Other exercises - use last value
+                    try:
+                        value = int(float(last_value))
+                        self.spinBox_count.setValue(value)
+                    except (ValueError, TypeError):
+                        # If conversion fails, keep default value
+                        print(f"Could not convert last value '{last_value}' to int for exercise '{exercise}'")
+            elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                 self.spinBox_count.setValue(0)
-            else:  # Other exercises - use last value
-                try:
-                    value = int(float(last_value))
-                    self.spinBox_count.setValue(value)
-                except (ValueError, TypeError):
-                    # If conversion fails, keep default value
-                    pass
-        elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
-            self.spinBox_count.setValue(0)
+
+        except Exception as e:
+            print(f"Error getting last exercise record for '{exercise}': {e}")
 ```
 
 </details>
@@ -4333,11 +3891,7 @@ def on_export_csv(self) -> None:
 def on_refresh_statistics(self) -> None
 ```
 
-Populate the statistics text-edit with the four best results per key.
-
-Retrieves exercise data from the database and displays the top four
-results for each exercise/type combination in the statistics text edit.
-Highlights today's entries.
+Populate the statistics text-edit using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -4346,23 +3900,13 @@ Highlights today's entries.
 def on_refresh_statistics(self) -> None:
         self.textEdit_statistics.clear()
 
-        rows = self.db_manager.get_rows(
-            """
-            SELECT e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   p.date
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t ON p._id_types = t._id
-            ORDER BY p._id DESC
-        """,
-        )
+        # Get statistics data using database manager
+        rows = self.db_manager.get_statistics_data()
 
         grouped: defaultdict[str, list[list]] = defaultdict(list)
         for ex_name, tp_name, val, date in rows:
             key = f"{ex_name} {tp_name}".strip()
-            grouped[key].append([ex_name, tp_name, float(val), date])
+            grouped[key].append([ex_name, tp_name, val, date])
 
         today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
         lines: list[str] = []
@@ -4469,18 +4013,17 @@ def on_weight_selection_changed(self) -> None:
 def set_chart_all_time(self) -> None
 ```
 
-Set chart date range to all available data.
+Set chart date range to all available data using database manager.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def set_chart_all_time(self) -> None:
-        # Get the earliest process record
-        rows = self.db_manager.get_rows("SELECT MIN(date) FROM process WHERE date IS NOT NULL")
+        earliest_date_str = self.db_manager.get_earliest_process_date()
 
-        if rows and rows[0][0]:
-            earliest_date = QDate.fromString(rows[0][0], "yyyy-MM-dd")
+        if earliest_date_str:
+            earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
             self.dateEdit_chart_from.setDate(earliest_date)
         else:
             # Fallback to one year ago if no data
@@ -4572,18 +4115,17 @@ def set_today_date(self) -> None:
 def set_weight_all_time(self) -> None
 ```
 
-Set weight chart date range to all available data.
+Set weight chart date range to all available data using database manager.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def set_weight_all_time(self) -> None:
-        # Get the earliest weight record
-        rows = self.db_manager.get_rows("SELECT MIN(date) FROM weight WHERE date IS NOT NULL")
+        earliest_date_str = self.db_manager.get_earliest_weight_date()
 
-        if rows and rows[0][0]:
-            earliest_date = QDate.fromString(rows[0][0], "yyyy-MM-dd")
+        if earliest_date_str:
+            earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
             self.dateEdit_weight_from.setDate(earliest_date)
         else:
             # Fallback to one year ago if no data
@@ -4666,7 +4208,7 @@ def set_yesterday_date(self) -> None:
 def show_sets_chart(self) -> None
 ```
 
-Show chart of total sets (records count) by period.
+Show chart of total sets using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -4684,16 +4226,8 @@ def show_sets_chart(self) -> None:
             if child:
                 child.setParent(None)
 
-        # Get sets data (count of records by date)
-        query = """
-            SELECT date, COUNT(*) as set_count
-            FROM process
-            WHERE date BETWEEN :date_from AND :date_to
-            AND date IS NOT NULL
-            GROUP BY date
-            ORDER BY date ASC"""
-
-        rows = self.db_manager.get_rows(query, {"date_from": date_from, "date_to": date_to})
+        # Get sets data using database manager
+        rows = self.db_manager.get_sets_chart_data(date_from, date_to)
 
         if not rows:
             from PySide6.QtWidgets import QLabel
@@ -4802,93 +4336,47 @@ def show_sets_chart(self) -> None:
 def show_tables(self) -> None
 ```
 
-Populate all four `QTableView`s from the database.
-
-Loads data from the database into all table views:
-
-- Process table (exercise records)
-- Exercises table
-- Exercise types table
-- Weight table
+Populate all QTableViews using database manager methods.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def show_tables(self) -> None:
-        # exercises - adding new field
-        rows = self.db_manager.get_rows("SELECT _id, name, unit, is_type_required FROM exercises")
-        # Update column headers
+        # Exercises table
+        rows = self.db_manager.get_all_exercises()
         exercises_headers = ["Exercise", "Unit of Measurement", "Type Required"]
-        self.models["exercises"] = self._create_table_model(
-            rows,
-            exercises_headers,
-        )
+        self.models["exercises"] = self._create_table_model(rows, exercises_headers)
         self.tableView_exercises.setModel(self.models["exercises"])
         self.tableView_exercises.resizeColumnsToContents()
 
         # Connect selection change signal AFTER setting the model
         selection_model = self.tableView_exercises.selectionModel()
         if selection_model:
-            # Qt automatically avoids duplicate connections
             selection_model.currentRowChanged.connect(self.on_exercise_selection_changed)
 
-        # Other tables remain unchanged...
-        # process
-        rows = self.db_manager.get_rows(
-            """
-            SELECT p._id,
-                e.name,
-                IFNULL(t.type, ''),
-                p.value,
-                e.unit,
-                p.date
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t
-                ON p._id_types = t._id
-                AND t._id_exercises = e._id
-            ORDER BY p._id DESC
-        """,
-        )
+        # Process table
+        rows = self.db_manager.get_all_process_records()
         process_data = [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
-        self.models["process"] = self._create_table_model(
-            process_data,
-            self.table_config["process"][2],
-        )
+        self.models["process"] = self._create_table_model(process_data, self.table_config["process"][2])
         self.tableView_process.setModel(self.models["process"])
         self.tableView_process.resizeColumnsToContents()
 
-        # types
-        rows = self.db_manager.get_rows(
-            """
-            SELECT t._id, e.name, t.type
-            FROM types t
-            JOIN exercises e ON t._id_exercises = e._id
-        """,
-        )
-        self.models["types"] = self._create_table_model(
-            rows,
-            self.table_config["types"][2],
-        )
+        # Types table
+        rows = self.db_manager.get_all_exercise_types()
+        self.models["types"] = self._create_table_model(rows, self.table_config["types"][2])
         self.tableView_exercise_types.setModel(self.models["types"])
         self.tableView_exercise_types.resizeColumnsToContents()
 
-        # weight
-        rows = self.db_manager.get_rows(
-            "SELECT _id, value, date FROM weight ORDER BY date DESC",
-        )
-        self.models["weight"] = self._create_table_model(
-            rows,
-            self.table_config["weight"][2],
-        )
+        # Weight table
+        rows = self.db_manager.get_all_weight_records()
+        self.models["weight"] = self._create_table_model(rows, self.table_config["weight"][2])
         self.tableView_weight.setModel(self.models["weight"])
         self.tableView_weight.resizeColumnsToContents()
 
         # Connect weight selection change signal AFTER setting the model
         weight_selection_model = self.tableView_weight.selectionModel()
         if weight_selection_model:
-            # Qt automatically avoids duplicate connections
             weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
 
         # Connect auto-save signals after all models are created
@@ -5006,11 +4494,7 @@ def update_chart_type_combobox(self) -> None:
         if exercise:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is not None:
-                types = self.db_manager.get_items(
-                    "types",
-                    "type",
-                    condition=f"_id_exercises = {ex_id}",
-                )
+                types = self.db_manager.get_exercise_types(ex_id)
                 self.comboBox_chart_type.addItems(types)
 ```
 
@@ -5022,7 +4506,7 @@ def update_chart_type_combobox(self) -> None:
 def update_exercise_chart(self) -> None
 ```
 
-Update the exercise chart with current filters.
+Update the exercise chart using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -5050,23 +4534,13 @@ def update_exercise_chart(self) -> None:
             layout.addWidget(no_data_label)
             return
 
-        # Build query based on filters
-        conditions = ["e.name = :exercise", "p.date BETWEEN :date_from AND :date_to"]
-        params = {"exercise": exercise, "date_from": date_from, "date_to": date_to}
-
-        if exercise_type and exercise_type != "All types":
-            conditions.append("t.type = :type")
-            params["type"] = exercise_type
-
-        query = f"""
-            SELECT p.date, p.value
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
-            WHERE {" AND ".join(conditions)}
-            ORDER BY p.date ASC"""
-
-        rows = self.db_manager.get_rows(query, params)
+        # Get chart data using database manager
+        rows = self.db_manager.get_exercise_chart_data(
+            exercise_name=exercise,
+            exercise_type=exercise_type if exercise_type != "All types" else None,
+            date_from=date_from,
+            date_to=date_to,
+        )
 
         if not rows:
             from PySide6.QtWidgets import QLabel
@@ -5236,11 +4710,7 @@ def update_filter_type_combobox(self) -> None:
         if exercise:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is not None:
-                types = self.db_manager.get_items(
-                    "types",
-                    "type",
-                    condition=f"_id_exercises = {ex_id}",
-                )
+                types = self.db_manager.get_exercise_types(ex_id)
                 self.comboBox_filter_type.addItems(types)
 
         if current_type:
@@ -5257,7 +4727,7 @@ def update_filter_type_combobox(self) -> None:
 def update_weight_chart(self) -> None
 ```
 
-Update the weight chart with current date range.
+Update the weight chart using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -5274,16 +4744,8 @@ def update_weight_chart(self) -> None:
             if child:
                 child.setParent(None)
 
-        # Get weight data
-        query = """
-            SELECT value, date
-            FROM weight
-            WHERE date BETWEEN :date_from AND :date_to
-            AND date IS NOT NULL
-            ORDER BY date ASC
-        """
-
-        rows = self.db_manager.get_rows(query, {"date_from": date_from, "date_to": date_to})
+        # Get weight data using database manager
+        rows = self.db_manager.get_weight_chart_data(date_from, date_to)
 
         if not rows:
             from PySide6.QtWidgets import QLabel
@@ -5298,7 +4760,7 @@ def update_weight_chart(self) -> None:
         canvas = FigureCanvas(fig)
 
         # Parse data
-        weights = [float(row[0]) for row in rows]
+        weights = [row[0] for row in rows]
         dates = [datetime.strptime(row[1], "%Y-%m-%d").replace(tzinfo=timezone.utc) for row in rows]
 
         # Create plot
