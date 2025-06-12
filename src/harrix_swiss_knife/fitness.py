@@ -303,6 +303,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         Note: ListView selection signal is connected later in _init_exercises_list()
         """
         self.pushButton_add.clicked.connect(self.on_add_record)
+        self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
         # Connect delete and refresh buttons for all tables
         for table_name in self.table_config:
