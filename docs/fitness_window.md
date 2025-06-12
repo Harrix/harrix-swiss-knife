@@ -43,10 +43,7 @@ class Ui_MainWindow(object):
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.label_exercise_avif.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
-        self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
-        self.label_8.setText(QCoreApplication.translate("MainWindow", "With the table:", None))
+        self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.pushButton_export_csv.setText(QCoreApplication.translate("MainWindow", "Export Table", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
@@ -68,9 +65,7 @@ class Ui_MainWindow(object):
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", "Type required", None))
         self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.label_3.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
-        self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_exercises_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
+        self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
@@ -78,9 +73,7 @@ class Ui_MainWindow(object):
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.label_4.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
-        self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_types_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
+        self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", "Exercise Types", None)
@@ -97,9 +90,7 @@ class Ui_MainWindow(object):
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.label_2.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
-        self.pushButton_weight_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_weight_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
+        self.pushButton_weight_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_weight_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None)
@@ -286,44 +277,16 @@ class Ui_MainWindow(object):
 
         self.groupBox_5 = QGroupBox(self.frame)
         self.groupBox_5.setObjectName("groupBox_5")
-        self.groupBox_5.setMinimumSize(QSize(0, 83))
+        self.groupBox_5.setMinimumSize(QSize(0, 0))
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_5)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.label = QLabel(self.groupBox_5)
-        self.label.setObjectName("label")
-
-        self.horizontalLayout_2.addWidget(self.label)
-
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_2.addItem(self.horizontalSpacer)
-
+        self.horizontalLayout_8 = QHBoxLayout()
+        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
         self.pushButton_delete = QPushButton(self.groupBox_5)
         self.pushButton_delete.setObjectName("pushButton_delete")
         self.pushButton_delete.setMinimumSize(QSize(80, 0))
 
-        self.horizontalLayout_2.addWidget(self.pushButton_delete)
-
-        self.pushButton_update = QPushButton(self.groupBox_5)
-        self.pushButton_update.setObjectName("pushButton_update")
-        self.pushButton_update.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_2.addWidget(self.pushButton_update)
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
-
-        self.horizontalLayout_8 = QHBoxLayout()
-        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
-        self.label_8 = QLabel(self.groupBox_5)
-        self.label_8.setObjectName("label_8")
-
-        self.horizontalLayout_8.addWidget(self.label_8)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_8.addItem(self.horizontalSpacer_2)
+        self.horizontalLayout_8.addWidget(self.pushButton_delete)
 
         self.pushButton_refresh = QPushButton(self.groupBox_5)
         self.pushButton_refresh.setObjectName("pushButton_refresh")
@@ -522,11 +485,6 @@ class Ui_MainWindow(object):
         self.groupBox_7.setObjectName("groupBox_7")
         self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
         self.verticalLayout_11.setObjectName("verticalLayout_11")
-        self.label_3 = QLabel(self.groupBox_7)
-        self.label_3.setObjectName("label_3")
-
-        self.verticalLayout_11.addWidget(self.label_3)
-
         self.horizontalLayout_20 = QHBoxLayout()
         self.horizontalLayout_20.setObjectName("horizontalLayout_20")
         self.pushButton_exercises_delete = QPushButton(self.groupBox_7)
@@ -534,21 +492,16 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_20.addWidget(self.pushButton_exercises_delete)
 
-        self.pushButton_exercises_update = QPushButton(self.groupBox_7)
-        self.pushButton_exercises_update.setObjectName("pushButton_exercises_update")
-
-        self.horizontalLayout_20.addWidget(self.pushButton_exercises_update)
-
-        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
-
         self.pushButton_exercises_refresh = QPushButton(self.groupBox_7)
         self.pushButton_exercises_refresh.setObjectName("pushButton_exercises_refresh")
 
-        self.verticalLayout_11.addWidget(self.pushButton_exercises_refresh)
+        self.horizontalLayout_20.addWidget(self.pushButton_exercises_refresh)
+
+        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
 
         self.verticalLayout_12.addWidget(self.groupBox_7)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 533, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_12.addItem(self.verticalSpacer_2)
 
@@ -605,11 +558,6 @@ class Ui_MainWindow(object):
         self.groupBox_8.setObjectName("groupBox_8")
         self.verticalLayout_13 = QVBoxLayout(self.groupBox_8)
         self.verticalLayout_13.setObjectName("verticalLayout_13")
-        self.label_4 = QLabel(self.groupBox_8)
-        self.label_4.setObjectName("label_4")
-
-        self.verticalLayout_13.addWidget(self.label_4)
-
         self.horizontalLayout_21 = QHBoxLayout()
         self.horizontalLayout_21.setObjectName("horizontalLayout_21")
         self.pushButton_types_delete = QPushButton(self.groupBox_8)
@@ -617,21 +565,16 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_21.addWidget(self.pushButton_types_delete)
 
-        self.pushButton_types_update = QPushButton(self.groupBox_8)
-        self.pushButton_types_update.setObjectName("pushButton_types_update")
-
-        self.horizontalLayout_21.addWidget(self.pushButton_types_update)
-
-        self.verticalLayout_13.addLayout(self.horizontalLayout_21)
-
         self.pushButton_types_refresh = QPushButton(self.groupBox_8)
         self.pushButton_types_refresh.setObjectName("pushButton_types_refresh")
 
-        self.verticalLayout_13.addWidget(self.pushButton_types_refresh)
+        self.horizontalLayout_21.addWidget(self.pushButton_types_refresh)
+
+        self.verticalLayout_13.addLayout(self.horizontalLayout_21)
 
         self.verticalLayout_15.addWidget(self.groupBox_8)
 
-        self.verticalSpacer_3 = QSpacerItem(20, 560, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_3 = QSpacerItem(20, 608, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_15.addItem(self.verticalSpacer_3)
 
@@ -759,11 +702,6 @@ class Ui_MainWindow(object):
         self.groupBox_6.setObjectName("groupBox_6")
         self.verticalLayout_8 = QVBoxLayout(self.groupBox_6)
         self.verticalLayout_8.setObjectName("verticalLayout_8")
-        self.label_2 = QLabel(self.groupBox_6)
-        self.label_2.setObjectName("label_2")
-
-        self.verticalLayout_8.addWidget(self.label_2)
-
         self.horizontalLayout_16 = QHBoxLayout()
         self.horizontalLayout_16.setObjectName("horizontalLayout_16")
         self.pushButton_weight_delete = QPushButton(self.groupBox_6)
@@ -771,17 +709,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_16.addWidget(self.pushButton_weight_delete)
 
-        self.pushButton_weight_update = QPushButton(self.groupBox_6)
-        self.pushButton_weight_update.setObjectName("pushButton_weight_update")
-
-        self.horizontalLayout_16.addWidget(self.pushButton_weight_update)
-
-        self.verticalLayout_8.addLayout(self.horizontalLayout_16)
-
         self.pushButton_weight_refresh = QPushButton(self.groupBox_6)
         self.pushButton_weight_refresh.setObjectName("pushButton_weight_refresh")
 
-        self.verticalLayout_8.addWidget(self.pushButton_weight_refresh)
+        self.horizontalLayout_16.addWidget(self.pushButton_weight_refresh)
+
+        self.verticalLayout_8.addLayout(self.horizontalLayout_16)
 
         self.verticalLayout_9.addWidget(self.groupBox_6)
 
@@ -995,10 +928,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.label_exercise_avif.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
-        self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
-        self.label_8.setText(QCoreApplication.translate("MainWindow", "With the table:", None))
+        self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.pushButton_export_csv.setText(QCoreApplication.translate("MainWindow", "Export Table", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
@@ -1020,9 +950,7 @@ def retranslateUi(self, MainWindow):
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", "Type required", None))
         self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.label_3.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
-        self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_exercises_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
+        self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
@@ -1030,9 +958,7 @@ def retranslateUi(self, MainWindow):
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.label_4.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
-        self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_types_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
+        self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", "Exercise Types", None)
@@ -1049,9 +975,7 @@ def retranslateUi(self, MainWindow):
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.label_2.setText(QCoreApplication.translate("MainWindow", "With the selected row:", None))
-        self.pushButton_weight_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_weight_update.setText(QCoreApplication.translate("MainWindow", "Save", None))
+        self.pushButton_weight_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_weight_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None)
@@ -1253,44 +1177,16 @@ def setupUi(self, MainWindow):
 
         self.groupBox_5 = QGroupBox(self.frame)
         self.groupBox_5.setObjectName("groupBox_5")
-        self.groupBox_5.setMinimumSize(QSize(0, 83))
+        self.groupBox_5.setMinimumSize(QSize(0, 0))
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_5)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.label = QLabel(self.groupBox_5)
-        self.label.setObjectName("label")
-
-        self.horizontalLayout_2.addWidget(self.label)
-
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_2.addItem(self.horizontalSpacer)
-
+        self.horizontalLayout_8 = QHBoxLayout()
+        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
         self.pushButton_delete = QPushButton(self.groupBox_5)
         self.pushButton_delete.setObjectName("pushButton_delete")
         self.pushButton_delete.setMinimumSize(QSize(80, 0))
 
-        self.horizontalLayout_2.addWidget(self.pushButton_delete)
-
-        self.pushButton_update = QPushButton(self.groupBox_5)
-        self.pushButton_update.setObjectName("pushButton_update")
-        self.pushButton_update.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_2.addWidget(self.pushButton_update)
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
-
-        self.horizontalLayout_8 = QHBoxLayout()
-        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
-        self.label_8 = QLabel(self.groupBox_5)
-        self.label_8.setObjectName("label_8")
-
-        self.horizontalLayout_8.addWidget(self.label_8)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_8.addItem(self.horizontalSpacer_2)
+        self.horizontalLayout_8.addWidget(self.pushButton_delete)
 
         self.pushButton_refresh = QPushButton(self.groupBox_5)
         self.pushButton_refresh.setObjectName("pushButton_refresh")
@@ -1489,11 +1385,6 @@ def setupUi(self, MainWindow):
         self.groupBox_7.setObjectName("groupBox_7")
         self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
         self.verticalLayout_11.setObjectName("verticalLayout_11")
-        self.label_3 = QLabel(self.groupBox_7)
-        self.label_3.setObjectName("label_3")
-
-        self.verticalLayout_11.addWidget(self.label_3)
-
         self.horizontalLayout_20 = QHBoxLayout()
         self.horizontalLayout_20.setObjectName("horizontalLayout_20")
         self.pushButton_exercises_delete = QPushButton(self.groupBox_7)
@@ -1501,21 +1392,16 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_20.addWidget(self.pushButton_exercises_delete)
 
-        self.pushButton_exercises_update = QPushButton(self.groupBox_7)
-        self.pushButton_exercises_update.setObjectName("pushButton_exercises_update")
-
-        self.horizontalLayout_20.addWidget(self.pushButton_exercises_update)
-
-        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
-
         self.pushButton_exercises_refresh = QPushButton(self.groupBox_7)
         self.pushButton_exercises_refresh.setObjectName("pushButton_exercises_refresh")
 
-        self.verticalLayout_11.addWidget(self.pushButton_exercises_refresh)
+        self.horizontalLayout_20.addWidget(self.pushButton_exercises_refresh)
+
+        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
 
         self.verticalLayout_12.addWidget(self.groupBox_7)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 533, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_12.addItem(self.verticalSpacer_2)
 
@@ -1572,11 +1458,6 @@ def setupUi(self, MainWindow):
         self.groupBox_8.setObjectName("groupBox_8")
         self.verticalLayout_13 = QVBoxLayout(self.groupBox_8)
         self.verticalLayout_13.setObjectName("verticalLayout_13")
-        self.label_4 = QLabel(self.groupBox_8)
-        self.label_4.setObjectName("label_4")
-
-        self.verticalLayout_13.addWidget(self.label_4)
-
         self.horizontalLayout_21 = QHBoxLayout()
         self.horizontalLayout_21.setObjectName("horizontalLayout_21")
         self.pushButton_types_delete = QPushButton(self.groupBox_8)
@@ -1584,21 +1465,16 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_21.addWidget(self.pushButton_types_delete)
 
-        self.pushButton_types_update = QPushButton(self.groupBox_8)
-        self.pushButton_types_update.setObjectName("pushButton_types_update")
-
-        self.horizontalLayout_21.addWidget(self.pushButton_types_update)
-
-        self.verticalLayout_13.addLayout(self.horizontalLayout_21)
-
         self.pushButton_types_refresh = QPushButton(self.groupBox_8)
         self.pushButton_types_refresh.setObjectName("pushButton_types_refresh")
 
-        self.verticalLayout_13.addWidget(self.pushButton_types_refresh)
+        self.horizontalLayout_21.addWidget(self.pushButton_types_refresh)
+
+        self.verticalLayout_13.addLayout(self.horizontalLayout_21)
 
         self.verticalLayout_15.addWidget(self.groupBox_8)
 
-        self.verticalSpacer_3 = QSpacerItem(20, 560, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_3 = QSpacerItem(20, 608, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_15.addItem(self.verticalSpacer_3)
 
@@ -1726,11 +1602,6 @@ def setupUi(self, MainWindow):
         self.groupBox_6.setObjectName("groupBox_6")
         self.verticalLayout_8 = QVBoxLayout(self.groupBox_6)
         self.verticalLayout_8.setObjectName("verticalLayout_8")
-        self.label_2 = QLabel(self.groupBox_6)
-        self.label_2.setObjectName("label_2")
-
-        self.verticalLayout_8.addWidget(self.label_2)
-
         self.horizontalLayout_16 = QHBoxLayout()
         self.horizontalLayout_16.setObjectName("horizontalLayout_16")
         self.pushButton_weight_delete = QPushButton(self.groupBox_6)
@@ -1738,17 +1609,12 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_16.addWidget(self.pushButton_weight_delete)
 
-        self.pushButton_weight_update = QPushButton(self.groupBox_6)
-        self.pushButton_weight_update.setObjectName("pushButton_weight_update")
-
-        self.horizontalLayout_16.addWidget(self.pushButton_weight_update)
-
-        self.verticalLayout_8.addLayout(self.horizontalLayout_16)
-
         self.pushButton_weight_refresh = QPushButton(self.groupBox_6)
         self.pushButton_weight_refresh.setObjectName("pushButton_weight_refresh")
 
-        self.verticalLayout_8.addWidget(self.pushButton_weight_refresh)
+        self.horizontalLayout_16.addWidget(self.pushButton_weight_refresh)
+
+        self.verticalLayout_8.addLayout(self.horizontalLayout_16)
 
         self.verticalLayout_9.addWidget(self.groupBox_6)
 

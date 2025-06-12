@@ -41,7 +41,6 @@ lang: en
   - [Method `_on_table_data_changed`](#method-_on_table_data_changed)
   - [Method `_select_exercise_in_list`](#method-_select_exercise_in_list)
   - [Method `_update_comboboxes`](#method-_update_comboboxes)
-  - [Method `_update_record_generic`](#method-_update_record_generic)
   - [Method `add_record_generic`](#method-add_record_generic)
   - [Method `apply_filter`](#method-apply_filter)
   - [Method `clear_filter`](#method-clear_filter)
@@ -56,10 +55,6 @@ lang: en
   - [Method `on_export_csv`](#method-on_export_csv)
   - [Method `on_refresh_statistics`](#method-on_refresh_statistics)
   - [Method `on_tab_changed`](#method-on_tab_changed)
-  - [Method `on_update_exercises`](#method-on_update_exercises)
-  - [Method `on_update_process`](#method-on_update_process)
-  - [Method `on_update_types`](#method-on_update_types)
-  - [Method `on_update_weight`](#method-on_update_weight)
   - [Method `on_weight_selection_changed`](#method-on_weight_selection_changed)
   - [Method `set_chart_all_time`](#method-set_chart_all_time)
   - [Method `set_chart_last_month`](#method-set_chart_last_month)
@@ -385,7 +380,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         Connects all UI elements to their respective handler methods, including:
 
-        - Button click events for adding, updating, and deleting records
+        - Button click events for adding and deleting records
         - Tab change events
         - Statistics and export functionality
         - Auto-save signals for table data changes
@@ -394,24 +389,17 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         """
         self.pushButton_add.clicked.connect(self.on_add_record)
 
-        for action, button_prefix in [
-            ("delete", "delete"),
-            ("update", "update"),
-            ("refresh", "refresh"),
-        ]:
-            for table_name in self.table_config:
-                btn_name = (
-                    f"pushButton_{button_prefix}"
-                    if table_name == "process"
-                    else f"pushButton_{table_name}_{button_prefix}"
-                )
-                button = getattr(self, btn_name)
-                if action == "delete":
-                    button.clicked.connect(partial(self.delete_record, table_name))
-                elif action == "update":
-                    button.clicked.connect(getattr(self, f"on_update_{table_name}"))
-                else:
-                    button.clicked.connect(self.update_all)
+        # Connect delete and refresh buttons for all tables
+        for table_name in self.table_config:
+            # Delete buttons
+            delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
+            delete_button = getattr(self, delete_btn_name)
+            delete_button.clicked.connect(partial(self.delete_record, table_name))
+
+            # Refresh buttons
+            refresh_btn_name = "pushButton_refresh" if table_name == "process" else f"pushButton_{table_name}_refresh"
+            refresh_button = getattr(self, refresh_btn_name)
+            refresh_button.clicked.connect(self.update_all)
 
         # Add buttons
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
@@ -1084,42 +1072,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         elif exercises:
             self._select_exercise_in_list(exercises[0])
 
-    def _update_record_generic(
-        self,
-        table_name: str,
-        model_key: str,
-        query_text: str,
-        params_extractor: Callable[
-            [int, QSortFilterProxyModel, str],
-            dict,
-        ],
-    ) -> None:
-        """Low-level generic UPDATE handler.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table being updated (for error messages).
-        - `model_key` (`str`): Key for accessing the model in the models dictionary.
-        - `query_text` (`str`): SQL update query with placeholders.
-        - `params_extractor` (`Callable`): Function to extract parameters from the selected row.
-
-        """
-        table_view = next(tv for tv, mkey, _ in self.table_config.values() if mkey == model_key)
-        index = table_view.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Error", "Select a record to update")
-            return
-
-        model = self.models[model_key]
-        row = index.row()
-        _id = model.sourceModel().verticalHeaderItem(row).text()
-        params = params_extractor(row, model, _id)
-
-        if self.db_manager.execute_query(query_text, params):
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", f"Failed to update {table_name}")
-
     def add_record_generic(
         self,
         table_name: str,
@@ -1651,138 +1603,6 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             self._load_default_exercise_chart()
         elif index == index_tab_weight:
             self.set_weight_all_time()
-
-    def on_update_exercises(self) -> None:
-        """Update the selected exercise row.
-
-        Updates the name, unit, and is_type_required of the currently selected exercise in the
-        exercises table.
-        """
-        self._update_record_generic(
-            "exercises",
-            "exercises",
-            "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr WHERE _id = :id",
-            lambda r, m, _id: {
-                "n": m.data(m.index(r, 0)),
-                "u": m.data(m.index(r, 1)),
-                "itr": 1 if m.data(m.index(r, 2)) == "1" else 0,
-                "id": _id,
-            },
-        )
-
-    def on_update_process(self) -> None:
-        """Update the selected process row.
-
-        Updates the exercise, type, value, and date of the currently selected
-        record in the process table.
-        """
-        index = self.tableView_process.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Error", "Select a record to update")
-            return
-
-        row = index.row()
-        model = self.models["process"]
-        _id = model.sourceModel().verticalHeaderItem(row).text()
-
-        exercise = model.data(model.index(row, 0))
-        type_name = model.data(model.index(row, 1))
-        value_raw = model.data(model.index(row, 2))
-        date = model.data(model.index(row, 3))
-        value = value_raw.split(" ")[0]  # remove unit
-
-        if not self._is_valid_date(date):
-            QMessageBox.warning(self, "Error", "Use YYYY-MM-DD date format")
-            return
-
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            return
-        tp_id = (
-            self.db_manager.get_id(
-                "types",
-                "type",
-                type_name,
-                condition=f"_id_exercises = {ex_id}",
-            )
-            if type_name
-            else -1
-        )
-
-        self.db_manager.execute_query(
-            """
-            UPDATE process
-               SET _id_exercises = :ex,
-                   _id_types     = :tp,
-                   date          = :dt,
-                   value         = :val
-             WHERE _id = :id
-        """,
-            {
-                "ex": ex_id,
-                "tp": tp_id or -1,
-                "dt": date,
-                "val": value,
-                "id": _id,
-            },
-        )
-        self.update_all()
-
-    def on_update_types(self) -> None:
-        """Update the selected `types` row.
-
-        Updates the exercise and type of the currently selected record in the
-        types table.
-        """
-        self._update_record_generic(
-            "types",
-            "types",
-            """
-            UPDATE types
-               SET _id_exercises = :ex,
-                   type          = :tp
-             WHERE _id = :id
-        """,
-            lambda r, m, _id: {
-                "ex": self.db_manager.get_id("exercises", "name", m.data(m.index(r, 0))),
-                "tp": m.data(m.index(r, 1)),
-                "id": _id,
-            },
-        )
-
-    def on_update_weight(self) -> None:
-        """Update the selected weight entry.
-
-        Updates the value and date of the currently selected record in the
-        weight table.
-        """
-        index = self.tableView_weight.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Error", "Select a record to update")
-            return
-
-        row = index.row()
-        model = self.models["weight"]
-        _id = model.sourceModel().verticalHeaderItem(row).text()
-
-        # Get values from the form
-        weight_value = str(self.doubleSpinBox_weight.value())
-        weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
-
-        if not self._is_valid_date(weight_date):
-            QMessageBox.warning(self, "Error", "Invalid date format")
-            return
-
-        params = {
-            "v": weight_value,
-            "d": weight_date,
-            "id": _id,
-        }
-
-        if self.db_manager.execute_query("UPDATE weight SET value = :v, date = :d WHERE _id = :id", params):
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to update weight record")
 
     def on_weight_selection_changed(self) -> None:
         """Update form fields when weight selection changes in the table.
@@ -2877,7 +2697,7 @@ Wire Qt widgets to their Python slots.
 
 Connects all UI elements to their respective handler methods, including:
 
-- Button click events for adding, updating, and deleting records
+- Button click events for adding and deleting records
 - Tab change events
 - Statistics and export functionality
 - Auto-save signals for table data changes
@@ -2891,24 +2711,17 @@ Note: ListView selection signal is connected later in \_init_exercises_list()
 def _connect_signals(self) -> None:
         self.pushButton_add.clicked.connect(self.on_add_record)
 
-        for action, button_prefix in [
-            ("delete", "delete"),
-            ("update", "update"),
-            ("refresh", "refresh"),
-        ]:
-            for table_name in self.table_config:
-                btn_name = (
-                    f"pushButton_{button_prefix}"
-                    if table_name == "process"
-                    else f"pushButton_{table_name}_{button_prefix}"
-                )
-                button = getattr(self, btn_name)
-                if action == "delete":
-                    button.clicked.connect(partial(self.delete_record, table_name))
-                elif action == "update":
-                    button.clicked.connect(getattr(self, f"on_update_{table_name}"))
-                else:
-                    button.clicked.connect(self.update_all)
+        # Connect delete and refresh buttons for all tables
+        for table_name in self.table_config:
+            # Delete buttons
+            delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
+            delete_button = getattr(self, delete_btn_name)
+            delete_button.clicked.connect(partial(self.delete_record, table_name))
+
+            # Refresh buttons
+            refresh_btn_name = "pushButton_refresh" if table_name == "process" else f"pushButton_{table_name}_refresh"
+            refresh_button = getattr(self, refresh_btn_name)
+            refresh_button.clicked.connect(self.update_all)
 
         # Add buttons
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
@@ -3890,54 +3703,6 @@ def _update_comboboxes(
 
 </details>
 
-### Method `_update_record_generic`
-
-```python
-def _update_record_generic(self, table_name: str, model_key: str, query_text: str, params_extractor: Callable[[int, QSortFilterProxyModel, str], dict]) -> None
-```
-
-Low-level generic UPDATE handler.
-
-Args:
-
-- `table_name` (`str`): Name of the table being updated (for error messages).
-- `model_key` (`str`): Key for accessing the model in the models dictionary.
-- `query_text` (`str`): SQL update query with placeholders.
-- `params_extractor` (`Callable`): Function to extract parameters from the selected row.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _update_record_generic(
-        self,
-        table_name: str,
-        model_key: str,
-        query_text: str,
-        params_extractor: Callable[
-            [int, QSortFilterProxyModel, str],
-            dict,
-        ],
-    ) -> None:
-        table_view = next(tv for tv, mkey, _ in self.table_config.values() if mkey == model_key)
-        index = table_view.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Error", "Select a record to update")
-            return
-
-        model = self.models[model_key]
-        row = index.row()
-        _id = model.sourceModel().verticalHeaderItem(row).text()
-        params = params_extractor(row, model, _id)
-
-        if self.db_manager.execute_query(query_text, params):
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", f"Failed to update {table_name}")
-```
-
-</details>
-
 ### Method `add_record_generic`
 
 ```python
@@ -4645,190 +4410,6 @@ def on_tab_changed(self, index: int) -> None:
             self._load_default_exercise_chart()
         elif index == index_tab_weight:
             self.set_weight_all_time()
-```
-
-</details>
-
-### Method `on_update_exercises`
-
-```python
-def on_update_exercises(self) -> None
-```
-
-Update the selected exercise row.
-
-Updates the name, unit, and is_type_required of the currently selected exercise in the
-exercises table.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_update_exercises(self) -> None:
-        self._update_record_generic(
-            "exercises",
-            "exercises",
-            "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr WHERE _id = :id",
-            lambda r, m, _id: {
-                "n": m.data(m.index(r, 0)),
-                "u": m.data(m.index(r, 1)),
-                "itr": 1 if m.data(m.index(r, 2)) == "1" else 0,
-                "id": _id,
-            },
-        )
-```
-
-</details>
-
-### Method `on_update_process`
-
-```python
-def on_update_process(self) -> None
-```
-
-Update the selected process row.
-
-Updates the exercise, type, value, and date of the currently selected
-record in the process table.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_update_process(self) -> None:
-        index = self.tableView_process.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Error", "Select a record to update")
-            return
-
-        row = index.row()
-        model = self.models["process"]
-        _id = model.sourceModel().verticalHeaderItem(row).text()
-
-        exercise = model.data(model.index(row, 0))
-        type_name = model.data(model.index(row, 1))
-        value_raw = model.data(model.index(row, 2))
-        date = model.data(model.index(row, 3))
-        value = value_raw.split(" ")[0]  # remove unit
-
-        if not self._is_valid_date(date):
-            QMessageBox.warning(self, "Error", "Use YYYY-MM-DD date format")
-            return
-
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            return
-        tp_id = (
-            self.db_manager.get_id(
-                "types",
-                "type",
-                type_name,
-                condition=f"_id_exercises = {ex_id}",
-            )
-            if type_name
-            else -1
-        )
-
-        self.db_manager.execute_query(
-            """
-            UPDATE process
-               SET _id_exercises = :ex,
-                   _id_types     = :tp,
-                   date          = :dt,
-                   value         = :val
-             WHERE _id = :id
-        """,
-            {
-                "ex": ex_id,
-                "tp": tp_id or -1,
-                "dt": date,
-                "val": value,
-                "id": _id,
-            },
-        )
-        self.update_all()
-```
-
-</details>
-
-### Method `on_update_types`
-
-```python
-def on_update_types(self) -> None
-```
-
-Update the selected `types` row.
-
-Updates the exercise and type of the currently selected record in the
-types table.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_update_types(self) -> None:
-        self._update_record_generic(
-            "types",
-            "types",
-            """
-            UPDATE types
-               SET _id_exercises = :ex,
-                   type          = :tp
-             WHERE _id = :id
-        """,
-            lambda r, m, _id: {
-                "ex": self.db_manager.get_id("exercises", "name", m.data(m.index(r, 0))),
-                "tp": m.data(m.index(r, 1)),
-                "id": _id,
-            },
-        )
-```
-
-</details>
-
-### Method `on_update_weight`
-
-```python
-def on_update_weight(self) -> None
-```
-
-Update the selected weight entry.
-
-Updates the value and date of the currently selected record in the
-weight table.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_update_weight(self) -> None:
-        index = self.tableView_weight.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Error", "Select a record to update")
-            return
-
-        row = index.row()
-        model = self.models["weight"]
-        _id = model.sourceModel().verticalHeaderItem(row).text()
-
-        # Get values from the form
-        weight_value = str(self.doubleSpinBox_weight.value())
-        weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
-
-        if not self._is_valid_date(weight_date):
-            QMessageBox.warning(self, "Error", "Invalid date format")
-            return
-
-        params = {
-            "v": weight_value,
-            "d": weight_date,
-            "id": _id,
-        }
-
-        if self.db_manager.execute_query("UPDATE weight SET value = :v, date = :d WHERE _id = :id", params):
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to update weight record")
 ```
 
 </details>
