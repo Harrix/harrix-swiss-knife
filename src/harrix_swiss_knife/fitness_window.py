@@ -229,7 +229,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.groupBox = QGroupBox(self.frame)
         self.groupBox.setObjectName("groupBox")
-        self.groupBox.setMinimumSize(QSize(0, 185))
+        self.groupBox.setMinimumSize(QSize(0, 201))
         self.verticalLayout_5 = QVBoxLayout(self.groupBox)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.label_exercise = QLabel(self.groupBox)
