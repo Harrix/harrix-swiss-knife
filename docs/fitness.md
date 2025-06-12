@@ -544,10 +544,11 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
 
         try:
             last_weight = self.db_manager.get_last_weight()
-            return last_weight if last_weight is not None else initial_weight
         except Exception as e:
             print(f"Error getting last weight: {e}")
             return initial_weight
+        else:
+            return last_weight if last_weight is not None else initial_weight
 
     def _group_exercise_data_by_period(self, rows: list, period: str) -> dict:
         """Group exercise data by the specified period (Days, Months, Years)."""
@@ -2675,10 +2676,11 @@ def _get_last_weight(self) -> float:
 
         try:
             last_weight = self.db_manager.get_last_weight()
-            return last_weight if last_weight is not None else initial_weight
         except Exception as e:
             print(f"Error getting last weight: {e}")
             return initial_weight
+        else:
+            return last_weight if last_weight is not None else initial_weight
 ```
 
 </details>

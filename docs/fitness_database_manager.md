@@ -102,12 +102,11 @@ class FitnessDatabaseManager:
             raise ConnectionError(msg)
 
     def __del__(self) -> None:
-        """Destructor to ensure database connection is properly closed."""
+        """Clean up database connection when object is destroyed."""
         try:
             self.close()
-        except Exception:
-            # Ignore errors during cleanup
-            pass
+        except Exception as e:
+            print(f"Warning: Error during database cleanup: {e}")
 
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.
@@ -155,7 +154,7 @@ class FitnessDatabaseManager:
             result.append(row)
         return result
 
-    def add_exercise(self, name: str, unit: str, is_type_required: bool) -> bool:
+    def add_exercise(self, name: str, unit: str, *, is_type_required: bool) -> bool:
         """Add a new exercise to the database.
 
         Args:
@@ -211,7 +210,8 @@ class FitnessDatabaseManager:
         result = self.execute_simple_query(query, params)
         if not result:
             print(
-                f"Failed to add process record: exercise_id={exercise_id}, type_id={type_id}, value={value}, date={date}"
+                f"Failed to add process record: exercise_id={exercise_id}, "
+                f"type_id={type_id}, value={value}, date={date}"
             )
         return result
 
@@ -838,7 +838,7 @@ class FitnessDatabaseManager:
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
 
-    def update_exercise(self, exercise_id: int, name: str, unit: str, is_type_required: bool) -> bool:
+    def update_exercise(self, exercise_id: int, name: str, unit: str, *, is_type_required: bool) -> bool:
         """Update an existing exercise.
 
         Args:
@@ -968,7 +968,7 @@ def __init__(self, db_filename: str) -> None:
 def __del__(self) -> None
 ```
 
-Destructor to ensure database connection is properly closed.
+Clean up database connection when object is destroyed.
 
 <details>
 <summary>Code:</summary>
@@ -977,9 +977,8 @@ Destructor to ensure database connection is properly closed.
 def __del__(self) -> None:
         try:
             self.close()
-        except Exception:
-            # Ignore errors during cleanup
-            pass
+        except Exception as e:
+            print(f"Warning: Error during database cleanup: {e}")
 ```
 
 </details>
@@ -1070,7 +1069,7 @@ def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
 ### Method `add_exercise`
 
 ```python
-def add_exercise(self, name: str, unit: str, is_type_required: bool) -> bool
+def add_exercise(self, name: str, unit: str) -> bool
 ```
 
 Add a new exercise to the database.
@@ -1089,7 +1088,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_exercise(self, name: str, unit: str, is_type_required: bool) -> bool:
+def add_exercise(self, name: str, unit: str, *, is_type_required: bool) -> bool:
         query = "INSERT INTO exercises (name, unit, is_type_required) VALUES (:name, :unit, :is_type_required)"
         params = {"name": name, "unit": unit, "is_type_required": 1 if is_type_required else 0}
         return self.execute_simple_query(query, params)
@@ -1162,7 +1161,8 @@ def add_process_record(self, exercise_id: int, type_id: int, value: str, date: s
         result = self.execute_simple_query(query, params)
         if not result:
             print(
-                f"Failed to add process record: exercise_id={exercise_id}, type_id={type_id}, value={value}, date={date}"
+                f"Failed to add process record: exercise_id={exercise_id}, "
+                f"type_id={type_id}, value={value}, date={date}"
             )
         return result
 ```
@@ -2180,7 +2180,7 @@ def is_exercise_type_required(self, exercise_id: int) -> bool:
 ### Method `update_exercise`
 
 ```python
-def update_exercise(self, exercise_id: int, name: str, unit: str, is_type_required: bool) -> bool
+def update_exercise(self, exercise_id: int, name: str, unit: str) -> bool
 ```
 
 Update an existing exercise.
@@ -2200,7 +2200,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def update_exercise(self, exercise_id: int, name: str, unit: str, is_type_required: bool) -> bool:
+def update_exercise(self, exercise_id: int, name: str, unit: str, *, is_type_required: bool) -> bool:
         query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr WHERE _id = :id"
         params = {
             "n": name,

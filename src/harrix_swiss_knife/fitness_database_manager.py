@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from collections import Counter
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -49,12 +48,11 @@ class FitnessDatabaseManager:
             raise ConnectionError(msg)
 
     def __del__(self) -> None:
-        """Destructor to ensure database connection is properly closed."""
+        """Clean up database connection when object is destroyed."""
         try:
             self.close()
-        except Exception:
-            # Ignore errors during cleanup
-            pass
+        except Exception as e:
+            print(f"Warning: Error during database cleanup: {e}")
 
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.
@@ -102,7 +100,7 @@ class FitnessDatabaseManager:
             result.append(row)
         return result
 
-    def add_exercise(self, name: str, unit: str, is_type_required: bool) -> bool:
+    def add_exercise(self, name: str, unit: str, *, is_type_required: bool) -> bool:
         """Add a new exercise to the database.
 
         Args:
@@ -158,7 +156,8 @@ class FitnessDatabaseManager:
         result = self.execute_simple_query(query, params)
         if not result:
             print(
-                f"Failed to add process record: exercise_id={exercise_id}, type_id={type_id}, value={value}, date={date}"
+                f"Failed to add process record: exercise_id={exercise_id}, "
+                f"type_id={type_id}, value={value}, date={date}"
             )
         return result
 
@@ -785,7 +784,7 @@ class FitnessDatabaseManager:
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
 
-    def update_exercise(self, exercise_id: int, name: str, unit: str, is_type_required: bool) -> bool:
+    def update_exercise(self, exercise_id: int, name: str, unit: str, *, is_type_required: bool) -> bool:
         """Update an existing exercise.
 
         Args:
