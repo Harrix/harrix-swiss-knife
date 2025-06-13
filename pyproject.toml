@@ -7,7 +7,7 @@ license = { file = "LICENSE.md" }
 authors = [{ name = "Anton Sergienko", email = "anton.b.sergienko@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
-    "harrix-pylib>=0.141",
+    "harrix-pylib>=0.142",
     "libcst>=1.5.1",
     "matplotlib>=3.10.3",
     "pandas>=2.3.0",
@@ -68,7 +68,7 @@ lint.ignore = [
 line-length = 120
 exclude = [
     "src/harrix_swiss_knife/resources_rc.py",
-    "src/harrix_swiss_knife/fitness_window.py",
+    "src/harrix_swiss_knife/fitness/fitness_window.py",
 ]
 
 # Disable specific checks in test files:
