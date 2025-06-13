@@ -304,7 +304,7 @@ pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resou
 ### Convert UI file to PY class
 
 ```shell
-pyside6-uic src/harrix_swiss_knife/fitness_window.ui -o src/harrix_swiss_knife/fitness_window.py
+pyside6-uic src/harrix_swiss_knife/fitness/window.ui -o src/harrix_swiss_knife/fitness/window.py
 ```
 
 ### Minimum Python Version
