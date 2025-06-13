@@ -1851,6 +1851,9 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             layout.addWidget(no_data_label)
             return
 
+        # Get exercise unit for Y-axis label
+        exercise_unit = self.db_manager.get_exercise_unit(exercise)
+
         # Get chart data using database manager
         rows = self.db_manager.get_exercise_chart_data(
             exercise_name=exercise,
@@ -1920,7 +1923,10 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
 
         # Customize the plot
         ax.set_xlabel("Date", fontsize=12)
-        ax.set_ylabel("Total Value", fontsize=12)
+
+        # Set Y-axis label with unit
+        y_label = f"Total Value ({exercise_unit})" if exercise_unit else "Total Value"
+        ax.set_ylabel(y_label, fontsize=12)
 
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
@@ -1940,8 +1946,11 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             avg_value = sum(values) / len(values)
             total_value = sum(values)
 
+            # Include unit in statistics if available
+            unit_suffix = f" {exercise_unit}" if exercise_unit else ""
             stats_text = (
-                f"Min: {min_value:.1f} | Max: {max_value:.1f} | Avg: {avg_value:.1f} | Total: {total_value:.1f}"
+                f"Min: {min_value:.1f}{unit_suffix} | Max: {max_value:.1f}{unit_suffix} | "
+                f"Avg: {avg_value:.1f}{unit_suffix} | Total: {total_value:.1f}{unit_suffix}"
             )
             ax.text(
                 0.5,
@@ -4685,6 +4694,9 @@ def update_exercise_chart(self) -> None:
             layout.addWidget(no_data_label)
             return
 
+        # Get exercise unit for Y-axis label
+        exercise_unit = self.db_manager.get_exercise_unit(exercise)
+
         # Get chart data using database manager
         rows = self.db_manager.get_exercise_chart_data(
             exercise_name=exercise,
@@ -4754,7 +4766,10 @@ def update_exercise_chart(self) -> None:
 
         # Customize the plot
         ax.set_xlabel("Date", fontsize=12)
-        ax.set_ylabel("Total Value", fontsize=12)
+
+        # Set Y-axis label with unit
+        y_label = f"Total Value ({exercise_unit})" if exercise_unit else "Total Value"
+        ax.set_ylabel(y_label, fontsize=12)
 
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
@@ -4774,8 +4789,11 @@ def update_exercise_chart(self) -> None:
             avg_value = sum(values) / len(values)
             total_value = sum(values)
 
+            # Include unit in statistics if available
+            unit_suffix = f" {exercise_unit}" if exercise_unit else ""
             stats_text = (
-                f"Min: {min_value:.1f} | Max: {max_value:.1f} | Avg: {avg_value:.1f} | Total: {total_value:.1f}"
+                f"Min: {min_value:.1f}{unit_suffix} | Max: {max_value:.1f}{unit_suffix} | "
+                f"Avg: {avg_value:.1f}{unit_suffix} | Total: {total_value:.1f}{unit_suffix}"
             )
             ax.text(
                 0.5,
