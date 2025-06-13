@@ -288,7 +288,7 @@ wheels = [
 
 [[package]]
 name = "harrix-pylib"
-version = "0.143"
+version = "0.144"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "libcst" },
@@ -296,9 +296,9 @@ dependencies = [
     { name = "requests" },
     { name = "ruff" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6a/50/7fd2d870ecf8a681649d7a757024f7198409e2f4542feef9d2835d0a37bf/harrix_pylib-0.143.tar.gz", hash = "sha256:be954893b3c8984218d1aebb94572093db918c4c2a3330ae6940da502339c6dc", size = 121511, upload-time = "2025-06-13T21:30:19.25Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/00/bd/22b659744b346230493edecec2b5b465cc6f247db314000cfec56d2baefd/harrix_pylib-0.144.tar.gz", hash = "sha256:6fe5d46dd8ba57f535b80245fef8ac3a395ead1c125330ac04fad6e426e7cb90", size = 156305, upload-time = "2025-06-13T21:38:28.367Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/ce/c77e004eb9d7ebe9dac9d47b8819f7cbabc3b158f74f71bfa58af23312c1/harrix_pylib-0.143-py3-none-any.whl", hash = "sha256:37b23c094cdc202aa5ac7a60dec2811340dd9ef5dd1f5aad67ea336fb27aa4ed", size = 43616, upload-time = "2025-06-13T21:30:17.535Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/25/3bf4a46a87d85b249cfcf30967817f4d24353e6d2dec74ffb9c6df5b4f1e/harrix_pylib-0.144-py3-none-any.whl", hash = "sha256:68adb7bdcd3ce4cc441fe7bf272f62bbf798b4a1fb7e5fb99db6256e4ea7b7e9", size = 43699, upload-time = "2025-06-13T21:38:27.065Z" },
 ]
 
 [[package]]
@@ -327,7 +327,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "harrix-pylib", specifier = ">=0.143" },
+    { name = "harrix-pylib", specifier = ">=0.144" },
     { name = "libcst", specifier = ">=1.5.1" },
     { name = "matplotlib", specifier = ">=3.10.3" },
     { name = "pandas", specifier = ">=2.3.0" },
