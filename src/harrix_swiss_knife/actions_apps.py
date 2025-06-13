@@ -5,7 +5,7 @@ from typing import Any
 import harrix_pylib as h
 
 from harrix_swiss_knife import action_base
-from harrix_swiss_knife.fitness import fitness
+from harrix_swiss_knife.fitness import main
 
 config = h.dev.load_config("config/config.json")
 
@@ -31,7 +31,7 @@ class OnFitness(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         if self.main_window is None:
-            self.main_window = fitness.MainWindow()
+            self.main_window = main.MainWindow()
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()

@@ -26,12 +26,12 @@ from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel,
 from PySide6.QtGui import QCloseEvent, QMovie, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
-from harrix_swiss_knife.fitness import fitness_database_manager, fitness_window
+from harrix_swiss_knife.fitness import database_manager, window
 
 config = h.dev.load_config("config/config.json")
 
 
-class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
+class MainWindow(QMainWindow, window.Ui_MainWindow):
     """Main application window for the fitness tracking application.
 
     This class implements the main GUI window for the fitness tracker, providing
@@ -76,7 +76,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
         )
 
         # Initialize core attributes
-        self.db_manager: fitness_database_manager.FitnessDatabaseManager | None = None
+        self.db_manager: database_manager.FitnessDatabaseManager | None = None
         self.current_movie: QMovie | None = None
 
         # AVIF animation attributes
@@ -615,7 +615,7 @@ class MainWindow(QMainWindow, fitness_window.Ui_MainWindow):
             filename = Path(filename_str)
 
         try:
-            self.db_manager = fitness_database_manager.FitnessDatabaseManager(
+            self.db_manager = database_manager.FitnessDatabaseManager(
                 str(filename),
             )
         except (OSError, RuntimeError) as exc:

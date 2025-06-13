@@ -48,7 +48,7 @@ class OnFitness(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         if self.main_window is None:
-            self.main_window = fitness.MainWindow()
+            self.main_window = main.MainWindow()
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()
@@ -90,7 +90,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if self.main_window is None:
-            self.main_window = fitness.MainWindow()
+            self.main_window = main.MainWindow()
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()
