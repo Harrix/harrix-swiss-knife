@@ -63,11 +63,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
         self.setupUi(self)
-
-        # Configure splitter proportions
-        self.splitter.setStretchFactor(0, 3)  # tableView gets more space
-        self.splitter.setStretchFactor(1, 1)  # listView gets less space
-        self.splitter.setStretchFactor(2, 0)  # frame with fixed size
+        self._setup_ui()
 
         # Center window on screen
         screen_center = QApplication.primaryScreen().geometry().center()
@@ -932,6 +928,36 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
                 if selection_model:
                     selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
                 break
+
+    def _setup_ui(self):
+        # Set emoji for buttons
+        self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
+        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")
+        self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
+        self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
+        self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
+        self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
+        self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
+        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")
+        self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
+        self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
+        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")
+        self.pushButton_types_delete.setText(f"🗑️ {self.pushButton_types_delete.text()}")
+        self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
+        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")
+        self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
+        self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
+        self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
+        self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
+        self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
+        self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
+        self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
+        self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+
+        # Configure splitter proportions
+        self.splitter.setStretchFactor(0, 3)  # tableView gets more space
+        self.splitter.setStretchFactor(1, 1)  # listView gets less space
+        self.splitter.setStretchFactor(2, 0)  # frame with fixed size
 
     def _update_comboboxes(
         self,
