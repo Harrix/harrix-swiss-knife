@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
 
-class FitnessDatabaseManager:
+class DatabaseManager:
     """Manage the connection and operations for a fitness tracking database.
 
     Attributes:

@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [Class `FitnessDatabaseManager`](#class-fitnessdatabasemanager)
+- [Class `DatabaseManager`](#class-databasemanager)
   - [Method `__init__`](#method-__init__)
   - [Method `__del__`](#method-__del__)
   - [Method `_create_query`](#method-_create_query)
@@ -58,10 +58,10 @@ lang: en
 
 </details>
 
-## Class `FitnessDatabaseManager`
+## Class `DatabaseManager`
 
 ```python
-class FitnessDatabaseManager
+class DatabaseManager
 ```
 
 Manage the connection and operations for a fitness tracking database.
@@ -76,7 +76,7 @@ Attributes:
 <summary>Code:</summary>
 
 ```python
-class FitnessDatabaseManager:
+class DatabaseManager:
 
     def __init__(self, db_filename: str) -> None:
         """Open a connection to an SQLite database stored in *db_filename*.

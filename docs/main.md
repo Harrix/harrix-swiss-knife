@@ -94,7 +94,7 @@ Attributes:
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
   containing "process", "exercises", "types", and "weight".
 
-- `db_manager` (`fitness_database_manager.FitnessDatabaseManager | None`): Database
+- `db_manager` (`fitness_database_manager.DatabaseManager | None`): Database
   connection manager. Defaults to `None` until initialized.
 
 - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
@@ -131,7 +131,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         )
 
         # Initialize core attributes
-        self.db_manager: database_manager.FitnessDatabaseManager | None = None
+        self.db_manager: database_manager.DatabaseManager | None = None
         self.current_movie: QMovie | None = None
 
         # AVIF animation attributes
@@ -670,7 +670,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             filename = Path(filename_str)
 
         try:
-            self.db_manager = database_manager.FitnessDatabaseManager(
+            self.db_manager = database_manager.DatabaseManager(
                 str(filename),
             )
         except (OSError, RuntimeError) as exc:
@@ -2144,7 +2144,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         )
 
         # Initialize core attributes
-        self.db_manager: database_manager.FitnessDatabaseManager | None = None
+        self.db_manager: database_manager.DatabaseManager | None = None
         self.current_movie: QMovie | None = None
 
         # AVIF animation attributes
@@ -2880,7 +2880,7 @@ def _init_database(self) -> None:
             filename = Path(filename_str)
 
         try:
-            self.db_manager = database_manager.FitnessDatabaseManager(
+            self.db_manager = database_manager.DatabaseManager(
                 str(filename),
             )
         except (OSError, RuntimeError) as exc:
