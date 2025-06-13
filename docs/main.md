@@ -985,22 +985,22 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
                     selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
                 break
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
-        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")
+        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
-        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")
+        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
         self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
-        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")
+        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
         self.pushButton_types_delete.setText(f"🗑️ {self.pushButton_types_delete.text()}")
         self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
-        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")
+        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
         self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
         self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
         self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
@@ -1352,7 +1352,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         # Format the combined label text
         if last_date:
             try:
-                date_obj = datetime.strptime(last_date, "%Y-%m-%d")
+                date_obj = datetime.strptime(last_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
                 unit_text = f"{unit} (Last: {formatted_date})"
             except ValueError:
@@ -3426,7 +3426,7 @@ def _select_exercise_in_list(self, exercise_name: str) -> None:
 ### Method `_setup_ui`
 
 ```python
-def _setup_ui(self)
+def _setup_ui(self) -> None
 ```
 
 _No docstring provided._
@@ -3435,22 +3435,22 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def _setup_ui(self):
+def _setup_ui(self) -> None:
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
-        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")
+        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
-        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")
+        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
         self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
-        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")
+        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
         self.pushButton_types_delete.setText(f"🗑️ {self.pushButton_types_delete.text()}")
         self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
-        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")
+        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
         self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
         self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
         self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
@@ -3952,7 +3952,7 @@ def on_exercise_selection_changed_list(self) -> None:
         # Format the combined label text
         if last_date:
             try:
-                date_obj = datetime.strptime(last_date, "%Y-%m-%d")
+                date_obj = datetime.strptime(last_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
                 unit_text = f"{unit} (Last: {formatted_date})"
             except ValueError:
