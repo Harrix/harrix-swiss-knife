@@ -690,7 +690,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
 
         # Initialize labels with default values
         self.label_exercise.setText("No exercise selected")
-        self.label_unit.setText("")
+        self.label_unit_and_last_date.setText("")
 
         # Connect selection change signal after model is set
         selection_model = self.listView_exercises.selectionModel()
@@ -1316,7 +1316,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         if not exercise:
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("No exercise selected")
-            self.label_unit.setText("")
+            self.label_unit_and_last_date.setText("")
             return
 
         # Check if database manager is available and connection is open
@@ -1324,7 +1324,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             print("Database manager not available or connection not open")
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("Database error")
-            self.label_unit.setText("")
+            self.label_unit_and_last_date.setText("")
             return
 
         # Update exercise name label
@@ -1340,12 +1340,27 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         if ex_id is None:
             print(f"Exercise '{exercise}' not found in database")
             self.comboBox_type.setEnabled(False)
-            self.label_unit.setText("")
+            self.label_unit_and_last_date.setText("")
             return
 
-        # Get exercise unit and update label
+        # Get exercise unit
         unit = self.db_manager.get_exercise_unit(exercise)
-        self.label_unit.setText(unit)
+
+        # Get last exercise date (regardless of type)
+        last_date = self.db_manager.get_last_exercise_date(ex_id)
+
+        # Format the combined label text
+        if last_date:
+            try:
+                date_obj = datetime.strptime(last_date, "%Y-%m-%d")
+                formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
+                unit_text = f"{unit} (Last: {formatted_date})"
+            except ValueError:
+                unit_text = f"{unit} (Last: {last_date})"
+        else:
+            unit_text = f"{unit} (Last: Never)"
+
+        self.label_unit_and_last_date.setText(unit_text)
 
         # Get all types for this exercise
         types = self.db_manager.get_exercise_types(ex_id)
@@ -2954,7 +2969,7 @@ def _init_exercises_list(self) -> None:
 
         # Initialize labels with default values
         self.label_exercise.setText("No exercise selected")
-        self.label_unit.setText("")
+        self.label_unit_and_last_date.setText("")
 
         # Connect selection change signal after model is set
         selection_model = self.listView_exercises.selectionModel()
@@ -3892,7 +3907,7 @@ def on_exercise_selection_changed_list(self) -> None:
         if not exercise:
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("No exercise selected")
-            self.label_unit.setText("")
+            self.label_unit_and_last_date.setText("")
             return
 
         # Check if database manager is available and connection is open
@@ -3900,7 +3915,7 @@ def on_exercise_selection_changed_list(self) -> None:
             print("Database manager not available or connection not open")
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("Database error")
-            self.label_unit.setText("")
+            self.label_unit_and_last_date.setText("")
             return
 
         # Update exercise name label
@@ -3916,12 +3931,27 @@ def on_exercise_selection_changed_list(self) -> None:
         if ex_id is None:
             print(f"Exercise '{exercise}' not found in database")
             self.comboBox_type.setEnabled(False)
-            self.label_unit.setText("")
+            self.label_unit_and_last_date.setText("")
             return
 
-        # Get exercise unit and update label
+        # Get exercise unit
         unit = self.db_manager.get_exercise_unit(exercise)
-        self.label_unit.setText(unit)
+
+        # Get last exercise date (regardless of type)
+        last_date = self.db_manager.get_last_exercise_date(ex_id)
+
+        # Format the combined label text
+        if last_date:
+            try:
+                date_obj = datetime.strptime(last_date, "%Y-%m-%d")
+                formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
+                unit_text = f"{unit} (Last: {formatted_date})"
+            except ValueError:
+                unit_text = f"{unit} (Last: {last_date})"
+        else:
+            unit_text = f"{unit} (Last: Never)"
+
+        self.label_unit_and_last_date.setText(unit_text)
 
         # Get all types for this exercise
         types = self.db_manager.get_exercise_types(ex_id)

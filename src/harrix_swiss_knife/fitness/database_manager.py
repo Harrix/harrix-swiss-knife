@@ -637,6 +637,28 @@ class DatabaseManager:
             query.clear()  # Clear the query to release resources
         return result
 
+    def get_last_exercise_date(self, exercise_id: int) -> str | None:
+        """Get the date of the last recorded exercise (regardless of type).
+
+        Args:
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+        - `str | None`: Date string in YYYY-MM-DD format or None if not found.
+
+        """
+        query = """
+            SELECT date
+            FROM process
+            WHERE _id_exercises = :ex_id
+            ORDER BY _id DESC
+            LIMIT 1
+        """
+        rows = self.get_rows(query, {"ex_id": exercise_id})
+        if rows and rows[0][0]:
+            return rows[0][0]
+        return None
+
     def get_last_exercise_record(self, exercise_id: int) -> tuple[str, str] | None:
         """Get the last recorded type and value for a specific exercise.
 

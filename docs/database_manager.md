@@ -41,6 +41,7 @@ lang: en
   - [Method `get_filtered_process_records`](#method-get_filtered_process_records)
   - [Method `get_id`](#method-get_id)
   - [Method `get_items`](#method-get_items)
+  - [Method `get_last_exercise_date`](#method-get_last_exercise_date)
   - [Method `get_last_exercise_record`](#method-get_last_exercise_record)
   - [Method `get_last_weight`](#method-get_last_weight)
   - [Method `get_rows`](#method-get_rows)
@@ -690,6 +691,28 @@ class DatabaseManager:
                 result.append(query.value(0))
             query.clear()  # Clear the query to release resources
         return result
+
+    def get_last_exercise_date(self, exercise_id: int) -> str | None:
+        """Get the date of the last recorded exercise (regardless of type).
+
+        Args:
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+        - `str | None`: Date string in YYYY-MM-DD format or None if not found.
+
+        """
+        query = """
+            SELECT date
+            FROM process
+            WHERE _id_exercises = :ex_id
+            ORDER BY _id DESC
+            LIMIT 1
+        """
+        rows = self.get_rows(query, {"ex_id": exercise_id})
+        if rows and rows[0][0]:
+            return rows[0][0]
+        return None
 
     def get_last_exercise_record(self, exercise_id: int) -> tuple[str, str] | None:
         """Get the last recorded type and value for a specific exercise.
@@ -1930,6 +1953,42 @@ def get_items(
                 result.append(query.value(0))
             query.clear()  # Clear the query to release resources
         return result
+```
+
+</details>
+
+### Method `get_last_exercise_date`
+
+```python
+def get_last_exercise_date(self, exercise_id: int) -> str | None
+```
+
+Get the date of the last recorded exercise (regardless of type).
+
+Args:
+
+- `exercise_id` (`int`): Exercise ID.
+
+Returns:
+
+- `str | None`: Date string in YYYY-MM-DD format or None if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_last_exercise_date(self, exercise_id: int) -> str | None:
+        query = """
+            SELECT date
+            FROM process
+            WHERE _id_exercises = :ex_id
+            ORDER BY _id DESC
+            LIMIT 1
+        """
+        rows = self.get_rows(query, {"ex_id": exercise_id})
+        if rows and rows[0][0]:
+            return rows[0][0]
+        return None
 ```
 
 </details>

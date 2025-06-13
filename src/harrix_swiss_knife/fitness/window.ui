@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -98,7 +98,7 @@
               <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>201</height>
+                <height>200</height>
                </size>
               </property>
               <property name="title">
@@ -147,15 +147,15 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="label_unit">
+                  <widget class="QLabel" name="label_unit_and_last_date">
                    <property name="maximumSize">
                     <size>
-                     <width>40</width>
+                     <width>141</width>
                      <height>16777215</height>
                     </size>
                    </property>
                    <property name="text">
-                    <string>times</string>
+                    <string>times (Last: Oct 26 2025)</string>
                    </property>
                   </widget>
                  </item>

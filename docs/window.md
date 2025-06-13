@@ -37,7 +37,9 @@ class Ui_MainWindow(object):
         self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
-        self.label_unit.setText(QCoreApplication.translate("MainWindow", "times", None))
+        self.label_unit_and_last_date.setText(
+            QCoreApplication.translate("MainWindow", "times (Last: Oct 26 2025)", None)
+        )
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", "Yesterday", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -187,7 +189,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.groupBox = QGroupBox(self.frame)
         self.groupBox.setObjectName("groupBox")
-        self.groupBox.setMinimumSize(QSize(0, 201))
+        self.groupBox.setMinimumSize(QSize(0, 200))
         self.verticalLayout_5 = QVBoxLayout(self.groupBox)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.label_exercise = QLabel(self.groupBox)
@@ -215,11 +217,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_14.addWidget(self.spinBox_count)
 
-        self.label_unit = QLabel(self.groupBox)
-        self.label_unit.setObjectName("label_unit")
-        self.label_unit.setMaximumSize(QSize(40, 16777215))
+        self.label_unit_and_last_date = QLabel(self.groupBox)
+        self.label_unit_and_last_date.setObjectName("label_unit_and_last_date")
+        self.label_unit_and_last_date.setMaximumSize(QSize(141, 16777215))
 
-        self.horizontalLayout_14.addWidget(self.label_unit)
+        self.horizontalLayout_14.addWidget(self.label_unit_and_last_date)
 
         self.verticalLayout_5.addLayout(self.horizontalLayout_14)
 
@@ -917,7 +919,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
 
         QMetaObject.connectSlotsByName(MainWindow)
 ```
@@ -941,7 +943,9 @@ def retranslateUi(self, MainWindow):
         self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
-        self.label_unit.setText(QCoreApplication.translate("MainWindow", "times", None))
+        self.label_unit_and_last_date.setText(
+            QCoreApplication.translate("MainWindow", "times (Last: Oct 26 2025)", None)
+        )
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", "Yesterday", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -1106,7 +1110,7 @@ def setupUi(self, MainWindow):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.groupBox = QGroupBox(self.frame)
         self.groupBox.setObjectName("groupBox")
-        self.groupBox.setMinimumSize(QSize(0, 201))
+        self.groupBox.setMinimumSize(QSize(0, 200))
         self.verticalLayout_5 = QVBoxLayout(self.groupBox)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.label_exercise = QLabel(self.groupBox)
@@ -1134,11 +1138,11 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_14.addWidget(self.spinBox_count)
 
-        self.label_unit = QLabel(self.groupBox)
-        self.label_unit.setObjectName("label_unit")
-        self.label_unit.setMaximumSize(QSize(40, 16777215))
+        self.label_unit_and_last_date = QLabel(self.groupBox)
+        self.label_unit_and_last_date.setObjectName("label_unit_and_last_date")
+        self.label_unit_and_last_date.setMaximumSize(QSize(141, 16777215))
 
-        self.horizontalLayout_14.addWidget(self.label_unit)
+        self.horizontalLayout_14.addWidget(self.label_unit_and_last_date)
 
         self.verticalLayout_5.addLayout(self.horizontalLayout_14)
 
@@ -1836,7 +1840,7 @@ def setupUi(self, MainWindow):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
 
         QMetaObject.connectSlotsByName(MainWindow)
 ```
