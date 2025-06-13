@@ -43,6 +43,7 @@ lang: en
   - [Method `_select_exercise_in_list`](#method-_select_exercise_in_list)
   - [Method `_setup_ui`](#method-_setup_ui)
   - [Method `_update_comboboxes`](#method-_update_comboboxes)
+  - [Method `_validate_database_connection`](#method-_validate_database_connection)
   - [Method `apply_filter`](#method-apply_filter)
   - [Method `clear_filter`](#method-clear_filter)
   - [Method `closeEvent`](#method-closeevent)
@@ -194,6 +195,9 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         - `row_id` (`str`): Database ID of the row
 
         """
+        if not self._validate_database_connection():
+            return
+
         try:
             name = model.data(model.index(row, 0)) or ""
             unit = model.data(model.index(row, 1)) or ""
@@ -208,7 +212,9 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             is_type_required = is_type_required_str == "1"
 
             # Update database using the database manager method
-            if not self.db_manager.update_exercise(int(row_id), name.strip(), unit.strip(), is_type_required):
+            if not self.db_manager.update_exercise(
+                int(row_id), name.strip(), unit.strip(), is_type_required=is_type_required
+            ):
                 QMessageBox.warning(self, "Database Error", "Failed to save exercise record")
             else:
                 # Update related UI elements
@@ -227,6 +233,9 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         - `row_id` (`str`): Database ID of the row
 
         """
+        if not self._validate_database_connection():
+            return
+
         try:
             exercise = model.data(model.index(row, 0))
             type_name = model.data(model.index(row, 1))
@@ -277,6 +286,9 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         - `row_id` (`str`): Database ID of the row
 
         """
+        if not self._validate_database_connection():
+            return
+
         try:
             exercise_name = model.data(model.index(row, 0)) or ""
             type_name = model.data(model.index(row, 1)) or ""
@@ -316,6 +328,9 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         - `row_id` (`str`): Database ID of the row
 
         """
+        if not self._validate_database_connection():
+            return
+
         try:
             weight_str = model.data(model.index(row, 0)) or ""
             date = model.data(model.index(row, 1)) or ""
@@ -539,7 +554,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
     def _get_last_weight(self) -> float:
         """Get the last recorded weight value from database."""
         initial_weight = 89.0
-        if not self.db_manager or not self.db_manager.is_database_open():
+        if not self._validate_database_connection():
             print("Database manager not available or connection not open")
             return initial_weight
 
@@ -670,7 +685,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             self.db_manager = database_manager.DatabaseManager(
                 str(filename),
             )
-        except (OSError, RuntimeError) as exc:
+        except (OSError, RuntimeError, ConnectionError) as exc:
             QMessageBox.critical(self, "Error", str(exc))
             sys.exit(1)
 
@@ -760,7 +775,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             self.comboBox_chart_period.setCurrentText("Months")
 
             # Try to set exercise with _id = self.id_steps
-            if self.db_manager:
+            if self._validate_database_connection():
                 rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
                 if rows:
                     exercise_name = rows[0][0]
@@ -945,6 +960,9 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         if table_name not in self._SAFE_TABLES:
             return
 
+        if not self._validate_database_connection():
+            return
+
         try:
             model = self.models[table_name].sourceModel()
 
@@ -986,6 +1004,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
                 break
 
     def _setup_ui(self) -> None:
+        """Setup additional UI elements after basic initialization."""
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
@@ -1022,7 +1041,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         selected_type: str | None = None,
     ) -> None:
         """Refresh exercise list and type combo-box (optionally keep a selection)."""
-        if not self.db_manager or not self.db_manager.is_database_open():
+        if not self._validate_database_connection():
             print("Database manager not available or connection not open")
             return
 
@@ -1069,8 +1088,28 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
 
+    def _validate_database_connection(self) -> bool:
+        """Validate that database connection is available and open.
+
+        Returns:
+        - `bool`: True if database connection is valid, False otherwise.
+        """
+        if not self.db_manager:
+            print("Database manager is None")
+            return False
+
+        if not self.db_manager.is_database_open():
+            print("Database connection is not open")
+            return False
+
+        return True
+
     def apply_filter(self) -> None:
         """Apply combo-box/date filters to the process table."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         exercise = self.comboBox_filter_exercise.currentText()
         exercise_type = self.comboBox_filter_type.currentText()
         use_date_filter = self.checkBox_use_date_filter.isChecked()
@@ -1140,6 +1179,10 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             error_message = f"Illegal table name: {table_name}"
             raise ValueError(error_message)
 
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         table_view, model_key, _ = self.table_config[table_name]
         model = self.models[model_key]
         if model is None:
@@ -1155,14 +1198,18 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
 
         # Use appropriate database manager method
         success = False
-        if table_name == "process":
-            success = self.db_manager.delete_process_record(_id)
-        elif table_name == "exercises":
-            success = self.db_manager.delete_exercise(_id)
-        elif table_name == "types":
-            success = self.db_manager.delete_exercise_type(_id)
-        elif table_name == "weight":
-            success = self.db_manager.delete_weight_record(_id)
+        try:
+            if table_name == "process":
+                success = self.db_manager.delete_process_record(_id)
+            elif table_name == "exercises":
+                success = self.db_manager.delete_exercise(_id)
+            elif table_name == "types":
+                success = self.db_manager.delete_exercise_type(_id)
+            elif table_name == "weight":
+                success = self.db_manager.delete_weight_record(_id)
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to delete record: {e}")
+            return
 
         if success:
             self.update_all()
@@ -1172,6 +1219,10 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
 
     def on_add_exercise(self) -> None:
         """Insert a new exercise using database manager."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         exercise = self.lineEdit_exercise_name.text().strip()
         unit = self.lineEdit_exercise_unit.text().strip()
 
@@ -1182,73 +1233,101 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         # Get checkbox value
         is_type_required = self.check_box_is_type_required.isChecked()
 
-        if self.db_manager.add_exercise(exercise, unit, is_type_required):
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add exercise")
+        try:
+            if self.db_manager.add_exercise(exercise, unit, is_type_required=is_type_required):
+                self.update_all()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add exercise")
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add exercise: {e}")
 
     def on_add_record(self) -> None:
         """Insert a new process record using database manager."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         exercise = self._get_current_selected_exercise()
         if not exercise:
             QMessageBox.warning(self, "Error", "Please select an exercise")
             return
 
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            QMessageBox.warning(self, "Error", f"Exercise '{exercise}' not found in database")
-            return
+        try:
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                QMessageBox.warning(self, "Error", f"Exercise '{exercise}' not found in database")
+                return
 
-        type_name = self.comboBox_type.currentText()
+            type_name = self.comboBox_type.currentText()
 
-        # Check if exercise type is required
-        if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
-            QMessageBox.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
-            return
+            # Check if exercise type is required
+            if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
+                QMessageBox.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
+                return
 
-        type_id = (
-            self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
-            if type_name
-            else -1
-        )
+            type_id = (
+                self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
+                if type_name
+                else -1
+            )
 
-        # Store current date before adding record
-        current_date = self.dateEdit.date()
-        value = str(self.spinBox_count.value())
-        date_str = current_date.toString("yyyy-MM-dd")
+            # Store current date before adding record
+            current_date = self.dateEdit.date()
+            value = str(self.spinBox_count.value())
+            date_str = current_date.toString("yyyy-MM-dd")
 
-        # Use database manager method
-        if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
-            # Apply date increment logic
-            self._increment_date_after_add()
+            # Use database manager method
+            if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
+                # Apply date increment logic
+                self._increment_date_after_add()
 
-            # Update UI without resetting the date
-            self.show_tables()
-            self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
-            self.update_filter_comboboxes()
-            self.update_sets_count_today()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add process record")
+                # Update UI without resetting the date
+                self.show_tables()
+                self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
+                self.update_filter_comboboxes()
+                self.update_sets_count_today()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add process record")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add record: {e}")
 
     def on_add_type(self) -> None:
         """Insert a new exercise type using database manager."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         exercise = self.comboBox_exercise_name.currentText()
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
+        if not exercise:
+            QMessageBox.warning(self, "Error", "Select an exercise")
             return
 
-        type_name = self.lineEdit_exercise_type.text().strip()
-        if not type_name:
-            QMessageBox.warning(self, "Error", "Enter type name")
-            return
+        try:
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                QMessageBox.warning(self, "Error", f"Exercise '{exercise}' not found")
+                return
 
-        if self.db_manager.add_exercise_type(ex_id, type_name):
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add exercise type")
+            type_name = self.lineEdit_exercise_type.text().strip()
+            if not type_name:
+                QMessageBox.warning(self, "Error", "Enter type name")
+                return
+
+            if self.db_manager.add_exercise_type(ex_id, type_name):
+                self.update_all()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add exercise type")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add type: {e}")
 
     def on_add_weight(self) -> None:
         """Insert a new weight measurement using database manager."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         weight_value = self.doubleSpinBox_weight.value()
         weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
 
@@ -1260,29 +1339,33 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         # Store current date before adding record
         current_date = self.dateEdit_weight.date()
 
-        # Use database manager method
-        if self.db_manager.add_weight_record(weight_value, weight_date):
-            # Apply date increment logic similar to exercise records
-            today = QDate.currentDate()
+        try:
+            # Use database manager method
+            if self.db_manager.add_weight_record(weight_value, weight_date):
+                # Apply date increment logic similar to exercise records
+                today = QDate.currentDate()
 
-            # If current date is today or later, do nothing
-            if current_date >= today:
-                pass  # Keep the current date
+                # If current date is today or later, do nothing
+                if current_date >= today:
+                    pass  # Keep the current date
+                else:
+                    # Add one day to the current date
+                    next_date = current_date.addDays(1)
+                    self.dateEdit_weight.setDate(next_date)
+
+                # Update UI without resetting the weight value
+                self.show_tables()
+
+                # Update weight chart if we're on the weight tab
+                current_tab_index = self.tabWidget.currentIndex()
+                weight_tab_index = 3
+                if current_tab_index == weight_tab_index:
+                    self.update_weight_chart()
             else:
-                # Add one day to the current date
-                next_date = current_date.addDays(1)
-                self.dateEdit_weight.setDate(next_date)
+                QMessageBox.warning(self, "Error", "Failed to add weight record")
 
-            # Update UI without resetting the weight value
-            self.show_tables()
-
-            # Update weight chart if we're on the weight tab
-            current_tab_index = self.tabWidget.currentIndex()
-            weight_tab_index = 3
-            if current_tab_index == weight_tab_index:
-                self.update_weight_chart()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add weight record")
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add weight: {e}")
 
     def on_exercise_selection_changed(self) -> None:
         """Update form fields when exercise selection changes in the table.
@@ -1320,7 +1403,7 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             return
 
         # Check if database manager is available and connection is open
-        if not self.db_manager or not self.db_manager.is_database_open():
+        if not self._validate_database_connection():
             print("Database manager not available or connection not open")
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("Database error")
@@ -1336,71 +1419,77 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
             self._current_avif_exercise = exercise
             self._load_exercise_avif(exercise)
 
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            print(f"Exercise '{exercise}' not found in database")
-            self.comboBox_type.setEnabled(False)
-            self.label_unit_and_last_date.setText("")
-            return
-
-        # Get exercise unit
-        unit = self.db_manager.get_exercise_unit(exercise)
-
-        # Get last exercise date (regardless of type)
-        last_date = self.db_manager.get_last_exercise_date(ex_id)
-
-        # Format the combined label text
-        if last_date:
-            try:
-                date_obj = datetime.strptime(last_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-                formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
-                unit_text = f"{unit} (Last: {formatted_date})"
-            except ValueError:
-                unit_text = f"{unit} (Last: {last_date})"
-        else:
-            unit_text = f"{unit} (Last: Never)"
-
-        self.label_unit_and_last_date.setText(unit_text)
-
-        # Get all types for this exercise
-        types = self.db_manager.get_exercise_types(ex_id)
-
-        # Clear and populate the combobox
-        self.comboBox_type.clear()
-        self.comboBox_type.addItem("")
-        self.comboBox_type.addItems(types)
-
-        # Enable/disable comboBox_type based on whether types are available
-        self.comboBox_type.setEnabled(len(types) > 0)
-
-        # Find the most recently used type and value for this exercise
         try:
-            last_record = self.db_manager.get_last_exercise_record(ex_id)
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                print(f"Exercise '{exercise}' not found in database")
+                self.comboBox_type.setEnabled(False)
+                self.label_unit_and_last_date.setText("")
+                return
 
-            if last_record:
-                last_type, last_value = last_record
+            # Get exercise unit
+            unit = self.db_manager.get_exercise_unit(exercise)
 
-                # Find and select this type in the combobox
-                type_index = self.comboBox_type.findText(last_type)
-                if type_index >= 0:
-                    self.comboBox_type.setCurrentIndex(type_index)
+            # Get last exercise date (regardless of type)
+            last_date = self.db_manager.get_last_exercise_date(ex_id)
 
-                # Set spinBox_count value based on exercise _id
-                if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+            # Format the combined label text
+            if last_date:
+                try:
+                    date_obj = datetime.strptime(last_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                    formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
+                    unit_text = f"{unit} (Last: {formatted_date})"
+                except ValueError:
+                    unit_text = f"{unit} (Last: {last_date})"
+            else:
+                unit_text = f"{unit} (Last: Never)"
+
+            self.label_unit_and_last_date.setText(unit_text)
+
+            # Get all types for this exercise
+            types = self.db_manager.get_exercise_types(ex_id)
+
+            # Clear and populate the combobox
+            self.comboBox_type.clear()
+            self.comboBox_type.addItem("")
+            self.comboBox_type.addItems(types)
+
+            # Enable/disable comboBox_type based on whether types are available
+            self.comboBox_type.setEnabled(len(types) > 0)
+
+            # Find the most recently used type and value for this exercise
+            try:
+                last_record = self.db_manager.get_last_exercise_record(ex_id)
+
+                if last_record:
+                    last_type, last_value = last_record
+
+                    # Find and select this type in the combobox
+                    type_index = self.comboBox_type.findText(last_type)
+                    if type_index >= 0:
+                        self.comboBox_type.setCurrentIndex(type_index)
+
+                    # Set spinBox_count value based on exercise _id
+                    if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+                        self.spinBox_count.setValue(0)
+                    else:  # Other exercises - use last value
+                        try:
+                            value = int(float(last_value))
+                            self.spinBox_count.setValue(value)
+                        except (ValueError, TypeError):
+                            # If conversion fails, keep default value
+                            print(f"Could not convert last value '{last_value}' to int for exercise '{exercise}'")
+                elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                     self.spinBox_count.setValue(0)
-                else:  # Other exercises - use last value
-                    try:
-                        value = int(float(last_value))
-                        self.spinBox_count.setValue(value)
-                    except (ValueError, TypeError):
-                        # If conversion fails, keep default value
-                        print(f"Could not convert last value '{last_value}' to int for exercise '{exercise}'")
-            elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
-                self.spinBox_count.setValue(0)
+
+            except Exception as e:
+                print(f"Error getting last exercise record for '{exercise}': {e}")
+                # Continue without setting last values
 
         except Exception as e:
-            print(f"Error getting last exercise record for '{exercise}': {e}")
-            # Continue without setting last values
+            print(f"Error in exercise selection changed: {e}")
+            self.comboBox_type.setEnabled(False)
+            self.label_unit_and_last_date.setText("Error loading data")
 
     def on_export_csv(self) -> None:
         """Save current `process` view to a CSV file (semicolon-separated).
@@ -1417,43 +1506,57 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         if not filename_str:
             return
 
-        filename = Path(filename_str)
-        model = self.models["process"].sourceModel()  # type: ignore[call-arg]
-        with filename.open("w", encoding="utf-8") as file:
-            headers = [model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or "" for col in range(model.columnCount())]
-            file.write(";".join(headers) + "\n")
+        try:
+            filename = Path(filename_str)
+            model = self.models["process"].sourceModel()  # type: ignore[call-arg]
+            with filename.open("w", encoding="utf-8") as file:
+                headers = [
+                    model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or "" for col in range(model.columnCount())
+                ]
+                file.write(";".join(headers) + "\n")
 
-            for row in range(model.rowCount()):
-                row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
-                file.write(";".join(row_values) + "\n")
+                for row in range(model.rowCount()):
+                    row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
+                    file.write(";".join(row_values) + "\n")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
     def on_refresh_statistics(self) -> None:
         """Populate the statistics text-edit using database manager."""
-        self.textEdit_statistics.clear()
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
 
-        # Get statistics data using database manager
-        rows = self.db_manager.get_statistics_data()
+        try:
+            self.textEdit_statistics.clear()
 
-        grouped: defaultdict[str, list[list]] = defaultdict(list)
-        for ex_name, tp_name, val, date in rows:
-            key = f"{ex_name} {tp_name}".strip()
-            grouped[key].append([ex_name, tp_name, val, date])
+            # Get statistics data using database manager
+            rows = self.db_manager.get_statistics_data()
 
-        today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-        lines: list[str] = []
+            grouped: defaultdict[str, list[list]] = defaultdict(list)
+            for ex_name, tp_name, val, date in rows:
+                key = f"{ex_name} {tp_name}".strip()
+                grouped[key].append([ex_name, tp_name, val, date])
 
-        for key, entries in grouped.items():
-            entries.sort(key=lambda x: x[2], reverse=True)
-            lines.append(key)
-            for ex_name, tp_name, val, date in entries[:4]:
-                val_str = f"{val:g}"
-                msg = f"{date}: {ex_name} {tp_name} {val_str}" if tp_name else f"{date}: {ex_name} {val_str}"
-                if date == today:
-                    msg += " ← TODAY"
-                lines.append(msg)
-            lines.append("—" * 8)
+            today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+            lines: list[str] = []
 
-        self.textEdit_statistics.setText("\n".join(lines))
+            for key, entries in grouped.items():
+                entries.sort(key=lambda x: x[2], reverse=True)
+                lines.append(key)
+                for ex_name, tp_name, val, date in entries[:4]:
+                    val_str = f"{val:g}"
+                    msg = f"{date}: {ex_name} {tp_name} {val_str}" if tp_name else f"{date}: {ex_name} {val_str}"
+                    if date == today:
+                        msg += " ← TODAY"
+                    lines.append(msg)
+                lines.append("—" * 8)
+
+            self.textEdit_statistics.setText("\n".join(lines))
+
+        except Exception as e:
+            QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
 
     def on_tab_changed(self, index: int) -> None:
         """React to `QTabWidget` index change.
@@ -1512,18 +1615,25 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
 
     def set_chart_all_time(self) -> None:
         """Set chart date range to all available data using database manager."""
-        earliest_date_str = self.db_manager.get_earliest_process_date()
+        if not self._validate_database_connection():
+            return
 
-        if earliest_date_str:
-            earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-            self.dateEdit_chart_from.setDate(earliest_date)
-        else:
-            # Fallback to one year ago if no data
-            current_date = QDate.currentDate()
-            self.dateEdit_chart_from.setDate(current_date.addYears(-1))
+        try:
+            earliest_date_str = self.db_manager.get_earliest_process_date()
 
-        self.dateEdit_chart_to.setDate(QDate.currentDate())
-        self.update_exercise_chart()
+            if earliest_date_str:
+                earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
+                self.dateEdit_chart_from.setDate(earliest_date)
+            else:
+                # Fallback to one year ago if no data
+                current_date = QDate.currentDate()
+                self.dateEdit_chart_from.setDate(current_date.addYears(-1))
+
+            self.dateEdit_chart_to.setDate(QDate.currentDate())
+            self.update_exercise_chart()
+
+        except Exception as e:
+            print(f"Error setting chart all time: {e}")
 
     def set_chart_last_month(self) -> None:
         """Set chart date range to last month."""
@@ -1559,18 +1669,25 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
 
     def set_weight_all_time(self) -> None:
         """Set weight chart date range to all available data using database manager."""
-        earliest_date_str = self.db_manager.get_earliest_weight_date()
+        if not self._validate_database_connection():
+            return
 
-        if earliest_date_str:
-            earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-            self.dateEdit_weight_from.setDate(earliest_date)
-        else:
-            # Fallback to one year ago if no data
-            current_date = QDate.currentDate()
-            self.dateEdit_weight_from.setDate(current_date.addYears(-1))
+        try:
+            earliest_date_str = self.db_manager.get_earliest_weight_date()
 
-        self.dateEdit_weight_to.setDate(QDate.currentDate())
-        self.update_weight_chart()
+            if earliest_date_str:
+                earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
+                self.dateEdit_weight_from.setDate(earliest_date)
+            else:
+                # Fallback to one year ago if no data
+                current_date = QDate.currentDate()
+                self.dateEdit_weight_from.setDate(current_date.addYears(-1))
+
+            self.dateEdit_weight_to.setDate(QDate.currentDate())
+            self.update_weight_chart()
+
+        except Exception as e:
+            print(f"Error setting weight all time: {e}")
 
     def set_weight_last_month(self) -> None:
         """Set weight chart date range to last month."""
@@ -1597,161 +1714,178 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
 
     def show_sets_chart(self) -> None:
         """Show chart of total sets using database manager."""
-        period = self.comboBox_chart_period.currentText()
-        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-
-        # Clear existing chart
-        layout = self.verticalLayout_charts_content
-        for i in reversed(range(layout.count())):
-            child = layout.takeAt(i).widget()
-            if child:
-                child.setParent(None)
-
-        # Get sets data using database manager
-        rows = self.db_manager.get_sets_chart_data(date_from, date_to)
-
-        if not rows:
-            from PySide6.QtWidgets import QLabel
-
-            no_data_label = QLabel("No set data found for the selected period")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
             return
 
-        # Group data by period
-        grouped_data = self._group_sets_data_by_period(rows, period)
+        try:
+            period = self.comboBox_chart_period.currentText()
+            date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
 
-        if not grouped_data:
-            from PySide6.QtWidgets import QLabel
+            # Clear existing chart
+            layout = self.verticalLayout_charts_content
+            for i in reversed(range(layout.count())):
+                child = layout.takeAt(i).widget()
+                if child:
+                    child.setParent(None)
 
-            no_data_label = QLabel("No data to display")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
-            return
+            # Get sets data using database manager
+            rows = self.db_manager.get_sets_chart_data(date_from, date_to)
 
-        # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+            if not rows:
+                from PySide6.QtWidgets import QLabel
 
-        # Create plot
-        ax = fig.add_subplot(111)
+                no_data_label = QLabel("No set data found for the selected period")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
 
-        # Extract dates and values
-        dates = list(grouped_data.keys())
-        values = list(grouped_data.values())
+            # Group data by period
+            grouped_data = self._group_sets_data_by_period(rows, period)
 
-        # Plot line with markers if self.max_count_points or fewer data points
-        if len(values) <= self.max_count_points_in_charts:
-            ax.plot(
-                dates,
-                values,
-                "g-o",  # Green color for sets
-                linewidth=2,
-                alpha=0.8,
-                markersize=6,
-                markerfacecolor="green",
-                markeredgecolor="darkgreen",
-            )
+            if not grouped_data:
+                from PySide6.QtWidgets import QLabel
 
-            # Add value labels on points
-            for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
-                label_text = f"{int(value)} ({date.year})" if period == "Years" else f"{int(value)}"
+                no_data_label = QLabel("No data to display")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
 
-                ax.annotate(
-                    label_text,
-                    (date, value),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
+            # Create matplotlib figure
+            fig = Figure(figsize=(12, 6), dpi=100)
+            canvas = FigureCanvas(fig)
+
+            # Create plot
+            ax = fig.add_subplot(111)
+
+            # Extract dates and values
+            dates = list(grouped_data.keys())
+            values = list(grouped_data.values())
+
+            # Plot line with markers if self.max_count_points or fewer data points
+            if len(values) <= self.max_count_points_in_charts:
+                ax.plot(
+                    dates,
+                    values,
+                    "g-o",  # Green color for sets
+                    linewidth=2,
                     alpha=0.8,
+                    markersize=6,
+                    markerfacecolor="green",
+                    markeredgecolor="darkgreen",
                 )
-        else:
-            ax.plot(dates, values, "g-", linewidth=2, alpha=0.8)
 
-        # Customize the plot
-        ax.set_xlabel("Date", fontsize=12)
-        ax.set_ylabel("Number of sets", fontsize=12)
+                # Add value labels on points
+                for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                    label_text = f"{int(value)} ({date.year})" if period == "Years" else f"{int(value)}"
 
-        chart_title = f"Training sets ({period})"
-        ax.set_title(chart_title, fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
+                    ax.annotate(
+                        label_text,
+                        (date, value),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                    )
+            else:
+                ax.plot(dates, values, "g-", linewidth=2, alpha=0.8)
 
-        # Format x-axis dates
-        self._format_chart_x_axis(ax, dates, period)
+            # Customize the plot
+            ax.set_xlabel("Date", fontsize=12)
+            ax.set_ylabel("Number of sets", fontsize=12)
 
-        # Add statistics
-        if len(values) > 1:
-            min_value = int(min(values))
-            max_value = int(max(values))
-            avg_value = sum(values) / len(values)
-            total_value = int(sum(values))
+            chart_title = f"Training sets ({period})"
+            ax.set_title(chart_title, fontsize=14, fontweight="bold")
+            ax.grid(visible=True, alpha=0.3)
 
-            stats_text = f"Min: {min_value} | Max: {max_value} | Avg: {avg_value:.1f} | Total: {total_value}"
-            ax.text(
-                0.5,
-                0.02,
-                stats_text,
-                transform=ax.transAxes,
-                ha="center",
-                va="bottom",
-                fontsize=10,
-                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgreen", "alpha": 0.8},
-            )
+            # Format x-axis dates
+            self._format_chart_x_axis(ax, dates, period)
 
-        # Adjust layout to prevent label cutoff
-        fig.tight_layout()
+            # Add statistics
+            if len(values) > 1:
+                min_value = int(min(values))
+                max_value = int(max(values))
+                avg_value = sum(values) / len(values)
+                total_value = int(sum(values))
 
-        # Add canvas to layout
-        layout.addWidget(canvas)
+                stats_text = f"Min: {min_value} | Max: {max_value} | Avg: {avg_value:.1f} | Total: {total_value}"
+                ax.text(
+                    0.5,
+                    0.02,
+                    stats_text,
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgreen", "alpha": 0.8},
+                )
 
-        # Force update
-        canvas.draw()
+            # Adjust layout to prevent label cutoff
+            fig.tight_layout()
+
+            # Add canvas to layout
+            layout.addWidget(canvas)
+
+            # Force update
+            canvas.draw()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Chart Error", f"Failed to show sets chart: {e}")
 
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods."""
-        # Exercises table
-        rows = self.db_manager.get_all_exercises()
-        exercises_headers = ["Exercise", "Unit of Measurement", "Type Required"]
-        self.models["exercises"] = self._create_table_model(rows, exercises_headers)
-        self.tableView_exercises.setModel(self.models["exercises"])
-        self.tableView_exercises.resizeColumnsToContents()
+        if not self._validate_database_connection():
+            print("Database connection not available for showing tables")
+            return
 
-        # Connect selection change signal AFTER setting the model
-        selection_model = self.tableView_exercises.selectionModel()
-        if selection_model:
-            selection_model.currentRowChanged.connect(self.on_exercise_selection_changed)
+        try:
+            # Exercises table
+            rows = self.db_manager.get_all_exercises()
+            exercises_headers = ["Exercise", "Unit of Measurement", "Type Required"]
+            self.models["exercises"] = self._create_table_model(rows, exercises_headers)
+            self.tableView_exercises.setModel(self.models["exercises"])
+            self.tableView_exercises.resizeColumnsToContents()
 
-        # Process table
-        rows = self.db_manager.get_all_process_records()
-        process_data = [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
-        self.models["process"] = self._create_table_model(process_data, self.table_config["process"][2])
-        self.tableView_process.setModel(self.models["process"])
-        self.tableView_process.resizeColumnsToContents()
+            # Connect selection change signal AFTER setting the model
+            selection_model = self.tableView_exercises.selectionModel()
+            if selection_model:
+                selection_model.currentRowChanged.connect(self.on_exercise_selection_changed)
 
-        # Types table
-        rows = self.db_manager.get_all_exercise_types()
-        self.models["types"] = self._create_table_model(rows, self.table_config["types"][2])
-        self.tableView_exercise_types.setModel(self.models["types"])
-        self.tableView_exercise_types.resizeColumnsToContents()
+            # Process table
+            rows = self.db_manager.get_all_process_records()
+            process_data = [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
+            self.models["process"] = self._create_table_model(process_data, self.table_config["process"][2])
+            self.tableView_process.setModel(self.models["process"])
+            self.tableView_process.resizeColumnsToContents()
 
-        # Weight table
-        rows = self.db_manager.get_all_weight_records()
-        self.models["weight"] = self._create_table_model(rows, self.table_config["weight"][2])
-        self.tableView_weight.setModel(self.models["weight"])
-        self.tableView_weight.resizeColumnsToContents()
+            # Types table
+            rows = self.db_manager.get_all_exercise_types()
+            self.models["types"] = self._create_table_model(rows, self.table_config["types"][2])
+            self.tableView_exercise_types.setModel(self.models["types"])
+            self.tableView_exercise_types.resizeColumnsToContents()
 
-        # Connect weight selection change signal AFTER setting the model
-        weight_selection_model = self.tableView_weight.selectionModel()
-        if weight_selection_model:
-            weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
+            # Weight table
+            rows = self.db_manager.get_all_weight_records()
+            self.models["weight"] = self._create_table_model(rows, self.table_config["weight"][2])
+            self.tableView_weight.setModel(self.models["weight"])
+            self.tableView_weight.resizeColumnsToContents()
 
-        # Connect auto-save signals after all models are created
-        self._connect_table_auto_save_signals()
+            # Connect weight selection change signal AFTER setting the model
+            weight_selection_model = self.tableView_weight.selectionModel()
+            if weight_selection_model:
+                weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
 
-        # Update sets count for today
-        self.update_sets_count_today()
+            # Connect auto-save signals after all models are created
+            self._connect_table_auto_save_signals()
+
+            # Update sets count for today
+            self.update_sets_count_today()
+
+        except Exception as e:
+            print(f"Error showing tables: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     def update_all(
         self,
@@ -1773,6 +1907,10 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         - `current_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
 
         """
+        if not self._validate_database_connection():
+            print("Database connection not available for update_all")
+            return
+
         if preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()
             current_type = self.comboBox_type.currentText()
@@ -1804,173 +1942,195 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
 
     def update_chart_comboboxes(self) -> None:
         """Update exercise and type comboboxes for charts."""
-        # Update exercise combobox
-        exercises = self.db_manager.get_items("exercises", "name")
+        if not self._validate_database_connection():
+            return
 
-        self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
-        self.comboBox_chart_exercise.clear()
-        if exercises:
-            self.comboBox_chart_exercise.addItems(exercises)
-        self.comboBox_chart_exercise.blockSignals(False)  # noqa: FBT003
+        try:
+            # Update exercise combobox
+            exercises = self.db_manager.get_items("exercises", "name")
 
-        # Update type combobox
-        self.update_chart_type_combobox()
+            self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
+            self.comboBox_chart_exercise.clear()
+            if exercises:
+                self.comboBox_chart_exercise.addItems(exercises)
+            self.comboBox_chart_exercise.blockSignals(False)  # noqa: FBT003
+
+            # Update type combobox
+            self.update_chart_type_combobox()
+
+        except Exception as e:
+            print(f"Error updating chart comboboxes: {e}")
 
     def update_chart_type_combobox(self) -> None:
         """Update chart type combobox based on selected exercise."""
-        self.comboBox_chart_type.clear()
-        self.comboBox_chart_type.addItem("All types")
+        if not self._validate_database_connection():
+            return
 
-        exercise = self.comboBox_chart_exercise.currentText()
-        if exercise:
-            ex_id = self.db_manager.get_id("exercises", "name", exercise)
-            if ex_id is not None:
-                types = self.db_manager.get_exercise_types(ex_id)
-                self.comboBox_chart_type.addItems(types)
+        try:
+            self.comboBox_chart_type.clear()
+            self.comboBox_chart_type.addItem("All types")
+
+            exercise = self.comboBox_chart_exercise.currentText()
+            if exercise:
+                ex_id = self.db_manager.get_id("exercises", "name", exercise)
+                if ex_id is not None:
+                    types = self.db_manager.get_exercise_types(ex_id)
+                    self.comboBox_chart_type.addItems(types)
+
+        except Exception as e:
+            print(f"Error updating chart type combobox: {e}")
 
     def update_exercise_chart(self) -> None:
         """Update the exercise chart using database manager."""
-        exercise = self.comboBox_chart_exercise.currentText()
-        exercise_type = self.comboBox_chart_type.currentText()
-        period = self.comboBox_chart_period.currentText()
-        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-
-        # Clear existing chart
-        layout = self.verticalLayout_charts_content
-        for i in reversed(range(layout.count())):
-            child = layout.takeAt(i).widget()
-            if child:
-                child.setParent(None)
-
-        if not exercise:
-            from PySide6.QtWidgets import QLabel
-
-            no_data_label = QLabel("Please select an exercise")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
+        if not self._validate_database_connection():
             return
 
-        # Get exercise unit for Y-axis label
-        exercise_unit = self.db_manager.get_exercise_unit(exercise)
+        try:
+            exercise = self.comboBox_chart_exercise.currentText()
+            exercise_type = self.comboBox_chart_type.currentText()
+            period = self.comboBox_chart_period.currentText()
+            date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
 
-        # Get chart data using database manager
-        rows = self.db_manager.get_exercise_chart_data(
-            exercise_name=exercise,
-            exercise_type=exercise_type if exercise_type != "All types" else None,
-            date_from=date_from,
-            date_to=date_to,
-        )
+            # Clear existing chart
+            layout = self.verticalLayout_charts_content
+            for i in reversed(range(layout.count())):
+                child = layout.takeAt(i).widget()
+                if child:
+                    child.setParent(None)
 
-        if not rows:
-            from PySide6.QtWidgets import QLabel
+            if not exercise:
+                from PySide6.QtWidgets import QLabel
 
-            no_data_label = QLabel("No data found for the selected filters")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
-            return
+                no_data_label = QLabel("Please select an exercise")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
 
-        # Group data by period
-        grouped_data = self._group_exercise_data_by_period(rows, period)
+            # Get exercise unit for Y-axis label
+            exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        if not grouped_data:
-            from PySide6.QtWidgets import QLabel
-
-            no_data_label = QLabel("No data to display")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
-            return
-
-        # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
-
-        # Create plot
-        ax = fig.add_subplot(111)
-
-        # Extract dates and values
-        dates = list(grouped_data.keys())
-        values = list(grouped_data.values())
-
-        # Plot line with markers if self.max_count_points or fewer data points
-        if len(values) <= self.max_count_points_in_charts:
-            ax.plot(
-                dates,
-                values,
-                "b-o",
-                linewidth=2,
-                alpha=0.8,
-                markersize=6,
-                markerfacecolor="blue",
-                markeredgecolor="darkblue",
+            # Get chart data using database manager
+            rows = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=exercise_type if exercise_type != "All types" else None,
+                date_from=date_from,
+                date_to=date_to,
             )
 
-            # Add value labels on points
-            for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
-                label_text = f"{value:.1f} ({date.year})" if period == "Years" else f"{value:.1f}"
+            if not rows:
+                from PySide6.QtWidgets import QLabel
 
-                ax.annotate(
-                    label_text,
-                    (date, value),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
+                no_data_label = QLabel("No data found for the selected filters")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
+
+            # Group data by period
+            grouped_data = self._group_exercise_data_by_period(rows, period)
+
+            if not grouped_data:
+                from PySide6.QtWidgets import QLabel
+
+                no_data_label = QLabel("No data to display")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
+
+            # Create matplotlib figure
+            fig = Figure(figsize=(12, 6), dpi=100)
+            canvas = FigureCanvas(fig)
+
+            # Create plot
+            ax = fig.add_subplot(111)
+
+            # Extract dates and values
+            dates = list(grouped_data.keys())
+            values = list(grouped_data.values())
+
+            # Plot line with markers if self.max_count_points or fewer data points
+            if len(values) <= self.max_count_points_in_charts:
+                ax.plot(
+                    dates,
+                    values,
+                    "b-o",
+                    linewidth=2,
                     alpha=0.8,
+                    markersize=6,
+                    markerfacecolor="blue",
+                    markeredgecolor="darkblue",
                 )
-        else:
-            ax.plot(dates, values, "b-", linewidth=2, alpha=0.8)
 
-        # Customize the plot
-        ax.set_xlabel("Date", fontsize=12)
+                # Add value labels on points
+                for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                    label_text = f"{value:.1f} ({date.year})" if period == "Years" else f"{value:.1f}"
 
-        # Set Y-axis label with unit
-        y_label = f"Total Value ({exercise_unit})" if exercise_unit else "Total Value"
-        ax.set_ylabel(y_label, fontsize=12)
+                    ax.annotate(
+                        label_text,
+                        (date, value),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                    )
+            else:
+                ax.plot(dates, values, "b-", linewidth=2, alpha=0.8)
 
-        chart_title = f"{exercise}"
-        if exercise_type and exercise_type != "All types":
-            chart_title += f" - {exercise_type}"
-        chart_title += f" ({period})"
+            # Customize the plot
+            ax.set_xlabel("Date", fontsize=12)
 
-        ax.set_title(chart_title, fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
+            # Set Y-axis label with unit
+            y_label = f"Total Value ({exercise_unit})" if exercise_unit else "Total Value"
+            ax.set_ylabel(y_label, fontsize=12)
 
-        # Format x-axis dates
-        self._format_chart_x_axis(ax, dates, period)
+            chart_title = f"{exercise}"
+            if exercise_type and exercise_type != "All types":
+                chart_title += f" - {exercise_type}"
+            chart_title += f" ({period})"
 
-        # Add statistics
-        if len(values) > 1:
-            min_value = min(values)
-            max_value = max(values)
-            avg_value = sum(values) / len(values)
-            total_value = sum(values)
+            ax.set_title(chart_title, fontsize=14, fontweight="bold")
+            ax.grid(visible=True, alpha=0.3)
 
-            # Include unit in statistics if available
-            unit_suffix = f" {exercise_unit}" if exercise_unit else ""
-            stats_text = (
-                f"Min: {min_value:.1f}{unit_suffix} | Max: {max_value:.1f}{unit_suffix} | "
-                f"Avg: {avg_value:.1f}{unit_suffix} | Total: {total_value:.1f}{unit_suffix}"
-            )
-            ax.text(
-                0.5,
-                0.02,
-                stats_text,
-                transform=ax.transAxes,
-                ha="center",
-                va="bottom",
-                fontsize=10,
-                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
-            )
+            # Format x-axis dates
+            self._format_chart_x_axis(ax, dates, period)
 
-        # Adjust layout to prevent label cutoff
-        fig.tight_layout()
+            # Add statistics
+            if len(values) > 1:
+                min_value = min(values)
+                max_value = max(values)
+                avg_value = sum(values) / len(values)
+                total_value = sum(values)
 
-        # Add canvas to layout
-        layout.addWidget(canvas)
+                # Include unit in statistics if available
+                unit_suffix = f" {exercise_unit}" if exercise_unit else ""
+                stats_text = (
+                    f"Min: {min_value:.1f}{unit_suffix} | Max: {max_value:.1f}{unit_suffix} | "
+                    f"Avg: {avg_value:.1f}{unit_suffix} | Total: {total_value:.1f}{unit_suffix}"
+                )
+                ax.text(
+                    0.5,
+                    0.02,
+                    stats_text,
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
+                )
 
-        # Force update
-        canvas.draw()
+            # Adjust layout to prevent label cutoff
+            fig.tight_layout()
+
+            # Add canvas to layout
+            layout.addWidget(canvas)
+
+            # Force update
+            canvas.draw()
+
+        except Exception as e:
+            print(f"Error updating exercise chart: {e}")
+            QMessageBox.warning(self, "Chart Error", f"Failed to update exercise chart: {e}")
 
     def update_filter_comboboxes(self) -> None:
         """Refresh `exercise` and `type` combo-boxes in the filter group.
@@ -1979,21 +2139,28 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         the latest data from the database, attempting to preserve the current
         selections.
         """
-        current_exercise = self.comboBox_filter_exercise.currentText()
+        if not self._validate_database_connection():
+            return
 
-        self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
-        self.comboBox_filter_exercise.clear()
-        self.comboBox_filter_exercise.addItem("")  # all exercises
-        self.comboBox_filter_exercise.addItems(
-            self.db_manager.get_items("exercises", "name"),
-        )
-        if current_exercise:
-            idx = self.comboBox_filter_exercise.findText(current_exercise)
-            if idx >= 0:
-                self.comboBox_filter_exercise.setCurrentIndex(idx)
-        self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
+        try:
+            current_exercise = self.comboBox_filter_exercise.currentText()
 
-        self.update_filter_type_combobox()
+            self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
+            self.comboBox_filter_exercise.clear()
+            self.comboBox_filter_exercise.addItem("")  # all exercises
+            self.comboBox_filter_exercise.addItems(
+                self.db_manager.get_items("exercises", "name"),
+            )
+            if current_exercise:
+                idx = self.comboBox_filter_exercise.findText(current_exercise)
+                if idx >= 0:
+                    self.comboBox_filter_exercise.setCurrentIndex(idx)
+            self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
+
+            self.update_filter_type_combobox()
+
+        except Exception as e:
+            print(f"Error updating filter comboboxes: {e}")
 
     def update_filter_type_combobox(self) -> None:
         """Populate `type` filter based on the `exercise` filter selection.
@@ -2002,25 +2169,32 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         currently selected exercise, attempting to preserve the current type
         selection if possible.
         """
-        current_type = self.comboBox_filter_type.currentText()
-        self.comboBox_filter_type.clear()
-        self.comboBox_filter_type.addItem("")
+        if not self._validate_database_connection():
+            return
 
-        exercise = self.comboBox_filter_exercise.currentText()
-        if exercise:
-            ex_id = self.db_manager.get_id("exercises", "name", exercise)
-            if ex_id is not None:
-                types = self.db_manager.get_exercise_types(ex_id)
-                self.comboBox_filter_type.addItems(types)
+        try:
+            current_type = self.comboBox_filter_type.currentText()
+            self.comboBox_filter_type.clear()
+            self.comboBox_filter_type.addItem("")
 
-        if current_type:
-            idx = self.comboBox_filter_type.findText(current_type)
-            if idx >= 0:
-                self.comboBox_filter_type.setCurrentIndex(idx)
+            exercise = self.comboBox_filter_exercise.currentText()
+            if exercise:
+                ex_id = self.db_manager.get_id("exercises", "name", exercise)
+                if ex_id is not None:
+                    types = self.db_manager.get_exercise_types(ex_id)
+                    self.comboBox_filter_type.addItems(types)
+
+            if current_type:
+                idx = self.comboBox_filter_type.findText(current_type)
+                if idx >= 0:
+                    self.comboBox_filter_type.setCurrentIndex(idx)
+
+        except Exception as e:
+            print(f"Error updating filter type combobox: {e}")
 
     def update_sets_count_today(self) -> None:
         """Update the label showing count of sets done today."""
-        if not self.db_manager or not self.db_manager.is_database_open():
+        if not self._validate_database_connection():
             self.label_count_sets_today.setText("0")
             return
 
@@ -2033,136 +2207,144 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
 
     def update_weight_chart(self) -> None:
         """Update the weight chart using database manager."""
-        date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
-
-        # Clear existing chart
-        layout = self.verticalLayout_weight_chart_content
-        for i in reversed(range(layout.count())):
-            child = layout.takeAt(i).widget()
-            if child:
-                child.setParent(None)
-
-        # Get weight data using database manager
-        rows = self.db_manager.get_weight_chart_data(date_from, date_to)
-
-        if not rows:
-            from PySide6.QtWidgets import QLabel
-
-            no_data_label = QLabel("No weight data found for the selected period")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
+        if not self._validate_database_connection():
             return
 
-        # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        try:
+            date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
 
-        # Parse data
-        weights = [row[0] for row in rows]
-        dates = [datetime.strptime(row[1], "%Y-%m-%d").replace(tzinfo=timezone.utc) for row in rows]
+            # Clear existing chart
+            layout = self.verticalLayout_weight_chart_content
+            for i in reversed(range(layout.count())):
+                child = layout.takeAt(i).widget()
+                if child:
+                    child.setParent(None)
 
-        # Create plot
-        ax = fig.add_subplot(111)
+            # Get weight data using database manager
+            rows = self.db_manager.get_weight_chart_data(date_from, date_to)
 
-        # Plot line with markers if self.max_count_points or fewer data points
-        if len(weights) <= self.max_count_points_in_charts:
-            ax.plot(
-                dates,
-                weights,
-                "b-o",
-                linewidth=2,
-                alpha=0.8,
-                markersize=6,
-                markerfacecolor="blue",
-                markeredgecolor="darkblue",
-            )
+            if not rows:
+                from PySide6.QtWidgets import QLabel
 
-            # Add value labels on points
-            for _i, (date, weight) in enumerate(zip(dates, weights, strict=False)):
-                ax.annotate(
-                    f"{weight:.1f}",
-                    (date, weight),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
+                no_data_label = QLabel("No weight data found for the selected period")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
+
+            # Create matplotlib figure
+            fig = Figure(figsize=(12, 6), dpi=100)
+            canvas = FigureCanvas(fig)
+
+            # Parse data
+            weights = [row[0] for row in rows]
+            dates = [datetime.strptime(row[1], "%Y-%m-%d").replace(tzinfo=timezone.utc) for row in rows]
+
+            # Create plot
+            ax = fig.add_subplot(111)
+
+            # Plot line with markers if self.max_count_points or fewer data points
+            if len(weights) <= self.max_count_points_in_charts:
+                ax.plot(
+                    dates,
+                    weights,
+                    "b-o",
+                    linewidth=2,
+                    alpha=0.8,
+                    markersize=6,
+                    markerfacecolor="blue",
+                    markeredgecolor="darkblue",
+                )
+
+                # Add value labels on points
+                for _i, (date, weight) in enumerate(zip(dates, weights, strict=False)):
+                    ax.annotate(
+                        f"{weight:.1f}",
+                        (date, weight),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                    )
+            else:
+                ax.plot(
+                    dates,
+                    weights,
+                    "b-",
+                    linewidth=2,
                     alpha=0.8,
                 )
-        else:
-            ax.plot(
-                dates,
-                weights,
-                "b-",
-                linewidth=2,
-                alpha=0.8,
-            )
 
-        # Customize the plot
-        ax.set_xlabel("Date", fontsize=12)
-        ax.set_ylabel("Weight (kg)", fontsize=12)
-        ax.set_title("Weight Progress", fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
+            # Customize the plot
+            ax.set_xlabel("Date", fontsize=12)
+            ax.set_ylabel("Weight (kg)", fontsize=12)
+            ax.set_title("Weight Progress", fontsize=14, fontweight="bold")
+            ax.grid(visible=True, alpha=0.3)
 
-        # Add more detailed Y-axis grid
-        from matplotlib.ticker import MultipleLocator
+            # Add more detailed Y-axis grid
+            from matplotlib.ticker import MultipleLocator
 
-        ax.yaxis.set_major_locator(MultipleLocator(1))  # Major divisions every 1 kg
-        ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Minor divisions every 0.5 kg
-        ax.grid(visible=True, which="major", alpha=0.3)  # Major grid
-        ax.grid(visible=True, which="minor", alpha=0.1)  # Minor grid (more transparent)
+            ax.yaxis.set_major_locator(MultipleLocator(1))  # Major divisions every 1 kg
+            ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Minor divisions every 0.5 kg
+            ax.grid(visible=True, which="major", alpha=0.3)  # Major grid
+            ax.grid(visible=True, which="minor", alpha=0.1)  # Minor grid (more transparent)
 
-        # Define constants at the top of your file or function
-        days_in_month = 31
-        days_in_year = 365
+            # Define constants at the top of your file or function
+            days_in_month = 31
+            days_in_year = 365
 
-        # Format x-axis dates
-        if len(dates) > 0:
-            date_range = (max(dates) - min(dates)).days
+            # Format x-axis dates
+            if len(dates) > 0:
+                date_range = (max(dates) - min(dates)).days
 
-            if date_range <= days_in_month:  # Less than a month
-                ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 10)))
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            elif date_range <= days_in_year:  # Less than a year
-                ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=max(1, len(dates) // 10)))
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:  # More than a year
-                ax.xaxis.set_major_locator(mdates.MonthLocator(interval=max(1, date_range // days_in_year)))
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+                if date_range <= days_in_month:  # Less than a month
+                    ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 10)))
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+                elif date_range <= days_in_year:  # Less than a year
+                    ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=max(1, len(dates) // 10)))
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+                else:  # More than a year
+                    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=max(1, date_range // days_in_year)))
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
 
-        # Rotate date labels
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+            # Rotate date labels
+            plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
-        # Add statistics
-        if len(weights) > 1:
-            min_weight = min(weights)
-            max_weight = max(weights)
-            avg_weight = sum(weights) / len(weights)
-            weight_change = weights[-1] - weights[0]
+            # Add statistics
+            if len(weights) > 1:
+                min_weight = min(weights)
+                max_weight = max(weights)
+                avg_weight = sum(weights) / len(weights)
+                weight_change = weights[-1] - weights[0]
 
-            stats_text = (
-                f"Min: {min_weight:.1f} kg | Max: {max_weight:.1f} kg | "
-                f"Avg: {avg_weight:.1f} kg | Change: {weight_change:+.1f} kg"
-            )
-            ax.text(
-                0.5,
-                0.02,
-                stats_text,
-                transform=ax.transAxes,
-                ha="center",
-                va="bottom",
-                fontsize=10,
-                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
-            )
+                stats_text = (
+                    f"Min: {min_weight:.1f} kg | Max: {max_weight:.1f} kg | "
+                    f"Avg: {avg_weight:.1f} kg | Change: {weight_change:+.1f} kg"
+                )
+                ax.text(
+                    0.5,
+                    0.02,
+                    stats_text,
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
+                )
 
-        # Adjust layout to prevent label cutoff
-        fig.tight_layout()
+            # Adjust layout to prevent label cutoff
+            fig.tight_layout()
 
-        # Add canvas to layout
-        layout.addWidget(canvas)
+            # Add canvas to layout
+            layout.addWidget(canvas)
 
-        # Force update
-        canvas.draw()
+            # Force update
+            canvas.draw()
+
+        except Exception as e:
+            print(f"Error updating weight chart: {e}")
+            QMessageBox.warning(self, "Chart Error", f"Failed to update weight chart: {e}")
 ```
 
 </details>
@@ -2270,6 +2452,9 @@ Args:
 
 ```python
 def _auto_save_exercises_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        if not self._validate_database_connection():
+            return
+
         try:
             name = model.data(model.index(row, 0)) or ""
             unit = model.data(model.index(row, 1)) or ""
@@ -2284,7 +2469,9 @@ def _auto_save_exercises_row(self, model: QStandardItemModel, row: int, row_id: 
             is_type_required = is_type_required_str == "1"
 
             # Update database using the database manager method
-            if not self.db_manager.update_exercise(int(row_id), name.strip(), unit.strip(), is_type_required):
+            if not self.db_manager.update_exercise(
+                int(row_id), name.strip(), unit.strip(), is_type_required=is_type_required
+            ):
                 QMessageBox.warning(self, "Database Error", "Failed to save exercise record")
             else:
                 # Update related UI elements
@@ -2316,6 +2503,9 @@ Args:
 
 ```python
 def _auto_save_process_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        if not self._validate_database_connection():
+            return
+
         try:
             exercise = model.data(model.index(row, 0))
             type_name = model.data(model.index(row, 1))
@@ -2379,6 +2569,9 @@ Args:
 
 ```python
 def _auto_save_types_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        if not self._validate_database_connection():
+            return
+
         try:
             exercise_name = model.data(model.index(row, 0)) or ""
             type_name = model.data(model.index(row, 1)) or ""
@@ -2431,6 +2624,9 @@ Args:
 
 ```python
 def _auto_save_weight_row(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        if not self._validate_database_connection():
+            return
+
         try:
             weight_str = model.data(model.index(row, 0)) or ""
             date = model.data(model.index(row, 1)) or ""
@@ -2745,7 +2941,7 @@ Get the last recorded weight value from database.
 ```python
 def _get_last_weight(self) -> float:
         initial_weight = 89.0
-        if not self.db_manager or not self.db_manager.is_database_open():
+        if not self._validate_database_connection():
             print("Database manager not available or connection not open")
             return initial_weight
 
@@ -2930,7 +3126,7 @@ def _init_database(self) -> None:
             self.db_manager = database_manager.DatabaseManager(
                 str(filename),
             )
-        except (OSError, RuntimeError) as exc:
+        except (OSError, RuntimeError, ConnectionError) as exc:
             QMessageBox.critical(self, "Error", str(exc))
             sys.exit(1)
 ```
@@ -3128,7 +3324,7 @@ def _load_default_exercise_chart(self) -> None:
             self.comboBox_chart_period.setCurrentText("Months")
 
             # Try to set exercise with _id = self.id_steps
-            if self.db_manager:
+            if self._validate_database_connection():
                 rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
                 if rows:
                     exercise_name = rows[0][0]
@@ -3368,6 +3564,9 @@ def _on_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_
         if table_name not in self._SAFE_TABLES:
             return
 
+        if not self._validate_database_connection():
+            return
+
         try:
             model = self.models[table_name].sourceModel()
 
@@ -3429,7 +3628,7 @@ def _select_exercise_in_list(self, exercise_name: str) -> None:
 def _setup_ui(self) -> None
 ```
 
-_No docstring provided._
+Setup additional UI elements after basic initialization.
 
 <details>
 <summary>Code:</summary>
@@ -3486,7 +3685,7 @@ def _update_comboboxes(
         selected_exercise: str | None = None,
         selected_type: str | None = None,
     ) -> None:
-        if not self.db_manager or not self.db_manager.is_database_open():
+        if not self._validate_database_connection():
             print("Database manager not available or connection not open")
             return
 
@@ -3536,6 +3735,36 @@ def _update_comboboxes(
 
 </details>
 
+### Method `_validate_database_connection`
+
+```python
+def _validate_database_connection(self) -> bool
+```
+
+Validate that database connection is available and open.
+
+Returns:
+
+- `bool`: True if database connection is valid, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _validate_database_connection(self) -> bool:
+        if not self.db_manager:
+            print("Database manager is None")
+            return False
+
+        if not self.db_manager.is_database_open():
+            print("Database connection is not open")
+            return False
+
+        return True
+```
+
+</details>
+
 ### Method `apply_filter`
 
 ```python
@@ -3549,6 +3778,10 @@ Apply combo-box/date filters to the process table.
 
 ```python
 def apply_filter(self) -> None:
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         exercise = self.comboBox_filter_exercise.currentText()
         exercise_type = self.comboBox_filter_type.currentText()
         use_date_filter = self.checkBox_use_date_filter.isChecked()
@@ -3657,6 +3890,10 @@ def delete_record(self, table_name: str) -> None:
             error_message = f"Illegal table name: {table_name}"
             raise ValueError(error_message)
 
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         table_view, model_key, _ = self.table_config[table_name]
         model = self.models[model_key]
         if model is None:
@@ -3672,14 +3909,18 @@ def delete_record(self, table_name: str) -> None:
 
         # Use appropriate database manager method
         success = False
-        if table_name == "process":
-            success = self.db_manager.delete_process_record(_id)
-        elif table_name == "exercises":
-            success = self.db_manager.delete_exercise(_id)
-        elif table_name == "types":
-            success = self.db_manager.delete_exercise_type(_id)
-        elif table_name == "weight":
-            success = self.db_manager.delete_weight_record(_id)
+        try:
+            if table_name == "process":
+                success = self.db_manager.delete_process_record(_id)
+            elif table_name == "exercises":
+                success = self.db_manager.delete_exercise(_id)
+            elif table_name == "types":
+                success = self.db_manager.delete_exercise_type(_id)
+            elif table_name == "weight":
+                success = self.db_manager.delete_weight_record(_id)
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to delete record: {e}")
+            return
 
         if success:
             self.update_all()
@@ -3703,6 +3944,10 @@ Insert a new exercise using database manager.
 
 ```python
 def on_add_exercise(self) -> None:
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         exercise = self.lineEdit_exercise_name.text().strip()
         unit = self.lineEdit_exercise_unit.text().strip()
 
@@ -3713,10 +3958,13 @@ def on_add_exercise(self) -> None:
         # Get checkbox value
         is_type_required = self.check_box_is_type_required.isChecked()
 
-        if self.db_manager.add_exercise(exercise, unit, is_type_required):
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add exercise")
+        try:
+            if self.db_manager.add_exercise(exercise, unit, is_type_required=is_type_required):
+                self.update_all()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add exercise")
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add exercise: {e}")
 ```
 
 </details>
@@ -3734,46 +3982,54 @@ Insert a new process record using database manager.
 
 ```python
 def on_add_record(self) -> None:
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         exercise = self._get_current_selected_exercise()
         if not exercise:
             QMessageBox.warning(self, "Error", "Please select an exercise")
             return
 
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            QMessageBox.warning(self, "Error", f"Exercise '{exercise}' not found in database")
-            return
+        try:
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                QMessageBox.warning(self, "Error", f"Exercise '{exercise}' not found in database")
+                return
 
-        type_name = self.comboBox_type.currentText()
+            type_name = self.comboBox_type.currentText()
 
-        # Check if exercise type is required
-        if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
-            QMessageBox.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
-            return
+            # Check if exercise type is required
+            if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
+                QMessageBox.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
+                return
 
-        type_id = (
-            self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
-            if type_name
-            else -1
-        )
+            type_id = (
+                self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
+                if type_name
+                else -1
+            )
 
-        # Store current date before adding record
-        current_date = self.dateEdit.date()
-        value = str(self.spinBox_count.value())
-        date_str = current_date.toString("yyyy-MM-dd")
+            # Store current date before adding record
+            current_date = self.dateEdit.date()
+            value = str(self.spinBox_count.value())
+            date_str = current_date.toString("yyyy-MM-dd")
 
-        # Use database manager method
-        if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
-            # Apply date increment logic
-            self._increment_date_after_add()
+            # Use database manager method
+            if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
+                # Apply date increment logic
+                self._increment_date_after_add()
 
-            # Update UI without resetting the date
-            self.show_tables()
-            self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
-            self.update_filter_comboboxes()
-            self.update_sets_count_today()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add process record")
+                # Update UI without resetting the date
+                self.show_tables()
+                self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
+                self.update_filter_comboboxes()
+                self.update_sets_count_today()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add process record")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add record: {e}")
 ```
 
 </details>
@@ -3791,20 +4047,33 @@ Insert a new exercise type using database manager.
 
 ```python
 def on_add_type(self) -> None:
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         exercise = self.comboBox_exercise_name.currentText()
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
+        if not exercise:
+            QMessageBox.warning(self, "Error", "Select an exercise")
             return
 
-        type_name = self.lineEdit_exercise_type.text().strip()
-        if not type_name:
-            QMessageBox.warning(self, "Error", "Enter type name")
-            return
+        try:
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                QMessageBox.warning(self, "Error", f"Exercise '{exercise}' not found")
+                return
 
-        if self.db_manager.add_exercise_type(ex_id, type_name):
-            self.update_all()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add exercise type")
+            type_name = self.lineEdit_exercise_type.text().strip()
+            if not type_name:
+                QMessageBox.warning(self, "Error", "Enter type name")
+                return
+
+            if self.db_manager.add_exercise_type(ex_id, type_name):
+                self.update_all()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add exercise type")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add type: {e}")
 ```
 
 </details>
@@ -3822,6 +4091,10 @@ Insert a new weight measurement using database manager.
 
 ```python
 def on_add_weight(self) -> None:
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
+
         weight_value = self.doubleSpinBox_weight.value()
         weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
 
@@ -3833,29 +4106,33 @@ def on_add_weight(self) -> None:
         # Store current date before adding record
         current_date = self.dateEdit_weight.date()
 
-        # Use database manager method
-        if self.db_manager.add_weight_record(weight_value, weight_date):
-            # Apply date increment logic similar to exercise records
-            today = QDate.currentDate()
+        try:
+            # Use database manager method
+            if self.db_manager.add_weight_record(weight_value, weight_date):
+                # Apply date increment logic similar to exercise records
+                today = QDate.currentDate()
 
-            # If current date is today or later, do nothing
-            if current_date >= today:
-                pass  # Keep the current date
+                # If current date is today or later, do nothing
+                if current_date >= today:
+                    pass  # Keep the current date
+                else:
+                    # Add one day to the current date
+                    next_date = current_date.addDays(1)
+                    self.dateEdit_weight.setDate(next_date)
+
+                # Update UI without resetting the weight value
+                self.show_tables()
+
+                # Update weight chart if we're on the weight tab
+                current_tab_index = self.tabWidget.currentIndex()
+                weight_tab_index = 3
+                if current_tab_index == weight_tab_index:
+                    self.update_weight_chart()
             else:
-                # Add one day to the current date
-                next_date = current_date.addDays(1)
-                self.dateEdit_weight.setDate(next_date)
+                QMessageBox.warning(self, "Error", "Failed to add weight record")
 
-            # Update UI without resetting the weight value
-            self.show_tables()
-
-            # Update weight chart if we're on the weight tab
-            current_tab_index = self.tabWidget.currentIndex()
-            weight_tab_index = 3
-            if current_tab_index == weight_tab_index:
-                self.update_weight_chart()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to add weight record")
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add weight: {e}")
 ```
 
 </details>
@@ -3920,7 +4197,7 @@ def on_exercise_selection_changed_list(self) -> None:
             return
 
         # Check if database manager is available and connection is open
-        if not self.db_manager or not self.db_manager.is_database_open():
+        if not self._validate_database_connection():
             print("Database manager not available or connection not open")
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("Database error")
@@ -3936,70 +4213,77 @@ def on_exercise_selection_changed_list(self) -> None:
             self._current_avif_exercise = exercise
             self._load_exercise_avif(exercise)
 
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            print(f"Exercise '{exercise}' not found in database")
-            self.comboBox_type.setEnabled(False)
-            self.label_unit_and_last_date.setText("")
-            return
-
-        # Get exercise unit
-        unit = self.db_manager.get_exercise_unit(exercise)
-
-        # Get last exercise date (regardless of type)
-        last_date = self.db_manager.get_last_exercise_date(ex_id)
-
-        # Format the combined label text
-        if last_date:
-            try:
-                date_obj = datetime.strptime(last_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-                formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
-                unit_text = f"{unit} (Last: {formatted_date})"
-            except ValueError:
-                unit_text = f"{unit} (Last: {last_date})"
-        else:
-            unit_text = f"{unit} (Last: Never)"
-
-        self.label_unit_and_last_date.setText(unit_text)
-
-        # Get all types for this exercise
-        types = self.db_manager.get_exercise_types(ex_id)
-
-        # Clear and populate the combobox
-        self.comboBox_type.clear()
-        self.comboBox_type.addItem("")
-        self.comboBox_type.addItems(types)
-
-        # Enable/disable comboBox_type based on whether types are available
-        self.comboBox_type.setEnabled(len(types) > 0)
-
-        # Find the most recently used type and value for this exercise
         try:
-            last_record = self.db_manager.get_last_exercise_record(ex_id)
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                print(f"Exercise '{exercise}' not found in database")
+                self.comboBox_type.setEnabled(False)
+                self.label_unit_and_last_date.setText("")
+                return
 
-            if last_record:
-                last_type, last_value = last_record
+            # Get exercise unit
+            unit = self.db_manager.get_exercise_unit(exercise)
 
-                # Find and select this type in the combobox
-                type_index = self.comboBox_type.findText(last_type)
-                if type_index >= 0:
-                    self.comboBox_type.setCurrentIndex(type_index)
+            # Get last exercise date (regardless of type)
+            last_date = self.db_manager.get_last_exercise_date(ex_id)
 
-                # Set spinBox_count value based on exercise _id
-                if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+            # Format the combined label text
+            if last_date:
+                try:
+                    date_obj = datetime.strptime(last_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                    formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
+                    unit_text = f"{unit} (Last: {formatted_date})"
+                except ValueError:
+                    unit_text = f"{unit} (Last: {last_date})"
+            else:
+                unit_text = f"{unit} (Last: Never)"
+
+            self.label_unit_and_last_date.setText(unit_text)
+
+            # Get all types for this exercise
+            types = self.db_manager.get_exercise_types(ex_id)
+
+            # Clear and populate the combobox
+            self.comboBox_type.clear()
+            self.comboBox_type.addItem("")
+            self.comboBox_type.addItems(types)
+
+            # Enable/disable comboBox_type based on whether types are available
+            self.comboBox_type.setEnabled(len(types) > 0)
+
+            # Find the most recently used type and value for this exercise
+            try:
+                last_record = self.db_manager.get_last_exercise_record(ex_id)
+
+                if last_record:
+                    last_type, last_value = last_record
+
+                    # Find and select this type in the combobox
+                    type_index = self.comboBox_type.findText(last_type)
+                    if type_index >= 0:
+                        self.comboBox_type.setCurrentIndex(type_index)
+
+                    # Set spinBox_count value based on exercise _id
+                    if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+                        self.spinBox_count.setValue(0)
+                    else:  # Other exercises - use last value
+                        try:
+                            value = int(float(last_value))
+                            self.spinBox_count.setValue(value)
+                        except (ValueError, TypeError):
+                            # If conversion fails, keep default value
+                            print(f"Could not convert last value '{last_value}' to int for exercise '{exercise}'")
+                elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                     self.spinBox_count.setValue(0)
-                else:  # Other exercises - use last value
-                    try:
-                        value = int(float(last_value))
-                        self.spinBox_count.setValue(value)
-                    except (ValueError, TypeError):
-                        # If conversion fails, keep default value
-                        print(f"Could not convert last value '{last_value}' to int for exercise '{exercise}'")
-            elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
-                self.spinBox_count.setValue(0)
+
+            except Exception as e:
+                print(f"Error getting last exercise record for '{exercise}': {e}")
+                # Continue without setting last values
 
         except Exception as e:
-            print(f"Error getting last exercise record for '{exercise}': {e}")
+            print(f"Error in exercise selection changed: {e}")
+            self.comboBox_type.setEnabled(False)
+            self.label_unit_and_last_date.setText("Error loading data")
 ```
 
 </details>
@@ -4029,15 +4313,21 @@ def on_export_csv(self) -> None:
         if not filename_str:
             return
 
-        filename = Path(filename_str)
-        model = self.models["process"].sourceModel()  # type: ignore[call-arg]
-        with filename.open("w", encoding="utf-8") as file:
-            headers = [model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or "" for col in range(model.columnCount())]
-            file.write(";".join(headers) + "\n")
+        try:
+            filename = Path(filename_str)
+            model = self.models["process"].sourceModel()  # type: ignore[call-arg]
+            with filename.open("w", encoding="utf-8") as file:
+                headers = [
+                    model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or "" for col in range(model.columnCount())
+                ]
+                file.write(";".join(headers) + "\n")
 
-            for row in range(model.rowCount()):
-                row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
-                file.write(";".join(row_values) + "\n")
+                for row in range(model.rowCount()):
+                    row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
+                    file.write(";".join(row_values) + "\n")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
 ```
 
 </details>
@@ -4055,31 +4345,39 @@ Populate the statistics text-edit using database manager.
 
 ```python
 def on_refresh_statistics(self) -> None:
-        self.textEdit_statistics.clear()
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
+            return
 
-        # Get statistics data using database manager
-        rows = self.db_manager.get_statistics_data()
+        try:
+            self.textEdit_statistics.clear()
 
-        grouped: defaultdict[str, list[list]] = defaultdict(list)
-        for ex_name, tp_name, val, date in rows:
-            key = f"{ex_name} {tp_name}".strip()
-            grouped[key].append([ex_name, tp_name, val, date])
+            # Get statistics data using database manager
+            rows = self.db_manager.get_statistics_data()
 
-        today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-        lines: list[str] = []
+            grouped: defaultdict[str, list[list]] = defaultdict(list)
+            for ex_name, tp_name, val, date in rows:
+                key = f"{ex_name} {tp_name}".strip()
+                grouped[key].append([ex_name, tp_name, val, date])
 
-        for key, entries in grouped.items():
-            entries.sort(key=lambda x: x[2], reverse=True)
-            lines.append(key)
-            for ex_name, tp_name, val, date in entries[:4]:
-                val_str = f"{val:g}"
-                msg = f"{date}: {ex_name} {tp_name} {val_str}" if tp_name else f"{date}: {ex_name} {val_str}"
-                if date == today:
-                    msg += " ← TODAY"
-                lines.append(msg)
-            lines.append("—" * 8)
+            today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+            lines: list[str] = []
 
-        self.textEdit_statistics.setText("\n".join(lines))
+            for key, entries in grouped.items():
+                entries.sort(key=lambda x: x[2], reverse=True)
+                lines.append(key)
+                for ex_name, tp_name, val, date in entries[:4]:
+                    val_str = f"{val:g}"
+                    msg = f"{date}: {ex_name} {tp_name} {val_str}" if tp_name else f"{date}: {ex_name} {val_str}"
+                    if date == today:
+                        msg += " ← TODAY"
+                    lines.append(msg)
+                lines.append("—" * 8)
+
+            self.textEdit_statistics.setText("\n".join(lines))
+
+        except Exception as e:
+            QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
 ```
 
 </details>
@@ -4177,18 +4475,25 @@ Set chart date range to all available data using database manager.
 
 ```python
 def set_chart_all_time(self) -> None:
-        earliest_date_str = self.db_manager.get_earliest_process_date()
+        if not self._validate_database_connection():
+            return
 
-        if earliest_date_str:
-            earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-            self.dateEdit_chart_from.setDate(earliest_date)
-        else:
-            # Fallback to one year ago if no data
-            current_date = QDate.currentDate()
-            self.dateEdit_chart_from.setDate(current_date.addYears(-1))
+        try:
+            earliest_date_str = self.db_manager.get_earliest_process_date()
 
-        self.dateEdit_chart_to.setDate(QDate.currentDate())
-        self.update_exercise_chart()
+            if earliest_date_str:
+                earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
+                self.dateEdit_chart_from.setDate(earliest_date)
+            else:
+                # Fallback to one year ago if no data
+                current_date = QDate.currentDate()
+                self.dateEdit_chart_from.setDate(current_date.addYears(-1))
+
+            self.dateEdit_chart_to.setDate(QDate.currentDate())
+            self.update_exercise_chart()
+
+        except Exception as e:
+            print(f"Error setting chart all time: {e}")
 ```
 
 </details>
@@ -4279,18 +4584,25 @@ Set weight chart date range to all available data using database manager.
 
 ```python
 def set_weight_all_time(self) -> None:
-        earliest_date_str = self.db_manager.get_earliest_weight_date()
+        if not self._validate_database_connection():
+            return
 
-        if earliest_date_str:
-            earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-            self.dateEdit_weight_from.setDate(earliest_date)
-        else:
-            # Fallback to one year ago if no data
-            current_date = QDate.currentDate()
-            self.dateEdit_weight_from.setDate(current_date.addYears(-1))
+        try:
+            earliest_date_str = self.db_manager.get_earliest_weight_date()
 
-        self.dateEdit_weight_to.setDate(QDate.currentDate())
-        self.update_weight_chart()
+            if earliest_date_str:
+                earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
+                self.dateEdit_weight_from.setDate(earliest_date)
+            else:
+                # Fallback to one year ago if no data
+                current_date = QDate.currentDate()
+                self.dateEdit_weight_from.setDate(current_date.addYears(-1))
+
+            self.dateEdit_weight_to.setDate(QDate.currentDate())
+            self.update_weight_chart()
+
+        except Exception as e:
+            print(f"Error setting weight all time: {e}")
 ```
 
 </details>
@@ -4372,117 +4684,125 @@ Show chart of total sets using database manager.
 
 ```python
 def show_sets_chart(self) -> None:
-        period = self.comboBox_chart_period.currentText()
-        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-
-        # Clear existing chart
-        layout = self.verticalLayout_charts_content
-        for i in reversed(range(layout.count())):
-            child = layout.takeAt(i).widget()
-            if child:
-                child.setParent(None)
-
-        # Get sets data using database manager
-        rows = self.db_manager.get_sets_chart_data(date_from, date_to)
-
-        if not rows:
-            from PySide6.QtWidgets import QLabel
-
-            no_data_label = QLabel("No set data found for the selected period")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Database Error", "Database connection not available")
             return
 
-        # Group data by period
-        grouped_data = self._group_sets_data_by_period(rows, period)
+        try:
+            period = self.comboBox_chart_period.currentText()
+            date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
 
-        if not grouped_data:
-            from PySide6.QtWidgets import QLabel
+            # Clear existing chart
+            layout = self.verticalLayout_charts_content
+            for i in reversed(range(layout.count())):
+                child = layout.takeAt(i).widget()
+                if child:
+                    child.setParent(None)
 
-            no_data_label = QLabel("No data to display")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
-            return
+            # Get sets data using database manager
+            rows = self.db_manager.get_sets_chart_data(date_from, date_to)
 
-        # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+            if not rows:
+                from PySide6.QtWidgets import QLabel
 
-        # Create plot
-        ax = fig.add_subplot(111)
+                no_data_label = QLabel("No set data found for the selected period")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
 
-        # Extract dates and values
-        dates = list(grouped_data.keys())
-        values = list(grouped_data.values())
+            # Group data by period
+            grouped_data = self._group_sets_data_by_period(rows, period)
 
-        # Plot line with markers if self.max_count_points or fewer data points
-        if len(values) <= self.max_count_points_in_charts:
-            ax.plot(
-                dates,
-                values,
-                "g-o",  # Green color for sets
-                linewidth=2,
-                alpha=0.8,
-                markersize=6,
-                markerfacecolor="green",
-                markeredgecolor="darkgreen",
-            )
+            if not grouped_data:
+                from PySide6.QtWidgets import QLabel
 
-            # Add value labels on points
-            for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
-                label_text = f"{int(value)} ({date.year})" if period == "Years" else f"{int(value)}"
+                no_data_label = QLabel("No data to display")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
 
-                ax.annotate(
-                    label_text,
-                    (date, value),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
+            # Create matplotlib figure
+            fig = Figure(figsize=(12, 6), dpi=100)
+            canvas = FigureCanvas(fig)
+
+            # Create plot
+            ax = fig.add_subplot(111)
+
+            # Extract dates and values
+            dates = list(grouped_data.keys())
+            values = list(grouped_data.values())
+
+            # Plot line with markers if self.max_count_points or fewer data points
+            if len(values) <= self.max_count_points_in_charts:
+                ax.plot(
+                    dates,
+                    values,
+                    "g-o",  # Green color for sets
+                    linewidth=2,
                     alpha=0.8,
+                    markersize=6,
+                    markerfacecolor="green",
+                    markeredgecolor="darkgreen",
                 )
-        else:
-            ax.plot(dates, values, "g-", linewidth=2, alpha=0.8)
 
-        # Customize the plot
-        ax.set_xlabel("Date", fontsize=12)
-        ax.set_ylabel("Number of sets", fontsize=12)
+                # Add value labels on points
+                for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                    label_text = f"{int(value)} ({date.year})" if period == "Years" else f"{int(value)}"
 
-        chart_title = f"Training sets ({period})"
-        ax.set_title(chart_title, fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
+                    ax.annotate(
+                        label_text,
+                        (date, value),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                    )
+            else:
+                ax.plot(dates, values, "g-", linewidth=2, alpha=0.8)
 
-        # Format x-axis dates
-        self._format_chart_x_axis(ax, dates, period)
+            # Customize the plot
+            ax.set_xlabel("Date", fontsize=12)
+            ax.set_ylabel("Number of sets", fontsize=12)
 
-        # Add statistics
-        if len(values) > 1:
-            min_value = int(min(values))
-            max_value = int(max(values))
-            avg_value = sum(values) / len(values)
-            total_value = int(sum(values))
+            chart_title = f"Training sets ({period})"
+            ax.set_title(chart_title, fontsize=14, fontweight="bold")
+            ax.grid(visible=True, alpha=0.3)
 
-            stats_text = f"Min: {min_value} | Max: {max_value} | Avg: {avg_value:.1f} | Total: {total_value}"
-            ax.text(
-                0.5,
-                0.02,
-                stats_text,
-                transform=ax.transAxes,
-                ha="center",
-                va="bottom",
-                fontsize=10,
-                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgreen", "alpha": 0.8},
-            )
+            # Format x-axis dates
+            self._format_chart_x_axis(ax, dates, period)
 
-        # Adjust layout to prevent label cutoff
-        fig.tight_layout()
+            # Add statistics
+            if len(values) > 1:
+                min_value = int(min(values))
+                max_value = int(max(values))
+                avg_value = sum(values) / len(values)
+                total_value = int(sum(values))
 
-        # Add canvas to layout
-        layout.addWidget(canvas)
+                stats_text = f"Min: {min_value} | Max: {max_value} | Avg: {avg_value:.1f} | Total: {total_value}"
+                ax.text(
+                    0.5,
+                    0.02,
+                    stats_text,
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgreen", "alpha": 0.8},
+                )
 
-        # Force update
-        canvas.draw()
+            # Adjust layout to prevent label cutoff
+            fig.tight_layout()
+
+            # Add canvas to layout
+            layout.addWidget(canvas)
+
+            # Force update
+            canvas.draw()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Chart Error", f"Failed to show sets chart: {e}")
 ```
 
 </details>
@@ -4500,47 +4820,56 @@ Populate all QTableViews using database manager methods.
 
 ```python
 def show_tables(self) -> None:
-        # Exercises table
-        rows = self.db_manager.get_all_exercises()
-        exercises_headers = ["Exercise", "Unit of Measurement", "Type Required"]
-        self.models["exercises"] = self._create_table_model(rows, exercises_headers)
-        self.tableView_exercises.setModel(self.models["exercises"])
-        self.tableView_exercises.resizeColumnsToContents()
+        if not self._validate_database_connection():
+            print("Database connection not available for showing tables")
+            return
 
-        # Connect selection change signal AFTER setting the model
-        selection_model = self.tableView_exercises.selectionModel()
-        if selection_model:
-            selection_model.currentRowChanged.connect(self.on_exercise_selection_changed)
+        try:
+            # Exercises table
+            rows = self.db_manager.get_all_exercises()
+            exercises_headers = ["Exercise", "Unit of Measurement", "Type Required"]
+            self.models["exercises"] = self._create_table_model(rows, exercises_headers)
+            self.tableView_exercises.setModel(self.models["exercises"])
+            self.tableView_exercises.resizeColumnsToContents()
 
-        # Process table
-        rows = self.db_manager.get_all_process_records()
-        process_data = [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
-        self.models["process"] = self._create_table_model(process_data, self.table_config["process"][2])
-        self.tableView_process.setModel(self.models["process"])
-        self.tableView_process.resizeColumnsToContents()
+            # Connect selection change signal AFTER setting the model
+            selection_model = self.tableView_exercises.selectionModel()
+            if selection_model:
+                selection_model.currentRowChanged.connect(self.on_exercise_selection_changed)
 
-        # Types table
-        rows = self.db_manager.get_all_exercise_types()
-        self.models["types"] = self._create_table_model(rows, self.table_config["types"][2])
-        self.tableView_exercise_types.setModel(self.models["types"])
-        self.tableView_exercise_types.resizeColumnsToContents()
+            # Process table
+            rows = self.db_manager.get_all_process_records()
+            process_data = [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
+            self.models["process"] = self._create_table_model(process_data, self.table_config["process"][2])
+            self.tableView_process.setModel(self.models["process"])
+            self.tableView_process.resizeColumnsToContents()
 
-        # Weight table
-        rows = self.db_manager.get_all_weight_records()
-        self.models["weight"] = self._create_table_model(rows, self.table_config["weight"][2])
-        self.tableView_weight.setModel(self.models["weight"])
-        self.tableView_weight.resizeColumnsToContents()
+            # Types table
+            rows = self.db_manager.get_all_exercise_types()
+            self.models["types"] = self._create_table_model(rows, self.table_config["types"][2])
+            self.tableView_exercise_types.setModel(self.models["types"])
+            self.tableView_exercise_types.resizeColumnsToContents()
 
-        # Connect weight selection change signal AFTER setting the model
-        weight_selection_model = self.tableView_weight.selectionModel()
-        if weight_selection_model:
-            weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
+            # Weight table
+            rows = self.db_manager.get_all_weight_records()
+            self.models["weight"] = self._create_table_model(rows, self.table_config["weight"][2])
+            self.tableView_weight.setModel(self.models["weight"])
+            self.tableView_weight.resizeColumnsToContents()
 
-        # Connect auto-save signals after all models are created
-        self._connect_table_auto_save_signals()
+            # Connect weight selection change signal AFTER setting the model
+            weight_selection_model = self.tableView_weight.selectionModel()
+            if weight_selection_model:
+                weight_selection_model.currentRowChanged.connect(self.on_weight_selection_changed)
 
-        # Update sets count for today
-        self.update_sets_count_today()
+            # Connect auto-save signals after all models are created
+            self._connect_table_auto_save_signals()
+
+            # Update sets count for today
+            self.update_sets_count_today()
+
+        except Exception as e:
+            print(f"Error showing tables: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
 ```
 
 </details>
@@ -4574,6 +4903,10 @@ def update_all(
         current_exercise: str | None = None,
         current_type: str | None = None,
     ) -> None:
+        if not self._validate_database_connection():
+            print("Database connection not available for update_all")
+            return
+
         if preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()
             current_type = self.comboBox_type.currentText()
@@ -4619,17 +4952,24 @@ Update exercise and type comboboxes for charts.
 
 ```python
 def update_chart_comboboxes(self) -> None:
-        # Update exercise combobox
-        exercises = self.db_manager.get_items("exercises", "name")
+        if not self._validate_database_connection():
+            return
 
-        self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
-        self.comboBox_chart_exercise.clear()
-        if exercises:
-            self.comboBox_chart_exercise.addItems(exercises)
-        self.comboBox_chart_exercise.blockSignals(False)  # noqa: FBT003
+        try:
+            # Update exercise combobox
+            exercises = self.db_manager.get_items("exercises", "name")
 
-        # Update type combobox
-        self.update_chart_type_combobox()
+            self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
+            self.comboBox_chart_exercise.clear()
+            if exercises:
+                self.comboBox_chart_exercise.addItems(exercises)
+            self.comboBox_chart_exercise.blockSignals(False)  # noqa: FBT003
+
+            # Update type combobox
+            self.update_chart_type_combobox()
+
+        except Exception as e:
+            print(f"Error updating chart comboboxes: {e}")
 ```
 
 </details>
@@ -4647,15 +4987,22 @@ Update chart type combobox based on selected exercise.
 
 ```python
 def update_chart_type_combobox(self) -> None:
-        self.comboBox_chart_type.clear()
-        self.comboBox_chart_type.addItem("All types")
+        if not self._validate_database_connection():
+            return
 
-        exercise = self.comboBox_chart_exercise.currentText()
-        if exercise:
-            ex_id = self.db_manager.get_id("exercises", "name", exercise)
-            if ex_id is not None:
-                types = self.db_manager.get_exercise_types(ex_id)
-                self.comboBox_chart_type.addItems(types)
+        try:
+            self.comboBox_chart_type.clear()
+            self.comboBox_chart_type.addItem("All types")
+
+            exercise = self.comboBox_chart_exercise.currentText()
+            if exercise:
+                ex_id = self.db_manager.get_id("exercises", "name", exercise)
+                if ex_id is not None:
+                    types = self.db_manager.get_exercise_types(ex_id)
+                    self.comboBox_chart_type.addItems(types)
+
+        except Exception as e:
+            print(f"Error updating chart type combobox: {e}")
 ```
 
 </details>
@@ -4673,147 +5020,155 @@ Update the exercise chart using database manager.
 
 ```python
 def update_exercise_chart(self) -> None:
-        exercise = self.comboBox_chart_exercise.currentText()
-        exercise_type = self.comboBox_chart_type.currentText()
-        period = self.comboBox_chart_period.currentText()
-        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-
-        # Clear existing chart
-        layout = self.verticalLayout_charts_content
-        for i in reversed(range(layout.count())):
-            child = layout.takeAt(i).widget()
-            if child:
-                child.setParent(None)
-
-        if not exercise:
-            from PySide6.QtWidgets import QLabel
-
-            no_data_label = QLabel("Please select an exercise")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
+        if not self._validate_database_connection():
             return
 
-        # Get exercise unit for Y-axis label
-        exercise_unit = self.db_manager.get_exercise_unit(exercise)
+        try:
+            exercise = self.comboBox_chart_exercise.currentText()
+            exercise_type = self.comboBox_chart_type.currentText()
+            period = self.comboBox_chart_period.currentText()
+            date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
 
-        # Get chart data using database manager
-        rows = self.db_manager.get_exercise_chart_data(
-            exercise_name=exercise,
-            exercise_type=exercise_type if exercise_type != "All types" else None,
-            date_from=date_from,
-            date_to=date_to,
-        )
+            # Clear existing chart
+            layout = self.verticalLayout_charts_content
+            for i in reversed(range(layout.count())):
+                child = layout.takeAt(i).widget()
+                if child:
+                    child.setParent(None)
 
-        if not rows:
-            from PySide6.QtWidgets import QLabel
+            if not exercise:
+                from PySide6.QtWidgets import QLabel
 
-            no_data_label = QLabel("No data found for the selected filters")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
-            return
+                no_data_label = QLabel("Please select an exercise")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
 
-        # Group data by period
-        grouped_data = self._group_exercise_data_by_period(rows, period)
+            # Get exercise unit for Y-axis label
+            exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        if not grouped_data:
-            from PySide6.QtWidgets import QLabel
-
-            no_data_label = QLabel("No data to display")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
-            return
-
-        # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
-
-        # Create plot
-        ax = fig.add_subplot(111)
-
-        # Extract dates and values
-        dates = list(grouped_data.keys())
-        values = list(grouped_data.values())
-
-        # Plot line with markers if self.max_count_points or fewer data points
-        if len(values) <= self.max_count_points_in_charts:
-            ax.plot(
-                dates,
-                values,
-                "b-o",
-                linewidth=2,
-                alpha=0.8,
-                markersize=6,
-                markerfacecolor="blue",
-                markeredgecolor="darkblue",
+            # Get chart data using database manager
+            rows = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=exercise_type if exercise_type != "All types" else None,
+                date_from=date_from,
+                date_to=date_to,
             )
 
-            # Add value labels on points
-            for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
-                label_text = f"{value:.1f} ({date.year})" if period == "Years" else f"{value:.1f}"
+            if not rows:
+                from PySide6.QtWidgets import QLabel
 
-                ax.annotate(
-                    label_text,
-                    (date, value),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
+                no_data_label = QLabel("No data found for the selected filters")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
+
+            # Group data by period
+            grouped_data = self._group_exercise_data_by_period(rows, period)
+
+            if not grouped_data:
+                from PySide6.QtWidgets import QLabel
+
+                no_data_label = QLabel("No data to display")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
+
+            # Create matplotlib figure
+            fig = Figure(figsize=(12, 6), dpi=100)
+            canvas = FigureCanvas(fig)
+
+            # Create plot
+            ax = fig.add_subplot(111)
+
+            # Extract dates and values
+            dates = list(grouped_data.keys())
+            values = list(grouped_data.values())
+
+            # Plot line with markers if self.max_count_points or fewer data points
+            if len(values) <= self.max_count_points_in_charts:
+                ax.plot(
+                    dates,
+                    values,
+                    "b-o",
+                    linewidth=2,
                     alpha=0.8,
+                    markersize=6,
+                    markerfacecolor="blue",
+                    markeredgecolor="darkblue",
                 )
-        else:
-            ax.plot(dates, values, "b-", linewidth=2, alpha=0.8)
 
-        # Customize the plot
-        ax.set_xlabel("Date", fontsize=12)
+                # Add value labels on points
+                for _i, (date, value) in enumerate(zip(dates, values, strict=False)):
+                    label_text = f"{value:.1f} ({date.year})" if period == "Years" else f"{value:.1f}"
 
-        # Set Y-axis label with unit
-        y_label = f"Total Value ({exercise_unit})" if exercise_unit else "Total Value"
-        ax.set_ylabel(y_label, fontsize=12)
+                    ax.annotate(
+                        label_text,
+                        (date, value),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                    )
+            else:
+                ax.plot(dates, values, "b-", linewidth=2, alpha=0.8)
 
-        chart_title = f"{exercise}"
-        if exercise_type and exercise_type != "All types":
-            chart_title += f" - {exercise_type}"
-        chart_title += f" ({period})"
+            # Customize the plot
+            ax.set_xlabel("Date", fontsize=12)
 
-        ax.set_title(chart_title, fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
+            # Set Y-axis label with unit
+            y_label = f"Total Value ({exercise_unit})" if exercise_unit else "Total Value"
+            ax.set_ylabel(y_label, fontsize=12)
 
-        # Format x-axis dates
-        self._format_chart_x_axis(ax, dates, period)
+            chart_title = f"{exercise}"
+            if exercise_type and exercise_type != "All types":
+                chart_title += f" - {exercise_type}"
+            chart_title += f" ({period})"
 
-        # Add statistics
-        if len(values) > 1:
-            min_value = min(values)
-            max_value = max(values)
-            avg_value = sum(values) / len(values)
-            total_value = sum(values)
+            ax.set_title(chart_title, fontsize=14, fontweight="bold")
+            ax.grid(visible=True, alpha=0.3)
 
-            # Include unit in statistics if available
-            unit_suffix = f" {exercise_unit}" if exercise_unit else ""
-            stats_text = (
-                f"Min: {min_value:.1f}{unit_suffix} | Max: {max_value:.1f}{unit_suffix} | "
-                f"Avg: {avg_value:.1f}{unit_suffix} | Total: {total_value:.1f}{unit_suffix}"
-            )
-            ax.text(
-                0.5,
-                0.02,
-                stats_text,
-                transform=ax.transAxes,
-                ha="center",
-                va="bottom",
-                fontsize=10,
-                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
-            )
+            # Format x-axis dates
+            self._format_chart_x_axis(ax, dates, period)
 
-        # Adjust layout to prevent label cutoff
-        fig.tight_layout()
+            # Add statistics
+            if len(values) > 1:
+                min_value = min(values)
+                max_value = max(values)
+                avg_value = sum(values) / len(values)
+                total_value = sum(values)
 
-        # Add canvas to layout
-        layout.addWidget(canvas)
+                # Include unit in statistics if available
+                unit_suffix = f" {exercise_unit}" if exercise_unit else ""
+                stats_text = (
+                    f"Min: {min_value:.1f}{unit_suffix} | Max: {max_value:.1f}{unit_suffix} | "
+                    f"Avg: {avg_value:.1f}{unit_suffix} | Total: {total_value:.1f}{unit_suffix}"
+                )
+                ax.text(
+                    0.5,
+                    0.02,
+                    stats_text,
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
+                )
 
-        # Force update
-        canvas.draw()
+            # Adjust layout to prevent label cutoff
+            fig.tight_layout()
+
+            # Add canvas to layout
+            layout.addWidget(canvas)
+
+            # Force update
+            canvas.draw()
+
+        except Exception as e:
+            print(f"Error updating exercise chart: {e}")
+            QMessageBox.warning(self, "Chart Error", f"Failed to update exercise chart: {e}")
 ```
 
 </details>
@@ -4835,21 +5190,28 @@ selections.
 
 ```python
 def update_filter_comboboxes(self) -> None:
-        current_exercise = self.comboBox_filter_exercise.currentText()
+        if not self._validate_database_connection():
+            return
 
-        self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
-        self.comboBox_filter_exercise.clear()
-        self.comboBox_filter_exercise.addItem("")  # all exercises
-        self.comboBox_filter_exercise.addItems(
-            self.db_manager.get_items("exercises", "name"),
-        )
-        if current_exercise:
-            idx = self.comboBox_filter_exercise.findText(current_exercise)
-            if idx >= 0:
-                self.comboBox_filter_exercise.setCurrentIndex(idx)
-        self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
+        try:
+            current_exercise = self.comboBox_filter_exercise.currentText()
 
-        self.update_filter_type_combobox()
+            self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
+            self.comboBox_filter_exercise.clear()
+            self.comboBox_filter_exercise.addItem("")  # all exercises
+            self.comboBox_filter_exercise.addItems(
+                self.db_manager.get_items("exercises", "name"),
+            )
+            if current_exercise:
+                idx = self.comboBox_filter_exercise.findText(current_exercise)
+                if idx >= 0:
+                    self.comboBox_filter_exercise.setCurrentIndex(idx)
+            self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
+
+            self.update_filter_type_combobox()
+
+        except Exception as e:
+            print(f"Error updating filter comboboxes: {e}")
 ```
 
 </details>
@@ -4871,21 +5233,28 @@ selection if possible.
 
 ```python
 def update_filter_type_combobox(self) -> None:
-        current_type = self.comboBox_filter_type.currentText()
-        self.comboBox_filter_type.clear()
-        self.comboBox_filter_type.addItem("")
+        if not self._validate_database_connection():
+            return
 
-        exercise = self.comboBox_filter_exercise.currentText()
-        if exercise:
-            ex_id = self.db_manager.get_id("exercises", "name", exercise)
-            if ex_id is not None:
-                types = self.db_manager.get_exercise_types(ex_id)
-                self.comboBox_filter_type.addItems(types)
+        try:
+            current_type = self.comboBox_filter_type.currentText()
+            self.comboBox_filter_type.clear()
+            self.comboBox_filter_type.addItem("")
 
-        if current_type:
-            idx = self.comboBox_filter_type.findText(current_type)
-            if idx >= 0:
-                self.comboBox_filter_type.setCurrentIndex(idx)
+            exercise = self.comboBox_filter_exercise.currentText()
+            if exercise:
+                ex_id = self.db_manager.get_id("exercises", "name", exercise)
+                if ex_id is not None:
+                    types = self.db_manager.get_exercise_types(ex_id)
+                    self.comboBox_filter_type.addItems(types)
+
+            if current_type:
+                idx = self.comboBox_filter_type.findText(current_type)
+                if idx >= 0:
+                    self.comboBox_filter_type.setCurrentIndex(idx)
+
+        except Exception as e:
+            print(f"Error updating filter type combobox: {e}")
 ```
 
 </details>
@@ -4903,7 +5272,7 @@ Update the label showing count of sets done today.
 
 ```python
 def update_sets_count_today(self) -> None:
-        if not self.db_manager or not self.db_manager.is_database_open():
+        if not self._validate_database_connection():
             self.label_count_sets_today.setText("0")
             return
 
@@ -4930,136 +5299,144 @@ Update the weight chart using database manager.
 
 ```python
 def update_weight_chart(self) -> None:
-        date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
-
-        # Clear existing chart
-        layout = self.verticalLayout_weight_chart_content
-        for i in reversed(range(layout.count())):
-            child = layout.takeAt(i).widget()
-            if child:
-                child.setParent(None)
-
-        # Get weight data using database manager
-        rows = self.db_manager.get_weight_chart_data(date_from, date_to)
-
-        if not rows:
-            from PySide6.QtWidgets import QLabel
-
-            no_data_label = QLabel("No weight data found for the selected period")
-            no_data_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(no_data_label)
+        if not self._validate_database_connection():
             return
 
-        # Create matplotlib figure
-        fig = Figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        try:
+            date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
 
-        # Parse data
-        weights = [row[0] for row in rows]
-        dates = [datetime.strptime(row[1], "%Y-%m-%d").replace(tzinfo=timezone.utc) for row in rows]
+            # Clear existing chart
+            layout = self.verticalLayout_weight_chart_content
+            for i in reversed(range(layout.count())):
+                child = layout.takeAt(i).widget()
+                if child:
+                    child.setParent(None)
 
-        # Create plot
-        ax = fig.add_subplot(111)
+            # Get weight data using database manager
+            rows = self.db_manager.get_weight_chart_data(date_from, date_to)
 
-        # Plot line with markers if self.max_count_points or fewer data points
-        if len(weights) <= self.max_count_points_in_charts:
-            ax.plot(
-                dates,
-                weights,
-                "b-o",
-                linewidth=2,
-                alpha=0.8,
-                markersize=6,
-                markerfacecolor="blue",
-                markeredgecolor="darkblue",
-            )
+            if not rows:
+                from PySide6.QtWidgets import QLabel
 
-            # Add value labels on points
-            for _i, (date, weight) in enumerate(zip(dates, weights, strict=False)):
-                ax.annotate(
-                    f"{weight:.1f}",
-                    (date, weight),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
+                no_data_label = QLabel("No weight data found for the selected period")
+                no_data_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data_label)
+                return
+
+            # Create matplotlib figure
+            fig = Figure(figsize=(12, 6), dpi=100)
+            canvas = FigureCanvas(fig)
+
+            # Parse data
+            weights = [row[0] for row in rows]
+            dates = [datetime.strptime(row[1], "%Y-%m-%d").replace(tzinfo=timezone.utc) for row in rows]
+
+            # Create plot
+            ax = fig.add_subplot(111)
+
+            # Plot line with markers if self.max_count_points or fewer data points
+            if len(weights) <= self.max_count_points_in_charts:
+                ax.plot(
+                    dates,
+                    weights,
+                    "b-o",
+                    linewidth=2,
+                    alpha=0.8,
+                    markersize=6,
+                    markerfacecolor="blue",
+                    markeredgecolor="darkblue",
+                )
+
+                # Add value labels on points
+                for _i, (date, weight) in enumerate(zip(dates, weights, strict=False)):
+                    ax.annotate(
+                        f"{weight:.1f}",
+                        (date, weight),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                    )
+            else:
+                ax.plot(
+                    dates,
+                    weights,
+                    "b-",
+                    linewidth=2,
                     alpha=0.8,
                 )
-        else:
-            ax.plot(
-                dates,
-                weights,
-                "b-",
-                linewidth=2,
-                alpha=0.8,
-            )
 
-        # Customize the plot
-        ax.set_xlabel("Date", fontsize=12)
-        ax.set_ylabel("Weight (kg)", fontsize=12)
-        ax.set_title("Weight Progress", fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
+            # Customize the plot
+            ax.set_xlabel("Date", fontsize=12)
+            ax.set_ylabel("Weight (kg)", fontsize=12)
+            ax.set_title("Weight Progress", fontsize=14, fontweight="bold")
+            ax.grid(visible=True, alpha=0.3)
 
-        # Add more detailed Y-axis grid
-        from matplotlib.ticker import MultipleLocator
+            # Add more detailed Y-axis grid
+            from matplotlib.ticker import MultipleLocator
 
-        ax.yaxis.set_major_locator(MultipleLocator(1))  # Major divisions every 1 kg
-        ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Minor divisions every 0.5 kg
-        ax.grid(visible=True, which="major", alpha=0.3)  # Major grid
-        ax.grid(visible=True, which="minor", alpha=0.1)  # Minor grid (more transparent)
+            ax.yaxis.set_major_locator(MultipleLocator(1))  # Major divisions every 1 kg
+            ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Minor divisions every 0.5 kg
+            ax.grid(visible=True, which="major", alpha=0.3)  # Major grid
+            ax.grid(visible=True, which="minor", alpha=0.1)  # Minor grid (more transparent)
 
-        # Define constants at the top of your file or function
-        days_in_month = 31
-        days_in_year = 365
+            # Define constants at the top of your file or function
+            days_in_month = 31
+            days_in_year = 365
 
-        # Format x-axis dates
-        if len(dates) > 0:
-            date_range = (max(dates) - min(dates)).days
+            # Format x-axis dates
+            if len(dates) > 0:
+                date_range = (max(dates) - min(dates)).days
 
-            if date_range <= days_in_month:  # Less than a month
-                ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 10)))
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            elif date_range <= days_in_year:  # Less than a year
-                ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=max(1, len(dates) // 10)))
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:  # More than a year
-                ax.xaxis.set_major_locator(mdates.MonthLocator(interval=max(1, date_range // days_in_year)))
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+                if date_range <= days_in_month:  # Less than a month
+                    ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 10)))
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+                elif date_range <= days_in_year:  # Less than a year
+                    ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=max(1, len(dates) // 10)))
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+                else:  # More than a year
+                    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=max(1, date_range // days_in_year)))
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
 
-        # Rotate date labels
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+            # Rotate date labels
+            plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
-        # Add statistics
-        if len(weights) > 1:
-            min_weight = min(weights)
-            max_weight = max(weights)
-            avg_weight = sum(weights) / len(weights)
-            weight_change = weights[-1] - weights[0]
+            # Add statistics
+            if len(weights) > 1:
+                min_weight = min(weights)
+                max_weight = max(weights)
+                avg_weight = sum(weights) / len(weights)
+                weight_change = weights[-1] - weights[0]
 
-            stats_text = (
-                f"Min: {min_weight:.1f} kg | Max: {max_weight:.1f} kg | "
-                f"Avg: {avg_weight:.1f} kg | Change: {weight_change:+.1f} kg"
-            )
-            ax.text(
-                0.5,
-                0.02,
-                stats_text,
-                transform=ax.transAxes,
-                ha="center",
-                va="bottom",
-                fontsize=10,
-                bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
-            )
+                stats_text = (
+                    f"Min: {min_weight:.1f} kg | Max: {max_weight:.1f} kg | "
+                    f"Avg: {avg_weight:.1f} kg | Change: {weight_change:+.1f} kg"
+                )
+                ax.text(
+                    0.5,
+                    0.02,
+                    stats_text,
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "lightgray", "alpha": 0.8},
+                )
 
-        # Adjust layout to prevent label cutoff
-        fig.tight_layout()
+            # Adjust layout to prevent label cutoff
+            fig.tight_layout()
 
-        # Add canvas to layout
-        layout.addWidget(canvas)
+            # Add canvas to layout
+            layout.addWidget(canvas)
 
-        # Force update
-        canvas.draw()
+            # Force update
+            canvas.draw()
+
+        except Exception as e:
+            print(f"Error updating weight chart: {e}")
+            QMessageBox.warning(self, "Chart Error", f"Failed to update weight chart: {e}")
 ```
 
 </details>

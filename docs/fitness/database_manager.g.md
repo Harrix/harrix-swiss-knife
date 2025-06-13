@@ -15,7 +15,9 @@ lang: en
   - [Method `__init__`](#method-__init__)
   - [Method `__del__`](#method-__del__)
   - [Method `_create_query`](#method-_create_query)
+  - [Method `_ensure_connection`](#method-_ensure_connection)
   - [Method `_iter_query`](#method-_iter_query)
+  - [Method `_reconnect`](#method-_reconnect)
   - [Method `_rows_from_query`](#method-_rows_from_query)
   - [Method `add_exercise`](#method-add_exercise)
   - [Method `add_exercise_type`](#method-add_exercise_type)
@@ -95,12 +97,19 @@ class DatabaseManager:
         # Create unique connection name to avoid conflicts
         import uuid
 
-        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}"
+        # Include thread ID to ensure unique connections across threads
+        thread_id = threading.current_thread().ident
+        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
 
         self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
         self.db.setDatabaseName(db_filename)
+
+        # Store the database filename for potential reconnection
+        self._db_filename = db_filename
+
         if not self.db.open():
-            msg = f"Failed to open the database: {self.db.lastError().text()}"
+            error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown database error"
+            msg = f"Failed to open the database: {error_msg}"
             raise ConnectionError(msg)
 
     def __del__(self) -> None:
@@ -117,7 +126,38 @@ class DatabaseManager:
         - `QSqlQuery`: A query object bound to this database connection.
 
         """
+        if not self._ensure_connection():
+            raise ConnectionError("Database connection is not available")
         return QSqlQuery(self.db)
+
+    def _ensure_connection(self) -> bool:
+        """Ensure database connection is open and valid.
+
+        Returns:
+        - `bool`: True if connection is valid, False otherwise.
+        """
+        if not hasattr(self, "db") or not self.db.isValid():
+            print("Database object is invalid, attempting to reconnect...")
+            try:
+                self._reconnect()
+                return self.db.isOpen()
+            except Exception as e:
+                print(f"Failed to reconnect to database: {e}")
+                return False
+
+        if not self.db.isOpen():
+            print("Database connection is closed, attempting to reopen...")
+            if not self.db.open():
+                error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
+                print(f"Failed to reopen database: {error_msg}")
+                try:
+                    self._reconnect()
+                    return self.db.isOpen()
+                except Exception as e:
+                    print(f"Failed to reconnect to database: {e}")
+                    return False
+
+        return True
 
     def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
         """Yield every record in *query* one by one.
@@ -136,6 +176,28 @@ class DatabaseManager:
             return
         while query.next():
             yield query
+
+    def _reconnect(self) -> None:
+        """Attempt to reconnect to the database."""
+        if hasattr(self, "db") and self.db.isValid():
+            self.db.close()
+
+        # Remove the old connection
+        if hasattr(self, "connection_name"):
+            QSqlDatabase.removeDatabase(self.connection_name)
+
+        # Create a new connection
+        import uuid
+
+        thread_id = threading.current_thread().ident
+        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
+
+        self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
+        self.db.setDatabaseName(self._db_filename)
+
+        if not self.db.open():
+            error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
+            raise ConnectionError(f"Failed to reconnect to database: {error_msg}")
 
     def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
         """Convert the full result set in *query* into a list of rows.
@@ -233,8 +295,12 @@ class DatabaseManager:
 
     def close(self) -> None:
         """Close the database connection."""
-        if hasattr(self, "db") and self.db.isOpen():
+        if hasattr(self, "db") and self.db.isValid() and self.db.isOpen():
             self.db.close()
+
+        # Remove the database connection
+        if hasattr(self, "connection_name"):
+            QSqlDatabase.removeDatabase(self.connection_name)
 
     def delete_exercise(self, exercise_id: int) -> bool:
         """Delete an exercise from the database.
@@ -307,28 +373,36 @@ class DatabaseManager:
           `None`.
 
         """
-        # Check if database is open
-        if not self.db.isOpen():
-            print(f"Database is not open for query: {query_text}")
+        # Ensure database connection is valid
+        if not self._ensure_connection():
+            print(f"Database connection is not available for query: {query_text}")
             return None
 
-        query = self._create_query()
-        if not query.prepare(query_text):
-            print(f"Failed to prepare query: {query.lastError().text()}")
-            print(f"Query was: {query_text}")
-            return None
+        try:
+            query = self._create_query()
+            if not query.prepare(query_text):
+                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
+                print(f"Failed to prepare query: {error_msg}")
+                print(f"Query was: {query_text}")
+                return None
 
-        if params:
-            for key, value in params.items():
-                query.bindValue(f":{key}", value)
+            if params:
+                for key, value in params.items():
+                    query.bindValue(f":{key}", value)
 
-        if not query.exec():
-            print(f"Failed to execute query: {query.lastError().text()}")
+            if not query.exec():
+                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
+                print(f"Failed to execute query: {error_msg}")
+                print(f"Query was: {query_text}")
+                print(f"Params were: {params}")
+                return None
+
+            return query
+        except Exception as e:
+            print(f"Exception during query execution: {e}")
             print(f"Query was: {query_text}")
             print(f"Params were: {params}")
             return None
-
-        return query
 
     def execute_simple_query(
         self,
@@ -348,30 +422,38 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        # Check if database is open
-        if not self.db.isOpen():
-            print(f"Database is not open for query: {query_text}")
+        # Ensure database connection is valid
+        if not self._ensure_connection():
+            print(f"Database connection is not available for query: {query_text}")
             return False
 
-        query = self._create_query()
-        if not query.prepare(query_text):
-            print(f"Failed to prepare query: {query.lastError().text()}")
-            print(f"Query was: {query_text}")
-            return False
+        try:
+            query = self._create_query()
+            if not query.prepare(query_text):
+                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
+                print(f"Failed to prepare query: {error_msg}")
+                print(f"Query was: {query_text}")
+                return False
 
-        if params:
-            for key, value in params.items():
-                query.bindValue(f":{key}", value)
+            if params:
+                for key, value in params.items():
+                    query.bindValue(f":{key}", value)
 
-        success = query.exec()
-        if not success:
-            print(f"Failed to execute query: {query.lastError().text()}")
+            success = query.exec()
+            if not success:
+                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
+                print(f"Failed to execute query: {error_msg}")
+                print(f"Query was: {query_text}")
+                print(f"Params were: {params}")
+
+            # Clear the query to release resources
+            query.clear()
+            return success
+        except Exception as e:
+            print(f"Exception during query execution: {e}")
             print(f"Query was: {query_text}")
             print(f"Params were: {params}")
-
-        # Clear the query to release resources
-        query.clear()
-        return success
+            return False
 
     def get_all_exercise_types(self) -> list[list[Any]]:
         """Get all exercise types with exercise names.
@@ -858,7 +940,7 @@ class DatabaseManager:
         - `bool`: True if database is open, False otherwise.
 
         """
-        return hasattr(self, "db") and self.db.isOpen()
+        return hasattr(self, "db") and self.db.isValid() and self.db.isOpen()
 
     def is_exercise_type_required(self, exercise_id: int) -> bool:
         """Check if exercise type is required for a given exercise.
@@ -986,12 +1068,19 @@ def __init__(self, db_filename: str) -> None:
         # Create unique connection name to avoid conflicts
         import uuid
 
-        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}"
+        # Include thread ID to ensure unique connections across threads
+        thread_id = threading.current_thread().ident
+        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
 
         self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
         self.db.setDatabaseName(db_filename)
+
+        # Store the database filename for potential reconnection
+        self._db_filename = db_filename
+
         if not self.db.open():
-            msg = f"Failed to open the database: {self.db.lastError().text()}"
+            error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown database error"
+            msg = f"Failed to open the database: {error_msg}"
             raise ConnectionError(msg)
 ```
 
@@ -1035,7 +1124,52 @@ Returns:
 
 ```python
 def _create_query(self) -> QSqlQuery:
+        if not self._ensure_connection():
+            raise ConnectionError("Database connection is not available")
         return QSqlQuery(self.db)
+```
+
+</details>
+
+### Method `_ensure_connection`
+
+```python
+def _ensure_connection(self) -> bool
+```
+
+Ensure database connection is open and valid.
+
+Returns:
+
+- `bool`: True if connection is valid, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _ensure_connection(self) -> bool:
+        if not hasattr(self, "db") or not self.db.isValid():
+            print("Database object is invalid, attempting to reconnect...")
+            try:
+                self._reconnect()
+                return self.db.isOpen()
+            except Exception as e:
+                print(f"Failed to reconnect to database: {e}")
+                return False
+
+        if not self.db.isOpen():
+            print("Database connection is closed, attempting to reopen...")
+            if not self.db.open():
+                error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
+                print(f"Failed to reopen database: {error_msg}")
+                try:
+                    self._reconnect()
+                    return self.db.isOpen()
+                except Exception as e:
+                    print(f"Failed to reconnect to database: {e}")
+                    return False
+
+        return True
 ```
 
 </details>
@@ -1066,6 +1200,42 @@ def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
             return
         while query.next():
             yield query
+```
+
+</details>
+
+### Method `_reconnect`
+
+```python
+def _reconnect(self) -> None
+```
+
+Attempt to reconnect to the database.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _reconnect(self) -> None:
+        if hasattr(self, "db") and self.db.isValid():
+            self.db.close()
+
+        # Remove the old connection
+        if hasattr(self, "connection_name"):
+            QSqlDatabase.removeDatabase(self.connection_name)
+
+        # Create a new connection
+        import uuid
+
+        thread_id = threading.current_thread().ident
+        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
+
+        self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
+        self.db.setDatabaseName(self._db_filename)
+
+        if not self.db.open():
+            error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
+            raise ConnectionError(f"Failed to reconnect to database: {error_msg}")
 ```
 
 </details>
@@ -1245,8 +1415,12 @@ Close the database connection.
 
 ```python
 def close(self) -> None:
-        if hasattr(self, "db") and self.db.isOpen():
+        if hasattr(self, "db") and self.db.isValid() and self.db.isOpen():
             self.db.close()
+
+        # Remove the database connection
+        if hasattr(self, "connection_name"):
+            QSqlDatabase.removeDatabase(self.connection_name)
 ```
 
 </details>
@@ -1387,28 +1561,36 @@ def execute_query(
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> QSqlQuery | None:
-        # Check if database is open
-        if not self.db.isOpen():
-            print(f"Database is not open for query: {query_text}")
+        # Ensure database connection is valid
+        if not self._ensure_connection():
+            print(f"Database connection is not available for query: {query_text}")
             return None
 
-        query = self._create_query()
-        if not query.prepare(query_text):
-            print(f"Failed to prepare query: {query.lastError().text()}")
-            print(f"Query was: {query_text}")
-            return None
+        try:
+            query = self._create_query()
+            if not query.prepare(query_text):
+                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
+                print(f"Failed to prepare query: {error_msg}")
+                print(f"Query was: {query_text}")
+                return None
 
-        if params:
-            for key, value in params.items():
-                query.bindValue(f":{key}", value)
+            if params:
+                for key, value in params.items():
+                    query.bindValue(f":{key}", value)
 
-        if not query.exec():
-            print(f"Failed to execute query: {query.lastError().text()}")
+            if not query.exec():
+                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
+                print(f"Failed to execute query: {error_msg}")
+                print(f"Query was: {query_text}")
+                print(f"Params were: {params}")
+                return None
+
+            return query
+        except Exception as e:
+            print(f"Exception during query execution: {e}")
             print(f"Query was: {query_text}")
             print(f"Params were: {params}")
             return None
-
-        return query
 ```
 
 </details>
@@ -1440,30 +1622,38 @@ def execute_simple_query(
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> bool:
-        # Check if database is open
-        if not self.db.isOpen():
-            print(f"Database is not open for query: {query_text}")
+        # Ensure database connection is valid
+        if not self._ensure_connection():
+            print(f"Database connection is not available for query: {query_text}")
             return False
 
-        query = self._create_query()
-        if not query.prepare(query_text):
-            print(f"Failed to prepare query: {query.lastError().text()}")
-            print(f"Query was: {query_text}")
-            return False
+        try:
+            query = self._create_query()
+            if not query.prepare(query_text):
+                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
+                print(f"Failed to prepare query: {error_msg}")
+                print(f"Query was: {query_text}")
+                return False
 
-        if params:
-            for key, value in params.items():
-                query.bindValue(f":{key}", value)
+            if params:
+                for key, value in params.items():
+                    query.bindValue(f":{key}", value)
 
-        success = query.exec()
-        if not success:
-            print(f"Failed to execute query: {query.lastError().text()}")
+            success = query.exec()
+            if not success:
+                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
+                print(f"Failed to execute query: {error_msg}")
+                print(f"Query was: {query_text}")
+                print(f"Params were: {params}")
+
+            # Clear the query to release resources
+            query.clear()
+            return success
+        except Exception as e:
+            print(f"Exception during query execution: {e}")
             print(f"Query was: {query_text}")
             print(f"Params were: {params}")
-
-        # Clear the query to release resources
-        query.clear()
-        return success
+            return False
 ```
 
 </details>
@@ -2240,7 +2430,7 @@ Returns:
 
 ```python
 def is_database_open(self) -> bool:
-        return hasattr(self, "db") and self.db.isOpen()
+        return hasattr(self, "db") and self.db.isValid() and self.db.isOpen()
 ```
 
 </details>
