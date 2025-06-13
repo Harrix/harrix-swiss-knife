@@ -26,7 +26,7 @@ from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel,
 from PySide6.QtGui import QCloseEvent, QMovie, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
-from harrix_swiss_knife import fitness_database_manager, fitness_window
+from harrix_swiss_knife.fitness import fitness_database_manager, fitness_window
 
 config = h.dev.load_config("config/config.json")
 
