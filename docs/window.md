@@ -62,8 +62,8 @@ class Ui_MainWindow(object):
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
-        self.label_5.setText(QCoreApplication.translate("MainWindow", "Name", None))
-        self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement", None))
+        self.label_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
+        self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement:", None))
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", "Type required", None))
         self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
@@ -450,33 +450,33 @@ class Ui_MainWindow(object):
         self.verticalLayout_10.setObjectName("verticalLayout_10")
         self.horizontalLayout_17 = QHBoxLayout()
         self.horizontalLayout_17.setObjectName("horizontalLayout_17")
-        self.lineEdit_exercise_name = QLineEdit(self.groupBox_2)
-        self.lineEdit_exercise_name.setObjectName("lineEdit_exercise_name")
-        self.lineEdit_exercise_name.setMinimumSize(QSize(113, 0))
-
-        self.horizontalLayout_17.addWidget(self.lineEdit_exercise_name)
-
         self.label_5 = QLabel(self.groupBox_2)
         self.label_5.setObjectName("label_5")
         self.label_5.setMinimumSize(QSize(111, 0))
 
         self.horizontalLayout_17.addWidget(self.label_5)
 
+        self.lineEdit_exercise_name = QLineEdit(self.groupBox_2)
+        self.lineEdit_exercise_name.setObjectName("lineEdit_exercise_name")
+        self.lineEdit_exercise_name.setMinimumSize(QSize(113, 0))
+
+        self.horizontalLayout_17.addWidget(self.lineEdit_exercise_name)
+
         self.verticalLayout_10.addLayout(self.horizontalLayout_17)
 
         self.horizontalLayout_18 = QHBoxLayout()
         self.horizontalLayout_18.setObjectName("horizontalLayout_18")
-        self.lineEdit_exercise_unit = QLineEdit(self.groupBox_2)
-        self.lineEdit_exercise_unit.setObjectName("lineEdit_exercise_unit")
-        self.lineEdit_exercise_unit.setMinimumSize(QSize(113, 0))
-
-        self.horizontalLayout_18.addWidget(self.lineEdit_exercise_unit)
-
         self.label_6 = QLabel(self.groupBox_2)
         self.label_6.setObjectName("label_6")
         self.label_6.setMinimumSize(QSize(111, 0))
 
         self.horizontalLayout_18.addWidget(self.label_6)
+
+        self.lineEdit_exercise_unit = QLineEdit(self.groupBox_2)
+        self.lineEdit_exercise_unit.setObjectName("lineEdit_exercise_unit")
+        self.lineEdit_exercise_unit.setMinimumSize(QSize(113, 0))
+
+        self.horizontalLayout_18.addWidget(self.lineEdit_exercise_unit)
 
         self.verticalLayout_10.addLayout(self.horizontalLayout_18)
 
@@ -917,7 +917,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
 
         QMetaObject.connectSlotsByName(MainWindow)
 ```
@@ -966,8 +966,8 @@ def retranslateUi(self, MainWindow):
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
-        self.label_5.setText(QCoreApplication.translate("MainWindow", "Name", None))
-        self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement", None))
+        self.label_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
+        self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement:", None))
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", "Type required", None))
         self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
@@ -1369,33 +1369,33 @@ def setupUi(self, MainWindow):
         self.verticalLayout_10.setObjectName("verticalLayout_10")
         self.horizontalLayout_17 = QHBoxLayout()
         self.horizontalLayout_17.setObjectName("horizontalLayout_17")
-        self.lineEdit_exercise_name = QLineEdit(self.groupBox_2)
-        self.lineEdit_exercise_name.setObjectName("lineEdit_exercise_name")
-        self.lineEdit_exercise_name.setMinimumSize(QSize(113, 0))
-
-        self.horizontalLayout_17.addWidget(self.lineEdit_exercise_name)
-
         self.label_5 = QLabel(self.groupBox_2)
         self.label_5.setObjectName("label_5")
         self.label_5.setMinimumSize(QSize(111, 0))
 
         self.horizontalLayout_17.addWidget(self.label_5)
 
+        self.lineEdit_exercise_name = QLineEdit(self.groupBox_2)
+        self.lineEdit_exercise_name.setObjectName("lineEdit_exercise_name")
+        self.lineEdit_exercise_name.setMinimumSize(QSize(113, 0))
+
+        self.horizontalLayout_17.addWidget(self.lineEdit_exercise_name)
+
         self.verticalLayout_10.addLayout(self.horizontalLayout_17)
 
         self.horizontalLayout_18 = QHBoxLayout()
         self.horizontalLayout_18.setObjectName("horizontalLayout_18")
-        self.lineEdit_exercise_unit = QLineEdit(self.groupBox_2)
-        self.lineEdit_exercise_unit.setObjectName("lineEdit_exercise_unit")
-        self.lineEdit_exercise_unit.setMinimumSize(QSize(113, 0))
-
-        self.horizontalLayout_18.addWidget(self.lineEdit_exercise_unit)
-
         self.label_6 = QLabel(self.groupBox_2)
         self.label_6.setObjectName("label_6")
         self.label_6.setMinimumSize(QSize(111, 0))
 
         self.horizontalLayout_18.addWidget(self.label_6)
+
+        self.lineEdit_exercise_unit = QLineEdit(self.groupBox_2)
+        self.lineEdit_exercise_unit.setObjectName("lineEdit_exercise_unit")
+        self.lineEdit_exercise_unit.setMinimumSize(QSize(113, 0))
+
+        self.horizontalLayout_18.addWidget(self.lineEdit_exercise_unit)
 
         self.verticalLayout_10.addLayout(self.horizontalLayout_18)
 
@@ -1836,7 +1836,7 @@ def setupUi(self, MainWindow):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
 
         QMetaObject.connectSlotsByName(MainWindow)
 ```
