@@ -88,7 +88,7 @@ Attributes:
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
   containing "process", "exercises", "types", and "weight".
 
-- `db_manager` (`fitness_database_manager.DatabaseManager | None`): Database
+- `db_manager` (`database_manager.DatabaseManager | None`): Database
   connection manager. Defaults to `None` until initialized.
 
 - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
@@ -98,6 +98,7 @@ Attributes:
   table, mapping table names to tuples of (table view widget, model key, column headers).
 
 - `exercises_list_model` (`QStandardItemModel | None`): Model for the exercises list view.
+  Defaults to `None` until initialized.
 
 <details>
 <summary>Code:</summary>
@@ -197,8 +198,6 @@ class MainWindow(
         - Tab change events
         - Statistics and export functionality
         - Auto-save signals for table data changes
-
-        Note: ListView selection signal is connected later in _init_exercises_list()
         """
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
@@ -318,6 +317,7 @@ class MainWindow(
         """Get the currently selected exercise from the list view.
 
         Returns:
+
         - `str | None`: The name of the selected exercise, or None if nothing is selected.
 
         """
@@ -355,7 +355,13 @@ class MainWindow(
         return avif_path if avif_path.exists() else None
 
     def _get_last_weight(self) -> float:
-        """Get the last recorded weight value from database."""
+        """Get the last recorded weight value from database.
+
+        Returns:
+
+        - `float`: The last recorded weight value, or 89.0 as default.
+
+        """
         initial_weight = 89.0
         if not self._validate_database_connection():
             print("Database manager not available or connection not open")
@@ -473,7 +479,13 @@ class MainWindow(
             self.set_chart_all_time()
 
     def _load_exercise_avif(self, exercise_name: str) -> None:
-        """Load and display AVIF animation for the given exercise using Pillow with AVIF support."""
+        """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise to load AVIF for.
+
+        """
         # Stop current animation if exists
         if self.current_movie:
             self.current_movie.stop()
@@ -636,9 +648,10 @@ class MainWindow(
         """Handle data changes in table models and auto-save to database.
 
         Args:
-        - `table_name` (`str`): Name of the table that was modified
-        - `top_left` (`QModelIndex`): Top-left index of the changed area
-        - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area
+
+        - `table_name` (`str`): Name of the table that was modified.
+        - `top_left` (`QModelIndex`): Top-left index of the changed area.
+        - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
 
         """
         if table_name not in self._SAFE_TABLES:
@@ -704,6 +717,10 @@ class MainWindow(
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        self.pushButton_weight_last_month.setText(f"📅 {self.pushButton_weight_last_month.text()}")
+        self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
+        self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
+        self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 3)  # tableView gets more space
@@ -716,7 +733,14 @@ class MainWindow(
         selected_exercise: str | None = None,
         selected_type: str | None = None,
     ) -> None:
-        """Refresh exercise list and type combo-box (optionally keep a selection)."""
+        """Refresh exercise list and type combo-box (optionally keep a selection).
+
+        Args:
+
+        - `selected_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
+        - `selected_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
+
+        """
         if not self._validate_database_connection():
             print("Database manager not available or connection not open")
             return
@@ -768,6 +792,7 @@ class MainWindow(
         """Validate that database connection is available and open.
 
         Returns:
+
         - `bool`: True if database connection is valid, False otherwise.
 
         """
@@ -824,7 +849,13 @@ class MainWindow(
         self.show_tables()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Handle application close event."""
+        """Handle application close event.
+
+        Args:
+
+        - `event` (`QCloseEvent`): The close event.
+
+        """
         # Stop animations
         if self.current_movie:
             self.current_movie.stop()
@@ -1367,7 +1398,17 @@ class MainWindow(
             self._connect_table_signals("exercises", self.on_exercise_selection_changed)
 
             def transform_process_data(rows: list[list]) -> list[list]:
-                """Refresh process table with data transformation."""
+                """Refresh process table with data transformation.
+
+                Args:
+
+                - `rows` (`list[list]`): Raw process data from database.
+
+                Returns:
+
+                - `list[list]`: Transformed process data.
+
+                """
                 return [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
 
             self._refresh_table("process", self.db_manager.get_all_process_records, transform_process_data)
@@ -1464,7 +1505,8 @@ class MainWindow(
         """Update chart type combobox based on selected exercise.
 
         Args:
-            _index: Index from Qt signal (ignored, but required for signal compatibility)
+
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
         """
         try:
@@ -1587,7 +1629,8 @@ class MainWindow(
         selection if possible.
 
         Args:
-            _index: Index from Qt signal (ignored, but required for signal compatibility)
+
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
         """
         try:
@@ -1807,8 +1850,6 @@ Connects all UI elements to their respective handler methods, including:
 - Tab change events
 - Statistics and export functionality
 - Auto-save signals for table data changes
-
-Note: ListView selection signal is connected later in \_init_exercises_list()
 
 <details>
 <summary>Code:</summary>
@@ -2043,6 +2084,10 @@ def _get_last_weight(self) -> float
 ```
 
 Get the last recorded weight value from database.
+
+Returns:
+
+- `float`: The last recorded weight value, or 89.0 as default.
 
 <details>
 <summary>Code:</summary>
@@ -2286,6 +2331,10 @@ def _load_exercise_avif(self, exercise_name: str) -> None
 
 Load and display AVIF animation for the given exercise using Pillow with AVIF support.
 
+Args:
+
+- `exercise_name` (`str`): Name of the exercise to load AVIF for.
+
 <details>
 <summary>Code:</summary>
 
@@ -2490,9 +2539,9 @@ Handle data changes in table models and auto-save to database.
 
 Args:
 
-- `table_name` (`str`): Name of the table that was modified
-- `top_left` (`QModelIndex`): Top-left index of the changed area
-- `bottom_right` (`QModelIndex`): Bottom-right index of the changed area
+- `table_name` (`str`): Name of the table that was modified.
+- `top_left` (`QModelIndex`): Top-left index of the changed area.
+- `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
 
 <details>
 <summary>Code:</summary>
@@ -2588,6 +2637,10 @@ def _setup_ui(self) -> None:
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        self.pushButton_weight_last_month.setText(f"📅 {self.pushButton_weight_last_month.text()}")
+        self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
+        self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
+        self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 3)  # tableView gets more space
@@ -2604,6 +2657,11 @@ def _update_comboboxes(self) -> None
 ```
 
 Refresh exercise list and type combo-box (optionally keep a selection).
+
+Args:
+
+- `selected_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
+- `selected_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
@@ -2770,6 +2828,10 @@ def closeEvent(self, event: QCloseEvent) -> None
 ```
 
 Handle application close event.
+
+Args:
+
+- `event` (`QCloseEvent`): The close event.
 
 <details>
 <summary>Code:</summary>
@@ -3596,7 +3658,17 @@ def show_tables(self) -> None:
             self._connect_table_signals("exercises", self.on_exercise_selection_changed)
 
             def transform_process_data(rows: list[list]) -> list[list]:
-                """Refresh process table with data transformation."""
+                """Refresh process table with data transformation.
+
+                Args:
+
+                - `rows` (`list[list]`): Raw process data from database.
+
+                Returns:
+
+                - `list[list]`: Transformed process data.
+
+                """
                 return [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
 
             self._refresh_table("process", self.db_manager.get_all_process_records, transform_process_data)
@@ -3725,7 +3797,8 @@ def update_chart_type_combobox(self, _index: int = -1) -> None
 Update chart type combobox based on selected exercise.
 
 Args:
-\_index: Index from Qt signal (ignored, but required for signal compatibility)
+
+- `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
 <details>
 <summary>Code:</summary>
@@ -3884,7 +3957,8 @@ currently selected exercise, attempting to preserve the current type
 selection if possible.
 
 Args:
-\_index: Index from Qt signal (ignored, but required for signal compatibility)
+
+- `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
 <details>
 <summary>Code:</summary>
