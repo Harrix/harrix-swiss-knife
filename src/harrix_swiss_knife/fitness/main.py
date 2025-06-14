@@ -15,14 +15,13 @@ from functools import partial
 from pathlib import Path
 
 import harrix_pylib as h
-import matplotlib.dates as mdates
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QMovie, QPixmap, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox, QTableView
+from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife.fitness import database_manager, window
 from harrix_swiss_knife.fitness.mixins import (
@@ -726,6 +725,7 @@ class MainWindow(
 
         Returns:
         - `bool`: True if database connection is valid, False otherwise.
+
         """
         if not self.db_manager:
             print("Database manager is None")
@@ -1421,6 +1421,7 @@ class MainWindow(
 
         Args:
             index: Index from Qt signal (ignored, but required for signal compatibility)
+
         """
         try:
             self.comboBox_chart_type.clear()
@@ -1543,6 +1544,7 @@ class MainWindow(
 
         Args:
             index: Index from Qt signal (ignored, but required for signal compatibility)
+
         """
         try:
             current_type = self.comboBox_filter_type.currentText()

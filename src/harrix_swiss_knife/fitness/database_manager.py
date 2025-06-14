@@ -80,6 +80,7 @@ class DatabaseManager:
 
         Returns:
         - `bool`: True if connection is valid, False otherwise.
+
         """
         if not hasattr(self, "db") or not self.db.isValid():
             print("Database object is invalid, attempting to reconnect...")

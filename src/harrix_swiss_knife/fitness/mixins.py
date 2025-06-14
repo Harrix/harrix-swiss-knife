@@ -8,17 +8,18 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import QDate, Qt
-from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QLabel, QMessageBox, QTableView
+from PySide6.QtGui import QStandardItemModel
+from PySide6.QtWidgets import QLabel, QMessageBox
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QLayout
@@ -39,6 +40,7 @@ class AutoSaveOperations:
             model: The model containing the data
             row: Row index
             row_id: Database ID of the row
+
         """
         if not self._validate_database_connection():
             return
@@ -211,6 +213,7 @@ class ChartOperations:
                 - stats_unit: Unit for statistics display
                 - period: Period for x-axis formatting (Days/Months/Years)
                 - stats_formatter: Optional function to format statistics
+
         """
         # Clear existing chart
         self._clear_layout(layout)
@@ -298,10 +301,9 @@ class ChartOperations:
             return (
                 f"Min: {int(min_val)}{unit_suffix} | Max: {int(max_val)}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
             )
-        else:
-            return (
-                f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
-            )
+        return (
+            f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
+        )
 
     def _group_data_by_period(self, rows: list, period: str, value_type: str = "float") -> dict:
         """Group data by the specified period (Days, Months, Years).
@@ -313,6 +315,7 @@ class ChartOperations:
 
         Returns:
             Dictionary with datetime keys and aggregated values
+
         """
         grouped = defaultdict(float if value_type == "float" else int)
 
@@ -419,6 +422,7 @@ class DateOperations:
 
         Args:
             date_widget: QDateEdit widget to increment
+
         """
         current_date = date_widget.date()
         today = QDate.currentDate()
@@ -440,6 +444,7 @@ class DateOperations:
             months: Number of months back from today
             years: Number of years back from today
             all_time: If True, sets to earliest available date
+
         """
         current_date = QDate.currentDate()
         to_widget.setDate(current_date)
@@ -470,6 +475,7 @@ class TableOperations:
         Args:
             table_name: Name of the table
             selection_handler: Handler function for selection changes
+
         """
         view = self.table_config[table_name][0]
         selection_model = view.selectionModel()
@@ -484,6 +490,7 @@ class TableOperations:
 
         Returns:
             Database ID of selected row or None if no selection
+
         """
         if table_name not in self.table_config:
             return None
@@ -509,6 +516,7 @@ class TableOperations:
             table_name: Name of the table to refresh
             data_getter: Function to get data from database
             data_transformer: Optional function to transform raw data
+
         """
         if table_name not in self.table_config:
             raise ValueError(f"Unknown table: {table_name}")
@@ -535,6 +543,7 @@ class ValidationOperations:
 
         Returns:
             True if the date is in the correct format and represents a valid date.
+
         """
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_str):
             return False
@@ -555,6 +564,7 @@ def requires_database(show_warning: bool = True) -> Callable[[Callable[P, T]], C
 
     Returns:
         Decorated function that checks database connection first.
+
     """
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -570,15 +580,14 @@ def requires_database(show_warning: bool = True) -> Callable[[Callable[P, T]], C
                         QMessageBox.warning(self, "Database Error", "Database connection not available")
                     return None
                 return func(self, *args, **kwargs)
-            else:
-                # Regular method call
-                if not self._validate_database_connection():
-                    if show_warning:
-                        from PySide6.QtWidgets import QMessageBox
+            # Regular method call
+            if not self._validate_database_connection():
+                if show_warning:
+                    from PySide6.QtWidgets import QMessageBox
 
-                        QMessageBox.warning(self, "Database Error", "Database connection not available")
-                    return None
-                return func(self, *args, **kwargs)
+                    QMessageBox.warning(self, "Database Error", "Database connection not available")
+                return None
+            return func(self, *args, **kwargs)
 
         return wrapper
 
