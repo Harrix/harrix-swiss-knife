@@ -65,6 +65,8 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         self.setupUi(self)
         self._setup_ui()
 
+        self.setAttribute(Qt.WA_DeleteOnClose)
+
         # Center window on screen
         screen_center = QApplication.primaryScreen().geometry().center()
         self.setGeometry(
@@ -422,6 +424,21 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         proxy = QSortFilterProxyModel()
         proxy.setSourceModel(model)
         return proxy
+
+    def _dispose_models(self) -> None:
+        """Detach all models from QTableView and delete them."""
+        for key, model in self.models.items():
+            view = self.table_config[key][0]
+            view.setModel(None)
+            if model is not None:
+                model.deleteLater()
+            self.models[key] = None
+
+        # list-view
+        self.listView_exercises.setModel(None)
+        if self.exercises_list_model is not None:
+            self.exercises_list_model.deleteLater()
+        self.exercises_list_model = None
 
     def _format_chart_x_axis(self, ax: plt.Axes, dates: list, period: str) -> None:
         """Format x-axis for exercise charts based on period and data range."""
@@ -1100,11 +1117,15 @@ class MainWindow(QMainWindow, window.Ui_MainWindow):
         if self.avif_timer:
             self.avif_timer.stop()
 
-        # Close database connection
+        # Dispose Models
+        self._dispose_models()
+
+        # Close DB
         if self.db_manager:
             self.db_manager.close()
+            self.db_manager = None
 
-        event.accept()
+        super().closeEvent(event)
 
     def delete_record(self, table_name: str) -> None:
         """Delete selected row from table using database manager methods.

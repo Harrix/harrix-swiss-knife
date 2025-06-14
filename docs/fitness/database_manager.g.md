@@ -295,8 +295,11 @@ class DatabaseManager:
 
     def close(self) -> None:
         """Close the database connection."""
-        if hasattr(self, "db") and self.db.isValid() and self.db.isOpen():
-            self.db.close()
+        if getattr(self, "db", None) and self.db.isValid():
+            self.db.close()  # <- закрыл файл
+            connection_name = self.connection_name
+            self.db = None
+            QTimer.singleShot(0, lambda: QSqlDatabase.removeDatabase(connection_name))
 
         # Remove the database connection
         if hasattr(self, "connection_name"):
@@ -1415,8 +1418,11 @@ Close the database connection.
 
 ```python
 def close(self) -> None:
-        if hasattr(self, "db") and self.db.isValid() and self.db.isOpen():
-            self.db.close()
+        if getattr(self, "db", None) and self.db.isValid():
+            self.db.close()  # <- закрыл файл
+            connection_name = self.connection_name
+            self.db = None
+            QTimer.singleShot(0, lambda: QSqlDatabase.removeDatabase(connection_name))
 
         # Remove the database connection
         if hasattr(self, "connection_name"):
