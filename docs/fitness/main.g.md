@@ -1488,6 +1488,10 @@ class MainWindow(
             # Update exercise combobox
             exercises = self.db_manager.get_items("exercises", "name")
 
+            # Sort exercises alphabetically
+            if exercises:
+                exercises.sort()
+
             self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
             self.comboBox_chart_exercise.clear()
             if exercises:
@@ -3772,6 +3776,10 @@ def update_chart_comboboxes(self) -> None:
         try:
             # Update exercise combobox
             exercises = self.db_manager.get_items("exercises", "name")
+
+            # Sort exercises alphabetically
+            if exercises:
+                exercises.sort()
 
             self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
             self.comboBox_chart_exercise.clear()
