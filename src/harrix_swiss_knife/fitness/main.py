@@ -673,6 +673,10 @@ class MainWindow(
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        self.pushButton_weight_last_month.setText(f"📅 {self.pushButton_weight_last_month.text()}")
+        self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
+        self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
+        self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 3)  # tableView gets more space
