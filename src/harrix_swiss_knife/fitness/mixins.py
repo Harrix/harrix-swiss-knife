@@ -37,10 +37,11 @@ class AutoSaveOperations:
         """Auto-save table row data.
 
         Args:
-            table_name: Name of the table
-            model: The model containing the data
-            row: Row index
-            row_id: Database ID of the row
+
+        - `table_name` (`str`): Name of the table.
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
 
         """
         if not self._validate_database_connection():
@@ -61,7 +62,15 @@ class AutoSaveOperations:
                 QMessageBox.warning(self, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
 
     def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save exercise data."""
+        """Save exercise data.
+
+        Args:
+
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
+
+        """
         name = model.data(model.index(row, 0)) or ""
         unit = model.data(model.index(row, 1)) or ""
         is_type_required_str = model.data(model.index(row, 2)) or "0"
@@ -85,7 +94,15 @@ class AutoSaveOperations:
             self.update_filter_comboboxes()
 
     def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save process record data."""
+        """Save process record data.
+
+        Args:
+
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
+
+        """
         exercise = model.data(model.index(row, 0))
         type_name = model.data(model.index(row, 1))
         value_raw = model.data(model.index(row, 2))
@@ -124,7 +141,15 @@ class AutoSaveOperations:
             QMessageBox.warning(self, "Database Error", "Failed to save process record")
 
     def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save exercise type data."""
+        """Save exercise type data.
+
+        Args:
+
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
+
+        """
         exercise_name = model.data(model.index(row, 0)) or ""
         type_name = model.data(model.index(row, 1)) or ""
 
@@ -152,7 +177,15 @@ class AutoSaveOperations:
             self.update_filter_comboboxes()
 
     def _save_weight_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save weight data."""
+        """Save weight data.
+
+        Args:
+
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
+
+        """
         weight_str = model.data(model.index(row, 0)) or ""
         date = model.data(model.index(row, 1)) or ""
 
@@ -180,7 +213,15 @@ class ChartOperations:
     """Mixin class for chart operations."""
 
     def _add_stats_box(self, ax: plt.Axes, stats_text: str, color: str = "lightgray") -> None:
-        """Add statistics box to chart."""
+        """Add statistics box to chart.
+
+        Args:
+
+        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `stats_text` (`str`): Statistics text to display.
+        - `color` (`str`): Background color of the statistics box. Defaults to `"lightgray"`.
+
+        """
         ax.text(
             0.5,
             0.02,
@@ -193,7 +234,13 @@ class ChartOperations:
         )
 
     def _clear_layout(self, layout: QLayout) -> None:
-        """Clear all widgets from a layout."""
+        """Clear all widgets from a layout.
+
+        Args:
+
+        - `layout` (`QLayout`): Layout to clear.
+
+        """
         for i in reversed(range(layout.count())):
             child = layout.takeAt(i).widget()
             if child:
@@ -203,17 +250,18 @@ class ChartOperations:
         """Create and display a chart with given data and configuration.
 
         Args:
-            layout: Layout to add chart to
-            data: Chart data as list of (x, y) tuples
-            chart_config: Dictionary with chart configuration including:
-                - title: Chart title
-                - xlabel: X-axis label
-                - ylabel: Y-axis label
-                - color: Line color
-                - show_stats: Whether to show statistics
-                - stats_unit: Unit for statistics display
-                - period: Period for x-axis formatting (Days/Months/Years)
-                - stats_formatter: Optional function to format statistics
+
+        - `layout` (`QLayout`): Layout to add chart to.
+        - `data` (`list`): Chart data as list of (x, y) tuples.
+        - `chart_config` (`dict`): Dictionary with chart configuration including:
+          - title: Chart title
+          - xlabel: X-axis label
+          - ylabel: Y-axis label
+          - color: Line color
+          - show_stats: Whether to show statistics
+          - stats_unit: Unit for statistics display
+          - period: Period for x-axis formatting (Days/Months/Years)
+          - stats_formatter: Optional function to format statistics
 
         """
         # Clear existing chart
@@ -259,7 +307,15 @@ class ChartOperations:
         canvas.draw()
 
     def _format_chart_x_axis(self, ax: plt.Axes, dates: list, period: str) -> None:
-        """Format x-axis for charts based on period and data range."""
+        """Format x-axis for charts based on period and data range.
+
+        Args:
+
+        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `dates` (`list`): List of datetime objects.
+        - `period` (`str`): Time period for formatting.
+
+        """
         if not dates:
             return
 
@@ -290,7 +346,18 @@ class ChartOperations:
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
     def _format_default_stats(self, values: list, unit: str = "") -> str:
-        """Format default statistics text."""
+        """Format default statistics text.
+
+        Args:
+
+        - `values` (`list`): List of numeric values.
+        - `unit` (`str`): Unit of measurement. Defaults to `""`.
+
+        Returns:
+
+        - `str`: Formatted statistics string.
+
+        """
         min_val = min(values)
         max_val = max(values)
         avg_val = sum(values) / len(values)
@@ -308,12 +375,14 @@ class ChartOperations:
         """Group data by the specified period (Days, Months, Years).
 
         Args:
-            rows: List of (date_str, value_str) tuples
-            period: Grouping period (Days, Months, Years)
-            value_type: Type of value ('float' or 'int')
+
+        - `rows` (`list`): List of (date_str, value_str) tuples.
+        - `period` (`str`): Grouping period (Days, Months, Years).
+        - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
 
         Returns:
-            Dictionary with datetime keys and aggregated values
+
+        - `dict`: Dictionary with datetime keys and aggregated values.
 
         """
         grouped = defaultdict(float if value_type == "float" else int)
@@ -352,7 +421,16 @@ class ChartOperations:
         return dict(sorted(grouped.items()))
 
     def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str) -> None:
-        """Plot data with automatic marker selection based on data points."""
+        """Plot data with automatic marker selection based on data points.
+
+        Args:
+
+        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `x_values` (`list`): X-axis values.
+        - `y_values` (`list`): Y-axis values.
+        - `color` (`str`): Plot color.
+
+        """
         # Map color names to matplotlib single-letter codes
         color_map = {
             "blue": "b",
@@ -401,7 +479,14 @@ class ChartOperations:
             ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
-        """Show a 'no data' label in the layout."""
+        """Show a 'no data' label in the layout.
+
+        Args:
+
+        - `layout` (`QLayout`): Layout to add the label to.
+        - `text` (`str`): Text to display.
+
+        """
         label = QLabel(text)
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
@@ -414,7 +499,8 @@ class DateOperations:
         """Increment date widget by one day if not already today.
 
         Args:
-            date_widget: QDateEdit widget to increment
+
+        - `date_widget` (`QDateEdit`): QDateEdit widget to increment.
 
         """
         current_date = date_widget.date()
@@ -440,11 +526,12 @@ class DateOperations:
         """Set date range for date widgets.
 
         Args:
-            from_widget: From date widget
-            to_widget: To date widget
-            months: Number of months back from today
-            years: Number of years back from today
-            is_all_time: If True, sets to earliest available date
+
+        - `from_widget` (`QDateEdit`): From date widget.
+        - `to_widget` (`QDateEdit`): To date widget.
+        - `months` (`int`): Number of months back from today. Defaults to `0`.
+        - `years` (`int`): Number of years back from today. Defaults to `0`.
+        - `is_all_time` (`bool`): If True, sets to earliest available date. Defaults to `False`.
 
         """
         current_date = QDate.currentDate()
@@ -474,8 +561,9 @@ class TableOperations:
         """Connect selection change signal for a table.
 
         Args:
-            table_name: Name of the table
-            selection_handler: Handler function for selection changes
+
+        - `table_name` (`str`): Name of the table.
+        - `selection_handler` (`Callable`): Handler function for selection changes.
 
         """
         view = self.table_config[table_name][0]
@@ -487,10 +575,12 @@ class TableOperations:
         """Get the database ID of the currently selected row.
 
         Args:
-            table_name: Name of the table
+
+        - `table_name` (`str`): Name of the table.
 
         Returns:
-            Database ID of selected row or None if no selection
+
+        - `int | None`: Database ID of selected row or None if no selection.
 
         """
         if table_name not in self.table_config:
@@ -514,9 +604,15 @@ class TableOperations:
         """Refresh a table with data.
 
         Args:
-            table_name: Name of the table to refresh
-            data_getter: Function to get data from database
-            data_transformer: Optional function to transform raw data
+
+        - `table_name` (`str`): Name of the table to refresh.
+        - `data_getter` (`Callable`): Function to get data from database.
+        - `data_transformer` (`Callable[[list], list] | None`): Optional function to transform raw data.
+          Defaults to `None`.
+
+        Raises:
+
+        - `ValueError`: If the table name is unknown.
 
         """
         if table_name not in self.table_config:
@@ -541,10 +637,12 @@ class ValidationOperations:
         """Return `True` if `YYYY-MM-DD` formatted `date_str` is correct.
 
         Args:
-            date_str: Date string to validate.
+
+        - `date_str` (`str`): Date string to validate.
 
         Returns:
-            True if the date is in the correct format and represents a valid date.
+
+        - `bool`: True if the date is in the correct format and represents a valid date.
 
         """
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_str):
@@ -562,10 +660,12 @@ def requires_database(*, is_show_warning: bool = True) -> Callable[[Callable[P, 
     """Ensure database connection is available before executing method.
 
     Args:
-        is_show_warning: If True, shows a QMessageBox warning on connection failure.
+
+    - `is_show_warning` (`bool`): If True, shows a QMessageBox warning on connection failure. Defaults to `True`.
 
     Returns:
-        Decorated function that checks database connection first.
+
+    - `Callable[[Callable[P, T]], Callable[P, T]]`: Decorated function that checks database connection first.
 
     """
 

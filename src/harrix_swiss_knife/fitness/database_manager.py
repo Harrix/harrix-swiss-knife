@@ -68,6 +68,7 @@ class DatabaseManager:
         """Create a QSqlQuery using this manager's database connection.
 
         Returns:
+
         - `QSqlQuery`: A query object bound to this database connection.
 
         """
@@ -80,6 +81,7 @@ class DatabaseManager:
         """Ensure database connection is open and valid.
 
         Returns:
+
         - `bool`: True if connection is valid, False otherwise.
 
         """
@@ -111,7 +113,7 @@ class DatabaseManager:
 
         Args:
 
-        - `query` (`Optional[QSqlQuery]`): A prepared and executed `QSqlQuery`
+        - `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery`
           object.
 
         Yields:
@@ -156,7 +158,7 @@ class DatabaseManager:
 
         Returns:
 
-        - `List[List[Any]]`: Every database row represented as a list whose
+        - `list[list[Any]]`: Every database row represented as a list whose
           elements correspond to column values.
 
         """
@@ -170,11 +172,13 @@ class DatabaseManager:
         """Add a new exercise to the database.
 
         Args:
+
         - `name` (`str`): Exercise name.
         - `unit` (`str`): Unit of measurement.
         - `is_type_required` (`bool`): Whether exercise type is required.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -186,10 +190,12 @@ class DatabaseManager:
         """Add a new exercise type.
 
         Args:
+
         - `exercise_id` (`int`): Exercise ID.
         - `type_name` (`str`): Type name.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -200,12 +206,14 @@ class DatabaseManager:
         """Add a new process record.
 
         Args:
+
         - `exercise_id` (`int`): Exercise ID.
         - `type_id` (`int`): Type ID (-1 for no type).
         - `value` (`str`): Exercise value.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -231,10 +239,12 @@ class DatabaseManager:
         """Add a new weight record.
 
         Args:
+
         - `value` (`float`): Weight value.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -257,9 +267,11 @@ class DatabaseManager:
         """Delete an exercise from the database.
 
         Args:
+
         - `exercise_id` (`int`): Exercise ID to delete.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -270,9 +282,11 @@ class DatabaseManager:
         """Delete an exercise type.
 
         Args:
+
         - `type_id` (`int`): Type ID to delete.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -283,9 +297,11 @@ class DatabaseManager:
         """Delete a process record.
 
         Args:
+
         - `record_id` (`int`): Record ID to delete.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -296,9 +312,11 @@ class DatabaseManager:
         """Delete a weight record.
 
         Args:
+
         - `record_id` (`int`): Record ID to delete.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -315,13 +333,13 @@ class DatabaseManager:
         Args:
 
         - `query_text` (`str`): A parametrised SQL statement.
-        - `params` (`Optional[Dict[str, Any]]`): Run-time values to be bound to
-        named placeholders in *query_text*. Defaults to `None`.
+        - `params` (`dict[str, Any] | None`): Run-time values to be bound to
+          named placeholders in *query_text*. Defaults to `None`.
 
         Returns:
 
-        - `Optional[QSqlQuery]`: The executed query when successful, otherwise
-        `None`.
+        - `QSqlQuery | None`: The executed query when successful, otherwise
+          `None`.
 
         """
         # Ensure database connection is valid
@@ -367,8 +385,8 @@ class DatabaseManager:
         Args:
 
         - `query_text` (`str`): A parametrised SQL statement.
-        - `params` (`Optional[Dict[str, Any]]`): Run-time values to be bound to
-        named placeholders in *query_text*. Defaults to `None`.
+        - `params` (`dict[str, Any] | None`): Run-time values to be bound to
+          named placeholders in *query_text*. Defaults to `None`.
 
         Returns:
 
@@ -415,7 +433,8 @@ class DatabaseManager:
         """Get all exercise types with exercise names.
 
         Returns:
-        - `List[List[Any]]`: List of type records [_id, exercise_name, type_name].
+
+        - `list[list[Any]]`: List of type records [_id, exercise_name, type_name].
 
         """
         return self.get_rows("""
@@ -428,7 +447,8 @@ class DatabaseManager:
         """Get all exercises with their properties.
 
         Returns:
-        - `List[List[Any]]`: List of exercise records [_id, name, unit, is_type_required].
+
+        - `list[list[Any]]`: List of exercise records [_id, name, unit, is_type_required].
 
         """
         return self.get_rows("SELECT _id, name, unit, is_type_required FROM exercises")
@@ -437,7 +457,8 @@ class DatabaseManager:
         """Get all process records with exercise and type names.
 
         Returns:
-        - `List[List[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
+
+        - `list[list[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
 
         """
         return self.get_rows("""
@@ -459,7 +480,8 @@ class DatabaseManager:
         """Get all weight records.
 
         Returns:
-        - `List[List[Any]]`: List of weight records [_id, value, date].
+
+        - `list[list[Any]]`: List of weight records [_id, value, date].
 
         """
         return self.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
@@ -468,6 +490,7 @@ class DatabaseManager:
         """Get the earliest date from process records.
 
         Returns:
+
         - `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
 
         """
@@ -478,6 +501,7 @@ class DatabaseManager:
         """Get the earliest date from weight records.
 
         Returns:
+
         - `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
 
         """
@@ -494,13 +518,15 @@ class DatabaseManager:
         """Get exercise data for charting.
 
         Args:
+
         - `exercise_name` (`str`): Exercise name.
-        - `exercise_type` (`str | None`): Exercise type (None for all types).
-        - `date_from` (`str | None`): From date (YYYY-MM-DD).
-        - `date_to` (`str | None`): To date (YYYY-MM-DD).
+        - `exercise_type` (`str | None`): Exercise type. Defaults to `None` for all types.
+        - `date_from` (`str | None`): From date (YYYY-MM-DD). Defaults to `None`.
+        - `date_to` (`str | None`): To date (YYYY-MM-DD). Defaults to `None`.
 
         Returns:
-        - `List[tuple[str, str]]`: List of (date, value) tuples.
+
+        - `list[tuple[str, str]]`: List of (date, value) tuples.
 
         """
         conditions = ["e.name = :exercise"]
@@ -530,10 +556,12 @@ class DatabaseManager:
         """Get all types for a specific exercise.
 
         Args:
+
         - `exercise_id` (`int`): Exercise ID.
 
         Returns:
-        - `List[str]`: List of type names.
+
+        - `list[str]`: List of type names.
 
         """
         return self.get_items("types", "type", condition=f"_id_exercises = {exercise_id}")
@@ -542,9 +570,11 @@ class DatabaseManager:
         """Get the unit of measurement for a given exercise.
 
         Args:
+
         - `exercise_name` (`str`): Name of the exercise.
 
         Returns:
+
         - `str`: Unit of measurement, or "times" as default.
 
         """
@@ -563,7 +593,7 @@ class DatabaseManager:
 
         Returns:
 
-        - `List[str]`: Exercise names sorted by how often they appear; exercises
+        - `list[str]`: Exercise names sorted by how often they appear; exercises
           not encountered in the inspected slice are appended afterwards.
 
         """
@@ -599,13 +629,15 @@ class DatabaseManager:
         """Get filtered process records.
 
         Args:
-        - `exercise_name` (`str | None`): Filter by exercise name.
-        - `exercise_type` (`str | None`): Filter by exercise type.
-        - `date_from` (`str | None`): Filter from date (YYYY-MM-DD).
-        - `date_to` (`str | None`): Filter to date (YYYY-MM-DD).
+
+        - `exercise_name` (`str | None`): Filter by exercise name. Defaults to `None`.
+        - `exercise_type` (`str | None`): Filter by exercise type. Defaults to `None`.
+        - `date_from` (`str | None`): Filter from date (YYYY-MM-DD). Defaults to `None`.
+        - `date_to` (`str | None`): Filter to date (YYYY-MM-DD). Defaults to `None`.
 
         Returns:
-        - `List[List[Any]]`: List of filtered process records.
+
+        - `list[list[Any]]`: List of filtered process records.
 
         """
         conditions: list[str] = []
@@ -661,7 +693,7 @@ class DatabaseManager:
         - `name_column` (`str`): Column that stores the searched value.
         - `name_value` (`str`): Searched value itself.
         - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
-        - `condition` (`Optional[str]`): Extra SQL that will be appended to the
+        - `condition` (`str | None`): Extra SQL that will be appended to the
           `WHERE` clause. Defaults to `None`.
 
         Returns:
@@ -700,14 +732,14 @@ class DatabaseManager:
 
         - `table` (`str`): Table that will be queried.
         - `column` (`str`): The column to extract.
-        - `condition` (`Optional[str]`): Optional `WHERE` clause. Defaults to
+        - `condition` (`str | None`): Optional `WHERE` clause. Defaults to
           `None`.
-        - `order_by` (`Optional[str]`): Optional `ORDER BY` clause. Defaults to
+        - `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to
           `None`.
 
         Returns:
 
-        - `List[Any]`: The resulting data as a flat Python list.
+        - `list[Any]`: The resulting data as a flat Python list.
 
         """
         table = _safe_identifier(table)
@@ -734,9 +766,11 @@ class DatabaseManager:
         """Get the date of the last recorded exercise (regardless of type).
 
         Args:
+
         - `exercise_id` (`int`): Exercise ID.
 
         Returns:
+
         - `str | None`: Date string in YYYY-MM-DD format or None if not found.
 
         """
@@ -756,9 +790,11 @@ class DatabaseManager:
         """Get the last recorded type and value for a specific exercise.
 
         Args:
+
         - `exercise_id` (`int`): Exercise ID.
 
         Returns:
+
         - `tuple[str, str] | None`: Tuple of (type_name, value) or None if not found.
 
         """
@@ -779,6 +815,7 @@ class DatabaseManager:
         """Get the last recorded weight value.
 
         Returns:
+
         - `float | None`: The most recent weight value or None if no records found.
 
         """
@@ -800,12 +837,12 @@ class DatabaseManager:
         Args:
 
         - `query_text` (`str`): A SQL statement.
-        - `params` (`Optional[Dict[str, Any]]`): Values to be bound at run time.
+        - `params` (`dict[str, Any] | None`): Values to be bound at run time.
           Defaults to `None`.
 
         Returns:
 
-        - `List[List[Any]]`: A list whose elements are the records returned by
+        - `list[list[Any]]`: A list whose elements are the records returned by
           the database.
 
         """
@@ -820,11 +857,13 @@ class DatabaseManager:
         """Get sets (workout count) data for charting.
 
         Args:
+
         - `date_from` (`str`): From date (YYYY-MM-DD).
         - `date_to` (`str`): To date (YYYY-MM-DD).
 
         Returns:
-        - `List[tuple[str, int]]`: List of (date, count) tuples.
+
+        - `list[tuple[str, int]]`: List of (date, count) tuples.
 
         """
         query = """
@@ -842,6 +881,7 @@ class DatabaseManager:
         """Get the count of sets (process records) for today.
 
         Returns:
+
         - `int`: Number of process records for today's date.
 
         """
@@ -853,7 +893,8 @@ class DatabaseManager:
         """Get data for statistics display.
 
         Returns:
-        - `List[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value, date) tuples.
+
+        - `list[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value, date) tuples.
 
         """
         rows = self.get_rows("""
@@ -872,11 +913,13 @@ class DatabaseManager:
         """Get weight data for charting.
 
         Args:
+
         - `date_from` (`str`): From date (YYYY-MM-DD).
         - `date_to` (`str`): To date (YYYY-MM-DD).
 
         Returns:
-        - `List[tuple[float, str]]`: List of (weight_value, date) tuples.
+
+        - `list[tuple[float, str]]`: List of (weight_value, date) tuples.
 
         """
         query = """
@@ -893,6 +936,7 @@ class DatabaseManager:
         """Check if the database connection is open.
 
         Returns:
+
         - `bool`: True if database is open, False otherwise.
 
         """
@@ -902,9 +946,11 @@ class DatabaseManager:
         """Check if exercise type is required for a given exercise.
 
         Args:
+
         - `exercise_id` (`int`): Exercise ID.
 
         Returns:
+
         - `bool`: True if type is required, False otherwise.
 
         """
@@ -915,12 +961,14 @@ class DatabaseManager:
         """Update an existing exercise.
 
         Args:
+
         - `exercise_id` (`int`): Exercise ID.
         - `name` (`str`): Exercise name.
         - `unit` (`str`): Unit of measurement.
         - `is_type_required` (`bool`): Whether exercise type is required.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -937,11 +985,13 @@ class DatabaseManager:
         """Update an existing exercise type.
 
         Args:
+
         - `type_id` (`int`): Type ID.
         - `exercise_id` (`int`): Exercise ID.
         - `type_name` (`str`): Type name.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -953,6 +1003,7 @@ class DatabaseManager:
         """Update an existing process record.
 
         Args:
+
         - `record_id` (`int`): Record ID.
         - `exercise_id` (`int`): Exercise ID.
         - `type_id` (`int`): Type ID (-1 for no type).
@@ -960,6 +1011,7 @@ class DatabaseManager:
         - `date` (`str`): Date in YYYY-MM-DD format.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
@@ -984,11 +1036,13 @@ class DatabaseManager:
         """Update an existing weight record.
 
         Args:
+
         - `record_id` (`int`): Record ID.
         - `value` (`float`): Weight value.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
         Returns:
+
         - `bool`: True if successful, False otherwise.
 
         """
