@@ -680,7 +680,7 @@ class MainWindow(
                 break
 
     def _setup_ui(self) -> None:
-        """Setup additional UI elements after basic initialization."""
+        """Set up additional UI elements after basic initialization."""
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
@@ -769,6 +769,7 @@ class MainWindow(
 
         Returns:
         - `bool`: True if database connection is valid, False otherwise.
+
         """
         if not self.db_manager:
             print("Database manager is None")
@@ -1254,7 +1255,7 @@ class MainWindow(
 
     def set_chart_all_time(self) -> None:
         """Set chart date range to all available data using database manager."""
-        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, all_time=True)
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
         self.update_exercise_chart()
 
     def set_chart_last_month(self) -> None:
@@ -1287,7 +1288,7 @@ class MainWindow(
 
     def set_weight_all_time(self) -> None:
         """Set weight chart date range to all available data using database manager."""
-        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, all_time=True)
+        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, is_all_time=True)
         self.update_weight_chart()
 
     def set_weight_last_month(self) -> None:
@@ -1365,8 +1366,8 @@ class MainWindow(
             self._refresh_table("exercises", self.db_manager.get_all_exercises)
             self._connect_table_signals("exercises", self.on_exercise_selection_changed)
 
-            # Refresh process table with data transformation
-            def transform_process_data(rows):
+            def transform_process_data(rows: list[list]) -> list[list]:
+                """Refresh process table with data transformation."""
                 return [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
 
             self._refresh_table("process", self.db_manager.get_all_process_records, transform_process_data)
@@ -1439,7 +1440,7 @@ class MainWindow(
         if current_exercise_name:
             self._load_exercise_avif(current_exercise_name)
 
-    @requires_database(show_warning=False)
+    @requires_database(is_show_warning=False)
     def update_chart_comboboxes(self) -> None:
         """Update exercise and type comboboxes for charts."""
         try:
@@ -1458,12 +1459,13 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating chart comboboxes: {e}")
 
-    @requires_database(show_warning=False)
-    def update_chart_type_combobox(self, index: int = -1) -> None:
+    @requires_database(is_show_warning=False)
+    def update_chart_type_combobox(self, _index: int = -1) -> None:
         """Update chart type combobox based on selected exercise.
 
         Args:
-            index: Index from Qt signal (ignored, but required for signal compatibility)
+            _index: Index from Qt signal (ignored, but required for signal compatibility)
+
         """
         try:
             self.comboBox_chart_type.clear()
@@ -1548,7 +1550,7 @@ class MainWindow(
 
         self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
 
-    @requires_database(show_warning=False)
+    @requires_database(is_show_warning=False)
     def update_filter_comboboxes(self) -> None:
         """Refresh `exercise` and `type` combo-boxes in the filter group.
 
@@ -1576,8 +1578,8 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating filter comboboxes: {e}")
 
-    @requires_database(show_warning=False)
-    def update_filter_type_combobox(self, index: int = -1) -> None:
+    @requires_database(is_show_warning=False)
+    def update_filter_type_combobox(self, _index: int = -1) -> None:
         """Populate `type` filter based on the `exercise` filter selection.
 
         Updates the exercise type combobox in the filter section based on the
@@ -1585,7 +1587,8 @@ class MainWindow(
         selection if possible.
 
         Args:
-            index: Index from Qt signal (ignored, but required for signal compatibility)
+            _index: Index from Qt signal (ignored, but required for signal compatibility)
+
         """
         try:
             current_type = self.comboBox_filter_type.currentText()
@@ -2555,7 +2558,7 @@ def _select_exercise_in_list(self, exercise_name: str) -> None:
 def _setup_ui(self) -> None
 ```
 
-Setup additional UI elements after basic initialization.
+Set up additional UI elements after basic initialization.
 
 <details>
 <summary>Code:</summary>
@@ -3358,7 +3361,7 @@ Set chart date range to all available data using database manager.
 
 ```python
 def set_chart_all_time(self) -> None:
-        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, all_time=True)
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
         self.update_exercise_chart()
 ```
 
@@ -3446,7 +3449,7 @@ Set weight chart date range to all available data using database manager.
 
 ```python
 def set_weight_all_time(self) -> None:
-        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, all_time=True)
+        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, is_all_time=True)
         self.update_weight_chart()
 ```
 
@@ -3592,8 +3595,8 @@ def show_tables(self) -> None:
             self._refresh_table("exercises", self.db_manager.get_all_exercises)
             self._connect_table_signals("exercises", self.on_exercise_selection_changed)
 
-            # Refresh process table with data transformation
-            def transform_process_data(rows):
+            def transform_process_data(rows: list[list]) -> list[list]:
+                """Refresh process table with data transformation."""
                 return [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
 
             self._refresh_table("process", self.db_manager.get_all_process_records, transform_process_data)
@@ -3716,19 +3719,19 @@ def update_chart_comboboxes(self) -> None:
 ### Method `update_chart_type_combobox`
 
 ```python
-def update_chart_type_combobox(self, index: int = -1) -> None
+def update_chart_type_combobox(self, _index: int = -1) -> None
 ```
 
 Update chart type combobox based on selected exercise.
 
 Args:
-index: Index from Qt signal (ignored, but required for signal compatibility)
+\_index: Index from Qt signal (ignored, but required for signal compatibility)
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def update_chart_type_combobox(self, index: int = -1) -> None:
+def update_chart_type_combobox(self, _index: int = -1) -> None:
         try:
             self.comboBox_chart_type.clear()
             self.comboBox_chart_type.addItem("All types")
@@ -3871,7 +3874,7 @@ def update_filter_comboboxes(self) -> None:
 ### Method `update_filter_type_combobox`
 
 ```python
-def update_filter_type_combobox(self, index: int = -1) -> None
+def update_filter_type_combobox(self, _index: int = -1) -> None
 ```
 
 Populate `type` filter based on the `exercise` filter selection.
@@ -3881,13 +3884,13 @@ currently selected exercise, attempting to preserve the current type
 selection if possible.
 
 Args:
-index: Index from Qt signal (ignored, but required for signal compatibility)
+\_index: Index from Qt signal (ignored, but required for signal compatibility)
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def update_filter_type_combobox(self, index: int = -1) -> None:
+def update_filter_type_combobox(self, _index: int = -1) -> None:
         try:
             current_type = self.comboBox_filter_type.currentText()
             self.comboBox_filter_type.clear()

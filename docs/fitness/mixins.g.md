@@ -54,13 +54,14 @@ Mixin class for auto-save operations.
 class AutoSaveOperations:
 
     def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Generic auto-save method for table rows.
+        """Auto-save table row data.
 
         Args:
             table_name: Name of the table
             model: The model containing the data
             row: Row index
             row_id: Database ID of the row
+
         """
         if not self._validate_database_connection():
             return
@@ -203,7 +204,7 @@ class AutoSaveOperations:
 def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None
 ```
 
-Generic auto-save method for table rows.
+Auto-save table row data.
 
 Args:
 table_name: Name of the table
@@ -456,6 +457,7 @@ class ChartOperations:
                 - stats_unit: Unit for statistics display
                 - period: Period for x-axis formatting (Days/Months/Years)
                 - stats_formatter: Optional function to format statistics
+
         """
         # Clear existing chart
         self._clear_layout(layout)
@@ -543,10 +545,7 @@ class ChartOperations:
             return (
                 f"Min: {int(min_val)}{unit_suffix} | Max: {int(max_val)}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
             )
-        else:
-            return (
-                f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
-            )
+        return f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
 
     def _group_data_by_period(self, rows: list, period: str, value_type: str = "float") -> dict:
         """Group data by the specified period (Days, Months, Years).
@@ -558,6 +557,7 @@ class ChartOperations:
 
         Returns:
             Dictionary with datetime keys and aggregated values
+
         """
         grouped = defaultdict(float if value_type == "float" else int)
 
@@ -570,10 +570,7 @@ class ChartOperations:
                 continue
 
             try:
-                if value_type == "float":
-                    value = float(value_str)
-                else:
-                    value = int(value_str)
+                value = float(value_str) if value_type == "float" else int(value_str)
             except (ValueError, TypeError):
                 continue
 
@@ -632,10 +629,7 @@ class ChartOperations:
             # Add value labels
             for x, y in zip(x_values, y_values, strict=False):
                 # Format label based on value type
-                if isinstance(y, int):
-                    label_text = str(y)
-                else:
-                    label_text = f"{y:.1f}"
+                label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
 
                 ax.annotate(
                     label_text,
@@ -838,10 +832,7 @@ def _format_default_stats(self, values: list, unit: str = "") -> str:
             return (
                 f"Min: {int(min_val)}{unit_suffix} | Max: {int(max_val)}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
             )
-        else:
-            return (
-                f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
-            )
+        return f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
 ```
 
 </details>
@@ -878,10 +869,7 @@ def _group_data_by_period(self, rows: list, period: str, value_type: str = "floa
                 continue
 
             try:
-                if value_type == "float":
-                    value = float(value_str)
-                else:
-                    value = int(value_str)
+                value = float(value_str) if value_type == "float" else int(value_str)
             except (ValueError, TypeError):
                 continue
 
@@ -954,10 +942,7 @@ def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str) -
             # Add value labels
             for x, y in zip(x_values, y_values, strict=False):
                 # Format label based on value type
-                if isinstance(y, int):
-                    label_text = str(y)
-                else:
-                    label_text = f"{y:.1f}"
+                label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
 
                 ax.annotate(
                     label_text,
@@ -1008,11 +993,12 @@ Mixin class for date operations.
 ```python
 class DateOperations:
 
-    def _increment_date_widget(self, date_widget) -> None:
+    def _increment_date_widget(self, date_widget: QDateEdit) -> None:
         """Increment date widget by one day if not already today.
 
         Args:
             date_widget: QDateEdit widget to increment
+
         """
         current_date = date_widget.date()
         today = QDate.currentDate()
@@ -1025,7 +1011,15 @@ class DateOperations:
         next_date = current_date.addDays(1)
         date_widget.setDate(next_date)
 
-    def _set_date_range(self, from_widget, to_widget, months: int = 0, years: int = 0, all_time: bool = False) -> None:
+    def _set_date_range(
+        self,
+        from_widget: QDateEdit,
+        to_widget: QDateEdit,
+        months: int = 0,
+        years: int = 0,
+        *,
+        is_all_time: bool = False,
+    ) -> None:
         """Set date range for date widgets.
 
         Args:
@@ -1033,12 +1027,13 @@ class DateOperations:
             to_widget: To date widget
             months: Number of months back from today
             years: Number of years back from today
-            all_time: If True, sets to earliest available date
+            is_all_time: If True, sets to earliest available date
+
         """
         current_date = QDate.currentDate()
         to_widget.setDate(current_date)
 
-        if all_time and self._validate_database_connection():
+        if is_all_time and self._validate_database_connection():
             # Determine earliest date based on widget type
             if hasattr(from_widget, "objectName") and "weight" in from_widget.objectName():
                 earliest = self.db_manager.get_earliest_weight_date()
@@ -1060,7 +1055,7 @@ class DateOperations:
 ### Method `_increment_date_widget`
 
 ```python
-def _increment_date_widget(self, date_widget) -> None
+def _increment_date_widget(self, date_widget: QDateEdit) -> None
 ```
 
 Increment date widget by one day if not already today.
@@ -1072,7 +1067,7 @@ date_widget: QDateEdit widget to increment
 <summary>Code:</summary>
 
 ```python
-def _increment_date_widget(self, date_widget) -> None:
+def _increment_date_widget(self, date_widget: QDateEdit) -> None:
         current_date = date_widget.date()
         today = QDate.currentDate()
 
@@ -1090,7 +1085,7 @@ def _increment_date_widget(self, date_widget) -> None:
 ### Method `_set_date_range`
 
 ```python
-def _set_date_range(self, from_widget, to_widget, months: int = 0, years: int = 0, all_time: bool = False) -> None
+def _set_date_range(self, from_widget: QDateEdit, to_widget: QDateEdit, months: int = 0, years: int = 0) -> None
 ```
 
 Set date range for date widgets.
@@ -1100,17 +1095,25 @@ from_widget: From date widget
 to_widget: To date widget
 months: Number of months back from today
 years: Number of years back from today
-all_time: If True, sets to earliest available date
+is_all_time: If True, sets to earliest available date
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _set_date_range(self, from_widget, to_widget, months: int = 0, years: int = 0, all_time: bool = False) -> None:
+def _set_date_range(
+        self,
+        from_widget: QDateEdit,
+        to_widget: QDateEdit,
+        months: int = 0,
+        years: int = 0,
+        *,
+        is_all_time: bool = False,
+    ) -> None:
         current_date = QDate.currentDate()
         to_widget.setDate(current_date)
 
-        if all_time and self._validate_database_connection():
+        if is_all_time and self._validate_database_connection():
             # Determine earliest date based on widget type
             if hasattr(from_widget, "objectName") and "weight" in from_widget.objectName():
                 earliest = self.db_manager.get_earliest_weight_date()
@@ -1149,6 +1152,7 @@ class TableOperations:
         Args:
             table_name: Name of the table
             selection_handler: Handler function for selection changes
+
         """
         view = self.table_config[table_name][0]
         selection_model = view.selectionModel()
@@ -1163,6 +1167,7 @@ class TableOperations:
 
         Returns:
             Database ID of selected row or None if no selection
+
         """
         if table_name not in self.table_config:
             return None
@@ -1182,15 +1187,17 @@ class TableOperations:
     def _refresh_table(
         self, table_name: str, data_getter: Callable, data_transformer: Callable[[list], list] | None = None
     ) -> None:
-        """Generic method to refresh a table with data.
+        """Refresh a table with data.
 
         Args:
             table_name: Name of the table to refresh
             data_getter: Function to get data from database
             data_transformer: Optional function to transform raw data
+
         """
         if table_name not in self.table_config:
-            raise ValueError(f"Unknown table: {table_name}")
+            error_msg = f"Unknown table: {table_name}"
+            raise ValueError(error_msg)
 
         rows = data_getter()
         if data_transformer:
@@ -1272,7 +1279,7 @@ def _get_selected_row_id(self, table_name: str) -> int | None:
 def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable[[list], list] | None = None) -> None
 ```
 
-Generic method to refresh a table with data.
+Refresh a table with data.
 
 Args:
 table_name: Name of the table to refresh
@@ -1287,7 +1294,8 @@ def _refresh_table(
         self, table_name: str, data_getter: Callable, data_transformer: Callable[[list], list] | None = None
     ) -> None:
         if table_name not in self.table_config:
-            raise ValueError(f"Unknown table: {table_name}")
+            error_msg = f"Unknown table: {table_name}"
+            raise ValueError(error_msg)
 
         rows = data_getter()
         if data_transformer:
@@ -1324,6 +1332,7 @@ class ValidationOperations:
 
         Returns:
             True if the date is in the correct format and represents a valid date.
+
         """
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_str):
             return False
@@ -1373,13 +1382,13 @@ def _is_valid_date(date_str: str) -> bool:
 ## Function `requires_database`
 
 ```python
-def requires_database(show_warning: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]
+def requires_database() -> Callable[[Callable[P, T]], Callable[P, T]]
 ```
 
-Decorator to ensure database connection is available before executing method.
+Ensure database connection is available before executing method.
 
 Args:
-show_warning: If True, shows a QMessageBox warning on connection failure.
+is_show_warning: If True, shows a QMessageBox warning on connection failure.
 
 Returns:
 Decorated function that checks database connection first.
@@ -1388,7 +1397,7 @@ Decorated function that checks database connection first.
 <summary>Code:</summary>
 
 ```python
-def requires_database(show_warning: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]:
+def requires_database(*, is_show_warning: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]:
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @wraps(func)
@@ -1397,21 +1406,20 @@ def requires_database(show_warning: bool = True) -> Callable[[Callable[P, T]], C
             if args and len(args) == 1 and isinstance(args[0], int):
                 # This is likely a Qt signal callback with index
                 if not self._validate_database_connection():
-                    if show_warning:
+                    if is_show_warning:
                         from PySide6.QtWidgets import QMessageBox
 
                         QMessageBox.warning(self, "Database Error", "Database connection not available")
                     return None
                 return func(self, *args, **kwargs)
-            else:
-                # Regular method call
-                if not self._validate_database_connection():
-                    if show_warning:
-                        from PySide6.QtWidgets import QMessageBox
+            # Regular method call
+            if not self._validate_database_connection():
+                if is_show_warning:
+                    from PySide6.QtWidgets import QMessageBox
 
-                        QMessageBox.warning(self, "Database Error", "Database connection not available")
-                    return None
-                return func(self, *args, **kwargs)
+                    QMessageBox.warning(self, "Database Error", "Database connection not available")
+                return None
+            return func(self, *args, **kwargs)
 
         return wrapper
 

@@ -72,7 +72,8 @@ class DatabaseManager:
 
         """
         if not self._ensure_connection():
-            raise ConnectionError("Database connection is not available")
+            error_msg = "Database connection is not available"
+            raise ConnectionError(error_msg)
         return QSqlQuery(self.db)
 
     def _ensure_connection(self) -> bool:
@@ -143,7 +144,8 @@ class DatabaseManager:
 
         if not self.db.open():
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
-            raise ConnectionError(f"Failed to reconnect to database: {error_msg}")
+            error_msg = f"Failed to reconnect to database: {error_msg}"
+            raise ConnectionError(error_msg)
 
     def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
         """Convert the full result set in *query* into a list of rows.
@@ -314,12 +316,12 @@ class DatabaseManager:
 
         - `query_text` (`str`): A parametrised SQL statement.
         - `params` (`Optional[Dict[str, Any]]`): Run-time values to be bound to
-          named placeholders in *query_text*. Defaults to `None`.
+        named placeholders in *query_text*. Defaults to `None`.
 
         Returns:
 
         - `Optional[QSqlQuery]`: The executed query when successful, otherwise
-          `None`.
+        `None`.
 
         """
         # Ensure database connection is valid
@@ -346,12 +348,14 @@ class DatabaseManager:
                 print(f"Params were: {params}")
                 return None
 
-            return query
         except Exception as e:
             print(f"Exception during query execution: {e}")
             print(f"Query was: {query_text}")
             print(f"Params were: {params}")
             return None
+
+        else:
+            return query
 
     def execute_simple_query(
         self,
@@ -364,7 +368,7 @@ class DatabaseManager:
 
         - `query_text` (`str`): A parametrised SQL statement.
         - `params` (`Optional[Dict[str, Any]]`): Run-time values to be bound to
-          named placeholders in *query_text*. Defaults to `None`.
+        named placeholders in *query_text*. Defaults to `None`.
 
         Returns:
 
@@ -394,15 +398,18 @@ class DatabaseManager:
                 print(f"Failed to execute query: {error_msg}")
                 print(f"Query was: {query_text}")
                 print(f"Params were: {params}")
+                return False
 
-            # Clear the query to release resources
-            query.clear()
-            return success
         except Exception as e:
             print(f"Exception during query execution: {e}")
             print(f"Query was: {query_text}")
             print(f"Params were: {params}")
             return False
+
+        else:
+            # Clear the query to release resources
+            query.clear()
+            return True
 
     def get_all_exercise_types(self) -> list[list[Any]]:
         """Get all exercise types with exercise names.

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
@@ -18,10 +17,12 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import QDate, Qt
-from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QLabel, QMessageBox
+from PySide6.QtWidgets import QDateEdit, QLabel, QMessageBox
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from PySide6.QtGui import QStandardItemModel
     from PySide6.QtWidgets import QLayout
 
 # Type variables for decorators
@@ -33,7 +34,7 @@ class AutoSaveOperations:
     """Mixin class for auto-save operations."""
 
     def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Generic auto-save method for table rows.
+        """Auto-save table row data.
 
         Args:
             table_name: Name of the table
@@ -301,9 +302,7 @@ class ChartOperations:
             return (
                 f"Min: {int(min_val)}{unit_suffix} | Max: {int(max_val)}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
             )
-        return (
-            f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
-        )
+        return f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
 
     def _group_data_by_period(self, rows: list, period: str, value_type: str = "float") -> dict:
         """Group data by the specified period (Days, Months, Years).
@@ -328,10 +327,7 @@ class ChartOperations:
                 continue
 
             try:
-                if value_type == "float":
-                    value = float(value_str)
-                else:
-                    value = int(value_str)
+                value = float(value_str) if value_type == "float" else int(value_str)
             except (ValueError, TypeError):
                 continue
 
@@ -390,10 +386,7 @@ class ChartOperations:
             # Add value labels
             for x, y in zip(x_values, y_values, strict=False):
                 # Format label based on value type
-                if isinstance(y, int):
-                    label_text = str(y)
-                else:
-                    label_text = f"{y:.1f}"
+                label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
 
                 ax.annotate(
                     label_text,
@@ -417,7 +410,7 @@ class ChartOperations:
 class DateOperations:
     """Mixin class for date operations."""
 
-    def _increment_date_widget(self, date_widget) -> None:
+    def _increment_date_widget(self, date_widget: QDateEdit) -> None:
         """Increment date widget by one day if not already today.
 
         Args:
@@ -435,7 +428,15 @@ class DateOperations:
         next_date = current_date.addDays(1)
         date_widget.setDate(next_date)
 
-    def _set_date_range(self, from_widget, to_widget, months: int = 0, years: int = 0, all_time: bool = False) -> None:
+    def _set_date_range(
+        self,
+        from_widget: QDateEdit,
+        to_widget: QDateEdit,
+        months: int = 0,
+        years: int = 0,
+        *,
+        is_all_time: bool = False,
+    ) -> None:
         """Set date range for date widgets.
 
         Args:
@@ -443,13 +444,13 @@ class DateOperations:
             to_widget: To date widget
             months: Number of months back from today
             years: Number of years back from today
-            all_time: If True, sets to earliest available date
+            is_all_time: If True, sets to earliest available date
 
         """
         current_date = QDate.currentDate()
         to_widget.setDate(current_date)
 
-        if all_time and self._validate_database_connection():
+        if is_all_time and self._validate_database_connection():
             # Determine earliest date based on widget type
             if hasattr(from_widget, "objectName") and "weight" in from_widget.objectName():
                 earliest = self.db_manager.get_earliest_weight_date()
@@ -510,7 +511,7 @@ class TableOperations:
     def _refresh_table(
         self, table_name: str, data_getter: Callable, data_transformer: Callable[[list], list] | None = None
     ) -> None:
-        """Generic method to refresh a table with data.
+        """Refresh a table with data.
 
         Args:
             table_name: Name of the table to refresh
@@ -519,7 +520,8 @@ class TableOperations:
 
         """
         if table_name not in self.table_config:
-            raise ValueError(f"Unknown table: {table_name}")
+            error_msg = f"Unknown table: {table_name}"
+            raise ValueError(error_msg)
 
         rows = data_getter()
         if data_transformer:
@@ -556,11 +558,11 @@ class ValidationOperations:
             return True
 
 
-def requires_database(show_warning: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]:
-    """Decorator to ensure database connection is available before executing method.
+def requires_database(*, is_show_warning: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    """Ensure database connection is available before executing method.
 
     Args:
-        show_warning: If True, shows a QMessageBox warning on connection failure.
+        is_show_warning: If True, shows a QMessageBox warning on connection failure.
 
     Returns:
         Decorated function that checks database connection first.
@@ -574,7 +576,7 @@ def requires_database(show_warning: bool = True) -> Callable[[Callable[P, T]], C
             if args and len(args) == 1 and isinstance(args[0], int):
                 # This is likely a Qt signal callback with index
                 if not self._validate_database_connection():
-                    if show_warning:
+                    if is_show_warning:
                         from PySide6.QtWidgets import QMessageBox
 
                         QMessageBox.warning(self, "Database Error", "Database connection not available")
@@ -582,7 +584,7 @@ def requires_database(show_warning: bool = True) -> Callable[[Callable[P, T]], C
                 return func(self, *args, **kwargs)
             # Regular method call
             if not self._validate_database_connection():
-                if show_warning:
+                if is_show_warning:
                     from PySide6.QtWidgets import QMessageBox
 
                     QMessageBox.warning(self, "Database Error", "Database connection not available")
