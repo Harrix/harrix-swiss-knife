@@ -767,6 +767,7 @@ class Ui_MainWindow(object):
 
         self.comboBox_chart_exercise = QComboBox(self.frame_charts_controls)
         self.comboBox_chart_exercise.setObjectName("comboBox_chart_exercise")
+        self.comboBox_chart_exercise.setMinimumSize(QSize(201, 0))
 
         self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_exercise)
 
@@ -777,6 +778,7 @@ class Ui_MainWindow(object):
 
         self.comboBox_chart_type = QComboBox(self.frame_charts_controls)
         self.comboBox_chart_type.setObjectName("comboBox_chart_type")
+        self.comboBox_chart_type.setMinimumSize(QSize(251, 0))
 
         self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_type)
 
@@ -1688,6 +1690,7 @@ def setupUi(self, MainWindow):
 
         self.comboBox_chart_exercise = QComboBox(self.frame_charts_controls)
         self.comboBox_chart_exercise.setObjectName("comboBox_chart_exercise")
+        self.comboBox_chart_exercise.setMinimumSize(QSize(201, 0))
 
         self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_exercise)
 
@@ -1698,6 +1701,7 @@ def setupUi(self, MainWindow):
 
         self.comboBox_chart_type = QComboBox(self.frame_charts_controls)
         self.comboBox_chart_type.setObjectName("comboBox_chart_type")
+        self.comboBox_chart_type.setMinimumSize(QSize(251, 0))
 
         self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_type)
 

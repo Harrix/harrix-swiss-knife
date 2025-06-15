@@ -1085,7 +1085,14 @@
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="comboBox_chart_exercise"/>
+              <widget class="QComboBox" name="comboBox_chart_exercise">
+               <property name="minimumSize">
+                <size>
+                 <width>201</width>
+                 <height>0</height>
+                </size>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QLabel" name="label_chart_type">
@@ -1095,7 +1102,14 @@
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="comboBox_chart_type"/>
+              <widget class="QComboBox" name="comboBox_chart_type">
+               <property name="minimumSize">
+                <size>
+                 <width>251</width>
+                 <height>0</height>
+                </size>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QLabel" name="label_chart_period">
