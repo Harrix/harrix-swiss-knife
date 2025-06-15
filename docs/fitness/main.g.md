@@ -1351,9 +1351,14 @@ class MainWindow(
         # Get sets data using database manager
         rows = self.db_manager.get_sets_chart_data(date_from, date_to)
 
-        if not rows:
-            self._show_no_data_label(self.verticalLayout_charts_content, "No set data found for the selected period")
-            return
+        # Convert to datetime objects for processing
+        datetime_data = []
+        for date_str, count in rows:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                datetime_data.append((date_obj, int(count)))
+            except (ValueError, TypeError):
+                continue
 
         # Group data by period
         grouped_data = self._group_data_by_period(rows, period, value_type="int")
@@ -1364,6 +1369,12 @@ class MainWindow(
 
         # Prepare chart data
         chart_data = list(grouped_data.items())
+
+        # For sets chart, respect the selected date range
+        # But don't extend beyond today
+        today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+        chart_date_from = date_from
+        chart_date_to = min(today, date_to)
 
         # Define custom statistics formatter for sets
         def format_sets_stats(values: list) -> str:
@@ -1382,6 +1393,9 @@ class MainWindow(
             "show_stats": True,
             "period": period,
             "stats_formatter": format_sets_stats,
+            "fill_zero_periods": True,  # Enable zero filling
+            "date_from": chart_date_from,  # Use selected start date
+            "date_to": chart_date_to,  # Don't go beyond today
         }
 
         self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
@@ -1547,7 +1561,17 @@ class MainWindow(
             date_to=date_to,
         )
 
-        if not rows:
+        # Convert to datetime objects for processing
+        datetime_data = []
+        for date_str, value_str in rows:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                value = float(value_str)
+                datetime_data.append((date_obj, value))
+            except (ValueError, TypeError):
+                continue
+
+        if not datetime_data:
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
             return
 
@@ -1560,6 +1584,25 @@ class MainWindow(
 
         # Prepare chart data
         chart_data = list(grouped_data.items())
+
+        # Determine the actual date range for zero filling:
+        # - Start: max of (earliest exercise date, selected from date)
+        # - End: min of (today, selected to date)
+
+        earliest_exercise_date = self.db_manager.get_earliest_exercise_date(
+            exercise_name=exercise, exercise_type=exercise_type if exercise_type != "All types" else None
+        )
+
+        today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+
+        # Use the later of: earliest exercise date or selected from date
+        if earliest_exercise_date:
+            chart_date_from = max(earliest_exercise_date, date_from)
+        else:
+            chart_date_from = date_from
+
+        # Use the earlier of: today or selected to date
+        chart_date_to = min(today, date_to)
 
         # Build chart title
         chart_title = f"{exercise}"
@@ -1588,6 +1631,9 @@ class MainWindow(
             "show_stats": True,
             "period": period,
             "stats_formatter": format_exercise_stats,
+            "fill_zero_periods": True,  # Enable zero filling
+            "date_from": chart_date_from,  # Use calculated start date
+            "date_to": chart_date_to,  # Use calculated end date
         }
 
         self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
@@ -3597,9 +3643,14 @@ def show_sets_chart(self) -> None:
         # Get sets data using database manager
         rows = self.db_manager.get_sets_chart_data(date_from, date_to)
 
-        if not rows:
-            self._show_no_data_label(self.verticalLayout_charts_content, "No set data found for the selected period")
-            return
+        # Convert to datetime objects for processing
+        datetime_data = []
+        for date_str, count in rows:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                datetime_data.append((date_obj, int(count)))
+            except (ValueError, TypeError):
+                continue
 
         # Group data by period
         grouped_data = self._group_data_by_period(rows, period, value_type="int")
@@ -3610,6 +3661,12 @@ def show_sets_chart(self) -> None:
 
         # Prepare chart data
         chart_data = list(grouped_data.items())
+
+        # For sets chart, respect the selected date range
+        # But don't extend beyond today
+        today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+        chart_date_from = date_from
+        chart_date_to = min(today, date_to)
 
         # Define custom statistics formatter for sets
         def format_sets_stats(values: list) -> str:
@@ -3628,6 +3685,9 @@ def show_sets_chart(self) -> None:
             "show_stats": True,
             "period": period,
             "stats_formatter": format_sets_stats,
+            "fill_zero_periods": True,  # Enable zero filling
+            "date_from": chart_date_from,  # Use selected start date
+            "date_to": chart_date_to,  # Don't go beyond today
         }
 
         self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
@@ -3856,7 +3916,17 @@ def update_exercise_chart(self) -> None:
             date_to=date_to,
         )
 
-        if not rows:
+        # Convert to datetime objects for processing
+        datetime_data = []
+        for date_str, value_str in rows:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                value = float(value_str)
+                datetime_data.append((date_obj, value))
+            except (ValueError, TypeError):
+                continue
+
+        if not datetime_data:
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
             return
 
@@ -3869,6 +3939,25 @@ def update_exercise_chart(self) -> None:
 
         # Prepare chart data
         chart_data = list(grouped_data.items())
+
+        # Determine the actual date range for zero filling:
+        # - Start: max of (earliest exercise date, selected from date)
+        # - End: min of (today, selected to date)
+
+        earliest_exercise_date = self.db_manager.get_earliest_exercise_date(
+            exercise_name=exercise, exercise_type=exercise_type if exercise_type != "All types" else None
+        )
+
+        today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+
+        # Use the later of: earliest exercise date or selected from date
+        if earliest_exercise_date:
+            chart_date_from = max(earliest_exercise_date, date_from)
+        else:
+            chart_date_from = date_from
+
+        # Use the earlier of: today or selected to date
+        chart_date_to = min(today, date_to)
 
         # Build chart title
         chart_title = f"{exercise}"
@@ -3897,6 +3986,9 @@ def update_exercise_chart(self) -> None:
             "show_stats": True,
             "period": period,
             "stats_formatter": format_exercise_stats,
+            "fill_zero_periods": True,  # Enable zero filling
+            "date_from": chart_date_from,  # Use calculated start date
+            "date_to": chart_date_to,  # Use calculated end date
         }
 
         self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)

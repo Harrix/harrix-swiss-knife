@@ -21,6 +21,7 @@ lang: en
   - [Method `_add_stats_box`](#method-_add_stats_box)
   - [Method `_clear_layout`](#method-_clear_layout)
   - [Method `_create_chart`](#method-_create_chart)
+  - [Method `_fill_missing_periods_with_zeros`](#method-_fill_missing_periods_with_zeros)
   - [Method `_format_chart_x_axis`](#method-_format_chart_x_axis)
   - [Method `_format_default_stats`](#method-_format_default_stats)
   - [Method `_group_data_by_period`](#method-_group_data_by_period)
@@ -522,14 +523,15 @@ class ChartOperations:
         - `layout` (`QLayout`): Layout to add chart to.
         - `data` (`list`): Chart data as list of (x, y) tuples.
         - `chart_config` (`dict`): Dictionary with chart configuration including:
-          - title: Chart title
-          - xlabel: X-axis label
-          - ylabel: Y-axis label
-          - color: Line color
-          - show_stats: Whether to show statistics
-          - stats_unit: Unit for statistics display
-          - period: Period for x-axis formatting (Days/Months/Years)
-          - stats_formatter: Optional function to format statistics
+        - title: Chart title
+        - xlabel: X-axis label
+        - ylabel: Y-axis label
+        - color: Line color
+        - show_stats: Whether to show statistics
+        - stats_unit: Unit for statistics display
+        - period: Period for x-axis formatting (Days/Months/Years)
+        - stats_formatter: Optional function to format statistics
+        - fill_zero_periods: Whether to fill missing periods with zero values
 
         """
         # Clear existing chart
@@ -538,6 +540,12 @@ class ChartOperations:
         if not data:
             self._show_no_data_label(layout, "No data found for the selected period")
             return
+
+        # Fill missing periods with zeros if requested
+        if chart_config.get("fill_zero_periods", False):
+            data = self._fill_missing_periods_with_zeros(
+                data, chart_config.get("period", "Days"), chart_config.get("date_from"), chart_config.get("date_to")
+            )
 
         # Create matplotlib figure
         fig = Figure(figsize=(12, 6), dpi=100)
@@ -548,8 +556,11 @@ class ChartOperations:
         x_values = [item[0] for item in data]
         y_values = [item[1] for item in data]
 
+        # Count non-zero values for label display decision
+        non_zero_count = sum(1 for y in y_values if y != 0)
+
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"))
+        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count)
 
         # Customize plot
         ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
@@ -561,18 +572,97 @@ class ChartOperations:
         if x_values and isinstance(x_values[0], datetime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
-        # Add statistics if requested
+        # Add statistics if requested (exclude zero values from stats)
         if chart_config.get("show_stats", True) and len(y_values) > 1:
             stats_formatter = chart_config.get("stats_formatter")
             if stats_formatter:
-                stats_text = stats_formatter(y_values)
+                # Filter out zero values for statistics
+                non_zero_values = [y for y in y_values if y != 0]
+                if non_zero_values:
+                    stats_text = stats_formatter(non_zero_values)
+                    self._add_stats_box(ax, stats_text)
             else:
-                stats_text = self._format_default_stats(y_values, chart_config.get("stats_unit", ""))
-            self._add_stats_box(ax, stats_text)
+                non_zero_values = [y for y in y_values if y != 0]
+                if non_zero_values:
+                    stats_text = self._format_default_stats(non_zero_values, chart_config.get("stats_unit", ""))
+                    self._add_stats_box(ax, stats_text)
 
         fig.tight_layout()
         layout.addWidget(canvas)
         canvas.draw()
+
+    def _fill_missing_periods_with_zeros(
+        self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None
+    ) -> list[tuple]:
+        """Fill missing periods with zero values.
+
+        Args:
+
+        - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
+        - `period` (`str`): Period type (Days, Months, Years).
+        - `date_from` (`str | None`): Start date string (YYYY-MM-DD).
+        - `date_to` (`str | None`): End date string (YYYY-MM-DD).
+
+        Returns:
+
+        - `list[tuple]`: Data with missing periods filled with zeros.
+
+        """
+        if not data:
+            return data
+
+        # Convert existing data to dict for quick lookup
+        data_dict = {item[0]: item[1] for item in data}
+
+        # Determine date range
+        if date_from and date_to:
+            try:
+                start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                return data
+        else:
+            # Use data range if no explicit dates provided
+            start_date = min(item[0] for item in data)
+            end_date = max(item[0] for item in data)
+
+        # Generate all periods in the range
+        result = []
+        current_date = start_date
+
+        if period == "Months":
+            current_date = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            while current_date <= end_date:
+                value = data_dict.get(current_date, 0)
+                result.append((current_date, value))
+
+                # Move to next month
+                if current_date.month == 12:
+                    current_date = current_date.replace(year=current_date.year + 1, month=1)
+                else:
+                    current_date = current_date.replace(month=current_date.month + 1)
+
+        elif period == "Years":
+            current_date = start_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            while current_date <= end_date:
+                value = data_dict.get(current_date, 0)
+                result.append((current_date, value))
+                current_date = current_date.replace(year=current_date.year + 1)
+
+        else:  # "Days" period
+            current_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            while current_date <= end_date:
+                value = data_dict.get(current_date, 0)
+                result.append((current_date, value))
+                current_date += timedelta(days=1)
+
+        return result
 
     def _format_chart_x_axis(self, ax: plt.Axes, dates: list, period: str) -> None:
         """Format x-axis for charts based on period and data range.
@@ -688,7 +778,9 @@ class ChartOperations:
 
         return dict(sorted(grouped.items()))
 
-    def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str) -> None:
+    def _plot_data(
+        self, ax: plt.Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None
+    ) -> None:
         """Plot data with automatic marker selection based on data points.
 
         Args:
@@ -697,6 +789,7 @@ class ChartOperations:
         - `x_values` (`list`): X-axis values.
         - `y_values` (`list`): Y-axis values.
         - `color` (`str`): Plot color.
+        - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
 
         """
         # Map color names to matplotlib single-letter codes
@@ -716,7 +809,10 @@ class ChartOperations:
         # Use mapped color or original if not in map
         plot_color = color_map.get(color, color)
 
-        if len(y_values) <= self.max_count_points_in_charts:
+        # Use non_zero_count if provided, otherwise use total length
+        point_count_for_labels = non_zero_count if non_zero_count is not None else len(y_values)
+
+        if point_count_for_labels <= self.max_count_points_in_charts:
             ax.plot(
                 x_values,
                 y_values,
@@ -729,20 +825,23 @@ class ChartOperations:
                 markerfacecolor=plot_color,
                 markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
             )
-            # Add value labels
+            # Add value labels only for non-zero values
             for x, y in zip(x_values, y_values, strict=False):
-                # Format label based on value type
-                label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
+                if y != 0:  # Only label non-zero points
+                    # Format label based on value type
+                    label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
 
-                ax.annotate(
-                    label_text,
-                    (x, y),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                )
+                    ax.annotate(
+                        label_text,
+                        (x, y),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                        # Add white outline for better readability
+                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="none", alpha=0.7),
+                    )
         else:
             ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
 
@@ -833,14 +932,15 @@ Args:
 - `layout` (`QLayout`): Layout to add chart to.
 - `data` (`list`): Chart data as list of (x, y) tuples.
 - `chart_config` (`dict`): Dictionary with chart configuration including:
-  - title: Chart title
-  - xlabel: X-axis label
-  - ylabel: Y-axis label
-  - color: Line color
-  - show_stats: Whether to show statistics
-  - stats_unit: Unit for statistics display
-  - period: Period for x-axis formatting (Days/Months/Years)
-  - stats_formatter: Optional function to format statistics
+- title: Chart title
+- xlabel: X-axis label
+- ylabel: Y-axis label
+- color: Line color
+- show_stats: Whether to show statistics
+- stats_unit: Unit for statistics display
+- period: Period for x-axis formatting (Days/Months/Years)
+- stats_formatter: Optional function to format statistics
+- fill_zero_periods: Whether to fill missing periods with zero values
 
 <details>
 <summary>Code:</summary>
@@ -854,6 +954,12 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
             self._show_no_data_label(layout, "No data found for the selected period")
             return
 
+        # Fill missing periods with zeros if requested
+        if chart_config.get("fill_zero_periods", False):
+            data = self._fill_missing_periods_with_zeros(
+                data, chart_config.get("period", "Days"), chart_config.get("date_from"), chart_config.get("date_to")
+            )
+
         # Create matplotlib figure
         fig = Figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
@@ -863,8 +969,11 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
         x_values = [item[0] for item in data]
         y_values = [item[1] for item in data]
 
+        # Count non-zero values for label display decision
+        non_zero_count = sum(1 for y in y_values if y != 0)
+
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"))
+        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count)
 
         # Customize plot
         ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
@@ -876,18 +985,109 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
         if x_values and isinstance(x_values[0], datetime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
-        # Add statistics if requested
+        # Add statistics if requested (exclude zero values from stats)
         if chart_config.get("show_stats", True) and len(y_values) > 1:
             stats_formatter = chart_config.get("stats_formatter")
             if stats_formatter:
-                stats_text = stats_formatter(y_values)
+                # Filter out zero values for statistics
+                non_zero_values = [y for y in y_values if y != 0]
+                if non_zero_values:
+                    stats_text = stats_formatter(non_zero_values)
+                    self._add_stats_box(ax, stats_text)
             else:
-                stats_text = self._format_default_stats(y_values, chart_config.get("stats_unit", ""))
-            self._add_stats_box(ax, stats_text)
+                non_zero_values = [y for y in y_values if y != 0]
+                if non_zero_values:
+                    stats_text = self._format_default_stats(non_zero_values, chart_config.get("stats_unit", ""))
+                    self._add_stats_box(ax, stats_text)
 
         fig.tight_layout()
         layout.addWidget(canvas)
         canvas.draw()
+```
+
+</details>
+
+### Method `_fill_missing_periods_with_zeros`
+
+```python
+def _fill_missing_periods_with_zeros(self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None) -> list[tuple]
+```
+
+Fill missing periods with zero values.
+
+Args:
+
+- `data` (`list[tuple]`): Original data as (datetime, value) tuples.
+- `period` (`str`): Period type (Days, Months, Years).
+- `date_from` (`str | None`): Start date string (YYYY-MM-DD).
+- `date_to` (`str | None`): End date string (YYYY-MM-DD).
+
+Returns:
+
+- `list[tuple]`: Data with missing periods filled with zeros.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fill_missing_periods_with_zeros(
+        self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None
+    ) -> list[tuple]:
+        if not data:
+            return data
+
+        # Convert existing data to dict for quick lookup
+        data_dict = {item[0]: item[1] for item in data}
+
+        # Determine date range
+        if date_from and date_to:
+            try:
+                start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                return data
+        else:
+            # Use data range if no explicit dates provided
+            start_date = min(item[0] for item in data)
+            end_date = max(item[0] for item in data)
+
+        # Generate all periods in the range
+        result = []
+        current_date = start_date
+
+        if period == "Months":
+            current_date = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            while current_date <= end_date:
+                value = data_dict.get(current_date, 0)
+                result.append((current_date, value))
+
+                # Move to next month
+                if current_date.month == 12:
+                    current_date = current_date.replace(year=current_date.year + 1, month=1)
+                else:
+                    current_date = current_date.replace(month=current_date.month + 1)
+
+        elif period == "Years":
+            current_date = start_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            while current_date <= end_date:
+                value = data_dict.get(current_date, 0)
+                result.append((current_date, value))
+                current_date = current_date.replace(year=current_date.year + 1)
+
+        else:  # "Days" period
+            current_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            while current_date <= end_date:
+                value = data_dict.get(current_date, 0)
+                result.append((current_date, value))
+                current_date += timedelta(days=1)
+
+        return result
 ```
 
 </details>
@@ -1045,7 +1245,7 @@ def _group_data_by_period(self, rows: list, period: str, value_type: str = "floa
 ### Method `_plot_data`
 
 ```python
-def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str) -> None
+def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None) -> None
 ```
 
 Plot data with automatic marker selection based on data points.
@@ -1056,12 +1256,15 @@ Args:
 - `x_values` (`list`): X-axis values.
 - `y_values` (`list`): Y-axis values.
 - `color` (`str`): Plot color.
+- `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str) -> None:
+def _plot_data(
+        self, ax: plt.Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None
+    ) -> None:
         # Map color names to matplotlib single-letter codes
         color_map = {
             "blue": "b",
@@ -1079,7 +1282,10 @@ def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str) -
         # Use mapped color or original if not in map
         plot_color = color_map.get(color, color)
 
-        if len(y_values) <= self.max_count_points_in_charts:
+        # Use non_zero_count if provided, otherwise use total length
+        point_count_for_labels = non_zero_count if non_zero_count is not None else len(y_values)
+
+        if point_count_for_labels <= self.max_count_points_in_charts:
             ax.plot(
                 x_values,
                 y_values,
@@ -1092,20 +1298,23 @@ def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str) -
                 markerfacecolor=plot_color,
                 markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
             )
-            # Add value labels
+            # Add value labels only for non-zero values
             for x, y in zip(x_values, y_values, strict=False):
-                # Format label based on value type
-                label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
+                if y != 0:  # Only label non-zero points
+                    # Format label based on value type
+                    label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
 
-                ax.annotate(
-                    label_text,
-                    (x, y),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                )
+                    ax.annotate(
+                        label_text,
+                        (x, y),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                        # Add white outline for better readability
+                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="none", alpha=0.7),
+                    )
         else:
             ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
 ```

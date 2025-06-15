@@ -486,6 +486,38 @@ class DatabaseManager:
         """
         return self.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
 
+    def get_earliest_exercise_date(self, exercise_name: str, exercise_type: str | None = None) -> str | None:
+        """Get the earliest date for a specific exercise.
+
+        Args:
+
+        - `exercise_name` (`str`): Exercise name.
+        - `exercise_type` (`str | None`): Exercise type. Defaults to `None` for all types.
+
+        Returns:
+
+        - `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
+
+        """
+        conditions = ["e.name = :exercise"]
+        params = {"exercise": exercise_name}
+
+        if exercise_type and exercise_type != "All types":
+            conditions.append("t.type = :type")
+            params["type"] = exercise_type
+
+        query = f"""
+            SELECT MIN(p.date)
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+            WHERE {" AND ".join(conditions)}
+            AND p.date IS NOT NULL
+        """
+
+        rows = self.get_rows(query, params)
+        return rows[0][0] if rows and rows[0][0] else None
+
     def get_earliest_process_date(self) -> str | None:
         """Get the earliest date from process records.
 
