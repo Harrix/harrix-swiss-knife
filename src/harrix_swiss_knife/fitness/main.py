@@ -1441,12 +1441,8 @@ class MainWindow(
     def update_chart_comboboxes(self) -> None:
         """Update exercise and type comboboxes for charts."""
         try:
-            # Update exercise combobox
-            exercises = self.db_manager.get_items("exercises", "name")
-
-            # Sort exercises alphabetically
-            if exercises:
-                exercises.sort()
+            # Update exercise combobox - sort by frequency like in comboBox_type
+            exercises = self.db_manager.get_exercises_by_frequency(500)
 
             self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
             self.comboBox_chart_exercise.clear()
