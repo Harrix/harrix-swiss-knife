@@ -239,9 +239,7 @@ class MainWindow(
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-        self.comboBox_chart_exercise.currentIndexChanged.connect(lambda: self.update_exercise_chart())
-        self.comboBox_chart_type.currentIndexChanged.connect(lambda: self.update_exercise_chart())
-        self.comboBox_chart_period.currentIndexChanged.connect(lambda: self.update_exercise_chart())
+        self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
 
         # Filter signals
         self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
@@ -1526,14 +1524,8 @@ class MainWindow(
             print(f"Error updating chart type combobox: {e}")
 
     @requires_database()
-    def update_exercise_chart(self, _index: int = -1) -> None:
-        """Update the exercise chart using database manager.
-
-        Args:
-
-        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
-
-        """
+    def update_exercise_chart(self) -> None:
+        """Update the exercise chart using database manager."""
         exercise = self.comboBox_chart_exercise.currentText()
         exercise_type = self.comboBox_chart_type.currentText()
         period = self.comboBox_chart_period.currentText()
@@ -1904,9 +1896,7 @@ def _connect_signals(self) -> None:
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-        self.comboBox_chart_exercise.currentIndexChanged.connect(lambda: self.update_exercise_chart())
-        self.comboBox_chart_type.currentIndexChanged.connect(lambda: self.update_exercise_chart())
-        self.comboBox_chart_period.currentIndexChanged.connect(lambda: self.update_exercise_chart())
+        self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
 
         # Filter signals
         self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
@@ -3835,20 +3825,16 @@ def update_chart_type_combobox(self, _index: int = -1) -> None:
 ### Method `update_exercise_chart`
 
 ```python
-def update_exercise_chart(self, _index: int = -1) -> None
+def update_exercise_chart(self) -> None
 ```
 
 Update the exercise chart using database manager.
-
-Args:
-
-- `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def update_exercise_chart(self, _index: int = -1) -> None:
+def update_exercise_chart(self) -> None:
         exercise = self.comboBox_chart_exercise.currentText()
         exercise_type = self.comboBox_chart_type.currentText()
         period = self.comboBox_chart_period.currentText()
