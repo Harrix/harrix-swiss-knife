@@ -1357,7 +1357,7 @@ class MainWindow(
             try:
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 datetime_data.append((date_obj, int(count)))
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # noqa: PERF203
                 continue
 
         # Group data by period
@@ -1568,7 +1568,7 @@ class MainWindow(
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 value = float(value_str)
                 datetime_data.append((date_obj, value))
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # noqa: PERF203
                 continue
 
         if not datetime_data:
@@ -1596,10 +1596,7 @@ class MainWindow(
         today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
 
         # Use the later of: earliest exercise date or selected from date
-        if earliest_exercise_date:
-            chart_date_from = max(earliest_exercise_date, date_from)
-        else:
-            chart_date_from = date_from
+        chart_date_from = max(earliest_exercise_date, date_from) if earliest_exercise_date else date_from
 
         # Use the earlier of: today or selected to date
         chart_date_to = min(today, date_to)
@@ -3649,7 +3646,7 @@ def show_sets_chart(self) -> None:
             try:
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 datetime_data.append((date_obj, int(count)))
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # noqa: PERF203
                 continue
 
         # Group data by period
@@ -3923,7 +3920,7 @@ def update_exercise_chart(self) -> None:
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 value = float(value_str)
                 datetime_data.append((date_obj, value))
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # noqa: PERF203
                 continue
 
         if not datetime_data:
@@ -3951,10 +3948,7 @@ def update_exercise_chart(self) -> None:
         today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
 
         # Use the later of: earliest exercise date or selected from date
-        if earliest_exercise_date:
-            chart_date_from = max(earliest_exercise_date, date_from)
-        else:
-            chart_date_from = date_from
+        chart_date_from = max(earliest_exercise_date, date_from) if earliest_exercise_date else date_from
 
         # Use the earlier of: today or selected to date
         chart_date_to = min(today, date_to)

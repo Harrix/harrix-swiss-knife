@@ -639,7 +639,8 @@ class ChartOperations:
                 result.append((current_date, value))
 
                 # Move to next month
-                if current_date.month == 12:
+                count_months = 12
+                if current_date.month == count_months:
                     current_date = current_date.replace(year=current_date.year + 1, month=1)
                 else:
                     current_date = current_date.replace(month=current_date.month + 1)
@@ -840,7 +841,7 @@ class ChartOperations:
                         fontsize=9,
                         alpha=0.8,
                         # Add white outline for better readability
-                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="none", alpha=0.7),
+                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
         else:
             ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
@@ -1064,7 +1065,8 @@ def _fill_missing_periods_with_zeros(
                 result.append((current_date, value))
 
                 # Move to next month
-                if current_date.month == 12:
+                count_months = 12
+                if current_date.month == count_months:
                     current_date = current_date.replace(year=current_date.year + 1, month=1)
                 else:
                     current_date = current_date.replace(month=current_date.month + 1)
@@ -1313,7 +1315,7 @@ def _plot_data(
                         fontsize=9,
                         alpha=0.8,
                         # Add white outline for better readability
-                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="none", alpha=0.7),
+                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
         else:
             ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
