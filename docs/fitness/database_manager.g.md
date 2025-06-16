@@ -24,6 +24,7 @@ lang: en
   - [Method `add_process_record`](#method-add_process_record)
   - [Method `add_weight_record`](#method-add_weight_record)
   - [Method `close`](#method-close)
+  - [Method `create_database_from_sql`](#method-create_database_from_sql)
   - [Method `delete_exercise`](#method-delete_exercise)
   - [Method `delete_exercise_type`](#method-delete_exercise_type)
   - [Method `delete_process_record`](#method-delete_process_record)
@@ -318,6 +319,72 @@ class DatabaseManager:
         # Remove the database connection
         if hasattr(self, "connection_name"):
             QSqlDatabase.removeDatabase(self.connection_name)
+
+    @staticmethod
+    def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
+        """Create a new database from SQL file.
+
+        Args:
+
+        - `db_filename` (`str`): Path to the database file to create.
+        - `sql_file_path` (`str`): Path to the SQL file with database schema and data.
+
+        Returns:
+
+        - `bool`: True if database was created successfully, False otherwise.
+
+        """
+        try:
+            # Create database directory if it doesn't exist
+            db_path = Path(db_filename)
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Read SQL file
+            sql_path = Path(sql_file_path)
+            if not sql_path.exists():
+                print(f"SQL file not found: {sql_file_path}")
+                return False
+
+            sql_content = sql_path.read_text(encoding="utf-8")
+
+            # Create temporary database connection
+            import uuid
+
+            temp_connection_name = f"temp_db_{uuid.uuid4().hex[:8]}"
+
+            temp_db = QSqlDatabase.addDatabase("QSQLITE", temp_connection_name)
+            temp_db.setDatabaseName(db_filename)
+
+            if not temp_db.open():
+                error_msg = temp_db.lastError().text() if temp_db.lastError().isValid() else "Unknown error"
+                print(f"Failed to create database: {error_msg}")
+                QSqlDatabase.removeDatabase(temp_connection_name)
+                return False
+
+            try:
+                # Execute SQL commands
+                query = QSqlQuery(temp_db)
+
+                # Split SQL content by semicolons and execute each statement
+                statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
+
+                for statement in statements:
+                    if not query.exec(statement):
+                        error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
+                        print(f"Failed to execute SQL statement: {error_msg}")
+                        print(f"Statement was: {statement}")
+                        return False
+
+                print(f"Database created successfully: {db_filename}")
+                return True
+
+            finally:
+                temp_db.close()
+                QSqlDatabase.removeDatabase(temp_connection_name)
+
+        except Exception as e:
+            print(f"Error creating database from SQL file: {e}")
+            return False
 
     def delete_exercise(self, exercise_id: int) -> bool:
         """Delete an exercise from the database.
@@ -1524,6 +1591,83 @@ def close(self) -> None:
         # Remove the database connection
         if hasattr(self, "connection_name"):
             QSqlDatabase.removeDatabase(self.connection_name)
+```
+
+</details>
+
+### Method `create_database_from_sql`
+
+```python
+def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool
+```
+
+Create a new database from SQL file.
+
+Args:
+
+- `db_filename` (`str`): Path to the database file to create.
+- `sql_file_path` (`str`): Path to the SQL file with database schema and data.
+
+Returns:
+
+- `bool`: True if database was created successfully, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
+        try:
+            # Create database directory if it doesn't exist
+            db_path = Path(db_filename)
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Read SQL file
+            sql_path = Path(sql_file_path)
+            if not sql_path.exists():
+                print(f"SQL file not found: {sql_file_path}")
+                return False
+
+            sql_content = sql_path.read_text(encoding="utf-8")
+
+            # Create temporary database connection
+            import uuid
+
+            temp_connection_name = f"temp_db_{uuid.uuid4().hex[:8]}"
+
+            temp_db = QSqlDatabase.addDatabase("QSQLITE", temp_connection_name)
+            temp_db.setDatabaseName(db_filename)
+
+            if not temp_db.open():
+                error_msg = temp_db.lastError().text() if temp_db.lastError().isValid() else "Unknown error"
+                print(f"Failed to create database: {error_msg}")
+                QSqlDatabase.removeDatabase(temp_connection_name)
+                return False
+
+            try:
+                # Execute SQL commands
+                query = QSqlQuery(temp_db)
+
+                # Split SQL content by semicolons and execute each statement
+                statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
+
+                for statement in statements:
+                    if not query.exec(statement):
+                        error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
+                        print(f"Failed to execute SQL statement: {error_msg}")
+                        print(f"Statement was: {statement}")
+                        return False
+
+                print(f"Database created successfully: {db_filename}")
+                return True
+
+            finally:
+                temp_db.close()
+                QSqlDatabase.removeDatabase(temp_connection_name)
+
+        except Exception as e:
+            print(f"Error creating database from SQL file: {e}")
+            return False
 ```
 
 </details>

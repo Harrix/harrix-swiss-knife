@@ -332,32 +332,62 @@ class MainWindow(
             return last_weight if last_weight is not None else initial_weight
 
     def _init_database(self) -> None:
-        """Open the SQLite file from `config` (ask the user if missing).
+        """Open the SQLite file from `config` (create from recover.sql if missing).
 
         Attempts to open the database file specified in the configuration.
-        If the file doesn't exist, prompts the user to select a database file.
+        If the file doesn't exist, tries to create it from recover.sql file located
+        in the application directory.
+        If creation fails or no database is available, prompts the user to select a database file.
         If no database is selected or an error occurs, the application exits.
         """
         filename = Path(config["sqlite_fitness"])
 
         if not filename.exists():
-            filename_str, _ = QFileDialog.getOpenFileName(
-                self,
-                "Open Database",
-                str(filename.parent),
-                "SQLite Database (*.db)",
-            )
-            if not filename_str:
-                QMessageBox.critical(self, "Error", "No database selected")
-                sys.exit(1)
-            filename = Path(filename_str)
+            # Try to create database from recover.sql in application directory
+            app_dir = Path(__file__).parent  # Directory where this script is located
+            recover_sql_path = app_dir / "recover.sql"
+
+            if recover_sql_path.exists():
+                print(f"Database not found at {filename}")
+                print(f"Attempting to create database from {recover_sql_path}")
+
+                if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
+                    print("Database created successfully from recover.sql")
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Database Creation Failed",
+                        f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
+                    )
+            else:
+                QMessageBox.information(
+                    self,
+                    "Database Not Found",
+                    f"Database file not found: {filename}\n"
+                    f"recover.sql file not found: {recover_sql_path}\n"
+                    "Please select an existing database file.",
+                )
+
+            # If database still doesn't exist, ask user to select one
+            if not filename.exists():
+                filename_str, _ = QFileDialog.getOpenFileName(
+                    self,
+                    "Open Database",
+                    str(filename.parent),
+                    "SQLite Database (*.db)",
+                )
+                if not filename_str:
+                    QMessageBox.critical(self, "Error", "No database selected")
+                    sys.exit(1)
+                filename = Path(filename_str)
 
         try:
             self.db_manager = database_manager.DatabaseManager(
                 str(filename),
             )
+            print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
-            QMessageBox.critical(self, "Error", str(exc))
+            QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
 
     def _init_exercise_chart_controls(self) -> None:
