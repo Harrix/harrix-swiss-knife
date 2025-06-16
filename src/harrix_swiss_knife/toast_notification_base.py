@@ -6,7 +6,7 @@ that can be displayed temporarily on screen with customizable messages.
 
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QVBoxLayout, QWidget
 
 
 class ToastNotificationBase(QDialog):
@@ -69,6 +69,29 @@ class ToastNotificationBase(QDialog):
 
         # Set cursor to indicate draggable window
         self.setCursor(Qt.OpenHandCursor)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Handle the mouse double-click event to move the notification to the right side of the screen.
+
+        Args:
+
+        - `event` (`QMouseEvent`): The mouse event triggering the double-click action.
+
+        """
+        if event.button() == Qt.LeftButton:
+            # Get the screen geometry
+            screen = QApplication.primaryScreen()
+            screen_geometry = screen.geometry()
+
+            # Calculate position at the right side of the screen
+            # Position it with some margin from the right edge
+            margin = 20
+            new_x = screen_geometry.width() - self.width() - margin
+            new_y = self.y()  # Keep the current vertical position
+
+            # Move the notification to the right side
+            self.move(new_x, new_y)
+            event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Handle the mouse move event to update the position of the notification during dragging.

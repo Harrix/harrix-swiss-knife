@@ -13,6 +13,7 @@ lang: en
 
 - [Class `ToastNotificationBase`](#class-toastnotificationbase)
   - [Method `__init__`](#method-__init__)
+  - [Method `mouseDoubleClickEvent`](#method-mousedoubleclickevent)
   - [Method `mouseMoveEvent`](#method-mousemoveevent)
   - [Method `mousePressEvent`](#method-mousepressevent)
   - [Method `mouseReleaseEvent`](#method-mousereleaseevent)
@@ -88,6 +89,29 @@ class ToastNotificationBase(QDialog):
 
         # Set cursor to indicate draggable window
         self.setCursor(Qt.OpenHandCursor)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Handle the mouse double-click event to move the notification to the right side of the screen.
+
+        Args:
+
+        - `event` (`QMouseEvent`): The mouse event triggering the double-click action.
+
+        """
+        if event.button() == Qt.LeftButton:
+            # Get the screen geometry
+            screen = QApplication.primaryScreen()
+            screen_geometry = screen.geometry()
+
+            # Calculate position at the right side of the screen
+            # Position it with some margin from the right edge
+            margin = 20
+            new_x = screen_geometry.width() - self.width() - margin
+            new_y = self.y()  # Keep the current vertical position
+
+            # Move the notification to the right side
+            self.move(new_x, new_y)
+            event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Handle the mouse move event to update the position of the notification during dragging.
@@ -183,6 +207,41 @@ def __init__(self, message: str, parent: QWidget | None = None) -> None:
 
         # Set cursor to indicate draggable window
         self.setCursor(Qt.OpenHandCursor)
+```
+
+</details>
+
+### Method `mouseDoubleClickEvent`
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None
+```
+
+Handle the mouse double-click event to move the notification to the right side of the screen.
+
+Args:
+
+- `event` (`QMouseEvent`): The mouse event triggering the double-click action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.LeftButton:
+            # Get the screen geometry
+            screen = QApplication.primaryScreen()
+            screen_geometry = screen.geometry()
+
+            # Calculate position at the right side of the screen
+            # Position it with some margin from the right edge
+            margin = 20
+            new_x = screen_geometry.width() - self.width() - margin
+            new_y = self.y()  # Keep the current vertical position
+
+            # Move the notification to the right side
+            self.move(new_x, new_y)
+            event.accept()
 ```
 
 </details>
