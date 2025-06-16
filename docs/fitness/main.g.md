@@ -450,7 +450,8 @@ class MainWindow(
 
         # Initialize labels with default values
         self.label_exercise.setText("No exercise selected")
-        self.label_unit_and_last_date.setText("")
+        self.label_unit.setText("")
+        self.label_last_date_count_today.setText("")
 
         # Connect selection change signal after model is set
         selection_model = self.listView_exercises.selectionModel()
@@ -1007,6 +1008,9 @@ class MainWindow(
                 self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
                 self.update_filter_comboboxes()
                 self.update_sets_count_today()
+
+                # Update the exercise info to reflect today's new total
+                self.on_exercise_selection_changed_list()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add process record")
 
@@ -1103,7 +1107,8 @@ class MainWindow(
         if not exercise:
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("No exercise selected")
-            self.label_unit_and_last_date.setText("")
+            self.label_unit.setText("")
+            self.label_last_date_count_today.setText("")
             return
 
         # Check if database manager is available and connection is open
@@ -1111,7 +1116,8 @@ class MainWindow(
             print("Database manager not available or connection not open")
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("Database error")
-            self.label_unit_and_last_date.setText("")
+            self.label_unit.setText("")
+            self.label_last_date_count_today.setText("")
             return
 
         # Update exercise name label
@@ -1128,27 +1134,44 @@ class MainWindow(
             if ex_id is None:
                 print(f"Exercise '{exercise}' not found in database")
                 self.comboBox_type.setEnabled(False)
-                self.label_unit_and_last_date.setText("")
+                self.label_unit.setText("")
+                self.label_last_date_count_today.setText("")
                 return
 
-            # Get exercise unit
+            # Get exercise unit and display it in separate label
             unit = self.db_manager.get_exercise_unit(exercise)
+            self.label_unit.setText(unit)
 
             # Get last exercise date (regardless of type)
             last_date = self.db_manager.get_last_exercise_date(ex_id)
 
-            # Format the combined label text
+            # Get total value for today
+            total_today = self.db_manager.get_exercise_total_today(ex_id)
+
+            # Format the date and count text for separate label
+            date_parts = []
+
             if last_date:
                 try:
                     date_obj = datetime.strptime(last_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                     formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
-                    unit_text = f"{unit} (Last: {formatted_date})"
+                    date_parts.append(f"Last: {formatted_date}")
                 except ValueError:
-                    unit_text = f"{unit} (Last: {last_date})"
+                    date_parts.append(f"Last: {last_date}")
             else:
-                unit_text = f"{unit} (Last: Never)"
+                date_parts.append("Last: Never")
 
-            self.label_unit_and_last_date.setText(unit_text)
+            # Add today's total if it's greater than 0
+            if total_today > 0:
+                # Format total based on whether it's an integer or float
+                if total_today == int(total_today):
+                    total_text = f"Today: {int(total_today)} {unit}"
+                else:
+                    total_text = f"Today: {total_today:.1f} {unit}"
+                date_parts.append(total_text)
+
+            # Join parts with comma and space
+            self.label_last_date_count_today.setText(", ".join(date_parts))
 
             # Get all types for this exercise
             types = self.db_manager.get_exercise_types(ex_id)
@@ -1193,7 +1216,8 @@ class MainWindow(
         except Exception as e:
             print(f"Error in exercise selection changed: {e}")
             self.comboBox_type.setEnabled(False)
-            self.label_unit_and_last_date.setText("Error loading data")
+            self.label_unit.setText("Error loading data")
+            self.label_last_date_count_today.setText("Error loading data")
 
     def on_export_csv(self) -> None:
         """Save current `process` view to a CSV file (semicolon-separated).
@@ -2296,7 +2320,8 @@ def _init_exercises_list(self) -> None:
 
         # Initialize labels with default values
         self.label_exercise.setText("No exercise selected")
-        self.label_unit_and_last_date.setText("")
+        self.label_unit.setText("")
+        self.label_last_date_count_today.setText("")
 
         # Connect selection change signal after model is set
         selection_model = self.listView_exercises.selectionModel()
@@ -3099,6 +3124,9 @@ def on_add_record(self) -> None:
                 self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
                 self.update_filter_comboboxes()
                 self.update_sets_count_today()
+
+                # Update the exercise info to reflect today's new total
+                self.on_exercise_selection_changed_list()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add process record")
 
@@ -3248,7 +3276,8 @@ def on_exercise_selection_changed_list(self) -> None:
         if not exercise:
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("No exercise selected")
-            self.label_unit_and_last_date.setText("")
+            self.label_unit.setText("")
+            self.label_last_date_count_today.setText("")
             return
 
         # Check if database manager is available and connection is open
@@ -3256,7 +3285,8 @@ def on_exercise_selection_changed_list(self) -> None:
             print("Database manager not available or connection not open")
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("Database error")
-            self.label_unit_and_last_date.setText("")
+            self.label_unit.setText("")
+            self.label_last_date_count_today.setText("")
             return
 
         # Update exercise name label
@@ -3273,27 +3303,44 @@ def on_exercise_selection_changed_list(self) -> None:
             if ex_id is None:
                 print(f"Exercise '{exercise}' not found in database")
                 self.comboBox_type.setEnabled(False)
-                self.label_unit_and_last_date.setText("")
+                self.label_unit.setText("")
+                self.label_last_date_count_today.setText("")
                 return
 
-            # Get exercise unit
+            # Get exercise unit and display it in separate label
             unit = self.db_manager.get_exercise_unit(exercise)
+            self.label_unit.setText(unit)
 
             # Get last exercise date (regardless of type)
             last_date = self.db_manager.get_last_exercise_date(ex_id)
 
-            # Format the combined label text
+            # Get total value for today
+            total_today = self.db_manager.get_exercise_total_today(ex_id)
+
+            # Format the date and count text for separate label
+            date_parts = []
+
             if last_date:
                 try:
                     date_obj = datetime.strptime(last_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                     formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
-                    unit_text = f"{unit} (Last: {formatted_date})"
+                    date_parts.append(f"Last: {formatted_date}")
                 except ValueError:
-                    unit_text = f"{unit} (Last: {last_date})"
+                    date_parts.append(f"Last: {last_date}")
             else:
-                unit_text = f"{unit} (Last: Never)"
+                date_parts.append("Last: Never")
 
-            self.label_unit_and_last_date.setText(unit_text)
+            # Add today's total if it's greater than 0
+            if total_today > 0:
+                # Format total based on whether it's an integer or float
+                if total_today == int(total_today):
+                    total_text = f"Today: {int(total_today)} {unit}"
+                else:
+                    total_text = f"Today: {total_today:.1f} {unit}"
+                date_parts.append(total_text)
+
+            # Join parts with comma and space
+            self.label_last_date_count_today.setText(", ".join(date_parts))
 
             # Get all types for this exercise
             types = self.db_manager.get_exercise_types(ex_id)
@@ -3338,7 +3385,8 @@ def on_exercise_selection_changed_list(self) -> None:
         except Exception as e:
             print(f"Error in exercise selection changed: {e}")
             self.comboBox_type.setEnabled(False)
-            self.label_unit_and_last_date.setText("Error loading data")
+            self.label_unit.setText("Error loading data")
+            self.label_last_date_count_today.setText("Error loading data")
 ```
 
 </details>

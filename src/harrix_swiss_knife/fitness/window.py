@@ -79,9 +79,8 @@ class Ui_MainWindow(object):
         self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
-        self.label_unit_and_last_date.setText(
-            QCoreApplication.translate("MainWindow", "times (Last: Oct 26 2025)", None)
-        )
+        self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
+        self.label_unit.setText(QCoreApplication.translate("MainWindow", "times", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", "Yesterday", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
@@ -231,7 +230,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.groupBox = QGroupBox(self.frame)
         self.groupBox.setObjectName("groupBox")
-        self.groupBox.setMinimumSize(QSize(0, 200))
+        self.groupBox.setMinimumSize(QSize(0, 225))
         self.verticalLayout_5 = QVBoxLayout(self.groupBox)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.label_exercise = QLabel(self.groupBox)
@@ -242,6 +241,11 @@ class Ui_MainWindow(object):
         self.label_exercise.setFont(font)
 
         self.verticalLayout_5.addWidget(self.label_exercise)
+
+        self.label_last_date_count_today = QLabel(self.groupBox)
+        self.label_last_date_count_today.setObjectName("label_last_date_count_today")
+
+        self.verticalLayout_5.addWidget(self.label_last_date_count_today)
 
         self.horizontalLayout_14 = QHBoxLayout()
         self.horizontalLayout_14.setObjectName("horizontalLayout_14")
@@ -259,11 +263,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_14.addWidget(self.spinBox_count)
 
-        self.label_unit_and_last_date = QLabel(self.groupBox)
-        self.label_unit_and_last_date.setObjectName("label_unit_and_last_date")
-        self.label_unit_and_last_date.setMaximumSize(QSize(141, 16777215))
+        self.label_unit = QLabel(self.groupBox)
+        self.label_unit.setObjectName("label_unit")
+        self.label_unit.setMaximumSize(QSize(61, 16777215))
 
-        self.horizontalLayout_14.addWidget(self.label_unit_and_last_date)
+        self.horizontalLayout_14.addWidget(self.label_unit)
 
         self.verticalLayout_5.addLayout(self.horizontalLayout_14)
 
@@ -710,7 +714,7 @@ class Ui_MainWindow(object):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 758))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 762))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -905,7 +909,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1331, 727))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1331, 731))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -952,7 +956,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1375, 21))
+        self.menuBar.setGeometry(QRect(0, 0, 1375, 22))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")

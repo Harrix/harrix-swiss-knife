@@ -98,7 +98,7 @@
               <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>200</height>
+                <height>225</height>
                </size>
               </property>
               <property name="title">
@@ -114,6 +114,13 @@
                    <bold>true</bold>
                   </font>
                  </property>
+                 <property name="text">
+                  <string>TextLabel</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_last_date_count_today">
                  <property name="text">
                   <string>TextLabel</string>
                  </property>
@@ -147,15 +154,15 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="label_unit_and_last_date">
+                  <widget class="QLabel" name="label_unit">
                    <property name="maximumSize">
                     <size>
-                     <width>141</width>
+                     <width>61</width>
                      <height>16777215</height>
                     </size>
                    </property>
                    <property name="text">
-                    <string>times (Last: Oct 26 2025)</string>
+                    <string>times</string>
                    </property>
                   </widget>
                  </item>
@@ -928,7 +935,7 @@
                <x>0</x>
                <y>0</y>
                <width>1073</width>
-               <height>758</height>
+               <height>762</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_weight_chart_content"/>
@@ -1252,7 +1259,7 @@
              <x>0</x>
              <y>0</y>
              <width>1331</width>
-             <height>727</height>
+             <height>731</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>
@@ -1332,7 +1339,7 @@
      <x>0</x>
      <y>0</y>
      <width>1375</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>

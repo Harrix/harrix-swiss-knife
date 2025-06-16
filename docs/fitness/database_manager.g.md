@@ -39,6 +39,7 @@ lang: en
   - [Method `get_earliest_process_date`](#method-get_earliest_process_date)
   - [Method `get_earliest_weight_date`](#method-get_earliest_weight_date)
   - [Method `get_exercise_chart_data`](#method-get_exercise_chart_data)
+  - [Method `get_exercise_total_today`](#method-get_exercise_total_today)
   - [Method `get_exercise_types`](#method-get_exercise_types)
   - [Method `get_exercise_unit`](#method-get_exercise_unit)
   - [Method `get_exercises_by_frequency`](#method-get_exercises_by_frequency)
@@ -706,6 +707,30 @@ class DatabaseManager:
 
         rows = self.get_rows(query, params)
         return [(row[0], row[1]) for row in rows]
+
+    def get_exercise_total_today(self, exercise_id: int) -> float:
+        """Get the total value for a specific exercise today.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `float`: Total value for the exercise today, or 0.0 if no records found.
+
+        """
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        rows = self.get_rows(
+            "SELECT SUM(CAST(value AS REAL)) FROM process WHERE _id_exercises = :ex_id AND date = :today",
+            {"ex_id": exercise_id, "today": today},
+        )
+        if rows and rows[0][0] is not None:
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return 0.0
+        return 0.0
 
     def get_exercise_types(self, exercise_id: int) -> list[str]:
         """Get all types for a specific exercise.
@@ -2157,6 +2182,42 @@ def get_exercise_chart_data(
 
         rows = self.get_rows(query, params)
         return [(row[0], row[1]) for row in rows]
+```
+
+</details>
+
+### Method `get_exercise_total_today`
+
+```python
+def get_exercise_total_today(self, exercise_id: int) -> float
+```
+
+Get the total value for a specific exercise today.
+
+Args:
+
+- `exercise_id` (`int`): Exercise ID.
+
+Returns:
+
+- `float`: Total value for the exercise today, or 0.0 if no records found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercise_total_today(self, exercise_id: int) -> float:
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        rows = self.get_rows(
+            "SELECT SUM(CAST(value AS REAL)) FROM process WHERE _id_exercises = :ex_id AND date = :today",
+            {"ex_id": exercise_id, "today": today},
+        )
+        if rows and rows[0][0] is not None:
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return 0.0
+        return 0.0
 ```
 
 </details>
