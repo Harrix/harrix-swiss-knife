@@ -15,6 +15,7 @@ lang: en
   - [Method `__init__`](#method-__init__)
   - [Method `_add_item`](#method-_add_item)
   - [Method `add_items`](#method-add_items)
+  - [Method `add_menus_and_items`](#method-add_menus_and_items)
   - [Method `create_emoji_icon`](#method-create_emoji_icon)
   - [Method `generate_markdown_from_qmenu`](#method-generate_markdown_from_qmenu)
   - [Method `get_icon`](#method-get_icon)
@@ -117,6 +118,33 @@ class MainMenuBase:
                 # Add sorted items
                 for item in sorted_group:
                     self._add_item(menu, item)
+
+    def add_menus_and_items(self, parent_menu: QMenu, menus: list = None, items: list = None) -> None:
+        """Add submenus and items to the parent menu.
+
+        Args:
+
+        - `parent_menu` (`QMenu`): The parent menu to which submenus and items will be added.
+        - `menus` (`list`, optional): List of QMenu objects to add as submenus. Defaults to `None`.
+        - `items` (`list`, optional): List of callables or separators to add as items. Use `"-"` string for separator. Defaults to `None`.
+
+        Returns:
+
+        - `None`
+
+        """
+        # Add submenus
+        if menus:
+            for menu in menus:
+                parent_menu.addMenu(menu)
+
+        # Add separator between submenus and items if both exist
+        if menus and items:
+            parent_menu.addSeparator()
+
+        # Add menu items
+        if items:
+            self.add_items(parent_menu, items)
 
     def create_emoji_icon(self, emoji: str, size: int = 32) -> QIcon:
         """Create an icon with the given emoji.
@@ -353,6 +381,45 @@ def add_items(self, menu: QMenu, items: list) -> None:
                 # Add sorted items
                 for item in sorted_group:
                     self._add_item(menu, item)
+```
+
+</details>
+
+### Method `add_menus_and_items`
+
+```python
+def add_menus_and_items(self, parent_menu: QMenu, menus: list = None, items: list = None) -> None
+```
+
+Add submenus and items to the parent menu.
+
+Args:
+
+- `parent_menu` (`QMenu`): The parent menu to which submenus and items will be added.
+- `menus` (`list`, optional): List of QMenu objects to add as submenus. Defaults to `None`.
+- `items` (`list`, optional): List of callables or separators to add as items. Use `"-"` string for separator. Defaults to `None`.
+
+Returns:
+
+- `None`
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_menus_and_items(self, parent_menu: QMenu, menus: list = None, items: list = None) -> None:
+        # Add submenus
+        if menus:
+            for menu in menus:
+                parent_menu.addMenu(menu)
+
+        # Add separator between submenus and items if both exist
+        if menus and items:
+            parent_menu.addSeparator()
+
+        # Add menu items
+        if items:
+            self.add_items(parent_menu, items)
 ```
 
 </details>

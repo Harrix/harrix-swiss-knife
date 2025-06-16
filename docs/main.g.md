@@ -145,17 +145,10 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         )
 
         # MainMenu
-        self.menu.addMenu(self.menu_dev)
-        self.menu.addMenu(self.menu_images)
-        self.menu.addMenu(self.menu_file)
-        self.menu.addMenu(self.menu_md)
-        self.menu.addMenu(self.menu_new_md)
-        self.menu.addMenu(self.menu_python)
-        self.menu.addSeparator()
-
-        self.add_items(
+        self.add_menus_and_items(
             self.menu,
-            [
+            menus=[self.menu_dev, self.menu_images, self.menu_file, self.menu_md, self.menu_new_md, self.menu_python],
+            items=[
                 hsk.apps.OnFitness,
                 hsk.md.OnBeautifyMdNotesFolder,
                 "-",
@@ -291,17 +284,10 @@ def __init__(self) -> None:
         )
 
         # MainMenu
-        self.menu.addMenu(self.menu_dev)
-        self.menu.addMenu(self.menu_images)
-        self.menu.addMenu(self.menu_file)
-        self.menu.addMenu(self.menu_md)
-        self.menu.addMenu(self.menu_new_md)
-        self.menu.addMenu(self.menu_python)
-        self.menu.addSeparator()
-
-        self.add_items(
+        self.add_menus_and_items(
             self.menu,
-            [
+            menus=[self.menu_dev, self.menu_images, self.menu_file, self.menu_md, self.menu_new_md, self.menu_python],
+            items=[
                 hsk.apps.OnFitness,
                 hsk.md.OnBeautifyMdNotesFolder,
                 "-",
