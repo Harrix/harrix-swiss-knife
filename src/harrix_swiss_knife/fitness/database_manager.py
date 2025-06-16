@@ -1098,6 +1098,30 @@ class DatabaseManager:
         params = {"ex": exercise_id, "tp": type_name, "id": type_id}
         return self.execute_simple_query(query, params)
 
+    def get_exercise_total_today(self, exercise_id: int) -> float:
+        """Get the total value for a specific exercise today.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `float`: Total value for the exercise today, or 0.0 if no records found.
+
+        """
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        rows = self.get_rows(
+            "SELECT SUM(CAST(value AS REAL)) FROM process WHERE _id_exercises = :ex_id AND date = :today",
+            {"ex_id": exercise_id, "today": today}
+        )
+        if rows and rows[0][0] is not None:
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return 0.0
+        return 0.0
+
     def update_process_record(self, record_id: int, exercise_id: int, type_id: int, value: str, date: str) -> bool:
         """Update an existing process record.
 
