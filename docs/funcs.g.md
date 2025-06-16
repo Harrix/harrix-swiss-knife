@@ -45,7 +45,7 @@ def optimize_images_in_md(filename: Path | str) -> str:
     with Path.open(filename, encoding="utf-8") as f:
         document = f.read()
 
-    document_new = optimize_images_in_md_content(document, filename.parent, convert_png_to_avif=False)
+    document_new = optimize_images_in_md_content(document, filename.parent, is_convert_png_to_avif=False)
 
     if document != document_new:
         with Path.open(filename, "w", encoding="utf-8") as file:
@@ -73,7 +73,7 @@ Args:
 - `markdown_text` (`str`): The Markdown content to process.
 - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
 - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
-- `convert_png_to_avif` (`bool`): Flag for converting PNG to AVIF. Defaults to `False`.
+- `is_convert_png_to_avif` (`bool`): Flag for converting PNG to AVIF. Defaults to `False`.
 
 Returns:
 
@@ -95,7 +95,7 @@ def optimize_images_in_md_content(
     path_md: Path | str,
     image_folder: str = "img",
     *,
-    convert_png_to_avif: bool = False,
+    is_convert_png_to_avif: bool = False,
 ) -> str:
 
     def optimize_images_content_line(markdown_line: str, path_md: Path | str, image_folder: str = "img") -> str:
@@ -152,7 +152,9 @@ def optimize_images_in_md_content(
                     if ext in supported_extensions:
                         # Determine the new extension based on the current one
                         new_ext = ext
-                        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"] or (ext == ".png" and convert_png_to_avif):
+                        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"] or (
+                            ext == ".png" and is_convert_png_to_avif
+                        ):
                             new_ext = ".avif"
                         # For .png and .svg, keep the original extension
 
@@ -164,7 +166,7 @@ def optimize_images_in_md_content(
 
                             # Run the optimization command
                             commands = f'npm run optimize imagesFolder="{temp_folder}"'
-                            if convert_png_to_avif:
+                            if is_convert_png_to_avif:
                                 commands += " convertPngToAvif=true"
                             h.dev.run_powershell_script(commands)
 
@@ -246,7 +248,7 @@ def optimize_images_in_md_png_to_avif(filename: Path | str) -> str:
     with Path.open(filename, encoding="utf-8") as f:
         document = f.read()
 
-    document_new = optimize_images_in_md_content(document, filename.parent, convert_png_to_avif=True)
+    document_new = optimize_images_in_md_content(document, filename.parent, is_convert_png_to_avif=True)
 
     if document != document_new:
         with Path.open(filename, "w", encoding="utf-8") as file:

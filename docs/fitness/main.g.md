@@ -1445,8 +1445,8 @@ class MainWindow(
     def update_all(
         self,
         *,
-        skip_date_update: bool = False,
-        preserve_selections: bool = False,
+        is_skip_date_update: bool = False,
+        is_preserve_selections: bool = False,
         current_exercise: str | None = None,
         current_type: str | None = None,
     ) -> None:
@@ -1456,8 +1456,8 @@ class MainWindow(
 
         Args:
 
-        - `skip_date_update` (`bool`): If `True`, date fields won't be reset to today. Defaults to `False`.
-        - `preserve_selections` (`bool`): If `True`, tries to maintain current selections. Defaults to `False`.
+        - `is_skip_date_update` (`bool`): If `True`, date fields won't be reset to today. Defaults to `False`.
+        - `is_preserve_selections` (`bool`): If `True`, tries to maintain current selections. Defaults to `False`.
         - `current_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
         - `current_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
 
@@ -1466,13 +1466,13 @@ class MainWindow(
             print("Database connection not available for update_all")
             return
 
-        if preserve_selections and current_exercise is None:
+        if is_preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()
             current_type = self.comboBox_type.currentText()
 
         self.show_tables()
 
-        if preserve_selections and current_exercise:
+        if is_preserve_selections and current_exercise:
             self._update_comboboxes(
                 selected_exercise=current_exercise,
                 selected_type=current_type,
@@ -1480,7 +1480,7 @@ class MainWindow(
         else:
             self._update_comboboxes()
 
-        if not skip_date_update:
+        if not is_skip_date_update:
             self.set_today_date()
 
         self.update_filter_comboboxes()
@@ -3760,8 +3760,8 @@ Updates all UI elements with the latest data from the database.
 
 Args:
 
-- `skip_date_update` (`bool`): If `True`, date fields won't be reset to today. Defaults to `False`.
-- `preserve_selections` (`bool`): If `True`, tries to maintain current selections. Defaults to `False`.
+- `is_skip_date_update` (`bool`): If `True`, date fields won't be reset to today. Defaults to `False`.
+- `is_preserve_selections` (`bool`): If `True`, tries to maintain current selections. Defaults to `False`.
 - `current_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
 - `current_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
 
@@ -3772,8 +3772,8 @@ Args:
 def update_all(
         self,
         *,
-        skip_date_update: bool = False,
-        preserve_selections: bool = False,
+        is_skip_date_update: bool = False,
+        is_preserve_selections: bool = False,
         current_exercise: str | None = None,
         current_type: str | None = None,
     ) -> None:
@@ -3781,13 +3781,13 @@ def update_all(
             print("Database connection not available for update_all")
             return
 
-        if preserve_selections and current_exercise is None:
+        if is_preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()
             current_type = self.comboBox_type.currentText()
 
         self.show_tables()
 
-        if preserve_selections and current_exercise:
+        if is_preserve_selections and current_exercise:
             self._update_comboboxes(
                 selected_exercise=current_exercise,
                 selected_type=current_type,
@@ -3795,7 +3795,7 @@ def update_all(
         else:
             self._update_comboboxes()
 
-        if not skip_date_update:
+        if not is_skip_date_update:
             self.set_today_date()
 
         self.update_filter_comboboxes()
