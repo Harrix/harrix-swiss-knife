@@ -24,7 +24,7 @@ class MainMenuBase:
         """Initialize the `MainMenuBase` with an empty QMenu."""
         self.menu = QMenu()
 
-    def add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
+    def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
         """Add an item to the given menu.
 
         Args:
@@ -51,6 +51,48 @@ class MainMenuBase:
         setattr(self, f"action_{class_action.__name__}", action)
 
         menu.addAction(action)
+
+    def add_items(self, menu: QMenu, items: list) -> None:
+        """Add multiple items to the given menu with sorting by title within groups.
+
+        Args:
+
+        - `menu` (`QMenu`): The menu to which the actions will be added.
+        - `items` (`list`): List of callables or separators. Use `"-"` string for separator.
+
+        Returns:
+
+        - `None`
+
+        """
+        # Split the list into groups by separators
+        groups = []
+        current_group = []
+
+        for item in items:
+            if item == "-":
+                if current_group:  # Add group only if it's not empty
+                    groups.append(current_group)
+                    current_group = []
+                groups.append(["-"])  # Separator as a separate group
+            else:
+                current_group.append(item)
+
+        # Add the last group if it's not empty
+        if current_group:
+            groups.append(current_group)
+
+        # Process each group
+        for group in groups:
+            if group == ["-"]:
+                menu.addSeparator()
+            else:
+                # Sort group by title
+                sorted_group = sorted(group, key=lambda x: x.title if hasattr(x, "title") else "")
+
+                # Add sorted items
+                for item in sorted_group:
+                    self._add_item(menu, item)
 
     def create_emoji_icon(self, emoji: str, size: int = 32) -> QIcon:
         """Create an icon with the given emoji.

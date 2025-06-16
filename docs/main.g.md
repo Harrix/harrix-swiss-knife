@@ -42,77 +42,107 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
 
         # Menu Dev
         self.menu_dev = self.new_menu("Dev", "🛠️")
-        self.add_item(self.menu_dev, hsk.dev.OnGetMenu)
-        self.add_item(self.menu_dev, hsk.dev.OnNpmInstallPackages)
-        self.add_item(self.menu_dev, hsk.dev.OnNpmUpdatePackages)
-        self.add_item(self.menu_dev, hsk.dev.OnOpenConfigJson)
-        self.add_item(self.menu_dev, hsk.dev.OnUvUpdate)
+        self.add_items(
+            self.menu_dev,
+            [
+                hsk.dev.OnGetMenu,
+                hsk.dev.OnNpmInstallPackages,
+                hsk.dev.OnNpmUpdatePackages,
+                hsk.dev.OnOpenConfigJson,
+                hsk.dev.OnUvUpdate,
+            ],
+        )
 
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
-        self.add_item(self.menu_images, hsk.images.OnOptimize)
-        self.add_item(self.menu_images, hsk.images.OnOptimizeDialogReplace)
-        self.add_item(self.menu_images, hsk.images.OnOptimizeFile)
-        self.add_item(self.menu_images, hsk.images.OnOptimizePngToAvif)
-        self.add_item(self.menu_images, hsk.images.OnOptimizeQuality)
-        self.menu_images.addSeparator()
-        self.add_item(self.menu_images, hsk.images.OnClearImages)
-        self.add_item(self.menu_images, hsk.images.OnOpenImages)
-        self.add_item(self.menu_images, hsk.images.OnOpenOptimizedImages)
+        self.add_items(
+            self.menu_images,
+            [
+                hsk.images.OnOptimize,
+                hsk.images.OnOptimizeDialogReplace,
+                hsk.images.OnOptimizeFile,
+                hsk.images.OnOptimizePngToAvif,
+                hsk.images.OnOptimizeQuality,
+                "-",
+                hsk.images.OnClearImages,
+                hsk.images.OnOpenImages,
+                hsk.images.OnOpenOptimizedImages,
+            ],
+        )
 
         # Menu File operations
         self.menu_file = self.new_menu("File operations", "🪟")
-        self.add_item(self.menu_file, hsk.file.OnAllFilesToParentFolder)
-        self.add_item(self.menu_file, hsk.file.OnBlockDisks)
-        self.add_item(self.menu_file, hsk.file.OnCheckFeaturedImage)
-        self.add_item(self.menu_file, hsk.file.OnCheckFeaturedImageInFolders)
-        self.add_item(self.menu_file, hsk.file.OnOpenCameraUploads)
-        self.add_item(self.menu_file, hsk.file.OnTreeViewFolder)
-        self.add_item(self.menu_file, hsk.file.OnTreeViewFolderIgnoreHiddenFolders)
-        self.add_item(self.menu_file, hsk.file.RenameLargestImagesToFeaturedImage)
+        self.add_items(
+            self.menu_file,
+            [
+                hsk.file.OnAllFilesToParentFolder,
+                hsk.file.OnBlockDisks,
+                hsk.file.OnCheckFeaturedImage,
+                hsk.file.OnCheckFeaturedImageInFolders,
+                hsk.file.OnOpenCameraUploads,
+                hsk.file.OnTreeViewFolder,
+                hsk.file.OnTreeViewFolderIgnoreHiddenFolders,
+                hsk.file.RenameLargestImagesToFeaturedImage,
+            ],
+        )
 
         # Menu Markdown
         self.menu_md = self.new_menu("Markdown", "📓")
-        self.add_item(self.menu_md, hsk.md.OnFormatQuotesAsMarkdownContent)
-        self.add_item(self.menu_md, hsk.md.OnGetListMoviesBooks)
-        self.add_item(self.menu_md, hsk.md.OnIncreaseHeadingLevelContent)
-        self.menu_md.addSeparator()
-        self.add_item(self.menu_md, hsk.md.OnCheckMd)
-        self.add_item(self.menu_md, hsk.md.OnCheckMdFolder)
-        self.add_item(self.menu_md, hsk.md.OnCombineMarkdownFiles)
-        self.add_item(self.menu_md, hsk.md.OnDownloadAndReplaceImages)
-        self.add_item(self.menu_md, hsk.md.OnDownloadAndReplaceImagesFolder)
-        self.add_item(self.menu_md, hsk.md.OnFormatYaml)
-        self.add_item(self.menu_md, hsk.md.OnGenerateAuthorBook)
-        self.add_item(self.menu_md, hsk.md.OnGenerateImageCaptions)
-        self.add_item(self.menu_md, hsk.md.OnGenerateImageCaptionsFolder)
-        self.add_item(self.menu_md, hsk.md.OnGenerateShortNoteTocWithLinks)
-        self.add_item(self.menu_md, hsk.md.OnGenerateToc)
-        self.add_item(self.menu_md, hsk.md.OnGenerateTocFolder)
-        self.add_item(self.menu_md, hsk.md.OnOptimizeImages)
-        self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolder)
-        self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolderPngToAvif)
-        self.add_item(self.menu_md, hsk.md.OnPettierFolder)
-        self.add_item(self.menu_md, hsk.md.OnSortSections)
+        self.add_items(
+            self.menu_md,
+            [
+                hsk.md.OnFormatQuotesAsMarkdownContent,
+                hsk.md.OnGetListMoviesBooks,
+                hsk.md.OnIncreaseHeadingLevelContent,
+                "-",
+                hsk.md.OnCheckMd,
+                hsk.md.OnCheckMdFolder,
+                hsk.md.OnCombineMarkdownFiles,
+                hsk.md.OnDownloadAndReplaceImages,
+                hsk.md.OnDownloadAndReplaceImagesFolder,
+                hsk.md.OnFormatYaml,
+                hsk.md.OnGenerateAuthorBook,
+                hsk.md.OnGenerateImageCaptions,
+                hsk.md.OnGenerateImageCaptionsFolder,
+                hsk.md.OnGenerateShortNoteTocWithLinks,
+                hsk.md.OnGenerateToc,
+                hsk.md.OnGenerateTocFolder,
+                hsk.md.OnOptimizeImages,
+                hsk.md.OnOptimizeImagesFolder,
+                hsk.md.OnOptimizeImagesFolderPngToAvif,
+                hsk.md.OnPettierFolder,
+                hsk.md.OnSortSections,
+            ],
+        )
 
         # New Markdown
         self.menu_new_md = self.new_menu("New Markdown", "𝐌")  # noqa: RUF001
-        self.add_item(self.menu_new_md, hsk.md.OnNewArticle)
-        self.add_item(self.menu_new_md, hsk.md.OnNewDiary)
-        self.add_item(self.menu_new_md, hsk.md.OnNewDiaryDream)
-        self.add_item(self.menu_new_md, hsk.md.OnNewNoteDialog)
-        self.add_item(self.menu_new_md, hsk.md.OnNewNoteDialogWithImages)
+        self.add_items(
+            self.menu_new_md,
+            [
+                hsk.md.OnNewArticle,
+                hsk.md.OnNewDiary,
+                hsk.md.OnNewDiaryDream,
+                hsk.md.OnNewNoteDialog,
+                hsk.md.OnNewNoteDialogWithImages,
+            ],
+        )
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
-        self.add_item(self.menu_python, hsk.py.OnExtractFunctionsAndClasses)
-        self.add_item(self.menu_python, hsk.py.OnNewUvProject)
-        self.add_item(self.menu_python, hsk.py.OnNewUvProjectDialog)
-        self.add_item(self.menu_python, hsk.py.OnSortIsortFmtPythonCodeFolder)
-        self.add_item(self.menu_python, hsk.py.OnSortIsortFmtDocsPythonCodeFolder)
-        self.menu_python.addSeparator()
-        self.add_item(self.menu_python, hsk.py.OnHarrixPylib01Prepare)
-        self.add_item(self.menu_python, hsk.py.OnHarrixPylib02Publish)
+        self.add_items(
+            self.menu_python,
+            [
+                hsk.py.OnExtractFunctionsAndClasses,
+                hsk.py.OnNewUvProject,
+                hsk.py.OnNewUvProjectDialog,
+                hsk.py.OnSortIsortFmtDocsPythonCodeFolder,
+                hsk.py.OnSortIsortFmtPythonCodeFolder,
+                "-",
+                hsk.py.OnHarrixPylib01Prepare,
+                hsk.py.OnHarrixPylib02Publish,
+            ],
+        )
 
         # MainMenu
         self.menu.addMenu(self.menu_dev)
@@ -122,13 +152,19 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.menu.addMenu(self.menu_new_md)
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
-        self.add_item(self.menu, hsk.apps.OnFitness)
-        self.add_item(self.menu, hsk.md.OnBeautifyMdNotesFolder)
-        self.menu.addSeparator()
-        self.add_item(self.menu, hsk.images.OnOptimizeClipboard)
-        self.add_item(self.menu, hsk.images.OnOptimizeClipboardDialog)
-        self.menu.addSeparator()
-        self.add_item(self.menu, hsk.dev.OnExit)
+
+        self.add_items(
+            self.menu,
+            [
+                hsk.apps.OnFitness,
+                hsk.md.OnBeautifyMdNotesFolder,
+                "-",
+                hsk.images.OnOptimizeClipboard,
+                hsk.images.OnOptimizeClipboardDialog,
+                "-",
+                hsk.dev.OnExit,
+            ],
+        )
 ```
 
 </details>
@@ -152,77 +188,107 @@ def __init__(self) -> None:
 
         # Menu Dev
         self.menu_dev = self.new_menu("Dev", "🛠️")
-        self.add_item(self.menu_dev, hsk.dev.OnGetMenu)
-        self.add_item(self.menu_dev, hsk.dev.OnNpmInstallPackages)
-        self.add_item(self.menu_dev, hsk.dev.OnNpmUpdatePackages)
-        self.add_item(self.menu_dev, hsk.dev.OnOpenConfigJson)
-        self.add_item(self.menu_dev, hsk.dev.OnUvUpdate)
+        self.add_items(
+            self.menu_dev,
+            [
+                hsk.dev.OnGetMenu,
+                hsk.dev.OnNpmInstallPackages,
+                hsk.dev.OnNpmUpdatePackages,
+                hsk.dev.OnOpenConfigJson,
+                hsk.dev.OnUvUpdate,
+            ],
+        )
 
         # Menu Images
         self.menu_images = self.new_menu("Images", "🖼️")
-        self.add_item(self.menu_images, hsk.images.OnOptimize)
-        self.add_item(self.menu_images, hsk.images.OnOptimizeDialogReplace)
-        self.add_item(self.menu_images, hsk.images.OnOptimizeFile)
-        self.add_item(self.menu_images, hsk.images.OnOptimizePngToAvif)
-        self.add_item(self.menu_images, hsk.images.OnOptimizeQuality)
-        self.menu_images.addSeparator()
-        self.add_item(self.menu_images, hsk.images.OnClearImages)
-        self.add_item(self.menu_images, hsk.images.OnOpenImages)
-        self.add_item(self.menu_images, hsk.images.OnOpenOptimizedImages)
+        self.add_items(
+            self.menu_images,
+            [
+                hsk.images.OnOptimize,
+                hsk.images.OnOptimizeDialogReplace,
+                hsk.images.OnOptimizeFile,
+                hsk.images.OnOptimizePngToAvif,
+                hsk.images.OnOptimizeQuality,
+                "-",
+                hsk.images.OnClearImages,
+                hsk.images.OnOpenImages,
+                hsk.images.OnOpenOptimizedImages,
+            ],
+        )
 
         # Menu File operations
         self.menu_file = self.new_menu("File operations", "🪟")
-        self.add_item(self.menu_file, hsk.file.OnAllFilesToParentFolder)
-        self.add_item(self.menu_file, hsk.file.OnBlockDisks)
-        self.add_item(self.menu_file, hsk.file.OnCheckFeaturedImage)
-        self.add_item(self.menu_file, hsk.file.OnCheckFeaturedImageInFolders)
-        self.add_item(self.menu_file, hsk.file.OnOpenCameraUploads)
-        self.add_item(self.menu_file, hsk.file.OnTreeViewFolder)
-        self.add_item(self.menu_file, hsk.file.OnTreeViewFolderIgnoreHiddenFolders)
-        self.add_item(self.menu_file, hsk.file.RenameLargestImagesToFeaturedImage)
+        self.add_items(
+            self.menu_file,
+            [
+                hsk.file.OnAllFilesToParentFolder,
+                hsk.file.OnBlockDisks,
+                hsk.file.OnCheckFeaturedImage,
+                hsk.file.OnCheckFeaturedImageInFolders,
+                hsk.file.OnOpenCameraUploads,
+                hsk.file.OnTreeViewFolder,
+                hsk.file.OnTreeViewFolderIgnoreHiddenFolders,
+                hsk.file.RenameLargestImagesToFeaturedImage,
+            ],
+        )
 
         # Menu Markdown
         self.menu_md = self.new_menu("Markdown", "📓")
-        self.add_item(self.menu_md, hsk.md.OnFormatQuotesAsMarkdownContent)
-        self.add_item(self.menu_md, hsk.md.OnGetListMoviesBooks)
-        self.add_item(self.menu_md, hsk.md.OnIncreaseHeadingLevelContent)
-        self.menu_md.addSeparator()
-        self.add_item(self.menu_md, hsk.md.OnCheckMd)
-        self.add_item(self.menu_md, hsk.md.OnCheckMdFolder)
-        self.add_item(self.menu_md, hsk.md.OnCombineMarkdownFiles)
-        self.add_item(self.menu_md, hsk.md.OnDownloadAndReplaceImages)
-        self.add_item(self.menu_md, hsk.md.OnDownloadAndReplaceImagesFolder)
-        self.add_item(self.menu_md, hsk.md.OnFormatYaml)
-        self.add_item(self.menu_md, hsk.md.OnGenerateAuthorBook)
-        self.add_item(self.menu_md, hsk.md.OnGenerateImageCaptions)
-        self.add_item(self.menu_md, hsk.md.OnGenerateImageCaptionsFolder)
-        self.add_item(self.menu_md, hsk.md.OnGenerateShortNoteTocWithLinks)
-        self.add_item(self.menu_md, hsk.md.OnGenerateToc)
-        self.add_item(self.menu_md, hsk.md.OnGenerateTocFolder)
-        self.add_item(self.menu_md, hsk.md.OnOptimizeImages)
-        self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolder)
-        self.add_item(self.menu_md, hsk.md.OnOptimizeImagesFolderPngToAvif)
-        self.add_item(self.menu_md, hsk.md.OnPettierFolder)
-        self.add_item(self.menu_md, hsk.md.OnSortSections)
+        self.add_items(
+            self.menu_md,
+            [
+                hsk.md.OnFormatQuotesAsMarkdownContent,
+                hsk.md.OnGetListMoviesBooks,
+                hsk.md.OnIncreaseHeadingLevelContent,
+                "-",
+                hsk.md.OnCheckMd,
+                hsk.md.OnCheckMdFolder,
+                hsk.md.OnCombineMarkdownFiles,
+                hsk.md.OnDownloadAndReplaceImages,
+                hsk.md.OnDownloadAndReplaceImagesFolder,
+                hsk.md.OnFormatYaml,
+                hsk.md.OnGenerateAuthorBook,
+                hsk.md.OnGenerateImageCaptions,
+                hsk.md.OnGenerateImageCaptionsFolder,
+                hsk.md.OnGenerateShortNoteTocWithLinks,
+                hsk.md.OnGenerateToc,
+                hsk.md.OnGenerateTocFolder,
+                hsk.md.OnOptimizeImages,
+                hsk.md.OnOptimizeImagesFolder,
+                hsk.md.OnOptimizeImagesFolderPngToAvif,
+                hsk.md.OnPettierFolder,
+                hsk.md.OnSortSections,
+            ],
+        )
 
         # New Markdown
         self.menu_new_md = self.new_menu("New Markdown", "𝐌")  # noqa: RUF001
-        self.add_item(self.menu_new_md, hsk.md.OnNewArticle)
-        self.add_item(self.menu_new_md, hsk.md.OnNewDiary)
-        self.add_item(self.menu_new_md, hsk.md.OnNewDiaryDream)
-        self.add_item(self.menu_new_md, hsk.md.OnNewNoteDialog)
-        self.add_item(self.menu_new_md, hsk.md.OnNewNoteDialogWithImages)
+        self.add_items(
+            self.menu_new_md,
+            [
+                hsk.md.OnNewArticle,
+                hsk.md.OnNewDiary,
+                hsk.md.OnNewDiaryDream,
+                hsk.md.OnNewNoteDialog,
+                hsk.md.OnNewNoteDialogWithImages,
+            ],
+        )
 
         # Menu Python
         self.menu_python = self.new_menu("Python", "py.svg")
-        self.add_item(self.menu_python, hsk.py.OnExtractFunctionsAndClasses)
-        self.add_item(self.menu_python, hsk.py.OnNewUvProject)
-        self.add_item(self.menu_python, hsk.py.OnNewUvProjectDialog)
-        self.add_item(self.menu_python, hsk.py.OnSortIsortFmtPythonCodeFolder)
-        self.add_item(self.menu_python, hsk.py.OnSortIsortFmtDocsPythonCodeFolder)
-        self.menu_python.addSeparator()
-        self.add_item(self.menu_python, hsk.py.OnHarrixPylib01Prepare)
-        self.add_item(self.menu_python, hsk.py.OnHarrixPylib02Publish)
+        self.add_items(
+            self.menu_python,
+            [
+                hsk.py.OnExtractFunctionsAndClasses,
+                hsk.py.OnNewUvProject,
+                hsk.py.OnNewUvProjectDialog,
+                hsk.py.OnSortIsortFmtDocsPythonCodeFolder,
+                hsk.py.OnSortIsortFmtPythonCodeFolder,
+                "-",
+                hsk.py.OnHarrixPylib01Prepare,
+                hsk.py.OnHarrixPylib02Publish,
+            ],
+        )
 
         # MainMenu
         self.menu.addMenu(self.menu_dev)
@@ -232,13 +298,19 @@ def __init__(self) -> None:
         self.menu.addMenu(self.menu_new_md)
         self.menu.addMenu(self.menu_python)
         self.menu.addSeparator()
-        self.add_item(self.menu, hsk.apps.OnFitness)
-        self.add_item(self.menu, hsk.md.OnBeautifyMdNotesFolder)
-        self.menu.addSeparator()
-        self.add_item(self.menu, hsk.images.OnOptimizeClipboard)
-        self.add_item(self.menu, hsk.images.OnOptimizeClipboardDialog)
-        self.menu.addSeparator()
-        self.add_item(self.menu, hsk.dev.OnExit)
+
+        self.add_items(
+            self.menu,
+            [
+                hsk.apps.OnFitness,
+                hsk.md.OnBeautifyMdNotesFolder,
+                "-",
+                hsk.images.OnOptimizeClipboard,
+                hsk.images.OnOptimizeClipboardDialog,
+                "-",
+                hsk.dev.OnExit,
+            ],
+        )
 ```
 
 </details>
