@@ -210,11 +210,9 @@ class MainWindow(
         # Connect auto-save signals for each table
         for table_name in self._SAFE_TABLES:
             if self.models[table_name]:
-                self.models[table_name].sourceModel().dataChanged.connect(
-                    lambda top_left, bottom_right, table=table_name: self._on_table_data_changed(
-                        table, top_left, bottom_right
-                    )
-                )
+                # Use partial to properly bind table_name
+                handler = partial(self._on_table_data_changed, table_name)
+                self.models[table_name].sourceModel().dataChanged.connect(handler)
 
     def _create_table_model(
         self,
@@ -631,14 +629,16 @@ class MainWindow(
         self.current_frame_index = (self.current_frame_index + 1) % len(self.avif_frames)
         self.label_exercise_avif.setPixmap(self.avif_frames[self.current_frame_index])
 
-    def _on_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex) -> None:
+    def _on_table_data_changed(
+        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
+    ) -> None:
         """Handle data changes in table models and auto-save to database.
 
         Args:
-
         - `table_name` (`str`): Name of the table that was modified.
         - `top_left` (`QModelIndex`): Top-left index of the changed area.
         - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
+        - `_roles` (`list`): List of roles that changed (optional, from Qt signal).
 
         """
         if table_name not in self._SAFE_TABLES:
