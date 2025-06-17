@@ -294,18 +294,17 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
 }
 
 /**
- * Process AVIF files - optimize existing AVIF images.
+ * Process static AVIF files - optimize existing static AVIF images using Sharp.
  *
- * For animated AVIF files, uses ffmpeg to re-encode.
- * For static AVIF files, uses Sharp if possible.
- * Applies resizing if maxSize is specified.
+ * Optimizes static AVIF images using Sharp with quality settings and optional resizing.
+ * This function handles only single-frame AVIF images.
  *
  * Args:
  *
  * - `filePath` (`string`): The source AVIF file path.
  * - `outputFilePath` (`string`): The destination path for optimized AVIF.
  * - `file` (`string`): The original filename for logging purposes.
- * - `quality` (`boolean|string`): Quality setting - if truthy, uses high quality (93), otherwise standard quality (63).
+ * - `quality` (`boolean|string`): Quality setting flag.
  * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
  *
  * Returns:
@@ -314,50 +313,109 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
  *
  * Note:
  *
- * Falls back to ffmpeg if Sharp cannot process the file.
- * Quality values: high quality = 93/CRF 20, standard quality = 63/CRF 30.
+ * Sharp quality: 93 (high), 63 (standard).
+ */
+async function processStaticAvif(filePath, outputFilePath, file, quality, maxSize) {
+  const qualityValue = quality ? 93 : 63;
+  let sharpInstance = sharp(filePath);
+
+  sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
+  await sharpInstance.avif({ quality: qualityValue }).toFile(outputFilePath);
+
+  console.log(`✅ File ${file} successfully optimized with sharp.`);
+}
+
+/**
+ * Process animated AVIF files using ffmpeg.
+ *
+ * Optimizes animated AVIF images using ffmpeg to preserve animation frames.
+ * Uses libaom-av1 codec with configurable quality settings.
+ *
+ * Args:
+ *
+ * - `filePath` (`string`): The source animated AVIF file path.
+ * - `outputFilePath` (`string`): The destination path for optimized AVIF.
+ * - `file` (`string`): The original filename for logging purposes.
+ * - `quality` (`boolean|string`): Quality setting flag.
+ * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
+ *
+ * Returns:
+ *
+ * - `Promise<void>`: Resolves when optimization is complete.
+ *
+ * Note:
+ *
+ * ffmpeg quality: CRF 20 (high), 30 (standard). Lower CRF values mean better quality.
+ * Requires ffmpeg to be installed and available in PATH.
+ */
+async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize) {
+  let scaleFilter = "";
+  if (maxSize) {
+    scaleFilter = `-vf "scale='if(gt(iw,ih),min(${maxSize},iw),-1)':'if(gt(iw,ih),-1,min(${maxSize},ih))':force_original_aspect_ratio=decrease"`;
+  }
+
+  const crf = quality ? 20 : 30;
+  const command = `ffmpeg -i "${filePath}" ${scaleFilter} -c:a copy -c:v libaom-av1 -crf ${crf} -cpu-used 4 -pix_fmt yuv420p "${outputFilePath}"`;
+
+  return new Promise((resolve, reject) => {
+    exec(command, (execError) => {
+      if (execError) {
+        console.error(`❌ Error while processing animated AVIF file ${file} with ffmpeg:`, execError);
+        reject(execError);
+        return;
+      }
+      console.log(`✅ File ${file} successfully optimized with ffmpeg.`);
+      resolve();
+    });
+  });
+}
+
+/**
+ * Process AVIF files - determine if animated or static and route accordingly.
+ *
+ * Analyzes AVIF files to determine if they contain multiple frames (animated) or single frame (static).
+ * Routes to appropriate processing function based on animation detection.
+ * Falls back to ffmpeg if Sharp fails at any stage.
+ *
+ * Args:
+ *
+ * - `filePath` (`string`): The source AVIF file path.
+ * - `outputFilePath` (`string`): The destination path for optimized AVIF.
+ * - `file` (`string`): The original filename for logging purposes.
+ * - `quality` (`boolean|string`): Quality setting flag.
+ * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
+ *
+ * Returns:
+ *
+ * - `Promise<void>`: Resolves when optimization is complete.
+ *
+ * Note:
+ *
+ * Uses Sharp to read metadata and detect animation. Falls back to ffmpeg if Sharp fails.
+ * Animated AVIFs are detected by checking if metadata.pages > 1.
  */
 async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
   try {
-    // First, try with Sharp
-    const qualityValue = quality ? 93 : 63;
-    let sharpInstance = sharp(filePath);
+    // Try to read metadata with Sharp to determine if animated
+    const metadata = await sharp(filePath).metadata();
 
-    // Try to get metadata to check if Sharp can handle this file
-    try {
-      const metadata = await sharpInstance.metadata();
-
-      // If we got here, Sharp can handle the file
-      sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
-      await sharpInstance.avif({ quality: qualityValue }).toFile(outputFilePath);
-
-      console.log(`✅ File ${file} successfully optimized.`);
-    } catch (sharpError) {
-      // Sharp can't handle this file, use ffmpeg instead
-      console.log(`⚠️ Sharp cannot process ${file}, using ffmpeg...`);
-
-      let scaleFilter = "";
-      if (maxSize) {
-        scaleFilter = `-vf "scale='if(gt(iw,ih),min(${maxSize},iw),-1)':'if(gt(iw,ih),-1,min(${maxSize},ih))'"`;
+    // Check if the AVIF is animated (multiple frames/pages)
+    if (metadata.pages && metadata.pages > 1) {
+      console.log(`🔄 ${file} is animated. Processing with ffmpeg...`);
+      await processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize);
+    } else {
+      console.log(`🔄 ${file} is static. Processing with Sharp...`);
+      try {
+        await processStaticAvif(filePath, outputFilePath, file, quality, maxSize);
+      } catch (sharpError) {
+        console.log(`⚠️ Sharp failed to process static AVIF ${file}. Falling back to ffmpeg. (Error: ${sharpError.message})`);
+        await processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize);
       }
-
-      const crf = quality ? 20 : 30;
-      const command = `ffmpeg -i "${filePath}" ${scaleFilter} -c:a copy -c:v libaom-av1 -crf ${crf} -cpu-used 4 -pix_fmt yuv420p "${outputFilePath}"`;
-
-      await new Promise((resolve, reject) => {
-        exec(command, (error) => {
-          if (error) {
-            console.error(`❌ Error while processing file ${file}:`, error);
-            reject(error);
-            return;
-          }
-          console.log(`✅ File ${file} successfully optimized with ffmpeg.`);
-          resolve();
-        });
-      });
     }
-  } catch (error) {
-    console.error(`❌ Error while processing file ${file}:`, error);
+  } catch (metadataError) {
+    // If Sharp fails to read metadata, assume it's animated and use ffmpeg
+    console.log(`⚠️ Sharp failed to read metadata for ${file}. Falling back to ffmpeg. (Error: ${metadataError.message})`);
+    await processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize);
   }
 }
 
