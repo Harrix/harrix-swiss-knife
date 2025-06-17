@@ -306,7 +306,9 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select Project folder", config["paths_python_projects"], config["path_github"]
+        )
         if not self.folder_path:
             return
 
