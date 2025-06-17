@@ -324,8 +324,9 @@ async function isAvifAnimated(filePath) {
       try {
         if (!error && fs.existsSync(tempDir)) {
           // Count actual extracted frame files
-          const extractedFiles = fs.readdirSync(tempDir)
-            .filter(f => f.startsWith('check_frame-') && f.endsWith('.png'));
+          const extractedFiles = fs
+            .readdirSync(tempDir)
+            .filter((f) => f.startsWith("check_frame-") && f.endsWith(".png"));
 
           frameCount = extractedFiles.length;
           isAnimated = frameCount > 1;
@@ -386,7 +387,6 @@ async function isAvifAnimated(filePath) {
   });
 }
 
-
 /**
  * Get frame rate from video file using ffmpeg.
  *
@@ -403,9 +403,10 @@ async function isAvifAnimated(filePath) {
  */
 async function getFrameRate(filePath) {
   return new Promise((resolve) => {
-    const command = process.platform === 'win32'
-      ? `ffmpeg -i "${filePath}" -f null - 2>&1 | findstr "fps"`
-      : `ffmpeg -i "${filePath}" -f null - 2>&1 | grep "fps"`;
+    const command =
+      process.platform === "win32"
+        ? `ffmpeg -i "${filePath}" -f null - 2>&1 | findstr "fps"`
+        : `ffmpeg -i "${filePath}" -f null - 2>&1 | grep "fps"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
@@ -415,7 +416,7 @@ async function getFrameRate(filePath) {
       }
 
       // Parse all lines containing fps
-      const lines = stdout.split('\n').filter(line => line.includes('fps'));
+      const lines = stdout.split("\n").filter((line) => line.includes("fps"));
 
       // Try to find the fps value from the second stream (usually the correct one)
       let fps = 25; // default fallback
@@ -429,7 +430,7 @@ async function getFrameRate(filePath) {
           if (detectedFps > 1 && detectedFps < 120) {
             fps = detectedFps;
             // If this is from Stream #0:1, it's likely the correct one
-            if (line.includes('Stream #0:1')) {
+            if (line.includes("Stream #0:1")) {
               break;
             }
           }
@@ -508,12 +509,13 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
 
         try {
           // Step 2: Get list of extracted frame files
-          let frameFiles = fs.readdirSync(tempDir)
-            .filter(f => f.startsWith('frame-') && f.endsWith('.png'))
+          let frameFiles = fs
+            .readdirSync(tempDir)
+            .filter((f) => f.startsWith("frame-") && f.endsWith(".png"))
             .sort(); // Ensure proper order
 
           if (frameFiles.length === 0) {
-            throw new Error('No frames were extracted');
+            throw new Error("No frames were extracted");
           }
 
           console.log(`📸 Extracted ${frameFiles.length} frames`);
@@ -528,7 +530,7 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
             // Calculate which frames to keep using uniform distribution
             const framesToKeep = new Set();
             for (let i = 0; i < targetFrameCount; i++) {
-              const frameIndex = Math.round(i * (originalFrameCount - 1) / (targetFrameCount - 1));
+              const frameIndex = Math.round((i * (originalFrameCount - 1)) / (targetFrameCount - 1));
               framesToKeep.add(frameIndex);
             }
 
@@ -538,7 +540,7 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
               const framePath = path.join(tempDir, frameFile);
               if (framesToKeep.has(index)) {
                 // Rename to maintain sequence
-                const newFrameName = `kept-frame-${String(keptFrames.length).padStart(6, '0')}.png`;
+                const newFrameName = `kept-frame-${String(keptFrames.length).padStart(6, "0")}.png`;
                 const newFramePath = path.join(tempDir, newFrameName);
                 fs.renameSync(framePath, newFramePath);
                 keptFrames.push(newFrameName);
@@ -579,11 +581,11 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
 
           // Convert quality values:
           // For avifenc: 0 = best quality, 63 = worst quality
-          const minQuality = quality ? 15 : 25;  // min quality (best case)
-          const maxQuality = quality ? 20 : 30;  // max quality (worst case)
+          const minQuality = quality ? 15 : 35; // min quality (best case)
+          const maxQuality = quality ? 20 : 40; // max quality (worst case)
 
           // Build avifenc command with frame rate and quality settings
-          const frameList = frameFiles.map(f => `"${path.join(tempDir, f)}"`).join(' ');
+          const frameList = frameFiles.map((f) => `"${path.join(tempDir, f)}"`).join(" ");
           const assembleCommand = `"${avifencPath}" ${frameList} --fps ${targetFrameRate} --min ${minQuality} --max ${maxQuality} "${outputFilePath}"`;
 
           console.log(`🎨 Using quality settings: min=${minQuality}, max=${maxQuality}`);
@@ -605,7 +607,6 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
             }
             resolve();
           });
-
         } catch (processingError) {
           // Clean up temp directory
           fs.rmSync(tempDir, { recursive: true, force: true });
@@ -613,14 +614,12 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
           reject(processingError);
         }
       });
-
     } catch (error) {
       console.error(`❌ Error in processAnimatedAvif for ${file}:`, error);
       reject(error);
     }
   });
 }
-
 
 /**
  * Process AVIF files - determine if animated or static and route accordingly.
