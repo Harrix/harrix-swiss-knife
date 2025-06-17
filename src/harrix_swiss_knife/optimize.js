@@ -427,9 +427,10 @@ async function getFrameRate(filePath) {
 /**
  * Process animated AVIF files using avifdec and avifenc tools.
  *
- * Extracts all frames from animated AVIF, resizes them if needed, and reassembles into optimized animated AVIF.
+ * Extracts all frames from animated AVIF, resizes them if needed, reduces frame rate to max 10 fps if needed,
+ * and reassembles into optimized animated AVIF.
  * Uses avifdec to extract frames and avifenc to create the final animated AVIF.
- * Preserves original frame rate from the source file.
+ * Preserves original playback speed while reducing frame count for optimization.
  *
  * Args:
  *
@@ -450,7 +451,20 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
       const avifencPath = path.join(__foldername, "../../avifenc.exe");
 
       // Get original frame rate
-      const frameRate = await getFrameRate(filePath);
+      const originalFrameRate = await getFrameRate(filePath);
+
+      // Calculate target frame rate (max 10 fps)
+      const targetFrameRate = Math.min(originalFrameRate, 10);
+      const frameRateReduction = originalFrameRate > 10;
+
+      // Calculate which frames to keep
+      const framesToKeepRatio = targetFrameRate / originalFrameRate;
+
+      console.log(`📊 Original frame rate: ${originalFrameRate} fps`);
+      if (frameRateReduction) {
+        console.log(`🎯 Target frame rate: ${targetFrameRate} fps (reducing from ${originalFrameRate} fps)`);
+        console.log(`📉 Keeping approximately ${Math.round(framesToKeepRatio * 100)}% of frames`);
+      }
 
       // Create temporary directory for frames
       const tempDir = path.join(path.dirname(filePath), `temp_frames_${Date.now()}`);
@@ -476,18 +490,51 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
 
         try {
           // Step 2: Get list of extracted frame files
-          const frameFiles = fs
-            .readdirSync(tempDir)
-            .filter((f) => f.startsWith("frame-") && f.endsWith(".png"))
+          let frameFiles = fs.readdirSync(tempDir)
+            .filter(f => f.startsWith('frame-') && f.endsWith('.png'))
             .sort(); // Ensure proper order
 
           if (frameFiles.length === 0) {
-            throw new Error("No frames were extracted");
+            throw new Error('No frames were extracted');
           }
 
           console.log(`📸 Extracted ${frameFiles.length} frames`);
 
-          // Step 3: Resize frames if needed
+          // Step 3: Remove excess frames if frame rate is too high
+          if (frameRateReduction) {
+            console.log(`🗑️ Reducing frame count for optimal file size...`);
+
+            const originalFrameCount = frameFiles.length;
+            const targetFrameCount = Math.max(1, Math.round(originalFrameCount * framesToKeepRatio));
+
+            // Calculate which frames to keep using uniform distribution
+            const framesToKeep = new Set();
+            for (let i = 0; i < targetFrameCount; i++) {
+              const frameIndex = Math.round(i * (originalFrameCount - 1) / (targetFrameCount - 1));
+              framesToKeep.add(frameIndex);
+            }
+
+            // Delete frames we don't need and rename remaining frames
+            const keptFrames = [];
+            frameFiles.forEach((frameFile, index) => {
+              const framePath = path.join(tempDir, frameFile);
+              if (framesToKeep.has(index)) {
+                // Rename to maintain sequence
+                const newFrameName = `kept-frame-${String(keptFrames.length).padStart(6, '0')}.png`;
+                const newFramePath = path.join(tempDir, newFrameName);
+                fs.renameSync(framePath, newFramePath);
+                keptFrames.push(newFrameName);
+              } else {
+                // Delete unneeded frame
+                fs.unlinkSync(framePath);
+              }
+            });
+
+            frameFiles = keptFrames;
+            console.log(`✅ Reduced from ${originalFrameCount} to ${frameFiles.length} frames`);
+          }
+
+          // Step 4: Resize frames if needed
           if (maxSize) {
             console.log(`🔧 Resizing frames to max ${maxSize}px...`);
 
@@ -509,19 +556,17 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
             console.log(`✅ Resized ${frameFiles.length} frames`);
           }
 
-          // Step 4: Reassemble frames into animated AVIF using avifenc with correct frame rate
-          console.log(`🔧 Reassembling frames into animated AVIF with ${frameRate} fps...`);
+          // Step 5: Reassemble frames into animated AVIF using avifenc with correct frame rate
+          console.log(`🔧 Reassembling frames into animated AVIF with ${targetFrameRate} fps...`);
 
           // Convert quality values:
           // For avifenc: 0 = best quality, 63 = worst quality
-          // For quality=true (high quality): use lower values (better quality)
-          // For quality=false (standard quality): use higher values (more compression)
-          const minQuality = quality ? 15 : 25; // min quality (best case)
-          const maxQuality = quality ? 20 : 30; // max quality (worst case)
+          const minQuality = quality ? 15 : 25;  // min quality (best case)
+          const maxQuality = quality ? 20 : 30;  // max quality (worst case)
 
           // Build avifenc command with frame rate and quality settings
-          const frameList = frameFiles.map((f) => `"${path.join(tempDir, f)}"`).join(" ");
-          const assembleCommand = `"${avifencPath}" ${frameList} --fps ${frameRate} --min ${minQuality} --max ${maxQuality} "${outputFilePath}"`;
+          const frameList = frameFiles.map(f => `"${path.join(tempDir, f)}"`).join(' ');
+          const assembleCommand = `"${avifencPath}" ${frameList} --fps ${targetFrameRate} --min ${minQuality} --max ${maxQuality} "${outputFilePath}"`;
 
           console.log(`🎨 Using quality settings: min=${minQuality}, max=${maxQuality}`);
 
@@ -536,9 +581,13 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
               return;
             }
 
-            console.log(`✅ Animated AVIF ${file} successfully processed with ${frameRate} fps`);
+            console.log(`✅ Animated AVIF ${file} successfully processed with ${targetFrameRate} fps`);
+            if (frameRateReduction) {
+              console.log(`💾 Frame rate reduced from ${originalFrameRate} to ${targetFrameRate} fps`);
+            }
             resolve();
           });
+
         } catch (processingError) {
           // Clean up temp directory
           fs.rmSync(tempDir, { recursive: true, force: true });
@@ -546,13 +595,13 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
           reject(processingError);
         }
       });
+
     } catch (error) {
       console.error(`❌ Error in processAnimatedAvif for ${file}:`, error);
       reject(error);
     }
   });
 }
-
 
 
 /**
