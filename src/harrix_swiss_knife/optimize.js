@@ -309,24 +309,59 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
 async function isAvifAnimated(filePath) {
   return new Promise((resolve) => {
     const avifdecPath = path.join(__foldername, "../../avifdec.exe");
-    const command = `"${avifdecPath}" --info "${filePath}"`;
+
+    // Try to extract frames to a temporary location to determine if animated
+    const tempDir = path.join(path.dirname(filePath), `temp_check_${Date.now()}`);
+    fs.mkdirSync(tempDir, { recursive: true });
+
+    const frameBasePath = path.join(tempDir, "check_frame.png");
+    const command = `"${avifdecPath}" "${filePath}" "${frameBasePath}" --index all`;
 
     exec(command, (error, stdout, stderr) => {
+      // Clean up temp directory
+      if (fs.existsSync(tempDir)) {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+
       if (error) {
         console.log(`⚠️ Could not determine AVIF animation status, assuming static. Error: ${error.message}`);
         resolve(false);
         return;
       }
 
-      // Check if the output contains information about multiple frames
+      // Check if multiple frames were mentioned in output
       const output = stdout + stderr;
-      const frameMatch = output.match(/Frame\s+(\d+)/g);
-      const isAnimated = frameMatch && frameMatch.length > 1;
+
+      // Look for indicators of multiple frames in the output
+      const frameIndicators = [
+        /frame.*?(\d+)/gi,
+        /(\d+)\s*frames?/gi,
+        /extracting.*?(\d+)/gi
+      ];
+
+      let frameCount = 0;
+      frameIndicators.forEach(regex => {
+        const matches = output.match(regex);
+        if (matches && matches.length > 1) {
+          frameCount = Math.max(frameCount, matches.length);
+        }
+      });
+
+      // Also try to extract frame count from numbers in output
+      const numbers = output.match(/\b\d+\b/g);
+      if (numbers) {
+        const largestNumber = Math.max(...numbers.map(n => parseInt(n)));
+        if (largestNumber > 1 && largestNumber < 1000) { // Reasonable frame count
+          frameCount = Math.max(frameCount, largestNumber);
+        }
+      }
+
+      const isAnimated = frameCount > 1;
 
       if (isAnimated) {
-        console.log(`🎬 AVIF appears to be animated based on info output`);
+        console.log(`🎬 AVIF appears to be animated (detected ~${frameCount} frames)`);
       } else {
-        console.log(`🖼️ AVIF appears to be static based on info output`);
+        console.log(`🖼️ AVIF appears to be static`);
       }
 
       resolve(isAnimated);
@@ -414,72 +449,25 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
             console.log(`✅ Resized ${frameFiles.length} frames`);
           }
 
-          // Step 4: Reassemble frames into animated AVIF using avifenc
+          // Step 4: Reassemble frames into animated AVIF using avifenc (Method 4 only)
           console.log(`🔧 Reassembling frames into animated AVIF...`);
 
-          // Try different command formats for avifenc
-          const qualityValue = quality ? 20 : 40; // Values for -q parameter
+          // Use working method 4: List files individually
+          const frameList = frameFiles.map(f => `"${path.join(tempDir, f)}"`).join(' ');
+          const assembleCommand = `"${avifencPath}" ${frameList} "${outputFilePath}"`;
 
-          // Method 1: Try using -q quality parameter with frame pattern
-          const framePattern = path.join(tempDir, "frame-%010d.png");
-          let assembleCommand = `"${avifencPath}" -q ${qualityValue} -s 6 "${framePattern}" "${outputFilePath}"`;
+          exec(assembleCommand, (assembleError) => {
+            // Clean up temp directory
+            fs.rmSync(tempDir, { recursive: true, force: true });
 
-          exec(assembleCommand, (assembleError1) => {
-            if (assembleError1) {
-              console.log(`⚠️ Method 1 failed, trying method 2...`);
-
-              // Method 2: Try without quality parameter
-              assembleCommand = `"${avifencPath}" -s 6 "${framePattern}" "${outputFilePath}"`;
-
-              exec(assembleCommand, (assembleError2) => {
-                if (assembleError2) {
-                  console.log(`⚠️ Method 2 failed, trying method 3...`);
-
-                  // Method 3: Try basic command with just input and output
-                  assembleCommand = `"${avifencPath}" "${framePattern}" "${outputFilePath}"`;
-
-                  exec(assembleCommand, (assembleError3) => {
-                    if (assembleError3) {
-                      console.log(`⚠️ Method 3 failed, trying method 4 with individual files...`);
-
-                      // Method 4: Try listing files individually
-                      const frameList = frameFiles.map(f => `"${path.join(tempDir, f)}"`).join(' ');
-                      assembleCommand = `"${avifencPath}" ${frameList} "${outputFilePath}"`;
-
-                      exec(assembleCommand, (assembleError4) => {
-                        // Clean up temp directory
-                        fs.rmSync(tempDir, { recursive: true, force: true });
-
-                        if (assembleError4) {
-                          console.error(`❌ All methods failed to reassemble frames for ${file}`);
-                          console.error(`Last error:`, assembleError4);
-                          reject(assembleError4);
-                          return;
-                        }
-
-                        console.log(`✅ Animated AVIF ${file} successfully processed (method 4)`);
-                        resolve();
-                      });
-                    } else {
-                      // Clean up temp directory
-                      fs.rmSync(tempDir, { recursive: true, force: true });
-                      console.log(`✅ Animated AVIF ${file} successfully processed (method 3)`);
-                      resolve();
-                    }
-                  });
-                } else {
-                  // Clean up temp directory
-                  fs.rmSync(tempDir, { recursive: true, force: true });
-                  console.log(`✅ Animated AVIF ${file} successfully processed (method 2)`);
-                  resolve();
-                }
-              });
-            } else {
-              // Clean up temp directory
-              fs.rmSync(tempDir, { recursive: true, force: true });
-              console.log(`✅ Animated AVIF ${file} successfully processed (method 1)`);
-              resolve();
+            if (assembleError) {
+              console.error(`❌ Error reassembling frames for ${file}:`, assembleError);
+              reject(assembleError);
+              return;
             }
+
+            console.log(`✅ Animated AVIF ${file} successfully processed`);
+            resolve();
           });
 
         } catch (processingError) {
@@ -496,7 +484,6 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
     }
   });
 }
-
 
 /**
  * Process AVIF files - determine if animated or static and route accordingly.
