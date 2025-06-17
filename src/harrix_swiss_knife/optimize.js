@@ -370,10 +370,66 @@ async function isAvifAnimated(filePath) {
 }
 
 /**
+ * Get frame rate from video file using ffmpeg.
+ *
+ * Extracts the frame rate (fps) from video files by parsing ffmpeg output.
+ * Looks for the second stream which typically contains the actual video fps.
+ *
+ * Args:
+ *
+ * - `filePath` (`string`): The source video file path.
+ *
+ * Returns:
+ *
+ * - `Promise<number>`: Frame rate in fps, defaults to 25 if unable to detect.
+ */
+async function getFrameRate(filePath) {
+  return new Promise((resolve) => {
+    const command = process.platform === 'win32'
+      ? `ffmpeg -i "${filePath}" -f null - 2>&1 | findstr "fps"`
+      : `ffmpeg -i "${filePath}" -f null - 2>&1 | grep "fps"`;
+
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.log(`⚠️ Could not determine frame rate, using default 25 fps`);
+        resolve(25);
+        return;
+      }
+
+      // Parse all lines containing fps
+      const lines = stdout.split('\n').filter(line => line.includes('fps'));
+
+      // Try to find the fps value from the second stream (usually the correct one)
+      let fps = 25; // default fallback
+
+      for (const line of lines) {
+        // Match patterns like "14.42 fps" or "25 fps"
+        const fpsMatch = line.match(/(\d+(?:\.\d+)?)\s*fps/);
+        if (fpsMatch) {
+          const detectedFps = parseFloat(fpsMatch[1]);
+          // Skip obviously wrong values like 0 or 1
+          if (detectedFps > 1 && detectedFps < 120) {
+            fps = detectedFps;
+            // If this is from Stream #0:1, it's likely the correct one
+            if (line.includes('Stream #0:1')) {
+              break;
+            }
+          }
+        }
+      }
+
+      console.log(`📊 Detected frame rate: ${fps} fps`);
+      resolve(fps);
+    });
+  });
+}
+
+/**
  * Process animated AVIF files using avifdec and avifenc tools.
  *
  * Extracts all frames from animated AVIF, resizes them if needed, and reassembles into optimized animated AVIF.
  * Uses avifdec to extract frames and avifenc to create the final animated AVIF.
+ * Preserves original frame rate from the source file.
  *
  * Args:
  *
@@ -392,6 +448,9 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
     try {
       const avifdecPath = path.join(__foldername, "../../avifdec.exe");
       const avifencPath = path.join(__foldername, "../../avifenc.exe");
+
+      // Get original frame rate
+      const frameRate = await getFrameRate(filePath);
 
       // Create temporary directory for frames
       const tempDir = path.join(path.dirname(filePath), `temp_frames_${Date.now()}`);
@@ -417,12 +476,13 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
 
         try {
           // Step 2: Get list of extracted frame files
-          const frameFiles = fs.readdirSync(tempDir)
-            .filter(f => f.startsWith('frame-') && f.endsWith('.png'))
+          const frameFiles = fs
+            .readdirSync(tempDir)
+            .filter((f) => f.startsWith("frame-") && f.endsWith(".png"))
             .sort(); // Ensure proper order
 
           if (frameFiles.length === 0) {
-            throw new Error('No frames were extracted');
+            throw new Error("No frames were extracted");
           }
 
           console.log(`📸 Extracted ${frameFiles.length} frames`);
@@ -449,27 +509,36 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
             console.log(`✅ Resized ${frameFiles.length} frames`);
           }
 
-          // Step 4: Reassemble frames into animated AVIF using avifenc (Method 4 only)
-          console.log(`🔧 Reassembling frames into animated AVIF...`);
+          // Step 4: Reassemble frames into animated AVIF using avifenc with correct frame rate
+          console.log(`🔧 Reassembling frames into animated AVIF with ${frameRate} fps...`);
 
-          // Use working method 4: List files individually
-          const frameList = frameFiles.map(f => `"${path.join(tempDir, f)}"`).join(' ');
-          const assembleCommand = `"${avifencPath}" ${frameList} "${outputFilePath}"`;
+          // Convert quality values:
+          // For avifenc: 0 = best quality, 63 = worst quality
+          // For quality=true (high quality): use lower values (better quality)
+          // For quality=false (standard quality): use higher values (more compression)
+          const minQuality = quality ? 15 : 25; // min quality (best case)
+          const maxQuality = quality ? 20 : 30; // max quality (worst case)
 
-          exec(assembleCommand, (assembleError) => {
+          // Build avifenc command with frame rate and quality settings
+          const frameList = frameFiles.map((f) => `"${path.join(tempDir, f)}"`).join(" ");
+          const assembleCommand = `"${avifencPath}" ${frameList} --fps ${frameRate} --min ${minQuality} --max ${maxQuality} "${outputFilePath}"`;
+
+          console.log(`🎨 Using quality settings: min=${minQuality}, max=${maxQuality}`);
+
+          exec(assembleCommand, (assembleError, stdout, stderr) => {
             // Clean up temp directory
             fs.rmSync(tempDir, { recursive: true, force: true });
 
             if (assembleError) {
               console.error(`❌ Error reassembling frames for ${file}:`, assembleError);
+              console.error(`stderr: ${stderr}`);
               reject(assembleError);
               return;
             }
 
-            console.log(`✅ Animated AVIF ${file} successfully processed`);
+            console.log(`✅ Animated AVIF ${file} successfully processed with ${frameRate} fps`);
             resolve();
           });
-
         } catch (processingError) {
           // Clean up temp directory
           fs.rmSync(tempDir, { recursive: true, force: true });
@@ -477,13 +546,14 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
           reject(processingError);
         }
       });
-
     } catch (error) {
       console.error(`❌ Error in processAnimatedAvif for ${file}:`, error);
       reject(error);
     }
   });
 }
+
+
 
 /**
  * Process AVIF files - determine if animated or static and route accordingly.
