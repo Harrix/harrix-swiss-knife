@@ -444,11 +444,11 @@ async function getFrameRate(filePath) {
 }
 
 /**
- * Process animated AVIF files using avifdec and avifenc tools.
+ * Process animated AVIF files using avifdec and ffmpeg tools.
  *
  * Extracts all frames from animated AVIF, resizes them if needed, reduces frame rate to max 10 fps if needed,
- * and reassembles into optimized animated AVIF.
- * Uses avifdec to extract frames and avifenc to create the final animated AVIF.
+ * and reassembles into optimized animated AVIF using ffmpeg.
+ * Uses avifdec to extract frames and ffmpeg to create the final animated AVIF.
  * Preserves original playback speed while reducing frame count for optimization.
  *
  * Args:
@@ -467,7 +467,6 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
   return new Promise(async (resolve, reject) => {
     try {
       const avifdecPath = path.join(__foldername, "../../avifdec.exe");
-      const avifencPath = path.join(__foldername, "../../avifenc.exe");
 
       // Get original frame rate
       const originalFrameRate = await getFrameRate(filePath);
@@ -533,23 +532,27 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
               framesToKeep.add(frameIndex);
             }
 
-            // Delete frames we don't need and rename remaining frames
-            const keptFrames = [];
+            // Delete frames we don't need and rename remaining frames with sequential numbering
+            let frameCounter = 0;
             frameFiles.forEach((frameFile, index) => {
               const framePath = path.join(tempDir, frameFile);
               if (framesToKeep.has(index)) {
-                // Rename to maintain sequence
-                const newFrameName = `kept-frame-${String(keptFrames.length).padStart(6, '0')}.png`;
+                // Rename to maintain sequence with proper numbering for ffmpeg
+                const newFrameName = `frame-${String(frameCounter).padStart(6, '0')}.png`;
                 const newFramePath = path.join(tempDir, newFrameName);
                 fs.renameSync(framePath, newFramePath);
-                keptFrames.push(newFrameName);
+                frameCounter++;
               } else {
                 // Delete unneeded frame
                 fs.unlinkSync(framePath);
               }
             });
 
-            frameFiles = keptFrames;
+            // Update frameFiles list
+            frameFiles = fs.readdirSync(tempDir)
+              .filter(f => f.startsWith('frame-') && f.endsWith('.png'))
+              .sort();
+
             console.log(`✅ Reduced from ${originalFrameCount} to ${frameFiles.length} frames`);
           }
 
@@ -575,37 +578,33 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
             console.log(`✅ Resized ${frameFiles.length} frames`);
           }
 
-          // Step 5: Reassemble frames into animated AVIF using avifenc with correct frame rate
+          // Step 5: Reassemble frames into animated AVIF using ffmpeg
           console.log(`🔧 Reassembling frames into animated AVIF with ${targetFrameRate} fps...`);
 
-          // Convert quality values:
-          // For avifenc: 0 = best quality, 63 = worst quality
-          const minQuality = quality ? 15 : 25;  // min quality (best case)
-          const maxQuality = quality ? 20 : 30;  // max quality (worst case)
+          // Convert quality values for ffmpeg CRF:
+          // For high quality: use lower CRF (15-20)
+          // For standard quality: use higher CRF (25-30)
+          const crf = quality ? 18 : 28;
 
-          console.log(`🎨 Using quality settings: min=${minQuality}, max=${maxQuality}`);
+          console.log(`🎨 Using CRF quality: ${crf}`);
 
           // Check if we have frames to process
           if (frameFiles.length === 0) {
             throw new Error('No frames available for reassembly');
           }
 
-          // Use different approaches based on frame count
-          let assembleCommand;
+          // Use ffmpeg with pattern matching for frame sequence
+          const framePattern = path.join(tempDir, 'frame-%06d.png');
 
-          if (frameFiles.length > 50) {
-            // For many frames, use a file list approach
-            const fileListPath = path.join(tempDir, 'frames.txt');
-            const fileListContent = frameFiles.map(f => path.join(tempDir, f)).join('\n');
-            fs.writeFileSync(fileListPath, fileListContent);
+          // Build ffmpeg command with AV1 codec
+          let assembleCommand = `ffmpeg -r ${targetFrameRate} -i "${framePattern}" -c:v libaom-av1 -crf ${crf} -cpu-used 4 -pix_fmt yuv420p`;
 
-            // Use ffmpeg to create the animated AVIF when there are too many frames
-            assembleCommand = `ffmpeg -r ${targetFrameRate} -f image2 -i "${path.join(tempDir, frameFiles[0].replace(/\d+/, '%06d'))}" -c:v libaom-av1 -crf ${minQuality + 10} -cpu-used 4 -pix_fmt yuv420p "${outputFilePath}"`;
-          } else {
-            // For fewer frames, use the original approach
-            const frameList = frameFiles.map(f => `"${path.join(tempDir, f)}"`).join(' ');
-            assembleCommand = `"${avifencPath}" ${frameList} --fps ${targetFrameRate} --min ${minQuality} --max ${maxQuality} "${outputFilePath}"`;
+          // Add scale filter if maxSize was specified (as backup in case Sharp failed)
+          if (maxSize) {
+            assembleCommand += ` -vf "scale='if(gt(iw,ih),min(${maxSize},iw),-1)':'if(gt(iw,ih),-1,min(${maxSize},ih))'"`;
           }
+
+          assembleCommand += ` -y "${outputFilePath}"`;
 
           exec(assembleCommand, (assembleError, stdout, stderr) => {
             // Clean up temp directory
