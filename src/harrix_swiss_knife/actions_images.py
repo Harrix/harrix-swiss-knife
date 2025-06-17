@@ -289,7 +289,7 @@ class OnResizeOptimizePngToAvif(action_base.ActionBase):
     """Resize and optimize images and convert PNG files to AVIF format too."""
 
     icon = "↔️"
-    title = "Resize Optimize images (with PNG to AVIF) "
+    title = "Resize and optimize images (with PNG to AVIF) "
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
