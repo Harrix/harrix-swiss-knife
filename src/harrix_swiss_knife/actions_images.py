@@ -288,7 +288,7 @@ class OnOptimizeQuality(action_base.ActionBase):
 class OnResizeOptimizePngToAvif(action_base.ActionBase):
     """Resize and optimize images and convert PNG files to AVIF format too."""
 
-    icon = "➤"
+    icon = "↔️"
     title = "Resize Optimize images (with PNG to AVIF) "
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
