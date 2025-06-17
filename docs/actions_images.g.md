@@ -31,11 +31,11 @@ lang: en
   - [Method `thread_after`](#method-thread_after-1)
 - [Class `OnOptimizeFile`](#class-onoptimizefile)
   - [Method `execute`](#method-execute-7)
-- [Class `OnOptimizePngToAvif`](#class-onoptimizepngtoavif)
+- [Class `OnOptimizeQuality`](#class-onoptimizequality)
   - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnOptimizeQuality`](#class-onoptimizequality)
+- [Class `OnResizeOptimizePngToAvif`](#class-onresizeoptimizepngtoavif)
   - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
@@ -694,100 +694,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnOptimizePngToAvif`
-
-```python
-class OnOptimizePngToAvif(action_base.ActionBase)
-```
-
-Optimize images and convert PNG files to AVIF format too.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnOptimizePngToAvif(action_base.ActionBase):
-
-    icon = "➤"
-    title = "Optimize images (with PNG to AVIF)"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self) -> None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        return h.dev.run_powershell_script("npm run optimize convertPngToAvif=true")
-
-    def thread_after(self, result: Any) -> None:
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
-        self.show_toast("Optimize completed")
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-```
-
-</details>
-
-### Method `in_thread`
-
-```python
-def in_thread(self) -> None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> None:
-        return h.dev.run_powershell_script("npm run optimize convertPngToAvif=true")
-```
-
-</details>
-
-### Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
-        self.show_toast("Optimize completed")
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
 ## Class `OnOptimizeQuality`
 
 ```python
@@ -861,6 +767,104 @@ Execute code in a separate thread. For performing long-running operations.
 ```python
 def in_thread(self) -> None:
         return h.dev.run_powershell_script("npm run optimize quality=true")
+```
+
+</details>
+
+### Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
+        self.show_toast("Optimize completed")
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+## Class `OnResizeOptimizePngToAvif`
+
+```python
+class OnResizeOptimizePngToAvif(action_base.ActionBase)
+```
+
+Resize and optimize images and convert PNG files to AVIF format too.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnResizeOptimizePngToAvif(action_base.ActionBase):
+
+    icon = "➤"
+    title = "Resize Optimize images (with PNG to AVIF) "
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.max_size = self.get_text_input("Max size", "Input max image size in pixels")
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        return h.dev.run_powershell_script(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
+
+    def thread_after(self, result: Any) -> None:
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
+        self.show_toast("Optimize completed")
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.max_size = self.get_text_input("Max size", "Input max image size in pixels")
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### Method `in_thread`
+
+```python
+def in_thread(self) -> None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> None:
+        return h.dev.run_powershell_script(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
 ```
 
 </details>

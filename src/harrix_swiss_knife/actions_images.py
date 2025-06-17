@@ -256,29 +256,6 @@ class OnOptimizeFile(action_base.ActionBase):
         self.show_result()
 
 
-class OnOptimizePngToAvif(action_base.ActionBase):
-    """Optimize images and convert PNG files to AVIF format too."""
-
-    icon = "➤"
-    title = "Optimize images (with PNG to AVIF)"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self) -> None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        return h.dev.run_powershell_script("npm run optimize convertPngToAvif=true")
-
-    def thread_after(self, result: Any) -> None:
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
-        self.show_toast("Optimize completed")
-        self.add_line(result)
-        self.show_result()
-
-
 class OnOptimizeQuality(action_base.ActionBase):
     """Optimize images with higher quality settings.
 
@@ -298,6 +275,31 @@ class OnOptimizeQuality(action_base.ActionBase):
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_powershell_script("npm run optimize quality=true")
+
+    def thread_after(self, result: Any) -> None:
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
+        self.show_toast("Optimize completed")
+        self.add_line(result)
+        self.show_result()
+
+
+class OnResizeOptimizePngToAvif(action_base.ActionBase):
+    """Resize and optimize images and convert PNG files to AVIF format too."""
+
+    icon = "➤"
+    title = "Resize Optimize images (with PNG to AVIF) "
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.max_size = self.get_text_input("Max size", "Input max image size in pixels")
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        return h.dev.run_powershell_script(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
