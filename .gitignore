@@ -1,6 +1,9 @@
 ### Harrix ###
 temp/
 ffmpeg.exe
+avifdec.exe
+avifenc.exe
+avifgainmaputil.exe
 pypi-token.txt
 
 ### Python ###
