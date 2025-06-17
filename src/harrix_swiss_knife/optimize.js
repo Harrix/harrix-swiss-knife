@@ -509,13 +509,12 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
 
         try {
           // Step 2: Get list of extracted frame files
-          let frameFiles = fs
-            .readdirSync(tempDir)
-            .filter((f) => f.startsWith("frame-") && f.endsWith(".png"))
+          let frameFiles = fs.readdirSync(tempDir)
+            .filter(f => f.startsWith('frame-') && f.endsWith('.png'))
             .sort(); // Ensure proper order
 
           if (frameFiles.length === 0) {
-            throw new Error("No frames were extracted");
+            throw new Error('No frames were extracted');
           }
 
           console.log(`📸 Extracted ${frameFiles.length} frames`);
@@ -530,7 +529,7 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
             // Calculate which frames to keep using uniform distribution
             const framesToKeep = new Set();
             for (let i = 0; i < targetFrameCount; i++) {
-              const frameIndex = Math.round((i * (originalFrameCount - 1)) / (targetFrameCount - 1));
+              const frameIndex = Math.round(i * (originalFrameCount - 1) / (targetFrameCount - 1));
               framesToKeep.add(frameIndex);
             }
 
@@ -540,7 +539,7 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
               const framePath = path.join(tempDir, frameFile);
               if (framesToKeep.has(index)) {
                 // Rename to maintain sequence
-                const newFrameName = `kept-frame-${String(keptFrames.length).padStart(6, "0")}.png`;
+                const newFrameName = `kept-frame-${String(keptFrames.length).padStart(6, '0')}.png`;
                 const newFramePath = path.join(tempDir, newFrameName);
                 fs.renameSync(framePath, newFramePath);
                 keptFrames.push(newFrameName);
@@ -581,14 +580,32 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
 
           // Convert quality values:
           // For avifenc: 0 = best quality, 63 = worst quality
-          const minQuality = quality ? 15 : 35; // min quality (best case)
-          const maxQuality = quality ? 20 : 40; // max quality (worst case)
-
-          // Build avifenc command with frame rate and quality settings
-          const frameList = frameFiles.map((f) => `"${path.join(tempDir, f)}"`).join(" ");
-          const assembleCommand = `"${avifencPath}" ${frameList} --fps ${targetFrameRate} --min ${minQuality} --max ${maxQuality} "${outputFilePath}"`;
+          const minQuality = quality ? 15 : 25;  // min quality (best case)
+          const maxQuality = quality ? 20 : 30;  // max quality (worst case)
 
           console.log(`🎨 Using quality settings: min=${minQuality}, max=${maxQuality}`);
+
+          // Check if we have frames to process
+          if (frameFiles.length === 0) {
+            throw new Error('No frames available for reassembly');
+          }
+
+          // Use different approaches based on frame count
+          let assembleCommand;
+
+          if (frameFiles.length > 50) {
+            // For many frames, use a file list approach
+            const fileListPath = path.join(tempDir, 'frames.txt');
+            const fileListContent = frameFiles.map(f => path.join(tempDir, f)).join('\n');
+            fs.writeFileSync(fileListPath, fileListContent);
+
+            // Use ffmpeg to create the animated AVIF when there are too many frames
+            assembleCommand = `ffmpeg -r ${targetFrameRate} -f image2 -i "${path.join(tempDir, frameFiles[0].replace(/\d+/, '%06d'))}" -c:v libaom-av1 -crf ${minQuality + 10} -cpu-used 4 -pix_fmt yuv420p "${outputFilePath}"`;
+          } else {
+            // For fewer frames, use the original approach
+            const frameList = frameFiles.map(f => `"${path.join(tempDir, f)}"`).join(' ');
+            assembleCommand = `"${avifencPath}" ${frameList} --fps ${targetFrameRate} --min ${minQuality} --max ${maxQuality} "${outputFilePath}"`;
+          }
 
           exec(assembleCommand, (assembleError, stdout, stderr) => {
             // Clean up temp directory
@@ -607,19 +624,24 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
             }
             resolve();
           });
+
         } catch (processingError) {
           // Clean up temp directory
-          fs.rmSync(tempDir, { recursive: true, force: true });
+          if (fs.existsSync(tempDir)) {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+          }
           console.error(`❌ Error processing frames for ${file}:`, processingError);
           reject(processingError);
         }
       });
+
     } catch (error) {
       console.error(`❌ Error in processAnimatedAvif for ${file}:`, error);
       reject(error);
     }
   });
 }
+
 
 /**
  * Process AVIF files - determine if animated or static and route accordingly.
