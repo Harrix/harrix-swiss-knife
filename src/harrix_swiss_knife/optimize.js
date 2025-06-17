@@ -308,7 +308,7 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
  */
 async function isAvifAnimated(filePath) {
   return new Promise((resolve) => {
-    const avifdecPath = path.join(__foldername, "avifdec.exe");
+    const avifdecPath = path.join(__foldername, "../../avifdec.exe");
     const command = `"${avifdecPath}" --info "${filePath}"`;
 
     exec(command, (error, stdout, stderr) => {
@@ -335,10 +335,10 @@ async function isAvifAnimated(filePath) {
 }
 
 /**
- * Process animated AVIF files using ffmpeg.
+ * Process animated AVIF files using avifdec and avifenc tools.
  *
- * Optimizes animated AVIF images using ffmpeg to preserve animation frames.
- * Uses libaom-av1 codec with configurable quality settings.
+ * Extracts all frames from animated AVIF, resizes them if needed, and reassembles into optimized animated AVIF.
+ * Uses avifdec to extract frames and avifenc to create the final animated AVIF.
  *
  * Args:
  *
@@ -353,10 +353,150 @@ async function isAvifAnimated(filePath) {
  * - `Promise<void>`: Resolves when optimization is complete.
  */
 async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const avifdecPath = path.join(__foldername, "../../avifdec.exe");
+      const avifencPath = path.join(__foldername, "../../avifenc.exe");
 
+      // Create temporary directory for frames
+      const tempDir = path.join(path.dirname(filePath), `temp_frames_${Date.now()}`);
+      fs.mkdirSync(tempDir, { recursive: true });
+
+      console.log(`🔄 Processing animated AVIF: ${file}...`);
+      console.log(`📁 Created temp directory: ${tempDir}`);
+
+      // Step 1: Extract all frames using avifdec
+      const frameBasePath = path.join(tempDir, "frame.png");
+      const extractCommand = `"${avifdecPath}" "${filePath}" "${frameBasePath}" --index all`;
+
+      console.log(`🎬 Extracting frames from ${file}...`);
+
+      exec(extractCommand, async (extractError, stdout, stderr) => {
+        if (extractError) {
+          console.error(`❌ Error extracting frames from ${file}:`, extractError);
+          // Clean up temp directory
+          fs.rmSync(tempDir, { recursive: true, force: true });
+          reject(extractError);
+          return;
+        }
+
+        try {
+          // Step 2: Get list of extracted frame files
+          const frameFiles = fs.readdirSync(tempDir)
+            .filter(f => f.startsWith('frame-') && f.endsWith('.png'))
+            .sort(); // Ensure proper order
+
+          if (frameFiles.length === 0) {
+            throw new Error('No frames were extracted');
+          }
+
+          console.log(`📸 Extracted ${frameFiles.length} frames`);
+
+          // Step 3: Resize frames if needed
+          if (maxSize) {
+            console.log(`🔧 Resizing frames to max ${maxSize}px...`);
+
+            for (const frameFile of frameFiles) {
+              const framePath = path.join(tempDir, frameFile);
+              const tempFramePath = path.join(tempDir, `temp_${frameFile}`);
+
+              let sharpInstance = sharp(framePath);
+
+              // Resize frame and save to temporary file
+              sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
+              await sharpInstance.png().toFile(tempFramePath);
+
+              // Replace original with resized version
+              fs.unlinkSync(framePath);
+              fs.renameSync(tempFramePath, framePath);
+            }
+
+            console.log(`✅ Resized ${frameFiles.length} frames`);
+          }
+
+          // Step 4: Reassemble frames into animated AVIF using avifenc
+          console.log(`🔧 Reassembling frames into animated AVIF...`);
+
+          // Try different command formats for avifenc
+          const qualityValue = quality ? 20 : 40; // Values for -q parameter
+
+          // Method 1: Try using -q quality parameter with frame pattern
+          const framePattern = path.join(tempDir, "frame-%010d.png");
+          let assembleCommand = `"${avifencPath}" -q ${qualityValue} -s 6 "${framePattern}" "${outputFilePath}"`;
+
+          exec(assembleCommand, (assembleError1) => {
+            if (assembleError1) {
+              console.log(`⚠️ Method 1 failed, trying method 2...`);
+
+              // Method 2: Try without quality parameter
+              assembleCommand = `"${avifencPath}" -s 6 "${framePattern}" "${outputFilePath}"`;
+
+              exec(assembleCommand, (assembleError2) => {
+                if (assembleError2) {
+                  console.log(`⚠️ Method 2 failed, trying method 3...`);
+
+                  // Method 3: Try basic command with just input and output
+                  assembleCommand = `"${avifencPath}" "${framePattern}" "${outputFilePath}"`;
+
+                  exec(assembleCommand, (assembleError3) => {
+                    if (assembleError3) {
+                      console.log(`⚠️ Method 3 failed, trying method 4 with individual files...`);
+
+                      // Method 4: Try listing files individually
+                      const frameList = frameFiles.map(f => `"${path.join(tempDir, f)}"`).join(' ');
+                      assembleCommand = `"${avifencPath}" ${frameList} "${outputFilePath}"`;
+
+                      exec(assembleCommand, (assembleError4) => {
+                        // Clean up temp directory
+                        fs.rmSync(tempDir, { recursive: true, force: true });
+
+                        if (assembleError4) {
+                          console.error(`❌ All methods failed to reassemble frames for ${file}`);
+                          console.error(`Last error:`, assembleError4);
+                          reject(assembleError4);
+                          return;
+                        }
+
+                        console.log(`✅ Animated AVIF ${file} successfully processed (method 4)`);
+                        resolve();
+                      });
+                    } else {
+                      // Clean up temp directory
+                      fs.rmSync(tempDir, { recursive: true, force: true });
+                      console.log(`✅ Animated AVIF ${file} successfully processed (method 3)`);
+                      resolve();
+                    }
+                  });
+                } else {
+                  // Clean up temp directory
+                  fs.rmSync(tempDir, { recursive: true, force: true });
+                  console.log(`✅ Animated AVIF ${file} successfully processed (method 2)`);
+                  resolve();
+                }
+              });
+            } else {
+              // Clean up temp directory
+              fs.rmSync(tempDir, { recursive: true, force: true });
+              console.log(`✅ Animated AVIF ${file} successfully processed (method 1)`);
+              resolve();
+            }
+          });
+
+        } catch (processingError) {
+          // Clean up temp directory
+          fs.rmSync(tempDir, { recursive: true, force: true });
+          console.error(`❌ Error processing frames for ${file}:`, processingError);
+          reject(processingError);
+        }
+      });
+
+    } catch (error) {
+      console.error(`❌ Error in processAnimatedAvif for ${file}:`, error);
+      reject(error);
+    }
   });
 }
+
 
 /**
  * Process AVIF files - determine if animated or static and route accordingly.
@@ -389,7 +529,9 @@ async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
       try {
         await processStaticAvif(filePath, outputFilePath, file, quality, maxSize);
       } catch (sharpError) {
-        console.log(`⚠️ Sharp failed to process static AVIF ${file}. Falling back to ffmpeg. (Error: ${sharpError.message})`);
+        console.log(
+          `⚠️ Sharp failed to process static AVIF ${file}. Falling back to ffmpeg. (Error: ${sharpError.message})`
+        );
         await processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize);
       }
     }
@@ -402,6 +544,41 @@ async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
     } catch (fallbackError) {
       console.error(`❌ Fallback ffmpeg processing also failed for ${file}:`, fallbackError);
     }
+  }
+}
+
+/**
+ * Process static AVIF files - optimize existing static AVIF images using Sharp.
+ *
+ * Optimizes static AVIF images using Sharp with quality settings and optional resizing.
+ * This function handles only single-frame AVIF images.
+ *
+ * Args:
+ *
+ * - `filePath` (`string`): The source AVIF file path.
+ * - `outputFilePath` (`string`): The destination path for optimized AVIF.
+ * - `file` (`string`): The original filename for logging purposes.
+ * - `quality` (`boolean|string`): Quality setting flag.
+ * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
+ *
+ * Returns:
+ *
+ * - `Promise<void>`: Resolves when optimization is complete.
+ */
+async function processStaticAvif(filePath, outputFilePath, file, quality, maxSize) {
+  try {
+    const qualityValue = quality ? 93 : 63;
+    let sharpInstance = sharp(filePath);
+
+    // Resize if needed
+    sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
+
+    await sharpInstance.avif({ quality: qualityValue }).toFile(outputFilePath);
+
+    console.log(`✅ Static AVIF ${file} successfully optimized with Sharp`);
+  } catch (error) {
+    console.error(`❌ Error processing static AVIF ${file} with Sharp:`, error);
+    throw error;
   }
 }
 
