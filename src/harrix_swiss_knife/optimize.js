@@ -1,4 +1,3 @@
-/*
 /**
  * Minimize images, including SVG, PNG, JPG, WEBP, AVIF via Node.js.
  *
@@ -170,65 +169,42 @@ async function convertJpgWebpToAvif(filePath, outputFilePath, quality, file, max
 }
 
 /**
- * Convert GIF to AVIF format using Sharp (first frame) or ffmpeg for animated GIFs.
+ * Convert GIF/MP4 files to AVIF format using ffmpeg.
  *
- * For static GIFs, uses Sharp to convert the first frame to AVIF.
- * For animated GIFs and MP4 files, uses ffmpeg command line tool.
- * Applies resizing if maxSize is specified.
+ * Uses ffmpeg command line tool to convert animated GIF or MP4 video files to AVIF format.
+ * Applies specific encoding settings optimized for quality and file size.
  *
  * Args:
  *
  * - `filePath` (`string`): The source file path to convert.
  * - `outputFilePath` (`string`): The destination file path for the AVIF output.
  * - `file` (`string`): The original filename for logging purposes.
- * - `quality` (`boolean|string`): Quality setting for Sharp conversion.
  * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
  *
  * Returns:
  *
- * - `Promise<void>`: Resolves when conversion is complete.
+ * - `void`: This function doesn't return a value, but logs success/error messages.
  *
  * Note:
  *
- * For MP4 files, requires ffmpeg to be installed and available in PATH.
+ * Requires ffmpeg to be installed and available in PATH.
  * Uses libaom-av1 codec with CRF 30 and cpu-used 4 for balanced quality/speed.
- * For GIF files, converts only the first frame using Sharp for better quality control.
  */
-async function convertGifMp4ToAvif(filePath, outputFilePath, file, quality, maxSize) {
-  const ext = path.extname(file).toLowerCase();
-
-  if (ext === ".gif") {
-    // Use Sharp for GIF (first frame only)
-    try {
-      const qualityValue = quality ? 93 : 63;
-      let sharpInstance = sharp(filePath);
-
-      // Resize if needed
-      sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
-
-      await sharpInstance.avif({ quality: qualityValue }).toFile(outputFilePath);
-
-      console.log(`✅ File ${file} successfully converted to AVIF.`);
-    } catch (err) {
-      console.error(`❌ Error while converting file ${file}:`, err);
-    }
-  } else {
-    // Use ffmpeg for MP4
-    let scaleFilter = "";
-    if (maxSize) {
-      scaleFilter = `-vf "scale='if(gt(iw,ih),min(${maxSize},iw),-1)':'if(gt(iw,ih),-1,min(${maxSize},ih))'"`;
-    }
-
-    const command = `ffmpeg -i "${filePath}" ${scaleFilter} -c:a copy -c:v libaom-av1 -crf 30 -cpu-used 4 -pix_fmt yuv420p "${outputFilePath}"`;
-
-    exec(command, (error) => {
-      if (error) {
-        console.error(`❌ Error while converting file ${file}:`, error);
-        return;
-      }
-      console.log(`✅ File ${file} successfully converted to AVIF.`);
-    });
+function convertGifMp4ToAvif(filePath, outputFilePath, file, maxSize) {
+  let scaleFilter = "";
+  if (maxSize) {
+    scaleFilter = `-vf "scale='if(gt(iw,ih),min(${maxSize},iw),-1)':'if(gt(iw,ih),-1,min(${maxSize},ih))'"`;
   }
+
+  const command = `ffmpeg -i "${filePath}" ${scaleFilter} -c:a copy -c:v libaom-av1 -crf 30 -cpu-used 4 -pix_fmt yuv420p "${outputFilePath}"`;
+
+  exec(command, (error) => {
+    if (error) {
+      console.error(`❌ Error while converting file ${file}:`, error);
+      return;
+    }
+    console.log(`✅ File ${file} successfully converted to AVIF.`);
+  });
 }
 
 /**
@@ -320,7 +296,8 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
 /**
  * Process AVIF files - optimize existing AVIF images.
  *
- * Optimizes existing AVIF files by re-encoding them with specified quality settings.
+ * For animated AVIF files, uses ffmpeg to re-encode.
+ * For static AVIF files, uses Sharp if possible.
  * Applies resizing if maxSize is specified.
  *
  * Args:
@@ -337,20 +314,48 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
  *
  * Note:
  *
- * Re-encodes AVIF files to apply optimization and potential resizing.
- * Quality values: high quality = 93, standard quality = 63.
+ * Falls back to ffmpeg if Sharp cannot process the file.
+ * Quality values: high quality = 93/CRF 20, standard quality = 63/CRF 30.
  */
 async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
   try {
+    // First, try with Sharp
     const qualityValue = quality ? 93 : 63;
     let sharpInstance = sharp(filePath);
 
-    // Resize if needed
-    sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
+    // Try to get metadata to check if Sharp can handle this file
+    try {
+      const metadata = await sharpInstance.metadata();
 
-    await sharpInstance.avif({ quality: qualityValue }).toFile(outputFilePath);
+      // If we got here, Sharp can handle the file
+      sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
+      await sharpInstance.avif({ quality: qualityValue }).toFile(outputFilePath);
 
-    console.log(`✅ File ${file} successfully optimized.`);
+      console.log(`✅ File ${file} successfully optimized.`);
+    } catch (sharpError) {
+      // Sharp can't handle this file, use ffmpeg instead
+      console.log(`⚠️ Sharp cannot process ${file}, using ffmpeg...`);
+
+      let scaleFilter = "";
+      if (maxSize) {
+        scaleFilter = `-vf "scale='if(gt(iw,ih),min(${maxSize},iw),-1)':'if(gt(iw,ih),-1,min(${maxSize},ih))'"`;
+      }
+
+      const crf = quality ? 20 : 30;
+      const command = `ffmpeg -i "${filePath}" ${scaleFilter} -c:a copy -c:v libaom-av1 -crf ${crf} -cpu-used 4 -pix_fmt yuv420p "${outputFilePath}"`;
+
+      await new Promise((resolve, reject) => {
+        exec(command, (error) => {
+          if (error) {
+            console.error(`❌ Error while processing file ${file}:`, error);
+            reject(error);
+            return;
+          }
+          console.log(`✅ File ${file} successfully optimized with ffmpeg.`);
+          resolve();
+        });
+      });
+    }
   } catch (error) {
     console.error(`❌ Error while processing file ${file}:`, error);
   }
@@ -408,7 +413,7 @@ function optimizeSvg(filePath, outputFilePath, file) {
  *
  * Routes image processing based on file extension:
  * - JPG/JPEG/WEBP → AVIF conversion
- * - GIF/MP4 → AVIF conversion via Sharp or ffmpeg
+ * - GIF/MP4 → AVIF conversion via ffmpeg
  * - PNG → Optimization or AVIF conversion
  * - AVIF → Optimization
  * - SVG → Optimization
@@ -456,7 +461,7 @@ async function processImage(file, { imagesFolder, outputFolder, quality, convert
 
     case ".gif":
     case ".mp4":
-      await convertGifMp4ToAvif(filePath, outputFilePathAvif, file, quality, maxSize);
+      convertGifMp4ToAvif(filePath, outputFilePathAvif, file, maxSize);
       break;
 
     case ".png":
