@@ -294,9 +294,10 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
 }
 
 /**
- * Check if AVIF file is animated using avifdec tool.
+ * Check if AVIF file is animated using multiple detection methods.
  *
- * Uses avifdec to extract frames and counts actual extracted files to determine if animated.
+ * First tries to use avifdec to extract frames, then falls back to ffprobe/ffmpeg
+ * for more reliable detection. Considers a file animated if it has more than 1 frame.
  *
  * Args:
  *
@@ -308,84 +309,141 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
  */
 async function isAvifAnimated(filePath) {
   return new Promise((resolve) => {
-    const avifdecPath = path.join(__foldername, "../../avifdec.exe");
+    // First, try using ffprobe for more reliable detection
+    const ffprobeCommand = `ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 "${filePath}"`;
 
-    // Try to extract frames to a temporary location to determine if animated
-    const tempDir = path.join(path.dirname(filePath), `temp_check_${Date.now()}`);
-    fs.mkdirSync(tempDir, { recursive: true });
-
-    const frameBasePath = path.join(tempDir, "check_frame.png");
-    const command = `"${avifdecPath}" "${filePath}" "${frameBasePath}" --index all`;
-
-    exec(command, (error, stdout, stderr) => {
-      let isAnimated = false;
-      let frameCount = 0;
-
-      try {
-        if (!error && fs.existsSync(tempDir)) {
-          // Count actual extracted frame files
-          const extractedFiles = fs
-            .readdirSync(tempDir)
-            .filter((f) => f.startsWith("check_frame-") && f.endsWith(".png"));
-
-          frameCount = extractedFiles.length;
-          isAnimated = frameCount > 1;
-
-          console.log(`📊 Extracted ${frameCount} frame(s) from ${path.basename(filePath)}`);
-        } else {
-          // If avifdec failed, try alternative detection using ffmpeg
-          console.log(`⚠️ avifdec failed, trying ffmpeg detection for ${path.basename(filePath)}`);
-
-          // Clean up temp directory before returning
-          if (fs.existsSync(tempDir)) {
-            fs.rmSync(tempDir, { recursive: true, force: true });
-          }
-
-          // Use ffmpeg as fallback
-          const ffmpegCommand = `ffmpeg -i "${filePath}" -f null - 2>&1`;
-
-          exec(ffmpegCommand, (ffError, ffStdout, ffStderr) => {
-            const ffOutput = ffStdout + ffStderr;
-
-            // Look for multiple streams or fps > 0
-            const hasMultipleStreams = (ffOutput.match(/Stream #/g) || []).length > 1;
-            const fpsMatch = ffOutput.match(/(\d+(?:\.\d+)?)\s*fps/);
-            const fps = fpsMatch ? parseFloat(fpsMatch[1]) : 0;
-
-            // Consider animated if has multiple streams or fps > 1
-            isAnimated = hasMultipleStreams || fps > 1;
-
-            if (isAnimated) {
-              console.log(`🎬 AVIF appears to be animated (ffmpeg detection)`);
-            } else {
-              console.log(`🖼️ AVIF appears to be static`);
-            }
-
-            resolve(isAnimated);
-          });
-
-          return; // Exit early since we're using ffmpeg fallback
+    exec(ffprobeCommand, (error, stdout, stderr) => {
+      if (!error && stdout.trim()) {
+        const packetCount = parseInt(stdout.trim());
+        // If we can get packet count, use it
+        if (!isNaN(packetCount)) {
+          const isAnimated = packetCount > 1;
+          console.log(`📊 FFprobe detected ${packetCount} packet(s) in ${path.basename(filePath)}`);
+          console.log(isAnimated ? `🎬 AVIF is animated` : `🖼️ AVIF is static`);
+          resolve(isAnimated);
+          return;
         }
-      } catch (err) {
-        console.error(`❌ Error checking AVIF animation status:`, err);
-        isAnimated = false;
       }
 
-      // Clean up temp directory
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
+      // If ffprobe fails, try alternative ffmpeg detection
+      const ffmpegCommand = `ffmpeg -i "${filePath}" -f null - 2>&1`;
 
-      if (isAnimated) {
-        console.log(`🎬 AVIF is animated (${frameCount} frames)`);
-      } else {
-        console.log(`🖼️ AVIF is static (single frame)`);
-      }
+      exec(ffmpegCommand, (ffError, ffStdout, ffStderr) => {
+        const ffOutput = ffStdout + ffStderr;
 
-      resolve(isAnimated);
+        // Look for specific indicators of animation
+        // Check for duration > 0 and fps > 0
+        const durationMatch = ffOutput.match(/Duration: (\d{2}):(\d{2}):(\d{2}\.\d+)/);
+        const fpsMatch = ffOutput.match(/(\d+(?:\.\d+)?)\s*fps/);
+
+        let isAnimated = false;
+
+        if (durationMatch) {
+          const hours = parseInt(durationMatch[1]);
+          const minutes = parseInt(durationMatch[2]);
+          const seconds = parseFloat(durationMatch[3]);
+          const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+          // If duration is more than 0.1 seconds, likely animated
+          if (totalSeconds > 0.1) {
+            isAnimated = true;
+          }
+        }
+
+        // Also check fps - static images usually report 25 fps but with single frame
+        if (fpsMatch) {
+          const fps = parseFloat(fpsMatch[1]);
+          // Look for frame count in the output
+          const frameMatch = ffOutput.match(/(\d+)\s+frames?/i);
+          if (frameMatch) {
+            const frameCount = parseInt(frameMatch[1]);
+            if (frameCount > 1) {
+              isAnimated = true;
+            } else if (frameCount === 1) {
+              isAnimated = false;
+            }
+          }
+        }
+
+        // As a last resort, try avifdec with a more careful approach
+        if (!durationMatch && !frameMatch) {
+          const avifdecPath = path.join(__foldername, "../../avifdec.exe");
+          const tempDir = path.join(path.dirname(filePath), `temp_check_${Date.now()}`);
+
+          // Create temp directory
+          fs.mkdirSync(tempDir, { recursive: true });
+
+          const frameBasePath = path.join(tempDir, "check_frame.png");
+          const avifdecCommand = `"${avifdecPath}" "${filePath}" "${frameBasePath}" --index 0`;
+
+          exec(avifdecCommand, (avifdecError) => {
+            let frameCount = 0;
+
+            try {
+              // First check if even a single frame was extracted
+              if (!avifdecError && fs.existsSync(tempDir)) {
+                const extractedFiles = fs
+                  .readdirSync(tempDir)
+                  .filter((f) => f.endsWith(".png"));
+
+                if (extractedFiles.length > 0) {
+                  // Now try to extract second frame
+                  const secondFrameCommand = `"${avifdecPath}" "${filePath}" "${path.join(tempDir, "check_frame2.png")}" --index 1`;
+
+                  exec(secondFrameCommand, (secondFrameError) => {
+                    // If second frame extraction succeeds, it's animated
+                    if (!secondFrameError) {
+                      const secondFrameFiles = fs
+                        .readdirSync(tempDir)
+                        .filter((f) => f.includes("check_frame2") && f.endsWith(".png"));
+
+                      isAnimated = secondFrameFiles.length > 0;
+                    }
+
+                    // Clean up temp directory
+                    if (fs.existsSync(tempDir)) {
+                      fs.rmSync(tempDir, { recursive: true, force: true });
+                    }
+
+                    console.log(`📊 avifdec detection for ${path.basename(filePath)}`);
+                    console.log(isAnimated ? `🎬 AVIF is animated` : `🖼️ AVIF is static`);
+                    resolve(isAnimated);
+                  });
+                } else {
+                  // No frames extracted at all
+                  if (fs.existsSync(tempDir)) {
+                    fs.rmSync(tempDir, { recursive: true, force: true });
+                  }
+                  console.log(`🖼️ AVIF appears to be static (no frames extracted)`);
+                  resolve(false);
+                }
+              } else {
+                // avifdec failed
+                if (fs.existsSync(tempDir)) {
+                  fs.rmSync(tempDir, { recursive: true, force: true });
+                }
+                console.log(`⚠️ Could not determine animation status, assuming static`);
+                resolve(false);
+              }
+            } catch (err) {
+              // Clean up on error
+              if (fs.existsSync(tempDir)) {
+                fs.rmSync(tempDir, { recursive: true, force: true });
+              }
+              console.error(`❌ Error checking AVIF animation status:`, err);
+              resolve(false);
+            }
+          });
+        } else {
+          console.log(`📊 FFmpeg detection for ${path.basename(filePath)}`);
+          console.log(isAnimated ? `🎬 AVIF is animated` : `🖼️ AVIF is static`);
+          resolve(isAnimated);
+        }
+      });
     });
   });
 }
+
 
 /**
  * Get frame rate from video file using ffmpeg.
