@@ -644,7 +644,6 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
   });
 }
 
-
 /**
  * Process AVIF files - determine if animated or static and route accordingly.
  *
@@ -664,32 +663,21 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
  * - `Promise<void>`: Resolves when optimization is complete.
  */
 async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
-  try {
-    // Use avifdec to check if AVIF is animated
-    const isAnimated = await isAvifAnimated(filePath);
+  const isAnimated = await isAvifAnimated(filePath);
 
-    if (isAnimated) {
-      console.log(`🎬 Detected animated AVIF: ${file}`);
-      await processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize);
-    } else {
-      console.log(`🖼️ Detected static AVIF: ${file}. Processing with Sharp...`);
-      try {
-        await processStaticAvif(filePath, outputFilePath, file, quality, maxSize);
-      } catch (sharpError) {
-        console.log(
-          `⚠️ Sharp failed to process static AVIF ${file}. Falling back to ffmpeg. (Error: ${sharpError.message})`
-        );
-        await processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize);
-      }
-    }
-  } catch (error) {
-    console.error(`❌ Error processing AVIF ${file}:`, error);
-    // Fallback to ffmpeg if everything else fails
-    console.log(`⚠️ Falling back to ffmpeg for ${file}...`);
+  if (isAnimated) {
+    console.log(`🎬 Detected animated AVIF: ${file}`);
     try {
       await processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize);
-    } catch (fallbackError) {
-      console.error(`❌ Fallback ffmpeg processing also failed for ${file}:`, fallbackError);
+    } catch (error) {
+      console.error(`❌ Error processing animated AVIF ${file}:`, error);
+    }
+  } else {
+    console.log(`🖼️ Detected static AVIF: ${file}.`);
+    try {
+      await processStaticAvif(filePath, outputFilePath, file, quality, maxSize);
+    } catch (sharpError) {
+      console.error(`❌ Error processing static AVIF ${file}:`, error);
     }
   }
 }
