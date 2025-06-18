@@ -2,14 +2,16 @@
  * Minimize images, including SVG, PNG, JPG, WEBP, AVIF via Node.js.
  *
  * This script provides comprehensive image optimization capabilities:
+ *
  * - Converts JPG/JPEG/WEBP to AVIF format
  * - Converts GIF/MP4 to AVIF using ffmpeg
  * - Optimizes PNG files or converts them to AVIF
  * - Optimizes SVG files using SVGO
  * - Resizes images to maximum dimensions before optimization
- * - Optimizes existing AVIF files
+ * - Optimizes existing AVIF files (both static and animated)
  *
  * Usage examples:
+ *
  * ```shell
  * npm run optimize
  * npm run optimize quality=true imagesFolder="/custom/images/path" outputFolder="/custom/output/path"
@@ -18,6 +20,7 @@
  * ```
  *
  * CLI Arguments:
+ *
  * - quality: boolean - Use high quality settings. Defaults to `false`.
  * - convertPngToAvif: boolean - Convert PNG files to AVIF instead of optimizing. Defaults to `false`.
  * - imagesFolder: string - Source folder path. Defaults to "../../temp/images".
@@ -107,7 +110,7 @@ function clearFolder(folderPath) {
  *
  * Note:
  *
- * Uses Sharp's resize method with { fit: 'inside' } to maintain aspect ratio.
+ * Uses Sharp's resize method with `{ fit: 'inside', withoutEnlargement: true }` to maintain aspect ratio.
  * Only resizes if image dimensions exceed maxSize parameter.
  */
 async function resizeIfNeeded(sharpInstance, maxSize) {
@@ -139,7 +142,7 @@ async function resizeIfNeeded(sharpInstance, maxSize) {
  *
  * - `filePath` (`string`): The source file path to convert.
  * - `outputFilePath` (`string`): The destination file path for the AVIF output.
- * - `quality` (`string|boolean`): Quality setting - if truthy, uses high quality (93), otherwise standard quality (63).
+ * - `quality` (`boolean`): Quality setting - if true, uses high quality (93), otherwise standard quality (63).
  * - `file` (`string`): The original filename for logging purposes.
  * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
  *
@@ -173,6 +176,7 @@ async function convertJpgWebpToAvif(filePath, outputFilePath, quality, file, max
  *
  * Uses ffmpeg command line tool to convert animated GIF or MP4 video files to AVIF format.
  * Applies specific encoding settings optimized for quality and file size.
+ * Includes optional resizing using ffmpeg's scale filter.
  *
  * Args:
  *
@@ -189,6 +193,7 @@ async function convertJpgWebpToAvif(filePath, outputFilePath, quality, file, max
  *
  * Requires ffmpeg to be installed and available in PATH.
  * Uses libaom-av1 codec with CRF 30 and cpu-used 4 for balanced quality/speed.
+ * Resizing is done using ffmpeg's scale filter with aspect ratio preservation.
  */
 function convertGifMp4ToAvif(filePath, outputFilePath, file, maxSize) {
   let scaleFilter = "";
@@ -211,17 +216,19 @@ function convertGifMp4ToAvif(filePath, outputFilePath, file, maxSize) {
  * Process PNG files - either optimize or convert to AVIF based on parameters.
  *
  * Handles PNG files in three different ways based on the provided flags:
+ *
  * 1. Convert to AVIF if convertPngToAvif is true
- * 2. Copy without changes if quality is true
- * 3. Optimize using Sharp and pngquant for maximum compression
+ * 2. Copy without changes (with optional resizing) if quality is true
+ * 3. Optimize using Sharp and imagemin-pngquant for maximum compression
+ *
  * Applies resizing if maxSize is specified.
  *
  * Args:
  *
  * - `filePath` (`string`): The source PNG file path.
  * - `file` (`string`): The original filename for logging purposes.
- * - `quality` (`boolean|string`): If truthy, copies file without optimization. Defaults to `false`.
- * - `convertPngToAvif` (`boolean|string`): If truthy, converts PNG to AVIF instead of optimizing. Defaults to `false`.
+ * - `quality` (`boolean`): If true, copies file without optimization (but may resize). Defaults to `false`.
+ * - `convertPngToAvif` (`boolean`): If true, converts PNG to AVIF instead of optimizing. Defaults to `false`.
  * - `outputFilePathAvif` (`string`): The destination path for AVIF conversion.
  * - `outputFilePathPng` (`string`): The destination path for PNG optimization.
  * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
@@ -234,7 +241,8 @@ function convertGifMp4ToAvif(filePath, outputFilePath, file, maxSize) {
  *
  * Uses Sharp for initial PNG optimization and imagemin-pngquant for further compression.
  * AVIF quality: high quality = 93, standard quality = 63.
- * PNG optimization reduces colors to 256 and applies maximum compression.
+ * PNG optimization: compressionLevel 9, adaptiveFiltering true, colors reduced to 256.
+ * Pngquant settings: quality [0.6, 0.8], strip metadata, speed 1.
  */
 async function processPng(filePath, file, quality, convertPngToAvif, outputFilePathAvif, outputFilePathPng, maxSize) {
   try {
@@ -296,8 +304,13 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
 /**
  * Check if AVIF file is animated using multiple detection methods.
  *
- * First tries to use avifdec to extract frames, then falls back to ffprobe/ffmpeg
- * for more reliable detection. Considers a file animated if it has more than 1 frame.
+ * Uses a multi-tier approach for reliable animation detection:
+ *
+ * 1. First tries ffprobe to count packets
+ * 2. Falls back to ffmpeg duration/fps analysis
+ * 3. Finally uses avifdec frame extraction as last resort
+ *
+ * Considers a file animated if it has more than 1 frame or duration > 0.1 seconds.
  *
  * Args:
  *
@@ -306,6 +319,12 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
  * Returns:
  *
  * - `Promise<boolean>`: Resolves to true if animated (more than 1 frame), false if static.
+ *
+ * Note:
+ *
+ * This function creates temporary directories for frame extraction testing.
+ * Cleans up all temporary files after detection is complete.
+ * Requires ffprobe, ffmpeg, and avifdec to be available in PATH or script directory.
  */
 async function isAvifAnimated(filePath) {
   return new Promise((resolve) => {
@@ -382,13 +401,14 @@ async function isAvifAnimated(filePath) {
             try {
               // First check if even a single frame was extracted
               if (!avifdecError && fs.existsSync(tempDir)) {
-                const extractedFiles = fs
-                  .readdirSync(tempDir)
-                  .filter((f) => f.endsWith(".png"));
+                const extractedFiles = fs.readdirSync(tempDir).filter((f) => f.endsWith(".png"));
 
                 if (extractedFiles.length > 0) {
                   // Now try to extract second frame
-                  const secondFrameCommand = `"${avifdecPath}" "${filePath}" "${path.join(tempDir, "check_frame2.png")}" --index 1`;
+                  const secondFrameCommand = `"${avifdecPath}" "${filePath}" "${path.join(
+                    tempDir,
+                    "check_frame2.png"
+                  )}" --index 1`;
 
                   exec(secondFrameCommand, (secondFrameError) => {
                     // If second frame extraction succeeds, it's animated
@@ -444,12 +464,12 @@ async function isAvifAnimated(filePath) {
   });
 }
 
-
 /**
  * Get frame rate from video file using ffmpeg.
  *
  * Extracts the frame rate (fps) from video files by parsing ffmpeg output.
- * Looks for the second stream which typically contains the actual video fps.
+ * Looks for fps values in ffmpeg streams, prioritizing Stream #0:1 when available.
+ * Filters out unrealistic values (< 1 or > 120 fps).
  *
  * Args:
  *
@@ -458,6 +478,11 @@ async function isAvifAnimated(filePath) {
  * Returns:
  *
  * - `Promise<number>`: Frame rate in fps, defaults to 25 if unable to detect.
+ *
+ * Note:
+ *
+ * Uses platform-specific commands (findstr on Windows, grep on Unix-like systems).
+ * Prioritizes Stream #0:1 over other streams for more accurate fps detection.
  */
 async function getFrameRate(filePath) {
   return new Promise((resolve) => {
@@ -504,9 +529,9 @@ async function getFrameRate(filePath) {
 /**
  * Process animated AVIF files using avifdec and ffmpeg tools.
  *
- * Extracts all frames from animated AVIF, resizes them if needed, reduces frame rate to max 10 fps if needed,
- * and reassembles into optimized animated AVIF using ffmpeg.
- * Uses avifdec to extract frames and ffmpeg to create the final animated AVIF.
+ * Extracts all frames from animated AVIF, resizes them if needed, reduces frame rate to max 10 fps for optimization,
+ * and reassembles into optimized animated AVIF using ffmpeg or avifenc.
+ * Uses avifdec to extract frames and either ffmpeg or avifenc to create the final animated AVIF.
  * Preserves original playback speed while reducing frame count for optimization.
  *
  * Args:
@@ -514,12 +539,19 @@ async function getFrameRate(filePath) {
  * - `filePath` (`string`): The source animated AVIF file path.
  * - `outputFilePath` (`string`): The destination path for optimized AVIF.
  * - `file` (`string`): The original filename for logging purposes.
- * - `quality` (`boolean|string`): Quality setting flag.
+ * - `quality` (`boolean`): Quality setting flag - affects CRF/quality values.
  * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
  *
  * Returns:
  *
  * - `Promise<void>`: Resolves when optimization is complete.
+ *
+ * Note:
+ *
+ * Creates temporary directories for frame extraction and processing.
+ * Uses different assembly methods based on frame count (ffmpeg for >50 frames, avifenc for ≤50).
+ * Reduces frame rate from original to maximum 10 fps for file size optimization.
+ * Quality settings: high quality uses min=15/max=20, standard uses min=25/max=30.
  */
 async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxSize) {
   return new Promise(async (resolve, reject) => {
@@ -705,20 +737,26 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
 /**
  * Process AVIF files - determine if animated or static and route accordingly.
  *
- * Uses avifdec tool to determine if AVIF files contain multiple frames (animated) or single frame (static).
- * Routes to appropriate processing function based on animation detection.
+ * Uses multiple detection methods to determine if AVIF files contain multiple frames (animated) or single frame (static).
+ * Routes to appropriate processing function based on animation detection results.
  *
  * Args:
  *
  * - `filePath` (`string`): The source AVIF file path.
  * - `outputFilePath` (`string`): The destination path for optimized AVIF.
  * - `file` (`string`): The original filename for logging purposes.
- * - `quality` (`boolean|string`): Quality setting flag.
+ * - `quality` (`boolean`): Quality setting flag.
  * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
  *
  * Returns:
  *
  * - `Promise<void>`: Resolves when optimization is complete.
+ *
+ * Note:
+ *
+ * Uses isAvifAnimated() function for detection, which employs multiple fallback methods.
+ * Animated AVIF files are processed with frame rate optimization and reassembly.
+ * Static AVIF files are processed with ffmpeg for quality optimization.
  */
 async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
   const isAnimated = await isAvifAnimated(filePath);
@@ -734,7 +772,7 @@ async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
     console.log(`🖼️ Detected static AVIF: ${file}.`);
     try {
       await processStaticAvif(filePath, outputFilePath, file, quality, maxSize);
-    } catch (sharpError) {
+    } catch (error) {
       console.error(`❌ Error processing static AVIF ${file}:`, error);
     }
   }
@@ -744,19 +782,26 @@ async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
  * Process static AVIF files - optimize existing static AVIF images using ffmpeg.
  *
  * Optimizes static AVIF images using ffmpeg with quality settings and optional resizing.
- * This function handles only single-frame AVIF images.
+ * This function handles only single-frame AVIF images and ensures output contains exactly one frame.
  *
  * Args:
  *
  * - `filePath` (`string`): The source AVIF file path.
  * - `outputFilePath` (`string`): The destination path for optimized AVIF.
  * - `file` (`string`): The original filename for logging purposes.
- * - `quality` (`boolean|string`): Quality setting flag.
+ * - `quality` (`boolean`): Quality setting flag - if true uses CRF 18, otherwise CRF 28.
  * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
  *
  * Returns:
  *
  * - `Promise<void>`: Resolves when optimization is complete.
+ *
+ * Note:
+ *
+ * Uses ffmpeg with libaom-av1 codec for re-encoding.
+ * Quality settings: high quality CRF=18, standard quality CRF=28.
+ * Includes scale filter for resizing while maintaining aspect ratio.
+ * Forces single frame output with `-frames:v 1` parameter.
  */
 async function processStaticAvif(filePath, outputFilePath, file, quality, maxSize) {
   return new Promise((resolve, reject) => {
@@ -795,7 +840,7 @@ async function processStaticAvif(filePath, outputFilePath, file, quality, maxSiz
  * Optimize SVG files using SVGO library.
  *
  * Reads SVG files and applies SVGO optimization with default preset plugins.
- * Uses multipass optimization for better results.
+ * Uses multipass optimization for better compression results.
  *
  * Args:
  *
@@ -809,9 +854,10 @@ async function processStaticAvif(filePath, outputFilePath, file, quality, maxSiz
  *
  * Note:
  *
- * Uses SVGO's "preset-default" plugin set with multipass enabled.
+ * Uses SVGO's "preset-default" plugin set with multipass enabled for thorough optimization.
  * All file operations are asynchronous using Node.js fs callbacks.
  * SVG files are not resized as they are vector-based and scalable by nature.
+ * Preserves SVG structure while removing unnecessary elements and attributes.
  */
 function optimizeSvg(filePath, outputFilePath, file) {
   fs.readFile(filePath, "utf8", (err, data) => {
@@ -842,12 +888,13 @@ function optimizeSvg(filePath, outputFilePath, file) {
  * Process a single image file based on its extension and configuration.
  *
  * Routes image processing based on file extension:
- * - JPG/JPEG/WEBP → AVIF conversion
+ *
+ * - JPG/JPEG/WEBP → AVIF conversion using Sharp
  * - GIF/MP4 → AVIF conversion via ffmpeg
- * - PNG → Optimization or AVIF conversion
- * - AVIF → Optimization
- * - SVG → Optimization
- * - Other formats → Skip with message
+ * - PNG → Optimization with Sharp/pngquant or AVIF conversion
+ * - AVIF → Animation detection and appropriate optimization
+ * - SVG → Optimization using SVGO
+ * - Other formats → Skip with informational message
  *
  * Args:
  *
@@ -855,8 +902,8 @@ function optimizeSvg(filePath, outputFilePath, file) {
  * - `options` (`object`): Configuration object containing:
  *   - `imagesFolder` (`string`): Source folder path
  *   - `outputFolder` (`string`): Destination folder path
- *   - `quality` (`boolean|string`): Quality setting flag. Defaults to `false`.
- *   - `convertPngToAvif` (`boolean|string`): PNG to AVIF conversion flag. Defaults to `false`.
+ *   - `quality` (`boolean`): Quality setting flag. Defaults to `false`.
+ *   - `convertPngToAvif` (`boolean`): PNG to AVIF conversion flag. Defaults to `false`.
  *   - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
  *
  * Returns:
@@ -865,8 +912,9 @@ function optimizeSvg(filePath, outputFilePath, file) {
  *
  * Note:
  *
- * Skips directories automatically. File extension detection is case-insensitive.
+ * Automatically skips directories. File extension detection is case-insensitive.
  * Output filenames preserve the original name but change the extension based on processing type.
+ * All processing functions handle resizing internally if maxSize is specified.
  */
 async function processImage(file, { imagesFolder, outputFolder, quality, convertPngToAvif, maxSize }) {
   const filePath = path.join(imagesFolder, file);
@@ -915,8 +963,9 @@ async function processImage(file, { imagesFolder, outputFolder, quality, convert
 /**
  * Main function that orchestrates the image optimization process.
  *
- * Sets up folder paths, handles CLI argument parsing, and processes all images in the source folder.
- * Manages default folder creation and cleanup based on provided arguments.
+ * Sets up folder paths based on CLI arguments or defaults, handles folder creation and cleanup,
+ * and processes all images in the source folder sequentially.
+ * Manages both default and custom folder configurations.
  *
  * Returns:
  *
@@ -924,12 +973,18 @@ async function processImage(file, { imagesFolder, outputFolder, quality, convert
  *
  * Note:
  *
- * Default paths:
- * - imagesFolder: "../../temp/images" (relative to script location)
- * - outputFolder: "../../temp/optimized_images" (relative to script location)
+ * Default paths (relative to script location):
  *
- * If custom imagesFolder is provided but no outputFolder, creates a "temp" subfolder in imagesFolder.
- * Clears output folder before processing to ensure clean results.
+ * - imagesFolder: "../../temp/images"
+ * - outputFolder: "../../temp/optimized_images"
+ *
+ * Folder logic:
+ *
+ * - If no imagesFolder provided: uses defaults and clears output folder
+ * - If imagesFolder provided but no outputFolder: creates "temp" subfolder in imagesFolder
+ * - If both provided: uses custom paths without clearing
+ *
+ * Processes images sequentially to avoid overwhelming system resources.
  */
 async function main() {
   // If no imagesFolder is provided, set default
