@@ -692,9 +692,9 @@ async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
 }
 
 /**
- * Process static AVIF files - optimize existing static AVIF images using Sharp.
+ * Process static AVIF files - optimize existing static AVIF images using ffmpeg.
  *
- * Optimizes static AVIF images using Sharp with quality settings and optional resizing.
+ * Optimizes static AVIF images using ffmpeg with quality settings and optional resizing.
  * This function handles only single-frame AVIF images.
  *
  * Args:
@@ -710,20 +710,36 @@ async function processAvif(filePath, outputFilePath, file, quality, maxSize) {
  * - `Promise<void>`: Resolves when optimization is complete.
  */
 async function processStaticAvif(filePath, outputFilePath, file, quality, maxSize) {
-  try {
-    const qualityValue = quality ? 93 : 63;
-    let sharpInstance = sharp(filePath);
+  return new Promise((resolve, reject) => {
+    console.log(`🎯 Processing static AVIF with ffmpeg: ${file}...`);
 
-    // Resize if needed
-    sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
+    const crf = quality ? 18 : 28;
 
-    await sharpInstance.avif({ quality: qualityValue }).toFile(outputFilePath);
+    // Build ffmpeg command for static image (single frame)
+    let command = `ffmpeg -i "${filePath}" -c:v libaom-av1 -crf ${crf} -cpu-used 4 -pix_fmt yuv420p`;
 
-    console.log(`✅ Static AVIF ${file} successfully optimized with Sharp`);
-  } catch (error) {
-    console.error(`❌ Error processing static AVIF ${file} with Sharp:`, error);
-    throw error;
-  }
+    // Add scale filter if maxSize was specified
+    if (maxSize) {
+      command += ` -vf "scale='if(gt(iw,ih),min(${maxSize},iw),-1)':'if(gt(iw,ih),-1,min(${maxSize},ih))'"`;
+    }
+
+    // Important: ensure only one frame is output for static images
+    command += ` -frames:v 1`;
+
+    command += ` -y "${outputFilePath}"`;
+
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`❌ Error processing static AVIF ${file}:`, error);
+        console.error(`stderr: ${stderr}`);
+        reject(error);
+        return;
+      }
+
+      console.log(`✅ Static AVIF ${file} successfully processed with ffmpeg`);
+      resolve();
+    });
+  });
 }
 
 /**
