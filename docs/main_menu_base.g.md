@@ -119,7 +119,7 @@ class MainMenuBase:
                 for item in sorted_group:
                     self._add_item(menu, item)
 
-    def add_menus_and_items(self, parent_menu: QMenu, menus: list = None, items: list = None) -> None:
+    def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None:
         """Add submenus and items to the parent menu.
 
         Args:
@@ -389,7 +389,7 @@ def add_items(self, menu: QMenu, items: list) -> None:
 ### Method `add_menus_and_items`
 
 ```python
-def add_menus_and_items(self, parent_menu: QMenu, menus: list = None, items: list = None) -> None
+def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None
 ```
 
 Add submenus and items to the parent menu.
@@ -409,7 +409,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_menus_and_items(self, parent_menu: QMenu, menus: list = None, items: list = None) -> None:
+def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None:
         # Add submenus
         if menus:
             for menu in menus:

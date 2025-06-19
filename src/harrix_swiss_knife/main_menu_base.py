@@ -94,7 +94,7 @@ class MainMenuBase:
                 for item in sorted_group:
                     self._add_item(menu, item)
 
-    def add_menus_and_items(self, parent_menu: QMenu, menus: list = None, items: list = None) -> None:
+    def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None:
         """Add submenus and items to the parent menu.
 
         Args:
