@@ -1010,13 +1010,19 @@ class MainWindow(
             transformed_data, self.table_config["process"][2]
         )
         self.tableView_process.setModel(self.models["process"])
-        self.tableView_process.resizeColumnsToContents()
 
-        # Stretch columns to fill the entire table width
+        # Configure header with mixed approach after applying filter
         header = self.tableView_process.horizontalHeader()
-        header.setStretchLastSection(True)
+        # Set first columns to interactive (resizable)
         for i in range(header.count() - 1):
-            header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+        # Set last column to stretch to fill remaining space
+        header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+        # Restore default column widths for resizable columns
+        self.tableView_process.setColumnWidth(0, 200)  # Exercise
+        self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
+        self.tableView_process.setColumnWidth(2, 120)  # Quantity
+        # Date column will stretch automatically
 
     def clear_filter(self) -> None:
         """Reset all process-table filters.
@@ -1317,12 +1323,16 @@ class MainWindow(
 
                 self.tableView_statistics.setModel(empty_model)
 
-                # Reset column stretching and resize to contents only
+                # Configure header with mixed approach: interactive + stretch last
                 header = self.tableView_statistics.horizontalHeader()
-                for i in range(header.count()):
-                    header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
-                header.setStretchLastSection(False)
-                self.tableView_statistics.resizeColumnsToContents()
+                # Set first columns to interactive (resizable)
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+                # Set last column to stretch to fill remaining space
+                header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+                # Set default column widths for resizable columns
+                for i in range(header.count() - 1):
+                    self.tableView_statistics.setColumnWidth(i, 150)
 
                 return
 
@@ -1436,12 +1446,16 @@ class MainWindow(
             # Set model to table view
             self.tableView_statistics.setModel(model)
 
-            # Reset column stretching and resize to contents only
+            # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
-            for i in range(header.count()):
-                header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
-            header.setStretchLastSection(False)
-            self.tableView_statistics.resizeColumnsToContents()
+            # Set first columns to interactive (resizable)
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            for i in range(header.count() - 1):
+                self.tableView_statistics.setColumnWidth(i, 150)
 
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
@@ -1862,6 +1876,12 @@ class MainWindow(
             # Custom column width setup for statistics table
             header = self.tableView_statistics.horizontalHeader()
 
+            # Set most columns to interactive mode to allow manual resizing
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+
             # Set specific resize modes and stretch factors for each column
             header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
             header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
@@ -1905,12 +1925,16 @@ class MainWindow(
                 empty_model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
                 self.tableView_statistics.setModel(empty_model)
 
-                # Reset column stretching and resize to contents only
+                # Configure header with mixed approach: interactive + stretch last
                 header = self.tableView_statistics.horizontalHeader()
-                for i in range(header.count()):
-                    header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
-                header.setStretchLastSection(False)
-                self.tableView_statistics.resizeColumnsToContents()
+                # Set first columns to interactive (resizable)
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+                # Set last column to stretch to fill remaining space
+                header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+                # Set default column widths for resizable columns
+                for i in range(header.count() - 1):
+                    self.tableView_statistics.setColumnWidth(i, 150)
 
                 return
 
@@ -1983,12 +2007,16 @@ class MainWindow(
             # Set model to table view
             self.tableView_statistics.setModel(model)
 
-            # Reset column stretching and resize to contents only
+            # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
-            for i in range(header.count()):
-                header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
-            header.setStretchLastSection(False)
-            self.tableView_statistics.resizeColumnsToContents()
+            # Set first columns to interactive (resizable)
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            for i in range(header.count() - 1):
+                self.tableView_statistics.setColumnWidth(i, 150)
 
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
@@ -2256,32 +2284,53 @@ class MainWindow(
             )
             self.tableView_process.setModel(self.models["process"])
 
-            # Stretch columns to fill the entire table width for process table
+            # Configure process table header - mixed approach: interactive + stretch last
             process_header = self.tableView_process.horizontalHeader()
-            process_header.setStretchLastSection(True)
+            # Set first columns to interactive (resizable)
             for i in range(process_header.count() - 1):
-                process_header.setSectionResizeMode(i, process_header.ResizeMode.Stretch)
+                process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            process_header.setSectionResizeMode(process_header.count() - 1, process_header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            self.tableView_process.setColumnWidth(0, 200)  # Exercise
+            self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
+            self.tableView_process.setColumnWidth(2, 120)  # Quantity
+            # Date column will stretch automatically
 
             # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
 
-            # Stretch columns to fill the entire table width for weight table
+            # Configure weight table header - mixed approach: interactive + stretch last
             weight_header = self.tableView_weight.horizontalHeader()
-            weight_header.setStretchLastSection(True)
-            for i in range(weight_header.count() - 1):
-                weight_header.setSectionResizeMode(i, weight_header.ResizeMode.Stretch)
+            # Set first column to interactive (resizable)
+            weight_header.setSectionResizeMode(0, weight_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            weight_header.setSectionResizeMode(1, weight_header.ResizeMode.Stretch)
+            # Set default width for resizable column
+            self.tableView_weight.setColumnWidth(0, 100)  # Weight
+            # Date column will stretch automatically
 
-            # Stretch columns to fill the entire table width for exercises table
+            # Configure exercises table header - mixed approach: interactive + stretch last
             exercises_header = self.tableView_exercises.horizontalHeader()
-            exercises_header.setStretchLastSection(True)
+            # Set first columns to interactive (resizable)
             for i in range(exercises_header.count() - 1):
-                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Stretch)
+                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
+            self.tableView_exercises.setColumnWidth(1, 120)  # Unit
+            # Type Required column will stretch automatically
 
-            # Stretch columns to fill the entire table width for exercise types table
+            # Configure exercise types table header - mixed approach: interactive + stretch last
             exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-            exercise_types_header.setStretchLastSection(True)
-            for i in range(exercise_types_header.count() - 1):
-                exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Stretch)
+            # Set first column to interactive (resizable)
+            exercise_types_header.setSectionResizeMode(0, exercise_types_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            exercise_types_header.setSectionResizeMode(1, exercise_types_header.ResizeMode.Stretch)
+            # Set default width for resizable column
+            self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
+            # Exercise Type column will stretch automatically
 
             self._connect_table_signals("weight", self.on_weight_selection_changed)
 
@@ -3895,13 +3944,18 @@ def apply_filter(self) -> None:
             transformed_data, self.table_config["process"][2]
         )
         self.tableView_process.setModel(self.models["process"])
-        self.tableView_process.resizeColumnsToContents()
 
-        # Stretch columns to fill the entire table width
+        # Configure header with mixed approach after applying filter
         header = self.tableView_process.horizontalHeader()
-        header.setStretchLastSection(True)
+        # Set first columns to interactive (resizable)
         for i in range(header.count() - 1):
-            header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+        # Set last column to stretch to fill remaining space
+        header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+        # Restore default column widths for resizable columns
+        self.tableView_process.setColumnWidth(0, 200)  # Exercise
+        self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
+        self.tableView_process.setColumnWidth(2, 120)  # Quantity
 ```
 
 </details>
@@ -4315,12 +4369,16 @@ def on_check_steps(self) -> None:
 
                 self.tableView_statistics.setModel(empty_model)
 
-                # Reset column stretching and resize to contents only
+                # Configure header with mixed approach: interactive + stretch last
                 header = self.tableView_statistics.horizontalHeader()
-                for i in range(header.count()):
-                    header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
-                header.setStretchLastSection(False)
-                self.tableView_statistics.resizeColumnsToContents()
+                # Set first columns to interactive (resizable)
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+                # Set last column to stretch to fill remaining space
+                header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+                # Set default column widths for resizable columns
+                for i in range(header.count() - 1):
+                    self.tableView_statistics.setColumnWidth(i, 150)
 
                 return
 
@@ -4434,12 +4492,16 @@ def on_check_steps(self) -> None:
             # Set model to table view
             self.tableView_statistics.setModel(model)
 
-            # Reset column stretching and resize to contents only
+            # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
-            for i in range(header.count()):
-                header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
-            header.setStretchLastSection(False)
-            self.tableView_statistics.resizeColumnsToContents()
+            # Set first columns to interactive (resizable)
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            for i in range(header.count() - 1):
+                self.tableView_statistics.setColumnWidth(i, 150)
 
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
@@ -4913,6 +4975,12 @@ def on_refresh_statistics(self) -> None:
             # Custom column width setup for statistics table
             header = self.tableView_statistics.horizontalHeader()
 
+            # Set most columns to interactive mode to allow manual resizing
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+
             # Set specific resize modes and stretch factors for each column
             header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
             header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
@@ -4969,12 +5037,16 @@ def on_show_last_exercises(self) -> None:
                 empty_model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
                 self.tableView_statistics.setModel(empty_model)
 
-                # Reset column stretching and resize to contents only
+                # Configure header with mixed approach: interactive + stretch last
                 header = self.tableView_statistics.horizontalHeader()
-                for i in range(header.count()):
-                    header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
-                header.setStretchLastSection(False)
-                self.tableView_statistics.resizeColumnsToContents()
+                # Set first columns to interactive (resizable)
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+                # Set last column to stretch to fill remaining space
+                header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+                # Set default column widths for resizable columns
+                for i in range(header.count() - 1):
+                    self.tableView_statistics.setColumnWidth(i, 150)
 
                 return
 
@@ -5047,12 +5119,16 @@ def on_show_last_exercises(self) -> None:
             # Set model to table view
             self.tableView_statistics.setModel(model)
 
-            # Reset column stretching and resize to contents only
+            # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
-            for i in range(header.count()):
-                header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
-            header.setStretchLastSection(False)
-            self.tableView_statistics.resizeColumnsToContents()
+            # Set first columns to interactive (resizable)
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            for i in range(header.count() - 1):
+                self.tableView_statistics.setColumnWidth(i, 150)
 
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
@@ -5482,32 +5558,53 @@ def show_tables(self) -> None:
             )
             self.tableView_process.setModel(self.models["process"])
 
-            # Stretch columns to fill the entire table width for process table
+            # Configure process table header - mixed approach: interactive + stretch last
             process_header = self.tableView_process.horizontalHeader()
-            process_header.setStretchLastSection(True)
+            # Set first columns to interactive (resizable)
             for i in range(process_header.count() - 1):
-                process_header.setSectionResizeMode(i, process_header.ResizeMode.Stretch)
+                process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            process_header.setSectionResizeMode(process_header.count() - 1, process_header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            self.tableView_process.setColumnWidth(0, 200)  # Exercise
+            self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
+            self.tableView_process.setColumnWidth(2, 120)  # Quantity
+            # Date column will stretch automatically
 
             # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
 
-            # Stretch columns to fill the entire table width for weight table
+            # Configure weight table header - mixed approach: interactive + stretch last
             weight_header = self.tableView_weight.horizontalHeader()
-            weight_header.setStretchLastSection(True)
-            for i in range(weight_header.count() - 1):
-                weight_header.setSectionResizeMode(i, weight_header.ResizeMode.Stretch)
+            # Set first column to interactive (resizable)
+            weight_header.setSectionResizeMode(0, weight_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            weight_header.setSectionResizeMode(1, weight_header.ResizeMode.Stretch)
+            # Set default width for resizable column
+            self.tableView_weight.setColumnWidth(0, 100)  # Weight
+            # Date column will stretch automatically
 
-            # Stretch columns to fill the entire table width for exercises table
+            # Configure exercises table header - mixed approach: interactive + stretch last
             exercises_header = self.tableView_exercises.horizontalHeader()
-            exercises_header.setStretchLastSection(True)
+            # Set first columns to interactive (resizable)
             for i in range(exercises_header.count() - 1):
-                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Stretch)
+                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
+            self.tableView_exercises.setColumnWidth(1, 120)  # Unit
+            # Type Required column will stretch automatically
 
-            # Stretch columns to fill the entire table width for exercise types table
+            # Configure exercise types table header - mixed approach: interactive + stretch last
             exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-            exercise_types_header.setStretchLastSection(True)
-            for i in range(exercise_types_header.count() - 1):
-                exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Stretch)
+            # Set first column to interactive (resizable)
+            exercise_types_header.setSectionResizeMode(0, exercise_types_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            exercise_types_header.setSectionResizeMode(1, exercise_types_header.ResizeMode.Stretch)
+            # Set default width for resizable column
+            self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
+            # Exercise Type column will stretch automatically
 
             self._connect_table_signals("weight", self.on_weight_selection_changed)
 
