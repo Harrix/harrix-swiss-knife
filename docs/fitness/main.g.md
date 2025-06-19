@@ -1379,17 +1379,6 @@ class MainWindow(
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
 
-            # Show summary in status or message
-            missing_count = len(missing_days)
-            duplicate_count = len(duplicate_days)
-
-            if missing_count == 0 and duplicate_count == 0:
-                status_message = f"✅ Steps check complete: No issues found for {steps_exercise_name}"
-            else:
-                status_message = (
-                    f"⚠️ Steps check complete: {missing_count} missing days, {duplicate_count} duplicate days"
-                )
-
         except Exception as e:
             QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
 
@@ -4141,17 +4130,6 @@ def on_check_steps(self) -> None:
 
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
-
-            # Show summary in status or message
-            missing_count = len(missing_days)
-            duplicate_count = len(duplicate_days)
-
-            if missing_count == 0 and duplicate_count == 0:
-                status_message = f"✅ Steps check complete: No issues found for {steps_exercise_name}"
-            else:
-                status_message = (
-                    f"⚠️ Steps check complete: {missing_count} missing days, {duplicate_count} duplicate days"
-                )
 
         except Exception as e:
             QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
