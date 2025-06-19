@@ -177,6 +177,9 @@ class MainWindow(
             refresh_button = getattr(self, refresh_btn_name)
             refresh_button.clicked.connect(self.update_all)
 
+        # Connect process table selection change signal
+        self._connect_table_signals("process", self.on_process_selection_changed)
+
         # Add buttons
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
         self.pushButton_type_add.clicked.connect(self.on_add_type)
@@ -956,6 +959,37 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
 
+    def _update_form_from_process_selection(self, exercise_name: str, type_name: str, value_str: str) -> None:
+        """Update form fields after process selection change.
+
+        Args:
+        - `exercise_name` (`str`): Name of the selected exercise.
+        - `type_name` (`str`): Type of the selected exercise.
+        - `value_str` (`str`): Value as string from the selected record.
+        """
+        try:
+            # Update spinBox_count with the selected value
+            try:
+                value = int(float(value_str))
+                self.spinBox_count.setValue(value)
+            except (ValueError, TypeError):
+                print(f"Could not convert value '{value_str}' to int")
+
+            # Update comboBox_type selection
+            if type_name:
+                type_index = self.comboBox_type.findText(type_name)
+                if type_index >= 0:
+                    self.comboBox_type.setCurrentIndex(type_index)
+                else:
+                    # If type not found, clear selection
+                    self.comboBox_type.setCurrentIndex(0)
+            else:
+                # No type, select empty option
+                self.comboBox_type.setCurrentIndex(0)
+
+        except Exception as e:
+            print(f"Error updating form from process selection: {e}")
+
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
 
@@ -1675,6 +1709,55 @@ class MainWindow(
             QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
     @requires_database()
+    def on_process_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle process table selection change and update form fields.
+
+        Updates the form fields (exercise, quantity, type, AVIF image) based on
+        the currently selected process record in the table.
+
+        Args:
+        - `current` (`QModelIndex`): Currently selected index.
+        - `previous` (`QModelIndex`): Previously selected index.
+        """
+        if not current.isValid():
+            # If no selection, keep current form state
+            return
+
+        try:
+            model = self.models["process"]
+            if not model:
+                return
+
+            row = current.row()
+
+            # Get data from the selected row
+            exercise_name = model.data(model.index(row, 0)) or ""  # Exercise column
+            type_name = model.data(model.index(row, 1)) or ""  # Type column
+            value_with_unit = model.data(model.index(row, 2)) or ""  # Quantity column (e.g., "100 times")
+
+            # Extract numeric value from "value unit" format
+            value_str = value_with_unit.split()[0] if value_with_unit else "0"
+
+            # Update exercise selection in list view
+            if exercise_name:
+                self._select_exercise_in_list(exercise_name)
+
+                # This will trigger on_exercise_selection_changed_list() which updates:
+                # - label_exercise
+                # - label_unit
+                # - label_last_date_count_today
+                # - comboBox_type options
+                # - AVIF image
+
+                # Wait for the exercise selection to complete, then update specific fields
+                QTimer.singleShot(
+                    50, lambda: self._update_form_from_process_selection(exercise_name, type_name, value_str)
+                )
+
+        except Exception as e:
+            print(f"Error in process selection changed: {e}")
+
+    @requires_database()
     def on_refresh_statistics(self) -> None:
         """Populate the statistics table view with records data using database manager."""
         try:
@@ -2319,6 +2402,9 @@ class MainWindow(
                 transformed_process_data, self.table_config["process"][2]
             )
             self.tableView_process.setModel(self.models["process"])
+
+            # Connect process table selection signal
+            self._connect_table_signals("process", self.on_process_selection_changed)
 
             # Configure process table header - mixed approach: interactive + stretch last
             process_header = self.tableView_process.horizontalHeader()
