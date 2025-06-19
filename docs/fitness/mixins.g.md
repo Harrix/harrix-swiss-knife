@@ -561,7 +561,9 @@ class ChartOperations:
         non_zero_count = sum(1 for y in y_values if y != 0)
 
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count)
+        self._plot_data(
+            ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count, chart_config.get("period")
+        )
 
         # Customize plot
         ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
@@ -836,7 +838,13 @@ class ChartOperations:
         return dict(sorted(max_grouped.items()))
 
     def _plot_data(
-        self, ax: plt.Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None
+        self,
+        ax: plt.Axes,
+        x_values: list,
+        y_values: list,
+        color: str,
+        non_zero_count: int | None = None,
+        period: str | None = None,
     ) -> None:
         """Plot data with automatic marker selection based on data points.
 
@@ -847,6 +855,7 @@ class ChartOperations:
         - `y_values` (`list`): Y-axis values.
         - `color` (`str`): Plot color.
         - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
+        - `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
 
         """
         # Map color names to matplotlib single-letter codes
@@ -885,8 +894,15 @@ class ChartOperations:
             # Add value labels only for non-zero values
             for x, y in zip(x_values, y_values, strict=False):
                 if y != 0:  # Only label non-zero points
-                    # Format label based on value type
-                    label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
+                    # Format label based on value type and period
+                    if isinstance(y, int):
+                        label_text = str(y)
+                    else:
+                        label_text = f"{y:.1f}"
+
+                    # Add year in parentheses for Years period
+                    if period == "Years" and hasattr(x, "year"):
+                        label_text += f" ({x.year})"
 
                     ax.annotate(
                         label_text,
@@ -1030,7 +1046,9 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
         non_zero_count = sum(1 for y in y_values if y != 0)
 
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count)
+        self._plot_data(
+            ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count, chart_config.get("period")
+        )
 
         # Customize plot
         ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
@@ -1370,7 +1388,7 @@ def _group_data_by_period_with_max(self, rows: list, period: str, value_type: st
 ### Method `_plot_data`
 
 ```python
-def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None) -> None
+def _plot_data(self, ax: plt.Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None, period: str | None = None) -> None
 ```
 
 Plot data with automatic marker selection based on data points.
@@ -1382,13 +1400,20 @@ Args:
 - `y_values` (`list`): Y-axis values.
 - `color` (`str`): Plot color.
 - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
+- `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def _plot_data(
-        self, ax: plt.Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None
+        self,
+        ax: plt.Axes,
+        x_values: list,
+        y_values: list,
+        color: str,
+        non_zero_count: int | None = None,
+        period: str | None = None,
     ) -> None:
         # Map color names to matplotlib single-letter codes
         color_map = {
@@ -1426,8 +1451,15 @@ def _plot_data(
             # Add value labels only for non-zero values
             for x, y in zip(x_values, y_values, strict=False):
                 if y != 0:  # Only label non-zero points
-                    # Format label based on value type
-                    label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
+                    # Format label based on value type and period
+                    if isinstance(y, int):
+                        label_text = str(y)
+                    else:
+                        label_text = f"{y:.1f}"
+
+                    # Add year in parentheses for Years period
+                    if period == "Years" and hasattr(x, "year"):
+                        label_text += f" ({x.year})"
 
                     ax.annotate(
                         label_text,

@@ -3195,7 +3195,7 @@ class MainWindow(
         y_values = [item[1] for item in chart_data]
 
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"))
+        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), period="Days")
 
         # Customize plot
         ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
@@ -7328,7 +7328,7 @@ def update_weight_chart(self) -> None:
         y_values = [item[1] for item in chart_data]
 
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"))
+        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), period="Days")
 
         # Customize plot
         ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
