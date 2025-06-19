@@ -1220,10 +1220,9 @@ class MainWindow(
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
             yesterday = datetime.now(tz=timezone.utc).date() - timedelta(days=1)
-            yesterday_str = yesterday.strftime("%Y-%m-%d")
 
             try:
-                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").date()
+                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
             except ValueError:
                 QMessageBox.warning(
                     self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
@@ -1255,7 +1254,7 @@ class MainWindow(
             # Add missing days
             for missing_date in missing_days:
                 try:
-                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").date()
+                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
                     formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
 
                     # Calculate days ago
@@ -1276,7 +1275,7 @@ class MainWindow(
             # Add duplicate days
             for date_str, count, step_values in duplicate_days:
                 try:
-                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
                     formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
 
                     # Calculate days ago
@@ -1341,15 +1340,6 @@ class MainWindow(
             else:
                 status_message = (
                     f"⚠️ Steps check complete: {missing_count} missing days, {duplicate_count} duplicate days"
-                )
-
-            # Show status in window title temporarily or use status bar if available
-            if hasattr(self, "statusBar") and self.statusBar():
-                self.statusBar().showMessage(status_message, 5000)  # Show for 5 seconds
-            else:
-                # Fallback: show in message box for summary
-                QMessageBox.information(
-                    self, "Steps Check Complete", status_message + "\n\nCheck the statistics table for details."
                 )
 
         except Exception as e:

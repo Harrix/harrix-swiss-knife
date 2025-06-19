@@ -1268,10 +1268,9 @@ class MainWindow(
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
             yesterday = datetime.now(tz=timezone.utc).date() - timedelta(days=1)
-            yesterday_str = yesterday.strftime("%Y-%m-%d")
 
             try:
-                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").date()
+                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
             except ValueError:
                 QMessageBox.warning(
                     self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
@@ -1303,7 +1302,7 @@ class MainWindow(
             # Add missing days
             for missing_date in missing_days:
                 try:
-                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").date()
+                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
                     formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
 
                     # Calculate days ago
@@ -1324,7 +1323,7 @@ class MainWindow(
             # Add duplicate days
             for date_str, count, step_values in duplicate_days:
                 try:
-                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
                     formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
 
                     # Calculate days ago
@@ -1366,7 +1365,7 @@ class MainWindow(
                     row_color = row_data[3]  # Get the color from the last element
 
                     # Create items for display columns only (first 3 elements)
-                    for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                    for _col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
                         item = QStandardItem(str(value))
                         item.setBackground(QBrush(row_color))
                         items.append(item)
@@ -1389,15 +1388,6 @@ class MainWindow(
             else:
                 status_message = (
                     f"⚠️ Steps check complete: {missing_count} missing days, {duplicate_count} duplicate days"
-                )
-
-            # Show status in window title temporarily or use status bar if available
-            if hasattr(self, "statusBar") and self.statusBar():
-                self.statusBar().showMessage(status_message, 5000)  # Show for 5 seconds
-            else:
-                # Fallback: show in message box for summary
-                QMessageBox.information(
-                    self, "Steps Check Complete", status_message + "\n\nCheck the statistics table for details."
                 )
 
         except Exception as e:
@@ -1777,7 +1767,7 @@ class MainWindow(
 
                     table_data.append([exercise_name, formatted_date, days_display, row_color])
 
-                except ValueError:  # noqa: PERF203
+                except ValueError:
                     # Skip invalid dates
                     continue
 
@@ -1951,7 +1941,7 @@ class MainWindow(
             try:
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 datetime_data.append((date_obj, int(count)))
-            except (ValueError, TypeError):  # noqa: PERF203
+            except (ValueError, TypeError):
                 continue
 
         # Group data by period
@@ -2208,7 +2198,7 @@ class MainWindow(
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 value = float(value_str)
                 datetime_data.append((date_obj, value))
-            except (ValueError, TypeError):  # noqa: PERF203
+            except (ValueError, TypeError):
                 continue
 
         if not datetime_data:
@@ -4043,10 +4033,9 @@ def on_check_steps(self) -> None:
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
             yesterday = datetime.now(tz=timezone.utc).date() - timedelta(days=1)
-            yesterday_str = yesterday.strftime("%Y-%m-%d")
 
             try:
-                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").date()
+                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
             except ValueError:
                 QMessageBox.warning(
                     self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
@@ -4078,7 +4067,7 @@ def on_check_steps(self) -> None:
             # Add missing days
             for missing_date in missing_days:
                 try:
-                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").date()
+                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
                     formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
 
                     # Calculate days ago
@@ -4099,7 +4088,7 @@ def on_check_steps(self) -> None:
             # Add duplicate days
             for date_str, count, step_values in duplicate_days:
                 try:
-                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
                     formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
 
                     # Calculate days ago
@@ -4141,7 +4130,7 @@ def on_check_steps(self) -> None:
                     row_color = row_data[3]  # Get the color from the last element
 
                     # Create items for display columns only (first 3 elements)
-                    for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                    for _col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
                         item = QStandardItem(str(value))
                         item.setBackground(QBrush(row_color))
                         items.append(item)
@@ -4164,15 +4153,6 @@ def on_check_steps(self) -> None:
             else:
                 status_message = (
                     f"⚠️ Steps check complete: {missing_count} missing days, {duplicate_count} duplicate days"
-                )
-
-            # Show status in window title temporarily or use status bar if available
-            if hasattr(self, "statusBar") and self.statusBar():
-                self.statusBar().showMessage(status_message, 5000)  # Show for 5 seconds
-            else:
-                # Fallback: show in message box for summary
-                QMessageBox.information(
-                    self, "Steps Check Complete", status_message + "\n\nCheck the statistics table for details."
                 )
 
         except Exception as e:
@@ -4618,7 +4598,7 @@ def on_show_last_exercises(self) -> None:
 
                     table_data.append([exercise_name, formatted_date, days_display, row_color])
 
-                except ValueError:  # noqa: PERF203
+                except ValueError:
                     # Skip invalid dates
                     continue
 
@@ -4940,7 +4920,7 @@ def show_sets_chart(self) -> None:
             try:
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 datetime_data.append((date_obj, int(count)))
-            except (ValueError, TypeError):  # noqa: PERF203
+            except (ValueError, TypeError):
                 continue
 
         # Group data by period
@@ -5260,7 +5240,7 @@ def update_exercise_chart(self) -> None:
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 value = float(value_str)
                 datetime_data.append((date_obj, value))
-            except (ValueError, TypeError):  # noqa: PERF203
+            except (ValueError, TypeError):
                 continue
 
         if not datetime_data:
