@@ -145,6 +145,7 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.setItemText(1, QCoreApplication.translate("MainWindow", "Months", None))
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
+        self.checkBox_max_value.setText(QCoreApplication.translate("MainWindow", "Max value, not sum", None))
         self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
         self.pushButton_show_sets_chart.setText(QCoreApplication.translate("MainWindow", "Show Sets Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
@@ -876,6 +877,11 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.setObjectName("comboBox_chart_period")
 
         self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_period)
+
+        self.checkBox_max_value = QCheckBox(self.frame_charts_controls)
+        self.checkBox_max_value.setObjectName("checkBox_max_value")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.checkBox_max_value)
 
         self.pushButton_update_chart = QPushButton(self.frame_charts_controls)
         self.pushButton_update_chart.setObjectName("pushButton_update_chart")

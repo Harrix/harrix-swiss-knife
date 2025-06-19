@@ -510,6 +510,61 @@ class ChartOperations:
 
         return dict(sorted(grouped.items()))
 
+    def _group_data_by_period_with_max(self, rows: list, period: str, value_type: str = "float") -> dict:
+        """Group data by the specified period (Days, Months, Years) using maximum values.
+
+        Args:
+
+        - `rows` (`list`): List of (date_str, value_str) tuples.
+        - `period` (`str`): Grouping period (Days, Months, Years).
+        - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
+
+        Returns:
+
+        - `dict`: Dictionary with datetime keys and maximum values for each period.
+
+        """
+        grouped = defaultdict(list)
+
+        # Regex pattern for YYYY-MM-DD format
+        date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+        for date_str, value_str in rows:
+            # Quick validation without exceptions
+            if not date_pattern.match(date_str):
+                continue
+
+            try:
+                value = float(value_str) if value_type == "float" else int(value_str)
+            except (ValueError, TypeError):
+                continue
+
+            # Safe date parsing with proper error handling
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
+                continue
+
+            if period == "Days":
+                key = date_obj
+            elif period == "Months":
+                key = date_obj.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            elif period == "Years":
+                key = date_obj.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            else:
+                key = date_obj
+
+            grouped[key].append(value)
+
+        # Convert lists to maximum values
+        max_grouped = {}
+        for key, values in grouped.items():
+            if values:  # Only add if there are values
+                max_grouped[key] = max(values)
+
+        return dict(sorted(max_grouped.items()))
+
     def _plot_data(
         self, ax: plt.Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None
     ) -> None:

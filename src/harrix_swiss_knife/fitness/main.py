@@ -2894,6 +2894,7 @@ class MainWindow(
         period = self.comboBox_chart_period.currentText()
         date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
         date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+        use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
         if not exercise:
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
@@ -2924,8 +2925,11 @@ class MainWindow(
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
             return
 
-        # Group data by period
-        grouped_data = self._group_data_by_period(rows, period, value_type="float")
+        # Group data by period with aggregation based on checkbox
+        if use_max_value:
+            grouped_data = self._group_data_by_period_with_max(rows, period, value_type="float")
+        else:
+            grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
         if not grouped_data:
             self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
@@ -2950,29 +2954,41 @@ class MainWindow(
         # Use the earlier of: today or selected to date
         chart_date_to = min(today, date_to)
 
-        # Build chart title
+        # Build chart title with aggregation type
+        aggregation_type = "Max" if use_max_value else "Total"
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
             chart_title += f" - {exercise_type}"
-        chart_title += f" ({period})"
+        chart_title += f" ({aggregation_type}, {period})"
 
         # Define custom statistics formatter
         def format_exercise_stats(values: list) -> str:
             min_val = min(values)
             max_val = max(values)
             avg_val = sum(values) / len(values)
-            total_val = sum(values)
             unit_suffix = f" {exercise_unit}" if exercise_unit else ""
-            return (
-                f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
-                f"Avg: {avg_val:.1f}{unit_suffix} | Total: {total_val:.1f}{unit_suffix}"
-            )
+
+            if use_max_value:
+                # For max values, don't show total (it doesn't make sense)
+                return (
+                    f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
+                    f"Avg: {avg_val:.1f}{unit_suffix}"
+                )
+            else:
+                # For sum values, show total
+                total_val = sum(values)
+                return (
+                    f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
+                    f"Avg: {avg_val:.1f}{unit_suffix} | Total: {total_val:.1f}{unit_suffix}"
+                )
 
         # Create chart configuration
+        y_label = f"{aggregation_type} Value ({exercise_unit})" if exercise_unit else f"{aggregation_type} Value"
+
         chart_config = {
             "title": chart_title,
             "xlabel": "Date",
-            "ylabel": f"Total Value ({exercise_unit})" if exercise_unit else "Total Value",
+            "ylabel": y_label,
             "color": "blue",
             "show_stats": True,
             "period": period,
