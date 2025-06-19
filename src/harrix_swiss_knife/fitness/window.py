@@ -475,12 +475,13 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName("tab_2")
-        self.verticalLayout_18 = QVBoxLayout(self.tab_2)
-        self.verticalLayout_18.setObjectName("verticalLayout_18")
-        self.splitter1 = QSplitter(self.tab_2)
-        self.splitter1.setObjectName("splitter1")
-        self.splitter1.setOrientation(Qt.Vertical)
-        self.widget_top = QWidget(self.splitter1)
+        self.horizontalLayout_4 = QHBoxLayout(self.tab_2)
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.splitter_2 = QSplitter(self.tab_2)
+        self.splitter_2.setObjectName("splitter_2")
+        self.splitter_2.setOrientation(Qt.Horizontal)
+        self.splitter_2.setChildrenCollapsible(False)
+        self.widget_top = QWidget(self.splitter_2)
         self.widget_top.setObjectName("widget_top")
         self.horizontalLayout_2 = QHBoxLayout(self.widget_top)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
@@ -580,8 +581,8 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addWidget(self.frame_2)
 
-        self.splitter1.addWidget(self.widget_top)
-        self.widget_bottom = QWidget(self.splitter1)
+        self.splitter_2.addWidget(self.widget_top)
+        self.widget_bottom = QWidget(self.splitter_2)
         self.widget_bottom.setObjectName("widget_bottom")
         self.horizontalLayout_3 = QHBoxLayout(self.widget_bottom)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
@@ -654,9 +655,9 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3.addWidget(self.frame_3)
 
-        self.splitter1.addWidget(self.widget_bottom)
+        self.splitter_2.addWidget(self.widget_bottom)
 
-        self.verticalLayout_18.addWidget(self.splitter1)
+        self.horizontalLayout_4.addWidget(self.splitter_2)
 
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_5 = QWidget()
