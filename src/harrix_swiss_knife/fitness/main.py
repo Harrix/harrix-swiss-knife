@@ -1594,6 +1594,7 @@ class MainWindow(
                     current_row += 1
 
                 # Store span information for this group
+                # Always span both Exercise and Type columns regardless of whether type is empty
                 if group_size > 1:
                     span_info.append((group_start_row, group_size, ex_name, tp_name if tp_name else ""))
 
@@ -1628,22 +1629,21 @@ class MainWindow(
 
             # Apply spans after setting the model
             for start_row, row_count, exercise_name, type_name in span_info:
-                # Span the Exercise column (column 0)
+                # Always span the Exercise column (column 0)
                 self.tableView_statistics.setSpan(start_row, 0, row_count, 1)
 
-                # Span the Type column (column 1) if there's a type
-                if type_name:
-                    self.tableView_statistics.setSpan(start_row, 1, row_count, 1)
+                # Always span the Type column (column 1) regardless of whether type is empty or not
+                self.tableView_statistics.setSpan(start_row, 1, row_count, 1)
 
                 # Set the text for the spanned cells with proper background
                 exercise_item = QStandardItem(exercise_name)
                 exercise_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
                 model.setItem(start_row, 0, exercise_item)
 
-                if type_name:
-                    type_item = QStandardItem(type_name)
-                    type_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
-                    model.setItem(start_row, 1, type_item)
+                # Always create type item, even if type_name is empty
+                type_item = QStandardItem(type_name)  # This will be empty string if no type
+                type_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
+                model.setItem(start_row, 1, type_item)
 
             self.tableView_statistics.resizeColumnsToContents()
 
