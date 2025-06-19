@@ -7,6 +7,7 @@ SQLite database with exercises, exercise types, body weight and daily process
 
 from __future__ import annotations
 
+import colorsys
 import io
 import sys
 from collections import defaultdict
@@ -20,7 +21,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
-from PySide6.QtGui import QCloseEvent, QMovie, QPixmap, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QCloseEvent, QColor, QMovie, QPixmap, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife.fitness import database_manager, window
@@ -133,6 +134,9 @@ class MainWindow(
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
         }
 
+        # Define colors for different exercises (expanded palette)
+        self.exercise_colors = self.generate_pastel_colors_mathematical(50)
+
         # Initialize application
         self._init_database()
         self._connect_signals()
@@ -216,6 +220,65 @@ class MainWindow(
                 # Use partial to properly bind table_name
                 handler = partial(self._on_table_data_changed, table_name)
                 self.models[table_name].sourceModel().dataChanged.connect(handler)
+
+    def _create_colored_process_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        _id_column: int = 4,  # ID is now at index 4 in transformed data
+    ) -> QSortFilterProxyModel:
+        """Return a proxy model filled with colored process data.
+
+        Args:
+
+        - `data` (`list[list]`): The table data with color information.
+        - `headers` (`list[str]`): Column header names.
+        - `id_column` (`int`): Index of the ID column. Defaults to `4`.
+
+        Returns:
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
+
+        """
+        from PySide6.QtGui import QBrush
+
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID
+            row_color = row[5]  # Color is at index 5
+            row_id = row[4]  # ID is at index 4
+
+            # Create items for display columns only (first 4 elements)
+            items = []
+            for col_idx, value in enumerate(row[:4]):  # Only first 4 elements for display
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
+
+                # Check if this is today's record and make it bold
+                today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+                id_col_date = 3
+                if col_idx == id_col_date and str(value) == today:  # Date column
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
 
     def _create_table_model(
         self,
@@ -820,8 +883,26 @@ class MainWindow(
             date_to=date_to,
         )
 
-        data = [[row[0], row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]] for row in rows]
-        self.models["process"] = self._create_table_model(data, self.table_config["process"][2])
+        # Get unique exercise names and assign colors
+        exercise_names = list({row[1] for row in rows})
+        exercise_name_to_color = {}
+
+        for idx, exercise_name in enumerate(sorted(exercise_names)):
+            color_index = idx % len(self.exercise_colors)
+            exercise_name_to_color[exercise_name] = self.exercise_colors[color_index]
+
+        # Transform data with colors
+        transformed_data = []
+        for row in rows:
+            exercise_name = row[1]
+            exercise_color = exercise_name_to_color.get(exercise_name, QColor(255, 255, 255))
+
+            transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5], row[0], exercise_color]
+            transformed_data.append(transformed_row)
+
+        self.models["process"] = self._create_colored_process_table_model(
+            transformed_data, self.table_config["process"][2]
+        )
         self.tableView_process.setModel(self.models["process"])
         self.tableView_process.resizeColumnsToContents()
 
@@ -911,6 +992,35 @@ class MainWindow(
             self.update_sets_count_today()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+
+    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
+        """Generate pastel colors using mathematical distribution.
+
+        Args:
+            count: Number of colors to generate
+
+        Returns:
+            List of pastel QColor objects
+
+        """
+        colors = []
+
+        for i in range(count):
+            # Use golden ratio for even hue distribution
+            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
+
+            # Lower saturation and higher lightness for very light pastel effect
+            saturation = 0.6  # Very low saturation
+            lightness = 0.95  # Very high lightness
+
+            # Convert HSL to RGB
+            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
+
+            # Convert to 0-255 range and create QColor
+            color = QColor(int(r * 255), int(g * 255), int(b * 255))
+            colors.append(color)
+
+        return colors
 
     @requires_database()
     def on_add_exercise(self) -> None:
@@ -1545,7 +1655,7 @@ class MainWindow(
             self._connect_table_signals("exercises", self.on_exercise_selection_changed)
 
             def transform_process_data(rows: list[list]) -> list[list]:
-                """Refresh process table with data transformation.
+                """Refresh process table with data transformation and coloring.
 
                 Args:
 
@@ -1556,9 +1666,43 @@ class MainWindow(
                 - `list[list]`: Transformed process data.
 
                 """
-                return [[r[0], r[1], r[2], f"{r[3]} {r[4] or 'times'}", r[5]] for r in rows]
+                # Get all unique exercise names and assign colors
+                exercise_names = list({row[1] for row in rows})  # row[1] is exercise name
+                exercise_name_to_color = {}
 
-            self._refresh_table("process", self.db_manager.get_all_process_records, transform_process_data)
+                for idx, exercise_name in enumerate(sorted(exercise_names)):
+                    color_index = idx % len(self.exercise_colors)
+                    exercise_name_to_color[exercise_name] = self.exercise_colors[color_index]
+
+                # Transform data and add color information
+                transformed_rows = []
+                for row in rows:
+                    # Original transformation:
+                    # [id, exercise, type, value, unit, date] -> [exercise, type, "value unit", date]
+                    transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]]
+
+                    # Add color information based on exercise name
+                    exercise_name = row[1]
+                    exercise_color = exercise_name_to_color.get(
+                        exercise_name, QColor(255, 255, 255)
+                    )  # White as fallback
+
+                    # Add original ID and color to the row for later use
+                    transformed_row.extend([row[0], exercise_color])  # [exercise, type, "value unit", date, id, color]
+                    transformed_rows.append(transformed_row)
+
+                return transformed_rows
+
+            # Get process data and transform it
+            process_rows = self.db_manager.get_all_process_records()
+            transformed_process_data = transform_process_data(process_rows)
+
+            # Create process table model with coloring
+            self.models["process"] = self._create_colored_process_table_model(
+                transformed_process_data, self.table_config["process"][2]
+            )
+            self.tableView_process.setModel(self.models["process"])
+            self.tableView_process.resizeColumnsToContents()
 
             # Refresh other tables
             self._refresh_table("types", self.db_manager.get_all_exercise_types)
