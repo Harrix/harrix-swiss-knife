@@ -47,6 +47,7 @@ dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
 # ANN401 - Dynamically typed expressions (typing.Any) are disallowed in {name}
 # S608 - Possible SQL injection vector through string-based query construction
 # BLE001 - blind-except	Do not catch blind exception: {name}
+# PERF203 - try-except within a loop incurs performance overhead
 [tool.ruff]
 lint.select = ["ALL"]
 lint.ignore = [
@@ -63,7 +64,8 @@ lint.ignore = [
     "S603",
     "S608",
     "T201",
-    "BLE001"
+    "BLE001",
+    "PERF203"
 ]
 line-length = 120
 exclude = [
