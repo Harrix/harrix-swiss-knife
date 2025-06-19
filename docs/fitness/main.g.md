@@ -2266,9 +2266,8 @@ class MainWindow(
             self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
             self.comboBox_filter_exercise.clear()
             self.comboBox_filter_exercise.addItem("")  # all exercises
-            self.comboBox_filter_exercise.addItems(
-                self.db_manager.get_items("exercises", "name"),
-            )
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+            self.comboBox_filter_exercise.addItems(exercises)
             if current_exercise:
                 idx = self.comboBox_filter_exercise.findText(current_exercise)
                 if idx >= 0:
@@ -5307,9 +5306,8 @@ def update_filter_comboboxes(self) -> None:
             self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
             self.comboBox_filter_exercise.clear()
             self.comboBox_filter_exercise.addItem("")  # all exercises
-            self.comboBox_filter_exercise.addItems(
-                self.db_manager.get_items("exercises", "name"),
-            )
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+            self.comboBox_filter_exercise.addItems(exercises)
             if current_exercise:
                 idx = self.comboBox_filter_exercise.findText(current_exercise)
                 if idx >= 0:
