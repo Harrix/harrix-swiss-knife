@@ -1500,23 +1500,25 @@ class MainWindow(
 
             for exercise_name, last_date_str in exercise_dates:
                 try:
-                    last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+                    last_date = datetime.strptime(last_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
                     days_ago = (today - last_date).days
 
                     # Format the display date
                     formatted_date = last_date.strftime("%Y-%m-%d (%b %d)")
 
                     # Add emoji for recent activities
+                    days_in_week = 7
+                    days_in_month = 30
                     if days_ago == 0:
                         days_display = "Today 🔥"
                         row_color = QColor(144, 238, 144)  # Light green for today
                     elif days_ago == 1:
                         days_display = "1 day ago 👍"
                         row_color = QColor(173, 216, 230)  # Light blue for yesterday
-                    elif days_ago <= 7:
+                    elif days_ago <= days_in_week:
                         days_display = f"{days_ago} days ago ✅"
                         row_color = QColor(255, 255, 224)  # Light yellow for this week
-                    elif days_ago <= 30:
+                    elif days_ago <= days_in_month:
                         days_display = f"{days_ago} days ago ⚠️"
                         row_color = QColor(255, 228, 196)  # Light orange for this month
                     else:
@@ -1525,7 +1527,7 @@ class MainWindow(
 
                     table_data.append([exercise_name, formatted_date, days_display, row_color])
 
-                except ValueError:
+                except ValueError:  # noqa: PERF203
                     # Skip invalid dates
                     continue
 
@@ -1548,7 +1550,8 @@ class MainWindow(
                     item.setBackground(QBrush(row_color))
 
                     # Make "Today" entries bold
-                    if col_idx == 2 and "Today" in str(value):
+                    id_col_date = 2
+                    if col_idx == id_col_date and "Today" in str(value):
                         font = item.font()
                         font.setBold(True)
                         item.setFont(font)
