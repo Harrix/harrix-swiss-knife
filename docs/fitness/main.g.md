@@ -47,6 +47,7 @@ lang: en
   - [Method `on_add_record`](#method-on_add_record)
   - [Method `on_add_type`](#method-on_add_type)
   - [Method `on_add_weight`](#method-on_add_weight)
+  - [Method `on_check_steps`](#method-on_check_steps)
   - [Method `on_exercise_selection_changed`](#method-on_exercise_selection_changed)
   - [Method `on_exercise_selection_changed_list`](#method-on_exercise_selection_changed_list)
   - [Method `on_export_csv`](#method-on_export_csv)
@@ -233,6 +234,7 @@ class MainWindow(
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
         self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
+        self.pushButton_check_steps.clicked.connect(self.on_check_steps)
         self.pushButton_export_csv.clicked.connect(self.on_export_csv)
 
         # Tab change
@@ -821,6 +823,7 @@ class MainWindow(
         self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
         self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
         self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
+        self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
         self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
@@ -954,6 +957,12 @@ class MainWindow(
         )
         self.tableView_process.setModel(self.models["process"])
         self.tableView_process.resizeColumnsToContents()
+
+        # Stretch columns to fill the entire table width
+        header = self.tableView_process.horizontalHeader()
+        header.setStretchLastSection(True)
+        for i in range(header.count() - 1):
+            header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
     def clear_filter(self) -> None:
         """Reset all process-table filters.
@@ -1199,6 +1208,200 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add weight: {e}")
+
+    @requires_database()
+    def on_check_steps(self) -> None:
+        """Check for missing days and duplicate days in steps records."""
+        try:
+            from PySide6.QtGui import QBrush, QColor
+
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
+
+            # Get steps exercise ID
+            steps_exercise_id = self.id_steps
+
+            # Check if steps exercise exists
+            steps_rows = self.db_manager.get_rows(
+                "SELECT name FROM exercises WHERE _id = :id", {"id": steps_exercise_id}
+            )
+
+            if not steps_rows:
+                QMessageBox.warning(
+                    self, "Steps Exercise Not Found", f"Exercise with ID {steps_exercise_id} not found in database."
+                )
+                return
+
+            steps_exercise_name = steps_rows[0][0]
+
+            # Get all steps records ordered by date
+            # Fixed: renamed 'values' to 'step_values' to avoid SQL reserved word conflict
+            steps_records = self.db_manager.get_rows(
+                """
+                SELECT date, COUNT(*) as record_count, GROUP_CONCAT(value, ', ') as step_values
+                FROM process
+                WHERE _id_exercises = :id
+                AND date IS NOT NULL
+                GROUP BY date
+                ORDER BY date ASC
+            """,
+                {"id": steps_exercise_id},
+            )
+
+            if not steps_records:
+                # Show empty table with message
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
+
+                # Add a single row with message
+                items = [
+                    QStandardItem("No Data"),
+                    QStandardItem(""),
+                    QStandardItem(f"No records found for exercise: {steps_exercise_name}"),
+                ]
+                empty_model.appendRow(items)
+
+                self.tableView_statistics.setModel(empty_model)
+                self.tableView_statistics.resizeColumnsToContents()
+                return
+
+            # Get date range: from first record to yesterday
+            first_date_str = steps_records[0][0]
+            yesterday = datetime.now(tz=timezone.utc).date() - timedelta(days=1)
+            yesterday_str = yesterday.strftime("%Y-%m-%d")
+
+            try:
+                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                QMessageBox.warning(
+                    self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
+                )
+                return
+
+            # Create a set of dates that have records
+            recorded_dates = {record[0] for record in steps_records}
+
+            # Find missing days
+            missing_days = []
+            current_date = first_date
+
+            while current_date <= yesterday:
+                date_str = current_date.strftime("%Y-%m-%d")
+                if date_str not in recorded_dates:
+                    missing_days.append(date_str)
+                current_date += timedelta(days=1)
+
+            # Find duplicate days (days with multiple records)
+            duplicate_days = []
+            for date_str, count, step_values in steps_records:
+                if count > 1:
+                    duplicate_days.append((date_str, count, step_values))
+
+            # Prepare table data
+            table_data = []
+
+            # Add missing days
+            for missing_date in missing_days:
+                try:
+                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"Missing record ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Missing Day",
+                            formatted_date,
+                            details,
+                            QColor(255, 182, 193),  # Light pink for missing days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Add duplicate days
+            for date_str, count, step_values in duplicate_days:
+                try:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"{count} records: {step_values} ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Duplicate Day",
+                            formatted_date,
+                            details,
+                            QColor(255, 255, 182),  # Light yellow for duplicate days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Sort by date (most recent issues first)
+            table_data.sort(key=lambda x: x[1], reverse=True)
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
+
+            if not table_data:
+                # No issues found
+                items = [
+                    QStandardItem("✅ All Good"),
+                    QStandardItem(""),
+                    QStandardItem(f"No missing or duplicate days found for {steps_exercise_name}"),
+                ]
+                for item in items:
+                    item.setBackground(QBrush(QColor(144, 238, 144)))  # Light green
+                model.appendRow(items)
+            else:
+                # Add issues to table
+                for row_data in table_data:
+                    items = []
+                    row_color = row_data[3]  # Get the color from the last element
+
+                    # Create items for display columns only (first 3 elements)
+                    for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                        item = QStandardItem(str(value))
+                        item.setBackground(QBrush(row_color))
+                        items.append(item)
+
+                    model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+            self.tableView_statistics.resizeColumnsToContents()
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
+
+            # Show summary in status or message
+            missing_count = len(missing_days)
+            duplicate_count = len(duplicate_days)
+
+            if missing_count == 0 and duplicate_count == 0:
+                status_message = f"✅ Steps check complete: No issues found for {steps_exercise_name}"
+            else:
+                status_message = (
+                    f"⚠️ Steps check complete: {missing_count} missing days, {duplicate_count} duplicate days"
+                )
+
+            # Show status in window title temporarily or use status bar if available
+            if hasattr(self, "statusBar") and self.statusBar():
+                self.statusBar().showMessage(status_message, 5000)  # Show for 5 seconds
+            else:
+                # Fallback: show in message box for summary
+                QMessageBox.information(
+                    self, "Steps Check Complete", status_message + "\n\nCheck the statistics table for details."
+                )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
 
     def on_exercise_selection_changed(self) -> None:
         """Update form fields when exercise selection changes in the table.
@@ -1850,11 +2053,23 @@ class MainWindow(
                 transformed_process_data, self.table_config["process"][2]
             )
             self.tableView_process.setModel(self.models["process"])
-            self.tableView_process.resizeColumnsToContents()
+
+            # Stretch columns to fill the entire table width for process table
+            process_header = self.tableView_process.horizontalHeader()
+            process_header.setStretchLastSection(True)
+            for i in range(process_header.count() - 1):
+                process_header.setSectionResizeMode(i, process_header.ResizeMode.Stretch)
 
             # Refresh other tables
             self._refresh_table("types", self.db_manager.get_all_exercise_types)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
+
+            # Stretch columns to fill the entire table width for weight table
+            weight_header = self.tableView_weight.horizontalHeader()
+            weight_header.setStretchLastSection(True)
+            for i in range(weight_header.count() - 1):
+                weight_header.setSectionResizeMode(i, weight_header.ResizeMode.Stretch)
+
             self._connect_table_signals("weight", self.on_weight_selection_changed)
 
             # Connect auto-save signals after all models are created
@@ -2354,6 +2569,7 @@ def _connect_signals(self) -> None:
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
         self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
+        self.pushButton_check_steps.clicked.connect(self.on_check_steps)
         self.pushButton_export_csv.clicked.connect(self.on_export_csv)
 
         # Tab change
@@ -3232,6 +3448,7 @@ def _setup_ui(self) -> None:
         self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
         self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
         self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
+        self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
         self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
@@ -3402,6 +3619,12 @@ def apply_filter(self) -> None:
         )
         self.tableView_process.setModel(self.models["process"])
         self.tableView_process.resizeColumnsToContents()
+
+        # Stretch columns to fill the entire table width
+        header = self.tableView_process.horizontalHeader()
+        header.setStretchLastSection(True)
+        for i in range(header.count() - 1):
+            header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 ```
 
 </details>
@@ -3747,6 +3970,213 @@ def on_add_weight(self) -> None:
 
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add weight: {e}")
+```
+
+</details>
+
+### Method `on_check_steps`
+
+```python
+def on_check_steps(self) -> None
+```
+
+Check for missing days and duplicate days in steps records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_check_steps(self) -> None:
+        try:
+            from PySide6.QtGui import QBrush, QColor
+
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
+
+            # Get steps exercise ID
+            steps_exercise_id = self.id_steps
+
+            # Check if steps exercise exists
+            steps_rows = self.db_manager.get_rows(
+                "SELECT name FROM exercises WHERE _id = :id", {"id": steps_exercise_id}
+            )
+
+            if not steps_rows:
+                QMessageBox.warning(
+                    self, "Steps Exercise Not Found", f"Exercise with ID {steps_exercise_id} not found in database."
+                )
+                return
+
+            steps_exercise_name = steps_rows[0][0]
+
+            # Get all steps records ordered by date
+            # Fixed: renamed 'values' to 'step_values' to avoid SQL reserved word conflict
+            steps_records = self.db_manager.get_rows(
+                """
+                SELECT date, COUNT(*) as record_count, GROUP_CONCAT(value, ', ') as step_values
+                FROM process
+                WHERE _id_exercises = :id
+                AND date IS NOT NULL
+                GROUP BY date
+                ORDER BY date ASC
+            """,
+                {"id": steps_exercise_id},
+            )
+
+            if not steps_records:
+                # Show empty table with message
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
+
+                # Add a single row with message
+                items = [
+                    QStandardItem("No Data"),
+                    QStandardItem(""),
+                    QStandardItem(f"No records found for exercise: {steps_exercise_name}"),
+                ]
+                empty_model.appendRow(items)
+
+                self.tableView_statistics.setModel(empty_model)
+                self.tableView_statistics.resizeColumnsToContents()
+                return
+
+            # Get date range: from first record to yesterday
+            first_date_str = steps_records[0][0]
+            yesterday = datetime.now(tz=timezone.utc).date() - timedelta(days=1)
+            yesterday_str = yesterday.strftime("%Y-%m-%d")
+
+            try:
+                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                QMessageBox.warning(
+                    self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
+                )
+                return
+
+            # Create a set of dates that have records
+            recorded_dates = {record[0] for record in steps_records}
+
+            # Find missing days
+            missing_days = []
+            current_date = first_date
+
+            while current_date <= yesterday:
+                date_str = current_date.strftime("%Y-%m-%d")
+                if date_str not in recorded_dates:
+                    missing_days.append(date_str)
+                current_date += timedelta(days=1)
+
+            # Find duplicate days (days with multiple records)
+            duplicate_days = []
+            for date_str, count, step_values in steps_records:
+                if count > 1:
+                    duplicate_days.append((date_str, count, step_values))
+
+            # Prepare table data
+            table_data = []
+
+            # Add missing days
+            for missing_date in missing_days:
+                try:
+                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"Missing record ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Missing Day",
+                            formatted_date,
+                            details,
+                            QColor(255, 182, 193),  # Light pink for missing days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Add duplicate days
+            for date_str, count, step_values in duplicate_days:
+                try:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"{count} records: {step_values} ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Duplicate Day",
+                            formatted_date,
+                            details,
+                            QColor(255, 255, 182),  # Light yellow for duplicate days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Sort by date (most recent issues first)
+            table_data.sort(key=lambda x: x[1], reverse=True)
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
+
+            if not table_data:
+                # No issues found
+                items = [
+                    QStandardItem("✅ All Good"),
+                    QStandardItem(""),
+                    QStandardItem(f"No missing or duplicate days found for {steps_exercise_name}"),
+                ]
+                for item in items:
+                    item.setBackground(QBrush(QColor(144, 238, 144)))  # Light green
+                model.appendRow(items)
+            else:
+                # Add issues to table
+                for row_data in table_data:
+                    items = []
+                    row_color = row_data[3]  # Get the color from the last element
+
+                    # Create items for display columns only (first 3 elements)
+                    for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                        item = QStandardItem(str(value))
+                        item.setBackground(QBrush(row_color))
+                        items.append(item)
+
+                    model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+            self.tableView_statistics.resizeColumnsToContents()
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
+
+            # Show summary in status or message
+            missing_count = len(missing_days)
+            duplicate_count = len(duplicate_days)
+
+            if missing_count == 0 and duplicate_count == 0:
+                status_message = f"✅ Steps check complete: No issues found for {steps_exercise_name}"
+            else:
+                status_message = (
+                    f"⚠️ Steps check complete: {missing_count} missing days, {duplicate_count} duplicate days"
+                )
+
+            # Show status in window title temporarily or use status bar if available
+            if hasattr(self, "statusBar") and self.statusBar():
+                self.statusBar().showMessage(status_message, 5000)  # Show for 5 seconds
+            else:
+                # Fallback: show in message box for summary
+                QMessageBox.information(
+                    self, "Steps Check Complete", status_message + "\n\nCheck the statistics table for details."
+                )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
 ```
 
 </details>
@@ -4626,11 +5056,23 @@ def show_tables(self) -> None:
                 transformed_process_data, self.table_config["process"][2]
             )
             self.tableView_process.setModel(self.models["process"])
-            self.tableView_process.resizeColumnsToContents()
+
+            # Stretch columns to fill the entire table width for process table
+            process_header = self.tableView_process.horizontalHeader()
+            process_header.setStretchLastSection(True)
+            for i in range(process_header.count() - 1):
+                process_header.setSectionResizeMode(i, process_header.ResizeMode.Stretch)
 
             # Refresh other tables
             self._refresh_table("types", self.db_manager.get_all_exercise_types)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
+
+            # Stretch columns to fill the entire table width for weight table
+            weight_header = self.tableView_weight.horizontalHeader()
+            weight_header.setStretchLastSection(True)
+            for i in range(weight_header.count() - 1):
+                weight_header.setSectionResizeMode(i, weight_header.ResizeMode.Stretch)
+
             self._connect_table_signals("weight", self.on_weight_selection_changed)
 
             # Connect auto-save signals after all models are created

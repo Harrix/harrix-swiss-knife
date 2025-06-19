@@ -160,6 +160,7 @@ class Ui_MainWindow(object):
         )
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
+        self.pushButton_check_steps.setText(QCoreApplication.translate("MainWindow", "Check steps", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
         )
@@ -943,6 +944,11 @@ class Ui_MainWindow(object):
         self.pushButton_last_exercises.setObjectName("pushButton_last_exercises")
 
         self.verticalLayout_16.addWidget(self.pushButton_last_exercises)
+
+        self.pushButton_check_steps = QPushButton(self.frame_5)
+        self.pushButton_check_steps.setObjectName("pushButton_check_steps")
+
+        self.verticalLayout_16.addWidget(self.pushButton_check_steps)
 
         self.verticalSpacer_4 = QSpacerItem(20, 759, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
