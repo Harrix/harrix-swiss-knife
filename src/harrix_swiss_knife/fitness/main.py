@@ -887,21 +887,21 @@ class MainWindow(
             date_to=date_to,
         )
 
-        # Get unique exercise names and assign colors
-        exercise_names = list({row[1] for row in rows})
-        exercise_name_to_color = {}
+        # Get unique dates and assign colors
+        unique_dates = list({row[5] for row in rows if row[5]})  # row[5] is date
+        date_to_color = {}
 
-        for idx, exercise_name in enumerate(sorted(exercise_names)):
+        for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
             color_index = idx % len(self.exercise_colors)
-            exercise_name_to_color[exercise_name] = self.exercise_colors[color_index]
+            date_to_color[date_str] = self.exercise_colors[color_index]
 
         # Transform data with colors
         transformed_data = []
         for row in rows:
-            exercise_name = row[1]
-            exercise_color = exercise_name_to_color.get(exercise_name, QColor(255, 255, 255))
+            date_str = row[5]
+            date_color = date_to_color.get(date_str, QColor(255, 255, 255))
 
-            transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5], row[0], exercise_color]
+            transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5], row[0], date_color]
             transformed_data.append(transformed_row)
 
         self.models["process"] = self._create_colored_process_table_model(
@@ -1959,13 +1959,13 @@ class MainWindow(
                 - `list[list]`: Transformed process data.
 
                 """
-                # Get all unique exercise names and assign colors
-                exercise_names = list({row[1] for row in rows})  # row[1] is exercise name
-                exercise_name_to_color = {}
+                # Get all unique dates and assign colors
+                unique_dates = list({row[5] for row in rows if row[5]})  # row[5] is date
+                date_to_color = {}
 
-                for idx, exercise_name in enumerate(sorted(exercise_names)):
+                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
                     color_index = idx % len(self.exercise_colors)
-                    exercise_name_to_color[exercise_name] = self.exercise_colors[color_index]
+                    date_to_color[date_str] = self.exercise_colors[color_index]
 
                 # Transform data and add color information
                 transformed_rows = []
@@ -1974,14 +1974,12 @@ class MainWindow(
                     # [id, exercise, type, value, unit, date] -> [exercise, type, "value unit", date]
                     transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]]
 
-                    # Add color information based on exercise name
-                    exercise_name = row[1]
-                    exercise_color = exercise_name_to_color.get(
-                        exercise_name, QColor(255, 255, 255)
-                    )  # White as fallback
+                    # Add color information based on date
+                    date_str = row[5]
+                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], exercise_color])  # [exercise, type, "value unit", date, id, color]
+                    transformed_row.extend([row[0], date_color])  # [exercise, type, "value unit", date, id, color]
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows

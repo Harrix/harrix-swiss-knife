@@ -588,17 +588,17 @@ class DatabaseManager:
         """
         return self.get_rows("""
             SELECT p._id,
-                   e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   e.unit,
-                   p.date
+                e.name,
+                IFNULL(t.type, ''),
+                p.value,
+                e.unit,
+                p.date
             FROM process p
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t
-                 ON p._id_types = t._id
+                ON p._id_types = t._id
                 AND t._id_exercises = e._id
-            ORDER BY p._id DESC
+            ORDER BY p.date DESC, p._id DESC
         """)
 
     def get_all_weight_records(self) -> list[list[Any]]:
@@ -637,8 +637,7 @@ class DatabaseManager:
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
             WHERE {" AND ".join(conditions)}
-            AND p.date IS NOT NULL
-        """
+            AND p.date IS NOT NULL"""
 
         rows = self.get_rows(query, params)
         return rows[0][0] if rows and rows[0][0] else None
@@ -839,22 +838,22 @@ class DatabaseManager:
 
         query_text = """
             SELECT p._id,
-                   e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   e.unit,
-                   p.date
+                e.name,
+                IFNULL(t.type, ''),
+                p.value,
+                e.unit,
+                p.date
             FROM process p
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t
-                 ON p._id_types = t._id
+                ON p._id_types = t._id
                 AND t._id_exercises = e._id
         """
 
         if conditions:
             query_text += " WHERE " + " AND ".join(conditions)
 
-        query_text += " ORDER BY p._id DESC"
+        query_text += " ORDER BY p.date DESC, p._id DESC"
 
         return self.get_rows(query_text, params)
 
@@ -2024,17 +2023,17 @@ Returns:
 def get_all_process_records(self) -> list[list[Any]]:
         return self.get_rows("""
             SELECT p._id,
-                   e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   e.unit,
-                   p.date
+                e.name,
+                IFNULL(t.type, ''),
+                p.value,
+                e.unit,
+                p.date
             FROM process p
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t
-                 ON p._id_types = t._id
+                ON p._id_types = t._id
                 AND t._id_exercises = e._id
-            ORDER BY p._id DESC
+            ORDER BY p.date DESC, p._id DESC
         """)
 ```
 
@@ -2097,8 +2096,7 @@ def get_earliest_exercise_date(self, exercise_name: str, exercise_type: str | No
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
             WHERE {" AND ".join(conditions)}
-            AND p.date IS NOT NULL
-        """
+            AND p.date IS NOT NULL"""
 
         rows = self.get_rows(query, params)
         return rows[0][0] if rows and rows[0][0] else None
@@ -2395,22 +2393,22 @@ def get_filtered_process_records(
 
         query_text = """
             SELECT p._id,
-                   e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   e.unit,
-                   p.date
+                e.name,
+                IFNULL(t.type, ''),
+                p.value,
+                e.unit,
+                p.date
             FROM process p
             JOIN exercises e ON p._id_exercises = e._id
             LEFT JOIN types t
-                 ON p._id_types = t._id
+                ON p._id_types = t._id
                 AND t._id_exercises = e._id
         """
 
         if conditions:
             query_text += " WHERE " + " AND ".join(conditions)
 
-        query_text += " ORDER BY p._id DESC"
+        query_text += " ORDER BY p.date DESC, p._id DESC"
 
         return self.get_rows(query_text, params)
 ```
