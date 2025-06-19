@@ -111,11 +111,13 @@ class Ui_MainWindow(object):
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
+        self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
+        self.label_exercise_avif_3.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
         )
@@ -152,12 +154,14 @@ class Ui_MainWindow(object):
         self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
         self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
+        self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
         self.pushButton_check_steps.setText(QCoreApplication.translate("MainWindow", "Check steps", None))
+        self.label_exercise_avif_5.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
         )
@@ -575,6 +579,15 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_15.addWidget(self.groupBox_7)
 
+        self.label_exercise_avif_2 = QLabel(self.frame_2)
+        self.label_exercise_avif_2.setObjectName("label_exercise_avif_2")
+        self.label_exercise_avif_2.setMinimumSize(QSize(0, 150))
+        self.label_exercise_avif_2.setStyleSheet("border: 1px solid gray;")
+        self.label_exercise_avif_2.setScaledContents(False)
+        self.label_exercise_avif_2.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_15.addWidget(self.label_exercise_avif_2)
+
         self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_15.addItem(self.verticalSpacer_2)
@@ -648,6 +661,15 @@ class Ui_MainWindow(object):
         self.verticalLayout_13.addLayout(self.horizontalLayout_21)
 
         self.verticalLayout_12.addWidget(self.groupBox_8)
+
+        self.label_exercise_avif_3 = QLabel(self.frame_3)
+        self.label_exercise_avif_3.setObjectName("label_exercise_avif_3")
+        self.label_exercise_avif_3.setMinimumSize(QSize(0, 150))
+        self.label_exercise_avif_3.setStyleSheet("border: 1px solid gray;")
+        self.label_exercise_avif_3.setScaledContents(False)
+        self.label_exercise_avif_3.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_12.addWidget(self.label_exercise_avif_3)
 
         self.verticalSpacer_3 = QSpacerItem(20, 608, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -807,8 +829,10 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_5, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName("tab_charts")
-        self.verticalLayout_charts = QVBoxLayout(self.tab_charts)
-        self.verticalLayout_charts.setObjectName("verticalLayout_charts")
+        self.verticalLayout_18 = QVBoxLayout(self.tab_charts)
+        self.verticalLayout_18.setObjectName("verticalLayout_18")
+        self.horizontalLayout_23 = QHBoxLayout()
+        self.horizontalLayout_23.setObjectName("horizontalLayout_23")
         self.frame_charts_controls = QFrame(self.tab_charts)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
@@ -914,19 +938,30 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_2)
 
-        self.verticalLayout_charts.addWidget(self.frame_charts_controls)
+        self.horizontalLayout_23.addWidget(self.frame_charts_controls)
+
+        self.label_exercise_avif_4 = QLabel(self.tab_charts)
+        self.label_exercise_avif_4.setObjectName("label_exercise_avif_4")
+        self.label_exercise_avif_4.setMinimumSize(QSize(150, 76))
+        self.label_exercise_avif_4.setStyleSheet("border: 1px solid gray;")
+        self.label_exercise_avif_4.setScaledContents(False)
+        self.label_exercise_avif_4.setAlignment(Qt.AlignCenter)
+
+        self.horizontalLayout_23.addWidget(self.label_exercise_avif_4)
+
+        self.verticalLayout_18.addLayout(self.horizontalLayout_23)
 
         self.scrollArea_charts = QScrollArea(self.tab_charts)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1331, 727))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1331, 725))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
-        self.verticalLayout_charts.addWidget(self.scrollArea_charts)
+        self.verticalLayout_18.addWidget(self.scrollArea_charts)
 
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_4 = QWidget()
@@ -960,6 +995,15 @@ class Ui_MainWindow(object):
         self.pushButton_check_steps.setObjectName("pushButton_check_steps")
 
         self.verticalLayout_16.addWidget(self.pushButton_check_steps)
+
+        self.label_exercise_avif_5 = QLabel(self.frame_5)
+        self.label_exercise_avif_5.setObjectName("label_exercise_avif_5")
+        self.label_exercise_avif_5.setMinimumSize(QSize(0, 150))
+        self.label_exercise_avif_5.setStyleSheet("border: 1px solid gray;")
+        self.label_exercise_avif_5.setScaledContents(False)
+        self.label_exercise_avif_5.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_16.addWidget(self.label_exercise_avif_5)
 
         self.verticalSpacer_4 = QSpacerItem(20, 759, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 

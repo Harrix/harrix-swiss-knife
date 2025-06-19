@@ -92,10 +92,14 @@ class MainWindow(
         self.db_manager: database_manager.DatabaseManager | None = None
         self.current_movie: QMovie | None = None
 
-        # AVIF animation attributes
-        self.avif_frames: list = []
-        self.current_frame_index: int = 0
-        self.avif_timer: QTimer | None = None
+        # AVIF animation attributes for multiple labels
+        self.avif_data = {
+            "main": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            "exercises": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            "types": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            "charts": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            "statistics": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+        }
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -112,6 +116,9 @@ class MainWindow(
         # Chart configuration
         self.max_count_points_in_charts = 40
         self.id_steps = 39  # ID for steps exercise
+
+        # Statistics table mode tracking
+        self.current_statistics_mode = None  # 'records', 'last_exercises', 'check_steps'
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -148,8 +155,8 @@ class MainWindow(
         self._init_sets_count_display()
         self.update_all()
 
-        # Load initial AVIF animation after UI is ready
-        QTimer.singleShot(100, self._load_initial_avif)
+        # Load initial AVIF animations after UI is ready
+        QTimer.singleShot(100, self._load_initial_avifs)
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -178,7 +185,7 @@ class MainWindow(
             refresh_button.clicked.connect(self.update_all)
 
         # Connect process table selection change signal
-        self._connect_table_signals("process", self.on_process_selection_changed)
+        # Note: This will be connected later in show_tables() after model is created
 
         # Add buttons
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
@@ -208,11 +215,15 @@ class MainWindow(
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
         self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
+        self.comboBox_chart_exercise.currentIndexChanged.connect(self.on_chart_exercise_changed)
 
         # Filter signals
         self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
+
+        # Exercise name combobox for types
+        self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
 
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
@@ -225,6 +236,35 @@ class MainWindow(
                 # Use partial to properly bind table_name
                 handler = partial(self._on_table_data_changed, table_name)
                 self.models[table_name].sourceModel().dataChanged.connect(handler)
+
+    def _connect_table_selection_signals(self) -> None:
+        """Connect selection change signals for all tables."""
+        # Connect exercises table selection
+        self._connect_table_signals_for_table("exercises", self.on_exercise_selection_changed)
+
+        # Connect statistics table selection
+        selection_model = self.tableView_statistics.selectionModel()
+        if selection_model:
+            selection_model.currentRowChanged.connect(self.on_statistics_selection_changed)
+
+        # Connect process table selection
+        self._connect_table_signals_for_table("process", self.on_process_selection_changed)
+
+        # Connect weight table selection
+        self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
+
+    def _connect_table_signals_for_table(self, table_name: str, selection_handler) -> None:
+        """Connect selection change signal for a specific table.
+
+        Args:
+        - `table_name` (`str`): Name of the table.
+        - `selection_handler`: Handler function for selection changes.
+        """
+        if table_name in self.table_config:
+            view = self.table_config[table_name][0]
+            selection_model = view.selectionModel()
+            if selection_model:
+                selection_model.currentRowChanged.connect(selection_handler)
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from table to clipboard as tab-separated text.
@@ -483,6 +523,25 @@ class MainWindow(
 
         return avif_path if avif_path.exists() else None
 
+    def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
+        """Get exercise name by ID.
+
+        Args:
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+        - `str | None`: Exercise name or None if not found.
+        """
+        if not self._validate_database_connection():
+            return None
+
+        try:
+            rows = self.db_manager.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
+            return rows[0][0] if rows else None
+        except Exception as e:
+            print(f"Error getting exercise name by ID {exercise_id}: {e}")
+            return None
+
     def _get_last_weight(self) -> float:
         """Get the last recorded weight value from database.
 
@@ -503,6 +562,90 @@ class MainWindow(
             return initial_weight
         else:
             return last_weight if last_weight is not None else initial_weight
+
+    def _get_selected_exercise_from_statistics_table(self) -> str | None:
+        """Get selected exercise name from statistics table.
+
+        Returns:
+        - `str | None`: Exercise name or None if nothing selected.
+        """
+        current_index = self.tableView_statistics.currentIndex()
+
+        if not current_index.isValid():
+            # Get first row exercise name as default
+            model = self.tableView_statistics.model()
+            if model and model.rowCount() > 0:
+                first_index = model.index(0, 0)
+                exercise_name = model.data(first_index, Qt.DisplayRole)
+                return exercise_name.strip() if exercise_name else None
+            return None
+
+        # Get exercise name from selected row (first column)
+        model = self.tableView_statistics.model()
+        if model:
+            exercise_index = model.index(current_index.row(), 0)
+            exercise_name = model.data(exercise_index, Qt.DisplayRole)
+            return exercise_name.strip() if exercise_name else None
+
+        return None
+
+    def _get_selected_exercise_from_table(self, table_name: str) -> str | None:
+        """Get selected exercise name from a table.
+
+        Args:
+        - `table_name` (`str`): Name of the table ('exercises' or 'statistics').
+
+        Returns:
+        - `str | None`: Exercise name or None if nothing selected.
+        """
+        if table_name not in self.table_config:
+            return None
+
+        table_view = self.table_config[table_name][0]
+        current_index = table_view.currentIndex()
+
+        if not current_index.isValid():
+            # Get first row exercise name as default
+            model = self.models[table_name]
+            if model and model.rowCount() > 0:
+                first_index = model.index(0, 0)
+                return model.data(first_index, Qt.DisplayRole)
+            return None
+
+        # Get exercise name from selected row (first column)
+        model = self.models[table_name]
+        if model:
+            exercise_index = model.index(current_index.row(), 0)
+            return model.data(exercise_index, Qt.DisplayRole)
+
+        return None
+
+    def _get_selected_row_id(self, table_name: str) -> int | None:
+        """Get the database ID of the currently selected row.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table.
+
+        Returns:
+
+        - `int | None`: Database ID of selected row or None if no selection.
+
+        """
+        if table_name not in self.table_config:
+            return None
+
+        table_view, model_key, _ = self.table_config[table_name]
+        model = self.models[model_key]
+        if model is None:
+            return None
+
+        index = table_view.currentIndex()
+        if not index.isValid():
+            return None
+
+        row = index.row()
+        return int(model.sourceModel().verticalHeaderItem(row).text())
 
     def _init_database(self) -> None:
         """Open the SQLite file from `config` (create from recover.sql if missing).
@@ -645,40 +788,49 @@ class MainWindow(
             # Automatically refresh statistics on first visit
             self.on_refresh_statistics()
 
-    def _load_exercise_avif(self, exercise_name: str) -> None:
+    def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:
         """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
 
         Args:
-
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
-
+        - `label_key` (`str`): Key identifying which label to update ('main', 'exercises', 'types', 'charts', 'statistics').
         """
+        # Get the appropriate label widget
+        label_widgets = {
+            "main": self.label_exercise_avif,
+            "exercises": self.label_exercise_avif_2,
+            "types": self.label_exercise_avif_3,
+            "charts": self.label_exercise_avif_4,
+            "statistics": self.label_exercise_avif_5,
+        }
+
+        label_widget = label_widgets.get(label_key)
+        if not label_widget:
+            print(f"Unknown label key: {label_key}")
+            return
+
         # Stop current animation if exists
-        if self.current_movie:
-            self.current_movie.stop()
-            self.current_movie = None
+        if self.avif_data[label_key]["timer"]:
+            self.avif_data[label_key]["timer"].stop()
+            self.avif_data[label_key]["timer"] = None
 
-        # Stop AVIF animation if exists
-        if self.avif_timer:
-            self.avif_timer.stop()
-            self.avif_timer = None
-
-        self.avif_frames = []
-        self.current_frame_index = 0
+        self.avif_data[label_key]["frames"] = []
+        self.avif_data[label_key]["current_frame"] = 0
+        self.avif_data[label_key]["exercise"] = exercise_name
 
         # Clear label and reset alignment
-        self.label_exercise_avif.clear()
-        self.label_exercise_avif.setAlignment(Qt.AlignCenter)
+        label_widget.clear()
+        label_widget.setAlignment(Qt.AlignCenter)
 
         if not exercise_name:
-            self.label_exercise_avif.setText("No exercise selected")
+            label_widget.setText("No exercise selected")
             return
 
         # Get path to AVIF
         avif_path = self._get_exercise_avif_path(exercise_name)
 
         if avif_path is None:
-            self.label_exercise_avif.setText(f"No AVIF found for:\n{exercise_name}")
+            label_widget.setText(f"No AVIF found for:\n{exercise_name}")
             return
 
         try:
@@ -686,9 +838,9 @@ class MainWindow(
             pixmap = QPixmap(str(avif_path))
 
             if not pixmap.isNull():
-                label_size = self.label_exercise_avif.size()
+                label_size = label_widget.size()
                 scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                self.label_exercise_avif.setPixmap(scaled_pixmap)
+                label_widget.setPixmap(scaled_pixmap)
                 return
 
             # Fallback to Pillow with AVIF plugin for animation
@@ -701,8 +853,8 @@ class MainWindow(
                 # Handle animated AVIF
                 if hasattr(pil_image, "is_animated") and pil_image.is_animated:
                     # Extract all frames
-                    self.avif_frames = []
-                    label_size = self.label_exercise_avif.size()
+                    self.avif_data[label_key]["frames"] = []
+                    label_size = label_widget.size()
 
                     for frame_index in range(pil_image.n_frames):
                         pil_image.seek(frame_index)
@@ -733,15 +885,15 @@ class MainWindow(
 
                         if not pixmap.isNull():
                             scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                            self.avif_frames.append(scaled_pixmap)
+                            self.avif_data[label_key]["frames"].append(scaled_pixmap)
 
-                    if self.avif_frames:
+                    if self.avif_data[label_key]["frames"]:
                         # Show first frame
-                        self.label_exercise_avif.setPixmap(self.avif_frames[0])
+                        label_widget.setPixmap(self.avif_data[label_key]["frames"][0])
 
                         # Start animation timer
-                        self.avif_timer = QTimer()
-                        self.avif_timer.timeout.connect(self._next_avif_frame)
+                        self.avif_data[label_key]["timer"] = QTimer()
+                        self.avif_data[label_key]["timer"].timeout.connect(lambda: self._next_avif_frame(label_key))
 
                         # Get frame duration (default 100ms if not available)
                         try:
@@ -749,7 +901,7 @@ class MainWindow(
                         except Exception:
                             duration = 100
 
-                        self.avif_timer.start(duration)
+                        self.avif_data[label_key]["timer"].start(duration)
                         return
                 else:
                     # Static image
@@ -777,39 +929,69 @@ class MainWindow(
                     pixmap.loadFromData(buffer.getvalue())
 
                     if not pixmap.isNull():
-                        label_size = self.label_exercise_avif.size()
+                        label_size = label_widget.size()
                         scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                        self.label_exercise_avif.setPixmap(scaled_pixmap)
+                        label_widget.setPixmap(scaled_pixmap)
                         return
 
             except ImportError as import_error:
                 print(f"Import error: {import_error}")
-                self.label_exercise_avif.setText(f"AVIF plugin not available:\n{exercise_name}")
+                label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
                 return
             except Exception as pil_error:
                 print(f"Pillow error: {pil_error}")
 
-            self.label_exercise_avif.setText(f"Cannot load AVIF:\n{exercise_name}")
+            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
 
         except Exception as e:
             print(f"General error: {e}")
-            self.label_exercise_avif.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+            label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
 
-    def _load_initial_avif(self) -> None:
-        """Load AVIF for the first exercise after complete UI initialization."""
+    def _load_initial_avifs(self) -> None:
+        """Load AVIF for all labels after complete UI initialization."""
+        # Load main exercise AVIF
         current_exercise_name = self._get_current_selected_exercise()
         if current_exercise_name:
-            self._load_exercise_avif(current_exercise_name)
+            self._load_exercise_avif(current_exercise_name, "main")
             # Trigger the selection change to update labels
             self.on_exercise_selection_changed_list()
 
-    def _next_avif_frame(self) -> None:
-        """Show next frame in AVIF animation."""
-        if not self.avif_frames:
+        # Load exercises table AVIF (first row by default)
+        self._update_exercises_avif()
+
+        # Load types combobox AVIF
+        self._update_types_avif()
+
+        # Load charts combobox AVIF
+        self._update_charts_avif()
+
+        # Statistics AVIF will be loaded when statistics tab is accessed
+
+    def _next_avif_frame(self, label_key: str) -> None:
+        """Show next frame in AVIF animation for specific label.
+
+        Args:
+        - `label_key` (`str`): Key identifying which label to update.
+        """
+        if not self.avif_data[label_key]["frames"]:
             return
 
-        self.current_frame_index = (self.current_frame_index + 1) % len(self.avif_frames)
-        self.label_exercise_avif.setPixmap(self.avif_frames[self.current_frame_index])
+        self.avif_data[label_key]["current_frame"] = (self.avif_data[label_key]["current_frame"] + 1) % len(
+            self.avif_data[label_key]["frames"]
+        )
+
+        # Get the appropriate label widget
+        label_widgets = {
+            "main": self.label_exercise_avif,
+            "exercises": self.label_exercise_avif_2,
+            "types": self.label_exercise_avif_3,
+            "charts": self.label_exercise_avif_4,
+            "statistics": self.label_exercise_avif_5,
+        }
+
+        label_widget = label_widgets.get(label_key)
+        if label_widget:
+            label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
@@ -839,6 +1021,33 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+
+    def _refresh_table(self, table_name: str, data_getter, data_transformer=None) -> None:
+        """Refresh a table with data.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table to refresh.
+        - `data_getter`: Function to get data from database.
+        - `data_transformer`: Optional function to transform raw data.
+
+        Raises:
+
+        - `ValueError`: If the table name is unknown.
+
+        """
+        if table_name not in self.table_config:
+            error_msg = f"Unknown table: {table_name}"
+            raise ValueError(error_msg)
+
+        rows = data_getter()
+        if data_transformer:
+            rows = data_transformer(rows)
+
+        view, model_key, headers = self.table_config[table_name]
+        self.models[model_key] = self._create_table_model(rows, headers)
+        view.setModel(self.models[model_key])
+        view.resizeColumnsToContents()
 
     def _select_exercise_in_list(self, exercise_name: str) -> None:
         """Select an exercise in the list view by name.
@@ -898,6 +1107,12 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 0)  # frame with fixed size
 
+    def _update_charts_avif(self) -> None:
+        """Update AVIF for charts combobox selection."""
+        exercise_name = self.comboBox_chart_exercise.currentText()
+        if exercise_name:
+            self._load_exercise_avif(exercise_name, "charts")
+
     def _update_comboboxes(
         self,
         *,
@@ -956,8 +1171,17 @@ class MainWindow(
             elif exercises:
                 self._select_exercise_in_list(exercises[0])
 
+            # Update types AVIF after combobox update
+            self._update_types_avif()
+
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
+
+    def _update_exercises_avif(self) -> None:
+        """Update AVIF for exercises table selection."""
+        exercise_name = self._get_selected_exercise_from_table("exercises")
+        if exercise_name:
+            self._load_exercise_avif(exercise_name, "exercises")
 
     def _update_form_from_process_selection(self, exercise_name: str, type_name: str, value_str: str) -> None:
         """Update form fields after process selection change.
@@ -989,6 +1213,25 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating form from process selection: {e}")
+
+    def _update_statistics_avif(self) -> None:
+        """Update AVIF for statistics table based on current mode."""
+        if self.current_statistics_mode == "check_steps":
+            # Always show Steps exercise for check_steps mode
+            steps_exercise_name = self._get_exercise_name_by_id(self.id_steps)
+            if steps_exercise_name:
+                self._load_exercise_avif(steps_exercise_name, "statistics")
+        else:
+            # For other modes, use selected exercise from statistics table
+            exercise_name = self._get_selected_exercise_from_statistics_table()
+            if exercise_name:
+                self._load_exercise_avif(exercise_name, "statistics")
+
+    def _update_types_avif(self) -> None:
+        """Update AVIF for types combobox selection."""
+        exercise_name = self.comboBox_exercise_name.currentText()
+        if exercise_name:
+            self._load_exercise_avif(exercise_name, "types")
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
@@ -1088,11 +1331,13 @@ class MainWindow(
         - `event` (`QCloseEvent`): The close event.
 
         """
-        # Stop animations
+        # Stop animations for all labels
         if self.current_movie:
             self.current_movie.stop()
-        if self.avif_timer:
-            self.avif_timer.stop()
+
+        for label_key in self.avif_data:
+            if self.avif_data[label_key]["timer"]:
+                self.avif_data[label_key]["timer"].stop()
 
         # Dispose Models
         self._dispose_models()
@@ -1340,8 +1585,20 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to add weight: {e}")
 
     @requires_database()
+    def on_chart_exercise_changed(self, _index: int = -1) -> None:
+        """Handle chart exercise combobox selection change.
+
+        Args:
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+        """
+        self._update_charts_avif()
+
+    @requires_database()
     def on_check_steps(self) -> None:
         """Check for missing days and duplicate days in steps records."""
+        # Set current mode to check_steps
+        self.current_statistics_mode = "check_steps"
+
         try:
             from PySide6.QtGui import QBrush, QColor
 
@@ -1404,6 +1661,8 @@ class MainWindow(
                 for i in range(header.count() - 1):
                     self.tableView_statistics.setColumnWidth(i, 150)
 
+                # Update statistics AVIF
+                self._update_statistics_avif()
                 return
 
             # Get date range: from first record to yesterday
@@ -1515,6 +1774,7 @@ class MainWindow(
 
             # Set model to table view
             self.tableView_statistics.setModel(model)
+            self.models["statistics"] = None  # Clear the model reference since it's not a proxy model
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -1530,8 +1790,19 @@ class MainWindow(
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
 
+            # Update statistics AVIF
+            self._update_statistics_avif()
+
         except Exception as e:
             QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
+
+    def on_exercise_name_changed(self, _index: int = -1) -> None:
+        """Handle exercise name combobox selection change.
+
+        Args:
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+        """
+        self._update_types_avif()
 
     def on_exercise_selection_changed(self) -> None:
         """Update form fields when exercise selection changes in the table.
@@ -1559,6 +1830,9 @@ class MainWindow(
         self.lineEdit_exercise_unit.setText(unit)
         self.check_box_is_type_required.setChecked(is_required == "1")
 
+        # Update exercises AVIF
+        self._update_exercises_avif()
+
     def on_exercise_selection_changed_list(self) -> None:
         """Handle exercise selection change in the list view."""
         exercise = self._get_current_selected_exercise()
@@ -1582,10 +1856,9 @@ class MainWindow(
         self.label_exercise.setText(exercise)
 
         # Check if a new AVIF needs to be loaded
-        current_avif_exercise = getattr(self, "_current_avif_exercise", None)
+        current_avif_exercise = self.avif_data["main"]["exercise"]
         if current_avif_exercise != exercise:
-            self._current_avif_exercise = exercise
-            self._load_exercise_avif(exercise)
+            self._load_exercise_avif(exercise, "main")
 
         try:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
@@ -1760,6 +2033,9 @@ class MainWindow(
     @requires_database()
     def on_refresh_statistics(self) -> None:
         """Populate the statistics table view with records data using database manager."""
+        # Set current mode to records
+        self.current_statistics_mode = "records"
+
         try:
             from PySide6.QtGui import QBrush, QColor
 
@@ -1785,6 +2061,7 @@ class MainWindow(
                     ]
                 )
                 self.tableView_statistics.setModel(empty_model)
+                self.models["statistics"] = None  # Clear the model reference
 
                 # Set up stretching for empty table too
                 header = self.tableView_statistics.horizontalHeader()
@@ -1798,6 +2075,8 @@ class MainWindow(
                 header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
                 header.setStretchLastSection(False)
 
+                # Update statistics AVIF
+                self._update_statistics_avif()
                 return
 
             # Calculate date one year ago
@@ -1955,6 +2234,12 @@ class MainWindow(
 
             # Set model to table view
             self.tableView_statistics.setModel(model)
+            self.models["statistics"] = None  # Clear the model reference since it's not a proxy model
+
+            # Connect selection signal for statistics table
+            selection_model = self.tableView_statistics.selectionModel()
+            if selection_model:
+                selection_model.currentRowChanged.connect(self.on_statistics_selection_changed)
 
             # Apply spans after setting the model
             for start_row, row_count, exercise_name, type_name in span_info:
@@ -2023,12 +2308,21 @@ class MainWindow(
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
 
+            # Update statistics AVIF
+            self._update_statistics_avif()
+
+            # Trigger initial AVIF load for first row if no selection
+            QTimer.singleShot(100, self._update_statistics_avif)
+
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
 
     @requires_database()
     def on_show_last_exercises(self) -> None:
         """Show last execution dates for all exercises in the statistics table."""
+        # Set current mode to last_exercises
+        self.current_statistics_mode = "last_exercises"
+
         try:
             from PySide6.QtGui import QBrush, QColor
 
@@ -2043,6 +2337,7 @@ class MainWindow(
                 empty_model = QStandardItemModel()
                 empty_model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
                 self.tableView_statistics.setModel(empty_model)
+                self.models["statistics"] = None  # Clear the model reference
 
                 # Configure header with mixed approach: interactive + stretch last
                 header = self.tableView_statistics.horizontalHeader()
@@ -2055,6 +2350,8 @@ class MainWindow(
                 for i in range(header.count() - 1):
                     self.tableView_statistics.setColumnWidth(i, 150)
 
+                # Update statistics AVIF
+                self._update_statistics_avif()
                 return
 
             # Calculate days ago for each exercise
@@ -2125,6 +2422,10 @@ class MainWindow(
 
             # Set model to table view
             self.tableView_statistics.setModel(model)
+            self.models["statistics"] = None  # Clear the model reference
+
+            # Connect selection signal for statistics table
+            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -2140,8 +2441,25 @@ class MainWindow(
             # Disable alternating row colors since we have custom colors
             self.tableView_statistics.setAlternatingRowColors(False)
 
+            # Update statistics AVIF
+            self._update_statistics_avif()
+
+            # Trigger initial AVIF load for first row if no selection
+            QTimer.singleShot(100, self._update_statistics_avif)
+
         except Exception as e:
             QMessageBox.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
+
+    def on_statistics_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle statistics table selection change and update AVIF.
+
+        Args:
+        - `current` (`QModelIndex`): Currently selected index.
+        - `previous` (`QModelIndex`): Previously selected index.
+        """
+        # Only update AVIF if not in check_steps mode (since check_steps always shows Steps exercise)
+        if self.current_statistics_mode != "check_steps":
+            self._update_statistics_avif()
 
     def on_tab_changed(self, index: int) -> None:
         """React to `QTabWidget` index change.
@@ -2157,9 +2475,14 @@ class MainWindow(
 
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
+        elif index == 1:  # Exercises tab
+            # Update exercises AVIF when switching to exercises tab
+            self._update_exercises_avif()
+            self._update_types_avif()
         elif index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
+            self._update_charts_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
         elif index == index_tab_statistics:  # Statistics tab
@@ -2339,7 +2662,6 @@ class MainWindow(
                 exercises_transformed_data, self.table_config["exercises"][2]
             )
             self.tableView_exercises.setModel(self.models["exercises"])
-            self._connect_table_signals("exercises", self.on_exercise_selection_changed)
 
             # Refresh exercise types table with light orange background
             types_data = self.db_manager.get_all_exercise_types()
@@ -2403,9 +2725,6 @@ class MainWindow(
             )
             self.tableView_process.setModel(self.models["process"])
 
-            # Connect process table selection signal
-            self._connect_table_signals("process", self.on_process_selection_changed)
-
             # Configure process table header - mixed approach: interactive + stretch last
             process_header = self.tableView_process.horizontalHeader()
             # Set first columns to interactive (resizable)
@@ -2454,7 +2773,8 @@ class MainWindow(
             self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
             # Exercise Type column will stretch automatically
 
-            self._connect_table_signals("weight", self.on_weight_selection_changed)
+            # Connect selection change signals after models are set
+            self._connect_table_selection_signals()
 
             # Connect auto-save signals after all models are created
             self._connect_table_auto_save_signals()
@@ -2517,7 +2837,12 @@ class MainWindow(
         # Load AVIF for the currently selected exercise
         current_exercise_name = self._get_current_selected_exercise()
         if current_exercise_name:
-            self._load_exercise_avif(current_exercise_name)
+            self._load_exercise_avif(current_exercise_name, "main")
+
+        # Update other AVIFs
+        self._update_exercises_avif()
+        self._update_types_avif()
+        self._update_charts_avif()
 
     @requires_database(is_show_warning=False)
     def update_chart_comboboxes(self) -> None:

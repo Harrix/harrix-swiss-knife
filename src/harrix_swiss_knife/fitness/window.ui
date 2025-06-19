@@ -706,6 +706,28 @@
                                 </widget>
                               </item>
                               <item>
+                                <widget class="QLabel" name="label_exercise_avif_2">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>0</width>
+                                      <height>150</height>
+                                    </size>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">border: 1px solid gray;</string>
+                                  </property>
+                                  <property name="text">
+                                    <string>No exercise selected</string>
+                                  </property>
+                                  <property name="scaledContents">
+                                    <bool>false</bool>
+                                  </property>
+                                  <property name="alignment">
+                                    <set>Qt::AlignCenter</set>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
                                 <spacer name="verticalSpacer_2">
                                   <property name="orientation">
                                     <enum>Qt::Vertical</enum>
@@ -814,6 +836,28 @@
                                       </layout>
                                     </item>
                                   </layout>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QLabel" name="label_exercise_avif_3">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>0</width>
+                                      <height>150</height>
+                                    </size>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">border: 1px solid gray;</string>
+                                  </property>
+                                  <property name="text">
+                                    <string>No exercise selected</string>
+                                  </property>
+                                  <property name="scaledContents">
+                                    <bool>false</bool>
+                                  </property>
+                                  <property name="alignment">
+                                    <set>Qt::AlignCenter</set>
+                                  </property>
                                 </widget>
                               </item>
                               <item>
@@ -1080,187 +1124,213 @@
               <attribute name="title">
                 <string>Exercise Chart</string>
               </attribute>
-              <layout class="QVBoxLayout" name="verticalLayout_charts">
+              <layout class="QVBoxLayout" name="verticalLayout_18">
                 <item>
-                  <widget class="QFrame" name="frame_charts_controls">
-                    <property name="maximumSize">
-                      <size>
-                        <width>16777215</width>
-                        <height>120</height>
-                      </size>
-                    </property>
-                    <property name="frameShape">
-                      <enum>QFrame::StyledPanel</enum>
-                    </property>
-                    <property name="frameShadow">
-                      <enum>QFrame::Raised</enum>
-                    </property>
-                    <layout class="QVBoxLayout" name="verticalLayout_charts_controls">
-                      <item>
-                        <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_1">
+                  <layout class="QHBoxLayout" name="horizontalLayout_23">
+                    <item>
+                      <widget class="QFrame" name="frame_charts_controls">
+                        <property name="maximumSize">
+                          <size>
+                            <width>16777215</width>
+                            <height>120</height>
+                          </size>
+                        </property>
+                        <property name="frameShape">
+                          <enum>QFrame::StyledPanel</enum>
+                        </property>
+                        <property name="frameShadow">
+                          <enum>QFrame::Raised</enum>
+                        </property>
+                        <layout class="QVBoxLayout" name="verticalLayout_charts_controls">
                           <item>
-                            <widget class="QLabel" name="label_chart_exercise">
-                              <property name="text">
-                                <string>Exercise:</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QComboBox" name="comboBox_chart_exercise">
-                              <property name="minimumSize">
-                                <size>
-                                  <width>201</width>
-                                  <height>0</height>
-                                </size>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QLabel" name="label_chart_type">
-                              <property name="text">
-                                <string>Type:</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QComboBox" name="comboBox_chart_type">
-                              <property name="minimumSize">
-                                <size>
-                                  <width>251</width>
-                                  <height>0</height>
-                                </size>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QLabel" name="label_chart_period">
-                              <property name="text">
-                                <string>Period:</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QComboBox" name="comboBox_chart_period">
+                            <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_1">
                               <item>
-                                <property name="text">
-                                  <string>Days</string>
-                                </property>
+                                <widget class="QLabel" name="label_chart_exercise">
+                                  <property name="text">
+                                    <string>Exercise:</string>
+                                  </property>
+                                </widget>
                               </item>
                               <item>
-                                <property name="text">
-                                  <string>Months</string>
-                                </property>
+                                <widget class="QComboBox" name="comboBox_chart_exercise">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>201</width>
+                                      <height>0</height>
+                                    </size>
+                                  </property>
+                                </widget>
                               </item>
                               <item>
-                                <property name="text">
-                                  <string>Years</string>
-                                </property>
+                                <widget class="QLabel" name="label_chart_type">
+                                  <property name="text">
+                                    <string>Type:</string>
+                                  </property>
+                                </widget>
                               </item>
-                            </widget>
+                              <item>
+                                <widget class="QComboBox" name="comboBox_chart_type">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>251</width>
+                                      <height>0</height>
+                                    </size>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QLabel" name="label_chart_period">
+                                  <property name="text">
+                                    <string>Period:</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QComboBox" name="comboBox_chart_period">
+                                  <item>
+                                    <property name="text">
+                                      <string>Days</string>
+                                    </property>
+                                  </item>
+                                  <item>
+                                    <property name="text">
+                                      <string>Months</string>
+                                    </property>
+                                  </item>
+                                  <item>
+                                    <property name="text">
+                                      <string>Years</string>
+                                    </property>
+                                  </item>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QPushButton" name="pushButton_update_chart">
+                                  <property name="text">
+                                    <string>Update Chart</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QPushButton" name="pushButton_show_sets_chart">
+                                  <property name="text">
+                                    <string>Show Sets Chart</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <spacer name="horizontalSpacer_charts">
+                                  <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                  </property>
+                                  <property name="sizeHint" stdset="0">
+                                    <size>
+                                      <width>40</width>
+                                      <height>20</height>
+                                    </size>
+                                  </property>
+                                </spacer>
+                              </item>
+                            </layout>
                           </item>
                           <item>
-                            <widget class="QPushButton" name="pushButton_update_chart">
-                              <property name="text">
-                                <string>Update Chart</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QPushButton" name="pushButton_show_sets_chart">
-                              <property name="text">
-                                <string>Show Sets Chart</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <spacer name="horizontalSpacer_charts">
-                              <property name="orientation">
-                                <enum>Qt::Horizontal</enum>
-                              </property>
-                              <property name="sizeHint" stdset="0">
-                                <size>
-                                  <width>40</width>
-                                  <height>20</height>
-                                </size>
-                              </property>
-                            </spacer>
+                            <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_2">
+                              <item>
+                                <widget class="QLabel" name="label_chart_from">
+                                  <property name="text">
+                                    <string>From:</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QDateEdit" name="dateEdit_chart_from">
+                                  <property name="displayFormat">
+                                    <string>yyyy-MM-dd</string>
+                                  </property>
+                                  <property name="calendarPopup">
+                                    <bool>true</bool>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QLabel" name="label_chart_to">
+                                  <property name="text">
+                                    <string>To:</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QDateEdit" name="dateEdit_chart_to">
+                                  <property name="displayFormat">
+                                    <string>yyyy-MM-dd</string>
+                                  </property>
+                                  <property name="calendarPopup">
+                                    <bool>true</bool>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QPushButton" name="pushButton_chart_last_month">
+                                  <property name="text">
+                                    <string>Last Month</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QPushButton" name="pushButton_chart_last_year">
+                                  <property name="text">
+                                    <string>Last Year</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <widget class="QPushButton" name="pushButton_chart_all_time">
+                                  <property name="text">
+                                    <string>All Time</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <spacer name="horizontalSpacer_charts_2">
+                                  <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                  </property>
+                                  <property name="sizeHint" stdset="0">
+                                    <size>
+                                      <width>40</width>
+                                      <height>20</height>
+                                    </size>
+                                  </property>
+                                </spacer>
+                              </item>
+                            </layout>
                           </item>
                         </layout>
-                      </item>
-                      <item>
-                        <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_2">
-                          <item>
-                            <widget class="QLabel" name="label_chart_from">
-                              <property name="text">
-                                <string>From:</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QDateEdit" name="dateEdit_chart_from">
-                              <property name="displayFormat">
-                                <string>yyyy-MM-dd</string>
-                              </property>
-                              <property name="calendarPopup">
-                                <bool>true</bool>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QLabel" name="label_chart_to">
-                              <property name="text">
-                                <string>To:</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QDateEdit" name="dateEdit_chart_to">
-                              <property name="displayFormat">
-                                <string>yyyy-MM-dd</string>
-                              </property>
-                              <property name="calendarPopup">
-                                <bool>true</bool>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QPushButton" name="pushButton_chart_last_month">
-                              <property name="text">
-                                <string>Last Month</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QPushButton" name="pushButton_chart_last_year">
-                              <property name="text">
-                                <string>Last Year</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QPushButton" name="pushButton_chart_all_time">
-                              <property name="text">
-                                <string>All Time</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <spacer name="horizontalSpacer_charts_2">
-                              <property name="orientation">
-                                <enum>Qt::Horizontal</enum>
-                              </property>
-                              <property name="sizeHint" stdset="0">
-                                <size>
-                                  <width>40</width>
-                                  <height>20</height>
-                                </size>
-                              </property>
-                            </spacer>
-                          </item>
-                        </layout>
-                      </item>
-                    </layout>
-                  </widget>
+                      </widget>
+                    </item>
+                    <item>
+                      <widget class="QLabel" name="label_exercise_avif_4">
+                        <property name="minimumSize">
+                          <size>
+                            <width>150</width>
+                            <height>76</height>
+                          </size>
+                        </property>
+                        <property name="styleSheet">
+                          <string notr="true">border: 1px solid gray;</string>
+                        </property>
+                        <property name="text">
+                          <string>No exercise selected</string>
+                        </property>
+                        <property name="scaledContents">
+                          <bool>false</bool>
+                        </property>
+                        <property name="alignment">
+                          <set>Qt::AlignCenter</set>
+                        </property>
+                      </widget>
+                    </item>
+                  </layout>
                 </item>
                 <item>
                   <widget class="QScrollArea" name="scrollArea_charts">
@@ -1273,7 +1343,7 @@
                           <x>0</x>
                           <y>0</y>
                           <width>1331</width>
-                          <height>727</height>
+                          <height>725</height>
                         </rect>
                       </property>
                       <layout class="QVBoxLayout" name="verticalLayout_charts_content" />
@@ -1329,6 +1399,28 @@
                         <widget class="QPushButton" name="pushButton_check_steps">
                           <property name="text">
                             <string>Check steps</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item>
+                        <widget class="QLabel" name="label_exercise_avif_5">
+                          <property name="minimumSize">
+                            <size>
+                              <width>0</width>
+                              <height>150</height>
+                            </size>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">border: 1px solid gray;</string>
+                          </property>
+                          <property name="text">
+                            <string>No exercise selected</string>
+                          </property>
+                          <property name="scaledContents">
+                            <bool>false</bool>
+                          </property>
+                          <property name="alignment">
+                            <set>Qt::AlignCenter</set>
                           </property>
                         </widget>
                       </item>
