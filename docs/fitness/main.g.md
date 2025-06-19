@@ -16,6 +16,7 @@ lang: en
   - [Method `_connect_signals`](#method-_connect_signals)
   - [Method `_connect_table_auto_save_signals`](#method-_connect_table_auto_save_signals)
   - [Method `_create_colored_process_table_model`](#method-_create_colored_process_table_model)
+  - [Method `_create_colored_table_model`](#method-_create_colored_table_model)
   - [Method `_create_table_model`](#method-_create_table_model)
   - [Method `_dispose_models`](#method-_dispose_models)
   - [Method `_get_current_selected_exercise`](#method-_get_current_selected_exercise)
@@ -315,6 +316,59 @@ class MainWindow(
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+
+    def _create_colored_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        id_column: int = -2,
+    ) -> QSortFilterProxyModel:
+        """Return a proxy model filled with colored table data.
+
+        Args:
+
+        - `data` (`list[list]`): The table data with color information.
+        - `headers` (`list[str]`): Column header names.
+        - `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
+
+        Returns:
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
+
+        """
+        from PySide6.QtGui import QBrush
+
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID (second-to-last element)
+            row_color = row[-1]  # Color is at the last position
+            row_id = row[id_column]  # ID is at second-to-last position
+
+            # Create items for display columns only (exclude ID and color)
+            items = []
+            display_data = row[:-2]  # Exclude last two elements (ID and color)
+
+            for col_idx, value in enumerate(display_data):
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
 
                 items.append(item)
 
@@ -1980,9 +2034,36 @@ class MainWindow(
             return
 
         try:
-            # Refresh exercises table
-            self._refresh_table("exercises", self.db_manager.get_all_exercises)
+            # Refresh exercises table with light green background
+            exercises_data = self.db_manager.get_all_exercises()
+            exercises_transformed_data = []
+            light_green = QColor(240, 255, 240)  # Light green background
+
+            for row in exercises_data:
+                # Transform exercises data: [id, name, unit, is_type_required] -> [name, unit, is_type_required, id, color]
+                transformed_row = [row[1], row[2], str(row[3]), row[0], light_green]
+                exercises_transformed_data.append(transformed_row)
+
+            self.models["exercises"] = self._create_colored_table_model(
+                exercises_transformed_data, self.table_config["exercises"][2]
+            )
+            self.tableView_exercises.setModel(self.models["exercises"])
             self._connect_table_signals("exercises", self.on_exercise_selection_changed)
+
+            # Refresh exercise types table with light orange background
+            types_data = self.db_manager.get_all_exercise_types()
+            types_transformed_data = []
+            light_orange = QColor(255, 248, 220)  # Light orange background
+
+            for row in types_data:
+                # Transform types data: [id, exercise_name, type_name] -> [exercise_name, type_name, id, color]
+                transformed_row = [row[1], row[2], row[0], light_orange]
+                types_transformed_data.append(transformed_row)
+
+            self.models["types"] = self._create_colored_table_model(
+                types_transformed_data, self.table_config["types"][2]
+            )
+            self.tableView_exercise_types.setModel(self.models["types"])
 
             def transform_process_data(rows: list[list]) -> list[list]:
                 """Refresh process table with data transformation and coloring.
@@ -2037,8 +2118,7 @@ class MainWindow(
             for i in range(process_header.count() - 1):
                 process_header.setSectionResizeMode(i, process_header.ResizeMode.Stretch)
 
-            # Refresh other tables
-            self._refresh_table("types", self.db_manager.get_all_exercise_types)
+            # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
 
             # Stretch columns to fill the entire table width for weight table
@@ -2047,13 +2127,13 @@ class MainWindow(
             for i in range(weight_header.count() - 1):
                 weight_header.setSectionResizeMode(i, weight_header.ResizeMode.Stretch)
 
-            # Stretch columns to fill the entire table width for process table tableView_exercises
+            # Stretch columns to fill the entire table width for exercises table
             exercises_header = self.tableView_exercises.horizontalHeader()
             exercises_header.setStretchLastSection(True)
             for i in range(exercises_header.count() - 1):
                 exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Stretch)
 
-            # Stretch columns to fill the entire table width for process table tableView_exercise_types
+            # Stretch columns to fill the entire table width for exercise types table
             exercise_types_header = self.tableView_exercise_types.horizontalHeader()
             exercise_types_header.setStretchLastSection(True)
             for i in range(exercise_types_header.count() - 1):
@@ -2663,6 +2743,71 @@ def _create_colored_process_table_model(
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+```
+
+</details>
+
+### Method `_create_colored_table_model`
+
+```python
+def _create_colored_table_model(self, data: list[list], headers: list[str], id_column: int = -2) -> QSortFilterProxyModel
+```
+
+Return a proxy model filled with colored table data.
+
+Args:
+
+- `data` (`list[list]`): The table data with color information.
+- `headers` (`list[str]`): Column header names.
+- `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
+
+Returns:
+
+- `QSortFilterProxyModel`: A filterable and sortable model with colored data.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _create_colored_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        id_column: int = -2,
+    ) -> QSortFilterProxyModel:
+        from PySide6.QtGui import QBrush
+
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID (second-to-last element)
+            row_color = row[-1]  # Color is at the last position
+            row_id = row[id_column]  # ID is at second-to-last position
+
+            # Create items for display columns only (exclude ID and color)
+            items = []
+            display_data = row[:-2]  # Exclude last two elements (ID and color)
+
+            for col_idx, value in enumerate(display_data):
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
 
                 items.append(item)
 
@@ -4971,9 +5116,36 @@ def show_tables(self) -> None:
             return
 
         try:
-            # Refresh exercises table
-            self._refresh_table("exercises", self.db_manager.get_all_exercises)
+            # Refresh exercises table with light green background
+            exercises_data = self.db_manager.get_all_exercises()
+            exercises_transformed_data = []
+            light_green = QColor(240, 255, 240)  # Light green background
+
+            for row in exercises_data:
+                # Transform exercises data: [id, name, unit, is_type_required] -> [name, unit, is_type_required, id, color]
+                transformed_row = [row[1], row[2], str(row[3]), row[0], light_green]
+                exercises_transformed_data.append(transformed_row)
+
+            self.models["exercises"] = self._create_colored_table_model(
+                exercises_transformed_data, self.table_config["exercises"][2]
+            )
+            self.tableView_exercises.setModel(self.models["exercises"])
             self._connect_table_signals("exercises", self.on_exercise_selection_changed)
+
+            # Refresh exercise types table with light orange background
+            types_data = self.db_manager.get_all_exercise_types()
+            types_transformed_data = []
+            light_orange = QColor(255, 248, 220)  # Light orange background
+
+            for row in types_data:
+                # Transform types data: [id, exercise_name, type_name] -> [exercise_name, type_name, id, color]
+                transformed_row = [row[1], row[2], row[0], light_orange]
+                types_transformed_data.append(transformed_row)
+
+            self.models["types"] = self._create_colored_table_model(
+                types_transformed_data, self.table_config["types"][2]
+            )
+            self.tableView_exercise_types.setModel(self.models["types"])
 
             def transform_process_data(rows: list[list]) -> list[list]:
                 """Refresh process table with data transformation and coloring.
@@ -5028,8 +5200,7 @@ def show_tables(self) -> None:
             for i in range(process_header.count() - 1):
                 process_header.setSectionResizeMode(i, process_header.ResizeMode.Stretch)
 
-            # Refresh other tables
-            self._refresh_table("types", self.db_manager.get_all_exercise_types)
+            # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
 
             # Stretch columns to fill the entire table width for weight table
@@ -5038,13 +5209,13 @@ def show_tables(self) -> None:
             for i in range(weight_header.count() - 1):
                 weight_header.setSectionResizeMode(i, weight_header.ResizeMode.Stretch)
 
-            # Stretch columns to fill the entire table width for process table tableView_exercises
+            # Stretch columns to fill the entire table width for exercises table
             exercises_header = self.tableView_exercises.horizontalHeader()
             exercises_header.setStretchLastSection(True)
             for i in range(exercises_header.count() - 1):
                 exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Stretch)
 
-            # Stretch columns to fill the entire table width for process table tableView_exercise_types
+            # Stretch columns to fill the entire table width for exercise types table
             exercise_types_header = self.tableView_exercise_types.horizontalHeader()
             exercise_types_header.setStretchLastSection(True)
             for i in range(exercise_types_header.count() - 1):
