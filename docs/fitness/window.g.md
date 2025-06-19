@@ -434,21 +434,29 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName("tab_2")
-        self.horizontalLayout_3 = QHBoxLayout(self.tab_2)
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.tableView_exercises = QTableView(self.tab_2)
+        self.verticalLayout_18 = QVBoxLayout(self.tab_2)
+        self.verticalLayout_18.setObjectName("verticalLayout_18")
+        self.splitter1 = QSplitter(self.tab_2)
+        self.splitter1.setObjectName("splitter1")
+        self.splitter1.setOrientation(Qt.Vertical)
+        self.widget_top = QWidget(self.splitter1)
+        self.widget_top.setObjectName("widget_top")
+        self.horizontalLayout_2 = QHBoxLayout(self.widget_top)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.tableView_exercises = QTableView(self.widget_top)
         self.tableView_exercises.setObjectName("tableView_exercises")
 
-        self.horizontalLayout_3.addWidget(self.tableView_exercises)
+        self.horizontalLayout_2.addWidget(self.tableView_exercises)
 
-        self.frame_2 = QFrame(self.tab_2)
+        self.frame_2 = QFrame(self.widget_top)
         self.frame_2.setObjectName("frame_2")
-        self.frame_2.setMinimumSize(QSize(300, 0))
-        self.frame_2.setMaximumSize(QSize(301, 16777215))
+        self.frame_2.setMinimumSize(QSize(250, 0))
+        self.frame_2.setMaximumSize(QSize(250, 16777215))
         self.frame_2.setFrameShape(QFrame.StyledPanel)
         self.frame_2.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_12 = QVBoxLayout(self.frame_2)
-        self.verticalLayout_12.setObjectName("verticalLayout_12")
+        self.verticalLayout_15 = QVBoxLayout(self.frame_2)
+        self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.groupBox_2 = QGroupBox(self.frame_2)
         self.groupBox_2.setObjectName("groupBox_2")
         self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
@@ -503,7 +511,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_10.addLayout(self.horizontalLayout_19)
 
-        self.verticalLayout_12.addWidget(self.groupBox_2)
+        self.verticalLayout_15.addWidget(self.groupBox_2)
 
         self.groupBox_7 = QGroupBox(self.frame_2)
         self.groupBox_7.setObjectName("groupBox_7")
@@ -523,27 +531,33 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_11.addLayout(self.horizontalLayout_20)
 
-        self.verticalLayout_12.addWidget(self.groupBox_7)
+        self.verticalLayout_15.addWidget(self.groupBox_7)
 
         self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_12.addItem(self.verticalSpacer_2)
+        self.verticalLayout_15.addItem(self.verticalSpacer_2)
 
-        self.horizontalLayout_3.addWidget(self.frame_2)
+        self.horizontalLayout_2.addWidget(self.frame_2)
 
-        self.tableView_exercise_types = QTableView(self.tab_2)
+        self.splitter1.addWidget(self.widget_top)
+        self.widget_bottom = QWidget(self.splitter1)
+        self.widget_bottom.setObjectName("widget_bottom")
+        self.horizontalLayout_3 = QHBoxLayout(self.widget_bottom)
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.horizontalLayout_3.setContentsMargins(0, 0, 0, 0)
+        self.tableView_exercise_types = QTableView(self.widget_bottom)
         self.tableView_exercise_types.setObjectName("tableView_exercise_types")
 
         self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
 
-        self.frame_3 = QFrame(self.tab_2)
+        self.frame_3 = QFrame(self.widget_bottom)
         self.frame_3.setObjectName("frame_3")
-        self.frame_3.setMinimumSize(QSize(300, 0))
-        self.frame_3.setMaximumSize(QSize(300, 16777215))
+        self.frame_3.setMinimumSize(QSize(250, 0))
+        self.frame_3.setMaximumSize(QSize(250, 16777215))
         self.frame_3.setFrameShape(QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_15 = QVBoxLayout(self.frame_3)
-        self.verticalLayout_15.setObjectName("verticalLayout_15")
+        self.verticalLayout_12 = QVBoxLayout(self.frame_3)
+        self.verticalLayout_12.setObjectName("verticalLayout_12")
         self.groupBox_3 = QGroupBox(self.frame_3)
         self.groupBox_3.setObjectName("groupBox_3")
         self.verticalLayout_14 = QVBoxLayout(self.groupBox_3)
@@ -571,7 +585,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_14.addLayout(self.horizontalLayout_22)
 
-        self.verticalLayout_15.addWidget(self.groupBox_3)
+        self.verticalLayout_12.addWidget(self.groupBox_3)
 
         self.groupBox_8 = QGroupBox(self.frame_3)
         self.groupBox_8.setObjectName("groupBox_8")
@@ -591,13 +605,17 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_13.addLayout(self.horizontalLayout_21)
 
-        self.verticalLayout_15.addWidget(self.groupBox_8)
+        self.verticalLayout_12.addWidget(self.groupBox_8)
 
         self.verticalSpacer_3 = QSpacerItem(20, 608, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_15.addItem(self.verticalSpacer_3)
+        self.verticalLayout_12.addItem(self.verticalSpacer_3)
 
         self.horizontalLayout_3.addWidget(self.frame_3)
+
+        self.splitter1.addWidget(self.widget_bottom)
+
+        self.verticalLayout_18.addWidget(self.splitter1)
 
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_5 = QWidget()
@@ -1361,21 +1379,29 @@ def setupUi(self, MainWindow):
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName("tab_2")
-        self.horizontalLayout_3 = QHBoxLayout(self.tab_2)
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.tableView_exercises = QTableView(self.tab_2)
+        self.verticalLayout_18 = QVBoxLayout(self.tab_2)
+        self.verticalLayout_18.setObjectName("verticalLayout_18")
+        self.splitter1 = QSplitter(self.tab_2)
+        self.splitter1.setObjectName("splitter1")
+        self.splitter1.setOrientation(Qt.Vertical)
+        self.widget_top = QWidget(self.splitter1)
+        self.widget_top.setObjectName("widget_top")
+        self.horizontalLayout_2 = QHBoxLayout(self.widget_top)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.tableView_exercises = QTableView(self.widget_top)
         self.tableView_exercises.setObjectName("tableView_exercises")
 
-        self.horizontalLayout_3.addWidget(self.tableView_exercises)
+        self.horizontalLayout_2.addWidget(self.tableView_exercises)
 
-        self.frame_2 = QFrame(self.tab_2)
+        self.frame_2 = QFrame(self.widget_top)
         self.frame_2.setObjectName("frame_2")
-        self.frame_2.setMinimumSize(QSize(300, 0))
-        self.frame_2.setMaximumSize(QSize(301, 16777215))
+        self.frame_2.setMinimumSize(QSize(250, 0))
+        self.frame_2.setMaximumSize(QSize(250, 16777215))
         self.frame_2.setFrameShape(QFrame.StyledPanel)
         self.frame_2.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_12 = QVBoxLayout(self.frame_2)
-        self.verticalLayout_12.setObjectName("verticalLayout_12")
+        self.verticalLayout_15 = QVBoxLayout(self.frame_2)
+        self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.groupBox_2 = QGroupBox(self.frame_2)
         self.groupBox_2.setObjectName("groupBox_2")
         self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
@@ -1430,7 +1456,7 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_10.addLayout(self.horizontalLayout_19)
 
-        self.verticalLayout_12.addWidget(self.groupBox_2)
+        self.verticalLayout_15.addWidget(self.groupBox_2)
 
         self.groupBox_7 = QGroupBox(self.frame_2)
         self.groupBox_7.setObjectName("groupBox_7")
@@ -1450,27 +1476,33 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_11.addLayout(self.horizontalLayout_20)
 
-        self.verticalLayout_12.addWidget(self.groupBox_7)
+        self.verticalLayout_15.addWidget(self.groupBox_7)
 
         self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_12.addItem(self.verticalSpacer_2)
+        self.verticalLayout_15.addItem(self.verticalSpacer_2)
 
-        self.horizontalLayout_3.addWidget(self.frame_2)
+        self.horizontalLayout_2.addWidget(self.frame_2)
 
-        self.tableView_exercise_types = QTableView(self.tab_2)
+        self.splitter1.addWidget(self.widget_top)
+        self.widget_bottom = QWidget(self.splitter1)
+        self.widget_bottom.setObjectName("widget_bottom")
+        self.horizontalLayout_3 = QHBoxLayout(self.widget_bottom)
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.horizontalLayout_3.setContentsMargins(0, 0, 0, 0)
+        self.tableView_exercise_types = QTableView(self.widget_bottom)
         self.tableView_exercise_types.setObjectName("tableView_exercise_types")
 
         self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
 
-        self.frame_3 = QFrame(self.tab_2)
+        self.frame_3 = QFrame(self.widget_bottom)
         self.frame_3.setObjectName("frame_3")
-        self.frame_3.setMinimumSize(QSize(300, 0))
-        self.frame_3.setMaximumSize(QSize(300, 16777215))
+        self.frame_3.setMinimumSize(QSize(250, 0))
+        self.frame_3.setMaximumSize(QSize(250, 16777215))
         self.frame_3.setFrameShape(QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_15 = QVBoxLayout(self.frame_3)
-        self.verticalLayout_15.setObjectName("verticalLayout_15")
+        self.verticalLayout_12 = QVBoxLayout(self.frame_3)
+        self.verticalLayout_12.setObjectName("verticalLayout_12")
         self.groupBox_3 = QGroupBox(self.frame_3)
         self.groupBox_3.setObjectName("groupBox_3")
         self.verticalLayout_14 = QVBoxLayout(self.groupBox_3)
@@ -1498,7 +1530,7 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_14.addLayout(self.horizontalLayout_22)
 
-        self.verticalLayout_15.addWidget(self.groupBox_3)
+        self.verticalLayout_12.addWidget(self.groupBox_3)
 
         self.groupBox_8 = QGroupBox(self.frame_3)
         self.groupBox_8.setObjectName("groupBox_8")
@@ -1518,13 +1550,17 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_13.addLayout(self.horizontalLayout_21)
 
-        self.verticalLayout_15.addWidget(self.groupBox_8)
+        self.verticalLayout_12.addWidget(self.groupBox_8)
 
         self.verticalSpacer_3 = QSpacerItem(20, 608, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_15.addItem(self.verticalSpacer_3)
+        self.verticalLayout_12.addItem(self.verticalSpacer_3)
 
         self.horizontalLayout_3.addWidget(self.frame_3)
+
+        self.splitter1.addWidget(self.widget_bottom)
+
+        self.verticalLayout_18.addWidget(self.splitter1)
 
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_5 = QWidget()
