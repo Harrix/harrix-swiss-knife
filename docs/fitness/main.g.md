@@ -15,6 +15,7 @@ lang: en
   - [Method `__init__`](#method-__init__)
   - [Method `_connect_signals`](#method-_connect_signals)
   - [Method `_connect_table_auto_save_signals`](#method-_connect_table_auto_save_signals)
+  - [Method `_copy_table_selection_to_clipboard`](#method-_copy_table_selection_to_clipboard)
   - [Method `_create_colored_process_table_model`](#method-_create_colored_process_table_model)
   - [Method `_create_colored_table_model`](#method-_create_colored_table_model)
   - [Method `_create_table_model`](#method-_create_table_model)
@@ -44,6 +45,7 @@ lang: en
   - [Method `closeEvent`](#method-closeevent)
   - [Method `delete_record`](#method-delete_record)
   - [Method `generate_pastel_colors_mathematical`](#method-generate_pastel_colors_mathematical)
+  - [Method `keyPressEvent`](#method-keypressevent)
   - [Method `on_add_exercise`](#method-on_add_exercise)
   - [Method `on_add_record`](#method-on_add_record)
   - [Method `on_add_type`](#method-on_add_type)
@@ -271,6 +273,57 @@ class MainWindow(
                 # Use partial to properly bind table_name
                 handler = partial(self._on_table_data_changed, table_name)
                 self.models[table_name].sourceModel().dataChanged.connect(handler)
+
+    def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
+        """Copy selected cells from table to clipboard as tab-separated text.
+
+        Args:
+        - `table_view` (`QTableView`): The table view to copy data from.
+        """
+        from PySide6.QtGui import QClipboard
+
+        selection_model = table_view.selectionModel()
+        if not selection_model or not selection_model.hasSelection():
+            return
+
+        # Get selected indexes and sort them by row and column
+        selected_indexes = selection_model.selectedIndexes()
+        if not selected_indexes:
+            return
+
+        # Sort indexes by row first, then by column
+        selected_indexes.sort(key=lambda index: (index.row(), index.column()))
+
+        # Group indexes by row
+        rows_data = {}
+        for index in selected_indexes:
+            row = index.row()
+            if row not in rows_data:
+                rows_data[row] = {}
+
+            # Get cell data
+            cell_data = table_view.model().data(index, Qt.DisplayRole)
+            rows_data[row][index.column()] = str(cell_data) if cell_data is not None else ""
+
+        # Build clipboard text
+        clipboard_text = []
+        for row in sorted(rows_data.keys()):
+            row_data = rows_data[row]
+            # Get all columns for this row and fill missing ones with empty strings
+            if row_data:
+                min_col = min(row_data.keys())
+                max_col = max(row_data.keys())
+                row_text = []
+                for col in range(min_col, max_col + 1):
+                    row_text.append(row_data.get(col, ""))
+                clipboard_text.append("\t".join(row_text))
+
+        # Copy to clipboard
+        if clipboard_text:
+            final_text = "\n".join(clipboard_text)
+            clipboard = QApplication.clipboard()
+            clipboard.setText(final_text)
+            print(f"Copied {len(clipboard_text)} rows to clipboard")
 
     def _create_colored_process_table_model(
         self,
@@ -1139,6 +1192,40 @@ class MainWindow(
             colors.append(color)
 
         return colors
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802
+        """Handle key press events for the main window.
+
+        Args:
+        - `event`: The key press event.
+        """
+        # Handle Ctrl+C for copying table selections
+        if event.key() == Qt.Key_C and event.modifiers() == Qt.ControlModifier:
+            # Determine which table is currently focused
+            focused_widget = QApplication.focusWidget()
+
+            # Check if the focused widget is one of our table views
+            table_views = [
+                self.tableView_process,
+                self.tableView_exercises,
+                self.tableView_exercise_types,
+                self.tableView_weight,
+                self.tableView_statistics,
+            ]
+
+            for table_view in table_views:
+                if focused_widget == table_view:
+                    self._copy_table_selection_to_clipboard(table_view)
+                    return
+
+            # If focused widget is a child of a table view (like the viewport)
+            for table_view in table_views:
+                if focused_widget and table_view.isAncestorOf(focused_widget):
+                    self._copy_table_selection_to_clipboard(table_view)
+                    return
+
+        # Call parent implementation for other key events
+        super().keyPressEvent(event)
 
     @requires_database()
     def on_add_exercise(self) -> None:
@@ -2883,6 +2970,71 @@ def _connect_table_auto_save_signals(self) -> None:
 
 </details>
 
+### Method `_copy_table_selection_to_clipboard`
+
+```python
+def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None
+```
+
+Copy selected cells from table to clipboard as tab-separated text.
+
+Args:
+
+- `table_view` (`QTableView`): The table view to copy data from.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
+        from PySide6.QtGui import QClipboard
+
+        selection_model = table_view.selectionModel()
+        if not selection_model or not selection_model.hasSelection():
+            return
+
+        # Get selected indexes and sort them by row and column
+        selected_indexes = selection_model.selectedIndexes()
+        if not selected_indexes:
+            return
+
+        # Sort indexes by row first, then by column
+        selected_indexes.sort(key=lambda index: (index.row(), index.column()))
+
+        # Group indexes by row
+        rows_data = {}
+        for index in selected_indexes:
+            row = index.row()
+            if row not in rows_data:
+                rows_data[row] = {}
+
+            # Get cell data
+            cell_data = table_view.model().data(index, Qt.DisplayRole)
+            rows_data[row][index.column()] = str(cell_data) if cell_data is not None else ""
+
+        # Build clipboard text
+        clipboard_text = []
+        for row in sorted(rows_data.keys()):
+            row_data = rows_data[row]
+            # Get all columns for this row and fill missing ones with empty strings
+            if row_data:
+                min_col = min(row_data.keys())
+                max_col = max(row_data.keys())
+                row_text = []
+                for col in range(min_col, max_col + 1):
+                    row_text.append(row_data.get(col, ""))
+                clipboard_text.append("\t".join(row_text))
+
+        # Copy to clipboard
+        if clipboard_text:
+            final_text = "\n".join(clipboard_text)
+            clipboard = QApplication.clipboard()
+            clipboard.setText(final_text)
+            print(f"Copied {len(clipboard_text)} rows to clipboard")
+```
+
+</details>
+
 ### Method `_create_colored_process_table_model`
 
 ```python
@@ -4120,6 +4272,54 @@ def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
             colors.append(color)
 
         return colors
+```
+
+</details>
+
+### Method `keyPressEvent`
+
+```python
+def keyPressEvent(self, event) -> None
+```
+
+Handle key press events for the main window.
+
+Args:
+
+- `event`: The key press event.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def keyPressEvent(self, event) -> None:  # noqa: N802
+        # Handle Ctrl+C for copying table selections
+        if event.key() == Qt.Key_C and event.modifiers() == Qt.ControlModifier:
+            # Determine which table is currently focused
+            focused_widget = QApplication.focusWidget()
+
+            # Check if the focused widget is one of our table views
+            table_views = [
+                self.tableView_process,
+                self.tableView_exercises,
+                self.tableView_exercise_types,
+                self.tableView_weight,
+                self.tableView_statistics,
+            ]
+
+            for table_view in table_views:
+                if focused_widget == table_view:
+                    self._copy_table_selection_to_clipboard(table_view)
+                    return
+
+            # If focused widget is a child of a table view (like the viewport)
+            for table_view in table_views:
+                if focused_widget and table_view.isAncestorOf(focused_widget):
+                    self._copy_table_selection_to_clipboard(table_view)
+                    return
+
+        # Call parent implementation for other key events
+        super().keyPressEvent(event)
 ```
 
 </details>
