@@ -513,7 +513,7 @@ class Ui_MainWindow(object):
 
         self.lineEdit_exercise_name = QLineEdit(self.groupBox_2)
         self.lineEdit_exercise_name.setObjectName("lineEdit_exercise_name")
-        self.lineEdit_exercise_name.setMinimumSize(QSize(113, 0))
+        self.lineEdit_exercise_name.setMinimumSize(QSize(70, 0))
 
         self.horizontalLayout_17.addWidget(self.lineEdit_exercise_name)
 
@@ -529,7 +529,7 @@ class Ui_MainWindow(object):
 
         self.lineEdit_exercise_unit = QLineEdit(self.groupBox_2)
         self.lineEdit_exercise_unit.setObjectName("lineEdit_exercise_unit")
-        self.lineEdit_exercise_unit.setMinimumSize(QSize(113, 0))
+        self.lineEdit_exercise_unit.setMinimumSize(QSize(70, 0))
 
         self.horizontalLayout_18.addWidget(self.lineEdit_exercise_unit)
 
@@ -726,7 +726,7 @@ class Ui_MainWindow(object):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 762))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 758))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -921,7 +921,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1331, 731))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1331, 727))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -974,7 +974,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1375, 22))
+        self.menuBar.setGeometry(QRect(0, 0, 1375, 21))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")

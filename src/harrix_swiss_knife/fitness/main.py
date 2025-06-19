@@ -1999,6 +1999,18 @@ class MainWindow(
             for i in range(weight_header.count() - 1):
                 weight_header.setSectionResizeMode(i, weight_header.ResizeMode.Stretch)
 
+            # Stretch columns to fill the entire table width for process table tableView_exercises
+            exercises_header = self.tableView_exercises.horizontalHeader()
+            exercises_header.setStretchLastSection(True)
+            for i in range(exercises_header.count() - 1):
+                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Stretch)
+
+            # Stretch columns to fill the entire table width for process table tableView_exercise_types
+            exercise_types_header = self.tableView_exercise_types.horizontalHeader()
+            exercise_types_header.setStretchLastSection(True)
+            for i in range(exercise_types_header.count() - 1):
+                exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Stretch)
+
             self._connect_table_signals("weight", self.on_weight_selection_changed)
 
             # Connect auto-save signals after all models are created
