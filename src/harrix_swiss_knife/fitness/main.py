@@ -1729,7 +1729,7 @@ class MainWindow(
 
                     table_data.append([exercise_name, formatted_date, days_display, row_color])
 
-                except ValueError:  # noqa: PERF203
+                except ValueError:
                     # Skip invalid dates
                     continue
 
@@ -1903,7 +1903,7 @@ class MainWindow(
             try:
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 datetime_data.append((date_obj, int(count)))
-            except (ValueError, TypeError):  # noqa: PERF203
+            except (ValueError, TypeError):
                 continue
 
         # Group data by period
@@ -2160,7 +2160,7 @@ class MainWindow(
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 value = float(value_str)
                 datetime_data.append((date_obj, value))
-            except (ValueError, TypeError):  # noqa: PERF203
+            except (ValueError, TypeError):
                 continue
 
         if not datetime_data:
