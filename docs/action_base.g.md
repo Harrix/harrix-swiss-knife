@@ -148,6 +148,12 @@ class ActionBase:
 
         # Create a list widget
         list_widget = QListWidget()
+
+        # Set larger font for the list widget
+        font = list_widget.font()
+        font.setPointSize(12)  # Увеличиваем размер шрифта до 12pt
+        list_widget.setFont(font)
+
         for choice in choices:
             item = QListWidgetItem(choice)
             list_widget.addItem(item)
@@ -649,6 +655,12 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
 
         # Create a list widget
         list_widget = QListWidget()
+
+        # Set larger font for the list widget
+        font = list_widget.font()
+        font.setPointSize(12)  # Увеличиваем размер шрифта до 12pt
+        list_widget.setFont(font)
+
         for choice in choices:
             item = QListWidgetItem(choice)
             list_widget.addItem(item)

@@ -181,7 +181,7 @@ class MainWindow(
         }
 
         # Define colors for different exercises (expanded palette)
-        self.exercise_colors = self.generate_pastel_colors_mathematical(100)
+        self.exercise_colors = self.generate_pastel_colors_mathematical(50)
 
         # Initialize application
         self._init_database()
@@ -1057,7 +1057,7 @@ class MainWindow(
 
             # Lower saturation and higher lightness for very light pastel effect
             saturation = 0.6  # Very low saturation
-            lightness = 0.92  # Very high lightness (was 0.9)
+            lightness = 0.95  # Very high lightness
 
             # Convert HSL to RGB
             r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
@@ -2188,7 +2188,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         }
 
         # Define colors for different exercises (expanded palette)
-        self.exercise_colors = self.generate_pastel_colors_mathematical(100)
+        self.exercise_colors = self.generate_pastel_colors_mathematical(50)
 
         # Initialize application
         self._init_database()
@@ -3452,7 +3452,7 @@ def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
 
             # Lower saturation and higher lightness for very light pastel effect
             saturation = 0.6  # Very low saturation
-            lightness = 0.92  # Very high lightness (was 0.9)
+            lightness = 0.95  # Very high lightness
 
             # Convert HSL to RGB
             r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
