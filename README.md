@@ -29,7 +29,7 @@ _Figure 1: Screenshot_
   - 🔝 Optimize images (high quality)
   - ⬆️ Optimize images in … and replace
   - 🖼️ Optimize one image
-  - ↔️ Resize and optimize images (with PNG to AVIF) 
+  - ↔️ Resize and optimize images (with PNG to AVIF)
   - 🧹 Clear folders images
   - 📂 Open the folder images
   - 📂 Open the folder optimized_images

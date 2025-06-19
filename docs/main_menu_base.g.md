@@ -126,7 +126,8 @@ class MainMenuBase:
 
         - `parent_menu` (`QMenu`): The parent menu to which submenus and items will be added.
         - `menus` (`list`, optional): List of QMenu objects to add as submenus. Defaults to `None`.
-        - `items` (`list`, optional): List of callables or separators to add as items. Use `"-"` string for separator. Defaults to `None`.
+        - `items` (`list`, optional): List of callables or separators to add as items. Use `"-"` string for separator.
+          Defaults to `None`.
 
         Returns:
 
@@ -397,7 +398,8 @@ Args:
 
 - `parent_menu` (`QMenu`): The parent menu to which submenus and items will be added.
 - `menus` (`list`, optional): List of QMenu objects to add as submenus. Defaults to `None`.
-- `items` (`list`, optional): List of callables or separators to add as items. Use `"-"` string for separator. Defaults to `None`.
+- `items` (`list`, optional): List of callables or separators to add as items. Use `"-"` string for separator.
+  Defaults to `None`.
 
 Returns:
 
