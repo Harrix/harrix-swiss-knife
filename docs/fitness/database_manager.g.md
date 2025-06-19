@@ -47,6 +47,7 @@ lang: en
   - [Method `get_id`](#method-get_id)
   - [Method `get_items`](#method-get_items)
   - [Method `get_last_exercise_date`](#method-get_last_exercise_date)
+  - [Method `get_last_exercise_dates`](#method-get_last_exercise_dates)
   - [Method `get_last_exercise_record`](#method-get_last_exercise_record)
   - [Method `get_last_weight`](#method-get_last_weight)
   - [Method `get_rows`](#method-get_rows)
@@ -965,6 +966,27 @@ class DatabaseManager:
         if rows and rows[0][0]:
             return rows[0][0]
         return None
+
+    def get_last_exercise_dates(self) -> list[tuple[str, str]]:
+        """Get the last execution date for each exercise (ignoring exercise types).
+
+        Returns:
+
+        - `list[tuple[str, str]]`: List of (exercise_name, last_date) tuples sorted by exercise name.
+
+        """
+        query = """
+            SELECT e.name, MAX(p.date) as last_date
+            FROM exercises e
+            LEFT JOIN process p ON e._id = p._id_exercises
+            WHERE p.date IS NOT NULL
+            GROUP BY e._id, e.name
+            HAVING last_date IS NOT NULL
+            ORDER BY e.name ASC
+        """
+
+        rows = self.get_rows(query)
+        return [(row[0], row[1]) for row in rows]
 
     def get_last_exercise_record(self, exercise_id: int) -> tuple[str, str] | None:
         """Get the last recorded type and value for a specific exercise.
@@ -2536,6 +2558,39 @@ def get_last_exercise_date(self, exercise_id: int) -> str | None:
         if rows and rows[0][0]:
             return rows[0][0]
         return None
+```
+
+</details>
+
+### Method `get_last_exercise_dates`
+
+```python
+def get_last_exercise_dates(self) -> list[tuple[str, str]]
+```
+
+Get the last execution date for each exercise (ignoring exercise types).
+
+Returns:
+
+- `list[tuple[str, str]]`: List of (exercise_name, last_date) tuples sorted by exercise name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_last_exercise_dates(self) -> list[tuple[str, str]]:
+        query = """
+            SELECT e.name, MAX(p.date) as last_date
+            FROM exercises e
+            LEFT JOIN process p ON e._id = p._id_exercises
+            WHERE p.date IS NOT NULL
+            GROUP BY e._id, e.name
+            HAVING last_date IS NOT NULL
+            ORDER BY e.name ASC
+        """
+
+        rows = self.get_rows(query)
+        return [(row[0], row[1]) for row in rows]
 ```
 
 </details>

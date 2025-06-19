@@ -909,6 +909,27 @@ class DatabaseManager:
             return rows[0][0]
         return None
 
+    def get_last_exercise_dates(self) -> list[tuple[str, str]]:
+        """Get the last execution date for each exercise (ignoring exercise types).
+
+        Returns:
+
+        - `list[tuple[str, str]]`: List of (exercise_name, last_date) tuples sorted by exercise name.
+
+        """
+        query = """
+            SELECT e.name, MAX(p.date) as last_date
+            FROM exercises e
+            LEFT JOIN process p ON e._id = p._id_exercises
+            WHERE p.date IS NOT NULL
+            GROUP BY e._id, e.name
+            HAVING last_date IS NOT NULL
+            ORDER BY e.name ASC
+        """
+
+        rows = self.get_rows(query)
+        return [(row[0], row[1]) for row in rows]
+
     def get_last_exercise_record(self, exercise_id: int) -> tuple[str, str] | None:
         """Get the last recorded type and value for a specific exercise.
 

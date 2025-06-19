@@ -1305,6 +1305,13 @@
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="pushButton_last_exercises">
+             <property name="text">
+              <string>Last exercises</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer_4">
              <property name="orientation">
               <enum>Qt::Vertical</enum>

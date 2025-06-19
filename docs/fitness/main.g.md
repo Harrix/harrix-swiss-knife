@@ -51,6 +51,7 @@ lang: en
   - [Method `on_exercise_selection_changed_list`](#method-on_exercise_selection_changed_list)
   - [Method `on_export_csv`](#method-on_export_csv)
   - [Method `on_refresh_statistics`](#method-on_refresh_statistics)
+  - [Method `on_show_last_exercises`](#method-on_show_last_exercises)
   - [Method `on_tab_changed`](#method-on_tab_changed)
   - [Method `on_weight_selection_changed`](#method-on_weight_selection_changed)
   - [Method `set_chart_all_time`](#method-set_chart_all_time)
@@ -231,6 +232,7 @@ class MainWindow(
 
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
+        self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
         self.pushButton_export_csv.clicked.connect(self.on_export_csv)
 
         # Tab change
@@ -818,6 +820,7 @@ class MainWindow(
         self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
         self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
         self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
+        self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
         self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
@@ -1378,6 +1381,9 @@ class MainWindow(
         try:
             from PySide6.QtGui import QBrush, QColor
 
+            # Clear any existing spans before creating new view
+            self.tableView_statistics.clearSpans()
+
             # Get statistics data using database manager
             rows = self.db_manager.get_statistics_data()
 
@@ -1514,6 +1520,99 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
+
+    @requires_database()
+    def on_show_last_exercises(self) -> None:
+        """Show last execution dates for all exercises in the statistics table."""
+        try:
+            from PySide6.QtGui import QBrush, QColor
+
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
+
+            # Get last exercise dates using database manager
+            exercise_dates = self.db_manager.get_last_exercise_dates()
+
+            if not exercise_dates:
+                # If no data, show empty table
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
+                self.tableView_statistics.setModel(empty_model)
+                self.tableView_statistics.resizeColumnsToContents()
+                return
+
+            # Calculate days ago for each exercise
+            today = datetime.now(tz=timezone.utc).date()
+            table_data = []
+
+            for exercise_name, last_date_str in exercise_dates:
+                try:
+                    last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+                    days_ago = (today - last_date).days
+
+                    # Format the display date
+                    formatted_date = last_date.strftime("%Y-%m-%d (%b %d)")
+
+                    # Add emoji for recent activities
+                    if days_ago == 0:
+                        days_display = "Today 🔥"
+                        row_color = QColor(144, 238, 144)  # Light green for today
+                    elif days_ago == 1:
+                        days_display = "1 day ago 👍"
+                        row_color = QColor(173, 216, 230)  # Light blue for yesterday
+                    elif days_ago <= 7:
+                        days_display = f"{days_ago} days ago ✅"
+                        row_color = QColor(255, 255, 224)  # Light yellow for this week
+                    elif days_ago <= 30:
+                        days_display = f"{days_ago} days ago ⚠️"
+                        row_color = QColor(255, 228, 196)  # Light orange for this month
+                    else:
+                        days_display = f"{days_ago} days ago ❗"
+                        row_color = QColor(255, 192, 203)  # Light pink for longer periods
+
+                    table_data.append([exercise_name, formatted_date, days_display, row_color])
+
+                except ValueError:
+                    # Skip invalid dates
+                    continue
+
+            # Sort by days ago (ascending - most recent first)
+            table_data.sort(key=lambda x: int(x[2].split()[0]) if x[2].split()[0].isdigit() else 0)
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
+
+            for row_data in table_data:
+                items = []
+                row_color = row_data[3]  # Get the color from the last element
+
+                # Create items for display columns only (first 3 elements)
+                for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                    item = QStandardItem(str(value))
+
+                    # Set background color for the item
+                    item.setBackground(QBrush(row_color))
+
+                    # Make "Today" entries bold
+                    if col_idx == 2 and "Today" in str(value):
+                        font = item.font()
+                        font.setBold(True)
+                        item.setFont(font)
+
+                    items.append(item)
+
+                model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+            self.tableView_statistics.resizeColumnsToContents()
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
 
     def on_tab_changed(self, index: int) -> None:
         """React to `QTabWidget` index change.
@@ -2251,6 +2350,7 @@ def _connect_signals(self) -> None:
 
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
+        self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
         self.pushButton_export_csv.clicked.connect(self.on_export_csv)
 
         # Tab change
@@ -3128,6 +3228,7 @@ def _setup_ui(self) -> None:
         self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
         self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
         self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
+        self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
         self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
@@ -3878,6 +3979,9 @@ def on_refresh_statistics(self) -> None:
         try:
             from PySide6.QtGui import QBrush, QColor
 
+            # Clear any existing spans before creating new view
+            self.tableView_statistics.clearSpans()
+
             # Get statistics data using database manager
             rows = self.db_manager.get_statistics_data()
 
@@ -4014,6 +4118,112 @@ def on_refresh_statistics(self) -> None:
 
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
+```
+
+</details>
+
+### Method `on_show_last_exercises`
+
+```python
+def on_show_last_exercises(self) -> None
+```
+
+Show last execution dates for all exercises in the statistics table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_show_last_exercises(self) -> None:
+        try:
+            from PySide6.QtGui import QBrush, QColor
+
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
+
+            # Get last exercise dates using database manager
+            exercise_dates = self.db_manager.get_last_exercise_dates()
+
+            if not exercise_dates:
+                # If no data, show empty table
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
+                self.tableView_statistics.setModel(empty_model)
+                self.tableView_statistics.resizeColumnsToContents()
+                return
+
+            # Calculate days ago for each exercise
+            today = datetime.now(tz=timezone.utc).date()
+            table_data = []
+
+            for exercise_name, last_date_str in exercise_dates:
+                try:
+                    last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+                    days_ago = (today - last_date).days
+
+                    # Format the display date
+                    formatted_date = last_date.strftime("%Y-%m-%d (%b %d)")
+
+                    # Add emoji for recent activities
+                    if days_ago == 0:
+                        days_display = "Today 🔥"
+                        row_color = QColor(144, 238, 144)  # Light green for today
+                    elif days_ago == 1:
+                        days_display = "1 day ago 👍"
+                        row_color = QColor(173, 216, 230)  # Light blue for yesterday
+                    elif days_ago <= 7:
+                        days_display = f"{days_ago} days ago ✅"
+                        row_color = QColor(255, 255, 224)  # Light yellow for this week
+                    elif days_ago <= 30:
+                        days_display = f"{days_ago} days ago ⚠️"
+                        row_color = QColor(255, 228, 196)  # Light orange for this month
+                    else:
+                        days_display = f"{days_ago} days ago ❗"
+                        row_color = QColor(255, 192, 203)  # Light pink for longer periods
+
+                    table_data.append([exercise_name, formatted_date, days_display, row_color])
+
+                except ValueError:
+                    # Skip invalid dates
+                    continue
+
+            # Sort by days ago (ascending - most recent first)
+            table_data.sort(key=lambda x: int(x[2].split()[0]) if x[2].split()[0].isdigit() else 0)
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
+
+            for row_data in table_data:
+                items = []
+                row_color = row_data[3]  # Get the color from the last element
+
+                # Create items for display columns only (first 3 elements)
+                for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                    item = QStandardItem(str(value))
+
+                    # Set background color for the item
+                    item.setBackground(QBrush(row_color))
+
+                    # Make "Today" entries bold
+                    if col_idx == 2 and "Today" in str(value):
+                        font = item.font()
+                        font.setBold(True)
+                        item.setFont(font)
+
+                    items.append(item)
+
+                model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+            self.tableView_statistics.resizeColumnsToContents()
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
 ```
 
 </details>

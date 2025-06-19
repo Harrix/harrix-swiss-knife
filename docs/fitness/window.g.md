@@ -118,6 +118,7 @@ class Ui_MainWindow(object):
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
+        self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
         )
@@ -897,6 +898,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_16.addWidget(self.pushButton_statistics_refresh)
 
+        self.pushButton_last_exercises = QPushButton(self.frame_5)
+        self.pushButton_last_exercises.setObjectName("pushButton_last_exercises")
+
+        self.verticalLayout_16.addWidget(self.pushButton_last_exercises)
+
         self.verticalSpacer_4 = QSpacerItem(20, 759, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_16.addItem(self.verticalSpacer_4)
@@ -1026,6 +1032,7 @@ def retranslateUi(self, MainWindow):
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
+        self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
         )
@@ -1819,6 +1826,11 @@ def setupUi(self, MainWindow):
         self.pushButton_statistics_refresh.setObjectName("pushButton_statistics_refresh")
 
         self.verticalLayout_16.addWidget(self.pushButton_statistics_refresh)
+
+        self.pushButton_last_exercises = QPushButton(self.frame_5)
+        self.pushButton_last_exercises.setObjectName("pushButton_last_exercises")
+
+        self.verticalLayout_16.addWidget(self.pushButton_last_exercises)
 
         self.verticalSpacer_4 = QSpacerItem(20, 759, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
