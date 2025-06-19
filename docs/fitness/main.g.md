@@ -49,6 +49,7 @@ lang: en
   - [Method `on_add_type`](#method-on_add_type)
   - [Method `on_add_weight`](#method-on_add_weight)
   - [Method `on_check_steps`](#method-on_check_steps)
+  - [Method `on_check_steps`](#method-on_check_steps-1)
   - [Method `on_exercise_selection_changed`](#method-on_exercise_selection_changed)
   - [Method `on_exercise_selection_changed_list`](#method-on_exercise_selection_changed_list)
   - [Method `on_export_csv`](#method-on_export_csv)
@@ -1436,6 +1437,192 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
 
+    @requires_database()
+    def on_check_steps(self) -> None:
+        """Check for missing days and duplicate days in steps records."""
+        try:
+            from PySide6.QtGui import QBrush, QColor
+
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
+
+            # Get steps exercise ID
+            steps_exercise_id = self.id_steps
+
+            # Check if steps exercise exists
+            steps_rows = self.db_manager.get_rows(
+                "SELECT name FROM exercises WHERE _id = :id", {"id": steps_exercise_id}
+            )
+
+            if not steps_rows:
+                QMessageBox.warning(
+                    self, "Steps Exercise Not Found", f"Exercise with ID {steps_exercise_id} not found in database."
+                )
+                return
+
+            steps_exercise_name = steps_rows[0][0]
+
+            # Get all steps records ordered by date
+            # Fixed: renamed 'values' to 'step_values' to avoid SQL reserved word conflict
+            steps_records = self.db_manager.get_rows(
+                """
+                SELECT date, COUNT(*) as record_count, GROUP_CONCAT(value, ', ') as step_values
+                FROM process
+                WHERE _id_exercises = :id
+                AND date IS NOT NULL
+                GROUP BY date
+                ORDER BY date ASC
+            """,
+                {"id": steps_exercise_id},
+            )
+
+            if not steps_records:
+                # Show empty table with message
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
+
+                # Add a single row with message
+                items = [
+                    QStandardItem("No Data"),
+                    QStandardItem(""),
+                    QStandardItem(f"No records found for exercise: {steps_exercise_name}"),
+                ]
+                empty_model.appendRow(items)
+
+                self.tableView_statistics.setModel(empty_model)
+
+                # Reset column stretching and resize to contents only
+                header = self.tableView_statistics.horizontalHeader()
+                for i in range(header.count()):
+                    header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
+                header.setStretchLastSection(False)
+                self.tableView_statistics.resizeColumnsToContents()
+
+                return
+
+            # Get date range: from first record to yesterday
+            first_date_str = steps_records[0][0]
+            yesterday = datetime.now(tz=timezone.utc).date() - timedelta(days=1)
+
+            try:
+                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
+            except ValueError:
+                QMessageBox.warning(
+                    self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
+                )
+                return
+
+            # Create a set of dates that have records
+            recorded_dates = {record[0] for record in steps_records}
+
+            # Find missing days
+            missing_days = []
+            current_date = first_date
+
+            while current_date <= yesterday:
+                date_str = current_date.strftime("%Y-%m-%d")
+                if date_str not in recorded_dates:
+                    missing_days.append(date_str)
+                current_date += timedelta(days=1)
+
+            # Find duplicate days (days with multiple records)
+            duplicate_days = []
+            for date_str, count, step_values in steps_records:
+                if count > 1:
+                    duplicate_days.append((date_str, count, step_values))
+
+            # Prepare table data
+            table_data = []
+
+            # Add missing days
+            for missing_date in missing_days:
+                try:
+                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"Missing record ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Missing Day",
+                            formatted_date,
+                            details,
+                            QColor(255, 182, 193),  # Light pink for missing days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Add duplicate days
+            for date_str, count, step_values in duplicate_days:
+                try:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"{count} records: {step_values} ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Duplicate Day",
+                            formatted_date,
+                            details,
+                            QColor(255, 255, 182),  # Light yellow for duplicate days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Sort by date (most recent issues first)
+            table_data.sort(key=lambda x: x[1], reverse=True)
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
+
+            if not table_data:
+                # No issues found
+                items = [
+                    QStandardItem("✅ All Good"),
+                    QStandardItem(""),
+                    QStandardItem(f"No missing or duplicate days found for {steps_exercise_name}"),
+                ]
+                for item in items:
+                    item.setBackground(QBrush(QColor(144, 238, 144)))  # Light green
+                model.appendRow(items)
+            else:
+                # Add issues to table
+                for row_data in table_data:
+                    items = []
+                    row_color = row_data[3]  # Get the color from the last element
+
+                    # Create items for display columns only (first 3 elements)
+                    for _col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                        item = QStandardItem(str(value))
+                        item.setBackground(QBrush(row_color))
+                        items.append(item)
+
+                    model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+
+            # Reset column stretching and resize to contents only
+            header = self.tableView_statistics.horizontalHeader()
+            for i in range(header.count()):
+                header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
+            header.setStretchLastSection(False)
+            self.tableView_statistics.resizeColumnsToContents()
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
+
     def on_exercise_selection_changed(self) -> None:
         """Update form fields when exercise selection changes in the table.
 
@@ -1626,51 +1813,109 @@ class MainWindow(
             if not rows:
                 # If no data, show empty table
                 empty_model = QStandardItemModel()
-                empty_model.setHorizontalHeaderLabels(["Exercise", "Type", "Value", "Unit", "Date"])
+                empty_model.setHorizontalHeaderLabels(
+                    [
+                        "Exercise",
+                        "Type",
+                        "All-Time Value",
+                        "All-Time Unit",
+                        "All-Time Date",
+                        "Year Value",
+                        "Year Unit",
+                        "Year Date",
+                    ]
+                )
                 self.tableView_statistics.setModel(empty_model)
-                self.tableView_statistics.resizeColumnsToContents()
+
+                # Set up stretching for empty table too
+                header = self.tableView_statistics.horizontalHeader()
+                header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
+                header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
+                header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
+                header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
+                header.setSectionResizeMode(4, header.ResizeMode.Stretch)  # All-Time Date - stretches
+                header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
+                header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
+                header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
+                header.setStretchLastSection(False)
+
                 return
+
+            # Calculate date one year ago
+            one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
+            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Group data by exercise and type combination
             grouped: defaultdict[str, list[tuple]] = defaultdict(list)
+            grouped_year: defaultdict[str, list[tuple]] = defaultdict(list)
+
             for ex_name, tp_name, val, date in rows:
                 _key = f"{ex_name} {tp_name}".strip()
                 grouped[_key].append((ex_name, tp_name, val, date))
 
-            # Prepare table data - show top 8 records for each exercise/type combination
+                # Add to year group if within last year
+                if date >= one_year_ago_str:
+                    grouped_year[_key].append((ex_name, tp_name, val, date))
+
+            # Prepare table data
             table_data = []
             today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-            span_info = []  # Store information about spans: (start_row, row_count, exercise_name, type_name)
+            span_info = []
 
-            # Define alternating colors for groups
-            group_colors = [
-                QColor(240, 248, 255),  # Alice Blue (light blue)
-                QColor(248, 255, 240),  # Honeydew (light green)
-                QColor(255, 248, 240),  # Seashell (light orange)
-                QColor(248, 240, 255),  # Lavender (light purple)
-                QColor(255, 240, 248),  # Lavender Blush (light pink)
+            # Define base column colors
+            base_column_colors = [
+                QColor(240, 248, 255),  # Exercise column - Alice Blue
+                QColor(248, 255, 240),  # Type column - Honeydew
+                QColor(255, 248, 240),  # All-Time Value column - Seashell
+                QColor(255, 248, 240),  # All-Time Unit column - Seashell
+                QColor(255, 248, 240),  # All-Time Date column - Seashell
+                QColor(248, 240, 255),  # Year Value column - Lavender
+                QColor(248, 240, 255),  # Year Unit column - Lavender
+                QColor(248, 240, 255),  # Year Date column - Lavender
             ]
 
             current_row = 0
-            group_index = 0
+            exercise_group_index = 0  # Index for alternating exercise group brightness
 
-            for group_index, (_key, entries) in enumerate(grouped.items()):
-                # Sort by value (highest first) and take top 8
-                entries.sort(key=lambda x: x[2], reverse=True)
+            for _key, entries in grouped.items():
+                # Sort all-time entries: first by value (descending), then by date (descending)
+                entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
+
+                # Get year entries for this group and sort the same way
+                year_entries = grouped_year.get(_key, [])
+                year_entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
 
                 group_start_row = current_row
-                group_size = min(len(entries), 8)  # Maximum 8 records per group
-                current_group_color = group_colors[group_index % len(group_colors)]
 
-                for i, (ex_name, tp_name, val, date) in enumerate(entries[:8]):
-                    # Get exercise unit from database
-                    unit = self.db_manager.get_exercise_unit(ex_name)
+                # Determine if this exercise group should be light (even) or dark (odd)
+                is_light_group = exercise_group_index % 2 == 0
 
-                    # Format value
-                    val_str = f"{val:g}"
+                # Determine how many rows we need (max of both groups, up to 8)
+                max_rows = min(max(len(entries), len(year_entries)), 8)
 
-                    # Mark today's records
-                    date_display = f"{date} ← 🏆TODAY 📅" if date == today else date
+                for i in range(max_rows):
+                    # Get all-time data if available
+                    if i < len(entries):
+                        ex_name, tp_name, val, date = entries[i]
+                        unit = self.db_manager.get_exercise_unit(ex_name)
+                        val_str = f"{val:g}"
+                        date_display = f"{date} ← 🏆TODAY 📅" if date == today else date
+                    else:
+                        ex_name, tp_name = entries[0][:2] if entries else ("", "")
+                        unit = ""
+                        val_str = ""
+                        date_display = ""
+
+                    # Get year data if available
+                    if i < len(year_entries):
+                        _, _, year_val, year_date = year_entries[i]
+                        year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
+                        year_val_str = f"{year_val:g}"
+                        year_date_display = f"{year_date} ← 🏆TODAY 📅" if year_date == today else year_date
+                    else:
+                        year_val_str = ""
+                        year_unit = ""
+                        year_date_display = ""
 
                     # For the first row of each group, include exercise and type names
                     # For subsequent rows, use empty strings (they will be spanned)
@@ -1681,7 +1926,7 @@ class MainWindow(
                         exercise_display = ""
                         type_display = ""
 
-                    # Add row to table data with color information
+                    # Add row to table data
                     table_data.append(
                         [
                             exercise_display,
@@ -1689,35 +1934,62 @@ class MainWindow(
                             val_str,
                             unit,
                             date_display,
-                            current_group_color,  # Add color info
+                            year_val_str,
+                            year_unit,
+                            year_date_display,
+                            is_light_group,  # Group brightness flag
                         ]
                     )
 
                     current_row += 1
 
                 # Store span information for this group
-                # Always span both Exercise and Type columns regardless of whether type is empty
-                if group_size > 1:
-                    span_info.append((group_start_row, group_size, ex_name, tp_name if tp_name else ""))
+                if max_rows > 1:
+                    span_info.append((group_start_row, max_rows, ex_name, tp_name if tp_name else ""))
+
+                # Move to next exercise group
+                exercise_group_index += 1
 
             # Create and populate model
             model = QStandardItemModel()
-            model.setHorizontalHeaderLabels(["Exercise", "Type", "Value", "Unit", "Date"])
+            model.setHorizontalHeaderLabels(
+                [
+                    "Exercise",
+                    "Type",
+                    "All-Time Value",
+                    "All-Time Unit",
+                    "All-Time Date",
+                    "Year Value",
+                    "Year Unit",
+                    "Year Date",
+                ]
+            )
 
             for row_data in table_data:
                 items = []
-                group_color = row_data[5]  # Get the color from the last element
+                is_light_group = row_data[8]  # Group brightness flag
 
-                # Create items for all columns except the color info
-                for col_idx, value in enumerate(row_data[:5]):  # Only first 5 elements (exclude color)
+                # Create items for all columns except the brightness flag
+                for col_idx, value in enumerate(row_data[:8]):  # Only first 8 elements (exclude flag)
                     item = QStandardItem(str(value))
 
-                    # Set background color for the item
-                    item.setBackground(QBrush(group_color))
+                    # Get base column color
+                    base_color = base_column_colors[col_idx]
+
+                    # Modify color based on exercise group brightness
+                    if is_light_group:
+                        # Light group - use base color as is
+                        final_color = base_color
+                    else:
+                        # Dark group - make color darker
+                        final_color = QColor(
+                            int(base_color.red() * 0.85), int(base_color.green() * 0.85), int(base_color.blue() * 0.85)
+                        )
+
+                    item.setBackground(QBrush(final_color))
 
                     # For "TODAY" entries, make text bold
-                    id_col_date = 4
-                    if col_idx == id_col_date and "TODAY" in str(value):
+                    if "TODAY" in str(value):
                         font = item.font()
                         font.setBold(True)
                         item.setFont(font)
@@ -1734,25 +2006,61 @@ class MainWindow(
                 # Always span the Exercise column (column 0)
                 self.tableView_statistics.setSpan(start_row, 0, row_count, 1)
 
-                # Always span the Type column (column 1) regardless of whether type is empty or not
+                # Always span the Type column (column 1)
                 self.tableView_statistics.setSpan(start_row, 1, row_count, 1)
+
+                # Determine if this group is light or dark for spanned cells
+                is_light_for_span = table_data[start_row][8]
 
                 # Set the text for the spanned cells with proper background
                 exercise_item = QStandardItem(exercise_name)
-                exercise_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
-                model.setItem(start_row, 0, exercise_item)
+                type_item = QStandardItem(type_name)
 
-                # Always create type item, even if type_name is empty
-                type_item = QStandardItem(type_name)  # This will be empty string if no type
-                type_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
+                if is_light_for_span:
+                    exercise_item.setBackground(QBrush(base_column_colors[0]))  # Light Exercise column color
+                    type_item.setBackground(QBrush(base_column_colors[1]))  # Light Type column color
+                else:
+                    # Dark versions
+                    dark_exercise_color = QColor(
+                        int(base_column_colors[0].red() * 0.85),
+                        int(base_column_colors[0].green() * 0.85),
+                        int(base_column_colors[0].blue() * 0.85),
+                    )
+                    dark_type_color = QColor(
+                        int(base_column_colors[1].red() * 0.85),
+                        int(base_column_colors[1].green() * 0.85),
+                        int(base_column_colors[1].blue() * 0.85),
+                    )
+                    exercise_item.setBackground(QBrush(dark_exercise_color))
+                    type_item.setBackground(QBrush(dark_type_color))
+
+                model.setItem(start_row, 0, exercise_item)
                 model.setItem(start_row, 1, type_item)
 
-            self.tableView_statistics.resizeColumnsToContents()
+            # Custom column width setup for statistics table
+            header = self.tableView_statistics.horizontalHeader()
 
-            # Enable alternating row colors at table level (optional, for additional visual separation)
-            self.tableView_statistics.setAlternatingRowColors(
-                False
-            )  # Disable default alternating since we have custom colors
+            # Set specific resize modes and stretch factors for each column
+            header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
+            header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
+            header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
+            header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
+            header.setSectionResizeMode(4, header.ResizeMode.Stretch)  # All-Time Date - stretches
+            header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
+            header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
+            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
+
+            # Set stretch factors to control relative sizes of stretching columns
+            header.setStretchLastSection(False)  # Disable automatic last section stretching
+
+            # Set minimum widths for compact columns to ensure readability
+            self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value
+            self.tableView_statistics.setColumnWidth(3, 60)  # All-Time Unit
+            self.tableView_statistics.setColumnWidth(5, 80)  # Year Value
+            self.tableView_statistics.setColumnWidth(6, 60)  # Year Unit
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
 
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
@@ -1774,7 +2082,14 @@ class MainWindow(
                 empty_model = QStandardItemModel()
                 empty_model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
                 self.tableView_statistics.setModel(empty_model)
+
+                # Reset column stretching and resize to contents only
+                header = self.tableView_statistics.horizontalHeader()
+                for i in range(header.count()):
+                    header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
+                header.setStretchLastSection(False)
                 self.tableView_statistics.resizeColumnsToContents()
+
                 return
 
             # Calculate days ago for each exercise
@@ -1845,6 +2160,12 @@ class MainWindow(
 
             # Set model to table view
             self.tableView_statistics.setModel(model)
+
+            # Reset column stretching and resize to contents only
+            header = self.tableView_statistics.horizontalHeader()
+            for i in range(header.count()):
+                header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
+            header.setStretchLastSection(False)
             self.tableView_statistics.resizeColumnsToContents()
 
             # Disable alternating row colors since we have custom colors
@@ -4293,6 +4614,205 @@ def on_check_steps(self) -> None:
 
 </details>
 
+### Method `on_check_steps`
+
+```python
+def on_check_steps(self) -> None
+```
+
+Check for missing days and duplicate days in steps records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_check_steps(self) -> None:
+        try:
+            from PySide6.QtGui import QBrush, QColor
+
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
+
+            # Get steps exercise ID
+            steps_exercise_id = self.id_steps
+
+            # Check if steps exercise exists
+            steps_rows = self.db_manager.get_rows(
+                "SELECT name FROM exercises WHERE _id = :id", {"id": steps_exercise_id}
+            )
+
+            if not steps_rows:
+                QMessageBox.warning(
+                    self, "Steps Exercise Not Found", f"Exercise with ID {steps_exercise_id} not found in database."
+                )
+                return
+
+            steps_exercise_name = steps_rows[0][0]
+
+            # Get all steps records ordered by date
+            # Fixed: renamed 'values' to 'step_values' to avoid SQL reserved word conflict
+            steps_records = self.db_manager.get_rows(
+                """
+                SELECT date, COUNT(*) as record_count, GROUP_CONCAT(value, ', ') as step_values
+                FROM process
+                WHERE _id_exercises = :id
+                AND date IS NOT NULL
+                GROUP BY date
+                ORDER BY date ASC
+            """,
+                {"id": steps_exercise_id},
+            )
+
+            if not steps_records:
+                # Show empty table with message
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
+
+                # Add a single row with message
+                items = [
+                    QStandardItem("No Data"),
+                    QStandardItem(""),
+                    QStandardItem(f"No records found for exercise: {steps_exercise_name}"),
+                ]
+                empty_model.appendRow(items)
+
+                self.tableView_statistics.setModel(empty_model)
+
+                # Reset column stretching and resize to contents only
+                header = self.tableView_statistics.horizontalHeader()
+                for i in range(header.count()):
+                    header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
+                header.setStretchLastSection(False)
+                self.tableView_statistics.resizeColumnsToContents()
+
+                return
+
+            # Get date range: from first record to yesterday
+            first_date_str = steps_records[0][0]
+            yesterday = datetime.now(tz=timezone.utc).date() - timedelta(days=1)
+
+            try:
+                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
+            except ValueError:
+                QMessageBox.warning(
+                    self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
+                )
+                return
+
+            # Create a set of dates that have records
+            recorded_dates = {record[0] for record in steps_records}
+
+            # Find missing days
+            missing_days = []
+            current_date = first_date
+
+            while current_date <= yesterday:
+                date_str = current_date.strftime("%Y-%m-%d")
+                if date_str not in recorded_dates:
+                    missing_days.append(date_str)
+                current_date += timedelta(days=1)
+
+            # Find duplicate days (days with multiple records)
+            duplicate_days = []
+            for date_str, count, step_values in steps_records:
+                if count > 1:
+                    duplicate_days.append((date_str, count, step_values))
+
+            # Prepare table data
+            table_data = []
+
+            # Add missing days
+            for missing_date in missing_days:
+                try:
+                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"Missing record ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Missing Day",
+                            formatted_date,
+                            details,
+                            QColor(255, 182, 193),  # Light pink for missing days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Add duplicate days
+            for date_str, count, step_values in duplicate_days:
+                try:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"{count} records: {step_values} ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Duplicate Day",
+                            formatted_date,
+                            details,
+                            QColor(255, 255, 182),  # Light yellow for duplicate days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Sort by date (most recent issues first)
+            table_data.sort(key=lambda x: x[1], reverse=True)
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
+
+            if not table_data:
+                # No issues found
+                items = [
+                    QStandardItem("✅ All Good"),
+                    QStandardItem(""),
+                    QStandardItem(f"No missing or duplicate days found for {steps_exercise_name}"),
+                ]
+                for item in items:
+                    item.setBackground(QBrush(QColor(144, 238, 144)))  # Light green
+                model.appendRow(items)
+            else:
+                # Add issues to table
+                for row_data in table_data:
+                    items = []
+                    row_color = row_data[3]  # Get the color from the last element
+
+                    # Create items for display columns only (first 3 elements)
+                    for _col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                        item = QStandardItem(str(value))
+                        item.setBackground(QBrush(row_color))
+                        items.append(item)
+
+                    model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+
+            # Reset column stretching and resize to contents only
+            header = self.tableView_statistics.horizontalHeader()
+            for i in range(header.count()):
+                header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
+            header.setStretchLastSection(False)
+            self.tableView_statistics.resizeColumnsToContents()
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
+```
+
+</details>
+
 ### Method `on_exercise_selection_changed`
 
 ```python
@@ -4533,51 +5053,109 @@ def on_refresh_statistics(self) -> None:
             if not rows:
                 # If no data, show empty table
                 empty_model = QStandardItemModel()
-                empty_model.setHorizontalHeaderLabels(["Exercise", "Type", "Value", "Unit", "Date"])
+                empty_model.setHorizontalHeaderLabels(
+                    [
+                        "Exercise",
+                        "Type",
+                        "All-Time Value",
+                        "All-Time Unit",
+                        "All-Time Date",
+                        "Year Value",
+                        "Year Unit",
+                        "Year Date",
+                    ]
+                )
                 self.tableView_statistics.setModel(empty_model)
-                self.tableView_statistics.resizeColumnsToContents()
+
+                # Set up stretching for empty table too
+                header = self.tableView_statistics.horizontalHeader()
+                header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
+                header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
+                header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
+                header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
+                header.setSectionResizeMode(4, header.ResizeMode.Stretch)  # All-Time Date - stretches
+                header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
+                header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
+                header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
+                header.setStretchLastSection(False)
+
                 return
+
+            # Calculate date one year ago
+            one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
+            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Group data by exercise and type combination
             grouped: defaultdict[str, list[tuple]] = defaultdict(list)
+            grouped_year: defaultdict[str, list[tuple]] = defaultdict(list)
+
             for ex_name, tp_name, val, date in rows:
                 _key = f"{ex_name} {tp_name}".strip()
                 grouped[_key].append((ex_name, tp_name, val, date))
 
-            # Prepare table data - show top 8 records for each exercise/type combination
+                # Add to year group if within last year
+                if date >= one_year_ago_str:
+                    grouped_year[_key].append((ex_name, tp_name, val, date))
+
+            # Prepare table data
             table_data = []
             today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-            span_info = []  # Store information about spans: (start_row, row_count, exercise_name, type_name)
+            span_info = []
 
-            # Define alternating colors for groups
-            group_colors = [
-                QColor(240, 248, 255),  # Alice Blue (light blue)
-                QColor(248, 255, 240),  # Honeydew (light green)
-                QColor(255, 248, 240),  # Seashell (light orange)
-                QColor(248, 240, 255),  # Lavender (light purple)
-                QColor(255, 240, 248),  # Lavender Blush (light pink)
+            # Define base column colors
+            base_column_colors = [
+                QColor(240, 248, 255),  # Exercise column - Alice Blue
+                QColor(248, 255, 240),  # Type column - Honeydew
+                QColor(255, 248, 240),  # All-Time Value column - Seashell
+                QColor(255, 248, 240),  # All-Time Unit column - Seashell
+                QColor(255, 248, 240),  # All-Time Date column - Seashell
+                QColor(248, 240, 255),  # Year Value column - Lavender
+                QColor(248, 240, 255),  # Year Unit column - Lavender
+                QColor(248, 240, 255),  # Year Date column - Lavender
             ]
 
             current_row = 0
-            group_index = 0
+            exercise_group_index = 0  # Index for alternating exercise group brightness
 
-            for group_index, (_key, entries) in enumerate(grouped.items()):
-                # Sort by value (highest first) and take top 8
-                entries.sort(key=lambda x: x[2], reverse=True)
+            for _key, entries in grouped.items():
+                # Sort all-time entries: first by value (descending), then by date (descending)
+                entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
+
+                # Get year entries for this group and sort the same way
+                year_entries = grouped_year.get(_key, [])
+                year_entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
 
                 group_start_row = current_row
-                group_size = min(len(entries), 8)  # Maximum 8 records per group
-                current_group_color = group_colors[group_index % len(group_colors)]
 
-                for i, (ex_name, tp_name, val, date) in enumerate(entries[:8]):
-                    # Get exercise unit from database
-                    unit = self.db_manager.get_exercise_unit(ex_name)
+                # Determine if this exercise group should be light (even) or dark (odd)
+                is_light_group = exercise_group_index % 2 == 0
 
-                    # Format value
-                    val_str = f"{val:g}"
+                # Determine how many rows we need (max of both groups, up to 8)
+                max_rows = min(max(len(entries), len(year_entries)), 8)
 
-                    # Mark today's records
-                    date_display = f"{date} ← 🏆TODAY 📅" if date == today else date
+                for i in range(max_rows):
+                    # Get all-time data if available
+                    if i < len(entries):
+                        ex_name, tp_name, val, date = entries[i]
+                        unit = self.db_manager.get_exercise_unit(ex_name)
+                        val_str = f"{val:g}"
+                        date_display = f"{date} ← 🏆TODAY 📅" if date == today else date
+                    else:
+                        ex_name, tp_name = entries[0][:2] if entries else ("", "")
+                        unit = ""
+                        val_str = ""
+                        date_display = ""
+
+                    # Get year data if available
+                    if i < len(year_entries):
+                        _, _, year_val, year_date = year_entries[i]
+                        year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
+                        year_val_str = f"{year_val:g}"
+                        year_date_display = f"{year_date} ← 🏆TODAY 📅" if year_date == today else year_date
+                    else:
+                        year_val_str = ""
+                        year_unit = ""
+                        year_date_display = ""
 
                     # For the first row of each group, include exercise and type names
                     # For subsequent rows, use empty strings (they will be spanned)
@@ -4588,7 +5166,7 @@ def on_refresh_statistics(self) -> None:
                         exercise_display = ""
                         type_display = ""
 
-                    # Add row to table data with color information
+                    # Add row to table data
                     table_data.append(
                         [
                             exercise_display,
@@ -4596,35 +5174,62 @@ def on_refresh_statistics(self) -> None:
                             val_str,
                             unit,
                             date_display,
-                            current_group_color,  # Add color info
+                            year_val_str,
+                            year_unit,
+                            year_date_display,
+                            is_light_group,  # Group brightness flag
                         ]
                     )
 
                     current_row += 1
 
                 # Store span information for this group
-                # Always span both Exercise and Type columns regardless of whether type is empty
-                if group_size > 1:
-                    span_info.append((group_start_row, group_size, ex_name, tp_name if tp_name else ""))
+                if max_rows > 1:
+                    span_info.append((group_start_row, max_rows, ex_name, tp_name if tp_name else ""))
+
+                # Move to next exercise group
+                exercise_group_index += 1
 
             # Create and populate model
             model = QStandardItemModel()
-            model.setHorizontalHeaderLabels(["Exercise", "Type", "Value", "Unit", "Date"])
+            model.setHorizontalHeaderLabels(
+                [
+                    "Exercise",
+                    "Type",
+                    "All-Time Value",
+                    "All-Time Unit",
+                    "All-Time Date",
+                    "Year Value",
+                    "Year Unit",
+                    "Year Date",
+                ]
+            )
 
             for row_data in table_data:
                 items = []
-                group_color = row_data[5]  # Get the color from the last element
+                is_light_group = row_data[8]  # Group brightness flag
 
-                # Create items for all columns except the color info
-                for col_idx, value in enumerate(row_data[:5]):  # Only first 5 elements (exclude color)
+                # Create items for all columns except the brightness flag
+                for col_idx, value in enumerate(row_data[:8]):  # Only first 8 elements (exclude flag)
                     item = QStandardItem(str(value))
 
-                    # Set background color for the item
-                    item.setBackground(QBrush(group_color))
+                    # Get base column color
+                    base_color = base_column_colors[col_idx]
+
+                    # Modify color based on exercise group brightness
+                    if is_light_group:
+                        # Light group - use base color as is
+                        final_color = base_color
+                    else:
+                        # Dark group - make color darker
+                        final_color = QColor(
+                            int(base_color.red() * 0.85), int(base_color.green() * 0.85), int(base_color.blue() * 0.85)
+                        )
+
+                    item.setBackground(QBrush(final_color))
 
                     # For "TODAY" entries, make text bold
-                    id_col_date = 4
-                    if col_idx == id_col_date and "TODAY" in str(value):
+                    if "TODAY" in str(value):
                         font = item.font()
                         font.setBold(True)
                         item.setFont(font)
@@ -4641,25 +5246,61 @@ def on_refresh_statistics(self) -> None:
                 # Always span the Exercise column (column 0)
                 self.tableView_statistics.setSpan(start_row, 0, row_count, 1)
 
-                # Always span the Type column (column 1) regardless of whether type is empty or not
+                # Always span the Type column (column 1)
                 self.tableView_statistics.setSpan(start_row, 1, row_count, 1)
+
+                # Determine if this group is light or dark for spanned cells
+                is_light_for_span = table_data[start_row][8]
 
                 # Set the text for the spanned cells with proper background
                 exercise_item = QStandardItem(exercise_name)
-                exercise_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
-                model.setItem(start_row, 0, exercise_item)
+                type_item = QStandardItem(type_name)
 
-                # Always create type item, even if type_name is empty
-                type_item = QStandardItem(type_name)  # This will be empty string if no type
-                type_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
+                if is_light_for_span:
+                    exercise_item.setBackground(QBrush(base_column_colors[0]))  # Light Exercise column color
+                    type_item.setBackground(QBrush(base_column_colors[1]))  # Light Type column color
+                else:
+                    # Dark versions
+                    dark_exercise_color = QColor(
+                        int(base_column_colors[0].red() * 0.85),
+                        int(base_column_colors[0].green() * 0.85),
+                        int(base_column_colors[0].blue() * 0.85),
+                    )
+                    dark_type_color = QColor(
+                        int(base_column_colors[1].red() * 0.85),
+                        int(base_column_colors[1].green() * 0.85),
+                        int(base_column_colors[1].blue() * 0.85),
+                    )
+                    exercise_item.setBackground(QBrush(dark_exercise_color))
+                    type_item.setBackground(QBrush(dark_type_color))
+
+                model.setItem(start_row, 0, exercise_item)
                 model.setItem(start_row, 1, type_item)
 
-            self.tableView_statistics.resizeColumnsToContents()
+            # Custom column width setup for statistics table
+            header = self.tableView_statistics.horizontalHeader()
 
-            # Enable alternating row colors at table level (optional, for additional visual separation)
-            self.tableView_statistics.setAlternatingRowColors(
-                False
-            )  # Disable default alternating since we have custom colors
+            # Set specific resize modes and stretch factors for each column
+            header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
+            header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
+            header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
+            header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
+            header.setSectionResizeMode(4, header.ResizeMode.Stretch)  # All-Time Date - stretches
+            header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
+            header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
+            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
+
+            # Set stretch factors to control relative sizes of stretching columns
+            header.setStretchLastSection(False)  # Disable automatic last section stretching
+
+            # Set minimum widths for compact columns to ensure readability
+            self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value
+            self.tableView_statistics.setColumnWidth(3, 60)  # All-Time Unit
+            self.tableView_statistics.setColumnWidth(5, 80)  # Year Value
+            self.tableView_statistics.setColumnWidth(6, 60)  # Year Unit
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
 
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
@@ -4694,7 +5335,14 @@ def on_show_last_exercises(self) -> None:
                 empty_model = QStandardItemModel()
                 empty_model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
                 self.tableView_statistics.setModel(empty_model)
+
+                # Reset column stretching and resize to contents only
+                header = self.tableView_statistics.horizontalHeader()
+                for i in range(header.count()):
+                    header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
+                header.setStretchLastSection(False)
                 self.tableView_statistics.resizeColumnsToContents()
+
                 return
 
             # Calculate days ago for each exercise
@@ -4765,6 +5413,12 @@ def on_show_last_exercises(self) -> None:
 
             # Set model to table view
             self.tableView_statistics.setModel(model)
+
+            # Reset column stretching and resize to contents only
+            header = self.tableView_statistics.horizontalHeader()
+            for i in range(header.count()):
+                header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
+            header.setStretchLastSection(False)
             self.tableView_statistics.resizeColumnsToContents()
 
             # Disable alternating row colors since we have custom colors
