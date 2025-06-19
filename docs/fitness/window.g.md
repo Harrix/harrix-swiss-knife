@@ -70,16 +70,13 @@ class Ui_MainWindow(object):
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
-        )
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", "Exercise Types", None)
+            self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
         )
         self.label_weight_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_weight_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
@@ -534,17 +531,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3.addWidget(self.frame_2)
 
-        self.tabWidget.addTab(self.tab_2, "")
-        self.tab_3 = QWidget()
-        self.tab_3.setObjectName("tab_3")
-        self.horizontalLayout_4 = QHBoxLayout(self.tab_3)
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.tableView_exercise_types = QTableView(self.tab_3)
+        self.tableView_exercise_types = QTableView(self.tab_2)
         self.tableView_exercise_types.setObjectName("tableView_exercise_types")
 
-        self.horizontalLayout_4.addWidget(self.tableView_exercise_types)
+        self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
 
-        self.frame_3 = QFrame(self.tab_3)
+        self.frame_3 = QFrame(self.tab_2)
         self.frame_3.setObjectName("frame_3")
         self.frame_3.setMinimumSize(QSize(300, 0))
         self.frame_3.setMaximumSize(QSize(300, 16777215))
@@ -605,9 +597,9 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_15.addItem(self.verticalSpacer_3)
 
-        self.horizontalLayout_4.addWidget(self.frame_3)
+        self.horizontalLayout_3.addWidget(self.frame_3)
 
-        self.tabWidget.addTab(self.tab_3, "")
+        self.tabWidget.addTab(self.tab_2, "")
         self.tab_5 = QWidget()
         self.tab_5.setObjectName("tab_5")
         self.horizontalLayout_5 = QHBoxLayout(self.tab_5)
@@ -990,16 +982,13 @@ def retranslateUi(self, MainWindow):
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
-        )
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", "Exercise Types", None)
+            self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
         )
         self.label_weight_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_weight_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
@@ -1469,17 +1458,12 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_3.addWidget(self.frame_2)
 
-        self.tabWidget.addTab(self.tab_2, "")
-        self.tab_3 = QWidget()
-        self.tab_3.setObjectName("tab_3")
-        self.horizontalLayout_4 = QHBoxLayout(self.tab_3)
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.tableView_exercise_types = QTableView(self.tab_3)
+        self.tableView_exercise_types = QTableView(self.tab_2)
         self.tableView_exercise_types.setObjectName("tableView_exercise_types")
 
-        self.horizontalLayout_4.addWidget(self.tableView_exercise_types)
+        self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
 
-        self.frame_3 = QFrame(self.tab_3)
+        self.frame_3 = QFrame(self.tab_2)
         self.frame_3.setObjectName("frame_3")
         self.frame_3.setMinimumSize(QSize(300, 0))
         self.frame_3.setMaximumSize(QSize(300, 16777215))
@@ -1540,9 +1524,9 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_15.addItem(self.verticalSpacer_3)
 
-        self.horizontalLayout_4.addWidget(self.frame_3)
+        self.horizontalLayout_3.addWidget(self.frame_3)
 
-        self.tabWidget.addTab(self.tab_3, "")
+        self.tabWidget.addTab(self.tab_2, "")
         self.tab_5 = QWidget()
         self.tab_5.setObjectName("tab_5")
         self.horizontalLayout_5 = QHBoxLayout(self.tab_5)

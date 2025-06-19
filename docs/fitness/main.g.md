@@ -1200,7 +1200,7 @@ class MainWindow(
 
                 # Update weight chart if we're on the weight tab
                 current_tab_index = self.tabWidget.currentIndex()
-                weight_tab_index = 3
+                weight_tab_index = 2
                 if current_tab_index == weight_tab_index:
                     self.update_weight_chart()
             else:
@@ -1807,9 +1807,9 @@ class MainWindow(
         - `index` (`int`): The index of the newly selected tab.
 
         """
-        index_tab_weight = 3
-        index_tab_charts = 4
-        index_tab_statistics = 5  # Add statistics tab index
+        index_tab_weight = 2
+        index_tab_charts = 3
+        index_tab_statistics = 4
 
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
@@ -3938,7 +3938,7 @@ def on_add_weight(self) -> None:
 
                 # Update weight chart if we're on the weight tab
                 current_tab_index = self.tabWidget.currentIndex()
-                weight_tab_index = 3
+                weight_tab_index = 2
                 if current_tab_index == weight_tab_index:
                     self.update_weight_chart()
             else:
@@ -4636,9 +4636,9 @@ Args:
 
 ```python
 def on_tab_changed(self, index: int) -> None:
-        index_tab_weight = 3
-        index_tab_charts = 4
-        index_tab_statistics = 5  # Add statistics tab index
+        index_tab_weight = 2
+        index_tab_charts = 3
+        index_tab_statistics = 4
 
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
