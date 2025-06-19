@@ -1274,14 +1274,7 @@
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
-         <widget class="QTextEdit" name="textEdit_statistics">
-          <property name="font">
-           <font>
-            <family>JetBrains Mono</family>
-            <pointsize>9</pointsize>
-           </font>
-          </property>
-         </widget>
+         <widget class="QTableView" name="tableView_statistics"/>
         </item>
         <item>
          <widget class="QFrame" name="frame_5">

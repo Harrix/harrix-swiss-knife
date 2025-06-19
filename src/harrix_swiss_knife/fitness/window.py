@@ -64,7 +64,6 @@ from PySide6.QtWidgets import (
     QStatusBar,
     QTableView,
     QTabWidget,
-    QTextEdit,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -921,14 +920,10 @@ class Ui_MainWindow(object):
         self.tab_4.setObjectName("tab_4")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_4)
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.textEdit_statistics = QTextEdit(self.tab_4)
-        self.textEdit_statistics.setObjectName("textEdit_statistics")
-        font2 = QFont()
-        font2.setFamilies(["JetBrains Mono"])
-        font2.setPointSize(9)
-        self.textEdit_statistics.setFont(font2)
+        self.tableView_statistics = QTableView(self.tab_4)
+        self.tableView_statistics.setObjectName("tableView_statistics")
 
-        self.horizontalLayout_6.addWidget(self.textEdit_statistics)
+        self.horizontalLayout_6.addWidget(self.tableView_statistics)
 
         self.frame_5 = QFrame(self.tab_4)
         self.frame_5.setObjectName("frame_5")

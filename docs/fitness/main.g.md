@@ -28,6 +28,7 @@ lang: en
   - [Method `_init_weight_chart_controls`](#method-_init_weight_chart_controls)
   - [Method `_init_weight_controls`](#method-_init_weight_controls)
   - [Method `_load_default_exercise_chart`](#method-_load_default_exercise_chart)
+  - [Method `_load_default_statistics`](#method-_load_default_statistics)
   - [Method `_load_exercise_avif`](#method-_load_exercise_avif)
   - [Method `_load_initial_avif`](#method-_load_initial_avif)
   - [Method `_next_avif_frame`](#method-_next_avif_frame)
@@ -149,6 +150,7 @@ class MainWindow(
             "exercises": None,
             "types": None,
             "weight": None,
+            "statistics": None,
         }
 
         # Chart configuration
@@ -173,6 +175,7 @@ class MainWindow(
                 ["Exercise", "Exercise Type"],
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
+            "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
         }
 
         # Initialize application
@@ -202,8 +205,9 @@ class MainWindow(
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
-        # Connect delete and refresh buttons for all tables
-        for table_name in self.table_config:
+        # Connect delete and refresh buttons for all tables (except statistics)
+        tables_with_controls = {"process", "exercises", "types", "weight"}
+        for table_name in tables_with_controls:
             # Delete buttons
             delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
             delete_button = getattr(self, delete_btn_name)
@@ -506,6 +510,13 @@ class MainWindow(
 
             # Load chart with all time data
             self.set_chart_all_time()
+
+    def _load_default_statistics(self) -> None:
+        """Load default statistics on first visit to statistics tab."""
+        if not hasattr(self, "_statistics_initialized"):
+            self._statistics_initialized = True
+            # Automatically refresh statistics on first visit
+            self.on_refresh_statistics()
 
     def _load_exercise_avif(self, exercise_name: str) -> None:
         """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
@@ -1252,33 +1263,143 @@ class MainWindow(
 
     @requires_database()
     def on_refresh_statistics(self) -> None:
-        """Populate the statistics text-edit using database manager."""
+        """Populate the statistics table view with records data using database manager."""
         try:
-            self.textEdit_statistics.clear()
+            from PySide6.QtGui import QBrush, QColor
 
             # Get statistics data using database manager
             rows = self.db_manager.get_statistics_data()
 
-            grouped: defaultdict[str, list[list]] = defaultdict(list)
+            if not rows:
+                # If no data, show empty table
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(["Exercise", "Type", "Value", "Unit", "Date"])
+                self.tableView_statistics.setModel(empty_model)
+                self.tableView_statistics.resizeColumnsToContents()
+                return
+
+            # Group data by exercise and type combination
+            grouped: defaultdict[str, list[tuple]] = defaultdict(list)
             for ex_name, tp_name, val, date in rows:
-                key = f"{ex_name} {tp_name}".strip()
-                grouped[key].append([ex_name, tp_name, val, date])
+                _key = f"{ex_name} {tp_name}".strip()
+                grouped[_key].append((ex_name, tp_name, val, date))
 
+            # Prepare table data - show top 8 records for each exercise/type combination
+            table_data = []
             today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-            lines: list[str] = []
+            span_info = []  # Store information about spans: (start_row, row_count, exercise_name, type_name)
 
-            for key, entries in grouped.items():
+            # Define alternating colors for groups
+            group_colors = [
+                QColor(240, 248, 255),  # Alice Blue (light blue)
+                QColor(248, 255, 240),  # Honeydew (light green)
+                QColor(255, 248, 240),  # Seashell (light orange)
+                QColor(248, 240, 255),  # Lavender (light purple)
+                QColor(255, 240, 248),  # Lavender Blush (light pink)
+            ]
+
+            current_row = 0
+            group_index = 0
+
+            for group_index, (_key, entries) in enumerate(grouped.items()):
+                # Sort by value (highest first) and take top 8
                 entries.sort(key=lambda x: x[2], reverse=True)
-                lines.append(key)
-                for ex_name, tp_name, val, date in entries[:4]:
-                    val_str = f"{val:g}"
-                    msg = f"{date}: {ex_name} {tp_name} {val_str}" if tp_name else f"{date}: {ex_name} {val_str}"
-                    if date == today:
-                        msg += " ← TODAY"
-                    lines.append(msg)
-                lines.append("—" * 8)
 
-            self.textEdit_statistics.setText("\n".join(lines))
+                group_start_row = current_row
+                group_size = min(len(entries), 8)  # Maximum 8 records per group
+                current_group_color = group_colors[group_index % len(group_colors)]
+
+                for i, (ex_name, tp_name, val, date) in enumerate(entries[:8]):
+                    # Get exercise unit from database
+                    unit = self.db_manager.get_exercise_unit(ex_name)
+
+                    # Format value
+                    val_str = f"{val:g}"
+
+                    # Mark today's records
+                    date_display = f"{date} ← 🏆TODAY 📅" if date == today else date
+
+                    # For the first row of each group, include exercise and type names
+                    # For subsequent rows, use empty strings (they will be spanned)
+                    if i == 0:
+                        exercise_display = ex_name
+                        type_display = tp_name if tp_name else ""
+                    else:
+                        exercise_display = ""
+                        type_display = ""
+
+                    # Add row to table data with color information
+                    table_data.append(
+                        [
+                            exercise_display,
+                            type_display,
+                            val_str,
+                            unit,
+                            date_display,
+                            current_group_color,  # Add color info
+                        ]
+                    )
+
+                    current_row += 1
+
+                # Store span information for this group
+                if group_size > 1:
+                    span_info.append((group_start_row, group_size, ex_name, tp_name if tp_name else ""))
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Exercise", "Type", "Value", "Unit", "Date"])
+
+            for row_data in table_data:
+                items = []
+                group_color = row_data[5]  # Get the color from the last element
+
+                # Create items for all columns except the color info
+                for col_idx, value in enumerate(row_data[:5]):  # Only first 5 elements (exclude color)
+                    item = QStandardItem(str(value))
+
+                    # Set background color for the item
+                    item.setBackground(QBrush(group_color))
+
+                    # For "TODAY" entries, make text bold
+                    id_col_date = 4
+                    if col_idx == id_col_date and "TODAY" in str(value):
+                        font = item.font()
+                        font.setBold(True)
+                        item.setFont(font)
+
+                    items.append(item)
+
+                model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+
+            # Apply spans after setting the model
+            for start_row, row_count, exercise_name, type_name in span_info:
+                # Span the Exercise column (column 0)
+                self.tableView_statistics.setSpan(start_row, 0, row_count, 1)
+
+                # Span the Type column (column 1) if there's a type
+                if type_name:
+                    self.tableView_statistics.setSpan(start_row, 1, row_count, 1)
+
+                # Set the text for the spanned cells with proper background
+                exercise_item = QStandardItem(exercise_name)
+                exercise_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
+                model.setItem(start_row, 0, exercise_item)
+
+                if type_name:
+                    type_item = QStandardItem(type_name)
+                    type_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
+                    model.setItem(start_row, 1, type_item)
+
+            self.tableView_statistics.resizeColumnsToContents()
+
+            # Enable alternating row colors at table level (optional, for additional visual separation)
+            self.tableView_statistics.setAlternatingRowColors(
+                False
+            )  # Disable default alternating since we have custom colors
 
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
@@ -1293,14 +1414,17 @@ class MainWindow(
         """
         index_tab_weight = 3
         index_tab_charts = 4
+        index_tab_statistics = 5  # Add statistics tab index
 
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
         elif index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
-        elif index == index_tab_weight:
+        elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
+        elif index == index_tab_statistics:  # Statistics tab
+            self._load_default_statistics()
 
     def on_weight_selection_changed(self) -> None:
         """Update form fields when weight selection changes in the table.
@@ -1890,6 +2014,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             "exercises": None,
             "types": None,
             "weight": None,
+            "statistics": None,
         }
 
         # Chart configuration
@@ -1914,6 +2039,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
                 ["Exercise", "Exercise Type"],
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
+            "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
         }
 
         # Initialize application
@@ -1956,8 +2082,9 @@ def _connect_signals(self) -> None:
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
-        # Connect delete and refresh buttons for all tables
-        for table_name in self.table_config:
+        # Connect delete and refresh buttons for all tables (except statistics)
+        tables_with_controls = {"process", "exercises", "types", "weight"}
+        for table_name in tables_with_controls:
             # Delete buttons
             delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
             delete_button = getattr(self, delete_btn_name)
@@ -2445,6 +2572,27 @@ def _load_default_exercise_chart(self) -> None:
 
             # Load chart with all time data
             self.set_chart_all_time()
+```
+
+</details>
+
+### Method `_load_default_statistics`
+
+```python
+def _load_default_statistics(self) -> None
+```
+
+Load default statistics on first visit to statistics tab.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_default_statistics(self) -> None:
+        if not hasattr(self, "_statistics_initialized"):
+            self._statistics_initialized = True
+            # Automatically refresh statistics on first visit
+            self.on_refresh_statistics()
 ```
 
 </details>
@@ -3442,7 +3590,7 @@ def on_export_csv(self) -> None:
 def on_refresh_statistics(self) -> None
 ```
 
-Populate the statistics text-edit using database manager.
+Populate the statistics table view with records data using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -3450,31 +3598,141 @@ Populate the statistics text-edit using database manager.
 ```python
 def on_refresh_statistics(self) -> None:
         try:
-            self.textEdit_statistics.clear()
+            from PySide6.QtGui import QBrush, QColor
 
             # Get statistics data using database manager
             rows = self.db_manager.get_statistics_data()
 
-            grouped: defaultdict[str, list[list]] = defaultdict(list)
+            if not rows:
+                # If no data, show empty table
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(["Exercise", "Type", "Value", "Unit", "Date"])
+                self.tableView_statistics.setModel(empty_model)
+                self.tableView_statistics.resizeColumnsToContents()
+                return
+
+            # Group data by exercise and type combination
+            grouped: defaultdict[str, list[tuple]] = defaultdict(list)
             for ex_name, tp_name, val, date in rows:
-                key = f"{ex_name} {tp_name}".strip()
-                grouped[key].append([ex_name, tp_name, val, date])
+                _key = f"{ex_name} {tp_name}".strip()
+                grouped[_key].append((ex_name, tp_name, val, date))
 
+            # Prepare table data - show top 8 records for each exercise/type combination
+            table_data = []
             today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-            lines: list[str] = []
+            span_info = []  # Store information about spans: (start_row, row_count, exercise_name, type_name)
 
-            for key, entries in grouped.items():
+            # Define alternating colors for groups
+            group_colors = [
+                QColor(240, 248, 255),  # Alice Blue (light blue)
+                QColor(248, 255, 240),  # Honeydew (light green)
+                QColor(255, 248, 240),  # Seashell (light orange)
+                QColor(248, 240, 255),  # Lavender (light purple)
+                QColor(255, 240, 248),  # Lavender Blush (light pink)
+            ]
+
+            current_row = 0
+            group_index = 0
+
+            for group_index, (_key, entries) in enumerate(grouped.items()):
+                # Sort by value (highest first) and take top 8
                 entries.sort(key=lambda x: x[2], reverse=True)
-                lines.append(key)
-                for ex_name, tp_name, val, date in entries[:4]:
-                    val_str = f"{val:g}"
-                    msg = f"{date}: {ex_name} {tp_name} {val_str}" if tp_name else f"{date}: {ex_name} {val_str}"
-                    if date == today:
-                        msg += " ← TODAY"
-                    lines.append(msg)
-                lines.append("—" * 8)
 
-            self.textEdit_statistics.setText("\n".join(lines))
+                group_start_row = current_row
+                group_size = min(len(entries), 8)  # Maximum 8 records per group
+                current_group_color = group_colors[group_index % len(group_colors)]
+
+                for i, (ex_name, tp_name, val, date) in enumerate(entries[:8]):
+                    # Get exercise unit from database
+                    unit = self.db_manager.get_exercise_unit(ex_name)
+
+                    # Format value
+                    val_str = f"{val:g}"
+
+                    # Mark today's records
+                    date_display = f"{date} ← 🏆TODAY 📅" if date == today else date
+
+                    # For the first row of each group, include exercise and type names
+                    # For subsequent rows, use empty strings (they will be spanned)
+                    if i == 0:
+                        exercise_display = ex_name
+                        type_display = tp_name if tp_name else ""
+                    else:
+                        exercise_display = ""
+                        type_display = ""
+
+                    # Add row to table data with color information
+                    table_data.append(
+                        [
+                            exercise_display,
+                            type_display,
+                            val_str,
+                            unit,
+                            date_display,
+                            current_group_color,  # Add color info
+                        ]
+                    )
+
+                    current_row += 1
+
+                # Store span information for this group
+                if group_size > 1:
+                    span_info.append((group_start_row, group_size, ex_name, tp_name if tp_name else ""))
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Exercise", "Type", "Value", "Unit", "Date"])
+
+            for row_data in table_data:
+                items = []
+                group_color = row_data[5]  # Get the color from the last element
+
+                # Create items for all columns except the color info
+                for col_idx, value in enumerate(row_data[:5]):  # Only first 5 elements (exclude color)
+                    item = QStandardItem(str(value))
+
+                    # Set background color for the item
+                    item.setBackground(QBrush(group_color))
+
+                    # For "TODAY" entries, make text bold
+                    id_col_date = 4
+                    if col_idx == id_col_date and "TODAY" in str(value):
+                        font = item.font()
+                        font.setBold(True)
+                        item.setFont(font)
+
+                    items.append(item)
+
+                model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+
+            # Apply spans after setting the model
+            for start_row, row_count, exercise_name, type_name in span_info:
+                # Span the Exercise column (column 0)
+                self.tableView_statistics.setSpan(start_row, 0, row_count, 1)
+
+                # Span the Type column (column 1) if there's a type
+                if type_name:
+                    self.tableView_statistics.setSpan(start_row, 1, row_count, 1)
+
+                # Set the text for the spanned cells with proper background
+                exercise_item = QStandardItem(exercise_name)
+                exercise_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
+                model.setItem(start_row, 0, exercise_item)
+
+                if type_name:
+                    type_item = QStandardItem(type_name)
+                    type_item.setBackground(QBrush(table_data[start_row][5]))  # Use group color
+                    model.setItem(start_row, 1, type_item)
+
+            self.tableView_statistics.resizeColumnsToContents()
+
+            # Enable alternating row colors at table level (optional, for additional visual separation)
+            self.tableView_statistics.setAlternatingRowColors(
+                False
+            )  # Disable default alternating since we have custom colors
 
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
@@ -3501,14 +3759,17 @@ Args:
 def on_tab_changed(self, index: int) -> None:
         index_tab_weight = 3
         index_tab_charts = 4
+        index_tab_statistics = 5  # Add statistics tab index
 
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
         elif index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
-        elif index == index_tab_weight:
+        elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
+        elif index == index_tab_statistics:  # Statistics tab
+            self._load_default_statistics()
 ```
 
 </details>
