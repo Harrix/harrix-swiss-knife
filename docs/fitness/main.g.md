@@ -2654,6 +2654,7 @@ class MainWindow(
         period = self.comboBox_chart_period.currentText()
         date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
         date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+        use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
         # Get sets data using database manager
         rows = self.db_manager.get_sets_chart_data(date_from, date_to)
@@ -2667,8 +2668,14 @@ class MainWindow(
             except (ValueError, TypeError):
                 continue
 
-        # Group data by period
-        grouped_data = self._group_data_by_period(rows, period, value_type="int")
+        # Group data by period with aggregation based on checkbox
+        if use_max_value:
+            # For sets chart, we need to convert the data format for max grouping
+            # Convert from (date_str, count) to (date_str, count_str)
+            string_rows = [(date_str, str(count)) for date_str, count in rows]
+            grouped_data = self._group_data_by_period_with_max(string_rows, period, value_type="int")
+        else:
+            grouped_data = self._group_data_by_period(rows, period, value_type="int")
 
         if not grouped_data:
             self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
@@ -2683,19 +2690,29 @@ class MainWindow(
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
-        # Define custom statistics formatter for sets
+        # Build chart title with aggregation type
+        aggregation_type = "Max" if use_max_value else "Total"
+        chart_title = f"Training sets ({aggregation_type}, {period})"
+
+        # Define custom statistics formatter for sets with aggregation type
         def format_sets_stats(values: list) -> str:
             min_val = int(min(values))
             max_val = int(max(values))
             avg_val = sum(values) / len(values)
-            total_val = int(sum(values))
-            return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f} | Total: {total_val}"
+
+            if use_max_value:
+                # For max values, don't show total (it doesn't make sense)
+                return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f}"
+            else:
+                # For sum values, show total
+                total_val = int(sum(values))
+                return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f} | Total: {total_val}"
 
         # Create chart configuration
         chart_config = {
-            "title": f"Training sets ({period})",
+            "title": chart_title,
             "xlabel": "Date",
-            "ylabel": "Number of sets",
+            "ylabel": f"{aggregation_type} number of sets",
             "color": "green",
             "show_stats": True,
             "period": period,
@@ -6674,6 +6691,7 @@ def show_sets_chart(self) -> None:
         period = self.comboBox_chart_period.currentText()
         date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
         date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+        use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
         # Get sets data using database manager
         rows = self.db_manager.get_sets_chart_data(date_from, date_to)
@@ -6687,8 +6705,14 @@ def show_sets_chart(self) -> None:
             except (ValueError, TypeError):
                 continue
 
-        # Group data by period
-        grouped_data = self._group_data_by_period(rows, period, value_type="int")
+        # Group data by period with aggregation based on checkbox
+        if use_max_value:
+            # For sets chart, we need to convert the data format for max grouping
+            # Convert from (date_str, count) to (date_str, count_str)
+            string_rows = [(date_str, str(count)) for date_str, count in rows]
+            grouped_data = self._group_data_by_period_with_max(string_rows, period, value_type="int")
+        else:
+            grouped_data = self._group_data_by_period(rows, period, value_type="int")
 
         if not grouped_data:
             self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
@@ -6703,19 +6727,29 @@ def show_sets_chart(self) -> None:
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
-        # Define custom statistics formatter for sets
+        # Build chart title with aggregation type
+        aggregation_type = "Max" if use_max_value else "Total"
+        chart_title = f"Training sets ({aggregation_type}, {period})"
+
+        # Define custom statistics formatter for sets with aggregation type
         def format_sets_stats(values: list) -> str:
             min_val = int(min(values))
             max_val = int(max(values))
             avg_val = sum(values) / len(values)
-            total_val = int(sum(values))
-            return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f} | Total: {total_val}"
+
+            if use_max_value:
+                # For max values, don't show total (it doesn't make sense)
+                return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f}"
+            else:
+                # For sum values, show total
+                total_val = int(sum(values))
+                return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f} | Total: {total_val}"
 
         # Create chart configuration
         chart_config = {
-            "title": f"Training sets ({period})",
+            "title": chart_title,
             "xlabel": "Date",
-            "ylabel": "Number of sets",
+            "ylabel": f"{aggregation_type} number of sets",
             "color": "green",
             "show_stats": True,
             "period": period,
