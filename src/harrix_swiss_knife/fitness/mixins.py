@@ -625,10 +625,7 @@ class ChartOperations:
             for x, y in zip(x_values, y_values, strict=False):
                 if y != 0:  # Only label non-zero points
                     # Format label based on value type and period
-                    if isinstance(y, int):
-                        label_text = str(y)
-                    else:
-                        label_text = f"{y:.1f}"
+                    label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
 
                     # Add year in parentheses for Years period
                     if period == "Years" and hasattr(x, "year"):

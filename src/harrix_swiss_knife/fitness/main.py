@@ -14,6 +14,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from pathlib import Path
+from typing import Any, Callable, Optional
 
 import harrix_pylib as h
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -21,7 +22,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
-from PySide6.QtGui import QCloseEvent, QColor, QMovie, QPixmap, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QCloseEvent, QColor, QKeyEvent, QMovie, QPixmap, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife.fitness import database_manager, window
@@ -259,6 +260,7 @@ class MainWindow(
         Args:
         - `table_name` (`str`): Name of the table.
         - `selection_handler`: Handler function for selection changes.
+
         """
         if table_name in self.table_config:
             view = self.table_config[table_name][0]
@@ -271,9 +273,8 @@ class MainWindow(
 
         Args:
         - `table_view` (`QTableView`): The table view to copy data from.
-        """
-        from PySide6.QtGui import QClipboard
 
+        """
         selection_model = table_view.selectionModel()
         if not selection_model or not selection_model.hasSelection():
             return
@@ -531,6 +532,7 @@ class MainWindow(
 
         Returns:
         - `str | None`: Exercise name or None if not found.
+
         """
         if not self._validate_database_connection():
             return None
@@ -568,6 +570,7 @@ class MainWindow(
 
         Returns:
         - `str | None`: Exercise name or None if nothing selected.
+
         """
         current_index = self.tableView_statistics.currentIndex()
 
@@ -597,6 +600,7 @@ class MainWindow(
 
         Returns:
         - `str | None`: Exercise name or None if nothing selected.
+
         """
         if table_name not in self.table_config:
             return None
@@ -793,7 +797,9 @@ class MainWindow(
 
         Args:
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
-        - `label_key` (`str`): Key identifying which label to update ('main', 'exercises', 'types', 'charts', 'statistics').
+        - `label_key` (`str`): Key identifying which label to update
+          ('main', 'exercises', 'types', 'charts', 'statistics').
+
         """
         # Get the appropriate label widget
         label_widgets = {
@@ -972,6 +978,7 @@ class MainWindow(
 
         Args:
         - `label_key` (`str`): Key identifying which label to update.
+
         """
         if not self.avif_data[label_key]["frames"]:
             return
@@ -1022,14 +1029,16 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
-    def _refresh_table(self, table_name: str, data_getter, data_transformer=None) -> None:
+    def _refresh_table(
+        self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None
+    ) -> None:
         """Refresh a table with data.
 
         Args:
 
         - `table_name` (`str`): Name of the table to refresh.
-        - `data_getter`: Function to get data from database.
-        - `data_transformer`: Optional function to transform raw data.
+        - `data_getter` (` Callable[[], Any] Callable[[], Any]`): Function to get data from database.
+        - `data_transformer` (`Optional[Callable[[Any], Any]]`): Optional function to transform raw data.
 
         Raises:
 
@@ -1183,13 +1192,14 @@ class MainWindow(
         if exercise_name:
             self._load_exercise_avif(exercise_name, "exercises")
 
-    def _update_form_from_process_selection(self, exercise_name: str, type_name: str, value_str: str) -> None:
+    def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
         """Update form fields after process selection change.
 
         Args:
-        - `exercise_name` (`str`): Name of the selected exercise.
+        - `_exercise_name` (`str`): Name of the selected exercise.
         - `type_name` (`str`): Type of the selected exercise.
         - `value_str` (`str`): Value as string from the selected record.
+
         """
         try:
             # Update spinBox_count with the selected value
@@ -1421,11 +1431,12 @@ class MainWindow(
 
         return colors
 
-    def keyPressEvent(self, event) -> None:  # noqa: N802
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.
 
         Args:
-        - `event`: The key press event.
+        - `event` (`QKeyEvent`): The key press event.
+
         """
         # Handle Ctrl+C for copying table selections
         if event.key() == Qt.Key_C and event.modifiers() == Qt.ControlModifier:
@@ -1590,6 +1601,7 @@ class MainWindow(
 
         Args:
         - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+
         """
         self._update_charts_avif()
 
@@ -1801,6 +1813,7 @@ class MainWindow(
 
         Args:
         - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+
         """
         self._update_types_avif()
 
@@ -1982,7 +1995,7 @@ class MainWindow(
             QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
     @requires_database()
-    def on_process_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+    def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle process table selection change and update form fields.
 
         Updates the form fields (exercise, quantity, type, AVIF image) based on
@@ -1990,7 +2003,8 @@ class MainWindow(
 
         Args:
         - `current` (`QModelIndex`): Currently selected index.
-        - `previous` (`QModelIndex`): Previously selected index.
+        - `_previous` (`QModelIndex`): Previously selected index.
+
         """
         if not current.isValid():
             # If no selection, keep current form state
@@ -2450,12 +2464,13 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
 
-    def on_statistics_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+    def on_statistics_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle statistics table selection change and update AVIF.
 
         Args:
-        - `current` (`QModelIndex`): Currently selected index.
-        - `previous` (`QModelIndex`): Previously selected index.
+        - `_current` (`QModelIndex`): Currently selected index.
+        - `_previous` (`QModelIndex`): Previously selected index.
+
         """
         # Only update AVIF if not in check_steps mode (since check_steps always shows Steps exercise)
         if self.current_statistics_mode != "check_steps":
@@ -2636,10 +2651,9 @@ class MainWindow(
             if use_max_value:
                 # For max values, don't show total (it doesn't make sense)
                 return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f}"
-            else:
-                # For sum values, show total
-                total_val = int(sum(values))
-                return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f} | Total: {total_val}"
+            # For sum values, show total
+            total_val = int(sum(values))
+            return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f} | Total: {total_val}"
 
         # Create chart configuration
         chart_config = {
@@ -2991,13 +3005,12 @@ class MainWindow(
                     f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
                     f"Avg: {avg_val:.1f}{unit_suffix}"
                 )
-            else:
-                # For sum values, show total
-                total_val = sum(values)
-                return (
-                    f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
-                    f"Avg: {avg_val:.1f}{unit_suffix} | Total: {total_val:.1f}{unit_suffix}"
-                )
+            # For sum values, show total
+            total_val = sum(values)
+            return (
+                f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
+                f"Avg: {avg_val:.1f}{unit_suffix} | Total: {total_val:.1f}{unit_suffix}"
+            )
 
         # Create chart configuration
         y_label = f"{aggregation_type} Value ({exercise_unit})" if exercise_unit else f"{aggregation_type} Value"
