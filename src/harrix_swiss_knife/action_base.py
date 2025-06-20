@@ -218,6 +218,7 @@ class ActionBase:
         Returns:
 
         - `Path | None`: The selected folder as a `Path` object, or `None` if cancelled or no selection made.
+
         """
         # Add folder icon to each folder in the list for display
         display_folders = [f"📁 {folder}" for folder in folders_list]
