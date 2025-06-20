@@ -208,7 +208,7 @@ class ActionBase:
         return Path(folder_path)
 
     def get_folder_with_choice_option(
-        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "🗂️ Choice a folder …"
+        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "📚 Choice a folder …"
     ) -> Path | None:
         """Open a dialog to select a folder from a predefined list or browse for a new one.
 
@@ -225,6 +225,7 @@ class ActionBase:
         Returns:
 
         - `Path | None`: The selected folder as a `Path` object, or `None` if cancelled or no selection made.
+
         """
         # Add folder icon to each folder in the list for display
         display_folders = [f"📁 {folder}" for folder in folders_list]
@@ -735,7 +736,7 @@ def get_existing_directory(self, title: str, default_path: str) -> Path | None:
 ### Method `get_folder_with_choice_option`
 
 ```python
-def get_folder_with_choice_option(self, title: str, folders_list: list[str], default_path: str, choice_text: str = "🗂️ Choice a folder …") -> Path | None
+def get_folder_with_choice_option(self, title: str, folders_list: list[str], default_path: str, choice_text: str = "📚 Choice a folder …") -> Path | None
 ```
 
 Open a dialog to select a folder from a predefined list or browse for a new one.
@@ -759,7 +760,7 @@ Returns:
 
 ```python
 def get_folder_with_choice_option(
-        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "🗂️ Choice a folder …"
+        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "📚 Choice a folder …"
     ) -> Path | None:
         # Add folder icon to each folder in the list for display
         display_folders = [f"📁 {folder}" for folder in folders_list]

@@ -201,7 +201,7 @@ class ActionBase:
         return Path(folder_path)
 
     def get_folder_with_choice_option(
-        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "🗂️ Choice a folder …"
+        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "📚 Choice a folder …"
     ) -> Path | None:
         """Open a dialog to select a folder from a predefined list or browse for a new one.
 
