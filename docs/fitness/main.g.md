@@ -320,7 +320,9 @@ class MainWindow(
         # Connect weight table selection
         self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
 
-    def _connect_table_signals_for_table(self, table_name: str, selection_handler) -> None:
+    def _connect_table_signals_for_table(
+        self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]
+    ) -> None:
         """Connect selection change signal for a specific table.
 
         Args:
@@ -372,10 +374,7 @@ class MainWindow(
             if row_data:
                 min_col = min(row_data.keys())
                 max_col = max(row_data.keys())
-                row_text = []
-                for col in range(min_col, max_col + 1):
-                    row_text.append(row_data.get(col, ""))
-                clipboard_text.append("\t".join(row_text))
+                clipboard_text.append("\t".join([row_data.get(col, "") for col in range(min_col, max_col + 1)]))
 
         # Copy to clipboard
         if clipboard_text:
@@ -858,7 +857,7 @@ class MainWindow(
             # Automatically refresh statistics on first visit
             self.on_refresh_statistics()
 
-    def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:
+    def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:  # noqa: PLR0911
         """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
 
         Args:
@@ -3489,7 +3488,7 @@ def _connect_table_selection_signals(self) -> None:
 ### Method `_connect_table_signals_for_table`
 
 ```python
-def _connect_table_signals_for_table(self, table_name: str, selection_handler) -> None
+def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]) -> None
 ```
 
 Connect selection change signal for a specific table.
@@ -3503,7 +3502,9 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def _connect_table_signals_for_table(self, table_name: str, selection_handler) -> None:
+def _connect_table_signals_for_table(
+        self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]
+    ) -> None:
         if table_name in self.table_config:
             view = self.table_config[table_name][0]
             selection_model = view.selectionModel()
@@ -3561,10 +3562,7 @@ def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
             if row_data:
                 min_col = min(row_data.keys())
                 max_col = max(row_data.keys())
-                row_text = []
-                for col in range(min_col, max_col + 1):
-                    row_text.append(row_data.get(col, ""))
-                clipboard_text.append("\t".join(row_text))
+                clipboard_text.append("\t".join([row_data.get(col, "") for col in range(min_col, max_col + 1)]))
 
         # Copy to clipboard
         if clipboard_text:
@@ -4331,7 +4329,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:
+def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:  # noqa: PLR0911
         # Get the appropriate label widget
         label_widgets = {
             "main": self.label_exercise_avif,
