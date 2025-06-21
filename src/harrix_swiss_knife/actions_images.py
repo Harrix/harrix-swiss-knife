@@ -92,7 +92,7 @@ class OnOptimize(action_base.ActionBase):
     """
 
     icon = "🚀"
-    title = "Optimize images"
+    title = "Optimize images 🔥"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -120,7 +120,7 @@ class OnOptimizeClipboard(action_base.ActionBase):
     """
 
     icon = "🚀"
-    title = "Optimize image from clipboard"
+    title = "Optimize image from clipboard 🔥"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -289,7 +289,7 @@ class OnResizeOptimizePngToAvif(action_base.ActionBase):
     """Resize and optimize images and convert PNG files to AVIF format too."""
 
     icon = "↔️"
-    title = "Resize and optimize images (with PNG to AVIF) "
+    title = "Resize and optimize images (with PNG to AVIF) 🔥"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
