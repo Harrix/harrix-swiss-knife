@@ -2177,6 +2177,7 @@ class MainWindow(
             # Prepare table data
             table_data = []
             today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+            yesterday = (QDateTime.currentDateTime().addDays(-1)).toString("yyyy-MM-dd")
             span_info = []
 
             # Define base column colors
@@ -2215,7 +2216,12 @@ class MainWindow(
                         ex_name, tp_name, val, date = entries[i]
                         unit = self.db_manager.get_exercise_unit(ex_name)
                         val_str = f"{val:g}"
-                        date_display = f"{date} ← 🏆TODAY 📅" if date == today else date
+                        if date == today:
+                            date_display = f"{date} ← 🏆TODAY 📅"
+                        elif date == yesterday:
+                            date_display = f"{date} ← 🏆YESTERDAY 📅"
+                        else:
+                            date_display = date
                     else:
                         ex_name, tp_name = entries[0][:2] if entries else ("", "")
                         unit = ""
@@ -2227,7 +2233,12 @@ class MainWindow(
                         _, _, year_val, year_date = year_entries[i]
                         year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
                         year_val_str = f"{year_val:g}"
-                        year_date_display = f"{year_date} ← 🏆TODAY 📅" if year_date == today else year_date
+                        if year_date == today:
+                            year_date_display = f"{year_date} ← 🏆TODAY 📅"
+                        elif year_date == yesterday:
+                            year_date_display = f"{year_date} ← 🏆YESTERDAY 📅"
+                        else:
+                            year_date_display = year_date
                     else:
                         year_val_str = ""
                         year_unit = ""
@@ -2301,11 +2312,14 @@ class MainWindow(
 
                     item.setBackground(QBrush(final_color))
 
-                    # For "TODAY" entries, make text bold
-                    if "TODAY" in str(value):
+                    # For "TODAY" or "YESTERDAY" entries, make text bold
+                    if "TODAY" in str(value) or "YESTERDAY" in str(value):
                         font = item.font()
                         font.setBold(True)
                         item.setFont(font)
+                    # Optional: different color for yesterday entries
+                    if "YESTERDAY" in str(value):
+                        item.setBackground(QBrush(QColor(173, 216, 230)))  # Light blue
 
                     items.append(item)
 
@@ -2359,24 +2373,28 @@ class MainWindow(
             # Custom column width setup for statistics table
             header = self.tableView_statistics.horizontalHeader()
 
-            # Set most columns to interactive mode to allow manual resizing
-            for i in range(header.count() - 1):
-                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-
-            # Set specific resize modes and stretch factors for each column
-            header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
-            header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
+            # Set specific resize modes for each column
+            header.setSectionResizeMode(0, header.ResizeMode.Interactive)  # Exercise - fixed width, resizable
+            header.setSectionResizeMode(1, header.ResizeMode.Interactive)  # Type - fixed width, resizable
             header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
             header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
-            header.setSectionResizeMode(4, header.ResizeMode.Stretch)  # All-Time Date - stretches
+            header.setSectionResizeMode(4, header.ResizeMode.Interactive)  # All-Time Date - fixed width, resizable
             header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
             header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
-            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
+            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches to fill remaining
 
-            # Set stretch factors to control relative sizes of stretching columns
-            header.setStretchLastSection(False)  # Disable automatic last section stretching
+            # Set specific widths for columns
+            self.tableView_statistics.setColumnWidth(0, 120)  # Exercise - shorter
+            self.tableView_statistics.setColumnWidth(1, 100)  # Type - shorter
+            self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value - compact
+            self.tableView_statistics.setColumnWidth(3, 60)  # All-Time Unit - compact
+            self.tableView_statistics.setColumnWidth(4, 200)  # All-Time Date - wider
+            self.tableView_statistics.setColumnWidth(5, 80)  # Year Value - compact
+            self.tableView_statistics.setColumnWidth(6, 60)  # Year Unit - compact
+            # Year Date column (7) will stretch to fill remaining space
+
+            # Disable automatic last section stretching since we set it manually
+            header.setStretchLastSection(True)
 
             # Set minimum widths for compact columns to ensure readability
             self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value
@@ -6038,6 +6056,7 @@ def on_refresh_statistics(self) -> None:
             # Prepare table data
             table_data = []
             today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+            yesterday = (QDateTime.currentDateTime().addDays(-1)).toString("yyyy-MM-dd")
             span_info = []
 
             # Define base column colors
@@ -6076,7 +6095,12 @@ def on_refresh_statistics(self) -> None:
                         ex_name, tp_name, val, date = entries[i]
                         unit = self.db_manager.get_exercise_unit(ex_name)
                         val_str = f"{val:g}"
-                        date_display = f"{date} ← 🏆TODAY 📅" if date == today else date
+                        if date == today:
+                            date_display = f"{date} ← 🏆TODAY 📅"
+                        elif date == yesterday:
+                            date_display = f"{date} ← 🏆YESTERDAY 📅"
+                        else:
+                            date_display = date
                     else:
                         ex_name, tp_name = entries[0][:2] if entries else ("", "")
                         unit = ""
@@ -6088,7 +6112,12 @@ def on_refresh_statistics(self) -> None:
                         _, _, year_val, year_date = year_entries[i]
                         year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
                         year_val_str = f"{year_val:g}"
-                        year_date_display = f"{year_date} ← 🏆TODAY 📅" if year_date == today else year_date
+                        if year_date == today:
+                            year_date_display = f"{year_date} ← 🏆TODAY 📅"
+                        elif year_date == yesterday:
+                            year_date_display = f"{year_date} ← 🏆YESTERDAY 📅"
+                        else:
+                            year_date_display = year_date
                     else:
                         year_val_str = ""
                         year_unit = ""
@@ -6162,11 +6191,14 @@ def on_refresh_statistics(self) -> None:
 
                     item.setBackground(QBrush(final_color))
 
-                    # For "TODAY" entries, make text bold
-                    if "TODAY" in str(value):
+                    # For "TODAY" or "YESTERDAY" entries, make text bold
+                    if "TODAY" in str(value) or "YESTERDAY" in str(value):
                         font = item.font()
                         font.setBold(True)
                         item.setFont(font)
+                    # Optional: different color for yesterday entries
+                    if "YESTERDAY" in str(value):
+                        item.setBackground(QBrush(QColor(173, 216, 230)))  # Light blue
 
                     items.append(item)
 
@@ -6220,24 +6252,28 @@ def on_refresh_statistics(self) -> None:
             # Custom column width setup for statistics table
             header = self.tableView_statistics.horizontalHeader()
 
-            # Set most columns to interactive mode to allow manual resizing
-            for i in range(header.count() - 1):
-                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-
-            # Set specific resize modes and stretch factors for each column
-            header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
-            header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
+            # Set specific resize modes for each column
+            header.setSectionResizeMode(0, header.ResizeMode.Interactive)  # Exercise - fixed width, resizable
+            header.setSectionResizeMode(1, header.ResizeMode.Interactive)  # Type - fixed width, resizable
             header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
             header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
-            header.setSectionResizeMode(4, header.ResizeMode.Stretch)  # All-Time Date - stretches
+            header.setSectionResizeMode(4, header.ResizeMode.Interactive)  # All-Time Date - fixed width, resizable
             header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
             header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
-            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
+            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches to fill remaining
 
-            # Set stretch factors to control relative sizes of stretching columns
-            header.setStretchLastSection(False)  # Disable automatic last section stretching
+            # Set specific widths for columns
+            self.tableView_statistics.setColumnWidth(0, 120)  # Exercise - shorter
+            self.tableView_statistics.setColumnWidth(1, 100)  # Type - shorter
+            self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value - compact
+            self.tableView_statistics.setColumnWidth(3, 60)  # All-Time Unit - compact
+            self.tableView_statistics.setColumnWidth(4, 200)  # All-Time Date - wider
+            self.tableView_statistics.setColumnWidth(5, 80)  # Year Value - compact
+            self.tableView_statistics.setColumnWidth(6, 60)  # Year Unit - compact
+            # Year Date column (7) will stretch to fill remaining space
+
+            # Disable automatic last section stretching since we set it manually
+            header.setStretchLastSection(True)
 
             # Set minimum widths for compact columns to ensure readability
             self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value

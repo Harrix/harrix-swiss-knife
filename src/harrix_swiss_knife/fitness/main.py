@@ -2311,24 +2311,28 @@ class MainWindow(
             # Custom column width setup for statistics table
             header = self.tableView_statistics.horizontalHeader()
 
-            # Set most columns to interactive mode to allow manual resizing
-            for i in range(header.count() - 1):
-                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-
-            # Set specific resize modes and stretch factors for each column
-            header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
-            header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
+            # Set specific resize modes for each column
+            header.setSectionResizeMode(0, header.ResizeMode.Interactive)  # Exercise - fixed width, resizable
+            header.setSectionResizeMode(1, header.ResizeMode.Interactive)  # Type - fixed width, resizable
             header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
             header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
-            header.setSectionResizeMode(4, header.ResizeMode.Stretch)  # All-Time Date - stretches
+            header.setSectionResizeMode(4, header.ResizeMode.Interactive)  # All-Time Date - fixed width, resizable
             header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
             header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
-            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
+            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches to fill remaining
 
-            # Set stretch factors to control relative sizes of stretching columns
-            header.setStretchLastSection(False)  # Disable automatic last section stretching
+            # Set specific widths for columns
+            self.tableView_statistics.setColumnWidth(0, 120)  # Exercise - shorter
+            self.tableView_statistics.setColumnWidth(1, 100)  # Type - shorter
+            self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value - compact
+            self.tableView_statistics.setColumnWidth(3, 60)  # All-Time Unit - compact
+            self.tableView_statistics.setColumnWidth(4, 200)  # All-Time Date - wider
+            self.tableView_statistics.setColumnWidth(5, 80)  # Year Value - compact
+            self.tableView_statistics.setColumnWidth(6, 60)  # Year Unit - compact
+            # Year Date column (7) will stretch to fill remaining space
+
+            # Disable automatic last section stretching since we set it manually
+            header.setStretchLastSection(True)
 
             # Set minimum widths for compact columns to ensure readability
             self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value
