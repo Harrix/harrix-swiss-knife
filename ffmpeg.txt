@@ -1,0 +1,8 @@
+ffmpeg.exe is not distributed with this repository.
+
+Download the latest version of ffmpeg for Windows from the official builds page:
+https://github.com/BtbN/FFmpeg-Builds/releases
+
+1. Download the archive (e.g., ffmpeg-master-latest-win64-gpl.zip).
+2. Extract ffmpeg.exe from the archive.
+3. Copy ffmpeg.exe to this project folder. 
