@@ -2115,6 +2115,7 @@ class MainWindow(
             # Prepare table data
             table_data = []
             today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+            yesterday = (QDateTime.currentDateTime().addDays(-1)).toString("yyyy-MM-dd")
             span_info = []
 
             # Define base column colors
@@ -2153,7 +2154,12 @@ class MainWindow(
                         ex_name, tp_name, val, date = entries[i]
                         unit = self.db_manager.get_exercise_unit(ex_name)
                         val_str = f"{val:g}"
-                        date_display = f"{date} ← 🏆TODAY 📅" if date == today else date
+                        if date == today:
+                            date_display = f"{date} ← 🏆TODAY 📅"
+                        elif date == yesterday:
+                            date_display = f"{date} ← 🏆YESTERDAY 📅"
+                        else:
+                            date_display = date
                     else:
                         ex_name, tp_name = entries[0][:2] if entries else ("", "")
                         unit = ""
@@ -2165,7 +2171,12 @@ class MainWindow(
                         _, _, year_val, year_date = year_entries[i]
                         year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
                         year_val_str = f"{year_val:g}"
-                        year_date_display = f"{year_date} ← 🏆TODAY 📅" if year_date == today else year_date
+                        if year_date == today:
+                            year_date_display = f"{year_date} ← 🏆TODAY 📅"
+                        elif year_date == yesterday:
+                            year_date_display = f"{year_date} ← 🏆YESTERDAY 📅"
+                        else:
+                            year_date_display = year_date
                     else:
                         year_val_str = ""
                         year_unit = ""
@@ -2239,11 +2250,14 @@ class MainWindow(
 
                     item.setBackground(QBrush(final_color))
 
-                    # For "TODAY" entries, make text bold
-                    if "TODAY" in str(value):
+                    # For "TODAY" or "YESTERDAY" entries, make text bold
+                    if "TODAY" in str(value) or "YESTERDAY" in str(value):
                         font = item.font()
                         font.setBold(True)
                         item.setFont(font)
+                    # Optional: different color for yesterday entries
+                    if "YESTERDAY" in str(value):
+                        item.setBackground(QBrush(QColor(173, 216, 230)))  # Light blue
 
                     items.append(item)
 
