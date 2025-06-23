@@ -122,19 +122,16 @@ This action automates several preparatory tasks for the harrix-pylib package bef
 it can be published to PyPI. The process consists of four main steps:
 
 1. Code beautification and standardization:
-
    - Running isort to organize imports
    - Applying ruff format to enforce consistent code style
    - Using a custom sorting function to organize code elements (classes, methods, functions)
 
 2. Documentation generation:
-
    - Creating Markdown documentation from the codebase
    - Using the GitHub repository URL as the base for documentation links
    - Applying a standardized header to documentation files
 
 3. Markdown formatting:
-
    - Using Prettier to format all Markdown files consistently
 
 4. Repository access:

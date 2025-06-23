@@ -2520,7 +2520,6 @@ This action processes a user-selected Markdown file, performing two key operatio
 to improve its structure and readability:
 
 1. Section sorting:
-
    - Identifies sections (headings) within the Markdown file
    - Sorts sections in a logical order based on heading level and content
    - Maintains the hierarchy and structure of nested sections

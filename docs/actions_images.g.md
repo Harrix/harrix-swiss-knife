@@ -253,7 +253,6 @@ class OnOptimize(action_base.ActionBase):
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -311,7 +310,6 @@ Execute code in the main thread after in_thread(). For handling the results of t
 
 ```python
 def thread_after(self, result: Any) -> None:
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -726,7 +724,6 @@ class OnOptimizeQuality(action_base.ActionBase):
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -784,7 +781,6 @@ Execute code in the main thread after in_thread(). For handling the results of t
 
 ```python
 def thread_after(self, result: Any) -> None:
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -822,7 +818,6 @@ class OnResizeOptimizePngToAvif(action_base.ActionBase):
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -882,7 +877,6 @@ Execute code in the main thread after in_thread(). For handling the results of t
 
 ```python
 def thread_after(self, result: Any) -> None:
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/images")
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
         self.add_line(result)

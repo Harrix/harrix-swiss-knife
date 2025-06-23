@@ -112,7 +112,9 @@ _Figure 1: Screenshot_
 
 - Run `npm i -g npm-check-updates` and `npm i -g prettier` (or run `Dev` → `Install global NPM packages`).
 
-- Copy `ffmpeg.exe` to the project folder `C:/GitHub/harrix-swiss-knife`. For example, from `ffmpeg-master-latest-win64-gpl.zip` (<https://github.com/BtbN/FFmpeg-Builds/releases>).
+- Download and copy `ffmpeg.exe` to the project folder `C:/GitHub/harrix-swiss-knife`. For example, from `ffmpeg-master-latest-win64-gpl.zip` (<https://github.com/BtbN/FFmpeg-Builds/releases>).
+
+- Download and copy libavif executables (`avifdec.exe`, `avifenc.exe`) to the project folder `C:/GitHub/harrix-swiss-knife`. Download the latest Windows release from libavif releases page: <https://github.com/AOMediaCodec/libavif/releases>. Extract the executables from the Windows archive (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`).
 
 - Open `src\harrix-swiss-knife\main.py` and run.
 
