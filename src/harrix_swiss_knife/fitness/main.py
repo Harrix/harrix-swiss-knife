@@ -2255,9 +2255,6 @@ class MainWindow(
                         font = item.font()
                         font.setBold(True)
                         item.setFont(font)
-                    # Optional: different color for yesterday entries
-                    if "YESTERDAY" in str(value):
-                        item.setBackground(QBrush(QColor(173, 216, 230)))  # Light blue
 
                     items.append(item)
 
