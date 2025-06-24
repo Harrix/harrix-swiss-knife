@@ -163,6 +163,78 @@ class MainWindow(
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
 
+    def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
+        """Check if the current value would be a new all-time or yearly record.
+
+        Args:
+
+        - `ex_id` (`int`): Exercise ID
+        - `type_id` (`int`): Type ID (-1 for no type)
+        - `current_value` (`float`): Current value being added
+        - `type_name` (`str`): Type name for display
+
+        Returns:
+
+        `dict | None`: Record information if new record, None otherwise
+
+        """
+        try:
+            # Build conditions for the query
+            conditions = ["p._id_exercises = :ex_id"]
+            params = {"ex_id": ex_id}
+
+            if type_id != -1:
+                conditions.append("p._id_types = :type_id")
+                params["type_id"] = type_id
+            else:
+                conditions.append("p._id_types = -1")
+
+            # Get all-time max value
+            all_time_query = f"""
+                SELECT MAX(CAST(p.value AS REAL)) as max_value
+                FROM process p
+                WHERE {" AND ".join(conditions)}"""
+
+            all_time_rows = self.db_manager.get_rows(all_time_query, params)
+            all_time_max = all_time_rows[0][0] if all_time_rows and all_time_rows[0][0] is not None else 0.0
+
+            # Get yearly max value (last 365 days)
+            one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
+            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
+
+            yearly_conditions = [*conditions, "p.date >= :year_ago"]
+            yearly_params = params.copy()
+            yearly_params["year_ago"] = one_year_ago_str
+
+            yearly_query = f"""
+                SELECT MAX(CAST(p.value AS REAL)) as max_value
+                FROM process p
+                WHERE {" AND ".join(yearly_conditions)}"""
+
+            yearly_rows = self.db_manager.get_rows(yearly_query, yearly_params)
+            yearly_max = yearly_rows[0][0] if yearly_rows and yearly_rows[0][0] is not None else 0.0
+
+            # Check for new records
+            is_all_time_record = current_value > all_time_max
+            is_yearly_record = (
+                current_value > yearly_max and not is_all_time_record
+            )  # Don't double-count all-time records
+
+            if is_all_time_record or is_yearly_record:
+                return {
+                    "is_all_time": is_all_time_record,
+                    "is_yearly": is_yearly_record,
+                    "current_value": current_value,
+                    "previous_all_time": all_time_max,
+                    "previous_yearly": yearly_max,
+                    "type_name": type_name,
+                }
+
+        except Exception as e:
+            print(f"Error checking for new records: {e}")
+
+        return None
+
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
 
@@ -1119,6 +1191,80 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 0)  # frame with fixed size
 
+    def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
+        """Show congratulations message for new records.
+
+        Args:
+
+        - `exercise` (`str`): Exercise name.
+        - `record_info` (`dict`): Record information from `_check_for_new_records`.
+
+        """
+        try:
+            # Get exercise unit for display
+            unit = self.db_manager.get_exercise_unit(exercise)
+            unit_text = f" {unit}" if unit else ""
+
+            # Build the message
+            title = "🏆 NEW RECORD! 🏆"
+
+            # Build exercise display name with type if applicable
+            exercise_display = exercise
+            if record_info["type_name"]:
+                exercise_display += f" - {record_info['type_name']}"
+
+            current_value = record_info["current_value"]
+
+            if record_info["is_all_time"]:
+                previous_value = record_info["previous_all_time"]
+                improvement = current_value - previous_value
+
+                message = (
+                    f"🎉 Congratulations! You've set a new ALL-TIME RECORD! 🎉\n\n"
+                    f"Exercise: {exercise_display}\n"
+                    f"New Record: {current_value:g}{unit_text}\n"
+                    f"Previous Best: {previous_value:g}{unit_text}\n"
+                    f"Improvement: +{improvement:g}{unit_text}\n\n"
+                    f"🔥 Amazing achievement! Keep up the great work! 🔥"
+                )
+            elif record_info["is_yearly"]:
+                previous_value = record_info["previous_yearly"]
+                improvement = current_value - previous_value
+
+                message = (
+                    f"🎊 Congratulations! You've set a new YEARLY RECORD! 🎊\n\n"
+                    f"Exercise: {exercise_display}\n"
+                    f"New Record: {current_value:g}{unit_text}\n"
+                    f"Previous Year Best: {previous_value:g}{unit_text}\n"
+                    f"Improvement: +{improvement:g}{unit_text}\n\n"
+                    f"⭐ Excellent progress this year! ⭐"
+                )
+            else:
+                return  # Should not happen, but just in case
+
+            # Show the congratulations message
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle(title)
+            msg_box.setText(message)
+            msg_box.setIcon(QMessageBox.Icon.Information)
+
+            # Make the message box more prominent
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #f0f8ff;
+                    font-size: 12px;
+                }
+                QMessageBox QLabel {
+                    color: #2e8b57;
+                    font-weight: bold;
+                }
+            """)
+
+            msg_box.exec()
+
+        except Exception as e:
+            print(f"Error showing record congratulations: {e}")
+
     def _update_charts_avif(self) -> None:
         """Update AVIF for charts combobox selection."""
         exercise_name = self.comboBox_chart_exercise.currentText()
@@ -1521,8 +1667,18 @@ class MainWindow(
             value = str(self.spinBox_count.value())
             date_str = self.dateEdit.date().toString("yyyy-MM-dd")
 
+            # Get current value as float for record checking
+            current_value = float(value)
+
+            # Check for records before adding the new record
+            record_info = self._check_for_new_records(ex_id, type_id, current_value, type_name)
+
             # Use database manager method
             if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
+                # Show congratulations if new record was set
+                if record_info:
+                    self._show_record_congratulations(exercise, record_info)
+
                 # Apply date increment logic
                 self._increment_date_widget(self.dateEdit)
 
