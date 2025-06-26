@@ -155,7 +155,7 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
         folder_path = Path(config["path_github"]) / "harrix-pylib"
 
         # Beautify the code
-        commands = f"cd {folder_path}\nisort .\nruff format"
+        commands = f"cd {folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
@@ -214,7 +214,7 @@ def in_thread(self) -> None:
         folder_path = Path(config["path_github"]) / "harrix-pylib"
 
         # Beautify the code
-        commands = f"cd {folder_path}\nisort .\nruff format"
+        commands = f"cd {folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
@@ -831,7 +831,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
 
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
-        commands = f"cd {self.folder_path}\nisort .\nruff format"
+        commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
@@ -886,7 +886,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> None:
-        commands = f"cd {self.folder_path}\nisort .\nruff format"
+        commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
@@ -955,7 +955,7 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
 
     def in_thread(self) -> None:
         """Execute code in a separate thread. For performing long-running operations."""
-        commands = f"cd {self.folder_path}\nisort .\nruff format"
+        commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
@@ -1004,7 +1004,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> None:
-        commands = f"cd {self.folder_path}\nisort .\nruff format"
+        commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 ```
