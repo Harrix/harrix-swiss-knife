@@ -624,8 +624,11 @@ class ChartOperations:
             # Add value labels only for non-zero values
             for x, y in zip(x_values, y_values, strict=False):
                 if y != 0:  # Only label non-zero points
-                    # Format label based on value type and period
-                    label_text = str(y) if isinstance(y, int) else f"{y:.1f}"
+                    # Format label based on value type - remove unnecessary .0
+                    if isinstance(y, int) or y == int(y):
+                        label_text = str(int(y))
+                    else:
+                        label_text = f"{y:.1f}"
 
                     # Add year in parentheses for Years period
                     if period == "Years" and hasattr(x, "year"):
@@ -644,6 +647,35 @@ class ChartOperations:
                     )
         else:
             ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
+
+            # Always label the last point, even when there are many points
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+
+                # Only label if the last point is non-zero
+                if last_y != 0:
+                    # Format label based on value type - remove unnecessary .0
+                    if isinstance(last_y, int) or last_y == int(last_y):
+                        label_text = str(int(last_y))
+                    else:
+                        label_text = f"{last_y:.1f}"
+
+                    # Add year in parentheses for Years period
+                    if period == "Years" and hasattr(last_x, "year"):
+                        label_text += f" ({last_x.year})"
+
+                    ax.annotate(
+                        label_text,
+                        (last_x, last_y),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                        # Add white outline for better readability
+                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    )
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a 'no data' label in the layout.
