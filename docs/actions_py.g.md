@@ -818,6 +818,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
 
     icon = "⭐"
     title = "isort, ruff format, sort, make docs in PY files 🔥"
+    bold_title = True
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""

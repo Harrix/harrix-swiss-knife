@@ -73,8 +73,14 @@ class MainMenuBase:
             action.icon_name = action_instance.icon
         else:
             action = QAction(action_instance.title, triggered=action_instance)
-        setattr(self, f"action_{class_action.__name__}", action)
 
+        # Check if the action should have bold text
+        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
+            font = action.font()
+            font.setBold(True)
+            action.setFont(font)
+
+        setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
 
     def add_items(self, menu: QMenu, items: list) -> None:
@@ -325,8 +331,14 @@ def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None
             action.icon_name = action_instance.icon
         else:
             action = QAction(action_instance.title, triggered=action_instance)
-        setattr(self, f"action_{class_action.__name__}", action)
 
+        # Check if the action should have bold text
+        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
+            font = action.font()
+            font.setBold(True)
+            action.setFont(font)
+
+        setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
 ```
 
