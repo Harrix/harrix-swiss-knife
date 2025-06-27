@@ -29,7 +29,8 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
     """
 
     icon = "😎"
-    title = "Beautify MD notes in … 🔥"
+    title = "Beautify MD notes in …"
+    bold_title = True
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""

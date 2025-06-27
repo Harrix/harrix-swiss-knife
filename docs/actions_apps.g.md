@@ -37,7 +37,8 @@ exercise routines.
 class OnFitness(action_base.ActionBase):
 
     icon = "🏃🏻"
-    title = "Fitness tracker 🔥"
+    title = "Fitness tracker"
+    bold_title = True
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnFitness action."""

@@ -241,7 +241,8 @@ creating compressed versions in the `optimized_images` directory.
 class OnOptimize(action_base.ActionBase):
 
     icon = "🚀"
-    title = "Optimize images 🔥"
+    title = "Optimize images"
+    bold_title = True
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -337,7 +338,8 @@ image path back into the clipboard for easy pasting into documents.
 class OnOptimizeClipboard(action_base.ActionBase):
 
     icon = "🚀"
-    title = "Optimize image from clipboard 🔥"
+    title = "Optimize image from clipboard"
+    bold_title = True
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -804,7 +806,8 @@ Resize and optimize images and convert PNG files to AVIF format too.
 class OnResizeOptimizePngToAvif(action_base.ActionBase):
 
     icon = "↔️"
-    title = "Resize and optimize images (with PNG to AVIF) 🔥"
+    title = "Resize and optimize images (with PNG to AVIF)"
+    bold_title = True
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
