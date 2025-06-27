@@ -176,8 +176,12 @@ class MainWindow(
         Returns:
 
         `dict | None`: Record information if new record, None otherwise
-
         """
+        if not self._validate_database_connection():
+            return None
+
+        assert self.db_manager is not None  # Type checker assertion
+
         try:
             # Build conditions for the query
             conditions = ["p._id_exercises = :ex_id"]
@@ -189,7 +193,7 @@ class MainWindow(
             else:
                 conditions.append("p._id_types = -1")
 
-            # Get all-time max value
+            # Get all-time max value - cast to REAL to ensure numeric comparison
             all_time_query = f"""
                 SELECT MAX(CAST(p.value AS REAL)) as max_value
                 FROM process p
@@ -198,12 +202,18 @@ class MainWindow(
             all_time_rows = self.db_manager.get_rows(all_time_query, params)
             all_time_max = all_time_rows[0][0] if all_time_rows and all_time_rows[0][0] is not None else 0.0
 
+            # Ensure all_time_max is a float
+            try:
+                all_time_max = float(all_time_max)
+            except (ValueError, TypeError):
+                all_time_max = 0.0
+
             # Get yearly max value (last 365 days)
             one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             yearly_conditions = [*conditions, "p.date >= :year_ago"]
-            yearly_params = params.copy()
+            yearly_params: dict[str, Any] = params.copy()
             yearly_params["year_ago"] = one_year_ago_str
 
             yearly_query = f"""
@@ -213,6 +223,12 @@ class MainWindow(
 
             yearly_rows = self.db_manager.get_rows(yearly_query, yearly_params)
             yearly_max = yearly_rows[0][0] if yearly_rows and yearly_rows[0][0] is not None else 0.0
+
+            # Ensure yearly_max is a float
+            try:
+                yearly_max = float(yearly_max)
+            except (ValueError, TypeError):
+                yearly_max = 0.0
 
             # Check for new records
             is_all_time_record = current_value > all_time_max
