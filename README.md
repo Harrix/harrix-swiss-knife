@@ -16,8 +16,6 @@ _Figure 1: Screenshot_
 
 ## List of commands
 
-- **Apps**
-  - 🏃🏻 Fitness tracker
 - **Dev**
   - ☰ Get the list of items from this menu
   - 📥 Install global NPM packages
@@ -48,6 +46,7 @@ _Figure 1: Screenshot_
   - 👉 Increase heading level
   - 🌄 Add image captions in one MD
   - 🌄 Add image captions in …
+  - 😎 Beautify MD notes in …
   - 🚧 Check in …
   - 🚧 Check one MD
   - 🔗 Combine MD files in …
@@ -77,7 +76,7 @@ _Figure 1: Screenshot_
   - ⭐ isort, ruff format, sort, make docs in PY files
   - 👩🏻‍🍳 01 Prepare harrix-pylib
   - 👷‍♂️ 02 Publish and update harrix-pylib
-- 😎 Beautify MD notes in …
+- 🏃🏻 Fitness tracker
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit

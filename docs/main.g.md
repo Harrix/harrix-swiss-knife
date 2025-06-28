@@ -40,15 +40,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         """
         super().__init__()
 
-        # Menu Apps
-        self.menu_apps = self.new_menu("Apps", "💻")
-        self.add_items(
-            self.menu_apps,
-            [
-                hsk.apps.OnFitness,
-            ],
-        )
-
         # Menu Dev
         self.menu_dev = self.new_menu("Dev", "🛠️")
         self.add_items(
@@ -104,6 +95,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
                 "-",
+                hsk.md.OnBeautifyMdNotesFolder,
                 hsk.md.OnCheckMd,
                 hsk.md.OnCheckMdFolder,
                 hsk.md.OnCombineMarkdownFiles,
@@ -157,7 +149,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_menus_and_items(
             self.menu,
             menus=[
-                self.menu_apps,
                 self.menu_dev,
                 self.menu_images,
                 self.menu_file,
@@ -166,7 +157,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 self.menu_python,
             ],
             items=[
-                hsk.md.OnBeautifyMdNotesFolder,
+                hsk.apps.OnFitness,
                 "-",
                 hsk.images.OnOptimizeClipboard,
                 hsk.images.OnOptimizeClipboardDialog,
@@ -195,15 +186,6 @@ Create and organizes all menu categories and their respective items.
 def __init__(self) -> None:
         super().__init__()
 
-        # Menu Apps
-        self.menu_apps = self.new_menu("Apps", "💻")
-        self.add_items(
-            self.menu_apps,
-            [
-                hsk.apps.OnFitness,
-            ],
-        )
-
         # Menu Dev
         self.menu_dev = self.new_menu("Dev", "🛠️")
         self.add_items(
@@ -259,6 +241,7 @@ def __init__(self) -> None:
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
                 "-",
+                hsk.md.OnBeautifyMdNotesFolder,
                 hsk.md.OnCheckMd,
                 hsk.md.OnCheckMdFolder,
                 hsk.md.OnCombineMarkdownFiles,
@@ -312,7 +295,6 @@ def __init__(self) -> None:
         self.add_menus_and_items(
             self.menu,
             menus=[
-                self.menu_apps,
                 self.menu_dev,
                 self.menu_images,
                 self.menu_file,
@@ -321,7 +303,7 @@ def __init__(self) -> None:
                 self.menu_python,
             ],
             items=[
-                hsk.md.OnBeautifyMdNotesFolder,
+                hsk.apps.OnFitness,
                 "-",
                 hsk.images.OnOptimizeClipboard,
                 hsk.images.OnOptimizeClipboardDialog,

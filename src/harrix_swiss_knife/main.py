@@ -27,15 +27,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         """
         super().__init__()
 
-        # Menu Apps
-        self.menu_apps = self.new_menu("Apps", "💻")
-        self.add_items(
-            self.menu_apps,
-            [
-                hsk.apps.OnFitness,
-            ],
-        )
-
         # Menu Dev
         self.menu_dev = self.new_menu("Dev", "🛠️")
         self.add_items(
@@ -91,6 +82,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
                 "-",
+                hsk.md.OnBeautifyMdNotesFolder,
                 hsk.md.OnCheckMd,
                 hsk.md.OnCheckMdFolder,
                 hsk.md.OnCombineMarkdownFiles,
@@ -144,7 +136,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_menus_and_items(
             self.menu,
             menus=[
-                self.menu_apps,
                 self.menu_dev,
                 self.menu_images,
                 self.menu_file,
@@ -153,7 +144,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 self.menu_python,
             ],
             items=[
-                hsk.md.OnBeautifyMdNotesFolder,
+                hsk.apps.OnFitness,
                 "-",
                 hsk.images.OnOptimizeClipboard,
                 hsk.images.OnOptimizeClipboardDialog,

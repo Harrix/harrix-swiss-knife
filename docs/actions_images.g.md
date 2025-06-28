@@ -339,7 +339,6 @@ class OnOptimizeClipboard(action_base.ActionBase):
 
     icon = "🚀"
     title = "Optimize image from clipboard"
-    bold_title = True
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
