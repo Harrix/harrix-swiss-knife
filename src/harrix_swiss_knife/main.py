@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     main_menu = MainMenu()
 
-    tray_icon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu, parent=app)
+    tray_icon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu)
     tray_icon.setToolTip("harrix-swiss-knife")
     tray_icon.show()
     sys.exit(app.exec())
