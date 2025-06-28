@@ -76,6 +76,7 @@ class DatabaseManager:
         if not self._ensure_connection():
             error_msg = "Database connection is not available"
             raise ConnectionError(error_msg)
+        assert self.db is not None
         return QSqlQuery(self.db)
 
     def _ensure_connection(self) -> bool:
@@ -86,23 +87,23 @@ class DatabaseManager:
         - `bool`: True if connection is valid, False otherwise.
 
         """
-        if not hasattr(self, "db") or not self.db.isValid():
+        if not hasattr(self, "db") or self.db is None or not self.db.isValid():
             print("Database object is invalid, attempting to reconnect...")
             try:
                 self._reconnect()
-                return self.db.isOpen()
+                return self.db is not None and self.db.isOpen()
             except Exception as e:
                 print(f"Failed to reconnect to database: {e}")
                 return False
 
-        if not self.db.isOpen():
+        if self.db is None or not self.db.isOpen():
             print("Database connection is closed, attempting to reopen...")
-            if not self.db.open():
-                error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
+            if self.db is None or not self.db.open():
+                error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
                 print(f"Failed to reopen database: {error_msg}")
                 try:
                     self._reconnect()
-                    return self.db.isOpen()
+                    return self.db is not None and self.db.isOpen()
                 except Exception as e:
                     print(f"Failed to reconnect to database: {e}")
                     return False
@@ -129,7 +130,7 @@ class DatabaseManager:
 
     def _reconnect(self) -> None:
         """Attempt to reconnect to the database."""
-        if hasattr(self, "db") and self.db.isValid():
+        if hasattr(self, "db") and self.db is not None and self.db.isValid():
             self.db.close()
 
         # Remove the old connection
@@ -254,8 +255,9 @@ class DatabaseManager:
 
     def close(self) -> None:
         """Close the database connection."""
-        if getattr(self, "db", None) and self.db.isValid():
-            self.db.close()  # <- закрыл файл
+        db = getattr(self, "db", None)
+        if db is not None and db.isValid():
+            db.close()
             connection_name = self.connection_name
             self.db = None
             QTimer.singleShot(0, lambda: QSqlDatabase.removeDatabase(connection_name))
@@ -1083,7 +1085,7 @@ class DatabaseManager:
         - `bool`: True if database is open, False otherwise.
 
         """
-        return hasattr(self, "db") and self.db.isValid() and self.db.isOpen()
+        return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
 
     def is_exercise_type_required(self, exercise_id: int) -> bool:
         """Check if exercise type is required for a given exercise.
