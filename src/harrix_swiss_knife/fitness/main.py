@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import harrix_pylib as h
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
@@ -85,7 +85,7 @@ class MainWindow(
         self.setupUi(self)
         self._setup_ui()
 
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Center window on screen
         screen_center = QApplication.primaryScreen().geometry().center()
@@ -325,7 +325,7 @@ class MainWindow(
         """
         # Connect auto-save signals for each table
         for table_name in self._SAFE_TABLES:
-            if self.models[table_name]:
+            if self.models[table_name] is not None:
                 # Use partial to properly bind table_name
                 handler = partial(self._on_table_data_changed, table_name)
                 self.models[table_name].sourceModel().dataChanged.connect(handler)
@@ -1992,7 +1992,7 @@ class MainWindow(
         """
         self._update_types_avif()
 
-    def on_exercise_selection_changed(self) -> None:
+    def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when exercise selection changes in the table.
 
         Synchronizes the form fields (name, unit, is_type_required checkbox)
@@ -2693,7 +2693,7 @@ class MainWindow(
         elif index == index_tab_statistics:  # Statistics tab
             self._load_default_statistics()
 
-    def on_weight_selection_changed(self) -> None:
+    def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when weight selection changes in the table.
 
         Synchronizes the form fields (weight value and date) with the currently

@@ -149,7 +149,7 @@ class MainWindow(
         self.setupUi(self)
         self._setup_ui()
 
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Center window on screen
         screen_center = QApplication.primaryScreen().geometry().center()
@@ -389,7 +389,7 @@ class MainWindow(
         """
         # Connect auto-save signals for each table
         for table_name in self._SAFE_TABLES:
-            if self.models[table_name]:
+            if self.models[table_name] is not None:
                 # Use partial to properly bind table_name
                 handler = partial(self._on_table_data_changed, table_name)
                 self.models[table_name].sourceModel().dataChanged.connect(handler)
@@ -2056,7 +2056,7 @@ class MainWindow(
         """
         self._update_types_avif()
 
-    def on_exercise_selection_changed(self) -> None:
+    def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when exercise selection changes in the table.
 
         Synchronizes the form fields (name, unit, is_type_required checkbox)
@@ -2757,7 +2757,7 @@ class MainWindow(
         elif index == index_tab_statistics:  # Statistics tab
             self._load_default_statistics()
 
-    def on_weight_selection_changed(self) -> None:
+    def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when weight selection changes in the table.
 
         Synchronizes the form fields (weight value and date) with the currently
@@ -3458,7 +3458,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self.setupUi(self)
         self._setup_ui()
 
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Center window on screen
         screen_center = QApplication.primaryScreen().geometry().center()
@@ -3737,7 +3737,7 @@ This method should be called after models are created and set to table views.
 def _connect_table_auto_save_signals(self) -> None:
         # Connect auto-save signals for each table
         for table_name in self._SAFE_TABLES:
-            if self.models[table_name]:
+            if self.models[table_name] is not None:
                 # Use partial to properly bind table_name
                 handler = partial(self._on_table_data_changed, table_name)
                 self.models[table_name].sourceModel().dataChanged.connect(handler)
@@ -6070,7 +6070,7 @@ def on_exercise_name_changed(self, _index: int = -1) -> None:
 ### Method `on_exercise_selection_changed`
 
 ```python
-def on_exercise_selection_changed(self) -> None
+def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
 Update form fields when exercise selection changes in the table.
@@ -6082,7 +6082,7 @@ with the currently selected exercise in the table.
 <summary>Code:</summary>
 
 ```python
-def on_exercise_selection_changed(self) -> None:
+def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         index = self.tableView_exercises.currentIndex()
         if not index.isValid():
             # Clear the fields if nothing is selected
@@ -6874,7 +6874,7 @@ def on_tab_changed(self, index: int) -> None:
 ### Method `on_weight_selection_changed`
 
 ```python
-def on_weight_selection_changed(self) -> None
+def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
 Update form fields when weight selection changes in the table.
@@ -6886,7 +6886,7 @@ selected weight record in the table.
 <summary>Code:</summary>
 
 ```python
-def on_weight_selection_changed(self) -> None:
+def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         index = self.tableView_weight.currentIndex()
         if not index.isValid():
             # Clear the fields if nothing is selected - use last weight
