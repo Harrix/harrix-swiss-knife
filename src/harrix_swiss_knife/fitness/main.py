@@ -180,6 +180,9 @@ class MainWindow(
         """
         if not self._validate_database_connection():
             return None
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return None
 
         try:
             # Build conditions for the query
@@ -622,6 +625,9 @@ class MainWindow(
         """
         if not self._validate_database_connection():
             return None
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return None
 
         try:
             rows = self.db_manager.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
@@ -641,6 +647,9 @@ class MainWindow(
         initial_weight = 89.0
         if not self._validate_database_connection():
             print("Database manager not available or connection not open")
+            return initial_weight
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
             return initial_weight
 
         try:
@@ -855,6 +864,10 @@ class MainWindow(
         """Load default exercise chart on first set to charts tab."""
         if not hasattr(self, "_charts_initialized"):
             self._charts_initialized = True
+
+            if self.db_manager is None:
+                print("❌ Database manager is not initialized")
+                return
 
             # Set period to Months
             self.comboBox_chart_period.setCurrentText("Months")
@@ -1211,6 +1224,10 @@ class MainWindow(
         - `record_info` (`dict`): Record information from `_check_for_new_records`.
 
         """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         try:
             # Get exercise unit for display
             unit = self.db_manager.get_exercise_unit(exercise)
@@ -1298,6 +1315,10 @@ class MainWindow(
         """
         if not self._validate_database_connection():
             print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
             return
 
         try:
@@ -1541,6 +1562,10 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Select a record to delete")
             return
 
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         # Use appropriate database manager method
         success = False
         try:
@@ -1636,6 +1661,10 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Enter exercise name")
             return
 
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         # Get checkbox value
         is_type_required = self.check_box_is_type_required.isChecked()
 
@@ -1653,6 +1682,10 @@ class MainWindow(
         exercise = self._get_current_selected_exercise()
         if not exercise:
             QMessageBox.warning(self, "Error", "Please select an exercise")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
             return
 
         try:
@@ -1715,6 +1748,10 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Select an exercise")
             return
 
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         try:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is None:
@@ -1743,6 +1780,10 @@ class MainWindow(
         # Validate the date
         if not self._is_valid_date(weight_date):
             QMessageBox.warning(self, "Error", "Invalid date format")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
             return
 
         try:
@@ -1780,6 +1821,10 @@ class MainWindow(
         """Check for missing days and duplicate days in steps records."""
         # Set current mode to check_steps
         self.current_statistics_mode = "check_steps"
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
 
         try:
             # Clear any existing spans from previous statistics view
@@ -2041,6 +2086,10 @@ class MainWindow(
         if current_avif_exercise != exercise:
             self._load_exercise_avif(exercise, "main")
 
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         try:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is None:
@@ -2217,6 +2266,10 @@ class MainWindow(
         """Populate the statistics table view with records data using database manager."""
         # Set current mode to records
         self.current_statistics_mode = "records"
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
 
         try:
             # Clear any existing spans before creating new view
@@ -2518,6 +2571,10 @@ class MainWindow(
         # Set current mode to last_exercises
         self.current_statistics_mode = "last_exercises"
 
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         try:
             # Clear any existing spans from previous statistics view
             self.tableView_statistics.clearSpans()
@@ -2783,6 +2840,10 @@ class MainWindow(
         date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
         use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         # Get sets data using database manager
         rows = self.db_manager.get_sets_chart_data(date_from, date_to)
 
@@ -2854,6 +2915,10 @@ class MainWindow(
         """Populate all QTableViews using database manager methods."""
         if not self._validate_database_connection():
             print("Database connection not available for showing tables")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
             return
 
         try:
@@ -3057,6 +3122,10 @@ class MainWindow(
     @requires_database(is_show_warning=False)
     def update_chart_comboboxes(self) -> None:
         """Update exercise and type comboboxes for charts."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         try:
             # Update exercise combobox - sort by frequency like in comboBox_type
             exercises = self.db_manager.get_exercises_by_frequency(500)
@@ -3082,6 +3151,10 @@ class MainWindow(
         - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
         """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         try:
             self.comboBox_chart_type.clear()
             self.comboBox_chart_type.addItem("All types")
@@ -3108,6 +3181,10 @@ class MainWindow(
 
         if not exercise:
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
             return
 
         # Get exercise unit for Y-axis label
@@ -3217,6 +3294,10 @@ class MainWindow(
         the latest data from the database, attempting to preserve the current
         selections.
         """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         try:
             current_exercise = self.comboBox_filter_exercise.currentText()
 
@@ -3249,6 +3330,10 @@ class MainWindow(
         - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
         """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         try:
             current_type = self.comboBox_filter_type.currentText()
             self.comboBox_filter_type.clear()
@@ -3271,6 +3356,10 @@ class MainWindow(
 
     def update_sets_count_today(self) -> None:
         """Update the label showing count of sets done today."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         if not self._validate_database_connection():
             self.label_count_sets_today.setText("0")
             return
@@ -3285,6 +3374,10 @@ class MainWindow(
     @requires_database()
     def update_weight_chart(self) -> None:
         """Update the weight chart using database manager."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
         date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
 
