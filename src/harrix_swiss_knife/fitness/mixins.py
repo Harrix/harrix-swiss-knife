@@ -14,7 +14,8 @@ from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.axes import Axes
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import QDate, Qt
@@ -33,6 +34,13 @@ T = TypeVar("T")
 
 class AutoSaveOperations:
     """Mixin class for auto-save operations."""
+
+    # Expected attributes from main class
+    db_manager: Any
+    _validate_database_connection: Callable[[], bool]
+    _update_comboboxes: Callable[[], None]
+    update_filter_comboboxes: Callable[[], None]
+    _is_valid_date: Callable[[str], bool]
 
     def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Auto-save table row data.
@@ -60,7 +68,7 @@ class AutoSaveOperations:
             try:
                 handler(model, row, row_id)
             except Exception as e:
-                QMessageBox.warning(self, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
+                QMessageBox.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
 
     def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save exercise data.
@@ -78,7 +86,7 @@ class AutoSaveOperations:
 
         # Validate exercise name
         if not name.strip():
-            QMessageBox.warning(self, "Validation Error", "Exercise name cannot be empty")
+            QMessageBox.warning(None, "Validation Error", "Exercise name cannot be empty")
             return
 
         # Convert is_type_required to boolean
@@ -88,7 +96,7 @@ class AutoSaveOperations:
         if not self.db_manager.update_exercise(
             int(row_id), name.strip(), unit.strip(), is_type_required=is_type_required
         ):
-            QMessageBox.warning(self, "Database Error", "Failed to save exercise record")
+            QMessageBox.warning(None, "Database Error", "Failed to save exercise record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -114,13 +122,13 @@ class AutoSaveOperations:
 
         # Validate date format
         if not self._is_valid_date(date):
-            QMessageBox.warning(self, "Validation Error", "Use YYYY-MM-DD date format")
+            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
         # Get exercise ID
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
-            QMessageBox.warning(self, "Validation Error", f"Exercise '{exercise}' not found")
+            QMessageBox.warning(None, "Validation Error", f"Exercise '{exercise}' not found")
             return
 
         # Get type ID (can be -1 for no type)
@@ -134,12 +142,12 @@ class AutoSaveOperations:
         try:
             float(value)
         except (ValueError, TypeError):
-            QMessageBox.warning(self, "Validation Error", f"Invalid numeric value: {value}")
+            QMessageBox.warning(None, "Validation Error", f"Invalid numeric value: {value}")
             return
 
         # Update database
         if not self.db_manager.update_process_record(int(row_id), ex_id, tp_id or -1, value, date):
-            QMessageBox.warning(self, "Database Error", "Failed to save process record")
+            QMessageBox.warning(None, "Database Error", "Failed to save process record")
 
     def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save exercise type data.
@@ -156,22 +164,22 @@ class AutoSaveOperations:
 
         # Validate inputs
         if not exercise_name.strip():
-            QMessageBox.warning(self, "Validation Error", "Exercise name cannot be empty")
+            QMessageBox.warning(None, "Validation Error", "Exercise name cannot be empty")
             return
 
         if not type_name.strip():
-            QMessageBox.warning(self, "Validation Error", "Type name cannot be empty")
+            QMessageBox.warning(None, "Validation Error", "Type name cannot be empty")
             return
 
         # Get exercise ID
         ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
         if ex_id is None:
-            QMessageBox.warning(self, "Validation Error", f"Exercise '{exercise_name}' not found")
+            QMessageBox.warning(None, "Validation Error", f"Exercise '{exercise_name}' not found")
             return
 
         # Update database
         if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip()):
-            QMessageBox.warning(self, "Database Error", "Failed to save type record")
+            QMessageBox.warning(None, "Database Error", "Failed to save type record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -194,26 +202,29 @@ class AutoSaveOperations:
         try:
             weight_value = float(weight_str)
             if weight_value <= 0:
-                QMessageBox.warning(self, "Validation Error", "Weight must be a positive number")
+                QMessageBox.warning(None, "Validation Error", "Weight must be a positive number")
                 return
         except (ValueError, TypeError):
-            QMessageBox.warning(self, "Validation Error", f"Invalid weight value: {weight_str}")
+            QMessageBox.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
             return
 
         # Validate date format
         if not self._is_valid_date(date):
-            QMessageBox.warning(self, "Validation Error", "Use YYYY-MM-DD date format")
+            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
         # Update database
         if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
-            QMessageBox.warning(self, "Database Error", "Failed to save weight record")
+            QMessageBox.warning(None, "Database Error", "Failed to save weight record")
 
 
 class ChartOperations:
     """Mixin class for chart operations."""
 
-    def _add_stats_box(self, ax: plt.Axes, stats_text: str, color: str = "lightgray") -> None:
+    # Expected attributes from main class
+    max_count_points_in_charts: int
+
+    def _add_stats_box(self, ax: Axes, stats_text: str, color: str = "lightgray") -> None:
         """Add statistics box to chart.
 
         Args:
@@ -399,7 +410,7 @@ class ChartOperations:
 
         return result
 
-    def _format_chart_x_axis(self, ax: plt.Axes, dates: list, period: str) -> None:
+    def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
         """Format x-axis for charts based on period and data range.
 
         Args:
@@ -568,7 +579,7 @@ class ChartOperations:
 
     def _plot_data(
         self,
-        ax: plt.Axes,
+        ax: Axes,
         x_values: list,
         y_values: list,
         color: str,
