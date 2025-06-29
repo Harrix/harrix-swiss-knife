@@ -815,7 +815,7 @@ class TableOperations:
 
         """
         if table_name not in self.table_config:
-            error_msg = f"Unknown table: {table_name}"
+            error_msg = f"❌ Unknown table: {table_name}"
             raise ValueError(error_msg)
 
         rows = data_getter()

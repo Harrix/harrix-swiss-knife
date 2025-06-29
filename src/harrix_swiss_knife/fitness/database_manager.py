@@ -55,7 +55,7 @@ class DatabaseManager:
 
         if not self.db.open():
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown database error"
-            msg = f"Failed to open the database: {error_msg}"
+            msg = f"❌ Failed to open the database: {error_msg}"
             raise ConnectionError(msg)
 
     def __del__(self) -> None:
@@ -74,9 +74,8 @@ class DatabaseManager:
 
         """
         if not self._ensure_connection():
-            error_msg = "Database connection is not available"
+            error_msg = "❌ Database connection is not available"
             raise ConnectionError(error_msg)
-        assert self.db is not None
         return QSqlQuery(self.db)
 
     def _ensure_connection(self) -> bool:
@@ -100,12 +99,12 @@ class DatabaseManager:
             print("Database connection is closed, attempting to reopen...")
             if self.db is None or not self.db.open():
                 error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
-                print(f"Failed to reopen database: {error_msg}")
+                print(f"❌ Failed to reopen database: {error_msg}")
                 try:
                     self._reconnect()
                     return self.db is not None and self.db.isOpen()
                 except Exception as e:
-                    print(f"Failed to reconnect to database: {e}")
+                    print(f"❌ Failed to reconnect to database: {e}")
                     return False
 
         return True
@@ -148,7 +147,7 @@ class DatabaseManager:
 
         if not self.db.open():
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
-            error_msg = f"Failed to reconnect to database: {error_msg}"
+            error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
 
     def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
@@ -303,7 +302,7 @@ class DatabaseManager:
 
             if not temp_db.open():
                 error_msg = temp_db.lastError().text() if temp_db.lastError().isValid() else "Unknown error"
-                print(f"Failed to create database: {error_msg}")
+                print(f"❌ Failed to create database: {error_msg}")
                 QSqlDatabase.removeDatabase(temp_connection_name)
                 return False
 
@@ -317,7 +316,7 @@ class DatabaseManager:
                 for statement in statements:
                     if not query.exec(statement):
                         error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
-                        print(f"Failed to execute SQL statement: {error_msg}")
+                        print(f"❌ Failed to execute SQL statement: {error_msg}")
                         print(f"Statement was: {statement}")
                         return False
 
@@ -420,7 +419,7 @@ class DatabaseManager:
             query = self._create_query()
             if not query.prepare(query_text):
                 error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"Failed to prepare query: {error_msg}")
+                print(f"❌ Failed to prepare query: {error_msg}")
                 print(f"Query was: {query_text}")
                 return None
 
@@ -430,13 +429,13 @@ class DatabaseManager:
 
             if not query.exec():
                 error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"Failed to execute query: {error_msg}")
+                print(f"❌ Failed to execute query: {error_msg}")
                 print(f"Query was: {query_text}")
                 print(f"Params were: {params}")
                 return None
 
         except Exception as e:
-            print(f"Exception during query execution: {e}")
+            print(f"❌ Exception during query execution: {e}")
             print(f"Query was: {query_text}")
             print(f"Params were: {params}")
             return None
@@ -482,13 +481,13 @@ class DatabaseManager:
             success = query.exec()
             if not success:
                 error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"Failed to execute query: {error_msg}")
+                print(f"❌ Failed to execute query: {error_msg}")
                 print(f"Query was: {query_text}")
                 print(f"Params were: {params}")
                 return False
 
         except Exception as e:
-            print(f"Exception during query execution: {e}")
+            print(f"❌ Exception during query execution: {e}")
             print(f"Query was: {query_text}")
             print(f"Params were: {params}")
             return False

@@ -1791,7 +1791,7 @@ class TableOperations:
 
         """
         if table_name not in self.table_config:
-            error_msg = f"Unknown table: {table_name}"
+            error_msg = f"❌ Unknown table: {table_name}"
             raise ValueError(error_msg)
 
         rows = data_getter()
@@ -1898,7 +1898,7 @@ def _refresh_table(
         self, table_name: str, data_getter: Callable, data_transformer: Callable[[list], list] | None = None
     ) -> None:
         if table_name not in self.table_config:
-            error_msg = f"Unknown table: {table_name}"
+            error_msg = f"❌ Unknown table: {table_name}"
             raise ValueError(error_msg)
 
         rows = data_getter()

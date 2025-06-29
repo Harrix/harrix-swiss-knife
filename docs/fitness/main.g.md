@@ -244,8 +244,6 @@ class MainWindow(
         if not self._validate_database_connection():
             return None
 
-        assert self.db_manager is not None  # Type checker assertion
-
         try:
             # Build conditions for the query
             conditions = ["p._id_exercises = :ex_id"]
@@ -1201,7 +1199,7 @@ class MainWindow(
 
         """
         if table_name not in self.table_config:
-            error_msg = f"Unknown table: {table_name}"
+            error_msg = f"❌ Unknown table: {table_name}"
             raise ValueError(error_msg)
 
         rows = data_getter()
@@ -3566,8 +3564,6 @@ def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float,
         if not self._validate_database_connection():
             return None
 
-        assert self.db_manager is not None  # Type checker assertion
-
         try:
             # Build conditions for the query
             conditions = ["p._id_exercises = :ex_id"]
@@ -4915,7 +4911,7 @@ def _refresh_table(
         self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None
     ) -> None:
         if table_name not in self.table_config:
-            error_msg = f"Unknown table: {table_name}"
+            error_msg = f"❌ Unknown table: {table_name}"
             raise ValueError(error_msg)
 
         rows = data_getter()
