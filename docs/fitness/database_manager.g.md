@@ -98,9 +98,6 @@ class DatabaseManager:
           database.
 
         """
-        # Create unique connection name to avoid conflicts
-        import uuid
-
         # Include thread ID to ensure unique connections across threads
         thread_id = threading.current_thread().ident
         self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
@@ -195,8 +192,6 @@ class DatabaseManager:
             QSqlDatabase.removeDatabase(self.connection_name)
 
         # Create a new connection
-        import uuid
-
         thread_id = threading.current_thread().ident
         self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
 
@@ -351,8 +346,6 @@ class DatabaseManager:
             sql_content = sql_path.read_text(encoding="utf-8")
 
             # Create temporary database connection
-            import uuid
-
             temp_connection_name = f"temp_db_{uuid.uuid4().hex[:8]}"
 
             temp_db = QSqlDatabase.addDatabase("QSQLITE", temp_connection_name)
@@ -1277,9 +1270,6 @@ Raises:
 
 ```python
 def __init__(self, db_filename: str) -> None:
-        # Create unique connection name to avoid conflicts
-        import uuid
-
         # Include thread ID to ensure unique connections across threads
         thread_id = threading.current_thread().ident
         self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
@@ -1438,8 +1428,6 @@ def _reconnect(self) -> None:
             QSqlDatabase.removeDatabase(self.connection_name)
 
         # Create a new connection
-        import uuid
-
         thread_id = threading.current_thread().ident
         self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
 
@@ -1679,8 +1667,6 @@ def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
             sql_content = sql_path.read_text(encoding="utf-8")
 
             # Create temporary database connection
-            import uuid
-
             temp_connection_name = f"temp_db_{uuid.uuid4().hex[:8]}"
 
             temp_db = QSqlDatabase.addDatabase("QSQLITE", temp_connection_name)

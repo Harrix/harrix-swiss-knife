@@ -240,6 +240,7 @@ class MainWindow(
         Returns:
 
         `dict | None`: Record information if new record, None otherwise
+
         """
         if not self._validate_database_connection():
             return None
@@ -490,8 +491,6 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
 
         """
-        from PySide6.QtGui import QBrush
-
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
@@ -549,8 +548,6 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
 
         """
-        from PySide6.QtGui import QBrush
-
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
@@ -1004,7 +1001,7 @@ class MainWindow(
 
             # Fallback to Pillow with AVIF plugin for animation
             try:
-                import pillow_avif  # noqa: F401
+                import pillow_avif  # noqa: F401, PLC0415
 
                 # Open with Pillow
                 pil_image = Image.open(avif_path)
@@ -1849,8 +1846,6 @@ class MainWindow(
         self.current_statistics_mode = "check_steps"
 
         try:
-            from PySide6.QtGui import QBrush, QColor
-
             # Clear any existing spans from previous statistics view
             self.tableView_statistics.clearSpans()
 
@@ -2288,8 +2283,6 @@ class MainWindow(
         self.current_statistics_mode = "records"
 
         try:
-            from PySide6.QtGui import QBrush, QColor
-
             # Clear any existing spans before creating new view
             self.tableView_statistics.clearSpans()
 
@@ -2590,8 +2583,6 @@ class MainWindow(
         self.current_statistics_mode = "last_exercises"
 
         try:
-            from PySide6.QtGui import QBrush, QColor
-
             # Clear any existing spans from previous statistics view
             self.tableView_statistics.clearSpans()
 
@@ -3888,8 +3879,6 @@ def _create_colored_process_table_model(
         headers: list[str],
         _id_column: int = 4,  # ID is now at index 4 in transformed data
     ) -> QSortFilterProxyModel:
-        from PySide6.QtGui import QBrush
-
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
@@ -3959,8 +3948,6 @@ def _create_colored_table_model(
         headers: list[str],
         id_column: int = -2,
     ) -> QSortFilterProxyModel:
-        from PySide6.QtGui import QBrush
-
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
@@ -4666,7 +4653,7 @@ def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> No
 
             # Fallback to Pillow with AVIF plugin for animation
             try:
-                import pillow_avif  # noqa: F401
+                import pillow_avif  # noqa: F401, PLC0415
 
                 # Open with Pillow
                 pil_image = Image.open(avif_path)
@@ -5842,8 +5829,6 @@ def on_check_steps(self) -> None:
         self.current_statistics_mode = "check_steps"
 
         try:
-            from PySide6.QtGui import QBrush, QColor
-
             # Clear any existing spans from previous statistics view
             self.tableView_statistics.clearSpans()
 
@@ -6359,8 +6344,6 @@ def on_refresh_statistics(self) -> None:
         self.current_statistics_mode = "records"
 
         try:
-            from PySide6.QtGui import QBrush, QColor
-
             # Clear any existing spans before creating new view
             self.tableView_statistics.clearSpans()
 
@@ -6674,8 +6657,6 @@ def on_show_last_exercises(self) -> None:
         self.current_statistics_mode = "last_exercises"
 
         try:
-            from PySide6.QtGui import QBrush, QColor
-
             # Clear any existing spans from previous statistics view
             self.tableView_statistics.clearSpans()
 

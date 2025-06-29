@@ -681,8 +681,6 @@ class ChartOperations:
         if not dates:
             return
 
-        from matplotlib.ticker import MaxNLocator
-
         days_in_month = 31
         days_in_year = 365
 
@@ -895,10 +893,7 @@ class ChartOperations:
             for x, y in zip(x_values, y_values, strict=False):
                 if y != 0:  # Only label non-zero points
                     # Format label based on value type - remove unnecessary .0
-                    if isinstance(y, int) or y == int(y):
-                        label_text = str(int(y))
-                    else:
-                        label_text = f"{y:.1f}"
+                    label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
                     # Add year in parentheses for Years period
                     if period == "Years" and hasattr(x, "year"):
@@ -1219,8 +1214,6 @@ def _format_chart_x_axis(self, ax: plt.Axes, dates: list, period: str) -> None:
         if not dates:
             return
 
-        from matplotlib.ticker import MaxNLocator
-
         days_in_month = 31
         days_in_year = 365
 
@@ -1481,10 +1474,7 @@ def _plot_data(
             for x, y in zip(x_values, y_values, strict=False):
                 if y != 0:  # Only label non-zero points
                     # Format label based on value type - remove unnecessary .0
-                    if isinstance(y, int) or y == int(y):
-                        label_text = str(int(y))
-                    else:
-                        label_text = f"{y:.1f}"
+                    label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
                     # Add year in parentheses for Years period
                     if period == "Years" and hasattr(x, "year"):
@@ -2017,16 +2007,12 @@ def requires_database(*, is_show_warning: bool = True) -> Callable[[Callable[P, 
                 # This is likely a Qt signal callback with index
                 if not self._validate_database_connection():
                     if is_show_warning:
-                        from PySide6.QtWidgets import QMessageBox
-
                         QMessageBox.warning(self, "Database Error", "Database connection not available")
                     return None
                 return func(self, *args, **kwargs)
             # Regular method call
             if not self._validate_database_connection():
                 if is_show_warning:
-                    from PySide6.QtWidgets import QMessageBox
-
                     QMessageBox.warning(self, "Database Error", "Database connection not available")
                 return None
             return func(self, *args, **kwargs)

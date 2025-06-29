@@ -22,7 +22,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
-from PySide6.QtGui import QCloseEvent, QColor, QKeyEvent, QMovie, QPixmap, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QMovie, QPixmap, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife.fitness import database_manager, window
@@ -176,6 +176,7 @@ class MainWindow(
         Returns:
 
         `dict | None`: Record information if new record, None otherwise
+
         """
         if not self._validate_database_connection():
             return None
@@ -426,8 +427,6 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
 
         """
-        from PySide6.QtGui import QBrush
-
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
@@ -485,8 +484,6 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
 
         """
-        from PySide6.QtGui import QBrush
-
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
@@ -940,7 +937,7 @@ class MainWindow(
 
             # Fallback to Pillow with AVIF plugin for animation
             try:
-                import pillow_avif  # noqa: F401
+                import pillow_avif  # noqa: F401, PLC0415
 
                 # Open with Pillow
                 pil_image = Image.open(avif_path)
@@ -1785,8 +1782,6 @@ class MainWindow(
         self.current_statistics_mode = "check_steps"
 
         try:
-            from PySide6.QtGui import QBrush, QColor
-
             # Clear any existing spans from previous statistics view
             self.tableView_statistics.clearSpans()
 
@@ -2224,8 +2219,6 @@ class MainWindow(
         self.current_statistics_mode = "records"
 
         try:
-            from PySide6.QtGui import QBrush, QColor
-
             # Clear any existing spans before creating new view
             self.tableView_statistics.clearSpans()
 
@@ -2526,8 +2519,6 @@ class MainWindow(
         self.current_statistics_mode = "last_exercises"
 
         try:
-            from PySide6.QtGui import QBrush, QColor
-
             # Clear any existing spans from previous statistics view
             self.tableView_statistics.clearSpans()
 

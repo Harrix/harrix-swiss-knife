@@ -148,8 +148,8 @@ class OnOptimizeClipboard(action_base.ActionBase):
 
             clr.AddReference("System.Collections.Specialized")
             clr.AddReference("System.Windows.Forms")
-            from System.Collections.Specialized import StringCollection  # type: ignore # noqa: PGH003
-            from System.Windows.Forms import Clipboard  # type: ignore # noqa: PGH003
+            from System.Collections.Specialized import StringCollection  # type: ignore # noqa: PGH003, PLC0415
+            from System.Windows.Forms import Clipboard  # type: ignore # noqa: PGH003, PLC0415
 
             filename = h.dev.get_project_root() / "temp/optimized_images" / filename
             filename = filename.resolve()
