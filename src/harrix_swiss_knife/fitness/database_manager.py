@@ -71,7 +71,7 @@ class DatabaseManager:
         - `QSqlQuery`: A query object bound to this database connection.
 
         """
-        if not self._ensure_connection():
+        if not self._ensure_connection() or self.db is None:
             error_msg = "❌ Database connection is not available"
             raise ConnectionError(error_msg)
         return QSqlQuery(self.db)
