@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
@@ -24,6 +23,7 @@ from PySide6.QtWidgets import QDateEdit, QLabel, QMessageBox
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from matplotlib.axes import Axes
     from PySide6.QtGui import QStandardItemModel
     from PySide6.QtWidgets import QLayout
 
