@@ -1509,6 +1509,10 @@ class MainWindow(
     @requires_database()
     def apply_filter(self) -> None:
         """Apply combo-box/date filters to the process table."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         exercise = self.comboBox_filter_exercise.currentText()
         exercise_type = self.comboBox_filter_type.currentText()
         use_date_filter = self.checkBox_use_date_filter.isChecked()
@@ -1688,7 +1692,7 @@ class MainWindow(
 
         """
         # Handle Ctrl+C for copying table selections
-        if event.key() == Qt.Key_C and event.modifiers() == Qt.ControlModifier:
+        if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             # Determine which table is currently focused
             focused_widget = QApplication.focusWidget()
 
@@ -5448,6 +5452,10 @@ Apply combo-box/date filters to the process table.
 
 ```python
 def apply_filter(self) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
         exercise = self.comboBox_filter_exercise.currentText()
         exercise_type = self.comboBox_filter_type.currentText()
         use_date_filter = self.checkBox_use_date_filter.isChecked()
@@ -5687,7 +5695,7 @@ Args:
 ```python
 def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         # Handle Ctrl+C for copying table selections
-        if event.key() == Qt.Key_C and event.modifiers() == Qt.ControlModifier:
+        if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             # Determine which table is currently focused
             focused_widget = QApplication.focusWidget()
 
