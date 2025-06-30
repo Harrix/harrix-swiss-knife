@@ -966,12 +966,12 @@ class MainWindow(
                 pil_image = Image.open(avif_path)
 
                 # Handle animated AVIF
-                if hasattr(pil_image, "is_animated") and pil_image.is_animated:
+                if getattr(pil_image, "is_animated", False):
                     # Extract all frames
                     self.avif_data[label_key]["frames"] = []
                     label_size = label_widget.size()
 
-                    for frame_index in range(pil_image.n_frames):
+                    for frame_index in range(getattr(pil_image, "n_frames", 1)):
                         pil_image.seek(frame_index)
 
                         # Create a copy of the frame
