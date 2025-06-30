@@ -105,9 +105,9 @@ class MainWindow(QMainWindow):
 
         """
         # Check if the item is enabled
-        if not item.flags() & Qt.ItemIsSelectable:
+        if not item.flags() & Qt.ItemFlag.ItemIsSelectable:
             return  # Do nothing if the item is disabled
-        action = item.data(Qt.UserRole)
+        action = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(action, QAction):
             # Trigger the action
             action.trigger()
@@ -148,14 +148,14 @@ class MainWindow(QMainWindow):
                 font.setBold(True)
                 item.setFont(font)
                 # Set the item flags to make it not selectable and disabled
-                item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
                 # Do not set UserRole data for this item
                 self.list_widget.addItem(item)
                 # Recursively add actions from the submenu
-                self.populate_list(action.menu().actions(), indent_level + 1)
+                self.populate_list(action.menu().actions(), indent_level + 1)  # type: ignore
             else:
                 # Regular action without submenu
-                item.setData(Qt.UserRole, action)
+                item.setData(Qt.ItemDataRole.UserRole, action)
                 self.list_widget.addItem(item)
 ```
 
@@ -261,9 +261,9 @@ Returns:
 ```python
 def on_item_clicked(self, item: QListWidgetItem) -> None:
         # Check if the item is enabled
-        if not item.flags() & Qt.ItemIsSelectable:
+        if not item.flags() & Qt.ItemFlag.ItemIsSelectable:
             return  # Do nothing if the item is disabled
-        action = item.data(Qt.UserRole)
+        action = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(action, QAction):
             # Trigger the action
             action.trigger()
@@ -316,14 +316,14 @@ def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
                 font.setBold(True)
                 item.setFont(font)
                 # Set the item flags to make it not selectable and disabled
-                item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
                 # Do not set UserRole data for this item
                 self.list_widget.addItem(item)
                 # Recursively add actions from the submenu
-                self.populate_list(action.menu().actions(), indent_level + 1)
+                self.populate_list(action.menu().actions(), indent_level + 1)  # type: ignore
             else:
                 # Regular action without submenu
-                item.setData(Qt.UserRole, action)
+                item.setData(Qt.ItemDataRole.UserRole, action)
                 self.list_widget.addItem(item)
 ```
 
