@@ -962,7 +962,7 @@ class ChartOperations:
 
         """
         label = QLabel(text)
-        label.setAlignment(Qt.AlignCenter)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(label)
 ```
 
@@ -1555,7 +1555,7 @@ Args:
 ```python
 def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         label = QLabel(text)
-        label.setAlignment(Qt.AlignCenter)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(label)
 ```
 
@@ -1574,6 +1574,9 @@ Mixin class for date operations.
 
 ```python
 class DateOperations:
+
+    db_manager: Any
+    _validate_database_connection: Callable[[], bool]
 
     def _increment_date_widget(self, date_widget: QDateEdit) -> None:
         """Increment date widget by one day if not already today.

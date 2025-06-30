@@ -695,12 +695,15 @@ class ChartOperations:
 
         """
         label = QLabel(text)
-        label.setAlignment(Qt.AlignCenter)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(label)
 
 
 class DateOperations:
     """Mixin class for date operations."""
+
+    db_manager: Any
+    _validate_database_connection: Callable[[], bool]
 
     def _increment_date_widget(self, date_widget: QDateEdit) -> None:
         """Increment date widget by one day if not already today.
