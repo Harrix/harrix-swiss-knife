@@ -1198,7 +1198,12 @@ class MainWindow(
             return
 
         try:
-            model = self.models[table_name].sourceModel()
+            proxy_model = self.models[table_name]
+            if proxy_model is None:
+                return
+            model = proxy_model.sourceModel()
+            if not isinstance(model, QStandardItemModel):
+                return
 
             # Process each changed row
             for row in range(top_left.row(), bottom_right.row() + 1):
@@ -1410,10 +1415,11 @@ class MainWindow(
                 selection_model.blockSignals(True)  # noqa: FBT003
 
             # Update exercises list model
-            self.exercises_list_model.clear()
-            for exercise in exercises:
-                item = QStandardItem(exercise)
-                self.exercises_list_model.appendRow(item)
+            if self.exercises_list_model is not None:
+                self.exercises_list_model.clear()
+                for exercise in exercises:
+                    item = QStandardItem(exercise)
+                    self.exercises_list_model.appendRow(item)
 
             # Unblock signals
             if selection_model:
@@ -1799,7 +1805,9 @@ class MainWindow(
             current_value = float(value)
 
             # Check for records before adding the new record
-            record_info = self._check_for_new_records(ex_id, type_id, current_value, type_name)
+            record_info = self._check_for_new_records(
+                ex_id, type_id if type_id is not None else -1, current_value, type_name
+            )
 
             # Use database manager method
             if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
@@ -5002,7 +5010,12 @@ def _on_table_data_changed(
             return
 
         try:
-            model = self.models[table_name].sourceModel()
+            proxy_model = self.models[table_name]
+            if proxy_model is None:
+                return
+            model = proxy_model.sourceModel()
+            if not isinstance(model, QStandardItemModel):
+                return
 
             # Process each changed row
             for row in range(top_left.row(), bottom_right.row() + 1):
@@ -5290,10 +5303,11 @@ def _update_comboboxes(
                 selection_model.blockSignals(True)  # noqa: FBT003
 
             # Update exercises list model
-            self.exercises_list_model.clear()
-            for exercise in exercises:
-                item = QStandardItem(exercise)
-                self.exercises_list_model.appendRow(item)
+            if self.exercises_list_model is not None:
+                self.exercises_list_model.clear()
+                for exercise in exercises:
+                    item = QStandardItem(exercise)
+                    self.exercises_list_model.appendRow(item)
 
             # Unblock signals
             if selection_model:
@@ -5845,7 +5859,9 @@ def on_add_record(self) -> None:
             current_value = float(value)
 
             # Check for records before adding the new record
-            record_info = self._check_for_new_records(ex_id, type_id, current_value, type_name)
+            record_info = self._check_for_new_records(
+                ex_id, type_id if type_id is not None else -1, current_value, type_name
+            )
 
             # Use database manager method
             if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
