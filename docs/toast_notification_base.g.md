@@ -58,13 +58,13 @@ class ToastNotificationBase(QDialog):
         super().__init__(parent)
 
         # Window settings
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         # Message display
         self.message = message
         self.label = QLabel(self.message, self)
-        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setStyleSheet(
             "background-color: rgba(40, 40, 40, 230);"
             "color: white;"
@@ -88,7 +88,7 @@ class ToastNotificationBase(QDialog):
         self.setMouseTracking(True)
 
         # Set cursor to indicate draggable window
-        self.setCursor(Qt.OpenHandCursor)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Handle the mouse double-click event to move the notification to the right side of the screen.
@@ -98,7 +98,7 @@ class ToastNotificationBase(QDialog):
         - `event` (`QMouseEvent`): The mouse event triggering the double-click action.
 
         """
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             # Get the screen geometry
             screen = QApplication.primaryScreen()
             screen_geometry = screen.geometry()
@@ -121,7 +121,7 @@ class ToastNotificationBase(QDialog):
         - `event` (`QMouseEvent`): The mouse event triggering the move action.
 
         """
-        if event.buttons() & Qt.LeftButton and self.dragging:
+        if event.buttons() & Qt.MouseButton.LeftButton and self.dragging:
             self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
 
@@ -133,10 +133,10 @@ class ToastNotificationBase(QDialog):
         - `event` (`QMouseEvent`): The mouse event triggering the press action.
 
         """
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.dragging = True
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            self.setCursor(Qt.ClosedHandCursor)  # Change cursor to indicate active dragging
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)  # Change cursor to indicate active dragging
             event.accept()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
@@ -147,9 +147,9 @@ class ToastNotificationBase(QDialog):
         - `event` (`QMouseEvent`): The mouse event triggering the release action.
 
         """
-        if event.button() == Qt.LeftButton and self.dragging:
+        if event.button() == Qt.MouseButton.LeftButton and self.dragging:
             self.dragging = False
-            self.setCursor(Qt.OpenHandCursor)  # Restore cursor to indicate draggable state
+            self.setCursor(Qt.CursorShape.OpenHandCursor)  # Restore cursor to indicate draggable state
             event.accept()
 ```
 
@@ -176,13 +176,13 @@ def __init__(self, message: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
         # Window settings
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         # Message display
         self.message = message
         self.label = QLabel(self.message, self)
-        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setStyleSheet(
             "background-color: rgba(40, 40, 40, 230);"
             "color: white;"
@@ -206,7 +206,7 @@ def __init__(self, message: str, parent: QWidget | None = None) -> None:
         self.setMouseTracking(True)
 
         # Set cursor to indicate draggable window
-        self.setCursor(Qt.OpenHandCursor)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
 ```
 
 </details>
@@ -228,7 +228,7 @@ Args:
 
 ```python
 def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             # Get the screen geometry
             screen = QApplication.primaryScreen()
             screen_geometry = screen.geometry()
@@ -263,7 +263,7 @@ Args:
 
 ```python
 def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.buttons() & Qt.LeftButton and self.dragging:
+        if event.buttons() & Qt.MouseButton.LeftButton and self.dragging:
             self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
 ```
@@ -287,10 +287,10 @@ Args:
 
 ```python
 def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.dragging = True
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            self.setCursor(Qt.ClosedHandCursor)  # Change cursor to indicate active dragging
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)  # Change cursor to indicate active dragging
             event.accept()
 ```
 
@@ -313,9 +313,9 @@ Args:
 
 ```python
 def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton and self.dragging:
+        if event.button() == Qt.MouseButton.LeftButton and self.dragging:
             self.dragging = False
-            self.setCursor(Qt.OpenHandCursor)  # Restore cursor to indicate draggable state
+            self.setCursor(Qt.CursorShape.OpenHandCursor)  # Restore cursor to indicate draggable state
             event.accept()
 ```
 
