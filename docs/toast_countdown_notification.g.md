@@ -74,14 +74,14 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         """
         self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 
-    def closeEvent(self, event: object) -> None:  # noqa: N802
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle the notification close event.
 
         Stops the timer when the notification is closed to prevent memory leaks.
 
         Args:
 
-        - `event` (`object`): The close event object.
+        - `event` (`QCloseEvent`): The close event object.
 
         """
         self.timer.stop()
@@ -157,7 +157,7 @@ def _refresh_label_text(self) -> None:
 ### Method `closeEvent`
 
 ```python
-def closeEvent(self, event: object) -> None
+def closeEvent(self, event: QCloseEvent) -> None
 ```
 
 Handle the notification close event.
@@ -166,13 +166,13 @@ Stops the timer when the notification is closed to prevent memory leaks.
 
 Args:
 
-- `event` (`object`): The close event object.
+- `event` (`QCloseEvent`): The close event object.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def closeEvent(self, event: object) -> None:  # noqa: N802
+def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self.timer.stop()
         super().closeEvent(event)
 ```

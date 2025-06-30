@@ -5,6 +5,7 @@ useful for indicating ongoing processes while showing how much time has passed.
 """
 
 from PySide6.QtCore import QTime, QTimer
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QWidget
 
 from harrix_swiss_knife import toast_notification_base
@@ -55,14 +56,14 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         """
         self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 
-    def closeEvent(self, event: object) -> None:  # noqa: N802
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle the notification close event.
 
         Stops the timer when the notification is closed to prevent memory leaks.
 
         Args:
 
-        - `event` (`object`): The close event object.
+        - `event` (`QCloseEvent`): The close event object.
 
         """
         self.timer.stop()
