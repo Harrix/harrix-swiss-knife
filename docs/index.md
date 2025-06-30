@@ -23,69 +23,69 @@ _Figure 1: Screenshot_
 ## List of commands
 
 - **Dev**
-  - ☰ Get the list of items from this menu
-  - 📥 Install global NPM packages
-  - ⚙️ Open config.json
-  - 📥 Update NPM and global NPM packages
-  - 📥 Update uv
+  - Get the list of items from this menu
+  - Install global NPM packages
+  - Open config.json
+  - Update NPM and global NPM packages
+  - Update uv
 - **Images**
-  - 🚀 Optimize images
-  - 🔝 Optimize images (high quality)
-  - ⬆️ Optimize images in … and replace
-  - 🖼️ Optimize one image
-  - ↔️ Resize and optimize images (with PNG to AVIF)
-  - 🧹 Clear folders images
-  - 📂 Open the folder images
-  - 📂 Open the folder optimized_images
+  - Optimize images
+  - Optimize images (high quality)
+  - Optimize images in … and replace
+  - Optimize one image
+  - Resize and optimize images (with PNG to AVIF)
+  - Clear folders images
+  - Open the folder images
+  - Open the folder optimized_images
 - **File operations**
-  - 🔒 Block disks
-  - ✅ Check featured_image
-  - ✅ Check featured_image in …
-  - 🗂️ Moves and flattens files from nested folders
-  - 📸 Open Camera Uploads
-  - 🖲️ Rename largest images to featured_image in …
-  - ├ Tree view of a folder
-  - ├ Tree view of a folder (ignore hidden folders)
+  - Block disks
+  - Check featured_image
+  - Check featured_image in …
+  - Moves and flattens files from nested folders
+  - Open Camera Uploads
+  - Rename largest images to featured_image in …
+  - Tree view of a folder
+  - Tree view of a folder (ignore hidden folders)
 - **Markdown**
-  - ❞ Format quotes as Markdown content
-  - 🎬 Get a list of movies, books for web
-  - 👉 Increase heading level
-  - 🌄 Add image captions in one MD
-  - 🌄 Add image captions in …
-  - 😎 Beautify MD notes in …
-  - 🚧 Check in …
-  - 🚧 Check one MD
-  - 🔗 Combine MD files in …
-  - 📥 Download images in one MD
-  - 📥 Download images in …
-  - ✨ Format YAML in …
-  - 📑 Generate TOC in one MD
-  - 📑 Generate TOC in …
-  - 🤏 Generate a short version with only TOC
-  - 🖼️ Optimize images (with PNG to AVIF) in …
-  - 🖼️ Optimize images in one MD
-  - 🖼️ Optimize images in …
-  - ✨ Prettier in …
-  - ❞ Quotes. Add author and title
-  - 📶 Sort sections in one MD
+  - Format quotes as Markdown content
+  - Get a list of movies, books for web
+  - Increase heading level
+  - Add image captions in one MD
+  - Add image captions in …
+  - Beautify MD notes in …
+  - Check in …
+  - Check one MD
+  - Combine MD files in …
+  - Download images in one MD
+  - Download images in …
+  - Format YAML in …
+  - Generate TOC in one MD
+  - Generate TOC in …
+  - Generate a short version with only TOC
+  - Optimize images (with PNG to AVIF) in …
+  - Optimize images in one MD
+  - Optimize images in …
+  - Prettier in …
+  - Quotes. Add author and title
+  - Sort sections in one MD
 - **New Markdown**
-  - ✍️ New article
-  - 📖 New diary note
-  - 💤 New dream note
-  - 📓 New note
-  - 📓 New note with images
+  - New article
+  - New diary note
+  - New dream note
+  - New note
+  - New note with images
 - **Python**
-  - ⬇️ Extracts list of funcs to a MD list from one PY file
-  - 🐍 New uv project in Projects
-  - 🐍 New uv project in …
-  - 🌟 isort, ruff format, sort in PY files
-  - ⭐ isort, ruff format, sort, make docs in PY files
-  - 👩🏻‍🍳 01 Prepare harrix-pylib
-  - 👷‍♂️ 02 Publish and update harrix-pylib
-- 🏃🏻 Fitness tracker
-- 🚀 Optimize image from clipboard
-- 🚀 Optimize image from clipboard as …
-- × Exit
+  - Extracts list of funcs to a MD list from one PY file
+  - New uv project in Projects
+  - New uv project in …
+  - isort, ruff format, sort in PY files
+  - isort, ruff format, sort, make docs in PY files
+  - 01 Prepare harrix-pylib
+  - 02 Publish and update harrix-pylib
+- Fitness tracker
+- Optimize image from clipboard
+- Optimize image from clipboard as …
+- Exit
 
 ## Deploy on an empty machine (Windows)
 
