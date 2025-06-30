@@ -10,7 +10,7 @@ import re
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -29,7 +29,8 @@ if TYPE_CHECKING:
 
 # Type variables for decorators
 P = ParamSpec("P")
-T = TypeVar("T")
+R = TypeVar("R")
+SelfT = TypeVar("SelfT")
 
 
 class AutoSaveOperations:
@@ -862,7 +863,9 @@ class ValidationOperations:
             return True
 
 
-def requires_database(*, is_show_warning: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]:
+def requires_database(
+    *, is_show_warning: bool = True
+) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
     """Ensure database connection is available before executing method.
 
     Args:
@@ -871,26 +874,21 @@ def requires_database(*, is_show_warning: bool = True) -> Callable[[Callable[P, 
 
     Returns:
 
-    - `Callable[[Callable[P, T]], Callable[P, T]]`: Decorated function that checks database connection first.
+    - ` Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]`: Decorated function
+      that checks database connection first.
 
     """
 
-    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+    def decorator(
+        func: Callable[Concatenate[SelfT, P], R],
+    ) -> Callable[Concatenate[SelfT, P], R | None]:
         @wraps(func)
-        def wrapper(self: Any, *args: P.args, **kwargs: P.kwargs) -> T | None:
-            # Check if this is a Qt signal with index parameter
-            if args and len(args) == 1 and isinstance(args[0], int):
-                # This is likely a Qt signal callback with index
-                if not self._validate_database_connection():
-                    if is_show_warning:
-                        QMessageBox.warning(self, "Database Error", "Database connection not available")
-                    return None
-                return func(self, *args, **kwargs)
-            # Regular method call
-            if not self._validate_database_connection():
+        def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
+            if not self._validate_database_connection():  # type: ignore[attr-defined]
                 if is_show_warning:
-                    QMessageBox.warning(self, "Database Error", "Database connection not available")
+                    QMessageBox.warning(None, "❌ Database Error", "❌ Database connection not available")
                 return None
+
             return func(self, *args, **kwargs)
 
         return wrapper

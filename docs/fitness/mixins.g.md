@@ -1990,7 +1990,7 @@ def _is_valid_date(date_str: str) -> bool:
 ## Function `requires_database`
 
 ```python
-def requires_database() -> Callable[[Callable[P, T]], Callable[P, T]]
+def requires_database() -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
 ```
 
 Ensure database connection is available before executing method.
@@ -2001,30 +2001,27 @@ Args:
 
 Returns:
 
-- `Callable[[Callable[P, T]], Callable[P, T]]`: Decorated function that checks database connection first.
+- ` Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]`: Decorated function
+  that checks database connection first.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def requires_database(*, is_show_warning: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]:
+def requires_database(
+    *, is_show_warning: bool = True
+) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
 
-    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+    def decorator(
+        func: Callable[Concatenate[SelfT, P], R],
+    ) -> Callable[Concatenate[SelfT, P], R | None]:
         @wraps(func)
-        def wrapper(self: Any, *args: P.args, **kwargs: P.kwargs) -> T | None:
-            # Check if this is a Qt signal with index parameter
-            if args and len(args) == 1 and isinstance(args[0], int):
-                # This is likely a Qt signal callback with index
-                if not self._validate_database_connection():
-                    if is_show_warning:
-                        QMessageBox.warning(self, "Database Error", "Database connection not available")
-                    return None
-                return func(self, *args, **kwargs)
-            # Regular method call
-            if not self._validate_database_connection():
+        def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
+            if not self._validate_database_connection():  # type: ignore[attr-defined]
                 if is_show_warning:
-                    QMessageBox.warning(self, "Database Error", "Database connection not available")
+                    QMessageBox.warning(None, "❌ Database Error", "❌ Database connection not available")
                 return None
+
             return func(self, *args, **kwargs)
 
         return wrapper
