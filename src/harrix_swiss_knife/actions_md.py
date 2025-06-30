@@ -46,6 +46,8 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         try:
+            if self.folder_path is None:
+                return
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.delete_g_md_files_recursively))
@@ -107,6 +109,8 @@ class OnCheckMd(action_base.ActionBase):
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         checker = markdown_checker.MarkdownChecker()
+        if self.filename is None:
+            return
         errors = checker(self.filename)  # h.md.check_md(self.filename) TODO
         if errors:
             self.add_line("\n".join(errors))
@@ -139,6 +143,8 @@ class OnCheckMdFolder(action_base.ActionBase):
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         checker = markdown_checker.MarkdownChecker()
+        if self.folder_path is None:
+            return
         errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
         if errors:
             self.add_line("\n".join(errors))
