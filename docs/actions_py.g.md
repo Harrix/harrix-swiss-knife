@@ -157,7 +157,8 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
         # Beautify the code
         commands = f"cd {folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+        if folder_path is not None:
+            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
         # Generate Markdown documentation
         domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
@@ -216,7 +217,8 @@ def in_thread(self) -> str | None:
         # Beautify the code
         commands = f"cd {folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+        if folder_path is not None:
+            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
         # Generate Markdown documentation
         domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
@@ -701,14 +703,15 @@ class OnNewUvProjectDialog(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        self.add_line(
-            h.py.create_uv_new_project(
-                self.project_name.replace(" ", "-"),
-                self.folder_path,
-                config["editor"],
-                config["cli_commands"],
-            ),
-        )
+        if self.project_name is not None and self.folder_path is not None:
+            self.add_line(
+                h.py.create_uv_new_project(
+                    self.project_name.replace(" ", "-"),
+                    self.folder_path,
+                    config["editor"],
+                    config["cli_commands"],
+                ),
+            )
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -760,14 +763,15 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        self.add_line(
-            h.py.create_uv_new_project(
-                self.project_name.replace(" ", "-"),
-                self.folder_path,
-                config["editor"],
-                config["cli_commands"],
-            ),
-        )
+        if self.project_name is not None and self.folder_path is not None:
+            self.add_line(
+                h.py.create_uv_new_project(
+                    self.project_name.replace(" ", "-"),
+                    self.folder_path,
+                    config["editor"],
+                    config["cli_commands"],
+                ),
+            )
 ```
 
 </details>
@@ -834,10 +838,12 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
+        if self.folder_path is not None:
+            self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
-        domain = f"https://github.com/{config['github_user']}/{self.folder_path.parts[-1]}"
-        self.add_line(h.py.generate_md_docs(self.folder_path, config["beginning_of_md_docs"], domain))
+        if self.folder_path is not None:
+            domain = f"https://github.com/{config['github_user']}/{self.folder_path.parts[-1]}"
+            self.add_line(h.py.generate_md_docs(self.folder_path, config["beginning_of_md_docs"], domain))
 
         commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         self.add_line(h.dev.run_powershell_script(commands))
@@ -889,10 +895,12 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
+        if self.folder_path is not None:
+            self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
-        domain = f"https://github.com/{config['github_user']}/{self.folder_path.parts[-1]}"
-        self.add_line(h.py.generate_md_docs(self.folder_path, config["beginning_of_md_docs"], domain))
+        if self.folder_path is not None:
+            domain = f"https://github.com/{config['github_user']}/{self.folder_path.parts[-1]}"
+            self.add_line(h.py.generate_md_docs(self.folder_path, config["beginning_of_md_docs"], domain))
 
         commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         self.add_line(h.dev.run_powershell_script(commands))
@@ -958,7 +966,8 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
+        if self.folder_path is not None:
+            self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -1007,7 +1016,8 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
+        if self.folder_path is not None:
+            self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 ```
 
 </details>

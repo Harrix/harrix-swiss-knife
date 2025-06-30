@@ -513,7 +513,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
-            return
+            return None
 
         result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
 
@@ -577,7 +577,7 @@ Execute code in a separate thread. For performing long-running operations.
 ```python
 def in_thread(self) -> str | None:
         if self.folder_path is None:
-            return
+            return None
 
         result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
 
