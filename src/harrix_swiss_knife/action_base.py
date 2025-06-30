@@ -161,7 +161,7 @@ class ActionBase:
         layout.addWidget(list_widget)
 
         # Add OK and Cancel buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -171,7 +171,7 @@ class ActionBase:
         # Show the dialog and wait for a response
         result = dialog.exec()
 
-        if result == QDialog.Accepted:
+        if result == QDialog.DialogCode.Accepted:
             current_item = list_widget.currentItem()
             if current_item:
                 return current_item.text()
@@ -327,7 +327,7 @@ class ActionBase:
         layout.addWidget(text_edit)
 
         # Add OK and Cancel buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -337,7 +337,7 @@ class ActionBase:
         # Show the dialog and wait for a response
         result = dialog.exec()
 
-        if result == QDialog.Accepted:
+        if result == QDialog.DialogCode.Accepted:
             text = text_edit.toPlainText()
             if not text.strip():
                 self.add_line("❌ Text was not entered.")
@@ -414,7 +414,7 @@ class ActionBase:
         # Show the dialog and wait for a response
         result = dialog.exec()
 
-        if result == QDialog.Accepted:
+        if result == QDialog.DialogCode.Accepted:
             return text
         return None
 
@@ -498,5 +498,5 @@ class ActionBase:
 
         """
         clipboard = QApplication.clipboard()
-        clipboard.setText(text, QClipboard.Clipboard)
+        clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
