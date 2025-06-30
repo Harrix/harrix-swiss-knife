@@ -41,15 +41,13 @@ class MainMenuBase:
         action_instance = class_action(parent=self)
 
         if icon:
-            action = QAction(self.get_icon(icon), action_instance.title)
-            action.triggered.connect(action_instance)
-            action.setData(icon)
+            action = QAction(self.get_icon(icon), action_instance.title, triggered=action_instance)
+            action.icon_name = icon
         elif hasattr(action_instance, "icon") and action_instance.icon:
-            action = QAction(self.get_icon(action_instance.icon), action_instance.title)
-            action.triggered.connect(action_instance)
-            action.setData(action_instance.icon)
+            action = QAction(self.get_icon(action_instance.icon), action_instance.title, triggered=action_instance)
+            action.icon_name = action_instance.icon
         else:
-            action = QAction(action_instance.title)
+            action = QAction(action_instance.title, triggered=action_instance)
 
         # Check if the action should have bold text
         if hasattr(action_instance, "bold_title") and action_instance.bold_title:
