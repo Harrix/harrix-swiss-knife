@@ -1732,6 +1732,10 @@ Mixin class for common table operations.
 ```python
 class TableOperations:
 
+    table_config: dict[str, tuple[Any, str, list[str]]]
+    models: dict[str, Any]
+    _create_table_model: Callable[[list, list[str]], Any]
+
     def _connect_table_signals(self, table_name: str, selection_handler: Callable) -> None:
         """Connect selection change signal for a table.
 
