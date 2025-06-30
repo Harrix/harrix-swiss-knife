@@ -48,8 +48,11 @@ class OnGetMenu(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        result = self.parent.get_menu()
-        self.add_line(result)
+        if self.parent is not None:
+            result = self.parent.get_menu()
+            self.add_line(result)
+        else:
+            self.add_line("❌ No parent menu available.")
         self.show_result()
 
 

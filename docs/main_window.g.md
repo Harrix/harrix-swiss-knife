@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
             if not action.icon().isNull():
                 item.setIcon(action.icon())
 
-            if action.menu() is not None:
+            if action.menu() is not None and isinstance(action.menu(), QMenu):
                 # The action has a submenu
                 # Make the text bold
                 font = item.font()
@@ -152,7 +152,7 @@ class MainWindow(QMainWindow):
                 # Do not set UserRole data for this item
                 self.list_widget.addItem(item)
                 # Recursively add actions from the submenu
-                self.populate_list(action.menu().actions(), indent_level + 1)  # type: ignore
+                self.populate_list(action.menu().actions(), indent_level + 1)  # type: ignore noqa: PGH003
             else:
                 # Regular action without submenu
                 item.setData(Qt.ItemDataRole.UserRole, action)
@@ -309,7 +309,7 @@ def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
             if not action.icon().isNull():
                 item.setIcon(action.icon())
 
-            if action.menu() is not None:
+            if action.menu() is not None and isinstance(action.menu(), QMenu):
                 # The action has a submenu
                 # Make the text bold
                 font = item.font()
@@ -320,7 +320,7 @@ def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
                 # Do not set UserRole data for this item
                 self.list_widget.addItem(item)
                 # Recursively add actions from the submenu
-                self.populate_list(action.menu().actions(), indent_level + 1)  # type: ignore
+                self.populate_list(action.menu().actions(), indent_level + 1)  # type: ignore noqa: PGH003
             else:
                 # Regular action without submenu
                 item.setData(Qt.ItemDataRole.UserRole, action)
