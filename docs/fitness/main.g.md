@@ -2140,6 +2140,8 @@ class MainWindow(
         row = index.row()
 
         # Fill in the fields with data from the selected row
+        if model is None:
+            return
         name = model.data(model.index(row, 0)) or ""
         unit = model.data(model.index(row, 1)) or ""
         is_required = model.data(model.index(row, 2)) or "0"
@@ -2850,6 +2852,8 @@ class MainWindow(
         row = index.row()
 
         # Fill in the fields with data from the selected row
+        if model is None:
+            return
         weight_value = model.data(model.index(row, 0)) or str(self._get_last_weight())
         weight_date = model.data(model.index(row, 1)) or QDate.currentDate().toString("yyyy-MM-dd")
 
@@ -6271,6 +6275,8 @@ def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModel
         row = index.row()
 
         # Fill in the fields with data from the selected row
+        if model is None:
+            return
         name = model.data(model.index(row, 0)) or ""
         unit = model.data(model.index(row, 1)) or ""
         is_required = model.data(model.index(row, 2)) or "0"
@@ -7084,6 +7090,8 @@ def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIn
         row = index.row()
 
         # Fill in the fields with data from the selected row
+        if model is None:
+            return
         weight_value = model.data(model.index(row, 0)) or str(self._get_last_weight())
         weight_date = model.data(model.index(row, 1)) or QDate.currentDate().toString("yyyy-MM-dd")
 
