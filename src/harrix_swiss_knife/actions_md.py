@@ -690,7 +690,7 @@ class OnNewNoteDialogWithImages(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        OnNewNoteDialog.execute(self, is_with_images=True)
+        super().execute(is_with_images=True)
 
 
 class OnOptimizeImages(action_base.ActionBase):
