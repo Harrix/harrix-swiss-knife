@@ -330,7 +330,9 @@ class MainWindow(
             if self.models[table_name] is not None:
                 # Use partial to properly bind table_name
                 handler = partial(self._on_table_data_changed, table_name)
-                self.models[table_name].sourceModel().dataChanged.connect(handler)
+                model = self.models[table_name]
+                if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
+                    model.sourceModel().dataChanged.connect(handler)
 
     def _connect_table_selection_signals(self) -> None:
         """Connect selection change signals for all tables."""
@@ -391,7 +393,7 @@ class MainWindow(
                 rows_data[row] = {}
 
             # Get cell data
-            cell_data = table_view.model().data(index, Qt.DisplayRole)
+            cell_data = table_view.model().data(index, Qt.ItemDataRole.DisplayRole)
             rows_data[row][index.column()] = str(cell_data) if cell_data is not None else ""
 
         # Build clipboard text
@@ -674,7 +676,7 @@ class MainWindow(
             model = self.tableView_statistics.model()
             if model and model.rowCount() > 0:
                 first_index = model.index(0, 0)
-                exercise_name = model.data(first_index, Qt.DisplayRole)
+                exercise_name = model.data(first_index, Qt.ItemDataRole.DisplayRole)
                 return exercise_name.strip() if exercise_name else None
             return None
 
@@ -682,7 +684,7 @@ class MainWindow(
         model = self.tableView_statistics.model()
         if model:
             exercise_index = model.index(current_index.row(), 0)
-            exercise_name = model.data(exercise_index, Qt.DisplayRole)
+            exercise_name = model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
             return exercise_name.strip() if exercise_name else None
 
         return None
@@ -708,14 +710,14 @@ class MainWindow(
             model = self.models[table_name]
             if model and model.rowCount() > 0:
                 first_index = model.index(0, 0)
-                return model.data(first_index, Qt.DisplayRole)
+                return model.data(first_index, Qt.ItemDataRole.DisplayRole)
             return None
 
         # Get exercise name from selected row (first column)
         model = self.models[table_name]
         if model:
             exercise_index = model.index(current_index.row(), 0)
-            return model.data(exercise_index, Qt.DisplayRole)
+            return model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
 
         return None
 
@@ -744,7 +746,13 @@ class MainWindow(
             return None
 
         row = index.row()
-        return int(model.sourceModel().verticalHeaderItem(row).text())
+        # Try to get the ID from the first column of the source model
+        source_index = model.mapToSource(model.index(row, 0))
+        id_data = model.sourceModel().data(source_index, Qt.ItemDataRole.DisplayRole)
+        try:
+            return int(id_data)
+        except (TypeError, ValueError):
+            return None
 
     def _init_database(self) -> None:
         """Open the SQLite file from `config` (create from recover.sql if missing).
@@ -2204,7 +2212,8 @@ class MainWindow(
             model = self.models["process"].sourceModel()  # type: ignore[call-arg]
             with filename.open("w", encoding="utf-8") as file:
                 headers = [
-                    model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or "" for col in range(model.columnCount())
+                    model.headerData(col, Qt.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
+                    for col in range(model.columnCount())
                 ]
                 file.write(";".join(headers) + "\n")
 
