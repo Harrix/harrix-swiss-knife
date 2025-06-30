@@ -143,7 +143,7 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         try:
@@ -216,7 +216,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -225,7 +225,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         try:
             # Delete *.g.md files
@@ -313,7 +313,7 @@ class OnCheckMd(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         checker = markdown_checker.MarkdownChecker()
         errors = checker(self.filename)  # h.md.check_md(self.filename) TODO
@@ -360,7 +360,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -369,7 +369,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         checker = markdown_checker.MarkdownChecker()
         errors = checker(self.filename)  # h.md.check_md(self.filename) TODO
         if errors:
@@ -427,7 +427,7 @@ class OnCheckMdFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         checker = markdown_checker.MarkdownChecker()
         errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
@@ -472,7 +472,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -481,7 +481,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         checker = markdown_checker.MarkdownChecker()
         errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
         if errors:
@@ -541,7 +541,7 @@ class OnCombineMarkdownFiles(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(h.md.combine_markdown_files_recursively(self.folder_path))
 
@@ -582,7 +582,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -591,7 +591,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         self.add_line(h.md.combine_markdown_files_recursively(self.folder_path))
 
         commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
@@ -653,7 +653,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.download_and_replace_images(self.filename))
@@ -697,7 +697,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -706,7 +706,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.md.download_and_replace_images(self.filename))
         except Exception as e:
@@ -764,7 +764,7 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
@@ -804,7 +804,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -813,7 +813,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
         except Exception as e:
@@ -922,7 +922,7 @@ class OnFormatYaml(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
@@ -962,7 +962,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -971,7 +971,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
         except Exception as e:
@@ -1028,7 +1028,7 @@ class OnGenerateAuthorBook(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
@@ -1069,7 +1069,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -1078,7 +1078,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
             self.add_line(result)
@@ -1140,7 +1140,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.generate_image_captions(self.filename))
@@ -1184,7 +1184,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -1193,7 +1193,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.md.generate_image_captions(self.filename))
         except Exception as e:
@@ -1250,7 +1250,7 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
@@ -1290,7 +1290,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -1299,7 +1299,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
         except Exception as e:
@@ -1360,7 +1360,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
@@ -1404,7 +1404,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -1413,7 +1413,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
         except Exception as e:
@@ -1473,7 +1473,7 @@ class OnGenerateToc(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.generate_toc_with_links(self.filename))
@@ -1517,7 +1517,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -1526,7 +1526,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.md.generate_toc_with_links(self.filename))
         except Exception as e:
@@ -1583,7 +1583,7 @@ class OnGenerateTocFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
@@ -1623,7 +1623,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -1632,7 +1632,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
         except Exception as e:
@@ -2120,7 +2120,7 @@ class OnOptimizeImages(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(funcs.optimize_images_in_md(self.filename))
@@ -2164,7 +2164,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -2173,7 +2173,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(funcs.optimize_images_in_md(self.filename))
         except Exception as e:
@@ -2230,7 +2230,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md))
@@ -2270,7 +2270,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -2279,7 +2279,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md))
         except Exception as e:
@@ -2332,7 +2332,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md_png_to_avif))
@@ -2372,7 +2372,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -2381,7 +2381,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md_png_to_avif))
         except Exception as e:
@@ -2434,7 +2434,7 @@ class OnPettierFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         result = h.dev.run_powershell_script(commands)
@@ -2473,7 +2473,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -2482,7 +2482,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
@@ -2556,7 +2556,7 @@ class OnSortSections(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.sort_sections(self.filename))
@@ -2601,7 +2601,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -2610,7 +2610,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         try:
             self.add_line(h.md.sort_sections(self.filename))
             self.add_line(h.md.generate_image_captions(self.filename))

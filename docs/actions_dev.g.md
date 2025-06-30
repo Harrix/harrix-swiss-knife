@@ -202,7 +202,7 @@ class OnNpmInstallPackages(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
         return h.dev.run_powershell_script(commands)
@@ -237,7 +237,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -246,7 +246,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
         return h.dev.run_powershell_script(commands)
 ```
@@ -298,7 +298,7 @@ class OnNpmUpdatePackages(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = "npm update npm -g\nnpm update -g"
         return h.dev.run_powershell_script(commands)
@@ -333,7 +333,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -342,7 +342,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         commands = "npm update npm -g\nnpm update -g"
         return h.dev.run_powershell_script(commands)
 ```
@@ -444,7 +444,7 @@ class OnUvUpdate(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = "uv self update"
         return h.dev.run_powershell_script(commands)
@@ -479,7 +479,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -488,7 +488,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         commands = "uv self update"
         return h.dev.run_powershell_script(commands)
 ```

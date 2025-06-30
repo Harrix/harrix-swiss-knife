@@ -150,7 +150,7 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         folder_path = Path(config["path_github"]) / "harrix-pylib"
 
@@ -201,7 +201,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -210,7 +210,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         folder_path = Path(config["path_github"]) / "harrix-pylib"
 
         # Beautify the code
@@ -298,7 +298,7 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
 
         self.start_thread(self.in_thread_01, self.thread_after_01, "Increase version, build and publish")
 
-    def in_thread_01(self) -> None:
+    def in_thread_01(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.path_library = Path(config["path_github"]) / "harrix-pylib"
         self.projects = [Path(config["path_github"]) / "harrix-swiss-knife"]
@@ -322,11 +322,11 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
 
-    def in_thread_02(self) -> None:
+    def in_thread_02(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         time.sleep(self.time_waiting_seconds)
 
-    def in_thread_03(self) -> None:
+    def in_thread_03(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Update harrix-pylib in projects
         for project_path in self.projects:
@@ -400,7 +400,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread_01`
 
 ```python
-def in_thread_01(self) -> None
+def in_thread_01(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -409,7 +409,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread_01(self) -> None:
+def in_thread_01(self) -> str | None:
         self.path_library = Path(config["path_github"]) / "harrix-pylib"
         self.projects = [Path(config["path_github"]) / "harrix-swiss-knife"]
 
@@ -438,7 +438,7 @@ def in_thread_01(self) -> None:
 ### Method `in_thread_02`
 
 ```python
-def in_thread_02(self) -> None
+def in_thread_02(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -447,7 +447,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread_02(self) -> None:
+def in_thread_02(self) -> str | None:
         time.sleep(self.time_waiting_seconds)
 ```
 
@@ -456,7 +456,7 @@ def in_thread_02(self) -> None:
 ### Method `in_thread_03`
 
 ```python
-def in_thread_03(self) -> None
+def in_thread_03(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -465,7 +465,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread_03(self) -> None:
+def in_thread_03(self) -> str | None:
         # Update harrix-pylib in projects
         for project_path in self.projects:
             project = Path(project_path)
@@ -583,7 +583,7 @@ class OnNewUvProject(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         path = config["path_py_projects"]
         max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
@@ -620,7 +620,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -629,7 +629,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         path = config["path_py_projects"]
         max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
         name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
@@ -699,7 +699,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(
             h.py.create_uv_new_project(
@@ -750,7 +750,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -759,7 +759,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         self.add_line(
             h.py.create_uv_new_project(
                 self.project_name.replace(" ", "-"),
@@ -830,7 +830,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
@@ -877,7 +877,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -886,7 +886,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
@@ -954,7 +954,7 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
@@ -995,7 +995,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### Method `in_thread`
 
 ```python
-def in_thread(self) -> None
+def in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -1004,7 +1004,7 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> None:
+def in_thread(self) -> str | None:
         commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))

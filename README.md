@@ -176,7 +176,7 @@ class on_npm_update_packages(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = "npm update npm -g\nnpm update -g"
         return h.dev.run_powershell_script(commands)
@@ -203,7 +203,7 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nisort .\nruff format"
         self.add_line(h.dev.run_powershell_script(commands))
@@ -229,21 +229,21 @@ class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
         self.start_thread(self.in_thread_01, self.thread_after_01, self.title)
         return "Started the process chain"
 
-    def in_thread_01(self) -> None:
+    def in_thread_01(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # First operation
         self.add_line("Starting first operation")
         time.sleep(5)  # Simulating work
         return "First operation completed"
 
-    def in_thread_02(self) -> None:
+    def in_thread_02(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Second operation
         self.add_line("Starting second operation")
         time.sleep(self.time_waiting_seconds)  # Simulating work
         return "Second operation completed"
 
-    def in_thread_03(self) -> None:
+    def in_thread_03(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Third operation
         self.add_line("Starting third operation")

@@ -99,7 +99,7 @@ class OnOptimize(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_powershell_script("npm run optimize")
 
@@ -175,7 +175,7 @@ class OnOptimizeClipboardDialog(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        OnOptimizeClipboard.execute(self, is_dialog=True)
+        OnOptimizeClipboard().execute(is_dialog=True)
 
 
 class OnOptimizeDialogReplace(action_base.ActionBase):
@@ -197,8 +197,11 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
+        if self.folder_path is None:
+            return
+
         result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
 
         for item in self.folder_path.iterdir():
@@ -272,7 +275,7 @@ class OnOptimizeQuality(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_powershell_script("npm run optimize quality=true")
 
@@ -297,7 +300,7 @@ class OnResizeOptimizePngToAvif(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_powershell_script(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
 

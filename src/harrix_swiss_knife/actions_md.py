@@ -42,7 +42,7 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         try:
@@ -104,7 +104,7 @@ class OnCheckMd(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         checker = markdown_checker.MarkdownChecker()
         errors = checker(self.filename)  # h.md.check_md(self.filename) TODO
@@ -136,7 +136,7 @@ class OnCheckMdFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         checker = markdown_checker.MarkdownChecker()
         errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
@@ -171,7 +171,7 @@ class OnCombineMarkdownFiles(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(h.md.combine_markdown_files_recursively(self.folder_path))
 
@@ -208,7 +208,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.download_and_replace_images(self.filename))
@@ -241,7 +241,7 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
@@ -286,7 +286,7 @@ class OnFormatYaml(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
@@ -318,7 +318,7 @@ class OnGenerateAuthorBook(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
@@ -355,7 +355,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.generate_image_captions(self.filename))
@@ -387,7 +387,7 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
@@ -423,7 +423,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
@@ -458,7 +458,7 @@ class OnGenerateToc(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.generate_toc_with_links(self.filename))
@@ -490,7 +490,7 @@ class OnGenerateTocFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
@@ -689,7 +689,7 @@ class OnOptimizeImages(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(funcs.optimize_images_in_md(self.filename))
@@ -721,7 +721,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md))
@@ -748,7 +748,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md_png_to_avif))
@@ -775,7 +775,7 @@ class OnPettierFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         result = h.dev.run_powershell_script(commands)
@@ -824,7 +824,7 @@ class OnSortSections(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def in_thread(self) -> None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         try:
             self.add_line(h.md.sort_sections(self.filename))
