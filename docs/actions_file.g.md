@@ -398,7 +398,7 @@ class OnTreeViewFolderIgnoreHiddenFolders(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        OnTreeViewFolder.execute(self, is_ignore_hidden_folders=True)
+        OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
 ```
 
 </details>
@@ -416,7 +416,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        OnTreeViewFolder.execute(self, is_ignore_hidden_folders=True)
+        OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
 ```
 
 </details>

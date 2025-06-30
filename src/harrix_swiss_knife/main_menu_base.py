@@ -41,13 +41,15 @@ class MainMenuBase:
         action_instance = class_action(parent=self)
 
         if icon:
-            action = QAction(self.get_icon(icon), action_instance.title, triggered=action_instance)
-            action.icon_name = icon
+            action = QAction(self.get_icon(icon), action_instance.title)
+            action.triggered.connect(action_instance)
+            action.setData(icon)
         elif hasattr(action_instance, "icon") and action_instance.icon:
-            action = QAction(self.get_icon(action_instance.icon), action_instance.title, triggered=action_instance)
-            action.icon_name = action_instance.icon
+            action = QAction(self.get_icon(action_instance.icon), action_instance.title)
+            action.triggered.connect(action_instance)
+            action.setData(action_instance.icon)
         else:
-            action = QAction(action_instance.title, triggered=action_instance)
+            action = QAction(action_instance.title)
 
         # Check if the action should have bold text
         if hasattr(action_instance, "bold_title") and action_instance.bold_title:
@@ -142,13 +144,13 @@ class MainMenuBase:
 
         """
         pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.transparent)
+        pixmap.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(pixmap)
         font = QFont()
         font.setPointSize(int(size * 0.8))
         painter.setFont(font)
-        painter.drawText(pixmap.rect(), Qt.AlignCenter, emoji)
+        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji)
         painter.end()
 
         return QIcon(pixmap)
@@ -174,7 +176,9 @@ class MainMenuBase:
                 # Add a header for the submenu
                 markdown_lines.append(f"{'  ' * level}- **{action.text()}**")
                 # Recursively traverse the submenu
-                markdown_lines.extend(self.generate_markdown_from_qmenu(action.menu(), level + 1))
+                submenu = action.menu()
+                if isinstance(submenu, QMenu):
+                    markdown_lines.extend(self.generate_markdown_from_qmenu(submenu, level + 1))
             else:
                 # Add a regular menu item
                 icon = (
