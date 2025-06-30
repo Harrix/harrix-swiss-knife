@@ -533,6 +533,8 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        if self.folder_path is None:
+            return
         h.file.open_file_or_folder(self.folder_path)
         self.show_toast("Optimize completed")
         self.add_line(result)
@@ -611,6 +613,8 @@ Execute code in the main thread after in_thread(). For handling the results of t
 
 ```python
 def thread_after(self, result: Any) -> None:
+        if self.folder_path is None:
+            return
         h.file.open_file_or_folder(self.folder_path)
         self.show_toast("Optimize completed")
         self.add_line(result)
