@@ -933,7 +933,7 @@ class MainWindow(
 
         # Clear label and reset alignment
         label_widget.clear()
-        label_widget.setAlignment(Qt.AlignCenter)
+        label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         if not exercise_name:
             label_widget.setText("No exercise selected")
@@ -952,7 +952,9 @@ class MainWindow(
 
             if not pixmap.isNull():
                 label_size = label_widget.size()
-                scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                scaled_pixmap = pixmap.scaled(
+                    label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                )
                 label_widget.setPixmap(scaled_pixmap)
                 return
 
@@ -997,7 +999,11 @@ class MainWindow(
                         pixmap.loadFromData(buffer.getvalue())
 
                         if not pixmap.isNull():
-                            scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                            scaled_pixmap = pixmap.scaled(
+                                label_size,
+                                Qt.AspectRatioMode.KeepAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation,
+                            )
                             self.avif_data[label_key]["frames"].append(scaled_pixmap)
 
                     if self.avif_data[label_key]["frames"]:
@@ -1043,7 +1049,9 @@ class MainWindow(
 
                     if not pixmap.isNull():
                         label_size = label_widget.size()
-                        scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                        scaled_pixmap = pixmap.scaled(
+                            label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                        )
                         label_widget.setPixmap(scaled_pixmap)
                         return
 
@@ -2212,7 +2220,7 @@ class MainWindow(
             model = self.models["process"].sourceModel()  # type: ignore[call-arg]
             with filename.open("w", encoding="utf-8") as file:
                 headers = [
-                    model.headerData(col, Qt.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
+                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
                     for col in range(model.columnCount())
                 ]
                 file.write(";".join(headers) + "\n")
