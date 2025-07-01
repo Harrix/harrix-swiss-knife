@@ -252,10 +252,12 @@ class DatabaseManager:
         """Check if exercise exists by ID.
 
         Args:
-            exercise_id: Exercise ID to check
+
+        - `exercise_id` (`int`): Exercise ID to check.
 
         Returns:
-            True if exercise exists, False otherwise
+
+        - `bool`: True if exercise exists, False otherwise.
 
         """
         rows = self.get_rows("SELECT 1 FROM exercises WHERE _id = :id LIMIT 1", {"id": exercise_id})
@@ -665,13 +667,13 @@ class DatabaseManager:
 
         Args:
 
-        `exercise_id` (`int`): Exercise ID
-        `type_id` (`int`): Type ID (-1 for no type)
-        `date_from` (`str | None`): Start date for yearly calculation (YYYY-MM-DD). Default `None`.
+        - `exercise_id` (`int`): Exercise ID.
+        - `type_id` (`int`): Type ID (-1 for no type).
+        - `date_from` (`str | None`): Start date for yearly calculation (YYYY-MM-DD). Defaults to `None`.
 
         Returns:
 
-        `tuple[float, float]`: Tuple of (all_time_max, yearly_max)
+        - `tuple[float, float]`: Tuple of (all_time_max, yearly_max).
 
         """
         conditions = ["p._id_exercises = :ex_id"]
@@ -713,10 +715,12 @@ class DatabaseManager:
         """Get exercise name by ID.
 
         Args:
-            exercise_id: Exercise ID
+
+        - `exercise_id` (`int`): Exercise ID.
 
         Returns:
-            Exercise name or None if not found
+
+        - `str | None`: Exercise name or None if not found.
 
         """
         rows = self.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
@@ -726,10 +730,12 @@ class DatabaseManager:
         """Get steps records grouped by date.
 
         Args:
-            exercise_id: Exercise ID for steps
+
+        - `exercise_id` (`int`): Exercise ID for steps.
 
         Returns:
-            List of (date, record_count, values) tuples
+
+        - `list[tuple[str, int, str]]`: List of (date, record_count, values) tuples.
 
         """
         rows = self.get_rows(

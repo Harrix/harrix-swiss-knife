@@ -164,7 +164,20 @@ class MainWindow(
         QTimer.singleShot(100, self._load_initial_avifs)
 
     def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
-        """Check if the current value would be a new all-time or yearly record."""
+        """Check if the current value would be a new all-time or yearly record.
+
+        Args:
+
+        - `ex_id` (`int`): Exercise ID.
+        - `type_id` (`int`): Type ID.
+        - `current_value` (`float`): Current value to check.
+        - `type_name` (`str`): Type name.
+
+        Returns:
+
+        - `dict | None`: Record information if new record is found, None otherwise.
+
+        """
         if not self._validate_database_connection() or self.db_manager is None:
             return None
 
@@ -297,8 +310,9 @@ class MainWindow(
         """Connect selection change signal for a specific table.
 
         Args:
+
         - `table_name` (`str`): Name of the table.
-        - `selection_handler`: Handler function for selection changes.
+        - `selection_handler` (`Callable[[QModelIndex, QModelIndex], None]`): Handler function for selection changes.
 
         """
         if table_name in self.table_config:
@@ -311,6 +325,7 @@ class MainWindow(
         """Copy selected cells from table to clipboard as tab-separated text.
 
         Args:
+
         - `table_view` (`QTableView`): The table view to copy data from.
 
         """
@@ -366,7 +381,7 @@ class MainWindow(
 
         - `data` (`list[list]`): The table data with color information.
         - `headers` (`list[str]`): Column header names.
-        - `id_column` (`int`): Index of the ID column. Defaults to `4`.
+        - `_id_column` (`int`): Index of the ID column. Defaults to `4`.
 
         Returns:
 
@@ -557,7 +572,17 @@ class MainWindow(
         return avif_path if avif_path.exists() else None
 
     def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
-        """Get exercise name by ID."""
+        """Get exercise name by ID.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `str | None`: Exercise name or None if not found.
+
+        """
         if not self._validate_database_connection() or self.db_manager is None:
             return None
 
@@ -591,6 +616,7 @@ class MainWindow(
         """Get selected exercise name from statistics table.
 
         Returns:
+
         - `str | None`: Exercise name or None if nothing selected.
 
         """
@@ -618,9 +644,11 @@ class MainWindow(
         """Get selected exercise name from a table.
 
         Args:
+
         - `table_name` (`str`): Name of the table ('exercises' or 'statistics').
 
         Returns:
+
         - `str | None`: Exercise name or None if nothing selected.
 
         """
@@ -650,9 +678,11 @@ class MainWindow(
         """Get the database ID of the currently selected row.
 
         Args:
+
         - `table_name` (`str`): Name of the table.
 
         Returns:
+
         - `int | None`: Database ID of selected row or None if no selection.
 
         """
@@ -826,9 +856,10 @@ class MainWindow(
         """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
 
         Args:
+
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
         - `label_key` (`str`): Key identifying which label to update
-          ('main', 'exercises', 'types', 'charts', 'statistics').
+          ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
         """
         # Get the appropriate label widget
@@ -1015,6 +1046,7 @@ class MainWindow(
         """Show next frame in AVIF animation for specific label.
 
         Args:
+
         - `label_key` (`str`): Key identifying which label to update.
 
         """
@@ -1044,10 +1076,11 @@ class MainWindow(
         """Handle data changes in table models and auto-save to database.
 
         Args:
+
         - `table_name` (`str`): Name of the table that was modified.
         - `top_left` (`QModelIndex`): Top-left index of the changed area.
         - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
-        - `_roles` (`list`): List of roles that changed (optional, from Qt signal).
+        - `_roles` (`list | None`): List of roles that changed. Defaults to `None`.
 
         """
         if table_name not in self._SAFE_TABLES:
@@ -1080,8 +1113,9 @@ class MainWindow(
         Args:
 
         - `table_name` (`str`): Name of the table to refresh.
-        - `data_getter` (` Callable[[], Any] Callable[[], Any]`): Function to get data from database.
-        - `data_transformer` (`Optional[Callable[[Any], Any]]`): Optional function to transform raw data.
+        - `data_getter` (`Callable[[], Any]`): Function to get data from database.
+        - `data_transformer` (`Callable[[Any], Any] | None`): Optional function to transform raw data.
+          Defaults to `None`.
 
         Raises:
 
@@ -1322,6 +1356,7 @@ class MainWindow(
         """Update form fields after process selection change.
 
         Args:
+
         - `_exercise_name` (`str`): Name of the selected exercise.
         - `type_name` (`str`): Type of the selected exercise.
         - `value_str` (`str`): Value as string from the selected record.
@@ -1540,10 +1575,12 @@ class MainWindow(
         """Generate pastel colors using mathematical distribution.
 
         Args:
-            count: Number of colors to generate
+
+        - `count` (`int`): Number of colors to generate. Defaults to `100`.
 
         Returns:
-            List of pastel QColor objects
+
+        - `list[QColor]`: List of pastel QColor objects.
 
         """
         colors = []
@@ -1569,6 +1606,7 @@ class MainWindow(
         """Handle key press events for the main window.
 
         Args:
+
         - `event` (`QKeyEvent`): The key press event.
 
         """
@@ -1762,6 +1800,7 @@ class MainWindow(
         """Handle chart exercise combobox selection change.
 
         Args:
+
         - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
         """
@@ -1937,6 +1976,7 @@ class MainWindow(
         """Handle exercise name combobox selection change.
 
         Args:
+
         - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
         """
@@ -1947,6 +1987,12 @@ class MainWindow(
 
         Synchronizes the form fields (name, unit, is_type_required checkbox)
         with the currently selected exercise in the table.
+
+        Args:
+
+        - `_current` (`QModelIndex`): Currently selected index.
+        - `_previous` (`QModelIndex`): Previously selected index.
+
         """
         index = self.tableView_exercises.currentIndex()
         if not index.isValid():
@@ -2134,6 +2180,7 @@ class MainWindow(
         the currently selected process record in the table.
 
         Args:
+
         - `current` (`QModelIndex`): Currently selected index.
         - `_previous` (`QModelIndex`): Previously selected index.
 
@@ -2619,6 +2666,7 @@ class MainWindow(
         """Handle statistics table selection change and update AVIF.
 
         Args:
+
         - `_current` (`QModelIndex`): Currently selected index.
         - `_previous` (`QModelIndex`): Previously selected index.
 
@@ -2659,6 +2707,12 @@ class MainWindow(
 
         Synchronizes the form fields (weight value and date) with the currently
         selected weight record in the table.
+
+        Args:
+
+        - `_current` (`QModelIndex`): Currently selected index.
+        - `_previous` (`QModelIndex`): Previously selected index.
+
         """
         index = self.tableView_weight.currentIndex()
         if not index.isValid():
