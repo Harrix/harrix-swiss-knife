@@ -68,11 +68,11 @@ class MainMenuBase:
         if icon:
             action = QAction(self.get_icon(icon), action_instance.title)
             action.triggered.connect(action_instance)
-            action.setData(icon)
+            setattr(action, "icon_name", icon)
         elif hasattr(action_instance, "icon") and action_instance.icon:
             action = QAction(self.get_icon(action_instance.icon), action_instance.title)
             action.triggered.connect(action_instance)
-            action.setData(action_instance.icon)
+            setattr(action, "icon_name", action_instance.icon)
         else:
             action = QAction(action_instance.title)
 
@@ -330,11 +330,11 @@ def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None
         if icon:
             action = QAction(self.get_icon(icon), action_instance.title)
             action.triggered.connect(action_instance)
-            action.setData(icon)
+            setattr(action, "icon_name", icon)
         elif hasattr(action_instance, "icon") and action_instance.icon:
             action = QAction(self.get_icon(action_instance.icon), action_instance.title)
             action.triggered.connect(action_instance)
-            action.setData(action_instance.icon)
+            setattr(action, "icon_name", action_instance.icon)
         else:
             action = QAction(action_instance.title)
 
