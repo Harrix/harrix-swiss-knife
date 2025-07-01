@@ -228,79 +228,21 @@ class MainWindow(
         QTimer.singleShot(100, self._load_initial_avifs)
 
     def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
-        """Check if the current value would be a new all-time or yearly record.
-
-        Args:
-
-        - `ex_id` (`int`): Exercise ID
-        - `type_id` (`int`): Type ID (-1 for no type)
-        - `current_value` (`float`): Current value being added
-        - `type_name` (`str`): Type name for display
-
-        Returns:
-
-        `dict | None`: Record information if new record, None otherwise
-
-        """
-        if not self._validate_database_connection():
-            return None
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+        """Check if the current value would be a new all-time or yearly record."""
+        if not self._validate_database_connection() or self.db_manager is None:
             return None
 
         try:
-            # Build conditions for the query
-            conditions = ["p._id_exercises = :ex_id"]
-            params = {"ex_id": ex_id}
-
-            if type_id != -1:
-                conditions.append("p._id_types = :type_id")
-                params["type_id"] = type_id
-            else:
-                conditions.append("p._id_types = -1")
-
-            # Get all-time max value - cast to REAL to ensure numeric comparison
-            all_time_query = f"""
-                SELECT MAX(CAST(p.value AS REAL)) as max_value
-                FROM process p
-                WHERE {" AND ".join(conditions)}"""
-
-            all_time_rows = self.db_manager.get_rows(all_time_query, params)
-            all_time_max = all_time_rows[0][0] if all_time_rows and all_time_rows[0][0] is not None else 0.0
-
-            # Ensure all_time_max is a float
-            try:
-                all_time_max = float(all_time_max)
-            except (ValueError, TypeError):
-                all_time_max = 0.0
-
-            # Get yearly max value (last 365 days)
+            # Calculate date one year ago
             one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
-            yearly_conditions = [*conditions, "p.date >= :year_ago"]
-            yearly_params: dict[str, Any] = params.copy()
-            yearly_params["year_ago"] = one_year_ago_str
-
-            yearly_query = f"""
-                SELECT MAX(CAST(p.value AS REAL)) as max_value
-                FROM process p
-                WHERE {" AND ".join(yearly_conditions)}"""
-
-            yearly_rows = self.db_manager.get_rows(yearly_query, yearly_params)
-            yearly_max = yearly_rows[0][0] if yearly_rows and yearly_rows[0][0] is not None else 0.0
-
-            # Ensure yearly_max is a float
-            try:
-                yearly_max = float(yearly_max)
-            except (ValueError, TypeError):
-                yearly_max = 0.0
+            # Use database manager method
+            all_time_max, yearly_max = self.db_manager.get_exercise_max_values(ex_id, type_id, one_year_ago_str)
 
             # Check for new records
             is_all_time_record = current_value > all_time_max
-            is_yearly_record = (
-                current_value > yearly_max and not is_all_time_record
-            )  # Don't double-count all-time records
+            is_yearly_record = current_value > yearly_max and not is_all_time_record
 
             if is_all_time_record or is_yearly_record:
                 return {
@@ -311,7 +253,6 @@ class MainWindow(
                     "previous_yearly": yearly_max,
                     "type_name": type_name,
                 }
-
         except Exception as e:
             print(f"Error checking for new records: {e}")
 
@@ -680,27 +621,11 @@ class MainWindow(
         return avif_path if avif_path.exists() else None
 
     def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
-        """Get exercise name by ID.
-
-        Args:
-        - `exercise_id` (`int`): Exercise ID.
-
-        Returns:
-        - `str | None`: Exercise name or None if not found.
-
-        """
-        if not self._validate_database_connection():
-            return None
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+        """Get exercise name by ID."""
+        if not self._validate_database_connection() or self.db_manager is None:
             return None
 
-        try:
-            rows = self.db_manager.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
-            return rows[0][0] if rows else None
-        except Exception as e:
-            print(f"Error getting exercise name by ID {exercise_id}: {e}")
-            return None
+        return self.db_manager.get_exercise_name_by_id(exercise_id)
 
     def _get_last_weight(self) -> float:
         """Get the last recorded weight value from database.
@@ -1923,58 +1848,30 @@ class MainWindow(
             # Get steps exercise ID
             steps_exercise_id = self.id_steps
 
-            # Check if steps exercise exists
-            steps_rows = self.db_manager.get_rows(
-                "SELECT name FROM exercises WHERE _id = :id", {"id": steps_exercise_id}
-            )
-
-            if not steps_rows:
+            # Check if steps exercise exists using database manager
+            if not self.db_manager.check_exercise_exists(steps_exercise_id):
                 QMessageBox.warning(
                     self, "Steps Exercise Not Found", f"Exercise with ID {steps_exercise_id} not found in database."
                 )
                 return
 
-            steps_exercise_name = steps_rows[0][0]
+            steps_exercise_name = self.db_manager.get_exercise_name_by_id(steps_exercise_id)
+            if not steps_exercise_name:
+                return
 
-            # Get all steps records ordered by date
-            # Fixed: renamed 'values' to 'step_values' to avoid SQL reserved word conflict
-            steps_records = self.db_manager.get_rows(
-                """
-                SELECT date, COUNT(*) as record_count, GROUP_CONCAT(value, ', ') as step_values
-                FROM process
-                WHERE _id_exercises = :id
-                AND date IS NOT NULL
-                GROUP BY date
-                ORDER BY date ASC
-            """,
-                {"id": steps_exercise_id},
-            )
+            # Get steps records using database manager
+            steps_records = self.db_manager.get_exercise_steps_records(steps_exercise_id)
 
             if not steps_records:
                 # Show empty table with message
-                empty_model = QStandardItemModel()
-                empty_model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
-
-                # Add a single row with message
-                items = [
-                    QStandardItem("No Data"),
-                    QStandardItem(""),
-                    QStandardItem(f"No records found for exercise: {steps_exercise_name}"),
+                empty_data = [
+                    ["No Data", "", f"No records found for exercise: {steps_exercise_name}", 0, QColor(255, 255, 255)]
                 ]
-                empty_model.appendRow(items)
 
-                self.tableView_statistics.setModel(empty_model)
-
-                # Configure header with mixed approach: interactive + stretch last
-                header = self.tableView_statistics.horizontalHeader()
-                # Set first columns to interactive (resizable)
-                for i in range(header.count() - 1):
-                    header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-                # Set last column to stretch to fill remaining space
-                header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-                # Set default column widths for resizable columns
-                for i in range(header.count() - 1):
-                    self.tableView_statistics.setColumnWidth(i, 150)
+                self.models["statistics"] = self._create_colored_table_model(
+                    empty_data, ["Issue Type", "Date", "Details"]
+                )
+                self.tableView_statistics.setModel(self.models["statistics"])
 
                 # Update statistics AVIF
                 self._update_statistics_avif()
@@ -2029,6 +1926,7 @@ class MainWindow(
                             "Missing Day",
                             formatted_date,
                             details,
+                            0,  # Dummy ID
                             QColor(255, 182, 193),  # Light pink for missing days
                         ]
                     )
@@ -2050,6 +1948,7 @@ class MainWindow(
                             "Duplicate Day",
                             formatted_date,
                             details,
+                            0,  # Dummy ID
                             QColor(255, 255, 182),  # Light yellow for duplicate days
                         ]
                     )
@@ -2059,37 +1958,24 @@ class MainWindow(
             # Sort by date (most recent issues first)
             table_data.sort(key=lambda x: x[1], reverse=True)
 
-            # Create and populate model
-            model = QStandardItemModel()
-            model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
-
             if not table_data:
                 # No issues found
-                items = [
-                    QStandardItem("✅ All Good"),
-                    QStandardItem(""),
-                    QStandardItem(f"No missing or duplicate days found for {steps_exercise_name}"),
+                table_data = [
+                    [
+                        "✅ All Good",
+                        "",
+                        f"No missing or duplicate days found for {steps_exercise_name}",
+                        0,  # Dummy ID
+                        QColor(144, 238, 144),  # Light green
+                    ]
                 ]
-                for item in items:
-                    item.setBackground(QBrush(QColor(144, 238, 144)))  # Light green
-                model.appendRow(items)
-            else:
-                # Add issues to table
-                for row_data in table_data:
-                    items = []
-                    row_color = row_data[3]  # Get the color from the last element
 
-                    # Create items for display columns only (first 3 elements)
-                    for _col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
-                        item = QStandardItem(str(value))
-                        item.setBackground(QBrush(row_color))
-                        items.append(item)
+            # Create model using the standard method
+            self.models["statistics"] = self._create_colored_table_model(table_data, ["Issue Type", "Date", "Details"])
+            self.tableView_statistics.setModel(self.models["statistics"])
 
-                    model.appendRow(items)
-
-            # Set model to table view
-            self.tableView_statistics.setModel(model)
-            self.models["statistics"] = None  # Clear the model reference since it's not a proxy model
+            # Connect selection signal for statistics table
+            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -3660,81 +3546,25 @@ def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float,
 
 Check if the current value would be a new all-time or yearly record.
 
-Args:
-
-- `ex_id` (`int`): Exercise ID
-- `type_id` (`int`): Type ID (-1 for no type)
-- `current_value` (`float`): Current value being added
-- `type_name` (`str`): Type name for display
-
-Returns:
-
-`dict | None`: Record information if new record, None otherwise
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
-        if not self._validate_database_connection():
-            return None
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+        if not self._validate_database_connection() or self.db_manager is None:
             return None
 
         try:
-            # Build conditions for the query
-            conditions = ["p._id_exercises = :ex_id"]
-            params = {"ex_id": ex_id}
-
-            if type_id != -1:
-                conditions.append("p._id_types = :type_id")
-                params["type_id"] = type_id
-            else:
-                conditions.append("p._id_types = -1")
-
-            # Get all-time max value - cast to REAL to ensure numeric comparison
-            all_time_query = f"""
-                SELECT MAX(CAST(p.value AS REAL)) as max_value
-                FROM process p
-                WHERE {" AND ".join(conditions)}"""
-
-            all_time_rows = self.db_manager.get_rows(all_time_query, params)
-            all_time_max = all_time_rows[0][0] if all_time_rows and all_time_rows[0][0] is not None else 0.0
-
-            # Ensure all_time_max is a float
-            try:
-                all_time_max = float(all_time_max)
-            except (ValueError, TypeError):
-                all_time_max = 0.0
-
-            # Get yearly max value (last 365 days)
+            # Calculate date one year ago
             one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
-            yearly_conditions = [*conditions, "p.date >= :year_ago"]
-            yearly_params: dict[str, Any] = params.copy()
-            yearly_params["year_ago"] = one_year_ago_str
-
-            yearly_query = f"""
-                SELECT MAX(CAST(p.value AS REAL)) as max_value
-                FROM process p
-                WHERE {" AND ".join(yearly_conditions)}"""
-
-            yearly_rows = self.db_manager.get_rows(yearly_query, yearly_params)
-            yearly_max = yearly_rows[0][0] if yearly_rows and yearly_rows[0][0] is not None else 0.0
-
-            # Ensure yearly_max is a float
-            try:
-                yearly_max = float(yearly_max)
-            except (ValueError, TypeError):
-                yearly_max = 0.0
+            # Use database manager method
+            all_time_max, yearly_max = self.db_manager.get_exercise_max_values(ex_id, type_id, one_year_ago_str)
 
             # Check for new records
             is_all_time_record = current_value > all_time_max
-            is_yearly_record = (
-                current_value > yearly_max and not is_all_time_record
-            )  # Don't double-count all-time records
+            is_yearly_record = current_value > yearly_max and not is_all_time_record
 
             if is_all_time_record or is_yearly_record:
                 return {
@@ -3745,7 +3575,6 @@ def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float,
                     "previous_yearly": yearly_max,
                     "type_name": type_name,
                 }
-
         except Exception as e:
             print(f"Error checking for new records: {e}")
 
@@ -4264,31 +4093,15 @@ def _get_exercise_name_by_id(self, exercise_id: int) -> str | None
 
 Get exercise name by ID.
 
-Args:
-
-- `exercise_id` (`int`): Exercise ID.
-
-Returns:
-
-- `str | None`: Exercise name or None if not found.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
-        if not self._validate_database_connection():
-            return None
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+        if not self._validate_database_connection() or self.db_manager is None:
             return None
 
-        try:
-            rows = self.db_manager.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
-            return rows[0][0] if rows else None
-        except Exception as e:
-            print(f"Error getting exercise name by ID {exercise_id}: {e}")
-            return None
+        return self.db_manager.get_exercise_name_by_id(exercise_id)
 ```
 
 </details>
@@ -6032,58 +5845,30 @@ def on_check_steps(self) -> None:
             # Get steps exercise ID
             steps_exercise_id = self.id_steps
 
-            # Check if steps exercise exists
-            steps_rows = self.db_manager.get_rows(
-                "SELECT name FROM exercises WHERE _id = :id", {"id": steps_exercise_id}
-            )
-
-            if not steps_rows:
+            # Check if steps exercise exists using database manager
+            if not self.db_manager.check_exercise_exists(steps_exercise_id):
                 QMessageBox.warning(
                     self, "Steps Exercise Not Found", f"Exercise with ID {steps_exercise_id} not found in database."
                 )
                 return
 
-            steps_exercise_name = steps_rows[0][0]
+            steps_exercise_name = self.db_manager.get_exercise_name_by_id(steps_exercise_id)
+            if not steps_exercise_name:
+                return
 
-            # Get all steps records ordered by date
-            # Fixed: renamed 'values' to 'step_values' to avoid SQL reserved word conflict
-            steps_records = self.db_manager.get_rows(
-                """
-                SELECT date, COUNT(*) as record_count, GROUP_CONCAT(value, ', ') as step_values
-                FROM process
-                WHERE _id_exercises = :id
-                AND date IS NOT NULL
-                GROUP BY date
-                ORDER BY date ASC
-            """,
-                {"id": steps_exercise_id},
-            )
+            # Get steps records using database manager
+            steps_records = self.db_manager.get_exercise_steps_records(steps_exercise_id)
 
             if not steps_records:
                 # Show empty table with message
-                empty_model = QStandardItemModel()
-                empty_model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
-
-                # Add a single row with message
-                items = [
-                    QStandardItem("No Data"),
-                    QStandardItem(""),
-                    QStandardItem(f"No records found for exercise: {steps_exercise_name}"),
+                empty_data = [
+                    ["No Data", "", f"No records found for exercise: {steps_exercise_name}", 0, QColor(255, 255, 255)]
                 ]
-                empty_model.appendRow(items)
 
-                self.tableView_statistics.setModel(empty_model)
-
-                # Configure header with mixed approach: interactive + stretch last
-                header = self.tableView_statistics.horizontalHeader()
-                # Set first columns to interactive (resizable)
-                for i in range(header.count() - 1):
-                    header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-                # Set last column to stretch to fill remaining space
-                header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-                # Set default column widths for resizable columns
-                for i in range(header.count() - 1):
-                    self.tableView_statistics.setColumnWidth(i, 150)
+                self.models["statistics"] = self._create_colored_table_model(
+                    empty_data, ["Issue Type", "Date", "Details"]
+                )
+                self.tableView_statistics.setModel(self.models["statistics"])
 
                 # Update statistics AVIF
                 self._update_statistics_avif()
@@ -6138,6 +5923,7 @@ def on_check_steps(self) -> None:
                             "Missing Day",
                             formatted_date,
                             details,
+                            0,  # Dummy ID
                             QColor(255, 182, 193),  # Light pink for missing days
                         ]
                     )
@@ -6159,6 +5945,7 @@ def on_check_steps(self) -> None:
                             "Duplicate Day",
                             formatted_date,
                             details,
+                            0,  # Dummy ID
                             QColor(255, 255, 182),  # Light yellow for duplicate days
                         ]
                     )
@@ -6168,37 +5955,24 @@ def on_check_steps(self) -> None:
             # Sort by date (most recent issues first)
             table_data.sort(key=lambda x: x[1], reverse=True)
 
-            # Create and populate model
-            model = QStandardItemModel()
-            model.setHorizontalHeaderLabels(["Issue Type", "Date", "Details"])
-
             if not table_data:
                 # No issues found
-                items = [
-                    QStandardItem("✅ All Good"),
-                    QStandardItem(""),
-                    QStandardItem(f"No missing or duplicate days found for {steps_exercise_name}"),
+                table_data = [
+                    [
+                        "✅ All Good",
+                        "",
+                        f"No missing or duplicate days found for {steps_exercise_name}",
+                        0,  # Dummy ID
+                        QColor(144, 238, 144),  # Light green
+                    ]
                 ]
-                for item in items:
-                    item.setBackground(QBrush(QColor(144, 238, 144)))  # Light green
-                model.appendRow(items)
-            else:
-                # Add issues to table
-                for row_data in table_data:
-                    items = []
-                    row_color = row_data[3]  # Get the color from the last element
 
-                    # Create items for display columns only (first 3 elements)
-                    for _col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
-                        item = QStandardItem(str(value))
-                        item.setBackground(QBrush(row_color))
-                        items.append(item)
+            # Create model using the standard method
+            self.models["statistics"] = self._create_colored_table_model(table_data, ["Issue Type", "Date", "Details"])
+            self.tableView_statistics.setModel(self.models["statistics"])
 
-                    model.appendRow(items)
-
-            # Set model to table view
-            self.tableView_statistics.setModel(model)
-            self.models["statistics"] = None  # Clear the model reference since it's not a proxy model
+            # Connect selection signal for statistics table
+            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()

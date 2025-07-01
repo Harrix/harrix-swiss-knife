@@ -248,6 +248,19 @@ class DatabaseManager:
         query = "INSERT INTO weight (value, date) VALUES (:val, :dt)"
         return self.execute_simple_query(query, {"val": value, "dt": date})
 
+    def check_exercise_exists(self, exercise_id: int) -> bool:
+        """Check if exercise exists by ID.
+
+        Args:
+            exercise_id: Exercise ID to check
+
+        Returns:
+            True if exercise exists, False otherwise
+
+        """
+        rows = self.get_rows("SELECT 1 FROM exercises WHERE _id = :id LIMIT 1", {"id": exercise_id})
+        return len(rows) > 0
+
     def close(self) -> None:
         """Close the database connection."""
         db = getattr(self, "db", None)
@@ -644,6 +657,92 @@ class DatabaseManager:
 
         rows = self.get_rows(query, params)
         return [(row[0], row[1]) for row in rows]
+
+    def get_exercise_max_values(
+        self, exercise_id: int, type_id: int, date_from: str | None = None
+    ) -> tuple[float, float]:
+        """Get all-time and yearly max values for an exercise.
+
+        Args:
+            exercise_id: Exercise ID
+            type_id: Type ID (-1 for no type)
+            date_from: Start date for yearly calculation (YYYY-MM-DD)
+
+        Returns:
+            Tuple of (all_time_max, yearly_max)
+
+        """
+        conditions = ["p._id_exercises = :ex_id"]
+        params = {"ex_id": exercise_id}
+
+        if type_id != -1:
+            conditions.append("p._id_types = :type_id")
+            params["type_id"] = type_id
+        else:
+            conditions.append("p._id_types = -1")
+
+        # Get all-time max
+        all_time_query = f"""
+            SELECT MAX(CAST(p.value AS REAL)) as max_value
+            FROM process p
+            WHERE {" AND ".join(conditions)}"""
+
+        all_time_rows = self.get_rows(all_time_query, params)
+        all_time_max = float(all_time_rows[0][0]) if all_time_rows and all_time_rows[0][0] is not None else 0.0
+
+        # Get yearly max if date_from provided
+        yearly_max = 0.0
+        if date_from:
+            yearly_conditions = [*conditions, "p.date >= :year_ago"]
+            yearly_params = params.copy()
+            yearly_params["year_ago"] = date_from
+
+            yearly_query = f"""
+                SELECT MAX(CAST(p.value AS REAL)) as max_value
+                FROM process p
+                WHERE {" AND ".join(yearly_conditions)}"""
+
+            yearly_rows = self.get_rows(yearly_query, yearly_params)
+            yearly_max = float(yearly_rows[0][0]) if yearly_rows and yearly_rows[0][0] is not None else 0.0
+
+        return all_time_max, yearly_max
+
+    def get_exercise_name_by_id(self, exercise_id: int) -> str | None:
+        """Get exercise name by ID.
+
+        Args:
+            exercise_id: Exercise ID
+
+        Returns:
+            Exercise name or None if not found
+
+        """
+        rows = self.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
+        return rows[0][0] if rows else None
+
+    def get_exercise_steps_records(self, exercise_id: int) -> list[tuple[str, int, str]]:
+        """Get steps records grouped by date.
+
+        Args:
+            exercise_id: Exercise ID for steps
+
+        Returns:
+            List of (date, record_count, values) tuples
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT date, COUNT(*) as record_count, GROUP_CONCAT(value, ', ') as step_values
+            FROM process
+            WHERE _id_exercises = :id
+            AND date IS NOT NULL
+            GROUP BY date
+            ORDER BY date ASC""",
+            {"id": exercise_id},
+        )
+
+        # Convert to proper tuple format
+        return [(row[0], int(row[1]), row[2]) for row in rows]
 
     def get_exercise_total_today(self, exercise_id: int) -> float:
         """Get the total value for a specific exercise today.
