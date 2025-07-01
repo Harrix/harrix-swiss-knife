@@ -146,11 +146,17 @@ CLI commands after installation.
 Example an action:
 
 ```python
-class on_check_featured_image_in_folders(action_base.ActionBase):
-    """Docstring."""
+class OnCheckFeaturedImageInFolders(action_base.ActionBase):
+    """Check for featured image files in all configured folders.
+
+    This action automatically checks all directories specified in the
+    paths_with_featured_image configuration setting for the presence of
+    files named `featured_image` with any extension, providing a status
+    report for each directory.
+    """
 
     icon = "✅"
-    title = "Check featured_image.*"
+    title = "Check featured_image"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -166,8 +172,13 @@ class on_check_featured_image_in_folders(action_base.ActionBase):
 Examples an action with QThread:
 
 ```python
-class on_npm_update_packages(action_base.ActionBase):
-    """Docstring."""
+class OnNpmUpdatePackages(action_base.ActionBase):
+    """Update NPM itself and all globally installed packages.
+
+    This action first updates the npm package manager to its latest version,
+    then updates all globally installed npm packages to their latest versions,
+    ensuring the development environment has the most current tools available.
+    """
 
     icon = "📥"
     title = "Update NPM and global NPM packages"
@@ -181,7 +192,7 @@ class on_npm_update_packages(action_base.ActionBase):
         commands = "npm update npm -g\nnpm update -g"
         return h.dev.run_powershell_script(commands)
 
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Update completed")
         self.add_line(result)
@@ -189,15 +200,26 @@ class on_npm_update_packages(action_base.ActionBase):
 ```
 
 ```python
-class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
-    """Docstring."""
+class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
+    """Format and sort Python code in a selected folder using multiple tools.
+
+    This action applies a comprehensive code formatting and organization workflow to all
+    Python files in a user-selected directory. The process consists of three steps:
+
+    1. Running isort to organize and standardize imports
+    2. Applying ruff format to enforce consistent code style and formatting
+    3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
+       such as classes, methods, and functions in a consistent order
+    """
 
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select Project folder", config["path_github"])
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select Project folder", config["paths_python_projects"], config["path_github"]
+        )
         if not self.folder_path:
             return
 
@@ -205,7 +227,9 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        commands = f"cd {self.folder_path}\nisort .\nruff format"
+        if self.folder_path is None:
+            return
+        commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
@@ -218,7 +242,7 @@ class on_sort_isort_fmt_python_code_folder(action_base.ActionBase):
 Example an action with sequence of QThread:
 
 ```python
-class on_harrix_action_with_sequence_of_thread(action_base.ActionBase):
+class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
     """Docstring."""
 
     icon = "👷‍♂️"
