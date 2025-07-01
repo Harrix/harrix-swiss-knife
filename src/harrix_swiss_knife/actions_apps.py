@@ -2,13 +2,10 @@
 
 from typing import Any
 
-import harrix_pylib as h
 from shiboken6 import isValid
 
 from harrix_swiss_knife import action_base
 from harrix_swiss_knife.fitness import main
-
-config = h.dev.load_config("config/config.json")
 
 
 class OnFitness(action_base.ActionBase):

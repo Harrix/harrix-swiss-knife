@@ -210,7 +210,7 @@ class OnNpmInstallPackages(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
+        commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
         return h.dev.run_powershell_script(commands)
 
     def thread_after(self, result: Any) -> None:
@@ -253,7 +253,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        commands = "\n".join([f"npm i -g {package}" for package in config["npm_packages"]])
+        commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
         return h.dev.run_powershell_script(commands)
 ```
 
@@ -398,7 +398,7 @@ class OnOpenConfigJson(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
+        commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
 ```
@@ -418,7 +418,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        commands = f"{config['editor']} {h.dev.get_project_root() / 'config/config.json'}"
+        commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
 ```

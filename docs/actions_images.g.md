@@ -504,7 +504,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
+        self.folder_path = self.get_existing_directory("Select a folder", self.config["path_articles"])
         if not self.folder_path:
             return
 
@@ -556,7 +556,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_existing_directory("Select a folder", config["path_articles"])
+        self.folder_path = self.get_existing_directory("Select a folder", self.config["path_articles"])
         if not self.folder_path:
             return
 
@@ -648,7 +648,7 @@ class OnOptimizeFile(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         filename = self.get_open_filename(
             "Select an Image File",
-            config["path_articles"],
+            self.config["path_articles"],
             "Image Files (*.jpg *.jpeg *.webp *.png *.svg);;All Files (*)",
         )
         if not filename:
@@ -683,7 +683,7 @@ Execute the code. Main method for the action.
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         filename = self.get_open_filename(
             "Select an Image File",
-            config["path_articles"],
+            self.config["path_articles"],
             "Image Files (*.jpg *.jpeg *.webp *.png *.svg);;All Files (*)",
         )
         if not filename:

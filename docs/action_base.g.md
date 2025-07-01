@@ -15,6 +15,7 @@ lang: en
   - [Method `__init__`](#method-__init__)
   - [Method `__call__`](#method-__call__)
   - [Method `add_line`](#method-add_line)
+  - [Method `config`](#method-config)
   - [Method `execute`](#method-execute)
   - [Method `get_choice_from_list`](#method-get_choice_from_list)
   - [Method `get_existing_directory`](#method-get_existing_directory)
@@ -56,6 +57,7 @@ class ActionBase:
 
     icon = ""
     title = ""
+    config_path = "config/config.json"
 
     def __init__(self, **kwargs: Any) -> None:  # noqa: ARG002
         """Initialize the action with a temporary output file.
@@ -100,6 +102,11 @@ class ActionBase:
             f.write(line + "\n")
         print(line)
         self.result_lines.append(line)
+
+    @property
+    def config(self) -> dict:
+        """Get current configuration (reloads every time)."""
+        return h.dev.load_config(self.config_path)
 
     def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
         """Execute the action logic (must be implemented by subclasses).
@@ -587,6 +594,24 @@ def add_line(self, line: str) -> None:
             f.write(line + "\n")
         print(line)
         self.result_lines.append(line)
+```
+
+</details>
+
+### Method `config`
+
+```python
+def config(self) -> dict
+```
+
+Get current configuration (reloads every time).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def config(self) -> dict:
+        return h.dev.load_config(self.config_path)
 ```
 
 </details>

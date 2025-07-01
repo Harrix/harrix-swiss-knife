@@ -30,8 +30,6 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import toast_countdown_notification, toast_notification
 
-config = h.dev.load_config("config/config.json")
-
 
 class ActionBase:
     """Base class for actions that can be executed and produce output.
@@ -49,6 +47,7 @@ class ActionBase:
 
     icon = ""
     title = ""
+    config_path = "config/config.json"
 
     def __init__(self, **kwargs: Any) -> None:  # noqa: ARG002
         """Initialize the action with a temporary output file.
@@ -93,6 +92,11 @@ class ActionBase:
             f.write(line + "\n")
         print(line)
         self.result_lines.append(line)
+
+    @property
+    def config(self) -> dict:
+        """Get current configuration (reloads every time)."""
+        return h.dev.load_config(self.config_path)
 
     def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
         """Execute the action logic (must be implemented by subclasses).

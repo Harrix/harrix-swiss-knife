@@ -7,8 +7,6 @@ import harrix_pylib as h
 
 from harrix_swiss_knife import action_base
 
-config = h.dev.load_config("config/config.json")
-
 
 class OnAllFilesToParentFolder(action_base.ActionBase):
     """Move and flatten files from nested directories.
@@ -23,7 +21,7 @@ class OnAllFilesToParentFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -45,7 +43,7 @@ class OnBlockDisks(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in config["block_drives"]])
+        commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in self.config["block_drives"]])
         result = h.dev.run_powershell_script_as_admin(commands)
         self.add_line(result)
         self.show_result()
@@ -64,7 +62,7 @@ class OnCheckFeaturedImage(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -90,7 +88,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        for path in config["paths_with_featured_image"]:
+        for path in self.config["paths_with_featured_image"]:
             try:
                 result = h.file.check_featured_image(path)[1]
             except Exception as e:
@@ -112,7 +110,7 @@ class OnOpenCameraUploads(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        for path in config["paths_camera_uploads"]:
+        for path in self.config["paths_camera_uploads"]:
             h.file.open_file_or_folder(Path(path))
         self.add_line('The folders from "Camera Uploads" is opened.')
 
@@ -130,7 +128,7 @@ class OnTreeViewFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -171,7 +169,7 @@ class RenameLargestImagesToFeaturedImage(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", config["path_3d"])
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
         if folder_path is None:
             return
 

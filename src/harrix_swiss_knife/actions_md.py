@@ -8,8 +8,6 @@ import harrix_pylib as h
 
 from harrix_swiss_knife import action_base, funcs, markdown_checker
 
-config = h.dev.load_config("config/config.json")
-
 
 class OnBeautifyMdNotesFolder(action_base.ActionBase):
     """Apply comprehensive beautification to all Markdown notes.
@@ -35,7 +33,7 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", config["paths_notes"], config["path_notes"]
+            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
         )
         if not self.folder_path:
             return
@@ -62,7 +60,7 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
 
             # Generate summaries
             self.add_line("🔵 Generate summaries")
-            for path_notes_for_summaries in config["paths_notes_for_summaries"]:
+            for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
                 if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(self.folder_path).resolve()):
                     self.add_line(h.md.generate_summaries(path_notes_for_summaries))
 
@@ -98,7 +96,7 @@ class OnCheckMd(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
             "Open Markdown file",
-            config["path_notes"],
+            self.config["path_notes"],
             "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
@@ -133,7 +131,7 @@ class OnCheckMdFolder(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", config["paths_notes"], config["path_notes"]
+            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
         )
         if not self.folder_path:
             return
@@ -171,7 +169,7 @@ class OnCombineMarkdownFiles(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_notes"])
+        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -208,7 +206,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
             "Open Markdown file",
-            config["path_notes"],
+            self.config["path_notes"],
             "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
@@ -245,7 +243,9 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with Markdown files", self.config["path_articles"]
+        )
         if not self.folder_path:
             return
 
@@ -292,7 +292,9 @@ class OnFormatYaml(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with Markdown files", self.config["path_articles"]
+        )
         if not self.folder_path:
             return
 
@@ -326,7 +328,7 @@ class OnGenerateAuthorBook(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with quotes", config["path_quotes"])
+        self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
         if not self.folder_path:
             return
 
@@ -363,7 +365,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
             "Open Markdown file",
-            config["path_articles"],
+            self.config["path_articles"],
             "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
@@ -399,7 +401,9 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with Markdown files", self.config["path_articles"]
+        )
         if not self.folder_path:
             return
 
@@ -435,7 +439,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
             "Open Markdown file",
-            config["path_articles"],
+            self.config["path_articles"],
             "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
@@ -472,7 +476,7 @@ class OnGenerateToc(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
             "Open Markdown file",
-            config["path_articles"],
+            self.config["path_articles"],
             "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
@@ -508,7 +512,9 @@ class OnGenerateTocFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with Markdown files", self.config["path_articles"]
+        )
         if not self.folder_path:
             return
 
@@ -598,7 +604,7 @@ class OnNewArticle(action_base.ActionBase):
 
         article_name = article_name.replace(" ", "-")
 
-        text = config["beginning_of_article"].replace(
+        text = self.config["beginning_of_article"].replace(
             "[YEAR]",
             datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y"),
         )
@@ -606,8 +612,10 @@ class OnNewArticle(action_base.ActionBase):
         text = text.replace("[DATE]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d"))
         text += f"\n# {article_name}\n\n\n"
 
-        result, filename = h.md.add_note(Path(config["path_articles"]), article_name, text, is_with_images=True)
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_articles"]}" "{filename}"')
+        result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)
+        h.dev.run_powershell_script(
+            f'{self.config["editor"]} "{self.config["vscode_workspace_articles"]}" "{filename}"'
+        )
         self.add_line(result)
 
 
@@ -624,8 +632,8 @@ class OnNewDiary(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        result, filename = h.md.add_diary_new_dairy_in_year(config["path_diary"], config["beginning_of_md"])
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{filename}"')
+        result, filename = h.md.add_diary_new_dairy_in_year(self.config["path_diary"], self.config["beginning_of_md"])
+        h.dev.run_powershell_script(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
@@ -642,8 +650,8 @@ class OnNewDiaryDream(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        result, filename = h.md.add_diary_new_dream_in_year(config["path_dream"], config["beginning_of_md"])
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{filename}"')
+        result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
+        h.dev.run_powershell_script(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
@@ -660,7 +668,7 @@ class OnNewNoteDialog(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        filename = self.get_save_filename("Save Note", config["path_notes"], "Markdown (*.md);;All Files (*)")
+        filename = self.get_save_filename("Save Note", self.config["path_notes"], "Markdown (*.md);;All Files (*)")
         if not filename:
             return
 
@@ -669,12 +677,12 @@ class OnNewNoteDialog(action_base.ActionBase):
 
         is_with_images = kwargs.get("is_with_images", False)
 
-        text = config["beginning_of_md"] + f"\n# {filename.stem}\n\n\n"
+        text = self.config["beginning_of_md"] + f"\n# {filename.stem}\n\n\n"
 
         filename_final = filename.stem.replace("-", "--").replace(" ", "-")
 
         result, filename = h.md.add_note(filename.parent, filename_final, text, is_with_images=is_with_images)
-        h.dev.run_powershell_script(f'{config["editor"]} "{config["vscode_workspace_notes"]}" "{filename}"')
+        h.dev.run_powershell_script(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
@@ -707,7 +715,7 @@ class OnOptimizeImages(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
             "Open Markdown file",
-            config["path_notes"],
+            self.config["path_notes"],
             "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:
@@ -743,7 +751,9 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with Markdown files", self.config["path_articles"]
+        )
         if not self.folder_path:
             return
 
@@ -772,7 +782,9 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_articles"])
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with Markdown files", self.config["path_articles"]
+        )
         if not self.folder_path:
             return
 
@@ -801,7 +813,9 @@ class OnPettierFolder(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", config["path_github"])
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with Markdown files", self.config["path_github"]
+        )
         if not self.folder_path:
             return
 
@@ -848,7 +862,7 @@ class OnSortSections(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
             "Open Markdown file",
-            config["path_notes"],
+            self.config["path_notes"],
             "Markdown (*.md);;All Files (*)",
         )
         if not self.filename:

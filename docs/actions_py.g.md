@@ -69,7 +69,7 @@ class OnExtractFunctionsAndClasses(action_base.ActionBase):
         """Execute the code. Main method for the action."""
         filename = self.get_open_filename(
             "Select an Python File",
-            config["path_github"],
+            self.config["path_github"],
             "Python Files (*.py);;All Files (*)",
         )
         if not filename:
@@ -97,7 +97,7 @@ Execute the code. Main method for the action.
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         filename = self.get_open_filename(
             "Select an Python File",
-            config["path_github"],
+            self.config["path_github"],
             "Python Files (*.py);;All Files (*)",
         )
         if not filename:
@@ -152,7 +152,7 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        folder_path = Path(config["path_github"]) / "harrix-pylib"
+        folder_path = Path(self.config["path_github"]) / "harrix-pylib"
         if folder_path is None:
             return
 
@@ -162,8 +162,8 @@ class OnHarrixPylib01Prepare(action_base.ActionBase):
         self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
         # Generate Markdown documentation
-        domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
-        result = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
+        domain = f"https://github.com/{self.config['github_user']}/{folder_path.parts[-1]}"
+        result = h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain)
         self.add_line(result)
 
         # Format Markdown files using Prettier
@@ -213,7 +213,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        folder_path = Path(config["path_github"]) / "harrix-pylib"
+        folder_path = Path(self.config["path_github"]) / "harrix-pylib"
         if folder_path is None:
             return
 
@@ -223,8 +223,8 @@ def in_thread(self) -> str | None:
         self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
         # Generate Markdown documentation
-        domain = f"https://github.com/{config['github_user']}/{folder_path.parts[-1]}"
-        result = h.py.generate_md_docs(folder_path, config["beginning_of_md_docs"], domain)
+        domain = f"https://github.com/{self.config['github_user']}/{folder_path.parts[-1]}"
+        result = h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain)
         self.add_line(result)
 
         # Format Markdown files using Prettier
@@ -294,7 +294,7 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.token = config["pypi_token"]
+        self.token = self.config["pypi_token"]
         if not self.token:
             self.token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
         if not self.token:
@@ -304,8 +304,8 @@ class OnHarrixPylib02Publish(action_base.ActionBase):
 
     def in_thread_01(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        self.path_library = Path(config["path_github"]) / "harrix-pylib"
-        self.projects = [Path(config["path_github"]) / "harrix-swiss-knife"]
+        self.path_library = Path(self.config["path_github"]) / "harrix-pylib"
+        self.projects = [Path(self.config["path_github"]) / "harrix-swiss-knife"]
 
         # Increase version of harrix-pylib
         commands = f"""
@@ -390,7 +390,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.token = config["pypi_token"]
+        self.token = self.config["pypi_token"]
         if not self.token:
             self.token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
         if not self.token:
@@ -414,8 +414,8 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread_01(self) -> str | None:
-        self.path_library = Path(config["path_github"]) / "harrix-pylib"
-        self.projects = [Path(config["path_github"]) / "harrix-swiss-knife"]
+        self.path_library = Path(self.config["path_github"]) / "harrix-pylib"
+        self.projects = [Path(self.config["path_github"]) / "harrix-swiss-knife"]
 
         # Increase version of harrix-pylib
         commands = f"""
@@ -589,11 +589,14 @@ class OnNewUvProject(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        path = config["path_py_projects"]
-        max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
-        name_project: str = f"{config['start_pattern_py_projects']}{f'{(max_project_number + 1):02}'}"
+        path = self.config["path_py_projects"]
+        start_pattern_py_projects = self.config["start_pattern_py_projects"]
+        max_project_number = h.file.find_max_folder_number(path, start_pattern_py_projects)
+        name_project: str = f"{start_pattern_py_projects}{f'{(max_project_number + 1):02}'}"
 
-        self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
+        self.add_line(
+            h.py.create_uv_new_project(name_project, path, self.config["editor"], self.config["cli_commands"])
+        )
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -634,11 +637,14 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        path = config["path_py_projects"]
-        max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
-        name_project: str = f"{config['start_pattern_py_projects']}{f'{(max_project_number + 1):02}'}"
+        path = self.config["path_py_projects"]
+        start_pattern_py_projects = self.config["start_pattern_py_projects"]
+        max_project_number = h.file.find_max_folder_number(path, start_pattern_py_projects)
+        name_project: str = f"{start_pattern_py_projects}{f'{(max_project_number + 1):02}'}"
 
-        self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
+        self.add_line(
+            h.py.create_uv_new_project(name_project, path, self.config["editor"], self.config["cli_commands"])
+        )
 ```
 
 </details>
@@ -697,7 +703,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
         if not self.project_name:
             return
 
-        self.folder_path = self.get_existing_directory("Select Project folder", config["path_py_projects"])
+        self.folder_path = self.get_existing_directory("Select Project folder", self.config["path_py_projects"])
         if not self.folder_path:
             return
 
@@ -711,8 +717,8 @@ class OnNewUvProjectDialog(action_base.ActionBase):
             h.py.create_uv_new_project(
                 self.project_name.replace(" ", "-"),
                 self.folder_path,
-                config["editor"],
-                config["cli_commands"],
+                self.config["editor"],
+                self.config["cli_commands"],
             ),
         )
 
@@ -744,7 +750,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if not self.project_name:
             return
 
-        self.folder_path = self.get_existing_directory("Select Project folder", config["path_py_projects"])
+        self.folder_path = self.get_existing_directory("Select Project folder", self.config["path_py_projects"])
         if not self.folder_path:
             return
 
@@ -772,8 +778,8 @@ def in_thread(self) -> str | None:
             h.py.create_uv_new_project(
                 self.project_name.replace(" ", "-"),
                 self.folder_path,
-                config["editor"],
-                config["cli_commands"],
+                self.config["editor"],
+                self.config["cli_commands"],
             ),
         )
 ```
@@ -831,7 +837,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", config["paths_python_projects"], config["path_github"]
+            "Select Project folder", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -847,8 +853,8 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
-        domain = f"https://github.com/{config['github_user']}/{self.folder_path.parts[-1]}"
-        self.add_line(h.py.generate_md_docs(self.folder_path, config["beginning_of_md_docs"], domain))
+        domain = f"https://github.com/{self.config['github_user']}/{self.folder_path.parts[-1]}"
+        self.add_line(h.py.generate_md_docs(self.folder_path, self.config["beginning_of_md_docs"], domain))
 
         commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         self.add_line(h.dev.run_powershell_script(commands))
@@ -875,7 +881,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", config["paths_python_projects"], config["path_github"]
+            "Select Project folder", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -905,8 +911,8 @@ def in_thread(self) -> str | None:
         self.add_line(h.dev.run_powershell_script(commands))
         self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
 
-        domain = f"https://github.com/{config['github_user']}/{self.folder_path.parts[-1]}"
-        self.add_line(h.py.generate_md_docs(self.folder_path, config["beginning_of_md_docs"], domain))
+        domain = f"https://github.com/{self.config['github_user']}/{self.folder_path.parts[-1]}"
+        self.add_line(h.py.generate_md_docs(self.folder_path, self.config["beginning_of_md_docs"], domain))
 
         commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         self.add_line(h.dev.run_powershell_script(commands))
@@ -961,7 +967,7 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", config["paths_python_projects"], config["path_github"]
+            "Select Project folder", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -998,7 +1004,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", config["paths_python_projects"], config["path_github"]
+            "Select Project folder", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
