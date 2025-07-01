@@ -4,7 +4,7 @@
   "beginning_of_md_docs": "snippet:config/beginning-of-md-docs.md",
   "block_drives": ["E", "F"],
   "cli_commands": "snippet:config/cli-commands.md",
-  "editor": "code-insiders",
+  "editor": "cursor",
   "github_user": "Harrix",
   "npm_packages": ["npm-check-updates", "prettier"],
   "path_3d": "D:/Downloads",
