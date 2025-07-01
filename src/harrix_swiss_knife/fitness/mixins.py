@@ -18,13 +18,13 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import QDate, Qt
+from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QDateEdit, QLabel, QMessageBox
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from matplotlib.axes import Axes
-    from PySide6.QtGui import QStandardItemModel
     from PySide6.QtWidgets import QLayout
 
 # Type variables for decorators
@@ -793,37 +793,27 @@ class TableOperations:
 
         Returns:
         - `int | None`: Database ID of selected row or None if no selection.
+
         """
-        if table_name not in self.table_config:
-            return None
-
-        table_view, model_key, _ = self.table_config[table_name]
-        model = self.models[model_key]
-        if model is None:
-            return None
-
-        index = table_view.currentIndex()
-        if not index.isValid():
-            return None
-
-        row = index.row()
-
-        # Get the ID from the vertical header of the source model
-        source_model = model.sourceModel()
-        if source_model is None:
-            return None
-
-        # Check if source model is QStandardItemModel (which has verticalHeaderItem method)
-        if not isinstance(source_model, QStandardItemModel):
-            return None
-
-        vertical_header_item = source_model.verticalHeaderItem(row)
-        if vertical_header_item is None:
-            return None
-
         try:
-            return int(vertical_header_item.text())
-        except (ValueError, TypeError):
+            table_view, model_key, _ = self.table_config[table_name]
+            model = self.models[model_key]
+
+            if model is None:
+                return None
+
+            index = table_view.currentIndex()
+            if not index.isValid():
+                return None
+
+            source_model = model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return None
+
+            vertical_header_item = source_model.verticalHeaderItem(index.row())
+            return int(vertical_header_item.text()) if vertical_header_item else None
+
+        except (KeyError, ValueError, TypeError, AttributeError):
             return None
 
     def _refresh_table(
