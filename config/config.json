@@ -44,11 +44,7 @@
     "C:/GitHub/_content__harrix-dev/harrix.dev-articles-2025-en",
     "C:/GitHub/_content__harrix-dev/harrix.dev-games"
   ],
-  "paths_python_projects": [
-    "C:/GitHub/harrix-swiss-knife",
-    "C:/GitHub/harrix-pylib",
-    "C:/GitHub/harrix-pyssg"
-  ],
+  "paths_python_projects": ["C:/GitHub/harrix-swiss-knife", "C:/GitHub/harrix-pylib", "C:/GitHub/harrix-pyssg"],
   "paths_with_featured_image": [
     "D:/Dropbox/IT/3D printer/Models/Print",
     "D:/Dropbox/IT/3D printer/Models/Printed",
@@ -67,7 +63,7 @@
     "D:/Dropbox/IT/3D printer/Models - Science/Unprinted"
   ],
   "pypi_token": "snippet:config/pypi-token.txt",
-  "start_pattern_py_projects": "python_project_",
+  "start_pattern_py_projects": "python-project-",
   "sqlite_fitness": "D:/Dropbox/Lists/fitness.db",
   "vscode_workspace_articles": "D:/Dropbox/_Temp/_VS Code Workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_notes": "D:/Dropbox/_Temp/_VS Code Workspaces/Notes.code-workspace"

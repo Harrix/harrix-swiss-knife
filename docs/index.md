@@ -99,7 +99,7 @@ _Figure 1: Screenshot_
   git clone https://github.com/Harrix/harrix-swiss-knife.git
   ```
 
-- Open the folder `C:/GitHub/harrix-swiss-knife` in VSCode.
+- Open the folder `C:/GitHub/harrix-swiss-knife` in VSCode (or Cursor).
 
 - Open a terminal `Ctrl` + `` ` ``.
 
@@ -117,7 +117,7 @@ _Figure 1: Screenshot_
 
 - Open `src\harrix-swiss-knife\main.py` and run.
 
-After you can run the script from a terminal (or VSCode):
+After you can run the script from a terminal (or VSCode, or Cursor):
 
 ```shell
 c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
@@ -144,9 +144,9 @@ CLI commands after installation.
 
 ### Add a new action
 
-- Add a new action `class on_<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
+- Add a new action `class On<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
 - Site for searching emojis <https://emojidb.org/>.
-- In `main.py` add action `self.add_item(self.menu_<section>, hsk.md.on_<action>)` in `<section>`.
+- In `main.py` add action `self.add_items(...)` in `<section>`.
 - From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort in PY files` and select the folder `harrix_swiss_knife`.
 
 Example an action:

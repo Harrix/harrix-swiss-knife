@@ -229,8 +229,9 @@ class OnNewUvProject(action_base.ActionBase):
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         path = config["path_py_projects"]
-        max_project_number = h.file.find_max_folder_number(path, config["start_pattern_py_projects"])
-        name_project: str = f"python_project_{f'{(max_project_number + 1):02}'}"
+        start_pattern_py_projects = config["start_pattern_py_projects"]
+        max_project_number = h.file.find_max_folder_number(path, start_pattern_py_projects)
+        name_project: str = f"{start_pattern_py_projects}{f'{(max_project_number + 1):02}'}"
 
         self.add_line(h.py.create_uv_new_project(name_project, path, config["editor"], config["cli_commands"]))
 
