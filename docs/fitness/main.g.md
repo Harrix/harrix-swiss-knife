@@ -789,13 +789,10 @@ class MainWindow(
         """Get the database ID of the currently selected row.
 
         Args:
-
         - `table_name` (`str`): Name of the table.
 
         Returns:
-
         - `int | None`: Database ID of selected row or None if no selection.
-
         """
         if table_name not in self.table_config:
             return None
@@ -810,12 +807,23 @@ class MainWindow(
             return None
 
         row = index.row()
-        # Try to get the ID from the first column of the source model
-        source_index = model.mapToSource(model.index(row, 0))
-        id_data = model.sourceModel().data(source_index, Qt.ItemDataRole.DisplayRole)
+
+        # Get the ID from the vertical header of the source model
+        source_model = model.sourceModel()
+        if source_model is None:
+            return None
+
+        # Check if source model is QStandardItemModel (which has verticalHeaderItem method)
+        if not isinstance(source_model, QStandardItemModel):
+            return None
+
+        vertical_header_item = source_model.verticalHeaderItem(row)
+        if vertical_header_item is None:
+            return None
+
         try:
-            return int(id_data)
-        except (TypeError, ValueError):
+            return int(vertical_header_item.text())
+        except (ValueError, TypeError):
             return None
 
     def _init_database(self) -> None:
@@ -4451,12 +4459,23 @@ def _get_selected_row_id(self, table_name: str) -> int | None:
             return None
 
         row = index.row()
-        # Try to get the ID from the first column of the source model
-        source_index = model.mapToSource(model.index(row, 0))
-        id_data = model.sourceModel().data(source_index, Qt.ItemDataRole.DisplayRole)
+
+        # Get the ID from the vertical header of the source model
+        source_model = model.sourceModel()
+        if source_model is None:
+            return None
+
+        # Check if source model is QStandardItemModel (which has verticalHeaderItem method)
+        if not isinstance(source_model, QStandardItemModel):
+            return None
+
+        vertical_header_item = source_model.verticalHeaderItem(row)
+        if vertical_header_item is None:
+            return None
+
         try:
-            return int(id_data)
-        except (TypeError, ValueError):
+            return int(vertical_header_item.text())
+        except (ValueError, TypeError):
             return None
 ```
 
