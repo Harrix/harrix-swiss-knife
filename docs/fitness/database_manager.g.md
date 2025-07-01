@@ -725,16 +725,18 @@ class DatabaseManager:
         """Get all-time and yearly max values for an exercise.
 
         Args:
-            exercise_id: Exercise ID
-            type_id: Type ID (-1 for no type)
-            date_from: Start date for yearly calculation (YYYY-MM-DD)
+
+        `exercise_id` (`int`): Exercise ID
+        `type_id` (`int`): Type ID (-1 for no type)
+        `date_from` (`str | None`): Start date for yearly calculation (YYYY-MM-DD). Default `None`.
 
         Returns:
-            Tuple of (all_time_max, yearly_max)
+
+        `tuple[float, float]`: Tuple of (all_time_max, yearly_max)
 
         """
         conditions = ["p._id_exercises = :ex_id"]
-        params = {"ex_id": exercise_id}
+        params: dict[str, Any] = {"ex_id": exercise_id}
 
         if type_id != -1:
             conditions.append("p._id_types = :type_id")
@@ -2331,12 +2333,14 @@ def get_exercise_max_values(self, exercise_id: int, type_id: int, date_from: str
 Get all-time and yearly max values for an exercise.
 
 Args:
-exercise_id: Exercise ID
-type_id: Type ID (-1 for no type)
-date_from: Start date for yearly calculation (YYYY-MM-DD)
+
+`exercise_id` (`int`): Exercise ID
+`type_id` (`int`): Type ID (-1 for no type)
+`date_from` (`str | None`): Start date for yearly calculation (YYYY-MM-DD). Default `None`.
 
 Returns:
-Tuple of (all_time_max, yearly_max)
+
+`tuple[float, float]`: Tuple of (all_time_max, yearly_max)
 
 <details>
 <summary>Code:</summary>
@@ -2346,7 +2350,7 @@ def get_exercise_max_values(
         self, exercise_id: int, type_id: int, date_from: str | None = None
     ) -> tuple[float, float]:
         conditions = ["p._id_exercises = :ex_id"]
-        params = {"ex_id": exercise_id}
+        params: dict[str, Any] = {"ex_id": exercise_id}
 
         if type_id != -1:
             conditions.append("p._id_types = :type_id")
