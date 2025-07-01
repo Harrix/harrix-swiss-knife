@@ -43,11 +43,11 @@ class MainMenuBase:
         if icon:
             action = QAction(self.get_icon(icon), action_instance.title)
             action.triggered.connect(action_instance)
-            setattr(action, "icon_name", icon)
+            setattr(action, "icon_name", icon)  # noqa: B010
         elif hasattr(action_instance, "icon") and action_instance.icon:
             action = QAction(self.get_icon(action_instance.icon), action_instance.title)
             action.triggered.connect(action_instance)
-            setattr(action, "icon_name", action_instance.icon)
+            setattr(action, "icon_name", action_instance.icon)  # noqa: B010
         else:
             action = QAction(action_instance.title)
 
