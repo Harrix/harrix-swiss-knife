@@ -66,8 +66,9 @@ class MarkdownChecker:
         """Initialize the MarkdownChecker with all available rules.
 
         Args:
-            project_root: Root directory of the project for relative path calculation.
-                         If None, will try to find git root or use current working directory.
+
+        - `project_root` (`Path | str | None`): Root directory of the project for relative path calculation.
+          If None, will try to find git root or use current working directory.
         """
         self.all_rules = set(self.RULES.keys())
         self.project_root = self._determine_project_root(project_root)
@@ -336,8 +337,9 @@ def __init__(self, project_root: Path | str | None = None) -> None
 Initialize the MarkdownChecker with all available rules.
 
 Args:
-project_root: Root directory of the project for relative path calculation.
-If None, will try to find git root or use current working directory.
+
+- `project_root` (`Path | str | None`): Root directory of the project for relative path calculation.
+  If None, will try to find git root or use current working directory.
 
 <details>
 <summary>Code:</summary>
