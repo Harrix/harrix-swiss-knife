@@ -180,10 +180,13 @@ class PythonChecker:
         """Check if text contains Russian letters.
 
         Args:
+
         - `text` (`str`): Text to check for Russian letters.
 
         Returns:
+
         - `bool`: `True` if text contains Russian letters, `False` otherwise.
+
         """
         return bool(re.search(r"[\u0430-\u044F\u0451\u0410-\u042F\u0401]", text))
 
