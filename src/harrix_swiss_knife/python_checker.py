@@ -6,201 +6,201 @@ from pathlib import Path
 from typing import ClassVar
 
 class PythonChecker:
-"""Class for checking Python files for compliance with specified rules.
+    """Class for checking Python files for compliance with specified rules.
 
-```
-Rules:
+    ```
+    Rules:
 
-- **P001** - Presence of Russian letters in the code.
-
-"""
-
-# Rule constants for easier maintenance
-RULES: ClassVar[dict[str, str]] = {
-    "P001": "Presence of Russian letters in the code",
-}
-
-def __init__(self, project_root: Path | str | None = None) -> None:
-    """Initialize the PythonChecker with all available rules.
-
-    Args:
-
-    - `project_root` (`Path | str | None`): Root directory of the project for relative path calculation.
-      If `None`, will try to find git root or use current working directory. Defaults to `None`.
+    - **P001** - Presence of Russian letters in the code.
 
     """
-    self.all_rules = set(self.RULES.keys())
-    self.project_root = self._determine_project_root(project_root)
 
-def __call__(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
-    """Check Python file for compliance with specified rules.
+    # Rule constants for easier maintenance
+    RULES: ClassVar[dict[str, str]] = {
+        "P001": "Presence of Russian letters in the code",
+    }
 
-    Args:
+    def __init__(self, project_root: Path | str | None = None) -> None:
+        """Initialize the PythonChecker with all available rules.
 
-    - `filename` (`Path | str`): Path to the Python file to check.
-    - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
+        Args:
 
-    Returns:
+        - `project_root` (`Path | str | None`): Root directory of the project for relative path calculation.
+        If `None`, will try to find git root or use current working directory. Defaults to `None`.
 
-    - `list[str]`: List of error messages found during checking.
+        """
+        self.all_rules = set(self.RULES.keys())
+        self.project_root = self._determine_project_root(project_root)
 
-    """
-    return self.check(filename, exclude_rules)
+    def __call__(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
+        """Check Python file for compliance with specified rules.
 
-def _check_all_rules(self, filename: Path, rules: set) -> Generator[str, None, None]:
-    """Generate all errors found during checking.
+        Args:
 
-    Args:
+        - `filename` (`Path | str`): Path to the Python file to check.
+        - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
 
-    - `filename` (`Path`): Path to the Python file being checked.
-    - `rules` (`set`): Set of rule codes to apply during checking.
+        Returns:
 
-    Yields:
+        - `list[str]`: List of error messages found during checking.
 
-    - `str`: Error message for each found issue.
+        """
+        return self.check(filename, exclude_rules)
 
-    """
-    try:
-        content = filename.read_text(encoding="utf-8")
-        lines = content.splitlines()
+    def _check_all_rules(self, filename: Path, rules: set) -> Generator[str, None, None]:
+        """Generate all errors found during checking.
 
-        yield from self._check_content_rules(filename, lines, rules)
+        Args:
 
-    except Exception as e:
-        yield self._format_error("P000", f"Exception error: {e}", filename)
+        - `filename` (`Path`): Path to the Python file being checked.
+        - `rules` (`set`): Set of rule codes to apply during checking.
 
-def _check_content_rules(self, filename: Path, lines: list[str], rules: set) -> Generator[str, None, None]:
-    """Check content-related rules.
+        Yields:
 
-    Args:
+        - `str`: Error message for each found issue.
 
-    - `filename` (`Path`): Path to the Python file being checked.
-    - `lines` (`list[str]`): All lines from the file.
-    - `rules` (`set`): Set of rule codes to apply during checking.
+        """
+        try:
+            content = filename.read_text(encoding="utf-8")
+            lines = content.splitlines()
 
-    Yields:
+            yield from self._check_content_rules(filename, lines, rules)
 
-    - `str`: Error message for each content-related issue found.
+        except Exception as e:
+            yield self._format_error("P000", f"Exception error: {e}", filename)
 
-    """
-    if "P001" not in rules:
-        return
+    def _check_content_rules(self, filename: Path, lines: list[str], rules: set) -> Generator[str, None, None]:
+        """Check content-related rules.
 
-    for line_num, line in enumerate(lines, 1):
-        if self._has_russian_letters(line):
-            col = self._find_russian_letters_position(line)
-            yield self._format_error("P001", self.RULES["P001"], filename, line_num=line_num, col=col)
+        Args:
 
-def _determine_project_root(self, project_root: Path | str | None) -> Path:
-    """Determine the project root directory.
+        - `filename` (`Path`): Path to the Python file being checked.
+        - `lines` (`list[str]`): All lines from the file.
+        - `rules` (`set`): Set of rule codes to apply during checking.
 
-    Args:
+        Yields:
 
-    - `project_root` (`Path | str | None`): Provided project root path.
+        - `str`: Error message for each content-related issue found.
 
-    Returns:
+        """
+        if "P001" not in rules:
+            return
 
-    - `Path`: Resolved project root directory.
+        for line_num, line in enumerate(lines, 1):
+            if self._has_russian_letters(line):
+                col = self._find_russian_letters_position(line)
+                yield self._format_error("P001", self.RULES["P001"], filename, line_num=line_num, col=col)
 
-    """
-    if project_root:
-        return Path(project_root).resolve()
+    def _determine_project_root(self, project_root: Path | str | None) -> Path:
+        """Determine the project root directory.
 
-    # Try to find git root
-    current = Path.cwd()
-    while current != current.parent:
-        if (current / ".git").exists():
-            return current
-        current = current.parent
+        Args:
 
-    # Fallback to current working directory
-    return Path.cwd()
+        - `project_root` (`Path | str | None`): Provided project root path.
 
-def _find_russian_letters_position(self, text: str) -> int:
-    """Find the position of the first Russian letter in text (1-based).
+        Returns:
 
-    Args:
+        - `Path`: Resolved project root directory.
 
-    - `text` (`str`): Text to search in.
+        """
+        if project_root:
+            return Path(project_root).resolve()
 
-    Returns:
+        # Try to find git root
+        current = Path.cwd()
+        while current != current.parent:
+            if (current / ".git").exists():
+                return current
+            current = current.parent
 
-    - `int`: Position of the first Russian letter (1-based), or 1 if not found.
+        # Fallback to current working directory
+        return Path.cwd()
 
-    """
-    match = re.search(r"[а-яёА-ЯЁ]", text)
-    return match.start() + 1 if match else 1
+    def _find_russian_letters_position(self, text: str) -> int:
+        """Find the position of the first Russian letter in text (1-based).
 
-def _format_error(self, error_code: str, message: str, filename: Path, *, line_num: int = 0, col: int = 0) -> str:
-    """Format error message in ruff style.
+        Args:
 
-    Args:
+        - `text` (`str`): Text to search in.
 
-    - `error_code` (`str`): The error code (e.g., "P001").
-    - `message` (`str`): Description of the error.
-    - `filename` (`Path`): Path to the file where the error was found.
-    - `line_num` (`int`): Line number where the error occurred. Defaults to `0`.
-    - `col` (`int`): Column number where the error occurred. Defaults to `0`.
+        Returns:
 
-    Returns:
+        - `int`: Position of the first Russian letter (1-based), or 1 if not found.
 
-    - `str`: Formatted error message in ruff style.
+        """
+        match = re.search(r"[а-яёА-ЯЁ]", text)
+        return match.start() + 1 if match else 1
 
-    """
-    relative_path = self._get_relative_path(filename)
+    def _format_error(self, error_code: str, message: str, filename: Path, *, line_num: int = 0, col: int = 0) -> str:
+        """Format error message in ruff style.
 
-    location = relative_path
-    if line_num > 0:
-        location += f":{line_num}"
-        if col > 0:
-            location += f":{col}"
+        Args:
 
-    return f"{location}: {error_code} {message}"
+        - `error_code` (`str`): The error code (e.g., "P001").
+        - `message` (`str`): Description of the error.
+        - `filename` (`Path`): Path to the file where the error was found.
+        - `line_num` (`int`): Line number where the error occurred. Defaults to `0`.
+        - `col` (`int`): Column number where the error occurred. Defaults to `0`.
 
-def _get_relative_path(self, filename: Path) -> str:
-    """Get relative path from project root, fallback to absolute if outside project.
+        Returns:
 
-    Args:
+        - `str`: Formatted error message in ruff style.
 
-    - `filename` (`Path`): Path to the file.
+        """
+        relative_path = self._get_relative_path(filename)
 
-    Returns:
+        location = relative_path
+        if line_num > 0:
+            location += f":{line_num}"
+            if col > 0:
+                location += f":{col}"
 
-    - `str`: Relative path from project root or absolute path if outside project.
+        return f"{location}: {error_code} {message}"
 
-    """
-    try:
-        return str(filename.resolve().relative_to(self.project_root))
-    except ValueError:
-        # File is outside project root
-        return str(filename.resolve())
+    def _get_relative_path(self, filename: Path) -> str:
+        """Get relative path from project root, fallback to absolute if outside project.
 
-def _has_russian_letters(self, text: str) -> bool:
-    """Check if text contains Russian letters.
+        Args:
 
-    Args:
+        - `filename` (`Path`): Path to the file.
 
-    - `text` (`str`): Text to check for Russian letters.
+        Returns:
 
-    Returns:
+        - `str`: Relative path from project root or absolute path if outside project.
 
-    - `bool`: `True` if text contains Russian letters, `False` otherwise.
+        """
+        try:
+            return str(filename.resolve().relative_to(self.project_root))
+        except ValueError:
+            # File is outside project root
+            return str(filename.resolve())
 
-    """
-    return bool(re.search(r"[а-яёА-ЯЁ]", text))
+    def _has_russian_letters(self, text: str) -> bool:
+        """Check if text contains Russian letters.
 
-def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
-    """Check Python file for compliance with specified rules.
+        Args:
 
-    Args:
+        - `text` (`str`): Text to check for Russian letters.
 
-    - `filename` (`Path | str`): Path to the Python file to check.
-    - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
+        Returns:
 
-    Returns:
+        - `bool`: `True` if text contains Russian letters, `False` otherwise.
 
-    - `list[str]`: List of error messages found during checking.
+        """
+        return bool(re.search(r"[а-яёА-ЯЁ]", text))
 
-    """
-    filename = Path(filename)
-    return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
+    def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
+        """Check Python file for compliance with specified rules.
+
+        Args:
+
+        - `filename` (`Path | str`): Path to the Python file to check.
+        - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
+
+        Returns:
+
+        - `list[str]`: List of error messages found during checking.
+
+        """
+        filename = Path(filename)
+        return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
