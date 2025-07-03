@@ -19,7 +19,7 @@ class OnCheckPythonFolder(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_py_projects"]
+            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
