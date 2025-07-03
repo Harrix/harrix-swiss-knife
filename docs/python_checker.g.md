@@ -6,6 +6,27 @@ lang: en
 
 # File `python_checker.py`
 
+<details>
+<summary>📖 Contents</summary>
+
+## Contents
+
+- [Class `PythonChecker`](#class-pythonchecker)
+  - [Method `__init__`](#method-__init__)
+  - [Method `__call__`](#method-__call__)
+  - [Method `_check_all_rules`](#method-_check_all_rules)
+  - [Method `_check_content_rules`](#method-_check_content_rules)
+  - [Method `_determine_project_root`](#method-_determine_project_root)
+  - [Method `_find_russian_letters_position`](#method-_find_russian_letters_position)
+  - [Method `_format_error`](#method-_format_error)
+  - [Method `_get_relative_path`](#method-_get_relative_path)
+  - [Method `_has_russian_letters`](#method-_has_russian_letters)
+  - [Method `_parse_rules_string`](#method-_parse_rules_string)
+  - [Method `_should_ignore_line`](#method-_should_ignore_line)
+  - [Method `check`](#method-check)
+
+</details>
+
 ## Class `PythonChecker`
 
 ```python
@@ -14,10 +35,16 @@ class PythonChecker
 
 Class for checking Python files for compliance with specified rules.
 
-````
 Rules:
 
-- **P001** - Presence of Russian letters in the code.
+- **HP001** - Presence of Russian letters in the code.
+
+Examples for ignore directives:
+
+```
+# ignore: HP001
+# ignore: HP001, HP002
+```
 
 <details>
 <summary>Code:</summary>
@@ -27,8 +54,11 @@ class PythonChecker:
 
     # Rule constants for easier maintenance
     RULES: ClassVar[dict[str, str]] = {
-        "P001": "Presence of Russian letters in the code",
+        "HP001": "Presence of Russian letters in the code",
     }
+
+    # Comment pattern for ignoring checks
+    IGNORE_PATTERN: ClassVar[re.Pattern] = re.compile(r"#\s*ignore:\s*([A-Z0-9,\s]+)", re.IGNORECASE)
 
     def __init__(self, project_root: Path | str | None = None) -> None:
         """Initialize the PythonChecker with all available rules.
@@ -93,13 +123,17 @@ class PythonChecker:
         - `str`: Error message for each content-related issue found.
 
         """
-        if "P001" not in rules:
+        if "HP001" not in rules:
             return
 
         for line_num, line in enumerate(lines, 1):
+            # Check if this line should be ignored for P001
+            if self._should_ignore_line(line, "HP001"):
+                continue
+
             if self._has_russian_letters(line):
                 col = self._find_russian_letters_position(line)
-                yield self._format_error("P001", self.RULES["P001"], filename, line_num=line_num, col=col)
+                yield self._format_error("HP001", self.RULES["HP001"], filename, line_num=line_num, col=col)
 
     def _determine_project_root(self, project_root: Path | str | None) -> Path:
         """Determine the project root directory.
@@ -146,7 +180,7 @@ class PythonChecker:
 
         Args:
 
-        - `error_code` (`str`): The error code (e.g., "P001").
+        - `error_code` (`str`): The error code (e.g., "HP001").
         - `message` (`str`): Description of the error.
         - `filename` (`Path`): Path to the file where the error was found.
         - `line_num` (`int`): Line number where the error occurred. Defaults to `0`.
@@ -199,6 +233,43 @@ class PythonChecker:
         """
         return bool(re.search(r"[\u0430-\u044F\u0451\u0410-\u042F\u0401]", text))
 
+    def _parse_rules_string(self, rules_str: str) -> set[str]:
+        """Parse comma-separated rules string into a set.
+
+        Args:
+
+        - `rules_str` (`str`): Comma-separated string of rule codes.
+
+        Returns:
+
+        - `set[str]`: Set of rule codes.
+
+        """
+        return {rule.strip().upper() for rule in rules_str.split(",") if rule.strip()}
+
+    def _should_ignore_line(self, line: str, rule_code: str) -> bool:
+        """Check if a line should be ignored for a specific rule.
+
+        Args:
+
+        - `line` (`str`): Line content to check.
+        - `rule_code` (`str`): Rule code to check.
+
+        Returns:
+
+        - `bool`: `True` if the line should be ignored for this rule, `False` otherwise.
+
+        """
+        # Look for ignore pattern anywhere in the line
+        match = self.IGNORE_PATTERN.search(line)
+        if not match:
+            return False
+
+        rules_str = match.group(1)
+        ignored_rules = self._parse_rules_string(rules_str)
+
+        return rule_code in ignored_rules
+
     def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
         """Check Python file for compliance with specified rules.
 
@@ -214,7 +285,7 @@ class PythonChecker:
         """
         filename = Path(filename)
         return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
-````
+```
 
 </details>
 
@@ -326,13 +397,17 @@ Yields:
 
 ```python
 def _check_content_rules(self, filename: Path, lines: list[str], rules: set) -> Generator[str, None, None]:
-        if "P001" not in rules:
+        if "HP001" not in rules:
             return
 
         for line_num, line in enumerate(lines, 1):
+            # Check if this line should be ignored for P001
+            if self._should_ignore_line(line, "HP001"):
+                continue
+
             if self._has_russian_letters(line):
                 col = self._find_russian_letters_position(line)
-                yield self._format_error("P001", self.RULES["P001"], filename, line_num=line_num, col=col)
+                yield self._format_error("HP001", self.RULES["HP001"], filename, line_num=line_num, col=col)
 ```
 
 </details>
@@ -411,7 +486,7 @@ Format error message in ruff style.
 
 Args:
 
-- `error_code` (`str`): The error code (e.g., "P001").
+- `error_code` (`str`): The error code (e.g., "HP001").
 - `message` (`str`): Description of the error.
 - `filename` (`Path`): Path to the file where the error was found.
 - `line_num` (`int`): Line number where the error occurred. Defaults to `0`.
@@ -491,6 +566,67 @@ Returns:
 ```python
 def _has_russian_letters(self, text: str) -> bool:
         return bool(re.search(r"[\u0430-\u044F\u0451\u0410-\u042F\u0401]", text))
+```
+
+</details>
+
+### Method `_parse_rules_string`
+
+```python
+def _parse_rules_string(self, rules_str: str) -> set[str]
+```
+
+Parse comma-separated rules string into a set.
+
+Args:
+
+- `rules_str` (`str`): Comma-separated string of rule codes.
+
+Returns:
+
+- `set[str]`: Set of rule codes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _parse_rules_string(self, rules_str: str) -> set[str]:
+        return {rule.strip().upper() for rule in rules_str.split(",") if rule.strip()}
+```
+
+</details>
+
+### Method `_should_ignore_line`
+
+```python
+def _should_ignore_line(self, line: str, rule_code: str) -> bool
+```
+
+Check if a line should be ignored for a specific rule.
+
+Args:
+
+- `line` (`str`): Line content to check.
+- `rule_code` (`str`): Rule code to check.
+
+Returns:
+
+- `bool`: `True` if the line should be ignored for this rule, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _should_ignore_line(self, line: str, rule_code: str) -> bool:
+        # Look for ignore pattern anywhere in the line
+        match = self.IGNORE_PATTERN.search(line)
+        if not match:
+            return False
+
+        rules_str = match.group(1)
+        ignored_rules = self._parse_rules_string(rules_str)
+
+        return rule_code in ignored_rules
 ```
 
 </details>
