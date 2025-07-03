@@ -148,7 +148,7 @@ class ActionBase:
 
         # Set larger font for the list widget
         font = list_widget.font()
-        font.setPointSize(12)  # Увеличиваем размер шрифта до 12pt
+        font.setPointSize(12)
         list_widget.setFont(font)
 
         for choice in choices:
