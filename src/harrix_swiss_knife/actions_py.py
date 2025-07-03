@@ -70,66 +70,6 @@ class OnExtractFunctionsAndClasses(action_base.ActionBase):
         self.show_result()
 
 
-class OnHarrixPylib01Prepare(action_base.ActionBase):
-    """Prepare the harrix-pylib repository for publication by performing multiple optimization steps.
-
-    This action automates several preparatory tasks for the harrix-pylib package before
-    it can be published to PyPI. The process consists of four main steps:
-
-    1. Code beautification and standardization:
-       - Running isort to organize imports
-       - Applying ruff format to enforce consistent code style
-       - Using a custom sorting function to organize code elements (classes, methods, functions)
-
-    2. Documentation generation:
-       - Creating Markdown documentation from the codebase
-       - Using the GitHub repository URL as the base for documentation links
-       - Applying a standardized header to documentation files
-
-    3. Markdown formatting:
-       - Using Prettier to format all Markdown files consistently
-
-    4. Repository access:
-       - Opening the GitHub repository in the default browser for final review
-    """
-
-    icon = "👩🏻‍🍳"
-    title = "01 Prepare harrix-pylib"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        folder_path = Path(self.config["path_github"]) / "harrix-pylib"
-        if folder_path is None:
-            return
-
-        # Beautify the code
-        commands = f"cd {folder_path}\nuv run --active isort .\nuv run --active ruff format"
-        self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
-
-        # Generate Markdown documentation
-        domain = f"https://github.com/{self.config['github_user']}/{folder_path.parts[-1]}"
-        result = h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain)
-        self.add_line(result)
-
-        # Format Markdown files using Prettier
-        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        result = h.dev.run_powershell_script(commands)
-        self.add_line(result)
-
-        # Open GitHub
-        result = h.dev.run_powershell_script(f"github {folder_path} ")
-
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} completed")
-        self.show_result()
-
-
 class OnHarrixPylib02Publish(action_base.ActionBase):
     """Publish a new version of harrix-pylib to PyPI and update dependent projects.
 

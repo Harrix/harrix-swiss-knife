@@ -141,7 +141,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.py.OnSortIsortFmtDocsPythonCodeFolder,
                 hsk.py.OnSortIsortFmtPythonCodeFolder,
                 "-",
-                hsk.py.OnHarrixPylib01Prepare,
                 hsk.py.OnHarrixPylib02Publish,
             ],
         )
@@ -288,7 +287,6 @@ def __init__(self) -> None:
                 hsk.py.OnSortIsortFmtDocsPythonCodeFolder,
                 hsk.py.OnSortIsortFmtPythonCodeFolder,
                 "-",
-                hsk.py.OnHarrixPylib01Prepare,
                 hsk.py.OnHarrixPylib02Publish,
             ],
         )
