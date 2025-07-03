@@ -26,6 +26,8 @@ lang: en
   - [Method `_format_error`](#method-_format_error)
   - [Method `_get_relative_path`](#method-_get_relative_path)
   - [Method `check`](#method-check)
+  - [Method `check_directory`](#method-check_directory)
+  - [Method `find_markdown_files`](#method-find_markdown_files)
 
 </details>
 
@@ -324,6 +326,65 @@ class MarkdownChecker:
         """
         filename = Path(filename)
         return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
+
+    def check_directory(
+        self,
+        directory: Path | str,
+        exclude_rules: set | None = None,
+        additional_ignore_patterns: list[str] | None = None,
+    ) -> dict[str, list[str]]:
+        """Check all Markdown files in directory for compliance with specified rules.
+
+        Args:
+
+        - `directory` (`Path | str`): Directory to search for Markdown files.
+        - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
+        - `additional_ignore_patterns` (`list[str] | None`): Additional patterns to ignore. Defaults to `None`.
+
+        Returns:
+
+        - `dict[str, list[str]]`: Dictionary mapping file paths to lists of error messages.
+
+        """
+        results = {}
+
+        for md_file in self.find_markdown_files(directory, additional_ignore_patterns):
+            errors = self.check(md_file, exclude_rules)
+            if errors:  # Only include files with errors
+                results[str(md_file)] = errors
+
+        return results
+
+    def find_markdown_files(
+        self, directory: Path | str, additional_ignore_patterns: list[str] | None = None
+    ) -> Generator[Path, None, None]:
+        """Find all Markdown files in directory, ignoring hidden folders and specified patterns.
+
+        Args:
+
+        - `directory` (`Path | str`): Directory to search for Markdown files.
+        - `additional_ignore_patterns` (`list[str] | None`): Additional patterns to ignore. Defaults to `None`.
+
+        Yields:
+
+        - `Path`: Path to each found Markdown file.
+
+        """
+        directory = Path(directory)
+
+        if not directory.is_dir():
+            return
+
+        # Check if current directory should be ignored
+        if h.file.should_ignore_path(directory, additional_ignore_patterns):
+            return
+
+        for item in directory.iterdir():
+            if item.is_file() and item.suffix.lower() in {".md", ".markdown"}:
+                yield item
+            elif item.is_dir() and not h.file.should_ignore_path(item, additional_ignore_patterns):
+                # Recursively search in subdirectories that are not ignored
+                yield from self.find_markdown_files(item, additional_ignore_patterns)
 ```
 
 </details>
@@ -769,6 +830,89 @@ Returns:
 def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
         filename = Path(filename)
         return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
+```
+
+</details>
+
+### Method `check_directory`
+
+```python
+def check_directory(self, directory: Path | str, exclude_rules: set | None = None, additional_ignore_patterns: list[str] | None = None) -> dict[str, list[str]]
+```
+
+Check all Markdown files in directory for compliance with specified rules.
+
+Args:
+
+- `directory` (`Path | str`): Directory to search for Markdown files.
+- `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
+- `additional_ignore_patterns` (`list[str] | None`): Additional patterns to ignore. Defaults to `None`.
+
+Returns:
+
+- `dict[str, list[str]]`: Dictionary mapping file paths to lists of error messages.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def check_directory(
+        self,
+        directory: Path | str,
+        exclude_rules: set | None = None,
+        additional_ignore_patterns: list[str] | None = None,
+    ) -> dict[str, list[str]]:
+        results = {}
+
+        for md_file in self.find_markdown_files(directory, additional_ignore_patterns):
+            errors = self.check(md_file, exclude_rules)
+            if errors:  # Only include files with errors
+                results[str(md_file)] = errors
+
+        return results
+```
+
+</details>
+
+### Method `find_markdown_files`
+
+```python
+def find_markdown_files(self, directory: Path | str, additional_ignore_patterns: list[str] | None = None) -> Generator[Path, None, None]
+```
+
+Find all Markdown files in directory, ignoring hidden folders and specified patterns.
+
+Args:
+
+- `directory` (`Path | str`): Directory to search for Markdown files.
+- `additional_ignore_patterns` (`list[str] | None`): Additional patterns to ignore. Defaults to `None`.
+
+Yields:
+
+- `Path`: Path to each found Markdown file.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def find_markdown_files(
+        self, directory: Path | str, additional_ignore_patterns: list[str] | None = None
+    ) -> Generator[Path, None, None]:
+        directory = Path(directory)
+
+        if not directory.is_dir():
+            return
+
+        # Check if current directory should be ignored
+        if h.file.should_ignore_path(directory, additional_ignore_patterns):
+            return
+
+        for item in directory.iterdir():
+            if item.is_file() and item.suffix.lower() in {".md", ".markdown"}:
+                yield item
+            elif item.is_dir() and not h.file.should_ignore_path(item, additional_ignore_patterns):
+                # Recursively search in subdirectories that are not ignored
+                yield from self.find_markdown_files(item, additional_ignore_patterns)
 ```
 
 </details>
