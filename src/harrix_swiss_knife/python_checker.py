@@ -5,6 +5,7 @@ from collections.abc import Generator
 from pathlib import Path
 from typing import ClassVar
 
+
 class PythonChecker:
     """Class for checking Python files for compliance with specified rules.
 
@@ -128,7 +129,7 @@ class PythonChecker:
         - `int`: Position of the first Russian letter (1-based), or 1 if not found.
 
         """
-        match = re.search(r"[а-яёА-ЯЁ]", text)
+        match = re.search(r"[\u0430-\u044F\u0451\u0410-\u042F\u0401]", text)
         return match.start() + 1 if match else 1
 
     def _format_error(self, error_code: str, message: str, filename: Path, *, line_num: int = 0, col: int = 0) -> str:
@@ -179,15 +180,12 @@ class PythonChecker:
         """Check if text contains Russian letters.
 
         Args:
-
         - `text` (`str`): Text to check for Russian letters.
 
         Returns:
-
         - `bool`: `True` if text contains Russian letters, `False` otherwise.
-
         """
-        return bool(re.search(r"[а-яёА-ЯЁ]", text))
+        return bool(re.search(r"[\u0430-\u044F\u0451\u0410-\u042F\u0401]", text))
 
     def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
         """Check Python file for compliance with specified rules.
