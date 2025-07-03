@@ -11,14 +11,18 @@ lang: en
 
 ## Contents
 
-- [Class `OnExtractFunctionsAndClasses`](#class-onextractfunctionsandclasses)
+- [Class `OnCheckPythonFolder`](#class-oncheckpythonfolder)
   - [Method `execute`](#method-execute)
-- [Class `OnHarrixPylib01Prepare`](#class-onharrixpylib01prepare)
-  - [Method `execute`](#method-execute-1)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
-- [Class `OnHarrixPylib02Publish`](#class-onharrixpylib02publish)
+- [Class `OnExtractFunctionsAndClasses`](#class-onextractfunctionsandclasses)
+  - [Method `execute`](#method-execute-1)
+- [Class `OnHarrixPylib01Prepare`](#class-onharrixpylib01prepare)
   - [Method `execute`](#method-execute-2)
+  - [Method `in_thread`](#method-in_thread-1)
+  - [Method `thread_after`](#method-thread_after-1)
+- [Class `OnHarrixPylib02Publish`](#class-onharrixpylib02publish)
+  - [Method `execute`](#method-execute-3)
   - [Method `in_thread_01`](#method-in_thread_01)
   - [Method `in_thread_02`](#method-in_thread_02)
   - [Method `in_thread_03`](#method-in_thread_03)
@@ -26,21 +30,137 @@ lang: en
   - [Method `thread_after_02`](#method-thread_after_02)
   - [Method `thread_after_03`](#method-thread_after_03)
 - [Class `OnNewUvProject`](#class-onnewuvproject)
-  - [Method `execute`](#method-execute-3)
-  - [Method `in_thread`](#method-in_thread-1)
-  - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnNewUvProjectDialog`](#class-onnewuvprojectdialog)
   - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnSortIsortFmtDocsPythonCodeFolder`](#class-onsortisortfmtdocspythoncodefolder)
+- [Class `OnNewUvProjectDialog`](#class-onnewuvprojectdialog)
   - [Method `execute`](#method-execute-5)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
-- [Class `OnSortIsortFmtPythonCodeFolder`](#class-onsortisortfmtpythoncodefolder)
+- [Class `OnSortIsortFmtDocsPythonCodeFolder`](#class-onsortisortfmtdocspythoncodefolder)
   - [Method `execute`](#method-execute-6)
   - [Method `in_thread`](#method-in_thread-4)
   - [Method `thread_after`](#method-thread_after-4)
+- [Class `OnSortIsortFmtPythonCodeFolder`](#class-onsortisortfmtpythoncodefolder)
+  - [Method `execute`](#method-execute-7)
+  - [Method `in_thread`](#method-in_thread-5)
+  - [Method `thread_after`](#method-thread_after-5)
+
+</details>
+
+## Class `OnCheckPythonFolder`
+
+```python
+class OnCheckPythonFolder(action_base.ActionBase)
+```
+
+Action to check all Python files in a folder for errors with Harrix rules.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnCheckPythonFolder(action_base.ActionBase):
+
+    icon = "🚧"
+    title = "Check PY in …"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_py_projects"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        checker = python_checker.PythonChecker()
+        if self.folder_path is None:
+            return
+        errors = h.file.check_func(self.folder_path, ".py", checker)
+        if errors:
+            self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
+        else:
+            self.add_line(f"✅ There are no errors in {self.folder_path}.")
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_py_projects"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        checker = python_checker.PythonChecker()
+        if self.folder_path is None:
+            return
+        errors = h.file.check_func(self.folder_path, ".py", checker)
+        if errors:
+            self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
+        else:
+            self.add_line(f"✅ There are no errors in {self.folder_path}.")
+```
+
+</details>
+
+### Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
+```
 
 </details>
 

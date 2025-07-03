@@ -322,7 +322,7 @@ class OnCheckMd(action_base.ActionBase):
         checker = markdown_checker.MarkdownChecker()
         if self.filename is None:
             return
-        errors = checker(self.filename)  # h.md.check_md(self.filename) TODO
+        errors = checker(self.filename)
         if errors:
             self.add_line("\n".join(errors))
             self.add_line(f"🔢 Count errors = {len(errors)}")
@@ -379,7 +379,7 @@ def in_thread(self) -> str | None:
         checker = markdown_checker.MarkdownChecker()
         if self.filename is None:
             return
-        errors = checker(self.filename)  # h.md.check_md(self.filename) TODO
+        errors = checker(self.filename)
         if errors:
             self.add_line("\n".join(errors))
             self.add_line(f"🔢 Count errors = {len(errors)}")
@@ -440,7 +440,7 @@ class OnCheckMdFolder(action_base.ActionBase):
         checker = markdown_checker.MarkdownChecker()
         if self.folder_path is None:
             return
-        errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
+        errors = h.file.check_func(self.folder_path, ".md", checker)
         if errors:
             self.add_line("\n".join(errors))
             self.add_line(f"🔢 Count errors = {len(errors)}")
@@ -495,7 +495,7 @@ def in_thread(self) -> str | None:
         checker = markdown_checker.MarkdownChecker()
         if self.folder_path is None:
             return
-        errors = h.file.check_func(self.folder_path, ".md", checker)  # h.md.markdown_checker TODO
+        errors = h.file.check_func(self.folder_path, ".md", checker)
         if errors:
             self.add_line("\n".join(errors))
             self.add_line(f"🔢 Count errors = {len(errors)}")

@@ -40,6 +40,7 @@ class MarkdownChecker:
 
         - `project_root` (`Path | str | None`): Root directory of the project for relative path calculation.
           If None, will try to find git root or use current working directory.
+
         """
         self.all_rules = set(self.RULES.keys())
         self.project_root = self._determine_project_root(project_root)
@@ -213,6 +214,7 @@ class MarkdownChecker:
 
         Returns:
             Line number after YAML block, or 1 if no YAML.
+
         """
         if not lines or lines[0].strip() != "---":
             return 1

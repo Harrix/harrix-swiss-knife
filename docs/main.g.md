@@ -134,6 +134,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_items(
             self.menu_python,
             [
+                hsk.py.OnCheckPythonFolder,
                 hsk.py.OnExtractFunctionsAndClasses,
                 hsk.py.OnNewUvProject,
                 hsk.py.OnNewUvProjectDialog,
@@ -280,6 +281,7 @@ def __init__(self) -> None:
         self.add_items(
             self.menu_python,
             [
+                hsk.py.OnCheckPythonFolder,
                 hsk.py.OnExtractFunctionsAndClasses,
                 hsk.py.OnNewUvProject,
                 hsk.py.OnNewUvProjectDialog,
