@@ -7,7 +7,41 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife import action_base
+from harrix_swiss_knife import action_base, python_checker
+
+
+class OnCheckPythonFolder(action_base.ActionBase):
+    """Action to check all Python files in a folder for errors with Harrix rules."""
+
+    icon = "🚧"
+    title = "Check PY in …"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_py_projects"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        checker = python_checker.PythonChecker()
+        if self.folder_path is None:
+            return
+        errors = h.file.check_func(self.folder_path, ".py", checker)
+        if errors:
+            self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
+        else:
+            self.add_line(f"✅ There are no errors in {self.folder_path}.")
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
 
 
 class OnExtractFunctionsAndClasses(action_base.ActionBase):
