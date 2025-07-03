@@ -69,6 +69,7 @@ _Figure 1: Screenshot_
   - 📓 New note
   - 📓 New note with images
 - **Python**
+  - 🚧 Check PY in …
   - ⬇️ Extracts list of funcs to a MD list from one PY file
   - 🐍 New uv project in Projects
   - 🐍 New uv project in …
