@@ -138,10 +138,9 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.py.OnExtractFunctionsAndClasses,
                 hsk.py.OnNewUvProject,
                 hsk.py.OnNewUvProjectDialog,
+                hsk.py.OnPublishPythonLibrary,
                 hsk.py.OnSortIsortFmtDocsPythonCodeFolder,
                 hsk.py.OnSortIsortFmtPythonCodeFolder,
-                "-",
-                hsk.py.OnHarrixPylib02Publish,
             ],
         )
 
@@ -284,10 +283,9 @@ def __init__(self) -> None:
                 hsk.py.OnExtractFunctionsAndClasses,
                 hsk.py.OnNewUvProject,
                 hsk.py.OnNewUvProjectDialog,
+                hsk.py.OnPublishPythonLibrary,
                 hsk.py.OnSortIsortFmtDocsPythonCodeFolder,
                 hsk.py.OnSortIsortFmtPythonCodeFolder,
-                "-",
-                hsk.py.OnHarrixPylib02Publish,
             ],
         )
 

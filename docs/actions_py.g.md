@@ -17,22 +17,22 @@ lang: en
   - [Method `thread_after`](#method-thread_after)
 - [Class `OnExtractFunctionsAndClasses`](#class-onextractfunctionsandclasses)
   - [Method `execute`](#method-execute-1)
-- [Class `OnHarrixPylib02Publish`](#class-onharrixpylib02publish)
+- [Class `OnNewUvProject`](#class-onnewuvproject)
   - [Method `execute`](#method-execute-2)
+  - [Method `in_thread`](#method-in_thread-1)
+  - [Method `thread_after`](#method-thread_after-1)
+- [Class `OnNewUvProjectDialog`](#class-onnewuvprojectdialog)
+  - [Method `execute`](#method-execute-3)
+  - [Method `in_thread`](#method-in_thread-2)
+  - [Method `thread_after`](#method-thread_after-2)
+- [Class `OnPublishPythonLibrary`](#class-onpublishpythonlibrary)
+  - [Method `execute`](#method-execute-4)
   - [Method `in_thread_01`](#method-in_thread_01)
   - [Method `in_thread_02`](#method-in_thread_02)
   - [Method `in_thread_03`](#method-in_thread_03)
   - [Method `thread_after_01`](#method-thread_after_01)
   - [Method `thread_after_02`](#method-thread_after_02)
   - [Method `thread_after_03`](#method-thread_after_03)
-- [Class `OnNewUvProject`](#class-onnewuvproject)
-  - [Method `execute`](#method-execute-3)
-  - [Method `in_thread`](#method-in_thread-1)
-  - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnNewUvProjectDialog`](#class-onnewuvprojectdialog)
-  - [Method `execute`](#method-execute-4)
-  - [Method `in_thread`](#method-in_thread-2)
-  - [Method `thread_after`](#method-thread_after-2)
 - [Class `OnSortIsortFmtDocsPythonCodeFolder`](#class-onsortisortfmtdocspythoncodefolder)
   - [Method `execute`](#method-execute-5)
   - [Method `in_thread`](#method-in_thread-3)
@@ -64,7 +64,7 @@ class OnCheckPythonFolder(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_py_projects"]
+            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -105,7 +105,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_py_projects"]
+            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -221,306 +221,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         result = h.py.extract_functions_and_classes(filename)
         self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-## Class `OnHarrixPylib02Publish`
-
-```python
-class OnHarrixPylib02Publish(action_base.ActionBase)
-```
-
-Publish a new version of harrix-pylib to PyPI and update dependent projects.
-
-This action automates the process of updating, building, and publishing the harrix-pylib
-package to PyPI, then updating all projects that depend on it. The process follows
-these steps:
-
-1. Bump the minor version number of harrix-pylib
-2. Build the package and publish it to PyPI using the provided token
-3. Commit the version changes to the harrix-pylib repository
-4. Wait for the package to be available on PyPI (20 seconds delay)
-5. Update all dependent projects (defined in self.projects) to use the new version
-6. Commit the dependency updates to each project's repository
-
-The action requires a PyPI token, which can be provided in the configuration or
-entered when prompted. The entire process is executed in background threads to
-maintain UI responsiveness, with each major step running in its own thread.
-
-This automation significantly reduces the manual work involved in publishing library
-updates and ensuring dependent projects stay synchronized with the latest version.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnHarrixPylib02Publish(action_base.ActionBase):
-
-    icon = "👷‍♂️"
-    title = "02 Publish and update harrix-pylib"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.token = self.config["pypi_token"]
-        if not self.token:
-            self.token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
-        if not self.token:
-            return
-
-        self.start_thread(self.in_thread_01, self.thread_after_01, "Increase version, build and publish")
-
-    def in_thread_01(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        self.path_library = Path(self.config["path_github"]) / "harrix-pylib"
-        self.projects = [Path(self.config["path_github"]) / "harrix-swiss-knife"]
-
-        # Increase version of harrix-pylib
-        commands = f"""
-            cd {self.path_library}
-            uv version --bump minor """
-        self.new_version = h.dev.run_powershell_script(commands).strip().split(" => ")[1].splitlines()[0]
-
-        # Build and publish
-        commands = f"""
-            cd {self.path_library}
-            uv sync --upgrade
-            Remove-Item -Path "{self.path_library}/dist/*" -Recurse -Force
-            uv build
-            uv publish --token {self.token}
-            git add pyproject.toml
-            git add uv.lock
-            git commit -m "🚀 Build version {self.new_version}" """
-        result = h.dev.run_powershell_script(commands)
-        self.add_line(result)
-
-    def in_thread_02(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        time.sleep(self.time_waiting_seconds)
-
-    def in_thread_03(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        # Update harrix-pylib in projects
-        for project_path in self.projects:
-            project = Path(project_path)
-
-            commands = f"""
-                cd {project}
-                uv sync --upgrade
-                uv sync --upgrade """
-            result = h.dev.run_powershell_script(commands)
-            self.add_line(result)
-
-            # Increase version of harrix-pylib in project
-            path_toml = project / "pyproject.toml"
-            content = path_toml.read_text(encoding="utf8")
-            pattern = self.path_library.parts[-1] + r">=(\d+)\.(\d+)"
-            new_content = re.sub(pattern, lambda _: f"{self.path_library.parts[-1]}>={self.new_version}", content)
-            path_toml.write_text(new_content)
-
-            commands = f"""
-                cd {project}
-                uv sync --upgrade
-                git add pyproject.toml
-                git add uv.lock
-                git commit -m "⬆️ Update {self.path_library.parts[-1]}" """
-            result = h.dev.run_powershell_script(commands)
-            self.add_line(result)
-
-    def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread_01(). For handling the results of thread execution."""
-        self.time_waiting_seconds = 20
-        message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
-        self.start_thread(self.in_thread_02, self.thread_after_02, message)
-
-    def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread_02(). For handling the results of thread execution."""
-        self.start_thread(self.in_thread_03, self.thread_after_03, "Update harrix-pylib in projects")
-
-    def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread_03(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} completed")
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.token = self.config["pypi_token"]
-        if not self.token:
-            self.token = self.get_text_input("PyPi token", "Enter the token of the project in PyPi:")
-        if not self.token:
-            return
-
-        self.start_thread(self.in_thread_01, self.thread_after_01, "Increase version, build and publish")
-```
-
-</details>
-
-### Method `in_thread_01`
-
-```python
-def in_thread_01(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread_01(self) -> str | None:
-        self.path_library = Path(self.config["path_github"]) / "harrix-pylib"
-        self.projects = [Path(self.config["path_github"]) / "harrix-swiss-knife"]
-
-        # Increase version of harrix-pylib
-        commands = f"""
-            cd {self.path_library}
-            uv version --bump minor """
-        self.new_version = h.dev.run_powershell_script(commands).strip().split(" => ")[1].splitlines()[0]
-
-        # Build and publish
-        commands = f"""
-            cd {self.path_library}
-            uv sync --upgrade
-            Remove-Item -Path "{self.path_library}/dist/*" -Recurse -Force
-            uv build
-            uv publish --token {self.token}
-            git add pyproject.toml
-            git add uv.lock
-            git commit -m "🚀 Build version {self.new_version}" """
-        result = h.dev.run_powershell_script(commands)
-        self.add_line(result)
-```
-
-</details>
-
-### Method `in_thread_02`
-
-```python
-def in_thread_02(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread_02(self) -> str | None:
-        time.sleep(self.time_waiting_seconds)
-```
-
-</details>
-
-### Method `in_thread_03`
-
-```python
-def in_thread_03(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread_03(self) -> str | None:
-        # Update harrix-pylib in projects
-        for project_path in self.projects:
-            project = Path(project_path)
-
-            commands = f"""
-                cd {project}
-                uv sync --upgrade
-                uv sync --upgrade """
-            result = h.dev.run_powershell_script(commands)
-            self.add_line(result)
-
-            # Increase version of harrix-pylib in project
-            path_toml = project / "pyproject.toml"
-            content = path_toml.read_text(encoding="utf8")
-            pattern = self.path_library.parts[-1] + r">=(\d+)\.(\d+)"
-            new_content = re.sub(pattern, lambda _: f"{self.path_library.parts[-1]}>={self.new_version}", content)
-            path_toml.write_text(new_content)
-
-            commands = f"""
-                cd {project}
-                uv sync --upgrade
-                git add pyproject.toml
-                git add uv.lock
-                git commit -m "⬆️ Update {self.path_library.parts[-1]}" """
-            result = h.dev.run_powershell_script(commands)
-            self.add_line(result)
-```
-
-</details>
-
-### Method `thread_after_01`
-
-```python
-def thread_after_01(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread_01(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
-        self.time_waiting_seconds = 20
-        message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
-        self.start_thread(self.in_thread_02, self.thread_after_02, message)
-```
-
-</details>
-
-### Method `thread_after_02`
-
-```python
-def thread_after_02(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread_02(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
-        self.start_thread(self.in_thread_03, self.thread_after_03, "Update harrix-pylib in projects")
-```
-
-</details>
-
-### Method `thread_after_03`
-
-```python
-def thread_after_03(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread_03(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 
@@ -768,6 +468,391 @@ Execute code in the main thread after in_thread(). For handling the results of t
 
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+## Class `OnPublishPythonLibrary`
+
+```python
+class OnPublishPythonLibrary(action_base.ActionBase)
+```
+
+Publish a new version of a Python library to PyPI and update dependent projects.
+
+This action automates the process of updating, building, and publishing a Python
+library package to PyPI, then updating all projects that depend on it. The process
+follows these steps:
+
+1. Select the library to publish from configured paths
+2. Bump the minor version number of the selected library
+3. Build the package and publish it to PyPI using the provided token
+4. Commit the version changes to the library repository
+5. Wait for the package to be available on PyPI (20 seconds delay)
+6. Update all dependent projects (defined in configuration) to use the new version
+7. Commit the dependency updates to each project's repository
+
+The action requires a PyPI token, which can be provided in the configuration or
+entered when prompted. The entire process is executed in background threads to
+maintain UI responsiveness, with each major step running in its own thread.
+
+This automation significantly reduces the manual work involved in publishing library
+updates and ensuring dependent projects stay synchronized with the latest version.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnPublishPythonLibrary(action_base.ActionBase):
+
+    icon = "👷‍♂️"
+    title = "Publish Python library to PyPI"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Select library to publish
+        self.library_path = self.get_folder_with_choice_option(
+            "Select Python library to publish", self.config["paths_python_libraries"], self.config["path_github"]
+        )
+        if not self.library_path:
+            return
+
+        # Get PyPI token
+        self.token = self.config.get("pypi_token", "")
+        if not self.token:
+            self.token = self.get_text_input("PyPI token", "Enter the token of the project in PyPI:")
+        if not self.token:
+            return
+
+        # Get dependent projects (optional)
+        self.dependent_projects = self.config.get("paths_python_projects", [])
+        if isinstance(self.dependent_projects, list):
+            self.dependent_projects = [
+                Path(self.config["path_github"]) / project
+                for project in self.dependent_projects
+                if (Path(self.config["path_github"]) / project).exists()
+            ]
+        else:
+            self.dependent_projects = []
+
+        self.library_name = self.library_path.parts[-1]
+        self.start_thread(self.in_thread_01, self.thread_after_01, f"Build and publish {self.library_name}")
+
+    def in_thread_01(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        # Increase version of the library
+        commands = f"""
+            cd {self.library_path}
+            uv version --bump minor """
+        version_output = h.dev.run_powershell_script(commands).strip()
+        self.new_version = version_output.split(" => ")[1].splitlines()[0]
+        self.add_line(f"New version: {self.new_version}")
+
+        # Build and publish
+        commands = f"""
+            cd {self.library_path}
+            uv sync --upgrade
+            Remove-Item -Path "{self.library_path}/dist/*" -Recurse -Force -ErrorAction SilentlyContinue
+            uv build
+            uv publish --token {self.token}
+            git add pyproject.toml
+            git add uv.lock
+            git commit -m "🚀 Build version {self.new_version}" """
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
+
+    def in_thread_02(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        time.sleep(self.time_waiting_seconds)
+
+    def in_thread_03(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if not self.dependent_projects:
+            self.add_line("No dependent projects configured. Skipping dependency updates.")
+            return
+
+        # Update library in dependent projects
+        for project_path in self.dependent_projects:
+            project = Path(project_path)
+            if not project.exists():
+                self.add_line(f"Project path does not exist: {project}")
+                continue
+
+            self.add_line(f"Updating {self.library_name} in {project.name}")
+
+            commands = f"""
+                cd {project}
+                uv sync --upgrade
+                uv sync --upgrade """
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
+
+            # Update library version in project's pyproject.toml
+            path_toml = project / "pyproject.toml"
+            if not path_toml.exists():
+                self.add_line(f"pyproject.toml not found in {project.name}")
+                continue
+
+            content = path_toml.read_text(encoding="utf8")
+            pattern = self.library_name + r">=(\d+)\.(\d+)"
+            new_content = re.sub(pattern, lambda _: f"{self.library_name}>={self.new_version}", content)
+
+            if content != new_content:
+                path_toml.write_text(new_content, encoding="utf8")
+
+                commands = f"""
+                    cd {project}
+                    uv sync --upgrade
+                    git add pyproject.toml
+                    git add uv.lock
+                    git commit -m "⬆️ Update {self.library_name} to {self.new_version}" """
+                result = h.dev.run_powershell_script(commands)
+                self.add_line(result)
+            else:
+                self.add_line(f"No version update needed for {self.library_name} in {project.name}")
+
+    def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread_01(). For handling the results of thread execution."""
+        self.time_waiting_seconds = 20
+        message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
+        self.start_thread(self.in_thread_02, self.thread_after_02, message)
+
+    def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread_02(). For handling the results of thread execution."""
+        if self.dependent_projects:
+            self.start_thread(
+                self.in_thread_03, self.thread_after_03, f"Update {self.library_name} in dependent projects"
+            )
+        else:
+            self.show_toast(f"{self.title} completed")
+            self.show_result()
+
+    def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread_03(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        # Select library to publish
+        self.library_path = self.get_folder_with_choice_option(
+            "Select Python library to publish", self.config["paths_python_libraries"], self.config["path_github"]
+        )
+        if not self.library_path:
+            return
+
+        # Get PyPI token
+        self.token = self.config.get("pypi_token", "")
+        if not self.token:
+            self.token = self.get_text_input("PyPI token", "Enter the token of the project in PyPI:")
+        if not self.token:
+            return
+
+        # Get dependent projects (optional)
+        self.dependent_projects = self.config.get("paths_python_projects", [])
+        if isinstance(self.dependent_projects, list):
+            self.dependent_projects = [
+                Path(self.config["path_github"]) / project
+                for project in self.dependent_projects
+                if (Path(self.config["path_github"]) / project).exists()
+            ]
+        else:
+            self.dependent_projects = []
+
+        self.library_name = self.library_path.parts[-1]
+        self.start_thread(self.in_thread_01, self.thread_after_01, f"Build and publish {self.library_name}")
+```
+
+</details>
+
+### Method `in_thread_01`
+
+```python
+def in_thread_01(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread_01(self) -> str | None:
+        # Increase version of the library
+        commands = f"""
+            cd {self.library_path}
+            uv version --bump minor """
+        version_output = h.dev.run_powershell_script(commands).strip()
+        self.new_version = version_output.split(" => ")[1].splitlines()[0]
+        self.add_line(f"New version: {self.new_version}")
+
+        # Build and publish
+        commands = f"""
+            cd {self.library_path}
+            uv sync --upgrade
+            Remove-Item -Path "{self.library_path}/dist/*" -Recurse -Force -ErrorAction SilentlyContinue
+            uv build
+            uv publish --token {self.token}
+            git add pyproject.toml
+            git add uv.lock
+            git commit -m "🚀 Build version {self.new_version}" """
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
+```
+
+</details>
+
+### Method `in_thread_02`
+
+```python
+def in_thread_02(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread_02(self) -> str | None:
+        time.sleep(self.time_waiting_seconds)
+```
+
+</details>
+
+### Method `in_thread_03`
+
+```python
+def in_thread_03(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread_03(self) -> str | None:
+        if not self.dependent_projects:
+            self.add_line("No dependent projects configured. Skipping dependency updates.")
+            return
+
+        # Update library in dependent projects
+        for project_path in self.dependent_projects:
+            project = Path(project_path)
+            if not project.exists():
+                self.add_line(f"Project path does not exist: {project}")
+                continue
+
+            self.add_line(f"Updating {self.library_name} in {project.name}")
+
+            commands = f"""
+                cd {project}
+                uv sync --upgrade
+                uv sync --upgrade """
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
+
+            # Update library version in project's pyproject.toml
+            path_toml = project / "pyproject.toml"
+            if not path_toml.exists():
+                self.add_line(f"pyproject.toml not found in {project.name}")
+                continue
+
+            content = path_toml.read_text(encoding="utf8")
+            pattern = self.library_name + r">=(\d+)\.(\d+)"
+            new_content = re.sub(pattern, lambda _: f"{self.library_name}>={self.new_version}", content)
+
+            if content != new_content:
+                path_toml.write_text(new_content, encoding="utf8")
+
+                commands = f"""
+                    cd {project}
+                    uv sync --upgrade
+                    git add pyproject.toml
+                    git add uv.lock
+                    git commit -m "⬆️ Update {self.library_name} to {self.new_version}" """
+                result = h.dev.run_powershell_script(commands)
+                self.add_line(result)
+            else:
+                self.add_line(f"No version update needed for {self.library_name} in {project.name}")
+```
+
+</details>
+
+### Method `thread_after_01`
+
+```python
+def thread_after_01(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread_01(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
+        self.time_waiting_seconds = 20
+        message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
+        self.start_thread(self.in_thread_02, self.thread_after_02, message)
+```
+
+</details>
+
+### Method `thread_after_02`
+
+```python
+def thread_after_02(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread_02(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
+        if self.dependent_projects:
+            self.start_thread(
+                self.in_thread_03, self.thread_after_03, f"Update {self.library_name} in dependent projects"
+            )
+        else:
+            self.show_toast(f"{self.title} completed")
+            self.show_result()
+```
+
+</details>
+
+### Method `thread_after_03`
+
+```python
+def thread_after_03(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread_03(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
