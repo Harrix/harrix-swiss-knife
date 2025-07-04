@@ -79,10 +79,9 @@ _Figure 1: Screenshot_
   - ⬇️ Extracts list of funcs to a MD list from one PY file
   - 🐍 New uv project in Projects
   - 🐍 New uv project in …
+  - 👷‍♂️ Publish Python library to PyPI
   - 🌟 isort, ruff format, sort in PY files
   - ⭐ isort, ruff format, sort, make docs in PY files
-  - 👩🏻‍🍳 01 Prepare harrix-pylib
-  - 👷‍♂️ 02 Publish and update harrix-pylib
 - 🏃🏻 Fitness tracker
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …

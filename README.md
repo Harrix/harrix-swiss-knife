@@ -18,9 +18,8 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ☰ Get the list of items from this menu
-  - 📥 Install global NPM packages
+  - 📦 Install/Update global NPM packages
   - ⚙️ Open config.json
-  - 📥 Update NPM and global NPM packages
   - 📥 Update uv
 - **Images**
   - 🚀 Optimize images

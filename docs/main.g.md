@@ -46,8 +46,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             self.menu_dev,
             [
                 hsk.dev.OnGetMenu,
-                hsk.dev.OnNpmInstallPackages,
-                hsk.dev.OnNpmUpdatePackages,
+                hsk.dev.OnNpmManagePackages,
                 hsk.dev.OnOpenConfigJson,
                 hsk.dev.OnUvUpdate,
             ],
@@ -191,8 +190,7 @@ def __init__(self) -> None:
             self.menu_dev,
             [
                 hsk.dev.OnGetMenu,
-                hsk.dev.OnNpmInstallPackages,
-                hsk.dev.OnNpmUpdatePackages,
+                hsk.dev.OnNpmManagePackages,
                 hsk.dev.OnOpenConfigJson,
                 hsk.dev.OnUvUpdate,
             ],

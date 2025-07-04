@@ -54,16 +54,19 @@ class OnGetMenu(action_base.ActionBase):
         self.show_result()
 
 
-class OnNpmInstallPackages(action_base.ActionBase):
-    """Install configured NPM packages globally.
+class OnNpmManagePackages(action_base.ActionBase):
+    """Install or update configured NPM packages globally.
 
-    This action installs all NPM packages specified in the `config["npm_packages"]`
-    list as global packages, making them available system-wide for command-line
-    use and other applications.
+    This action manages NPM packages specified in the `config["npm_packages"]` list:
+    1. Updates NPM itself to the latest version
+    2. Installs/updates all configured packages (npm install will update if already exists)
+    3. Runs global update to ensure all packages are at latest versions
+
+    This ensures all configured packages are present and up-to-date in the system.
     """
 
-    icon = "📥"
-    title = "Install global NPM packages"
+    icon = "📦"
+    title = "Install/Update global NPM packages"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -71,39 +74,27 @@ class OnNpmInstallPackages(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
-        return h.dev.run_powershell_script(commands)
-
-    def thread_after(self, result: Any) -> None:
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast("Install completed")
+        # Update NPM itself first
+        self.add_line("Updating NPM...")
+        result = h.dev.run_powershell_script("npm update npm -g")
         self.add_line(result)
-        self.show_result()
 
+        # Install/update all configured packages
+        self.add_line("Installing/updating configured packages...")
+        install_commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
+        result = h.dev.run_powershell_script(install_commands)
+        self.add_line(result)
 
-class OnNpmUpdatePackages(action_base.ActionBase):
-    """Update NPM itself and all globally installed packages.
+        # Run global update to ensure everything is up-to-date
+        self.add_line("Running global update...")
+        result = h.dev.run_powershell_script("npm update -g")
+        self.add_line(result)
 
-    This action first updates the npm package manager to its latest version,
-    then updates all globally installed npm packages to their latest versions,
-    ensuring the development environment has the most current tools available.
-    """
-
-    icon = "📥"
-    title = "Update NPM and global NPM packages"
-
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        commands = "npm update npm -g\nnpm update -g"
-        return h.dev.run_powershell_script(commands)
+        return "NPM packages management completed"
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast("Update completed")
+        self.show_toast("NPM packages management completed")
         self.add_line(result)
         self.show_result()
 
