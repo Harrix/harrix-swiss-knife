@@ -113,7 +113,7 @@ class OnOpenConfigJson(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
-        result = h.dev.run_powershell_script(commands)
+        result = h.dev.run_command(commands)
         self.add_line(result)
 
 
