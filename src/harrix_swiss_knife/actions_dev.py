@@ -135,7 +135,7 @@ class OnUvUpdate(action_base.ActionBase):
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = "uv self update"
-        return h.dev.run_powershell_script(commands)
+        return h.dev.run_command(commands)
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
