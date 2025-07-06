@@ -613,9 +613,7 @@ class OnNewArticle(action_base.ActionBase):
         text += f"\n# {article_name}\n\n\n"
 
         result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)
-        h.dev.run_command(
-            f'{self.config["editor"]} "{self.config["vscode_workspace_articles"]}" "{filename}"'
-        )
+        h.dev.run_command(f'{self.config["editor"]} "{self.config["vscode_workspace_articles"]}" "{filename}"')
         self.add_line(result)
 
 
