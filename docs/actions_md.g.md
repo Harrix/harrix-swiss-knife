@@ -150,23 +150,7 @@ class OnBeautifyMdFolder(action_base.ActionBase):
         try:
             if self.folder_path is None:
                 return
-            # Generate image captions
-            self.add_line("🔵 Generate image captions")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
-
-            # Generate TOC
-            self.add_line("🔵 Generate TOC")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-
-            # Format YAML
-            self.add_line("🔵 Format YAML")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
-
-            # Prettier
-            self.add_line("🔵 Prettier")
-            commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-            result = h.dev.run_powershell_script(commands)
-            self.add_line(result)
+            funcs.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=False)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
@@ -219,23 +203,7 @@ def in_thread(self) -> str | None:
         try:
             if self.folder_path is None:
                 return
-            # Generate image captions
-            self.add_line("🔵 Generate image captions")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
-
-            # Generate TOC
-            self.add_line("🔵 Generate TOC")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-
-            # Format YAML
-            self.add_line("🔵 Format YAML")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
-
-            # Prettier
-            self.add_line("🔵 Prettier")
-            commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-            result = h.dev.run_powershell_script(commands)
-            self.add_line(result)
+            funcs.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=False)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 ```
@@ -308,37 +276,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
         try:
             if self.folder_path is None:
                 return
-            # Delete *.g.md files
-            self.add_line("🔵 Delete *.g.md files")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.delete_g_md_files_recursively))
-
-            # Generate image captions
-            self.add_line("🔵 Generate image captions")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
-
-            # Generate TOC
-            self.add_line("🔵 Generate TOC")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-
-            # Generate summaries
-            self.add_line("🔵 Generate summaries")
-            for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
-                if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(self.folder_path).resolve()):
-                    self.add_line(h.md.generate_summaries(path_notes_for_summaries))
-
-            # Combine MD files
-            self.add_line("🔵 Combine MD files")
-            self.add_line(h.md.combine_markdown_files_recursively(self.folder_path, is_delete_g_md_files=False))
-
-            # Format YAML
-            self.add_line("🔵 Format YAML")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
-
-            # Prettier
-            self.add_line("🔵 Prettier")
-            commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-            result = h.dev.run_powershell_script(commands)
-            self.add_line(result)
+            funcs.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=True)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
@@ -391,37 +329,7 @@ def in_thread(self) -> str | None:
         try:
             if self.folder_path is None:
                 return
-            # Delete *.g.md files
-            self.add_line("🔵 Delete *.g.md files")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.delete_g_md_files_recursively))
-
-            # Generate image captions
-            self.add_line("🔵 Generate image captions")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
-
-            # Generate TOC
-            self.add_line("🔵 Generate TOC")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-
-            # Generate summaries
-            self.add_line("🔵 Generate summaries")
-            for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
-                if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(self.folder_path).resolve()):
-                    self.add_line(h.md.generate_summaries(path_notes_for_summaries))
-
-            # Combine MD files
-            self.add_line("🔵 Combine MD files")
-            self.add_line(h.md.combine_markdown_files_recursively(self.folder_path, is_delete_g_md_files=False))
-
-            # Format YAML
-            self.add_line("🔵 Format YAML")
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
-
-            # Prettier
-            self.add_line("🔵 Prettier")
-            commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-            result = h.dev.run_powershell_script(commands)
-            self.add_line(result)
+            funcs.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=True)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 ```
