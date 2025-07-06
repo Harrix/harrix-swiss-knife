@@ -140,7 +140,7 @@ c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-kn
 
 ### CLI commands
 
-CLI commands after installation.
+CLI commands after installation:
 
 - `uv self update` — update uv itself.
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
@@ -152,16 +152,16 @@ CLI commands after installation.
 - `vermin src` — determines the minimum version of Python.
 - `ncu -u` + `npm install` + `npm audit fix --force` — update NPM packages.
 - `pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resources_rc.py` — convert UI file to PY class.
-- `vermin src` —  determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
+- `vermin src` — determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
 
 ### Add a new action
 
 - Add a new action `class On<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
-- Site for searching emojis <https://emojidb.org/>.
+- Site for searching emojis: <https://emojidb.org/>.
 - In `main.py` add action `self.add_items(...)`.
 - From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort in PY files` and select the folder `harrix_swiss_knife`.
 
-Example an action:
+Example action:
 
 ```python
 class OnCheckFeaturedImageInFolders(action_base.ActionBase):
@@ -187,7 +187,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
         self.show_result()
 ```
 
-Examples an action with QThread:
+Example action with QThread:
 
 ```python
 class OnNpmUpdatePackages(action_base.ActionBase):
@@ -257,7 +257,7 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
         self.show_result()
 ```
 
-Example an action with sequence of QThread:
+Example action with sequence of QThread:
 
 ```python
 class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
@@ -318,7 +318,7 @@ class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
 ### Update `harrix-pylib`
 
 - Run `uv sync --upgrade` (maybe twice).
-- Change version in line `"harrix-pylib>=<version>"` in `pyproject.toml`
+- Change version in line `"harrix-pylib>=<version>"` in `pyproject.toml`.
 - Run `uv sync --upgrade`.
 - Create a commit `⬆️ Update harrix-pylib`.
 
