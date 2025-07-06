@@ -86,10 +86,10 @@ _Figure 1: Screenshot_
 
 Install the following software:
 
-- [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md))
-- Node.js
-- VSCode (with Python extensions)
 - Git
+- VSCode (with Python extensions)
+- Node.js
+- [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md))
 
 ### Installation steps
 
