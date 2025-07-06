@@ -123,7 +123,7 @@ Install the following software:
    Copy all executables to the project folder `C:/GitHub/harrix-swiss-knife`.
 
 6. Run the application:
-   Open `src\harrix_swiss_knife\main.py` and run.
+   Open `src\harrix_swiss_knife\main.py` and run (or run `C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
 
 ### Running from command line
 
