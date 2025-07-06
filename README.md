@@ -6,11 +6,11 @@ This is a **personal** project tailored to **specific personal** tasks.
 
 ![GitHub](https://img.shields.io/github/license/Harrix/harrix-swiss-knife)
 
-GitHub: <https://github.com/Harrix/harrix-swiss-knife>.
+GitHub: <https://github.com/Harrix/harrix-swiss-knife>
 
-This project provides an application with a context menu in the system tray, featuring mini-programs designed to automate specific personal tasks. The project is intended for use on Windows.
+This project provides a Windows application with a system tray context menu, featuring mini-programs designed to automate specific personal tasks.
 
-![Screenshot](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/screenshoot.png)
+![Screenshot](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/screenshot.png)
 
 _Figure 1: Screenshot_
 
@@ -82,35 +82,52 @@ _Figure 1: Screenshot_
 
 ## Deploy on an empty machine (Windows)
 
-- Install [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md)), Node.js, VSCode (with python extensions), Git.
+### Prerequisites
 
-- Clone project:
+Install the following software:
 
-  ```shell
-  mkdir C:/GitHub
-  cd C:/GitHub
-  git clone https://github.com/Harrix/harrix-swiss-knife.git
-  ```
+- [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md))
+- Node.js
+- VSCode (with Python extensions)
+- Git
 
-- Open the folder `C:/GitHub/harrix-swiss-knife` in VSCode (or Cursor).
+### Installation steps
 
-- Open a terminal `Ctrl` + `` ` ``.
+1. Clone project:
 
-- Run `uv sync`.
+   ```shell
+   mkdir C:/GitHub
+   cd C:/GitHub
+   git clone https://github.com/Harrix/harrix-swiss-knife.git
+   ```
 
-- Run `uv sync --upgrade` (optional).
+2. Open the folder `C:/GitHub/harrix-swiss-knife` in VSCode (or Cursor).
 
-- Run `npm i`.
+3. Open a terminal `Ctrl` + `` ` ``.
 
-- Run `npm i -g npm-check-updates` and `npm i -g prettier` (or run `Dev` → `Install global NPM packages`).
+4. Install dependencies (`uv sync --upgrade` is optional):
 
-- Download and copy `ffmpeg.exe` to the project folder `C:/GitHub/harrix-swiss-knife`. For example, from `ffmpeg-master-latest-win64-gpl.zip` (<https://github.com/BtbN/FFmpeg-Builds/releases>).
+   ```shell
+   uv sync
+   uv sync --upgrade
+   npm i
+   npm i -g npm-check-updates prettier
+   ```
 
-- Download and copy libavif executables (`avifdec.exe`, `avifenc.exe`) to the project folder `C:/GitHub/harrix-swiss-knife`. Download the latest Windows release from libavif releases page: <https://github.com/AOMediaCodec/libavif/releases>. Extract the executables from the Windows archive (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`).
+   Alternatively, instead of the two previous commands, run `Dev` → `Install/Update global NPM packages`.
 
-- Open `src\harrix-swiss-knife\main.py` and run.
+5. Download required executables:
+   - **ffmpeg.exe**: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
+   - **libavif executables** (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
 
-After you can run the script from a terminal (or VSCode, or Cursor):
+   Copy all executables to the project folder `C:/GitHub/harrix-swiss-knife`.
+
+6. Run the application:
+   Open `src\harrix_swiss_knife\main.py` and run.
+
+### Running from command line
+
+After installation, you can run the script from terminal:
 
 ```shell
 c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
@@ -134,12 +151,14 @@ CLI commands after installation.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
 - `vermin src` — determines the minimum version of Python.
 - `ncu -u` + `npm install` + `npm audit fix --force` — update NPM packages.
+- `pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resources_rc.py` — convert UI file to PY class.
+- `vermin src` —  determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
 
 ### Add a new action
 
 - Add a new action `class On<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
 - Site for searching emojis <https://emojidb.org/>.
-- In `main.py` add action `self.add_items(...)` in `<section>`.
+- In `main.py` add action `self.add_items(...)`.
 - From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort in PY files` and select the folder `harrix_swiss_knife`.
 
 Example an action:
@@ -326,30 +345,14 @@ Generate `resources_rc.py`:
 pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resources_rc.py
 ```
 
-### Convert UI file to PY class
-
-```shell
-pyside6-uic src/harrix_swiss_knife/fitness/window.ui -o src/harrix_swiss_knife/fitness/window.py
-```
-
-### Minimum Python Version
-
-We determine the minimum Python version using [vermin](https://github.com/netromdk/vermin):
-
-```shell
-vermin src
-```
-
-However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
-
 </details>
 
 ## Create a shortcut
 
-Example path for a shortcut:
+To create a desktop shortcut, use the following path:
 
 ```shell
-C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
+C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
 
 ## License
