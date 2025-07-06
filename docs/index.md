@@ -6,7 +6,7 @@ lang: en
 
 # harrix-swiss-knife
 
-![harrix-swiss-knife](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/featured-image.svg)
+![Featured image](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/featured-image.svg)
 
 This is a **personal** project tailored to **specific personal** tasks.
 
@@ -93,7 +93,7 @@ _Figure 1: Screenshot_
 Install the following software:
 
 - Git
-- VSCode (with Python extensions)
+- Cursor or VSCode (with Python extensions)
 - Node.js
 - [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md))
 
@@ -107,7 +107,7 @@ Install the following software:
    git clone https://github.com/Harrix/harrix-swiss-knife.git
    ```
 
-2. Open the folder `C:/GitHub/harrix-swiss-knife` in VSCode (or Cursor).
+2. Open the folder `C:/GitHub/harrix-swiss-knife` in Cursor (or VSCode).
 
 3. Open a terminal `Ctrl` + `` ` ``.
 
@@ -182,7 +182,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        for path in config["paths_with_featured_image"]:
+        for path in self.config["paths_with_featured_image"]:
             try:
                 result = h.file.check_featured_image(path)[1]
             except Exception as e:
@@ -194,16 +194,19 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
 Example action with QThread:
 
 ```python
-class OnNpmUpdatePackages(action_base.ActionBase):
-    """Update NPM itself and all globally installed packages.
+class OnNpmManagePackages(action_base.ActionBase):
+    """Install or update configured NPM packages globally.
 
-    This action first updates the npm package manager to its latest version,
-    then updates all globally installed npm packages to their latest versions,
-    ensuring the development environment has the most current tools available.
+    This action manages NPM packages specified in the `config["npm_packages"]` list:
+    1. Updates NPM itself to the latest version
+    2. Installs/updates all configured packages (npm install will update if already exists)
+    3. Runs global update to ensure all packages are at latest versions
+
+    This ensures all configured packages are present and up-to-date in the system.
     """
 
-    icon = "📥"
-    title = "Update NPM and global NPM packages"
+    icon = "📦"
+    title = "Install/Update global NPM packages"
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -211,12 +214,27 @@ class OnNpmUpdatePackages(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        commands = "npm update npm -g\nnpm update -g"
-        return h.dev.run_powershell_script(commands)
+        # Update NPM itself first
+        self.add_line("Updating NPM...")
+        result = h.dev.run_command("npm update npm -g")
+        self.add_line(result)
+
+        # Install/update all configured packages
+        self.add_line("Installing/updating configured packages...")
+        install_commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
+        result = h.dev.run_command(install_commands)
+        self.add_line(result)
+
+        # Run global update to ensure everything is up-to-date
+        self.add_line("Running global update...")
+        result = h.dev.run_command("npm update -g")
+        self.add_line(result)
+
+        return "NPM packages management completed"
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast("Update completed")
+        self.show_toast("NPM packages management completed")
         self.add_line(result)
         self.show_result()
 ```
