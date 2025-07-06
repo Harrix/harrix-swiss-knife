@@ -9,7 +9,67 @@ import harrix_pylib as h
 from harrix_swiss_knife import action_base, funcs, markdown_checker
 
 
-class OnBeautifyMdNotesFolder(action_base.ActionBase):
+class OnBeautifyMdFolder(action_base.ActionBase):
+    """Apply comprehensive beautification to all Markdown notes.
+
+    This action performs multiple enhancement operations on Markdown files across
+    all configured note directories, including:
+
+    - Adding image captions
+    - Generating tables of contents
+    - Formatting YAML frontmatter
+    - Running Prettier for consistent formatting
+
+    It provides a one-click solution for maintaining a high-quality, consistently
+    formatted collection of Markdown documents.
+    """
+
+    icon = "😎"
+    title = "Beautify MD in …"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
+        try:
+            if self.folder_path is None:
+                return
+            # Generate image captions
+            self.add_line("🔵 Generate image captions")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
+
+            # Generate TOC
+            self.add_line("🔵 Generate TOC")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
+
+            # Format YAML
+            self.add_line("🔵 Format YAML")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
+
+            # Prettier
+            self.add_line("🔵 Prettier")
+            commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
+        except Exception as e:
+            self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+
+
+class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
     """Apply comprehensive beautification to all Markdown notes.
 
     This action performs multiple enhancement operations on Markdown files across
@@ -27,7 +87,7 @@ class OnBeautifyMdNotesFolder(action_base.ActionBase):
     """
 
     icon = "😎"
-    title = "Beautify MD notes in …"
+    title = "Beautify MD and regenerate .g.md in …"
     bold_title = True
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

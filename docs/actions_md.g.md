@@ -11,101 +11,260 @@ lang: en
 
 ## Contents
 
-- [Class `OnBeautifyMdNotesFolder`](#class-onbeautifymdnotesfolder)
+- [Class `OnBeautifyMdFolder`](#class-onbeautifymdfolder)
   - [Method `execute`](#method-execute)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
-- [Class `OnCheckMd`](#class-oncheckmd)
+- [Class `OnBeautifyMdFolderAndRegenerateGMd`](#class-onbeautifymdfolderandregenerategmd)
   - [Method `execute`](#method-execute-1)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnCheckMdFolder`](#class-oncheckmdfolder)
+- [Class `OnCheckMd`](#class-oncheckmd)
   - [Method `execute`](#method-execute-2)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnCombineMarkdownFiles`](#class-oncombinemarkdownfiles)
+- [Class `OnCheckMdFolder`](#class-oncheckmdfolder)
   - [Method `execute`](#method-execute-3)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
-- [Class `OnDownloadAndReplaceImages`](#class-ondownloadandreplaceimages)
+- [Class `OnCombineMarkdownFiles`](#class-oncombinemarkdownfiles)
   - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread-4)
   - [Method `thread_after`](#method-thread_after-4)
-- [Class `OnDownloadAndReplaceImagesFolder`](#class-ondownloadandreplaceimagesfolder)
+- [Class `OnDownloadAndReplaceImages`](#class-ondownloadandreplaceimages)
   - [Method `execute`](#method-execute-5)
   - [Method `in_thread`](#method-in_thread-5)
   - [Method `thread_after`](#method-thread_after-5)
-- [Class `OnFormatQuotesAsMarkdownContent`](#class-onformatquotesasmarkdowncontent)
+- [Class `OnDownloadAndReplaceImagesFolder`](#class-ondownloadandreplaceimagesfolder)
   - [Method `execute`](#method-execute-6)
-- [Class `OnFormatYaml`](#class-onformatyaml)
-  - [Method `execute`](#method-execute-7)
   - [Method `in_thread`](#method-in_thread-6)
   - [Method `thread_after`](#method-thread_after-6)
-- [Class `OnGenerateAuthorBook`](#class-ongenerateauthorbook)
+- [Class `OnFormatQuotesAsMarkdownContent`](#class-onformatquotesasmarkdowncontent)
+  - [Method `execute`](#method-execute-7)
+- [Class `OnFormatYaml`](#class-onformatyaml)
   - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-7)
   - [Method `thread_after`](#method-thread_after-7)
-- [Class `OnGenerateImageCaptions`](#class-ongenerateimagecaptions)
+- [Class `OnGenerateAuthorBook`](#class-ongenerateauthorbook)
   - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-8)
   - [Method `thread_after`](#method-thread_after-8)
-- [Class `OnGenerateImageCaptionsFolder`](#class-ongenerateimagecaptionsfolder)
+- [Class `OnGenerateImageCaptions`](#class-ongenerateimagecaptions)
   - [Method `execute`](#method-execute-10)
   - [Method `in_thread`](#method-in_thread-9)
   - [Method `thread_after`](#method-thread_after-9)
-- [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
+- [Class `OnGenerateImageCaptionsFolder`](#class-ongenerateimagecaptionsfolder)
   - [Method `execute`](#method-execute-11)
   - [Method `in_thread`](#method-in_thread-10)
   - [Method `thread_after`](#method-thread_after-10)
-- [Class `OnGenerateToc`](#class-ongeneratetoc)
+- [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
   - [Method `execute`](#method-execute-12)
   - [Method `in_thread`](#method-in_thread-11)
   - [Method `thread_after`](#method-thread_after-11)
-- [Class `OnGenerateTocFolder`](#class-ongeneratetocfolder)
+- [Class `OnGenerateToc`](#class-ongeneratetoc)
   - [Method `execute`](#method-execute-13)
   - [Method `in_thread`](#method-in_thread-12)
   - [Method `thread_after`](#method-thread_after-12)
-- [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
+- [Class `OnGenerateTocFolder`](#class-ongeneratetocfolder)
   - [Method `execute`](#method-execute-14)
-- [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
-  - [Method `execute`](#method-execute-15)
-- [Class `OnNewArticle`](#class-onnewarticle)
-  - [Method `execute`](#method-execute-16)
-- [Class `OnNewDiary`](#class-onnewdiary)
-  - [Method `execute`](#method-execute-17)
-- [Class `OnNewDiaryDream`](#class-onnewdiarydream)
-  - [Method `execute`](#method-execute-18)
-- [Class `OnNewNoteDialog`](#class-onnewnotedialog)
-  - [Method `execute`](#method-execute-19)
-- [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
-  - [Method `execute`](#method-execute-20)
-- [Class `OnOptimizeImages`](#class-onoptimizeimages)
-  - [Method `execute`](#method-execute-21)
   - [Method `in_thread`](#method-in_thread-13)
   - [Method `thread_after`](#method-thread_after-13)
-- [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
+- [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
+  - [Method `execute`](#method-execute-15)
+- [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
+  - [Method `execute`](#method-execute-16)
+- [Class `OnNewArticle`](#class-onnewarticle)
+  - [Method `execute`](#method-execute-17)
+- [Class `OnNewDiary`](#class-onnewdiary)
+  - [Method `execute`](#method-execute-18)
+- [Class `OnNewDiaryDream`](#class-onnewdiarydream)
+  - [Method `execute`](#method-execute-19)
+- [Class `OnNewNoteDialog`](#class-onnewnotedialog)
+  - [Method `execute`](#method-execute-20)
+- [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
+  - [Method `execute`](#method-execute-21)
+- [Class `OnOptimizeImages`](#class-onoptimizeimages)
   - [Method `execute`](#method-execute-22)
   - [Method `in_thread`](#method-in_thread-14)
   - [Method `thread_after`](#method-thread_after-14)
-- [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
+- [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
   - [Method `execute`](#method-execute-23)
   - [Method `in_thread`](#method-in_thread-15)
   - [Method `thread_after`](#method-thread_after-15)
-- [Class `OnPettierFolder`](#class-onpettierfolder)
+- [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
   - [Method `execute`](#method-execute-24)
   - [Method `in_thread`](#method-in_thread-16)
   - [Method `thread_after`](#method-thread_after-16)
-- [Class `OnSortSections`](#class-onsortsections)
+- [Class `OnPettierFolder`](#class-onpettierfolder)
   - [Method `execute`](#method-execute-25)
   - [Method `in_thread`](#method-in_thread-17)
   - [Method `thread_after`](#method-thread_after-17)
+- [Class `OnSortSections`](#class-onsortsections)
+  - [Method `execute`](#method-execute-26)
+  - [Method `in_thread`](#method-in_thread-18)
+  - [Method `thread_after`](#method-thread_after-18)
 
 </details>
 
-## Class `OnBeautifyMdNotesFolder`
+## Class `OnBeautifyMdFolder`
 
 ```python
-class OnBeautifyMdNotesFolder(action_base.ActionBase)
+class OnBeautifyMdFolder(action_base.ActionBase)
+```
+
+Apply comprehensive beautification to all Markdown notes.
+
+This action performs multiple enhancement operations on Markdown files across
+all configured note directories, including:
+
+- Adding image captions
+- Generating tables of contents
+- Formatting YAML frontmatter
+- Running Prettier for consistent formatting
+
+It provides a one-click solution for maintaining a high-quality, consistently
+formatted collection of Markdown documents.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnBeautifyMdFolder(action_base.ActionBase):
+
+    icon = "😎"
+    title = "Beautify MD in …"
+
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
+        try:
+            if self.folder_path is None:
+                return
+            # Generate image captions
+            self.add_line("🔵 Generate image captions")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
+
+            # Generate TOC
+            self.add_line("🔵 Generate TOC")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
+
+            # Format YAML
+            self.add_line("🔵 Format YAML")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
+
+            # Prettier
+            self.add_line("🔵 Prettier")
+            commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
+        except Exception as e:
+            self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
+
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
+        try:
+            if self.folder_path is None:
+                return
+            # Generate image captions
+            self.add_line("🔵 Generate image captions")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
+
+            # Generate TOC
+            self.add_line("🔵 Generate TOC")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
+
+            # Format YAML
+            self.add_line("🔵 Format YAML")
+            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
+
+            # Prettier
+            self.add_line("🔵 Prettier")
+            commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+            result = h.dev.run_powershell_script(commands)
+            self.add_line(result)
+        except Exception as e:
+            self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
+```
+
+</details>
+
+### Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+## Class `OnBeautifyMdFolderAndRegenerateGMd`
+
+```python
+class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase)
 ```
 
 Apply comprehensive beautification to all Markdown notes.
@@ -127,10 +286,10 @@ formatted collection of Markdown documents.
 <summary>Code:</summary>
 
 ```python
-class OnBeautifyMdNotesFolder(action_base.ActionBase):
+class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
 
     icon = "😎"
-    title = "Beautify MD notes in …"
+    title = "Beautify MD and regenerate .g.md in …"
     bold_title = True
 
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
