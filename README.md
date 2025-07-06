@@ -144,14 +144,12 @@ CLI commands after installation:
 
 - `uv self update` — update uv itself.
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
-- `isort .` — sort imports.
-- `ruff format` — format the project's Python files.
 - `ruff check` — lint the project's Python files.
 - `ruff check --fix` — lint and fix the project's Python files.
-- `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
-- `vermin src` — determines the minimum version of Python.
-- `ncu -u` + `npm install` + `npm audit fix --force` — update NPM packages.
 - `pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resources_rc.py` — convert UI file to PY class.
+- `isort .` — sort imports.
+- `ruff format` — format the project's Python files.
+- `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
 - `vermin src` — determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
 
 ### Add a new action
@@ -159,7 +157,7 @@ CLI commands after installation:
 - Add a new action `class On<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
 - Site for searching emojis: <https://emojidb.org/>.
 - In `main.py` add action `self.add_items(...)`.
-- From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort in PY files` and select the folder `harrix_swiss_knife`.
+- From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort, make docs in PY files` and select the folder `harrix_swiss_knife`.
 
 Example action:
 
@@ -322,7 +320,7 @@ class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
 - Run `uv sync --upgrade`.
 - Create a commit `⬆️ Update harrix-pylib`.
 
-Or from `harrix-swiss-knife`, call the command `Python` → `02 Publish and update harrix-pylib`.
+Or from `harrix-swiss-knife`, call the command `Python` → `Publish Python library to PyPI`.
 
 ### Add file to a resource file
 
