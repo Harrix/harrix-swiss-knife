@@ -4,6 +4,25 @@
 
 This is a **personal** project tailored to **specific personal** tasks.
 
+<details>
+<summary>📖 Contents</summary>
+
+## Contents
+
+- [List of commands](#list-of-commands)
+- [Deploy on an empty machine (Windows)](#deploy-on-an-empty-machine-windows)
+  - [Prerequisites](#prerequisites)
+  - [Installation steps](#installation-steps)
+  - [Running from command line](#running-from-command-line)
+- [Development](#development)
+  - [CLI commands](#cli-commands)
+  - [Add a new action](#add-a-new-action)
+  - [Add file to a resource file](#add-file-to-a-resource-file)
+- [Create a shortcut](#create-a-shortcut)
+- [License](#license)
+
+</details>
+
 ![GitHub](https://img.shields.io/badge/GitHub-harrix--swiss--knife-blue?logo=github) ![GitHub](https://img.shields.io/github/license/Harrix/harrix-swiss-knife)
 
 GitHub: <https://github.com/Harrix/harrix-swiss-knife>
