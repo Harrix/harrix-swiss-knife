@@ -7,7 +7,7 @@ license = { file = "LICENSE.md" }
 authors = [{ name = "Anton Sergienko", email = "anton.b.sergienko@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
-    "harrix-pylib>=0.161",
+    "harrix-pylib>=0.162",
     "libcst>=1.5.1",
     "matplotlib>=3.10.3",
     "pandas>=2.3.0",
