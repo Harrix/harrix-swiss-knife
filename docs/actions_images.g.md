@@ -250,7 +250,7 @@ class OnOptimize(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        return h.dev.run_powershell_script("npm run optimize")
+        return h.dev.run_command("npm run optimize")
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -293,7 +293,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        return h.dev.run_powershell_script("npm run optimize")
+        return h.dev.run_command("npm run optimize")
 ```
 
 </details>
@@ -362,7 +362,7 @@ class OnOptimizeClipboard(action_base.ActionBase):
             self.add_line(f"Image is saved as {temp_filename}")
 
             commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-            result = h.dev.run_powershell_script(commands)
+            result = h.dev.run_command(commands)
 
             clr.AddReference("System.Collections.Specialized")  # type: ignore[attr-defined]
             clr.AddReference("System.Windows.Forms")  # type: ignore[attr-defined]
@@ -415,7 +415,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.add_line(f"Image is saved as {temp_filename}")
 
             commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-            result = h.dev.run_powershell_script(commands)
+            result = h.dev.run_command(commands)
 
             clr.AddReference("System.Collections.Specialized")  # type: ignore[attr-defined]
             clr.AddReference("System.Windows.Forms")  # type: ignore[attr-defined]
@@ -515,7 +515,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
         if self.folder_path is None:
             return None
 
-        result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
+        result = h.dev.run_command(f'npm run optimize imagesFolder="{self.folder_path}"')
 
         for item in self.folder_path.iterdir():
             if item.is_file():
@@ -581,7 +581,7 @@ def in_thread(self) -> str | None:
         if self.folder_path is None:
             return None
 
-        result = h.dev.run_powershell_script(f'npm run optimize imagesFolder="{self.folder_path}"')
+        result = h.dev.run_command(f'npm run optimize imagesFolder="{self.folder_path}"')
 
         for item in self.folder_path.iterdir():
             if item.is_file():
@@ -659,7 +659,7 @@ class OnOptimizeFile(action_base.ActionBase):
             shutil.copy(filename, temp_filename)
 
             commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-            result = h.dev.run_powershell_script(commands)
+            result = h.dev.run_command(commands)
 
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.add_line(result)
@@ -694,7 +694,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             shutil.copy(filename, temp_filename)
 
             commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-            result = h.dev.run_powershell_script(commands)
+            result = h.dev.run_command(commands)
 
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.add_line(result)
@@ -731,7 +731,7 @@ class OnOptimizeQuality(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        return h.dev.run_powershell_script("npm run optimize quality=true")
+        return h.dev.run_command("npm run optimize quality=true")
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -774,7 +774,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        return h.dev.run_powershell_script("npm run optimize quality=true")
+        return h.dev.run_command("npm run optimize quality=true")
 ```
 
 </details>
@@ -826,7 +826,7 @@ class OnResizeOptimizePngToAvif(action_base.ActionBase):
 
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        return h.dev.run_powershell_script(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
+        return h.dev.run_command(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -871,7 +871,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        return h.dev.run_powershell_script(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
+        return h.dev.run_command(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
 ```
 
 </details>

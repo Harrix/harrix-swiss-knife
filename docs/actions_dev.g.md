@@ -212,18 +212,18 @@ class OnNpmManagePackages(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         # Update NPM itself first
         self.add_line("Updating NPM...")
-        result = h.dev.run_powershell_script("npm update npm -g")
+        result = h.dev.run_command("npm update npm -g")
         self.add_line(result)
 
         # Install/update all configured packages
         self.add_line("Installing/updating configured packages...")
         install_commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
-        result = h.dev.run_powershell_script(install_commands)
+        result = h.dev.run_command(install_commands)
         self.add_line(result)
 
         # Run global update to ensure everything is up-to-date
         self.add_line("Running global update...")
-        result = h.dev.run_powershell_script("npm update -g")
+        result = h.dev.run_command("npm update -g")
         self.add_line(result)
 
         return "NPM packages management completed"
@@ -270,18 +270,18 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         # Update NPM itself first
         self.add_line("Updating NPM...")
-        result = h.dev.run_powershell_script("npm update npm -g")
+        result = h.dev.run_command("npm update npm -g")
         self.add_line(result)
 
         # Install/update all configured packages
         self.add_line("Installing/updating configured packages...")
         install_commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
-        result = h.dev.run_powershell_script(install_commands)
+        result = h.dev.run_command(install_commands)
         self.add_line(result)
 
         # Run global update to ensure everything is up-to-date
         self.add_line("Running global update...")
-        result = h.dev.run_powershell_script("npm update -g")
+        result = h.dev.run_command("npm update -g")
         self.add_line(result)
 
         return "NPM packages management completed"
@@ -333,7 +333,7 @@ class OnOpenConfigJson(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
-        result = h.dev.run_powershell_script(commands)
+        result = h.dev.run_command(commands)
         self.add_line(result)
 ```
 
@@ -353,7 +353,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
-        result = h.dev.run_powershell_script(commands)
+        result = h.dev.run_command(commands)
         self.add_line(result)
 ```
 
@@ -387,7 +387,7 @@ class OnUvUpdate(action_base.ActionBase):
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = "uv self update"
-        return h.dev.run_powershell_script(commands)
+        return h.dev.run_command(commands)
 
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -430,7 +430,7 @@ Execute code in a separate thread. For performing long-running operations.
 ```python
 def in_thread(self) -> str | None:
         commands = "uv self update"
-        return h.dev.run_powershell_script(commands)
+        return h.dev.run_command(commands)
 ```
 
 </details>
