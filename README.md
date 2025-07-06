@@ -64,7 +64,8 @@ _Figure 1: Screenshot_
   - 👉 Increase heading level
   - 🌄 Add image captions in one MD
   - 🌄 Add image captions in …
-  - 😎 Beautify MD notes in …
+  - 😎 Beautify MD and regenerate .g.md in …
+  - 😎 Beautify MD in …
   - 🚧 Check in …
   - 🚧 Check one MD
   - 🔗 Combine MD files in …
