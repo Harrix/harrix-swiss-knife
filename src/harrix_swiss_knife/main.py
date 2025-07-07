@@ -84,7 +84,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnBeautifyMdFolder,
                 hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
                 hsk.md.OnCheckMdFolder,
-                hsk.md.OnCombineMarkdownFiles,
                 hsk.md.OnDownloadAndReplaceImages,
                 hsk.md.OnDownloadAndReplaceImagesFolder,
                 hsk.md.OnFormatYaml,

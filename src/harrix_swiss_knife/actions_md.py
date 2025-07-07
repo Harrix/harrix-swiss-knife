@@ -137,44 +137,6 @@ class OnCheckMdFolder(action_base.ActionBase):
         self.show_result()
 
 
-class OnCombineMarkdownFiles(action_base.ActionBase):
-    """Combine related Markdown files in a directory structure.
-
-    This action processes a selected folder to find and combine related Markdown files
-    based on predefined patterns or references between files. After combining the files,
-    it applies Prettier formatting to ensure consistent styling across all documents.
-    """
-
-    icon = "🔗"
-    title = "Combine MD files in …"
-
-    @action_base.ActionBase.handle_exceptions("combining markdown files")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with Markdown files", self.config["path_notes"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @action_base.ActionBase.handle_exceptions("combining markdown files thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.folder_path is None:
-            return
-        self.add_line(h.md.combine_markdown_files_recursively(self.folder_path))
-
-        commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        result = h.dev.run_powershell_script(commands)
-        self.add_line(result)
-
-    @action_base.ActionBase.handle_exceptions("combining markdown files thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} completed")
-        self.show_result()
-
-
 class OnDownloadAndReplaceImages(action_base.ActionBase):
     """Download remote images and replace URLs with local references in a Markdown file.
 
