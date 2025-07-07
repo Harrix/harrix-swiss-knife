@@ -6,8 +6,9 @@ integrations, file operations, and threading capabilities.
 """
 
 from collections.abc import Callable
+from functools import wraps
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import Any, Concatenate, NoReturn, ParamSpec, TypeVar
 
 import harrix_pylib as h
 from PySide6.QtCore import QThread, Signal
@@ -29,6 +30,11 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import toast_countdown_notification, toast_notification
+
+# Type variables for decorators
+P = ParamSpec("P")
+R = TypeVar("R")
+SelfT = TypeVar("SelfT")
 
 
 class ActionBase:
@@ -349,6 +355,47 @@ class ActionBase:
             return text
         self.add_line("❌ Dialog was canceled.")
         return None
+
+    def handle_error(self, error: Exception, context: str) -> None:
+        """Handle an error with context information.
+
+        Args:
+
+        - `error` (`Exception`): The exception that occurred.
+        - `context` (`str`): Context information about where the error occurred.
+
+        """
+        error_message = f"❌ Error in {context}: {error!s}"
+        self.add_line(error_message)
+
+    @staticmethod
+    def handle_exceptions(
+        context: str = "",
+    ) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
+        """Handle exceptions automatically in action methods.
+
+        Args:
+
+        - `context` (`str`): Optional context information for error messages. Defaults to `""`.
+
+        Returns:
+
+        - `Callable`: A decorator function that wraps methods with exception handling.
+
+        """
+
+        def decorator(func: Callable[Concatenate[SelfT, P], R]) -> Callable[Concatenate[SelfT, P], R | None]:
+            @wraps(func)
+            def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
+                try:
+                    return func(self, *args, **kwargs)
+                except Exception as e:
+                    self.handle_error(e, context or func.__name__)  # type: ignore # noqa: PGH003
+                    return None
+
+            return wrapper
+
+        return decorator
 
     def show_result(self) -> str | None:
         """Open a dialog to display result of `execute`.

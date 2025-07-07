@@ -161,16 +161,14 @@ class OnCheckFeaturedImage(action_base.ActionBase):
     icon = "✅"
     title = "Check featured_image in …"
 
+    @action_base.ActionBase.handle_exceptions("checking featured image")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
         if folder_path is None:
             return
 
-        try:
-            result = h.file.check_featured_image(folder_path)[1]
-        except Exception as e:
-            result = f"❌ Error: {e}"
+        result = h.file.check_featured_image(folder_path)[1]
         self.add_line(result)
         self.show_result()
 ```
@@ -194,10 +192,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if folder_path is None:
             return
 
-        try:
-            result = h.file.check_featured_image(folder_path)[1]
-        except Exception as e:
-            result = f"❌ Error: {e}"
+        result = h.file.check_featured_image(folder_path)[1]
         self.add_line(result)
         self.show_result()
 ```

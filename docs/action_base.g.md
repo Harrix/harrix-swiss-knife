@@ -24,6 +24,8 @@ lang: en
   - [Method `get_save_filename`](#method-get_save_filename)
   - [Method `get_text_input`](#method-get_text_input)
   - [Method `get_text_textarea`](#method-get_text_textarea)
+  - [Method `handle_error`](#method-handle_error)
+  - [Method `handle_exceptions`](#method-handle_exceptions)
   - [Method `show_result`](#method-show_result)
   - [Method `show_text_multiline`](#method-show_text_multiline)
   - [Method `show_toast`](#method-show_toast)
@@ -359,6 +361,47 @@ class ActionBase:
             return text
         self.add_line("❌ Dialog was canceled.")
         return None
+
+    def handle_error(self, error: Exception, context: str) -> None:
+        """Handle an error with context information.
+
+        Args:
+
+        - `error` (`Exception`): The exception that occurred.
+        - `context` (`str`): Context information about where the error occurred.
+
+        """
+        error_message = f"❌ Error in {context}: {error!s}"
+        self.add_line(error_message)
+
+    @staticmethod
+    def handle_exceptions(
+        context: str = "",
+    ) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
+        """Handle exceptions automatically in action methods.
+
+        Args:
+
+        - `context` (`str`): Optional context information for error messages. Defaults to `""`.
+
+        Returns:
+
+        - `Callable`: A decorator function that wraps methods with exception handling.
+
+        """
+
+        def decorator(func: Callable[Concatenate[SelfT, P], R]) -> Callable[Concatenate[SelfT, P], R | None]:
+            @wraps(func)
+            def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
+                try:
+                    return func(self, *args, **kwargs)
+                except Exception as e:
+                    self.handle_error(e, context or func.__name__)  # type: ignore # noqa: PGH003
+                    return None
+
+            return wrapper
+
+        return decorator
 
     def show_result(self) -> str | None:
         """Open a dialog to display result of `execute`.
@@ -960,6 +1003,70 @@ def get_text_textarea(self, title: str, label: str) -> str | None:
             return text
         self.add_line("❌ Dialog was canceled.")
         return None
+```
+
+</details>
+
+### Method `handle_error`
+
+```python
+def handle_error(self, error: Exception, context: str) -> None
+```
+
+Handle an error with context information.
+
+Args:
+
+- `error` (`Exception`): The exception that occurred.
+- `context` (`str`): Context information about where the error occurred.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def handle_error(self, error: Exception, context: str) -> None:
+        error_message = f"❌ Error in {context}: {error!s}"
+        self.add_line(error_message)
+```
+
+</details>
+
+### Method `handle_exceptions`
+
+```python
+def handle_exceptions(context: str = "") -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
+```
+
+Handle exceptions automatically in action methods.
+
+Args:
+
+- `context` (`str`): Optional context information for error messages. Defaults to `""`.
+
+Returns:
+
+- `Callable`: A decorator function that wraps methods with exception handling.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def handle_exceptions(
+        context: str = "",
+    ) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
+
+        def decorator(func: Callable[Concatenate[SelfT, P], R]) -> Callable[Concatenate[SelfT, P], R | None]:
+            @wraps(func)
+            def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
+                try:
+                    return func(self, *args, **kwargs)
+                except Exception as e:
+                    self.handle_error(e, context or func.__name__)  # type: ignore # noqa: PGH003
+                    return None
+
+            return wrapper
+
+        return decorator
 ```
 
 </details>
