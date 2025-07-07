@@ -41,56 +41,48 @@ lang: en
   - [Method `execute`](#method-execute-7)
   - [Method `in_thread`](#method-in_thread-6)
   - [Method `thread_after`](#method-thread_after-6)
-- [Class `OnGenerateImageCaptions`](#class-ongenerateimagecaptions)
+- [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
   - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-7)
   - [Method `thread_after`](#method-thread_after-7)
-- [Class `OnGenerateImageCaptionsFolder`](#class-ongenerateimagecaptionsfolder)
+- [Class `OnGenerateToc`](#class-ongeneratetoc)
   - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-8)
   - [Method `thread_after`](#method-thread_after-8)
-- [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
+- [Class `OnGenerateTocFolder`](#class-ongeneratetocfolder)
   - [Method `execute`](#method-execute-10)
   - [Method `in_thread`](#method-in_thread-9)
   - [Method `thread_after`](#method-thread_after-9)
-- [Class `OnGenerateToc`](#class-ongeneratetoc)
+- [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
   - [Method `execute`](#method-execute-11)
+- [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
+  - [Method `execute`](#method-execute-12)
+- [Class `OnNewArticle`](#class-onnewarticle)
+  - [Method `execute`](#method-execute-13)
+- [Class `OnNewDiary`](#class-onnewdiary)
+  - [Method `execute`](#method-execute-14)
+- [Class `OnNewDiaryDream`](#class-onnewdiarydream)
+  - [Method `execute`](#method-execute-15)
+- [Class `OnNewNoteDialog`](#class-onnewnotedialog)
+  - [Method `execute`](#method-execute-16)
+- [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
+  - [Method `execute`](#method-execute-17)
+- [Class `OnOptimizeImages`](#class-onoptimizeimages)
+  - [Method `execute`](#method-execute-18)
   - [Method `in_thread`](#method-in_thread-10)
   - [Method `thread_after`](#method-thread_after-10)
-- [Class `OnGenerateTocFolder`](#class-ongeneratetocfolder)
-  - [Method `execute`](#method-execute-12)
+- [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
+  - [Method `execute`](#method-execute-19)
   - [Method `in_thread`](#method-in_thread-11)
   - [Method `thread_after`](#method-thread_after-11)
-- [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
-  - [Method `execute`](#method-execute-13)
-- [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
-  - [Method `execute`](#method-execute-14)
-- [Class `OnNewArticle`](#class-onnewarticle)
-  - [Method `execute`](#method-execute-15)
-- [Class `OnNewDiary`](#class-onnewdiary)
-  - [Method `execute`](#method-execute-16)
-- [Class `OnNewDiaryDream`](#class-onnewdiarydream)
-  - [Method `execute`](#method-execute-17)
-- [Class `OnNewNoteDialog`](#class-onnewnotedialog)
-  - [Method `execute`](#method-execute-18)
-- [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
-  - [Method `execute`](#method-execute-19)
-- [Class `OnOptimizeImages`](#class-onoptimizeimages)
+- [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
   - [Method `execute`](#method-execute-20)
   - [Method `in_thread`](#method-in_thread-12)
   - [Method `thread_after`](#method-thread_after-12)
-- [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
+- [Class `OnSortSections`](#class-onsortsections)
   - [Method `execute`](#method-execute-21)
   - [Method `in_thread`](#method-in_thread-13)
   - [Method `thread_after`](#method-thread_after-13)
-- [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
-  - [Method `execute`](#method-execute-22)
-  - [Method `in_thread`](#method-in_thread-14)
-  - [Method `thread_after`](#method-thread_after-14)
-- [Class `OnSortSections`](#class-onsortsections)
-  - [Method `execute`](#method-execute-23)
-  - [Method `in_thread`](#method-in_thread-15)
-  - [Method `thread_after`](#method-thread_after-15)
 
 </details>
 
@@ -933,232 +925,6 @@ def in_thread(self) -> str | None:
             return
         result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
         self.add_line(result)
-```
-
-</details>
-
-### Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-```
-
-</details>
-
-## Class `OnGenerateImageCaptions`
-
-```python
-class OnGenerateImageCaptions(action_base.ActionBase)
-```
-
-Add captions to images in a single Markdown file.
-
-This action processes a selected Markdown file to add or update captions
-for all images found in the document, enhancing readability and accessibility
-of image content.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnGenerateImageCaptions(action_base.ActionBase):
-
-    icon = "🌄"
-    title = "Add image captions in one MD"
-
-    @action_base.ActionBase.handle_exceptions("generating image captions")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.filename = self.get_open_filename(
-            "Open Markdown file",
-            self.config["path_articles"],
-            "Markdown (*.md);;All Files (*)",
-        )
-        if not self.filename:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @action_base.ActionBase.handle_exceptions("generating image captions thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.filename is None:
-            return
-        self.add_line(h.md.generate_image_captions(self.filename))
-
-    @action_base.ActionBase.handle_exceptions("generating image captions thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.filename} completed")
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.filename = self.get_open_filename(
-            "Open Markdown file",
-            self.config["path_articles"],
-            "Markdown (*.md);;All Files (*)",
-        )
-        if not self.filename:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-```
-
-</details>
-
-### Method `in_thread`
-
-```python
-def in_thread(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> str | None:
-        if self.filename is None:
-            return
-        self.add_line(h.md.generate_image_captions(self.filename))
-```
-
-</details>
-
-### Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} {self.filename} completed")
-        self.show_result()
-```
-
-</details>
-
-## Class `OnGenerateImageCaptionsFolder`
-
-```python
-class OnGenerateImageCaptionsFolder(action_base.ActionBase)
-```
-
-Add captions to images in all Markdown files within a folder.
-
-This action processes all Markdown files in a selected folder to add or update captions
-for all images found in the documents, enhancing readability and accessibility
-of image content across an entire collection of documents.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnGenerateImageCaptionsFolder(action_base.ActionBase):
-
-    icon = "🌄"
-    title = "Add image captions in …"
-
-    @action_base.ActionBase.handle_exceptions("generating image captions in folder")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @action_base.ActionBase.handle_exceptions("generating image captions folder thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
-
-    @action_base.ActionBase.handle_exceptions("generating image captions folder thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-```
-
-</details>
-
-### Method `in_thread`
-
-```python
-def in_thread(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> str | None:
-        if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
 ```
 
 </details>
