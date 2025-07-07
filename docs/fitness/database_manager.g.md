@@ -90,7 +90,7 @@ Attributes:
 class DatabaseManager:
 
     def __init__(self, db_filename: str) -> None:
-        """Open a connection to an SQLite database stored in *db_filename*.
+        """Open a connection to an SQLite database stored in `db_filename`.
 
         Args:
 
@@ -169,7 +169,7 @@ class DatabaseManager:
         return True
 
     def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        """Yield every record in *query* one by one.
+        """Yield every record in `query` one by one.
 
         Args:
 
@@ -208,7 +208,7 @@ class DatabaseManager:
             raise ConnectionError(error_msg)
 
     def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        """Convert the full result set in *query* into a list of rows.
+        """Convert the full result set in `query` into a list of rows.
 
         Args:
 
@@ -466,13 +466,13 @@ class DatabaseManager:
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> QSqlQuery | None:
-        """Prepare and execute *query_text* with optional bound *params*.
+        """Prepare and execute `query_text` with optional bound `params`.
 
         Args:
 
         - `query_text` (`str`): A parametrised SQL statement.
         - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-          named placeholders in *query_text*. Defaults to `None`.
+          named placeholders in `query_text`. Defaults to `None`.
 
         Returns:
 
@@ -524,7 +524,7 @@ class DatabaseManager:
 
         - `query_text` (`str`): A parametrised SQL statement.
         - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-          named placeholders in *query_text*. Defaults to `None`.
+          named placeholders in `query_text`. Defaults to `None`.
 
         Returns:
 
@@ -869,11 +869,11 @@ class DatabaseManager:
         return "times"
 
     def get_exercises_by_frequency(self, limit: int = 500) -> list[str]:
-        """Return exercise names ordered by frequency in recent *limit* rows.
+        """Return exercise names ordered by frequency in recent `limit` rows.
 
         Args:
 
-        - `limit` (`int`): Number of most recent rows from the *process* table
+        - `limit` (`int`): Number of most recent rows from the `process` table
           to analyse. Defaults to `500`.
 
         Returns:
@@ -900,7 +900,7 @@ class DatabaseManager:
             all_exercises[ex_id] for ex_id, _ in exercise_counts.most_common() if ex_id in all_exercises
         ]
 
-        # Preserve exercises not present in *sorted_exercises*.
+        # Preserve exercises not present in sorted_exercises.
         remainder = [name for name in all_exercises.values() if name not in sorted_exercises]
         return sorted_exercises + remainder
 
@@ -970,7 +970,7 @@ class DatabaseManager:
         id_column: str = "_id",
         condition: str | None = None,
     ) -> int | None:
-        """Return a single ID that matches *name_value* in *table*.
+        """Return a single ID that matches `name_value` in `table`.
 
         Args:
 
@@ -1011,7 +1011,7 @@ class DatabaseManager:
         condition: str | None = None,
         order_by: str | None = None,
     ) -> list[Any]:
-        """Return all values stored in *column* from *table*.
+        """Return all values stored in `column` from `table`.
 
         Args:
 
@@ -1138,7 +1138,7 @@ class DatabaseManager:
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> list[list[Any]]:
-        """Execute *query_text* and fetch the whole result set.
+        """Execute `query_text` and fetch the whole result set.
 
         Args:
 
@@ -1365,7 +1365,7 @@ class DatabaseManager:
 def __init__(self, db_filename: str) -> None
 ```
 
-Open a connection to an SQLite database stored in _db_filename_.
+Open a connection to an SQLite database stored in `db_filename`.
 
 Args:
 
@@ -1494,7 +1494,7 @@ def _ensure_connection(self) -> bool:
 def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]
 ```
 
-Yield every record in _query_ one by one.
+Yield every record in `query` one by one.
 
 Args:
 
@@ -1559,7 +1559,7 @@ def _reconnect(self) -> None:
 def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]
 ```
 
-Convert the full result set in _query_ into a list of rows.
+Convert the full result set in `query` into a list of rows.
 
 Args:
 
@@ -1958,13 +1958,13 @@ def delete_weight_record(self, record_id: int) -> bool:
 def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None
 ```
 
-Prepare and execute _query_text_ with optional bound _params_.
+Prepare and execute `query_text` with optional bound `params`.
 
 Args:
 
 - `query_text` (`str`): A parametrised SQL statement.
 - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-  named placeholders in _query_text_. Defaults to `None`.
+  named placeholders in `query_text`. Defaults to `None`.
 
 Returns:
 
@@ -2028,7 +2028,7 @@ Args:
 
 - `query_text` (`str`): A parametrised SQL statement.
 - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-  named placeholders in _query_text_. Defaults to `None`.
+  named placeholders in `query_text`. Defaults to `None`.
 
 Returns:
 
@@ -2557,11 +2557,11 @@ def get_exercise_unit(self, exercise_name: str) -> str:
 def get_exercises_by_frequency(self, limit: int = 500) -> list[str]
 ```
 
-Return exercise names ordered by frequency in recent _limit_ rows.
+Return exercise names ordered by frequency in recent `limit` rows.
 
 Args:
 
-- `limit` (`int`): Number of most recent rows from the _process_ table
+- `limit` (`int`): Number of most recent rows from the `process` table
   to analyse. Defaults to `500`.
 
 Returns:
@@ -2592,7 +2592,7 @@ def get_exercises_by_frequency(self, limit: int = 500) -> list[str]:
             all_exercises[ex_id] for ex_id, _ in exercise_counts.most_common() if ex_id in all_exercises
         ]
 
-        # Preserve exercises not present in *sorted_exercises*.
+        # Preserve exercises not present in sorted_exercises.
         remainder = [name for name in all_exercises.values() if name not in sorted_exercises]
         return sorted_exercises + remainder
 ```
@@ -2675,7 +2675,7 @@ def get_filtered_process_records(
 def get_id(self, table: str, name_column: str, name_value: str, id_column: str = "_id", condition: str | None = None) -> int | None
 ```
 
-Return a single ID that matches _name_value_ in _table_.
+Return a single ID that matches `name_value` in `table`.
 
 Args:
 
@@ -2729,7 +2729,7 @@ def get_id(
 def get_items(self, table: str, column: str, condition: str | None = None, order_by: str | None = None) -> list[Any]
 ```
 
-Return all values stored in _column_ from _table_.
+Return all values stored in `column` from `table`.
 
 Args:
 
@@ -2918,7 +2918,7 @@ def get_last_weight(self) -> float | None:
 def get_rows(self, query_text: str, params: dict[str, Any] | None = None) -> list[list[Any]]
 ```
 
-Execute _query_text_ and fetch the whole result set.
+Execute `query_text` and fetch the whole result set.
 
 Args:
 
@@ -3273,7 +3273,7 @@ def update_weight_record(self, record_id: int, value: float, date: str) -> bool:
 def _safe_identifier(identifier: str) -> str
 ```
 
-Return _identifier_ unchanged if it is a valid SQL identifier.
+Return `identifier` unchanged if it is a valid SQL identifier.
 
 The function guarantees that the returned string is composed only of
 ASCII letters, digits, or underscores and does **not** start with a digit.
@@ -3290,7 +3290,7 @@ Returns:
 
 Raises:
 
-- `ValueError`: If _identifier_ contains forbidden characters.
+- `ValueError`: If `identifier` contains forbidden characters.
 
 <details>
 <summary>Code:</summary>

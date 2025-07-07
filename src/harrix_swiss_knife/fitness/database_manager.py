@@ -29,7 +29,7 @@ class DatabaseManager:
     """
 
     def __init__(self, db_filename: str) -> None:
-        """Open a connection to an SQLite database stored in *db_filename*.
+        """Open a connection to an SQLite database stored in `db_filename`.
 
         Args:
 
@@ -108,7 +108,7 @@ class DatabaseManager:
         return True
 
     def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        """Yield every record in *query* one by one.
+        """Yield every record in `query` one by one.
 
         Args:
 
@@ -147,7 +147,7 @@ class DatabaseManager:
             raise ConnectionError(error_msg)
 
     def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        """Convert the full result set in *query* into a list of rows.
+        """Convert the full result set in `query` into a list of rows.
 
         Args:
 
@@ -405,13 +405,13 @@ class DatabaseManager:
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> QSqlQuery | None:
-        """Prepare and execute *query_text* with optional bound *params*.
+        """Prepare and execute `query_text` with optional bound `params`.
 
         Args:
 
         - `query_text` (`str`): A parametrised SQL statement.
         - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-          named placeholders in *query_text*. Defaults to `None`.
+          named placeholders in `query_text`. Defaults to `None`.
 
         Returns:
 
@@ -463,7 +463,7 @@ class DatabaseManager:
 
         - `query_text` (`str`): A parametrised SQL statement.
         - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-          named placeholders in *query_text*. Defaults to `None`.
+          named placeholders in `query_text`. Defaults to `None`.
 
         Returns:
 
@@ -808,11 +808,11 @@ class DatabaseManager:
         return "times"
 
     def get_exercises_by_frequency(self, limit: int = 500) -> list[str]:
-        """Return exercise names ordered by frequency in recent *limit* rows.
+        """Return exercise names ordered by frequency in recent `limit` rows.
 
         Args:
 
-        - `limit` (`int`): Number of most recent rows from the *process* table
+        - `limit` (`int`): Number of most recent rows from the `process` table
           to analyse. Defaults to `500`.
 
         Returns:
@@ -839,7 +839,7 @@ class DatabaseManager:
             all_exercises[ex_id] for ex_id, _ in exercise_counts.most_common() if ex_id in all_exercises
         ]
 
-        # Preserve exercises not present in *sorted_exercises*.
+        # Preserve exercises not present in sorted_exercises.
         remainder = [name for name in all_exercises.values() if name not in sorted_exercises]
         return sorted_exercises + remainder
 
@@ -909,7 +909,7 @@ class DatabaseManager:
         id_column: str = "_id",
         condition: str | None = None,
     ) -> int | None:
-        """Return a single ID that matches *name_value* in *table*.
+        """Return a single ID that matches `name_value` in `table`.
 
         Args:
 
@@ -950,7 +950,7 @@ class DatabaseManager:
         condition: str | None = None,
         order_by: str | None = None,
     ) -> list[Any]:
-        """Return all values stored in *column* from *table*.
+        """Return all values stored in `column` from `table`.
 
         Args:
 
@@ -1077,7 +1077,7 @@ class DatabaseManager:
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> list[list[Any]]:
-        """Execute *query_text* and fetch the whole result set.
+        """Execute `query_text` and fetch the whole result set.
 
         Args:
 
@@ -1297,7 +1297,7 @@ class DatabaseManager:
 
 
 def _safe_identifier(identifier: str) -> str:
-    """Return *identifier* unchanged if it is a valid SQL identifier.
+    """Return `identifier` unchanged if it is a valid SQL identifier.
 
     The function guarantees that the returned string is composed only of
     ASCII letters, digits, or underscores and does **not** start with a digit.
@@ -1314,7 +1314,7 @@ def _safe_identifier(identifier: str) -> str:
 
     Raises:
 
-    - `ValueError`: If *identifier* contains forbidden characters.
+    - `ValueError`: If `identifier` contains forbidden characters.
 
     """
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", identifier):
