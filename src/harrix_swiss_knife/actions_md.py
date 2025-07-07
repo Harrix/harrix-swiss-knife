@@ -834,37 +834,6 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
         self.show_result()
 
 
-class OnPettierFolder(action_base.ActionBase):
-    """Format Markdown files in a selected folder using Prettier."""
-
-    icon = "✨"
-    title = "Prettier in …"
-
-    @action_base.ActionBase.handle_exceptions("running Prettier in folder")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_github"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @action_base.ActionBase.handle_exceptions("Prettier formatting thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        result = h.dev.run_powershell_script(commands)
-        self.add_line(result)
-
-    @action_base.ActionBase.handle_exceptions("Prettier formatting thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-
-
 class OnSortSections(action_base.ActionBase):
     """Organize and enhance a single Markdown file by sorting sections and generating image captions.
 

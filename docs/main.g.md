@@ -111,7 +111,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnOptimizeImages,
                 hsk.md.OnOptimizeImagesFolder,
                 hsk.md.OnOptimizeImagesFolderPngToAvif,
-                hsk.md.OnPettierFolder,
                 hsk.md.OnSortSections,
             ],
         )
@@ -256,7 +255,6 @@ def __init__(self) -> None:
                 hsk.md.OnOptimizeImages,
                 hsk.md.OnOptimizeImagesFolder,
                 hsk.md.OnOptimizeImagesFolderPngToAvif,
-                hsk.md.OnPettierFolder,
                 hsk.md.OnSortSections,
             ],
         )
