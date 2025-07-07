@@ -35,10 +35,10 @@ lang: en
   - [Method `thread_after_03`](#method-thread_after_03)
 - [Class `OnSortIsortFmtDocsPythonCodeFolder`](#class-onsortisortfmtdocspythoncodefolder)
   - [Method `execute`](#method-execute-5)
+  - [Method `format_and_sort_python_common`](#method-format_and_sort_python_common)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
 - [Class `OnSortIsortFmtPythonCodeFolder`](#class-onsortisortfmtpythoncodefolder)
-  - [Method `execute`](#method-execute-6)
   - [Method `in_thread`](#method-in_thread-4)
   - [Method `thread_after`](#method-thread_after-4)
 
@@ -916,12 +916,57 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_generation: bool = True) -> None:
+        """Perform common formatting and sorting operations on Python files in a folder.
+
+        This method applies a series of code formatting and organization operations to all
+        Python files in the specified folder, including import sorting with isort, code
+        formatting with ruff, and custom code element sorting. Optionally includes
+        documentation generation and markdown formatting.
+
+        Args:
+
+        - `folder_path` (`str`): Path to the folder containing Python files to process.
+        - `is_include_docs_generation` (`bool`): Whether to include documentation generation
+          and markdown formatting steps. Defaults to `True`.
+
+        Returns:
+
+        - `None`: This method performs operations and logs results but returns nothing.
+
+        Note:
+
+        - The method preserves the exact execution order of operations for consistency.
+        - All operations are logged using `self.add_line()` for user feedback.
+        - If `is_include_docs_generation` is `True`, the method will generate markdown
+          documentation and format it with prettier.
+
+        """
+        # Run isort and ruff format
+        self.add_line("🔵 Format and sort imports")
+        commands = "uv run --active isort . && uv run --active ruff format"
+        self.add_line(h.dev.run_command(commands, cwd=folder_path))
+
+        # Sort Python code elements
+        self.add_line("🔵 Sort Python code elements")
+        self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+
+        if is_include_docs_generation:
+            # Generate markdown documentation
+            self.add_line("🔵 Generate markdown documentation")
+            domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
+            self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
+
+            # Format markdown files with prettier
+            self.add_line("🔵 Format markdown files")
+            funcs_md.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+
     @action_base.ActionBase.handle_exceptions("formatting and sorting Python with docs thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=True)
+        self.format_and_sort_python_common(str(self.folder_path), is_include_docs_generation=True)
 
     @action_base.ActionBase.handle_exceptions("formatting and sorting Python with docs thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -956,6 +1001,63 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
+### Method `format_and_sort_python_common`
+
+```python
+def format_and_sort_python_common(self, folder_path: str) -> None
+```
+
+Perform common formatting and sorting operations on Python files in a folder.
+
+This method applies a series of code formatting and organization operations to all
+Python files in the specified folder, including import sorting with isort, code
+formatting with ruff, and custom code element sorting. Optionally includes
+documentation generation and markdown formatting.
+
+Args:
+
+- `folder_path` (`str`): Path to the folder containing Python files to process.
+- `is_include_docs_generation` (`bool`): Whether to include documentation generation
+  and markdown formatting steps. Defaults to `True`.
+
+Returns:
+
+- `None`: This method performs operations and logs results but returns nothing.
+
+Note:
+
+- The method preserves the exact execution order of operations for consistency.
+- All operations are logged using `self.add_line()` for user feedback.
+- If `is_include_docs_generation` is `True`, the method will generate markdown
+  documentation and format it with prettier.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_generation: bool = True) -> None:
+        # Run isort and ruff format
+        self.add_line("🔵 Format and sort imports")
+        commands = "uv run --active isort . && uv run --active ruff format"
+        self.add_line(h.dev.run_command(commands, cwd=folder_path))
+
+        # Sort Python code elements
+        self.add_line("🔵 Sort Python code elements")
+        self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+
+        if is_include_docs_generation:
+            # Generate markdown documentation
+            self.add_line("🔵 Generate markdown documentation")
+            domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
+            self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
+
+            # Format markdown files with prettier
+            self.add_line("🔵 Format markdown files")
+            funcs_md.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+```
+
+</details>
+
 ### Method `in_thread`
 
 ```python
@@ -971,7 +1073,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=True)
+        self.format_and_sort_python_common(str(self.folder_path), is_include_docs_generation=True)
 ```
 
 </details>
@@ -998,7 +1100,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 ## Class `OnSortIsortFmtPythonCodeFolder`
 
 ```python
-class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase)
+class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder)
 ```
 
 Format and sort Python code in a selected folder using multiple tools.
@@ -1015,58 +1117,24 @@ Python files in a user-selected directory. The process consists of three steps:
 <summary>Code:</summary>
 
 ```python
-class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
+class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder):
 
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
-
-    @action_base.ActionBase.handle_exceptions("formatting and sorting Python code")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", self.config["paths_python_projects"], self.config["path_github"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
+    bold_title = False  # Переопределяем, так как в базовом классе True
 
     @action_base.ActionBase.handle_exceptions("formatting and sorting Python thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=False)
+        self.format_and_sort_python_common(str(self.folder_path), is_include_docs_generation=False)
 
     @action_base.ActionBase.handle_exceptions("formatting and sorting Python thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", self.config["paths_python_projects"], self.config["path_github"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
 </details>
@@ -1086,7 +1154,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=False)
+        self.format_and_sort_python_common(str(self.folder_path), is_include_docs_generation=False)
 ```
 
 </details>
