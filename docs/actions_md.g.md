@@ -150,7 +150,7 @@ class OnBeautifyMdFolder(action_base.ActionBase):
         try:
             if self.folder_path is None:
                 return
-            funcs.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=False)
+            funcs_md.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=False)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
@@ -203,7 +203,7 @@ def in_thread(self) -> str | None:
         try:
             if self.folder_path is None:
                 return
-            funcs.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=False)
+            funcs_md.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=False)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 ```
@@ -276,7 +276,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
         try:
             if self.folder_path is None:
                 return
-            funcs.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=True)
+            funcs_md.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=True)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
@@ -329,7 +329,7 @@ def in_thread(self) -> str | None:
         try:
             if self.folder_path is None:
                 return
-            funcs.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=True)
+            funcs_md.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=True)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 ```
@@ -2260,7 +2260,7 @@ class OnOptimizeImages(action_base.ActionBase):
         if self.filename is None:
             return
         try:
-            self.add_line(funcs.optimize_images_in_md(self.filename))
+            self.add_line(funcs_md.optimize_images_in_md(self.filename))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
@@ -2314,7 +2314,7 @@ def in_thread(self) -> str | None:
         if self.filename is None:
             return
         try:
-            self.add_line(funcs.optimize_images_in_md(self.filename))
+            self.add_line(funcs_md.optimize_images_in_md(self.filename))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
@@ -2376,7 +2376,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
         if self.folder_path is None:
             return
         try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md))
+            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
@@ -2428,7 +2428,7 @@ def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
         try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md))
+            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```
@@ -2486,7 +2486,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
         if self.folder_path is None:
             return
         try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md_png_to_avif))
+            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md_png_to_avif))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
@@ -2538,7 +2538,7 @@ def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
         try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs.optimize_images_in_md_png_to_avif))
+            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md_png_to_avif))
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 ```

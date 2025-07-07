@@ -902,16 +902,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-
-        commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
-        self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
-
-        domain = f"https://github.com/{self.config['github_user']}/{self.folder_path.parts[-1]}"
-        self.add_line(h.py.generate_md_docs(self.folder_path, self.config["beginning_of_md_docs"], domain))
-
-        commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        self.add_line(h.dev.run_powershell_script(commands))
+        funcs_py.format_and_sort_python_common(self, str(self.folder_path), include_docs_generation=True)
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -960,16 +951,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-
-        commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
-        self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
-
-        domain = f"https://github.com/{self.config['github_user']}/{self.folder_path.parts[-1]}"
-        self.add_line(h.py.generate_md_docs(self.folder_path, self.config["beginning_of_md_docs"], domain))
-
-        commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-        self.add_line(h.dev.run_powershell_script(commands))
+        funcs_py.format_and_sort_python_common(self, str(self.folder_path), include_docs_generation=True)
 ```
 
 </details>
@@ -1032,9 +1014,7 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
-        self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
+        funcs_py.format_and_sort_python_common(self, str(self.folder_path), include_docs_generation=False)
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -1083,9 +1063,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        commands = f"cd {self.folder_path}\nuv run --active isort .\nuv run --active ruff format"
-        self.add_line(h.dev.run_powershell_script(commands))
-        self.add_line(h.file.apply_func(self.folder_path, ".py", h.py.sort_py_code))
+        funcs_py.format_and_sort_python_common(self, str(self.folder_path), include_docs_generation=False)
 ```
 
 </details>

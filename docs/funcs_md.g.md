@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `funcs.py`
+# File `funcs_md.py`
 
 <details>
 <summary>📖 Contents</summary>
