@@ -45,11 +45,15 @@ def format_and_sort_python_common(
     self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
     if is_include_docs_generation:
+        # Format markdown files with prettier
+        self.add_line("🔵 Format markdown files")
+        funcs_md.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+
         # Generate markdown documentation
         self.add_line("🔵 Generate markdown documentation")
         domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
         self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
 
-        # Format markdown files with prettier
-        self.add_line("🔵 Format markdown files")
-        funcs_md.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+        # Format markdown files with prettier in docs folder
+        self.add_line("🔵 Format markdown files in docs folder")
+        funcs_md.beautify_markdown_common(self, f"{folder_path}/docs", is_include_summaries_and_combine=False)
