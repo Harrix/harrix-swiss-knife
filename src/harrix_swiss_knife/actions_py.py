@@ -228,10 +228,8 @@ class OnPublishPythonLibrary(action_base.ActionBase):
     def in_thread_01(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Increase version of the library
-        commands = f"""
-            cd {self.library_path}
-            uv version --bump minor """
-        version_output = h.dev.run_powershell_script(commands).strip()
+        commands = "uv version --bump minor"
+        version_output = h.dev.run_command(commands, cwd=str(self.library_path)).strip()
         self.new_version = version_output.split(" => ")[1].splitlines()[0]
         self.add_line(f"New version: {self.new_version}")
 
