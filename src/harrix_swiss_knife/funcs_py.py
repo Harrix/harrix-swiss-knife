@@ -1,4 +1,4 @@
-"""Module for optimizing images in Markdown files and content."""
+"""Module with functions for `actions_py.py`."""
 
 from pathlib import Path
 
@@ -8,7 +8,7 @@ from harrix_swiss_knife import action_base
 
 
 def format_and_sort_python_common(
-    self: action_base.ActionBase, folder_path: str, include_docs_generation: bool = False
+    self: action_base.ActionBase, folder_path: str, *, is_include_docs_generation: bool = False
 ) -> None:
     """Perform common formatting and sorting operations on Python files in a folder.
 
@@ -20,7 +20,7 @@ def format_and_sort_python_common(
     Args:
 
     - `folder_path` (`str`): Path to the folder containing Python files to process.
-    - `include_docs_generation` (`bool`): Whether to include documentation generation
+    - `is_include_docs_generation` (`bool`): Whether to include documentation generation
       and markdown formatting steps. Defaults to `False`.
 
     Returns:
@@ -31,7 +31,7 @@ def format_and_sort_python_common(
 
     - The method preserves the exact execution order of operations for consistency.
     - All operations are logged using `self.add_line()` for user feedback.
-    - If `include_docs_generation` is `True`, the method will generate markdown
+    - If `is_include_docs_generation` is `True`, the method will generate markdown
       documentation and format it with prettier.
 
     """
@@ -44,7 +44,7 @@ def format_and_sort_python_common(
     self.add_line("🔵 Sort Python code elements")
     self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
-    if include_docs_generation:
+    if is_include_docs_generation:
         # Generate markdown documentation
         self.add_line("🔵 Generate markdown documentation")
         domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
