@@ -902,7 +902,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        funcs_py.format_and_sort_python_common(self, str(self.folder_path), include_docs_generation=True)
+        funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=True)
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -951,7 +951,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        funcs_py.format_and_sort_python_common(self, str(self.folder_path), include_docs_generation=True)
+        funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=True)
 ```
 
 </details>
@@ -1014,7 +1014,7 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        funcs_py.format_and_sort_python_common(self, str(self.folder_path), include_docs_generation=False)
+        funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=False)
 
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -1063,7 +1063,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        funcs_py.format_and_sort_python_common(self, str(self.folder_path), include_docs_generation=False)
+        funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=False)
 ```
 
 </details>

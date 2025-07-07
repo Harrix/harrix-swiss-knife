@@ -150,7 +150,7 @@ class OnBeautifyMdFolder(action_base.ActionBase):
         try:
             if self.folder_path is None:
                 return
-            funcs_md.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=False)
+            funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
@@ -203,7 +203,7 @@ def in_thread(self) -> str | None:
         try:
             if self.folder_path is None:
                 return
-            funcs_md.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=False)
+            funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 ```
@@ -276,7 +276,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
         try:
             if self.folder_path is None:
                 return
-            funcs_md.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=True)
+            funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
@@ -329,7 +329,7 @@ def in_thread(self) -> str | None:
         try:
             if self.folder_path is None:
                 return
-            funcs_md.beautify_markdown_common(self, str(self.folder_path), include_summaries_and_combine=True)
+            funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 ```

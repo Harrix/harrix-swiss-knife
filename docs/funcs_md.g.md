@@ -21,7 +21,7 @@ lang: en
 ## Function `beautify_markdown_common`
 
 ```python
-def beautify_markdown_common(self: action_base.ActionBase, folder_path: str, include_summaries_and_combine: bool = False) -> None
+def beautify_markdown_common(self: action_base.ActionBase, folder_path: str) -> None
 ```
 
 Perform common beautification operations on Markdown files in a folder.
@@ -34,7 +34,7 @@ summary generation and file combination operations.
 Args:
 
 - `folder_path` (`str`): Path to the folder containing Markdown files to process.
-- `include_summaries_and_combine` (`bool`): Whether to include summary generation
+- `is_include_summaries_and_combine` (`bool`): Whether to include summary generation
   and file combination steps. Defaults to `False`.
 
 Returns:
@@ -45,7 +45,7 @@ Note:
 
 - The method preserves the exact execution order of operations for consistency.
 - All operations are logged using `self.add_line()` for user feedback.
-- If `include_summaries_and_combine` is `True`, the method will first delete
+- If `is_include_summaries_and_combine` is `True`, the method will first delete
   existing `*.g.md` files, then generate summaries and combine files.
 
 <details>
@@ -53,9 +53,9 @@ Note:
 
 ```python
 def beautify_markdown_common(
-    self: action_base.ActionBase, folder_path: str, include_summaries_and_combine: bool = False
+    self: action_base.ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
 ) -> None:
-    if include_summaries_and_combine:
+    if is_include_summaries_and_combine:
         # Delete *.g.md files
         self.add_line("🔵 Delete *.g.md files")
         self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
@@ -68,7 +68,7 @@ def beautify_markdown_common(
     self.add_line("🔵 Generate TOC")
     self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
 
-    if include_summaries_and_combine:
+    if is_include_summaries_and_combine:
         # Generate summaries
         self.add_line("🔵 Generate summaries")
         for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
