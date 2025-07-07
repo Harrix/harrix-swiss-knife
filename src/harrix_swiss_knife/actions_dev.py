@@ -23,6 +23,7 @@ class OnExit(action_base.ActionBase):
         super().__init__()
         self.parent = kwargs.get("parent")
 
+    @action_base.ActionBase.handle_exceptions("application exit")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         QApplication.quit()
@@ -44,6 +45,7 @@ class OnGetMenu(action_base.ActionBase):
         super().__init__()
         self.parent = kwargs.get("parent")
 
+    @action_base.ActionBase.handle_exceptions("menu retrieval")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         if self.parent is not None:
@@ -68,10 +70,12 @@ class OnNpmManagePackages(action_base.ActionBase):
     icon = "📦"
     title = "Install/Update global NPM packages"
 
+    @action_base.ActionBase.handle_exceptions("NPM package management")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("NPM operations thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Update NPM itself first
@@ -92,6 +96,7 @@ class OnNpmManagePackages(action_base.ActionBase):
 
         return "NPM packages management completed"
 
+    @action_base.ActionBase.handle_exceptions("NPM thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("NPM packages management completed")
@@ -110,6 +115,7 @@ class OnOpenConfigJson(action_base.ActionBase):
     icon = "⚙️"
     title = "Open config.json"
 
+    @action_base.ActionBase.handle_exceptions("config file opening")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
@@ -128,15 +134,18 @@ class OnUvUpdate(action_base.ActionBase):
     icon = "📥"
     title = "Update uv"
 
+    @action_base.ActionBase.handle_exceptions("uv update")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("uv update thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = "uv self update"
         return h.dev.run_command(commands)
 
+    @action_base.ActionBase.handle_exceptions("uv update thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Update completed")

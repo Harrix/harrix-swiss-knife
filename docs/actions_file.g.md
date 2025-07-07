@@ -51,6 +51,7 @@ class OnAllFilesToParentFolder(action_base.ActionBase):
     icon = "🗂️"
     title = "Moves and flattens files from nested folders"
 
+    @action_base.ActionBase.handle_exceptions("moving files to parent folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
@@ -109,6 +110,7 @@ class OnBlockDisks(action_base.ActionBase):
     icon = "🔒"
     title = "Block disks"
 
+    @action_base.ActionBase.handle_exceptions("blocking disks")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in self.config["block_drives"]])
@@ -221,6 +223,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
     icon = "✅"
     title = "Check featured_image"
 
+    @action_base.ActionBase.handle_exceptions("checking featured image in folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         for path in self.config["paths_with_featured_image"]:
@@ -279,6 +282,7 @@ class OnOpenCameraUploads(action_base.ActionBase):
     icon = "📸"
     title = "Open Camera Uploads"
 
+    @action_base.ActionBase.handle_exceptions("opening camera uploads")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         for path in self.config["paths_camera_uploads"]:
@@ -329,6 +333,7 @@ class OnTreeViewFolder(action_base.ActionBase):
     icon = "├"
     title = "Tree view of a folder"
 
+    @action_base.ActionBase.handle_exceptions("generating tree view")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
@@ -391,6 +396,7 @@ class OnTreeViewFolderIgnoreHiddenFolders(action_base.ActionBase):
     icon = "├"
     title = "Tree view of a folder (ignore hidden folders)"
 
+    @action_base.ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
@@ -438,6 +444,7 @@ class RenameLargestImagesToFeaturedImage(action_base.ActionBase):
     icon = "🖲️"
     title = "Rename largest images to featured_image in …"
 
+    @action_base.ActionBase.handle_exceptions("renaming largest images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])

@@ -27,6 +27,7 @@ class OnBeautifyMdFolder(action_base.ActionBase):
     icon = "😎"
     title = "Beautify MD in …"
 
+    @action_base.ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
@@ -37,6 +38,7 @@ class OnBeautifyMdFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("beautifying markdown thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
@@ -47,6 +49,7 @@ class OnBeautifyMdFolder(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
+    @action_base.ActionBase.handle_exceptions("beautifying markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
@@ -74,6 +77,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
     title = "Beautify MD and regenerate .g.md in …"
     bold_title = True
 
+    @action_base.ActionBase.handle_exceptions("beautifying markdown folder and regenerating g.md")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
@@ -84,6 +88,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("beautifying and regenerating thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
@@ -94,6 +99,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
 
+    @action_base.ActionBase.handle_exceptions("beautifying and regenerating thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
@@ -106,6 +112,7 @@ class OnCheckMd(action_base.ActionBase):
     icon = "🚧"
     title = "Check one MD"
 
+    @action_base.ActionBase.handle_exceptions("checking markdown file")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
@@ -118,6 +125,7 @@ class OnCheckMd(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("markdown checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         checker = markdown_checker.MarkdownChecker()
@@ -130,6 +138,7 @@ class OnCheckMd(action_base.ActionBase):
         else:
             self.add_line(f"✅ There are no errors in {self.filename}.")
 
+    @action_base.ActionBase.handle_exceptions("markdown checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -142,6 +151,7 @@ class OnCheckMdFolder(action_base.ActionBase):
     icon = "🚧"
     title = "Check in …"
 
+    @action_base.ActionBase.handle_exceptions("checking markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
@@ -152,6 +162,7 @@ class OnCheckMdFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("markdown folder checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         checker = markdown_checker.MarkdownChecker()
@@ -164,6 +175,7 @@ class OnCheckMdFolder(action_base.ActionBase):
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
+    @action_base.ActionBase.handle_exceptions("markdown folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -181,6 +193,7 @@ class OnCombineMarkdownFiles(action_base.ActionBase):
     icon = "🔗"
     title = "Combine MD files in …"
 
+    @action_base.ActionBase.handle_exceptions("combining markdown files")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory("Select a folder with Markdown files", self.config["path_notes"])
@@ -189,6 +202,7 @@ class OnCombineMarkdownFiles(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("combining markdown files thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -199,6 +213,7 @@ class OnCombineMarkdownFiles(action_base.ActionBase):
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
 
+    @action_base.ActionBase.handle_exceptions("combining markdown files thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
@@ -216,6 +231,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
     icon = "📥"
     title = "Download images in one MD"
 
+    @action_base.ActionBase.handle_exceptions("downloading images in markdown file")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
@@ -228,6 +244,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("downloading images thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
@@ -237,6 +254,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("downloading images thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -255,6 +273,7 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
     icon = "📥"
     title = "Download images in …"
 
+    @action_base.ActionBase.handle_exceptions("downloading images in folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
@@ -265,6 +284,7 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("downloading images folder thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -274,6 +294,7 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("downloading images folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -286,6 +307,7 @@ class OnFormatQuotesAsMarkdownContent(action_base.ActionBase):
     icon = "❞"
     title = "Format quotes as Markdown content"
 
+    @action_base.ActionBase.handle_exceptions("formatting quotes as markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         content = self.get_text_textarea("Quotes", "Input quotes")
@@ -304,6 +326,7 @@ class OnFormatYaml(action_base.ActionBase):
     icon = "✨"
     title = "Format YAML in …"
 
+    @action_base.ActionBase.handle_exceptions("formatting YAML in folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
@@ -314,6 +337,7 @@ class OnFormatYaml(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("formatting YAML thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -323,6 +347,7 @@ class OnFormatYaml(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("formatting YAML thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -340,6 +365,7 @@ class OnGenerateAuthorBook(action_base.ActionBase):
     icon = "❞"
     title = "Quotes. Add author and title"
 
+    @action_base.ActionBase.handle_exceptions("generating author and book information")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
@@ -348,6 +374,7 @@ class OnGenerateAuthorBook(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("generating author book thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -358,6 +385,7 @@ class OnGenerateAuthorBook(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("generating author book thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -375,6 +403,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
     icon = "🌄"
     title = "Add image captions in one MD"
 
+    @action_base.ActionBase.handle_exceptions("generating image captions")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
@@ -387,6 +416,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("generating image captions thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
@@ -396,6 +426,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("generating image captions thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -413,6 +444,7 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
     icon = "🌄"
     title = "Add image captions in …"
 
+    @action_base.ActionBase.handle_exceptions("generating image captions in folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
@@ -423,6 +455,7 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("generating image captions folder thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -432,6 +465,7 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("generating image captions folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -449,6 +483,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
     icon = "🤏"
     title = "Generate a short version with only TOC"
 
+    @action_base.ActionBase.handle_exceptions("generating short note with TOC")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
@@ -461,6 +496,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("generating short note TOC thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
@@ -470,6 +506,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("generating short note TOC thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -486,6 +523,7 @@ class OnGenerateToc(action_base.ActionBase):
     icon = "📑"
     title = "Generate TOC in one MD"
 
+    @action_base.ActionBase.handle_exceptions("generating TOC")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
@@ -498,6 +536,7 @@ class OnGenerateToc(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("generating TOC thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
@@ -507,6 +546,7 @@ class OnGenerateToc(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("generating TOC thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -524,6 +564,7 @@ class OnGenerateTocFolder(action_base.ActionBase):
     icon = "📑"
     title = "Generate TOC in …"
 
+    @action_base.ActionBase.handle_exceptions("generating TOC in folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
@@ -534,6 +575,7 @@ class OnGenerateTocFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("generating TOC folder thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -543,6 +585,7 @@ class OnGenerateTocFolder(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("generating TOC folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -560,6 +603,7 @@ class OnGetListMoviesBooks(action_base.ActionBase):
     icon = "🎬"
     title = "Get a list of movies, books for web"
 
+    @action_base.ActionBase.handle_exceptions("extracting movies/books list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         content = self.get_text_textarea("Markdown content", "Input Markdown content")
@@ -589,6 +633,7 @@ class OnIncreaseHeadingLevelContent(action_base.ActionBase):
     icon = "👉"
     title = "Increase heading level"
 
+    @action_base.ActionBase.handle_exceptions("increasing heading level")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         content = self.get_text_textarea("Markdown content", "Input Markdown content")
@@ -610,6 +655,7 @@ class OnNewArticle(action_base.ActionBase):
     icon = "✍️"
     title = "New article"
 
+    @action_base.ActionBase.handle_exceptions("creating new article")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         article_name = self.get_text_input("Article title", "Enter the name of the article (English, without spaces):")
@@ -642,6 +688,7 @@ class OnNewDiary(action_base.ActionBase):
     icon = "📖"
     title = "New diary note"
 
+    @action_base.ActionBase.handle_exceptions("creating new diary entry")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         result, filename = h.md.add_diary_new_dairy_in_year(self.config["path_diary"], self.config["beginning_of_md"])
@@ -660,6 +707,7 @@ class OnNewDiaryDream(action_base.ActionBase):
     icon = "💤"
     title = "New dream note"
 
+    @action_base.ActionBase.handle_exceptions("creating new dream entry")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
@@ -678,6 +726,7 @@ class OnNewNoteDialog(action_base.ActionBase):
     icon = "📓"
     title = "New note"
 
+    @action_base.ActionBase.handle_exceptions("creating new note")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         filename = self.get_save_filename("Save Note", self.config["path_notes"], "Markdown (*.md);;All Files (*)")
@@ -708,6 +757,7 @@ class OnNewNoteDialogWithImages(action_base.ActionBase):
     icon = "📓"
     title = "New note with images"
 
+    @action_base.ActionBase.handle_exceptions("creating new note with images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         super().execute(is_with_images=True)
@@ -723,6 +773,7 @@ class OnOptimizeImages(action_base.ActionBase):
     icon = "🖼️"
     title = "Optimize images in one MD"
 
+    @action_base.ActionBase.handle_exceptions("optimizing images in markdown file")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
@@ -735,6 +786,7 @@ class OnOptimizeImages(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("optimizing images in markdown thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
@@ -744,6 +796,7 @@ class OnOptimizeImages(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("optimizing images in markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
@@ -761,6 +814,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
     icon = "🖼️"
     title = "Optimize images in …"
 
+    @action_base.ActionBase.handle_exceptions("optimizing images in folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
@@ -771,6 +825,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("optimizing images folder thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -780,6 +835,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("optimizing images folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -792,6 +848,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
     icon = "🖼️"
     title = "Optimize images (with PNG to AVIF) in …"
 
+    @action_base.ActionBase.handle_exceptions("optimizing images with PNG to AVIF conversion")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
@@ -802,6 +859,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("optimizing images PNG to AVIF thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -811,6 +869,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("optimizing images PNG to AVIF thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -823,6 +882,7 @@ class OnPettierFolder(action_base.ActionBase):
     icon = "✨"
     title = "Prettier in …"
 
+    @action_base.ActionBase.handle_exceptions("running Prettier in folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
@@ -833,12 +893,14 @@ class OnPettierFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("Prettier formatting thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = f"cd {self.folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
 
+    @action_base.ActionBase.handle_exceptions("Prettier formatting thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -870,6 +932,7 @@ class OnSortSections(action_base.ActionBase):
     icon = "📶"
     title = "Sort sections in one MD"
 
+    @action_base.ActionBase.handle_exceptions("sorting sections in markdown file")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.filename = self.get_open_filename(
@@ -882,6 +945,7 @@ class OnSortSections(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("sorting sections thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
@@ -892,6 +956,7 @@ class OnSortSections(action_base.ActionBase):
         except Exception as e:
             self.add_line(f"❌ Error: {e}")
 
+    @action_base.ActionBase.handle_exceptions("sorting sections thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")

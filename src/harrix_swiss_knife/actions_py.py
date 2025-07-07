@@ -16,6 +16,7 @@ class OnCheckPythonFolder(action_base.ActionBase):
     icon = "🚧"
     title = "Check PY in …"
 
+    @action_base.ActionBase.handle_exceptions("checking Python folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
@@ -26,6 +27,7 @@ class OnCheckPythonFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("Python folder checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         checker = python_checker.PythonChecker()
@@ -38,6 +40,7 @@ class OnCheckPythonFolder(action_base.ActionBase):
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
+    @action_base.ActionBase.handle_exceptions("Python folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
@@ -55,6 +58,7 @@ class OnExtractFunctionsAndClasses(action_base.ActionBase):
     icon = "⬇️"
     title = "Extracts list of funcs to a MD list from one PY file"
 
+    @action_base.ActionBase.handle_exceptions("extracting functions and classes")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         filename = self.get_open_filename(
@@ -86,10 +90,12 @@ class OnNewUvProject(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in Projects"
 
+    @action_base.ActionBase.handle_exceptions("creating new uv project")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("creating uv project thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         path = self.config["path_py_projects"]
@@ -101,6 +107,7 @@ class OnNewUvProject(action_base.ActionBase):
             h.py.create_uv_new_project(name_project, path, self.config["editor"], self.config["cli_commands"])
         )
 
+    @action_base.ActionBase.handle_exceptions("creating uv project thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
@@ -123,6 +130,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
     icon = "🐍"
     title = "New uv project in …"
 
+    @action_base.ActionBase.handle_exceptions("creating new uv project with dialog")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.project_name = self.get_text_input(
@@ -138,6 +146,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("creating uv project dialog thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.project_name is None or self.folder_path is None:
@@ -151,6 +160,7 @@ class OnNewUvProjectDialog(action_base.ActionBase):
             ),
         )
 
+    @action_base.ActionBase.handle_exceptions("creating uv project dialog thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
@@ -183,6 +193,7 @@ class OnPublishPythonLibrary(action_base.ActionBase):
     icon = "👷‍♂️"
     title = "Publish Python library to PyPI"
 
+    @action_base.ActionBase.handle_exceptions("publishing Python library")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         # Select library to publish
@@ -213,6 +224,7 @@ class OnPublishPythonLibrary(action_base.ActionBase):
         self.library_name = self.library_path.parts[-1]
         self.start_thread(self.in_thread_01, self.thread_after_01, f"Build and publish {self.library_name}")
 
+    @action_base.ActionBase.handle_exceptions("publishing library build thread")
     def in_thread_01(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Increase version of the library
@@ -236,10 +248,12 @@ class OnPublishPythonLibrary(action_base.ActionBase):
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
 
+    @action_base.ActionBase.handle_exceptions("publishing library waiting thread")
     def in_thread_02(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         time.sleep(self.time_waiting_seconds)
 
+    @action_base.ActionBase.handle_exceptions("publishing library update dependencies thread")
     def in_thread_03(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if not self.dependent_projects:
@@ -286,12 +300,14 @@ class OnPublishPythonLibrary(action_base.ActionBase):
             else:
                 self.add_line(f"No version update needed for {self.library_name} in {project.name}")
 
+    @action_base.ActionBase.handle_exceptions("publishing library thread 01 completion")
     def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_01(). For handling the results of thread execution."""
         self.time_waiting_seconds = 20
         message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
         self.start_thread(self.in_thread_02, self.thread_after_02, message)
 
+    @action_base.ActionBase.handle_exceptions("publishing library thread 02 completion")
     def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_02(). For handling the results of thread execution."""
         if self.dependent_projects:
@@ -302,6 +318,7 @@ class OnPublishPythonLibrary(action_base.ActionBase):
             self.show_toast(f"{self.title} completed")
             self.show_result()
 
+    @action_base.ActionBase.handle_exceptions("publishing library thread 03 completion")
     def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_03(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
@@ -327,6 +344,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
     title = "isort, ruff format, sort, make docs in PY files"
     bold_title = True
 
+    @action_base.ActionBase.handle_exceptions("formatting and sorting Python code with docs")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
@@ -337,12 +355,14 @@ class OnSortIsortFmtDocsPythonCodeFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("formatting and sorting Python with docs thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
         funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=True)
 
+    @action_base.ActionBase.handle_exceptions("formatting and sorting Python with docs thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
@@ -364,6 +384,7 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
 
+    @action_base.ActionBase.handle_exceptions("formatting and sorting Python code")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
@@ -374,12 +395,14 @@ class OnSortIsortFmtPythonCodeFolder(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("formatting and sorting Python thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
         funcs_py.format_and_sort_python_common(self, str(self.folder_path), is_include_docs_generation=False)
 
+    @action_base.ActionBase.handle_exceptions("formatting and sorting Python thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")

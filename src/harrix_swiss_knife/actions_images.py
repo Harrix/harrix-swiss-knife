@@ -23,6 +23,7 @@ class OnClearImages(action_base.ActionBase):
     icon = "🧹"
     title = "Clear folders images"
 
+    @action_base.ActionBase.handle_exceptions("clearing image folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp/optimized_images"]
@@ -48,6 +49,7 @@ class OnOpenImages(action_base.ActionBase):
     icon = "📂"
     title = "Open the folder images"
 
+    @action_base.ActionBase.handle_exceptions("opening images folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         path = h.dev.get_project_root() / "temp/images"
@@ -70,6 +72,7 @@ class OnOpenOptimizedImages(action_base.ActionBase):
     icon = "📂"
     title = "Open the folder optimized_images"
 
+    @action_base.ActionBase.handle_exceptions("opening optimized images folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         path = h.dev.get_project_root() / "temp/optimized_images"
@@ -93,14 +96,17 @@ class OnOptimize(action_base.ActionBase):
     title = "Optimize images"
     bold_title = True
 
+    @action_base.ActionBase.handle_exceptions("image optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_command("npm run optimize")
 
+    @action_base.ActionBase.handle_exceptions("optimization thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
@@ -120,6 +126,7 @@ class OnOptimizeClipboard(action_base.ActionBase):
     icon = "🚀"
     title = "Optimize image from clipboard"
 
+    @action_base.ActionBase.handle_exceptions("clipboard image optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         image = ImageGrab.grabclipboard()
@@ -171,6 +178,7 @@ class OnOptimizeClipboardDialog(action_base.ActionBase):
     icon = "🚀"
     title = "Optimize image from clipboard as …"
 
+    @action_base.ActionBase.handle_exceptions("clipboard image optimization with dialog")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         OnOptimizeClipboard().execute(is_dialog=True)
@@ -187,6 +195,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
     icon = "⬆️"
     title = "Optimize images in … and replace"
 
+    @action_base.ActionBase.handle_exceptions("folder image optimization with replacement")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory("Select a folder", self.config["path_articles"])
@@ -195,6 +204,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("folder optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -216,6 +226,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
         return result
 
+    @action_base.ActionBase.handle_exceptions("folder optimization thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         if self.folder_path is None:
@@ -237,6 +248,7 @@ class OnOptimizeFile(action_base.ActionBase):
     icon = "🖼️"
     title = "Optimize one image"
 
+    @action_base.ActionBase.handle_exceptions("single file optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         filename = self.get_open_filename(
@@ -271,14 +283,17 @@ class OnOptimizeQuality(action_base.ActionBase):
     icon = "🔝"
     title = "Optimize images (high quality)"
 
+    @action_base.ActionBase.handle_exceptions("high quality optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("high quality optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_command("npm run optimize quality=true")
 
+    @action_base.ActionBase.handle_exceptions("high quality optimization thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
@@ -294,16 +309,19 @@ class OnResizeOptimizePngToAvif(action_base.ActionBase):
     title = "Resize and optimize images (with PNG to AVIF)"
     bold_title = True
 
+    @action_base.ActionBase.handle_exceptions("resize and PNG to AVIF optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.max_size = self.get_text_input("Max size", "Input max image size in pixels")
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @action_base.ActionBase.handle_exceptions("resize and AVIF optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_command(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
 
+    @action_base.ActionBase.handle_exceptions("resize and AVIF optimization thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")

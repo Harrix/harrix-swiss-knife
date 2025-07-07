@@ -26,6 +26,7 @@ class OnFitness(action_base.ActionBase):
         self.parent = kwargs.get("parent")
         self.main_window = None
 
+    @action_base.ActionBase.handle_exceptions("launching fitness tracker")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         if self.main_window is None or not isValid(self.main_window):
