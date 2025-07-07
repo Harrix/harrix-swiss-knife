@@ -15,7 +15,7 @@ class PythonChecker:
 
     Examples for ignore directives:
 
-    ```
+    ```text
     # ignore: HP001
     # ignore: HP001, HP002
     ```
