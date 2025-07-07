@@ -100,45 +100,6 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
         self.show_result()
 
 
-class OnCheckMd(action_base.ActionBase):
-    """Action to check a Markdown file for errors with Harrix rules."""
-
-    icon = "🚧"
-    title = "Check one MD"
-
-    @action_base.ActionBase.handle_exceptions("checking markdown file")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.filename = self.get_open_filename(
-            "Open Markdown file",
-            self.config["path_notes"],
-            "Markdown (*.md);;All Files (*)",
-        )
-        if not self.filename:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @action_base.ActionBase.handle_exceptions("markdown checking thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        checker = markdown_checker.MarkdownChecker()
-        if self.filename is None:
-            return
-        errors = checker(self.filename)
-        if errors:
-            self.add_line("\n".join(errors))
-            self.add_line(f"🔢 Count errors = {len(errors)}")
-        else:
-            self.add_line(f"✅ There are no errors in {self.filename}.")
-
-    @action_base.ActionBase.handle_exceptions("markdown checking thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.filename} completed")
-        self.show_result()
-
-
 class OnCheckMdFolder(action_base.ActionBase):
     """Action to check all Markdown files in a folder for errors with Harrix rules."""
 
