@@ -231,37 +231,6 @@ class OnFormatQuotesAsMarkdownContent(action_base.ActionBase):
         self.show_result()
 
 
-class OnFormatYaml(action_base.ActionBase):
-    """Format YAML frontmatter in Markdown files within a folder."""
-
-    icon = "✨"
-    title = "Format YAML in …"
-
-    @action_base.ActionBase.handle_exceptions("formatting YAML in folder")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @action_base.ActionBase.handle_exceptions("formatting YAML thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
-
-    @action_base.ActionBase.handle_exceptions("formatting YAML thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-
-
 class OnGenerateAuthorBook(action_base.ActionBase):
     """Process quote files to add author and book information.
 
