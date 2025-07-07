@@ -149,12 +149,9 @@ class OnBeautifyMdFolder(action_base.ActionBase):
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
-        try:
-            if self.folder_path is None:
-                return
-            funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
-        except Exception as e:
-            self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
+        if self.folder_path is None:
+            return
+        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
 
     @action_base.ActionBase.handle_exceptions("beautifying markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -203,12 +200,9 @@ Execute code in a separate thread. For performing long-running operations.
 ```python
 def in_thread(self) -> str | None:
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
-        try:
-            if self.folder_path is None:
-                return
-            funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
-        except Exception as e:
-            self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
+        if self.folder_path is None:
+            return
+        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
 ```
 
 </details>
@@ -278,12 +272,9 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
-        try:
-            if self.folder_path is None:
-                return
-            funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
-        except Exception as e:
-            self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
+        if self.folder_path is None:
+            return
+        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
 
     @action_base.ActionBase.handle_exceptions("beautifying and regenerating thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -332,12 +323,9 @@ Execute code in a separate thread. For performing long-running operations.
 ```python
 def in_thread(self) -> str | None:
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
-        try:
-            if self.folder_path is None:
-                return
-            funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
-        except Exception as e:
-            self.add_line(f"❌ Error processing path {self.folder_path}: {e}")
+        if self.folder_path is None:
+            return
+        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
 ```
 
 </details>
@@ -757,10 +745,7 @@ class OnDownloadAndReplaceImages(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.download_and_replace_images(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.download_and_replace_images(self.filename))
 
     @action_base.ActionBase.handle_exceptions("downloading images thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -812,10 +797,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.download_and_replace_images(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.download_and_replace_images(self.filename))
 ```
 
 </details>
@@ -877,10 +859,7 @@ class OnDownloadAndReplaceImagesFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
 
     @action_base.ActionBase.handle_exceptions("downloading images folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -930,10 +909,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
 ```
 
 </details>
@@ -1047,10 +1023,7 @@ class OnFormatYaml(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
 
     @action_base.ActionBase.handle_exceptions("formatting YAML thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1100,10 +1073,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.format_yaml))
 ```
 
 </details>
@@ -1162,11 +1132,8 @@ class OnGenerateAuthorBook(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        try:
-            result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
-            self.add_line(result)
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
+        self.add_line(result)
 
     @action_base.ActionBase.handle_exceptions("generating author book thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1214,11 +1181,8 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        try:
-            result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
-            self.add_line(result)
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
+        self.add_line(result)
 ```
 
 </details>
@@ -1281,10 +1245,7 @@ class OnGenerateImageCaptions(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.generate_image_captions(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.generate_image_captions(self.filename))
 
     @action_base.ActionBase.handle_exceptions("generating image captions thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1336,10 +1297,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.generate_image_captions(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.generate_image_captions(self.filename))
 ```
 
 </details>
@@ -1400,10 +1358,7 @@ class OnGenerateImageCaptionsFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
 
     @action_base.ActionBase.handle_exceptions("generating image captions folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1453,10 +1408,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_image_captions))
 ```
 
 </details>
@@ -1519,10 +1471,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
 
     @action_base.ActionBase.handle_exceptions("generating short note TOC thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1574,10 +1523,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.generate_short_note_toc_with_links(self.filename))
 ```
 
 </details>
@@ -1639,10 +1585,7 @@ class OnGenerateToc(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.generate_toc_with_links(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.generate_toc_with_links(self.filename))
 
     @action_base.ActionBase.handle_exceptions("generating TOC thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1694,10 +1637,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.generate_toc_with_links(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.generate_toc_with_links(self.filename))
 ```
 
 </details>
@@ -1758,10 +1698,7 @@ class OnGenerateTocFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
 
     @action_base.ActionBase.handle_exceptions("generating TOC folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1811,10 +1748,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
 ```
 
 </details>
@@ -2311,10 +2245,7 @@ class OnOptimizeImages(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
             return
-        try:
-            self.add_line(funcs_md.optimize_images_in_md(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(funcs_md.optimize_images_in_md(self.filename))
 
     @action_base.ActionBase.handle_exceptions("optimizing images in markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -2366,10 +2297,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.filename is None:
             return
-        try:
-            self.add_line(funcs_md.optimize_images_in_md(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(funcs_md.optimize_images_in_md(self.filename))
 ```
 
 </details>
@@ -2430,10 +2358,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md))
 
     @action_base.ActionBase.handle_exceptions("optimizing images folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -2483,10 +2408,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md))
 ```
 
 </details>
@@ -2543,10 +2465,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md_png_to_avif))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md_png_to_avif))
 
     @action_base.ActionBase.handle_exceptions("optimizing images PNG to AVIF thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -2596,10 +2515,7 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        try:
-            self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md_png_to_avif))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md_png_to_avif))
 ```
 
 </details>
@@ -2783,11 +2699,8 @@ class OnSortSections(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.sort_sections(self.filename))
-            self.add_line(h.md.generate_image_captions(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.sort_sections(self.filename))
+        self.add_line(h.md.generate_image_captions(self.filename))
 
     @action_base.ActionBase.handle_exceptions("sorting sections thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -2839,11 +2752,8 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.filename is None:
             return
-        try:
-            self.add_line(h.md.sort_sections(self.filename))
-            self.add_line(h.md.generate_image_captions(self.filename))
-        except Exception as e:
-            self.add_line(f"❌ Error: {e}")
+        self.add_line(h.md.sort_sections(self.filename))
+        self.add_line(h.md.generate_image_captions(self.filename))
 ```
 
 </details>

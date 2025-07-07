@@ -90,10 +90,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         for path in self.config["paths_with_featured_image"]:
-            try:
-                result = h.file.check_featured_image(path)[1]
-            except Exception as e:
-                result = f"❌ Error: {e}"
+            result = h.file.check_featured_image(path)[1]
             self.add_line(result)
         self.show_result()
 
@@ -178,9 +175,6 @@ class RenameLargestImagesToFeaturedImage(action_base.ActionBase):
         if folder_path is None:
             return
 
-        try:
-            result = h.file.rename_largest_images_to_featured(folder_path)
-        except Exception as e:
-            result = f"❌ Error: {e}"
+        result = h.file.rename_largest_images_to_featured(folder_path)
         self.add_line(result)
         self.show_result()
