@@ -89,8 +89,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnFormatYaml,
                 hsk.md.OnGenerateAuthorBook,
                 hsk.md.OnGenerateShortNoteTocWithLinks,
-                hsk.md.OnGenerateToc,
-                hsk.md.OnGenerateTocFolder,
                 hsk.md.OnOptimizeImages,
                 hsk.md.OnOptimizeImagesFolder,
                 hsk.md.OnOptimizeImagesFolderPngToAvif,

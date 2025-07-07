@@ -45,44 +45,36 @@ lang: en
   - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-7)
   - [Method `thread_after`](#method-thread_after-7)
-- [Class `OnGenerateToc`](#class-ongeneratetoc)
+- [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
   - [Method `execute`](#method-execute-9)
+- [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
+  - [Method `execute`](#method-execute-10)
+- [Class `OnNewArticle`](#class-onnewarticle)
+  - [Method `execute`](#method-execute-11)
+- [Class `OnNewDiary`](#class-onnewdiary)
+  - [Method `execute`](#method-execute-12)
+- [Class `OnNewDiaryDream`](#class-onnewdiarydream)
+  - [Method `execute`](#method-execute-13)
+- [Class `OnNewNoteDialog`](#class-onnewnotedialog)
+  - [Method `execute`](#method-execute-14)
+- [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
+  - [Method `execute`](#method-execute-15)
+- [Class `OnOptimizeImages`](#class-onoptimizeimages)
+  - [Method `execute`](#method-execute-16)
   - [Method `in_thread`](#method-in_thread-8)
   - [Method `thread_after`](#method-thread_after-8)
-- [Class `OnGenerateTocFolder`](#class-ongeneratetocfolder)
-  - [Method `execute`](#method-execute-10)
+- [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
+  - [Method `execute`](#method-execute-17)
   - [Method `in_thread`](#method-in_thread-9)
   - [Method `thread_after`](#method-thread_after-9)
-- [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
-  - [Method `execute`](#method-execute-11)
-- [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
-  - [Method `execute`](#method-execute-12)
-- [Class `OnNewArticle`](#class-onnewarticle)
-  - [Method `execute`](#method-execute-13)
-- [Class `OnNewDiary`](#class-onnewdiary)
-  - [Method `execute`](#method-execute-14)
-- [Class `OnNewDiaryDream`](#class-onnewdiarydream)
-  - [Method `execute`](#method-execute-15)
-- [Class `OnNewNoteDialog`](#class-onnewnotedialog)
-  - [Method `execute`](#method-execute-16)
-- [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
-  - [Method `execute`](#method-execute-17)
-- [Class `OnOptimizeImages`](#class-onoptimizeimages)
+- [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
   - [Method `execute`](#method-execute-18)
   - [Method `in_thread`](#method-in_thread-10)
   - [Method `thread_after`](#method-thread_after-10)
-- [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
+- [Class `OnSortSections`](#class-onsortsections)
   - [Method `execute`](#method-execute-19)
   - [Method `in_thread`](#method-in_thread-11)
   - [Method `thread_after`](#method-thread_after-11)
-- [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
-  - [Method `execute`](#method-execute-20)
-  - [Method `in_thread`](#method-in_thread-12)
-  - [Method `thread_after`](#method-thread_after-12)
-- [Class `OnSortSections`](#class-onsortsections)
-  - [Method `execute`](#method-execute-21)
-  - [Method `in_thread`](#method-in_thread-13)
-  - [Method `thread_after`](#method-thread_after-13)
 
 </details>
 
@@ -1058,231 +1050,6 @@ Execute code in the main thread after in_thread(). For handling the results of t
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} {self.filename} completed")
-        self.show_result()
-```
-
-</details>
-
-## Class `OnGenerateToc`
-
-```python
-class OnGenerateToc(action_base.ActionBase)
-```
-
-Generate a table of contents for a single Markdown file.
-
-This action prompts the user to select a Markdown file and generates
-a table of contents with links to all headings in the file.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnGenerateToc(action_base.ActionBase):
-
-    icon = "📑"
-    title = "Generate TOC in one MD"
-
-    @action_base.ActionBase.handle_exceptions("generating TOC")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.filename = self.get_open_filename(
-            "Open Markdown file",
-            self.config["path_articles"],
-            "Markdown (*.md);;All Files (*)",
-        )
-        if not self.filename:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @action_base.ActionBase.handle_exceptions("generating TOC thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.filename is None:
-            return
-        self.add_line(h.md.generate_toc_with_links(self.filename))
-
-    @action_base.ActionBase.handle_exceptions("generating TOC thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.filename} completed")
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.filename = self.get_open_filename(
-            "Open Markdown file",
-            self.config["path_articles"],
-            "Markdown (*.md);;All Files (*)",
-        )
-        if not self.filename:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-```
-
-</details>
-
-### Method `in_thread`
-
-```python
-def in_thread(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> str | None:
-        if self.filename is None:
-            return
-        self.add_line(h.md.generate_toc_with_links(self.filename))
-```
-
-</details>
-
-### Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} {self.filename} completed")
-        self.show_result()
-```
-
-</details>
-
-## Class `OnGenerateTocFolder`
-
-```python
-class OnGenerateTocFolder(action_base.ActionBase)
-```
-
-Generate tables of contents for all Markdown files in a folder.
-
-This action prompts the user to select a folder and generates
-tables of contents with links to all headings in every Markdown file
-found in that folder.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnGenerateTocFolder(action_base.ActionBase):
-
-    icon = "📑"
-    title = "Generate TOC in …"
-
-    @action_base.ActionBase.handle_exceptions("generating TOC in folder")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @action_base.ActionBase.handle_exceptions("generating TOC folder thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-
-    @action_base.ActionBase.handle_exceptions("generating TOC folder thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-```
-
-</details>
-
-### Method `in_thread`
-
-```python
-def in_thread(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> str | None:
-        if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.generate_toc_with_links))
-```
-
-</details>
-
-### Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
 ```
 
