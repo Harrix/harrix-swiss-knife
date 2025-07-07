@@ -596,11 +596,8 @@ class OnPublishPythonLibrary(action_base.ActionBase):
 
             self.add_line(f"Updating {self.library_name} in {project.name}")
 
-            commands = f"""
-                cd {project}
-                uv sync --upgrade
-                uv sync --upgrade """
-            result = h.dev.run_powershell_script(commands)
+            commands = """uv sync --upgrade && uv sync --upgrade """
+            result = h.dev.run_command(commands, cwd=str(project))
             self.add_line(result)
 
             # Update library version in project's pyproject.toml
@@ -779,11 +776,8 @@ def in_thread_03(self) -> str | None:
 
             self.add_line(f"Updating {self.library_name} in {project.name}")
 
-            commands = f"""
-                cd {project}
-                uv sync --upgrade
-                uv sync --upgrade """
-            result = h.dev.run_powershell_script(commands)
+            commands = """uv sync --upgrade && uv sync --upgrade """
+            result = h.dev.run_command(commands, cwd=str(project))
             self.add_line(result)
 
             # Update library version in project's pyproject.toml
