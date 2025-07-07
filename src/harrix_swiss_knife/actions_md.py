@@ -710,7 +710,7 @@ class OnNewNoteDialog(action_base.ActionBase):
         filename_final = filename.stem.replace("-", "--").replace(" ", "-")
 
         result, filename = h.md.add_note(filename.parent, filename_final, text, is_with_images=is_with_images)
-        h.dev.run_powershell_script(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        h.dev.run_command(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
