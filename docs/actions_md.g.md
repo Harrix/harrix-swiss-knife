@@ -12,87 +12,87 @@ lang: en
 ## Contents
 
 - [Class `OnBeautifyMdFolder`](#class-onbeautifymdfolder)
+  - [Method `beautify_markdown_common`](#method-beautify_markdown_common)
   - [Method `execute`](#method-execute)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
 - [Class `OnBeautifyMdFolderAndRegenerateGMd`](#class-onbeautifymdfolderandregenerategmd)
-  - [Method `execute`](#method-execute-1)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
 - [Class `OnCheckMdFolder`](#class-oncheckmdfolder)
-  - [Method `execute`](#method-execute-2)
+  - [Method `execute`](#method-execute-1)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
 - [Class `OnCombineMarkdownFiles`](#class-oncombinemarkdownfiles)
-  - [Method `execute`](#method-execute-3)
+  - [Method `execute`](#method-execute-2)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
 - [Class `OnDownloadAndReplaceImages`](#class-ondownloadandreplaceimages)
-  - [Method `execute`](#method-execute-4)
+  - [Method `execute`](#method-execute-3)
   - [Method `in_thread`](#method-in_thread-4)
   - [Method `thread_after`](#method-thread_after-4)
 - [Class `OnDownloadAndReplaceImagesFolder`](#class-ondownloadandreplaceimagesfolder)
-  - [Method `execute`](#method-execute-5)
+  - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread-5)
   - [Method `thread_after`](#method-thread_after-5)
 - [Class `OnFormatQuotesAsMarkdownContent`](#class-onformatquotesasmarkdowncontent)
-  - [Method `execute`](#method-execute-6)
+  - [Method `execute`](#method-execute-5)
 - [Class `OnFormatYaml`](#class-onformatyaml)
-  - [Method `execute`](#method-execute-7)
+  - [Method `execute`](#method-execute-6)
   - [Method `in_thread`](#method-in_thread-6)
   - [Method `thread_after`](#method-thread_after-6)
 - [Class `OnGenerateAuthorBook`](#class-ongenerateauthorbook)
-  - [Method `execute`](#method-execute-8)
+  - [Method `execute`](#method-execute-7)
   - [Method `in_thread`](#method-in_thread-7)
   - [Method `thread_after`](#method-thread_after-7)
 - [Class `OnGenerateImageCaptions`](#class-ongenerateimagecaptions)
-  - [Method `execute`](#method-execute-9)
+  - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-8)
   - [Method `thread_after`](#method-thread_after-8)
 - [Class `OnGenerateImageCaptionsFolder`](#class-ongenerateimagecaptionsfolder)
-  - [Method `execute`](#method-execute-10)
+  - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-9)
   - [Method `thread_after`](#method-thread_after-9)
 - [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
-  - [Method `execute`](#method-execute-11)
+  - [Method `execute`](#method-execute-10)
   - [Method `in_thread`](#method-in_thread-10)
   - [Method `thread_after`](#method-thread_after-10)
 - [Class `OnGenerateToc`](#class-ongeneratetoc)
-  - [Method `execute`](#method-execute-12)
+  - [Method `execute`](#method-execute-11)
   - [Method `in_thread`](#method-in_thread-11)
   - [Method `thread_after`](#method-thread_after-11)
 - [Class `OnGenerateTocFolder`](#class-ongeneratetocfolder)
-  - [Method `execute`](#method-execute-13)
+  - [Method `execute`](#method-execute-12)
   - [Method `in_thread`](#method-in_thread-12)
   - [Method `thread_after`](#method-thread_after-12)
 - [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
-  - [Method `execute`](#method-execute-14)
+  - [Method `execute`](#method-execute-13)
 - [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
-  - [Method `execute`](#method-execute-15)
+  - [Method `execute`](#method-execute-14)
 - [Class `OnNewArticle`](#class-onnewarticle)
-  - [Method `execute`](#method-execute-16)
+  - [Method `execute`](#method-execute-15)
 - [Class `OnNewDiary`](#class-onnewdiary)
-  - [Method `execute`](#method-execute-17)
+  - [Method `execute`](#method-execute-16)
 - [Class `OnNewDiaryDream`](#class-onnewdiarydream)
-  - [Method `execute`](#method-execute-18)
+  - [Method `execute`](#method-execute-17)
 - [Class `OnNewNoteDialog`](#class-onnewnotedialog)
-  - [Method `execute`](#method-execute-19)
+  - [Method `execute`](#method-execute-18)
 - [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
-  - [Method `execute`](#method-execute-20)
+  - [Method `execute`](#method-execute-19)
 - [Class `OnOptimizeImages`](#class-onoptimizeimages)
-  - [Method `execute`](#method-execute-21)
+  - [Method `execute`](#method-execute-20)
   - [Method `in_thread`](#method-in_thread-13)
   - [Method `thread_after`](#method-thread_after-13)
 - [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
-  - [Method `execute`](#method-execute-22)
+  - [Method `execute`](#method-execute-21)
   - [Method `in_thread`](#method-in_thread-14)
   - [Method `thread_after`](#method-thread_after-14)
 - [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
-  - [Method `execute`](#method-execute-23)
+  - [Method `execute`](#method-execute-22)
   - [Method `in_thread`](#method-in_thread-15)
   - [Method `thread_after`](#method-thread_after-15)
 - [Class `OnSortSections`](#class-onsortsections)
-  - [Method `execute`](#method-execute-24)
+  - [Method `execute`](#method-execute-23)
   - [Method `in_thread`](#method-in_thread-16)
   - [Method `thread_after`](#method-thread_after-16)
 
@@ -126,6 +126,66 @@ class OnBeautifyMdFolder(action_base.ActionBase):
     icon = "😎"
     title = "Beautify MD in …"
 
+    def beautify_markdown_common(self, folder_path: str, *, is_include_summaries_and_combine: bool = False) -> None:
+        """Perform common beautification operations on Markdown files in a folder.
+
+        This method applies a series of enhancement operations to all Markdown files
+        in the specified folder, including image caption generation, table of contents
+        creation, YAML formatting, and Prettier formatting. Optionally includes
+        summary generation and file combination operations.
+
+        Args:
+
+        - `folder_path` (`str`): Path to the folder containing Markdown files to process.
+        - `is_include_summaries_and_combine` (`bool`): Whether to include summary generation
+          and file combination steps. Defaults to `False`.
+
+        Returns:
+
+        - `None`: This method performs operations and logs results but returns nothing.
+
+        Note:
+
+        - The method preserves the exact execution order of operations for consistency.
+        - All operations are logged using `self.add_line()` for user feedback.
+        - If `is_include_summaries_and_combine` is `True`, the method will first delete
+          existing `*.g.md` files, then generate summaries and combine files.
+
+        """
+        if is_include_summaries_and_combine:
+            # Delete *.g.md files
+            self.add_line("🔵 Delete *.g.md files")
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
+
+        # Generate image captions
+        self.add_line("🔵 Generate image captions")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
+
+        # Generate TOC
+        self.add_line("🔵 Generate TOC")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+
+        if is_include_summaries_and_combine:
+            # Generate summaries
+            self.add_line("🔵 Generate summaries")
+            for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
+                if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(folder_path).resolve()):
+                    self.add_line(h.md.generate_summaries(path_notes_for_summaries))
+
+            # Combine MD files
+            self.add_line("🔵 Combine MD files")
+            self.add_line(h.md.combine_markdown_files_recursively(folder_path, is_delete_g_md_files=False))
+
+        # Format YAML
+        self.add_line("🔵 Format YAML")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+
+        # Prettier
+        self.add_line("🔵 Prettier")
+        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
+
     @action_base.ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -143,13 +203,85 @@ class OnBeautifyMdFolder(action_base.ActionBase):
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
+        self.beautify_markdown_common(str(self.folder_path), is_include_summaries_and_combine=False)
 
     @action_base.ActionBase.handle_exceptions("beautifying markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+```
+
+</details>
+
+### Method `beautify_markdown_common`
+
+```python
+def beautify_markdown_common(self, folder_path: str) -> None
+```
+
+Perform common beautification operations on Markdown files in a folder.
+
+This method applies a series of enhancement operations to all Markdown files
+in the specified folder, including image caption generation, table of contents
+creation, YAML formatting, and Prettier formatting. Optionally includes
+summary generation and file combination operations.
+
+Args:
+
+- `folder_path` (`str`): Path to the folder containing Markdown files to process.
+- `is_include_summaries_and_combine` (`bool`): Whether to include summary generation
+  and file combination steps. Defaults to `False`.
+
+Returns:
+
+- `None`: This method performs operations and logs results but returns nothing.
+
+Note:
+
+- The method preserves the exact execution order of operations for consistency.
+- All operations are logged using `self.add_line()` for user feedback.
+- If `is_include_summaries_and_combine` is `True`, the method will first delete
+  existing `*.g.md` files, then generate summaries and combine files.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def beautify_markdown_common(self, folder_path: str, *, is_include_summaries_and_combine: bool = False) -> None:
+        if is_include_summaries_and_combine:
+            # Delete *.g.md files
+            self.add_line("🔵 Delete *.g.md files")
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
+
+        # Generate image captions
+        self.add_line("🔵 Generate image captions")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
+
+        # Generate TOC
+        self.add_line("🔵 Generate TOC")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+
+        if is_include_summaries_and_combine:
+            # Generate summaries
+            self.add_line("🔵 Generate summaries")
+            for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
+                if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(folder_path).resolve()):
+                    self.add_line(h.md.generate_summaries(path_notes_for_summaries))
+
+            # Combine MD files
+            self.add_line("🔵 Combine MD files")
+            self.add_line(h.md.combine_markdown_files_recursively(folder_path, is_delete_g_md_files=False))
+
+        # Format YAML
+        self.add_line("🔵 Format YAML")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+
+        # Prettier
+        self.add_line("🔵 Prettier")
+        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
 ```
 
 </details>
@@ -194,7 +326,7 @@ def in_thread(self) -> str | None:
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
+        self.beautify_markdown_common(str(self.folder_path), is_include_summaries_and_combine=False)
 ```
 
 </details>
@@ -221,7 +353,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 ## Class `OnBeautifyMdFolderAndRegenerateGMd`
 
 ```python
-class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase)
+class OnBeautifyMdFolderAndRegenerateGMd(OnBeautifyMdFolder)
 ```
 
 Apply comprehensive beautification to all Markdown notes.
@@ -243,22 +375,11 @@ formatted collection of Markdown documents.
 <summary>Code:</summary>
 
 ```python
-class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
+class OnBeautifyMdFolderAndRegenerateGMd(OnBeautifyMdFolder):
 
     icon = "😎"
     title = "Beautify MD and regenerate .g.md in …"
     bold_title = True
-
-    @action_base.ActionBase.handle_exceptions("beautifying markdown folder and regenerating g.md")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @action_base.ActionBase.handle_exceptions("beautifying and regenerating thread")
     def in_thread(self) -> str | None:
@@ -266,37 +387,13 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
+        self.beautify_markdown_common(str(self.folder_path), is_include_summaries_and_combine=True)
 
     @action_base.ActionBase.handle_exceptions("beautifying and regenerating thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
 </details>
@@ -317,7 +414,7 @@ def in_thread(self) -> str | None:
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
+        self.beautify_markdown_common(str(self.folder_path), is_include_summaries_and_combine=True)
 ```
 
 </details>

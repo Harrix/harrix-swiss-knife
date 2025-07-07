@@ -27,6 +27,66 @@ class OnBeautifyMdFolder(action_base.ActionBase):
     icon = "😎"
     title = "Beautify MD in …"
 
+    def beautify_markdown_common(self, folder_path: str, *, is_include_summaries_and_combine: bool = False) -> None:
+        """Perform common beautification operations on Markdown files in a folder.
+
+        This method applies a series of enhancement operations to all Markdown files
+        in the specified folder, including image caption generation, table of contents
+        creation, YAML formatting, and Prettier formatting. Optionally includes
+        summary generation and file combination operations.
+
+        Args:
+
+        - `folder_path` (`str`): Path to the folder containing Markdown files to process.
+        - `is_include_summaries_and_combine` (`bool`): Whether to include summary generation
+          and file combination steps. Defaults to `False`.
+
+        Returns:
+
+        - `None`: This method performs operations and logs results but returns nothing.
+
+        Note:
+
+        - The method preserves the exact execution order of operations for consistency.
+        - All operations are logged using `self.add_line()` for user feedback.
+        - If `is_include_summaries_and_combine` is `True`, the method will first delete
+          existing `*.g.md` files, then generate summaries and combine files.
+
+        """
+        if is_include_summaries_and_combine:
+            # Delete *.g.md files
+            self.add_line("🔵 Delete *.g.md files")
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
+
+        # Generate image captions
+        self.add_line("🔵 Generate image captions")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
+
+        # Generate TOC
+        self.add_line("🔵 Generate TOC")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+
+        if is_include_summaries_and_combine:
+            # Generate summaries
+            self.add_line("🔵 Generate summaries")
+            for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
+                if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(folder_path).resolve()):
+                    self.add_line(h.md.generate_summaries(path_notes_for_summaries))
+
+            # Combine MD files
+            self.add_line("🔵 Combine MD files")
+            self.add_line(h.md.combine_markdown_files_recursively(folder_path, is_delete_g_md_files=False))
+
+        # Format YAML
+        self.add_line("🔵 Format YAML")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+
+        # Prettier
+        self.add_line("🔵 Prettier")
+        commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
+        result = h.dev.run_powershell_script(commands)
+        self.add_line(result)
+
     @action_base.ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -44,7 +104,7 @@ class OnBeautifyMdFolder(action_base.ActionBase):
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
+        self.beautify_markdown_common(str(self.folder_path), is_include_summaries_and_combine=False)
 
     @action_base.ActionBase.handle_exceptions("beautifying markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -53,7 +113,7 @@ class OnBeautifyMdFolder(action_base.ActionBase):
         self.show_result()
 
 
-class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
+class OnBeautifyMdFolderAndRegenerateGMd(OnBeautifyMdFolder):
     """Apply comprehensive beautification to all Markdown notes.
 
     This action performs multiple enhancement operations on Markdown files across
@@ -74,24 +134,13 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
     title = "Beautify MD and regenerate .g.md in …"
     bold_title = True
 
-    @action_base.ActionBase.handle_exceptions("beautifying markdown folder and regenerating g.md")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
     @action_base.ActionBase.handle_exceptions("beautifying and regenerating thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
+        self.beautify_markdown_common(str(self.folder_path), is_include_summaries_and_combine=True)
 
     @action_base.ActionBase.handle_exceptions("beautifying and regenerating thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
