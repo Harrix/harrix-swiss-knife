@@ -37,8 +37,8 @@ def format_and_sort_python_common(
     """
     # Run isort and ruff format
     self.add_line("🔵 Format and sort imports")
-    commands = f"cd {folder_path}\nuv run --active isort .\nuv run --active ruff format"
-    self.add_line(h.dev.run_powershell_script(commands))
+    commands = "uv run --active isort . && uv run --active ruff format"
+    self.add_line(h.dev.run_command(commands, cwd=folder_path))
 
     # Sort Python code elements
     self.add_line("🔵 Sort Python code elements")
