@@ -1,4 +1,4 @@
-"""Module for optimizing images in Markdown files and content."""
+"""Module with functions for Markdown files."""
 
 import re
 import shutil
