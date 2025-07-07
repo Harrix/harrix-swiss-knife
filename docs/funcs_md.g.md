@@ -243,7 +243,7 @@ def optimize_images_in_md_content(
                             commands = f'npm run optimize imagesFolder="{temp_folder}"'
                             if is_convert_png_to_avif:
                                 commands += " convertPngToAvif=true"
-                            h.dev.run_powershell_script(commands)
+                            h.dev.run_command(commands)
 
                             # Path to the optimized image
                             optimized_images_dir = temp_folder_path / "temp"
