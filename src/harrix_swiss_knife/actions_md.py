@@ -678,7 +678,7 @@ class OnNewDiaryDream(action_base.ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
-        h.dev.run_powershell_script(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        h.dev.run_command(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
