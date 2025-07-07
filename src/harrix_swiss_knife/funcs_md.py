@@ -68,8 +68,8 @@ def beautify_markdown_common(
 
     # Prettier
     self.add_line("🔵 Prettier")
-    commands = f"cd {folder_path}\nprettier --parser markdown --write **/*.md --end-of-line crlf"
-    result = h.dev.run_powershell_script(commands)
+    commands = "prettier --parser markdown --write **/*.md --end-of-line crlf"
+    result = h.dev.run_command(commands, cwd=str(folder_path))
     self.add_line(result)
 
 
