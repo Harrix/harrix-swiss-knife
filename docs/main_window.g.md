@@ -16,6 +16,8 @@ lang: en
   - [Method `closeEvent`](#method-closeevent)
   - [Method `on_item_clicked`](#method-on_item_clicked)
   - [Method `populate_list`](#method-populate_list)
+  - [Method `showEvent`](#method-showevent)
+  - [Method `update_output_content`](#method-update_output_content)
 
 </details>
 
@@ -31,6 +33,7 @@ Attributes:
 
 - `list_widget` (`QListWidget`): Widget to display the list of menu actions.
 - `text_edit` (`QTextEdit`): Widget to display information about performed actions.
+- `update_timer` (`QTimer`): Timer for periodically updating the text edit content.
 
 <details>
 <summary>Code:</summary>
@@ -70,6 +73,11 @@ class MainWindow(QMainWindow):
 
         splitter.setSizes([300, 700])
 
+        # Initialize timer for updating text edit content
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.update_output_content)
+        self.update_timer.start(2000)  # Update every 2 seconds
+
         # Populate QListWidget with actions from the menu
         self.populate_list(menu.actions())
 
@@ -86,6 +94,8 @@ class MainWindow(QMainWindow):
         Prevents the window from closing and hides it instead.
 
         """
+        # Stop the timer when hiding the window
+        self.update_timer.stop()
         event.ignore()
         self.hide()
 
@@ -111,9 +121,8 @@ class MainWindow(QMainWindow):
         if isinstance(action, QAction):
             # Trigger the action
             action.trigger()
-            # Display information in QTextEdit
-            output_txt = (h.dev.get_project_root() / "temp/output.txt").read_text(encoding="utf8")
-            self.text_edit.setPlainText(output_txt)
+            # Update the output content immediately
+            self.update_output_content()
 
     def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
         """Populate the list widget with actions, handling submenus recursively.
@@ -157,6 +166,41 @@ class MainWindow(QMainWindow):
                 # Regular action without submenu
                 item.setData(Qt.ItemDataRole.UserRole, action)
                 self.list_widget.addItem(item)
+
+    def showEvent(self, event) -> None:  # noqa: N802
+        """Override the show event to restart the timer when the window is shown.
+
+        Args:
+
+        - `event`: The show event triggered when the window is displayed.
+
+        Restarts the timer to continue updating the output content.
+
+        """
+        super().showEvent(event)
+        # Restart the timer when showing the window
+        self.update_timer.start(2000)
+
+    def update_output_content(self) -> None:
+        """Update the text edit content from the output.txt file.
+
+        Reads the content of the output.txt file and displays it in the text edit widget.
+        If the file doesn't exist or can't be read, displays an appropriate message.
+
+        Returns:
+
+        - None
+
+        """
+        try:
+            output_file = h.dev.get_project_root() / "temp/output.txt"
+            if output_file.exists():
+                output_txt = output_file.read_text(encoding="utf8")
+                self.text_edit.setPlainText(output_txt)
+            else:
+                self.text_edit.setPlainText("Файл output.txt не найден")
+        except Exception as e:
+            self.text_edit.setPlainText(f"Ошибка чтения файла: {str(e)}")
 ```
 
 </details>
@@ -202,6 +246,11 @@ def __init__(self, menu: QMenu) -> None:
 
         splitter.setSizes([300, 700])
 
+        # Initialize timer for updating text edit content
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.update_output_content)
+        self.update_timer.start(2000)  # Update every 2 seconds
+
         # Populate QListWidget with actions from the menu
         self.populate_list(menu.actions())
 
@@ -230,6 +279,8 @@ Prevents the window from closing and hides it instead.
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        # Stop the timer when hiding the window
+        self.update_timer.stop()
         event.ignore()
         self.hide()
 ```
@@ -267,9 +318,8 @@ def on_item_clicked(self, item: QListWidgetItem) -> None:
         if isinstance(action, QAction):
             # Trigger the action
             action.trigger()
-            # Display information in QTextEdit
-            output_txt = (h.dev.get_project_root() / "temp/output.txt").read_text(encoding="utf8")
-            self.text_edit.setPlainText(output_txt)
+            # Update the output content immediately
+            self.update_output_content()
 ```
 
 </details>
@@ -325,6 +375,65 @@ def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
                 # Regular action without submenu
                 item.setData(Qt.ItemDataRole.UserRole, action)
                 self.list_widget.addItem(item)
+```
+
+</details>
+
+### Method `showEvent`
+
+```python
+def showEvent(self, event) -> None
+```
+
+Override the show event to restart the timer when the window is shown.
+
+Args:
+
+- `event`: The show event triggered when the window is displayed.
+
+Restarts the timer to continue updating the output content.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event) -> None:  # noqa: N802
+        super().showEvent(event)
+        # Restart the timer when showing the window
+        self.update_timer.start(2000)
+```
+
+</details>
+
+### Method `update_output_content`
+
+```python
+def update_output_content(self) -> None
+```
+
+Update the text edit content from the output.txt file.
+
+Reads the content of the output.txt file and displays it in the text edit widget.
+If the file doesn't exist or can't be read, displays an appropriate message.
+
+Returns:
+
+- None
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_output_content(self) -> None:
+        try:
+            output_file = h.dev.get_project_root() / "temp/output.txt"
+            if output_file.exists():
+                output_txt = output_file.read_text(encoding="utf8")
+                self.text_edit.setPlainText(output_txt)
+            else:
+                self.text_edit.setPlainText("Файл output.txt не найден")
+        except Exception as e:
+            self.text_edit.setPlainText(f"Ошибка чтения файла: {str(e)}")
 ```
 
 </details>
