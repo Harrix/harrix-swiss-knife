@@ -36,7 +36,6 @@ _Figure 1: Screenshot_
 ## List of commands
 
 - **Dev**
-  - ☰ Get the list of items from this menu
   - 📦 Install/Update global NPM packages
   - ⚙️ Open config.json
   - 📥 Update uv

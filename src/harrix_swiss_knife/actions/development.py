@@ -29,33 +29,6 @@ class OnExit(ActionBase):
         QApplication.quit()
 
 
-class OnGetMenu(ActionBase):
-    """Display a list of all available menu items.
-
-    This action retrieves and displays a complete list of all menu items
-    from the parent menu, providing a convenient overview of all available
-    actions in the current context.
-    """
-
-    icon = "☰"
-    title = "Get the list of items from this menu"
-
-    def __init__(self, **kwargs) -> None:  # noqa: ANN003
-        """Initialize the OnGetMenu action."""
-        super().__init__()
-        self.parent = kwargs.get("parent")
-
-    @ActionBase.handle_exceptions("menu retrieval")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        if self.parent is not None:
-            result = self.parent.get_menu()
-            self.add_line(result)
-        else:
-            self.add_line("❌ No parent menu available.")
-        self.show_result()
-
-
 class OnNpmManagePackages(ActionBase):
     """Install or update configured NPM packages globally.
 

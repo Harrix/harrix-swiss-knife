@@ -14,17 +14,14 @@ lang: en
 - [Class `OnExit`](#class-onexit)
   - [Method `__init__`](#method-__init__)
   - [Method `execute`](#method-execute)
-- [Class `OnGetMenu`](#class-ongetmenu)
-  - [Method `__init__`](#method-__init__-1)
-  - [Method `execute`](#method-execute-1)
 - [Class `OnNpmManagePackages`](#class-onnpmmanagepackages)
-  - [Method `execute`](#method-execute-2)
+  - [Method `execute`](#method-execute-1)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
 - [Class `OnOpenConfigJson`](#class-onopenconfigjson)
-  - [Method `execute`](#method-execute-3)
+  - [Method `execute`](#method-execute-2)
 - [Class `OnUvUpdate`](#class-onuvupdate)
-  - [Method `execute`](#method-execute-4)
+  - [Method `execute`](#method-execute-3)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
 
@@ -96,87 +93,6 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         QApplication.quit()
-```
-
-</details>
-
-## Class `OnGetMenu`
-
-```python
-class OnGetMenu(ActionBase)
-```
-
-Display a list of all available menu items.
-
-This action retrieves and displays a complete list of all menu items
-from the parent menu, providing a convenient overview of all available
-actions in the current context.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnGetMenu(ActionBase):
-
-    icon = "☰"
-    title = "Get the list of items from this menu"
-
-    def __init__(self, **kwargs) -> None:  # noqa: ANN003
-        """Initialize the OnGetMenu action."""
-        super().__init__()
-        self.parent = kwargs.get("parent")
-
-    @ActionBase.handle_exceptions("menu retrieval")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        if self.parent is not None:
-            result = self.parent.get_menu()
-            self.add_line(result)
-        else:
-            self.add_line("❌ No parent menu available.")
-        self.show_result()
-```
-
-</details>
-
-### Method `__init__`
-
-```python
-def __init__(self, **kwargs) -> None
-```
-
-Initialize the OnGetMenu action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def __init__(self, **kwargs) -> None:  # noqa: ANN003
-        super().__init__()
-        self.parent = kwargs.get("parent")
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        if self.parent is not None:
-            result = self.parent.get_menu()
-            self.add_line(result)
-        else:
-            self.add_line("❌ No parent menu available.")
-        self.show_result()
 ```
 
 </details>
