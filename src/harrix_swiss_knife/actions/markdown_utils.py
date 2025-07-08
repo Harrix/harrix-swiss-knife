@@ -183,7 +183,7 @@ def optimize_images_in_md_content(
                 if image_filename.exists():
                     # Get the extension
                     ext = image_filename.suffix.lower()
-                    supported_extensions = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg"]
+                    supported_extensions = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
 
                     if ext in supported_extensions:
                         # Determine the new extension based on the current one

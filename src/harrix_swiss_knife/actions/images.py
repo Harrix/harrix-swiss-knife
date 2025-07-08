@@ -273,7 +273,7 @@ class OnOptimizeFile(ActionBase):
         filename = self.get_open_filename(
             "Select an Image File",
             self.config["path_articles"],
-            "Image Files (*.jpg *.jpeg *.webp *.png *.svg);;All Files (*)",
+            "Image Files (*.jpg *.jpeg *.webp *.png *.svg *.avif *.mp4);;All Files (*)",
         )
         if not filename:
             return
