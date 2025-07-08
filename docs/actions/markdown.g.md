@@ -1212,7 +1212,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnNewNoteDialogWithImages`
 
 ```python
-class OnNewNoteDialogWithImages(ActionBase)
+class OnNewNoteDialogWithImages(OnNewNoteDialog)
 ```
 
 Create a new general note with image support.
@@ -1224,7 +1224,7 @@ an associated images directory for the new note.
 <summary>Code:</summary>
 
 ```python
-class OnNewNoteDialogWithImages(ActionBase):
+class OnNewNoteDialogWithImages(OnNewNoteDialog):
 
     icon = "📓"
     title = "New note with images"

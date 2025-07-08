@@ -428,7 +428,7 @@ class OnNewNoteDialog(ActionBase):
         self.add_line(result)
 
 
-class OnNewNoteDialogWithImages(ActionBase):
+class OnNewNoteDialogWithImages(OnNewNoteDialog):
     """Create a new general note with image support.
 
     This action extends the OnNewNoteDialog action by automatically creating
