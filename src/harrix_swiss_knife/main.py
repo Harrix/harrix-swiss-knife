@@ -78,20 +78,20 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_items(
             self.menu_md,
             [
-                hsk.md.OnFormatQuotesAsMarkdownContent,
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
+                hsk.md.OnQuotesFormatAsMarkdownContent,
                 "-",
                 hsk.md.OnBeautifyMdFolder,
                 hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
                 hsk.md.OnCheckMdFolder,
                 hsk.md.OnDownloadAndReplaceImages,
                 hsk.md.OnDownloadAndReplaceImagesFolder,
-                hsk.md.OnGenerateAuthorBook,
                 hsk.md.OnGenerateShortNoteTocWithLinks,
                 hsk.md.OnOptimizeImages,
                 hsk.md.OnOptimizeImagesFolder,
                 hsk.md.OnOptimizeImagesFolderPngToAvif,
+                hsk.md.OnQuotesGenerateAuthorAndBook,
                 hsk.md.OnSortSections,
             ],
         )
