@@ -41,6 +41,7 @@ _Figure 1: Screenshot_
   - ⚙️ Open config.json
   - 📥 Update uv
 - **Images**
+  - 📸 Open Camera Uploads
   - 🚀 Optimize images
   - 🔝 Optimize images (high quality)
   - ⬆️ Optimize images in … and replace
@@ -54,7 +55,6 @@ _Figure 1: Screenshot_
   - ✅ Check featured_image
   - ✅ Check featured_image in …
   - 🗂️ Moves and flattens files from nested folders
-  - 📸 Open Camera Uploads
   - 🖲️ Rename largest images to featured_image in …
   - ├ Tree view of a folder
   - ├ Tree view of a folder (ignore hidden folders)
