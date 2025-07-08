@@ -692,7 +692,12 @@ class DatabaseManager:
             WHERE {" AND ".join(conditions)}"""
 
         all_time_rows = self.get_rows(all_time_query, params)
-        all_time_max = float(all_time_rows[0][0]) if all_time_rows and all_time_rows[0][0] is not None else 0.0
+        all_time_max = 0.0
+        if all_time_rows and all_time_rows[0][0] is not None and all_time_rows[0][0] != "":
+            try:
+                all_time_max = float(all_time_rows[0][0])
+            except (ValueError, TypeError):
+                all_time_max = 0.0
 
         # Get yearly max if date_from provided
         yearly_max = 0.0
@@ -707,7 +712,11 @@ class DatabaseManager:
                 WHERE {" AND ".join(yearly_conditions)}"""
 
             yearly_rows = self.get_rows(yearly_query, yearly_params)
-            yearly_max = float(yearly_rows[0][0]) if yearly_rows and yearly_rows[0][0] is not None else 0.0
+            if yearly_rows and yearly_rows[0][0] is not None and yearly_rows[0][0] != "":
+                try:
+                    yearly_max = float(yearly_rows[0][0])
+                except (ValueError, TypeError):
+                    yearly_max = 0.0
 
         return all_time_max, yearly_max
 

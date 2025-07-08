@@ -204,6 +204,7 @@ class MainWindow(
                 }
         except Exception as e:
             print(f"Error checking for new records: {e}")
+            # Don't show error to user for first-time records, just return None
 
         return None
 
@@ -1225,26 +1226,44 @@ class MainWindow(
                 previous_value = record_info["previous_all_time"]
                 improvement = current_value - previous_value
 
-                message = (
-                    f"🎉 Congratulations! You've set a new ALL-TIME RECORD! 🎉\n\n"
-                    f"Exercise: {exercise_display}\n"
-                    f"New Record: {current_value:g}{unit_text}\n"
-                    f"Previous Best: {previous_value:g}{unit_text}\n"
-                    f"Improvement: +{improvement:g}{unit_text}\n\n"
-                    f"🔥 Amazing achievement! Keep up the great work! 🔥"
-                )
+                # Check if this is the first record for this exercise
+                if previous_value == 0.0:
+                    message = (
+                        f"🎉 Congratulations! You've set your FIRST ALL-TIME RECORD! 🎉\n\n"
+                        f"Exercise: {exercise_display}\n"
+                        f"First Record: {current_value:g}{unit_text}\n\n"
+                        f"🚀 Great start! Keep up the momentum! 🚀"
+                    )
+                else:
+                    message = (
+                        f"🎉 Congratulations! You've set a new ALL-TIME RECORD! 🎉\n\n"
+                        f"Exercise: {exercise_display}\n"
+                        f"New Record: {current_value:g}{unit_text}\n"
+                        f"Previous Best: {previous_value:g}{unit_text}\n"
+                        f"Improvement: +{improvement:g}{unit_text}\n\n"
+                        f"🔥 Amazing achievement! Keep up the great work! 🔥"
+                    )
             elif record_info["is_yearly"]:
                 previous_value = record_info["previous_yearly"]
                 improvement = current_value - previous_value
 
-                message = (
-                    f"🎊 Congratulations! You've set a new YEARLY RECORD! 🎊\n\n"
-                    f"Exercise: {exercise_display}\n"
-                    f"New Record: {current_value:g}{unit_text}\n"
-                    f"Previous Year Best: {previous_value:g}{unit_text}\n"
-                    f"Improvement: +{improvement:g}{unit_text}\n\n"
-                    f"⭐ Excellent progress this year! ⭐"
-                )
+                # Check if this is the first yearly record
+                if previous_value == 0.0:
+                    message = (
+                        f"🎊 Congratulations! You've set your FIRST YEARLY RECORD! 🎊\n\n"
+                        f"Exercise: {exercise_display}\n"
+                        f"First Year Record: {current_value:g}{unit_text}\n\n"
+                        f"⭐ Excellent start to the year! ⭐"
+                    )
+                else:
+                    message = (
+                        f"🎊 Congratulations! You've set a new YEARLY RECORD! 🎊\n\n"
+                        f"Exercise: {exercise_display}\n"
+                        f"New Record: {current_value:g}{unit_text}\n"
+                        f"Previous Year Best: {previous_value:g}{unit_text}\n"
+                        f"Improvement: +{improvement:g}{unit_text}\n\n"
+                        f"⭐ Excellent progress this year! ⭐"
+                    )
             else:
                 return  # Should not happen, but just in case
 
