@@ -6,7 +6,8 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife import action_base, funcs_md, markdown_checker
+from harrix_swiss_knife import action_base, markdown_checker
+from harrix_swiss_knife.actions import markdown_utils
 
 
 class OnBeautifyMdFolder(action_base.ActionBase):
@@ -44,7 +45,7 @@ class OnBeautifyMdFolder(action_base.ActionBase):
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
+        markdown_utils.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=False)
 
     @action_base.ActionBase.handle_exceptions("beautifying markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -91,7 +92,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(action_base.ActionBase):
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        funcs_md.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
+        markdown_utils.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
 
     @action_base.ActionBase.handle_exceptions("beautifying and regenerating thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -503,7 +504,7 @@ class OnOptimizeImages(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
             return
-        self.add_line(h.md.optimize_images_in_md(self.filename))
+        self.add_line(markdown_utils.optimize_images_in_md(self.filename))
 
     @action_base.ActionBase.handle_exceptions("optimizing images in markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -539,7 +540,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.optimize_images_in_md))
+        self.add_line(h.file.apply_func(self.folder_path, ".md", markdown_utils.optimize_images_in_md))
 
     @action_base.ActionBase.handle_exceptions("optimizing images folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -570,7 +571,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.optimize_images_in_md_png_to_avif))
+        self.add_line(h.file.apply_func(self.folder_path, ".md", markdown_utils.optimize_images_in_md_png_to_avif))
 
     @action_base.ActionBase.handle_exceptions("optimizing images PNG to AVIF thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
