@@ -1679,7 +1679,7 @@ Useful for maintaining a consistent format in a collection of literary quotes.
 <details>
 <summary>Code:</summary>
 
-```python
+````python
 class OnQuotesGenerateAuthorAndBook(ActionBase):
 
     icon = "❞"
@@ -1688,10 +1688,49 @@ class OnQuotesGenerateAuthorAndBook(ActionBase):
     @ActionBase.handle_exceptions("generating author and book information")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.show_instructions(str(h.md.generate_author_book.__doc__))
-        self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
-        if not self.folder_path:
-            return
+        self.show_instructions("""Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
+
+```markdown
+# Title of book
+
+Line 1.
+
+Line 2.
+
+---
+
+Line 3.
+
+Line 4.
+
+-- Modified title of book
+
+````
+
+After processing:
+
+```markdown
+# Title of book
+
+> Line 1.
+>
+> Line 2.
+>
+> -- _Name Surname, Title of book_
+
+---
+
+> Line 3.
+>
+> Line 4.
+>
+> -- _Name Surname, Modified title of book_
+```
+
+""")
+self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
+if not self.folder_path:
+return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
@@ -1708,7 +1747,8 @@ class OnQuotesGenerateAuthorAndBook(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
-```
+
+````
 
 </details>
 
@@ -1716,22 +1756,62 @@ class OnQuotesGenerateAuthorAndBook(ActionBase):
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
-```
+````
 
 Execute the code. Main method for the action.
 
 <details>
 <summary>Code:</summary>
 
-```python
+````python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.show_instructions(str(h.md.generate_author_book.__doc__))
-        self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
-        if not self.folder_path:
-            return
+        self.show_instructions("""Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
+
+```markdown
+# Title of book
+
+Line 1.
+
+Line 2.
+
+---
+
+Line 3.
+
+Line 4.
+
+-- Modified title of book
+
+````
+
+After processing:
+
+```markdown
+# Title of book
+
+> Line 1.
+>
+> Line 2.
+>
+> -- _Name Surname, Title of book_
+
+---
+
+> Line 3.
+>
+> Line 4.
+>
+> -- _Name Surname, Modified title of book_
+```
+
+""")
+self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
+if not self.folder_path:
+return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
-```
+
+````
 
 </details>
 
@@ -1739,7 +1819,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 ```python
 def in_thread(self) -> str | None
-```
+````
 
 Execute code in a separate thread. For performing long-running operations.
 

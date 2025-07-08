@@ -591,7 +591,46 @@ class OnQuotesGenerateAuthorAndBook(ActionBase):
     @ActionBase.handle_exceptions("generating author and book information")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.show_instructions(str(h.md.generate_author_book.__doc__))
+        self.show_instructions("""Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
+
+```markdown
+# Title of book
+
+Line 1.
+
+Line 2.
+
+---
+
+Line 3.
+
+Line 4.
+
+-- Modified title of book
+
+```
+
+After processing:
+
+```markdown
+# Title of book
+
+> Line 1.
+>
+> Line 2.
+>
+> -- _Name Surname, Title of book_
+
+---
+
+> Line 3.
+>
+> Line 4.
+>
+> -- _Name Surname, Modified title of book_
+
+```
+""")
         self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
         if not self.folder_path:
             return
