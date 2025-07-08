@@ -7,11 +7,11 @@ from tempfile import TemporaryDirectory
 
 import harrix_pylib as h
 
-from harrix_swiss_knife import action_base
+from harrix_swiss_knife.actions.base import ActionBase
 
 
 def beautify_markdown_common(
-    self: action_base.ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
+    self: ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
 ) -> None:
     """Perform common beautification operations on Markdown files in a folder.
 

@@ -6,5 +6,6 @@ from harrix_swiss_knife.actions import development as dev
 from harrix_swiss_knife.actions import files as file
 from harrix_swiss_knife.actions import markdown as md
 from harrix_swiss_knife.actions import python as py
+from harrix_swiss_knife.actions.base import ActionBase
 
-__all__ = ["apps", "dev", "file", "fitness", "images", "main_menu_base", "md", "py", "tray_icon"]
+__all__ = ["ActionBase", "apps", "dev", "file", "fitness", "images", "main_menu_base", "md", "py", "tray_icon"]

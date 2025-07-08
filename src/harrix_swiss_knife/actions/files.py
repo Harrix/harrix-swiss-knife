@@ -4,10 +4,10 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife import action_base
+from harrix_swiss_knife.actions.base import ActionBase
 
 
-class OnAllFilesToParentFolder(action_base.ActionBase):
+class OnAllFilesToParentFolder(ActionBase):
     """Move and flatten files from nested directories.
 
     This action prompts the user to select a folder and then moves all files
@@ -18,7 +18,7 @@ class OnAllFilesToParentFolder(action_base.ActionBase):
     icon = "🗂️"
     title = "Moves and flattens files from nested folders"
 
-    @action_base.ActionBase.handle_exceptions("moving files to parent folder")
+    @ActionBase.handle_exceptions("moving files to parent folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
@@ -30,7 +30,7 @@ class OnAllFilesToParentFolder(action_base.ActionBase):
         self.show_result()
 
 
-class OnBlockDisks(action_base.ActionBase):
+class OnBlockDisks(ActionBase):
     """Lock BitLocker-encrypted drives.
 
     This action locks all drives specified in the configuration's `block_drives` list
@@ -41,7 +41,7 @@ class OnBlockDisks(action_base.ActionBase):
     icon = "🔒"
     title = "Block disks"
 
-    @action_base.ActionBase.handle_exceptions("blocking disks")
+    @ActionBase.handle_exceptions("blocking disks")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in self.config["block_drives"]])
@@ -50,7 +50,7 @@ class OnBlockDisks(action_base.ActionBase):
         self.show_result()
 
 
-class OnCheckFeaturedImage(action_base.ActionBase):
+class OnCheckFeaturedImage(ActionBase):
     """Check for featured image files in a selected folder.
 
     This action prompts the user to select a folder and then checks for the presence
@@ -61,7 +61,7 @@ class OnCheckFeaturedImage(action_base.ActionBase):
     icon = "✅"
     title = "Check featured_image in …"
 
-    @action_base.ActionBase.handle_exceptions("checking featured image")
+    @ActionBase.handle_exceptions("checking featured image")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
@@ -73,7 +73,7 @@ class OnCheckFeaturedImage(action_base.ActionBase):
         self.show_result()
 
 
-class OnCheckFeaturedImageInFolders(action_base.ActionBase):
+class OnCheckFeaturedImageInFolders(ActionBase):
     """Check for featured image files in all configured folders.
 
     This action automatically checks all directories specified in the
@@ -85,7 +85,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
     icon = "✅"
     title = "Check featured_image"
 
-    @action_base.ActionBase.handle_exceptions("checking featured image in folders")
+    @ActionBase.handle_exceptions("checking featured image in folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         for path in self.config["paths_with_featured_image"]:
@@ -94,7 +94,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
         self.show_result()
 
 
-class OnTreeViewFolder(action_base.ActionBase):
+class OnTreeViewFolder(ActionBase):
     """Generate a text-based tree view of a folder structure.
 
     This action prompts the user to select a folder and then creates
@@ -105,7 +105,7 @@ class OnTreeViewFolder(action_base.ActionBase):
     icon = "├"
     title = "Tree view of a folder"
 
-    @action_base.ActionBase.handle_exceptions("generating tree view")
+    @ActionBase.handle_exceptions("generating tree view")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
@@ -119,7 +119,7 @@ class OnTreeViewFolder(action_base.ActionBase):
         self.show_result()
 
 
-class OnTreeViewFolderIgnoreHiddenFolders(action_base.ActionBase):
+class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
     """Generate a tree view excluding hidden folders.
 
     This action extends OnTreeViewFolder by automatically setting the
@@ -130,13 +130,13 @@ class OnTreeViewFolderIgnoreHiddenFolders(action_base.ActionBase):
     icon = "├"
     title = "Tree view of a folder (ignore hidden folders)"
 
-    @action_base.ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
+    @ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
 
 
-class RenameLargestImagesToFeaturedImage(action_base.ActionBase):
+class RenameLargestImagesToFeaturedImage(ActionBase):
     """Rename the largest image in each folder to featured_image.
 
     This action prompts the user to select a folder and then identifies
@@ -148,7 +148,7 @@ class RenameLargestImagesToFeaturedImage(action_base.ActionBase):
     icon = "🖲️"
     title = "Rename largest images to featured_image in …"
 
-    @action_base.ActionBase.handle_exceptions("renaming largest images")
+    @ActionBase.handle_exceptions("renaming largest images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])

@@ -5,10 +5,10 @@ from typing import Any
 import harrix_pylib as h
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife import action_base
+from harrix_swiss_knife.actions.base import ActionBase
 
 
-class OnExit(action_base.ActionBase):
+class OnExit(ActionBase):
     """Exit the application.
 
     This action terminates the current Qt application instance,
@@ -23,13 +23,13 @@ class OnExit(action_base.ActionBase):
         super().__init__()
         self.parent = kwargs.get("parent")
 
-    @action_base.ActionBase.handle_exceptions("application exit")
+    @ActionBase.handle_exceptions("application exit")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         QApplication.quit()
 
 
-class OnGetMenu(action_base.ActionBase):
+class OnGetMenu(ActionBase):
     """Display a list of all available menu items.
 
     This action retrieves and displays a complete list of all menu items
@@ -45,7 +45,7 @@ class OnGetMenu(action_base.ActionBase):
         super().__init__()
         self.parent = kwargs.get("parent")
 
-    @action_base.ActionBase.handle_exceptions("menu retrieval")
+    @ActionBase.handle_exceptions("menu retrieval")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         if self.parent is not None:
@@ -56,7 +56,7 @@ class OnGetMenu(action_base.ActionBase):
         self.show_result()
 
 
-class OnNpmManagePackages(action_base.ActionBase):
+class OnNpmManagePackages(ActionBase):
     """Install or update configured NPM packages globally.
 
     This action manages NPM packages specified in the `config["npm_packages"]` list:
@@ -70,12 +70,12 @@ class OnNpmManagePackages(action_base.ActionBase):
     icon = "📦"
     title = "Install/Update global NPM packages"
 
-    @action_base.ActionBase.handle_exceptions("NPM package management")
+    @ActionBase.handle_exceptions("NPM package management")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @action_base.ActionBase.handle_exceptions("NPM operations thread")
+    @ActionBase.handle_exceptions("NPM operations thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Update NPM itself first
@@ -96,7 +96,7 @@ class OnNpmManagePackages(action_base.ActionBase):
 
         return "NPM packages management completed"
 
-    @action_base.ActionBase.handle_exceptions("NPM thread completion")
+    @ActionBase.handle_exceptions("NPM thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("NPM packages management completed")
@@ -104,7 +104,7 @@ class OnNpmManagePackages(action_base.ActionBase):
         self.show_result()
 
 
-class OnOpenConfigJson(action_base.ActionBase):
+class OnOpenConfigJson(ActionBase):
     """Open the application's configuration file.
 
     This action opens the `config.json` file in the configured editor,
@@ -115,7 +115,7 @@ class OnOpenConfigJson(action_base.ActionBase):
     icon = "⚙️"
     title = "Open config.json"
 
-    @action_base.ActionBase.handle_exceptions("config file opening")
+    @ActionBase.handle_exceptions("config file opening")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
@@ -123,7 +123,7 @@ class OnOpenConfigJson(action_base.ActionBase):
         self.add_line(result)
 
 
-class OnUvUpdate(action_base.ActionBase):
+class OnUvUpdate(ActionBase):
     """Update uv package manager to its latest version.
 
     This action updates the uv Python package manager to its latest version
@@ -134,18 +134,18 @@ class OnUvUpdate(action_base.ActionBase):
     icon = "📥"
     title = "Update uv"
 
-    @action_base.ActionBase.handle_exceptions("uv update")
+    @ActionBase.handle_exceptions("uv update")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @action_base.ActionBase.handle_exceptions("uv update thread")
+    @ActionBase.handle_exceptions("uv update thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         commands = "uv self update"
         return h.dev.run_command(commands)
 
-    @action_base.ActionBase.handle_exceptions("uv update thread completion")
+    @ActionBase.handle_exceptions("uv update thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Update completed")

@@ -4,11 +4,11 @@ from typing import Any
 
 from shiboken6 import isValid
 
-from harrix_swiss_knife import action_base
+from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.fitness import main
 
 
-class OnFitness(action_base.ActionBase):
+class OnFitness(ActionBase):
     """Launch the fitness tracking application.
 
     This action opens the fitness tracker application in a new window or brings
@@ -26,7 +26,7 @@ class OnFitness(action_base.ActionBase):
         self.parent = kwargs.get("parent")
         self.main_window = None
 
-    @action_base.ActionBase.handle_exceptions("launching fitness tracker")
+    @ActionBase.handle_exceptions("launching fitness tracker")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         if self.main_window is None or not isValid(self.main_window):
