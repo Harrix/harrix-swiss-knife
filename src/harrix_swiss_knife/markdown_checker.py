@@ -153,7 +153,7 @@ class MarkdownChecker:
         Args:
 
         - `filename` (`Path`): Path to the Markdown file being checked.
-        - `yaml_content` (`str`): The YAML frontmatter content from the markdown file.
+        - `yaml_content` (`str`): The YAML frontmatter content from the Markdown file.
         - `all_lines` (`list[str]`): All lines from the original file.
         - `rules` (`set`): Set of rule codes to apply during checking.
 

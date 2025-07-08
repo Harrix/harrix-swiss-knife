@@ -303,8 +303,8 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
     2. Applying ruff format to enforce consistent code style and formatting
     3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
        such as classes, methods, and functions in a consistent order
-    4. Generating markdown documentation from Python code using `h.py.generate_md_docs`
-    5. Formatting generated markdown files with prettier for consistent styling
+    4. Generating Markdown documentation from Python code using `h.py.generate_md_docs`
+    5. Formatting generated Markdown files with prettier for consistent styling
     """
 
     icon = "⭐"
@@ -328,13 +328,13 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
         This method applies a series of code formatting and organization operations to all
         Python files in the specified folder, including import sorting with isort, code
         formatting with ruff, and custom code element sorting. Optionally includes
-        documentation generation and markdown formatting.
+        documentation generation and Markdown formatting.
 
         Args:
 
         - `folder_path` (`str`): Path to the folder containing Python files to process.
         - `is_include_docs_generation` (`bool`): Whether to include documentation generation
-          and markdown formatting steps. Defaults to `True`.
+          and Markdown formatting steps. Defaults to `True`.
 
         Returns:
 
@@ -344,7 +344,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
 
         - The method preserves the exact execution order of operations for consistency.
         - All operations are logged using `self.add_line()` for user feedback.
-        - If `is_include_docs_generation` is `True`, the method will generate markdown
+        - If `is_include_docs_generation` is `True`, the method will generate Markdown
           documentation and format it with prettier.
 
         """
