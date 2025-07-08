@@ -412,7 +412,7 @@ class OnOptimizeClipboard(ActionBase):
 
         if kwargs.get("is_dialog"):
             image_name = self.get_text_input(
-                "Image name", "Enter the name of the image (English, without spaces):", "image"
+                "Image name", "Enter the name of the image (English, without spaces):", "image_01"
             )
             if not image_name:
                 return
@@ -467,7 +467,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         if kwargs.get("is_dialog"):
             image_name = self.get_text_input(
-                "Image name", "Enter the name of the image (English, without spaces):", "image"
+                "Image name", "Enter the name of the image (English, without spaces):", "image_01"
             )
             if not image_name:
                 return
