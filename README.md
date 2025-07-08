@@ -82,8 +82,7 @@ _Figure 1: Screenshot_
 - **Python**
   - 🚧 Check PY in …
   - ⬇️ Extracts list of funcs to a MD list from one PY file
-  - 🐍 New uv project in Projects
-  - 🐍 New uv project in …
+  - 🐍 New uv project
   - 👷‍♂️ Publish Python library to PyPI
   - 🌟 isort, ruff format, sort in PY files
   - ⭐ isort, ruff format, sort, make docs in PY files
