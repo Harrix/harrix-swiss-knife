@@ -187,6 +187,6 @@ class MainWindow(QMainWindow):
                 output_txt = output_file.read_text(encoding="utf8")
                 self.text_edit.setPlainText(output_txt)
             else:
-                self.text_edit.setPlainText("Файл output.txt не найден")
+                self.text_edit.setPlainText("File output.txt not found")
         except Exception as e:
-            self.text_edit.setPlainText(f"Ошибка чтения файла: {e!s}")
+            self.text_edit.setPlainText(f"File reading error: {e!s}")
