@@ -167,7 +167,7 @@ class MainWindow(QMainWindow):
                 item.setData(Qt.ItemDataRole.UserRole, action)
                 self.list_widget.addItem(item)
 
-    def showEvent(self, event) -> None:  # noqa: N802
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Override the show event to restart the timer when the window is shown.
 
         Args:
@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
             else:
                 self.text_edit.setPlainText("Файл output.txt не найден")
         except Exception as e:
-            self.text_edit.setPlainText(f"Ошибка чтения файла: {str(e)}")
+            self.text_edit.setPlainText(f"Ошибка чтения файла: {e!s}")
 ```
 
 </details>
@@ -382,7 +382,7 @@ def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
 ### Method `showEvent`
 
 ```python
-def showEvent(self, event) -> None
+def showEvent(self, event: QShowEvent) -> None
 ```
 
 Override the show event to restart the timer when the window is shown.
@@ -397,7 +397,7 @@ Restarts the timer to continue updating the output content.
 <summary>Code:</summary>
 
 ```python
-def showEvent(self, event) -> None:  # noqa: N802
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
         # Restart the timer when showing the window
         self.update_timer.start(2000)
@@ -433,7 +433,7 @@ def update_output_content(self) -> None:
             else:
                 self.text_edit.setPlainText("Файл output.txt не найден")
         except Exception as e:
-            self.text_edit.setPlainText(f"Ошибка чтения файла: {str(e)}")
+            self.text_edit.setPlainText(f"Ошибка чтения файла: {e!s}")
 ```
 
 </details>

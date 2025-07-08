@@ -6,7 +6,7 @@ for the application, displaying menu actions and handling user interactions.
 
 import harrix_pylib as h
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent
+from PySide6.QtGui import QAction, QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QListWidget,
@@ -156,7 +156,7 @@ class MainWindow(QMainWindow):
                 item.setData(Qt.ItemDataRole.UserRole, action)
                 self.list_widget.addItem(item)
 
-    def showEvent(self, event) -> None:  # noqa: N802
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Override the show event to restart the timer when the window is shown.
 
         Args:
@@ -189,4 +189,4 @@ class MainWindow(QMainWindow):
             else:
                 self.text_edit.setPlainText("Файл output.txt не найден")
         except Exception as e:
-            self.text_edit.setPlainText(f"Ошибка чтения файла: {str(e)}")
+            self.text_edit.setPlainText(f"Ошибка чтения файла: {e!s}")
