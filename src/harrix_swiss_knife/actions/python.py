@@ -237,7 +237,7 @@ class OnPublishPythonLibrary(action_base.ActionBase):
 
             self.add_line(f"Updating {self.library_name} in {project.name}")
 
-            commands = """uv sync --upgrade && uv sync --upgrade """
+            commands = "uv sync --upgrade && uv sync --upgrade "
             result = h.dev.run_command(commands, cwd=str(project))
             self.add_line(result)
 

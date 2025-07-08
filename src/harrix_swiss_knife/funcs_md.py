@@ -1,4 +1,4 @@
-"""Module with functions for `actions_md.py`."""
+"""Module with functions for `actions/markdown.py`."""
 
 import re
 import shutil

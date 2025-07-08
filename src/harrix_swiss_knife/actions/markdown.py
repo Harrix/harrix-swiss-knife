@@ -274,7 +274,7 @@ class OnGenerateShortNoteTocWithLinks(action_base.ActionBase):
     Useful for creating quick reference documents or previews of longer content.
     """
 
-    icon = "🤏"
+    icon = "🧏"
     title = "Generate a short version with only TOC"
 
     @action_base.ActionBase.handle_exceptions("generating short note with TOC")
@@ -503,7 +503,7 @@ class OnOptimizeImages(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
             return
-        self.add_line(funcs_md.optimize_images_in_md(self.filename))
+        self.add_line(h.md.optimize_images_in_md(self.filename))
 
     @action_base.ActionBase.handle_exceptions("optimizing images in markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -539,7 +539,7 @@ class OnOptimizeImagesFolder(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md))
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.optimize_images_in_md))
 
     @action_base.ActionBase.handle_exceptions("optimizing images folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -570,7 +570,7 @@ class OnOptimizeImagesFolderPngToAvif(action_base.ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", funcs_md.optimize_images_in_md_png_to_avif))
+        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.optimize_images_in_md_png_to_avif))
 
     @action_base.ActionBase.handle_exceptions("optimizing images PNG to AVIF thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -623,7 +623,6 @@ class OnSortSections(action_base.ActionBase):
         if self.filename is None:
             return
         self.add_line(h.md.sort_sections(self.filename))
-        self.add_line(h.md.generate_image_captions(self.filename))
 
     @action_base.ActionBase.handle_exceptions("sorting sections thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
