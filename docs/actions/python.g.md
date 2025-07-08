@@ -1013,7 +1013,7 @@ class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder):
 
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
-    bold_title = False  # Переопределяем, так как в базовом классе True
+    bold_title = False
 
     @ActionBase.handle_exceptions("formatting and sorting Python thread")
     def in_thread(self) -> str | None:
