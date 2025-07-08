@@ -87,7 +87,6 @@ _Figure 1: Screenshot_
   - 📓 New note with images
 - **Python**
   - 🚧 Check PY in …
-  - ⬇️ Extracts list of funcs to a MD list from one PY file
   - 🐍 New uv project
   - 👷‍♂️ Publish Python library to PyPI
   - 🌟 isort, ruff format, sort in PY files
