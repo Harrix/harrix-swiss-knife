@@ -1688,6 +1688,7 @@ class OnQuotesGenerateAuthorAndBook(ActionBase):
     @ActionBase.handle_exceptions("generating author and book information")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
+        self.show_instructions(str(h.md.generate_author_book.__doc__))
         self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
         if not self.folder_path:
             return
@@ -1724,6 +1725,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.show_instructions(str(h.md.generate_author_book.__doc__))
         self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
         if not self.folder_path:
             return
