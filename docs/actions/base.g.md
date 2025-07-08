@@ -14,6 +14,7 @@ lang: en
 - [Class `ActionBase`](#class-actionbase)
   - [Method `__init__`](#method-__init__)
   - [Method `__call__`](#method-__call__)
+  - [Method `_markdown_to_html`](#method-_markdown_to_html)
   - [Method `add_line`](#method-add_line)
   - [Method `config`](#method-config)
   - [Method `execute`](#method-execute)
@@ -27,6 +28,7 @@ lang: en
   - [Method `get_text_textarea`](#method-get_text_textarea)
   - [Method `handle_error`](#method-handle_error)
   - [Method `handle_exceptions`](#method-handle_exceptions)
+  - [Method `show_instructions`](#method-show_instructions)
   - [Method `show_result`](#method-show_result)
   - [Method `show_text_multiline`](#method-show_text_multiline)
   - [Method `show_toast`](#method-show_toast)
@@ -92,6 +94,50 @@ class ActionBase:
         self.result_lines.clear()
         Path.open(self.file, "w").close()  # create or clear output.txt
         return self.execute(*args, **kwargs)
+
+    def _markdown_to_html(self, markdown_text: str) -> str:
+        """Convert basic Markdown syntax to HTML for display.
+
+        Args:
+
+        - `markdown_text` (`str`): The markdown text to convert.
+
+        Returns:
+
+        - `str`: HTML formatted text for display.
+
+        """
+        import re
+
+        # Start with the original text
+        html = markdown_text
+
+        # Convert headers (# ## ###)
+        html = re.sub(r"^### (.*?)$", r"<h3>\1</h3>", html, flags=re.MULTILINE)
+        html = re.sub(r"^## (.*?)$", r"<h2>\1</h2>", html, flags=re.MULTILINE)
+        html = re.sub(r"^# (.*?)$", r"<h1>\1</h1>", html, flags=re.MULTILINE)
+
+        # Convert bold (**text**)
+        html = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", html)
+
+        # Convert italic (*text*)
+        html = re.sub(r"\*(.*?)\*", r"<em>\1</em>", html)
+
+        # Convert unordered lists (- item)
+        html = re.sub(r"^- (.*?)$", r"<li>\1</li>", html, flags=re.MULTILINE)
+        # Wrap consecutive list items in <ul> tags
+        html = re.sub(r"(<li>.*?</li>\n?)+", lambda m: f"<ul>{m.group(0)}</ul>", html, flags=re.DOTALL)
+
+        # Convert links [text](url)
+        html = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', html)
+
+        # Convert line breaks
+        html = html.replace("\n", "<br>")
+
+        # Wrap in basic HTML structure
+        html = f'<html><body style="font-family: Segoe UI, Arial, sans-serif; line-height: 1.6;">{html}</body></html>'
+
+        return html
 
     def add_line(self, line: str) -> None:
         """Add a line to the output file and print it to the console.
@@ -482,6 +528,78 @@ class ActionBase:
 
         return decorator
 
+    def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
+        """Open a dialog to display instructions with basic Markdown support.
+
+        This method creates a dialog that displays instructions text with support
+        for basic Markdown syntax including headers, bold, italic, lists, and links.
+
+        Args:
+
+        - `instructions` (`str`): The instructions text with optional Markdown formatting.
+        - `title` (`str`): The title of the instructions dialog. Defaults to `"Instructions"`.
+
+        Returns:
+
+        - `str | None`: The displayed instructions text, or `None` if cancelled.
+
+        Note:
+
+        - Uses QTextBrowser which supports basic HTML/Markdown rendering.
+        - Supports headers (# ## ###), bold (**text**), italic (*text*),
+          lists (- item), and links [text](url).
+
+        """
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(800, 600)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Create a text browser widget for Markdown support
+        text_browser = QTextBrowser()
+
+        # Convert basic Markdown to HTML for display
+        html_content = self._markdown_to_html(instructions)
+        text_browser.setHtml(html_content)
+
+        # Set a readable font
+        font = QFont("Segoe UI", 10)
+        text_browser.setFont(font)
+
+        layout.addWidget(text_browser)
+
+        # Create a horizontal layout for buttons
+        button_layout = QHBoxLayout()
+
+        # Add a Copy button
+        copy_button = QPushButton("Copy to Clipboard")
+
+        def click_copy_button() -> None:
+            QGuiApplication.clipboard().setText(instructions)
+            self.show_toast("Instructions copied to Clipboard")
+
+        copy_button.clicked.connect(click_copy_button)
+        button_layout.addWidget(copy_button)
+
+        # Add OK button
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_button)
+
+        # Add the button layout to the main layout
+        layout.addLayout(button_layout)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            return instructions
+        return None
+
     def show_result(self) -> str | None:
         """Open a dialog to display result of `execute`.
 
@@ -691,6 +809,62 @@ def __call__(self, *args: Any, **kwargs: Any) -> Any:
         self.result_lines.clear()
         Path.open(self.file, "w").close()  # create or clear output.txt
         return self.execute(*args, **kwargs)
+```
+
+</details>
+
+### Method `_markdown_to_html`
+
+```python
+def _markdown_to_html(self, markdown_text: str) -> str
+```
+
+Convert basic Markdown syntax to HTML for display.
+
+Args:
+
+- `markdown_text` (`str`): The markdown text to convert.
+
+Returns:
+
+- `str`: HTML formatted text for display.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _markdown_to_html(self, markdown_text: str) -> str:
+        import re
+
+        # Start with the original text
+        html = markdown_text
+
+        # Convert headers (# ## ###)
+        html = re.sub(r"^### (.*?)$", r"<h3>\1</h3>", html, flags=re.MULTILINE)
+        html = re.sub(r"^## (.*?)$", r"<h2>\1</h2>", html, flags=re.MULTILINE)
+        html = re.sub(r"^# (.*?)$", r"<h1>\1</h1>", html, flags=re.MULTILINE)
+
+        # Convert bold (**text**)
+        html = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", html)
+
+        # Convert italic (*text*)
+        html = re.sub(r"\*(.*?)\*", r"<em>\1</em>", html)
+
+        # Convert unordered lists (- item)
+        html = re.sub(r"^- (.*?)$", r"<li>\1</li>", html, flags=re.MULTILINE)
+        # Wrap consecutive list items in <ul> tags
+        html = re.sub(r"(<li>.*?</li>\n?)+", lambda m: f"<ul>{m.group(0)}</ul>", html, flags=re.DOTALL)
+
+        # Convert links [text](url)
+        html = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', html)
+
+        # Convert line breaks
+        html = html.replace("\n", "<br>")
+
+        # Wrap in basic HTML structure
+        html = f'<html><body style="font-family: Segoe UI, Arial, sans-serif; line-height: 1.6;">{html}</body></html>'
+
+        return html
 ```
 
 </details>
@@ -1236,6 +1410,90 @@ def handle_exceptions(
             return wrapper
 
         return decorator
+```
+
+</details>
+
+### Method `show_instructions`
+
+```python
+def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None
+```
+
+Open a dialog to display instructions with basic Markdown support.
+
+This method creates a dialog that displays instructions text with support
+for basic Markdown syntax including headers, bold, italic, lists, and links.
+
+Args:
+
+- `instructions` (`str`): The instructions text with optional Markdown formatting.
+- `title` (`str`): The title of the instructions dialog. Defaults to `"Instructions"`.
+
+Returns:
+
+- `str | None`: The displayed instructions text, or `None` if cancelled.
+
+Note:
+
+- Uses QTextBrowser which supports basic HTML/Markdown rendering.
+- Supports headers (# ## ###), bold (**text**), italic (_text_),
+  lists (- item), and links [text](url).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(800, 600)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Create a text browser widget for Markdown support
+        text_browser = QTextBrowser()
+
+        # Convert basic Markdown to HTML for display
+        html_content = self._markdown_to_html(instructions)
+        text_browser.setHtml(html_content)
+
+        # Set a readable font
+        font = QFont("Segoe UI", 10)
+        text_browser.setFont(font)
+
+        layout.addWidget(text_browser)
+
+        # Create a horizontal layout for buttons
+        button_layout = QHBoxLayout()
+
+        # Add a Copy button
+        copy_button = QPushButton("Copy to Clipboard")
+
+        def click_copy_button() -> None:
+            QGuiApplication.clipboard().setText(instructions)
+            self.show_toast("Instructions copied to Clipboard")
+
+        copy_button.clicked.connect(click_copy_button)
+        button_layout.addWidget(copy_button)
+
+        # Add OK button
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_button)
+
+        # Add the button layout to the main layout
+        layout.addLayout(button_layout)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            return instructions
+        return None
 ```
 
 </details>
