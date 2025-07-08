@@ -23,6 +23,7 @@ lang: en
   - [Method `get_open_filename`](#method-get_open_filename)
   - [Method `get_save_filename`](#method-get_save_filename)
   - [Method `get_text_input`](#method-get_text_input)
+  - [Method `get_text_input_with_auto`](#method-get_text_input_with_auto)
   - [Method `get_text_textarea`](#method-get_text_textarea)
   - [Method `handle_error`](#method-handle_error)
   - [Method `handle_exceptions`](#method-handle_exceptions)
@@ -313,6 +314,80 @@ class ActionBase:
             self.add_line("❌ Text was not entered.")
             return None
         return text
+
+    def get_text_input_with_auto(
+        self, title: str, label: str, auto_generator: Callable[[], str] | None = None, auto_button_text: str = "🤖 Auto"
+    ) -> str | None:
+        """Prompt the user for text input with an optional auto-generation button.
+
+        Args:
+
+        - `title` (`str`): The title of the input dialog.
+        - `label` (`str`): The label prompting the user for input.
+        - `auto_generator` (`Callable[[], str] | None`): Function that generates auto text. Defaults to `None`.
+        - `auto_button_text` (`str`): Text for the auto-generation button. Defaults to `"🤖 Auto"`.
+
+        Returns:
+
+        - `str | None`: The entered text, or `None` if cancelled or empty.
+
+        """
+        if auto_generator is None:
+            # Fallback to regular text input if no auto generator provided
+            return self.get_text_input(title, label)
+
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(400, 150)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create input field with auto button layout
+        input_layout = QHBoxLayout()
+
+        line_edit = QLineEdit()
+        input_layout.addWidget(line_edit)
+
+        # Add auto button
+        auto_button = QPushButton(auto_button_text)
+
+        def on_auto_clicked() -> None:
+            try:
+                auto_text = auto_generator()
+                line_edit.setText(auto_text)
+            except Exception as e:
+                self.add_line(f"❌ Error generating auto text: {e}")
+
+        auto_button.clicked.connect(on_auto_clicked)
+        input_layout.addWidget(auto_button)
+
+        layout.addLayout(input_layout)
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            text = line_edit.text().strip()
+            if not text:
+                self.add_line("❌ Text was not entered.")
+                return None
+            return text
+
+        self.add_line("❌ Dialog was canceled.")
+        return None
 
     def get_text_textarea(self, title: str, label: str) -> str | None:
         """Open a dialog for multi-line text entry.
@@ -943,6 +1018,92 @@ def get_text_input(self, title: str, label: str) -> str | None:
             self.add_line("❌ Text was not entered.")
             return None
         return text
+```
+
+</details>
+
+### Method `get_text_input_with_auto`
+
+```python
+def get_text_input_with_auto(self, title: str, label: str, auto_generator: Callable[[], str] | None = None, auto_button_text: str = "🤖 Auto") -> str | None
+```
+
+Prompt the user for text input with an optional auto-generation button.
+
+Args:
+
+- `title` (`str`): The title of the input dialog.
+- `label` (`str`): The label prompting the user for input.
+- `auto_generator` (`Callable[[], str] | None`): Function that generates auto text. Defaults to `None`.
+- `auto_button_text` (`str`): Text for the auto-generation button. Defaults to `"🤖 Auto"`.
+
+Returns:
+
+- `str | None`: The entered text, or `None` if cancelled or empty.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_text_input_with_auto(
+        self, title: str, label: str, auto_generator: Callable[[], str] | None = None, auto_button_text: str = "🤖 Auto"
+    ) -> str | None:
+        if auto_generator is None:
+            # Fallback to regular text input if no auto generator provided
+            return self.get_text_input(title, label)
+
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(400, 150)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create input field with auto button layout
+        input_layout = QHBoxLayout()
+
+        line_edit = QLineEdit()
+        input_layout.addWidget(line_edit)
+
+        # Add auto button
+        auto_button = QPushButton(auto_button_text)
+
+        def on_auto_clicked() -> None:
+            try:
+                auto_text = auto_generator()
+                line_edit.setText(auto_text)
+            except Exception as e:
+                self.add_line(f"❌ Error generating auto text: {e}")
+
+        auto_button.clicked.connect(on_auto_clicked)
+        input_layout.addWidget(auto_button)
+
+        layout.addLayout(input_layout)
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            text = line_edit.text().strip()
+            if not text:
+                self.add_line("❌ Text was not entered.")
+                return None
+            return text
+
+        self.add_line("❌ Dialog was canceled.")
+        return None
 ```
 
 </details>

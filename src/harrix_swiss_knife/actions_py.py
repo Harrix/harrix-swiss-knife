@@ -75,92 +75,62 @@ class OnExtractFunctionsAndClasses(action_base.ActionBase):
 
 
 class OnNewUvProject(action_base.ActionBase):
-    """Create a new Python project with uv package manager using automatic naming.
+    """Create a new Python project with uv package manager.
 
-    This action automatically creates a new Python project using the uv package manager
-    in the configured projects directory. Unlike the dialog version, this action doesn't
-    prompt for a project name or location - it automatically generates a sequential
-    project name (e.g., "python_project_07") based on existing projects in the directory.
+    This action creates a new Python project using the uv package manager in a selected directory.
+    The user can choose from predefined project creation directories or browse for a custom location.
+    The action prompts for a project name with auto-generation option and automatically sets up
+    the project structure, virtual environment, and dependencies using uv.
 
     The uv package manager (<https://github.com/astral-sh/uv>) is used to set up the project
     structure, virtual environment, and dependencies. The project is then opened in the
-    configured editor specified in the application settings..
+    configured editor specified in the application settings.
     """
 
     icon = "🐍"
-    title = "New uv project in Projects"
+    title = "New uv project"
 
     @action_base.ActionBase.handle_exceptions("creating new uv project")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select Project folder", self.config["paths_python_project_creation"], self.config["path_github"]
+        )
+        if not self.folder_path:
+            return
+
+        # Create auto-generator function that uses the selected folder
+        def generate_auto_name() -> str:
+            start_pattern = self.config["start_pattern_py_projects"]
+            max_number = h.file.find_max_folder_number(str(self.folder_path), start_pattern)
+            return f"{start_pattern}{f'{(max_number + 1):02}'}"
+
+        self.project_name = self.get_text_input_with_auto(
+            "Project name",
+            "Enter the name of the project (English, without spaces):",
+            auto_generator=generate_auto_name,
+        )
+        if not self.project_name:
+            return
+
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @action_base.ActionBase.handle_exceptions("creating uv project thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        path = self.config["path_py_projects"]
-        start_pattern_py_projects = self.config["start_pattern_py_projects"]
-        max_project_number = h.file.find_max_folder_number(path, start_pattern_py_projects)
-        name_project: str = f"{start_pattern_py_projects}{f'{(max_project_number + 1):02}'}"
-
-        self.add_line(
-            h.py.create_uv_new_project(name_project, path, self.config["editor"], self.config["cli_commands"])
-        )
-
-    @action_base.ActionBase.handle_exceptions("creating uv project thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} completed")
-        self.show_result()
-
-
-class OnNewUvProjectDialog(action_base.ActionBase):
-    """Create a new Python project with uv package manager in a specified directory.
-
-    This action guides the user through creating a new Python project using the uv package manager.
-    It prompts for a project name and destination folder, then sets up a new project with the
-    appropriate structure and configuration.
-
-    The uv package manager (<https://github.com/astral-sh/uv>) is a fast, reliable Python package
-    manager and resolver. This action automates the project setup process, creating the necessary
-    files and directories, initializing the virtual environment, and opening the project in the
-    configured editor.
-    """
-
-    icon = "🐍"
-    title = "New uv project in …"
-
-    @action_base.ActionBase.handle_exceptions("creating new uv project with dialog")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.project_name = self.get_text_input(
-            "Project name",
-            "Enter the name of the project (English, without spaces):",
-        )
-        if not self.project_name:
-            return
-
-        self.folder_path = self.get_existing_directory("Select Project folder", self.config["path_py_projects"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @action_base.ActionBase.handle_exceptions("creating uv project dialog thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
         if self.project_name is None or self.folder_path is None:
             return
+
         self.add_line(
             h.py.create_uv_new_project(
                 self.project_name.replace(" ", "-"),
-                self.folder_path,
+                str(self.folder_path),
                 self.config["editor"],
                 self.config["cli_commands"],
             ),
         )
 
-    @action_base.ActionBase.handle_exceptions("creating uv project dialog thread completion")
+    @action_base.ActionBase.handle_exceptions("creating uv project thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
