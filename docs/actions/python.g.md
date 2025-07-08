@@ -28,6 +28,7 @@ lang: en
   - [Method `thread_after_02`](#method-thread_after_02)
   - [Method `thread_after_03`](#method-thread_after_03)
 - [Class `OnSortIsortFmtDocsPythonCodeFolder`](#class-onsortisortfmtdocspythoncodefolder)
+  - [Method `__init__`](#method-__init__)
   - [Method `execute`](#method-execute-3)
   - [Method `format_and_sort_python_common`](#method-format_and_sort_python_common)
   - [Method `in_thread`](#method-in_thread-2)
@@ -732,6 +733,11 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
     title = "isort, ruff format, sort, make docs in PY files"
     bold_title = True
 
+    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+        """Initialize the OnGetMenu action."""
+        super().__init__()
+        self.parent = kwargs.get("parent")
+
     @ActionBase.handle_exceptions("formatting and sorting Python code with docs")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -788,6 +794,15 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
             self.add_line("🔵 Format markdown files")
             markdown_utils.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
 
+        # Check if folder_path is the application root
+        app_root = str(Path(__file__).parent.parent.parent.parent.resolve())
+        folder_path_resolved = str(Path(folder_path).resolve())
+        print(folder_path_resolved, app_root)
+        if folder_path_resolved == app_root and self.parent is not None:
+            self.add_line("🔵 Get the list of items from this menu")
+            result = self.parent.get_menu()
+            self.add_line(result)
+
     @ActionBase.handle_exceptions("formatting and sorting Python with docs thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
@@ -800,6 +815,25 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+```
+
+</details>
+
+### Method `__init__`
+
+```python
+def __init__(self, **kwargs) -> None
+```
+
+Initialize the OnGetMenu action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, **kwargs) -> None:  # noqa: ANN003
+        super().__init__()
+        self.parent = kwargs.get("parent")
 ```
 
 </details>
@@ -881,6 +915,15 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
             # Format markdown files with prettier
             self.add_line("🔵 Format markdown files")
             markdown_utils.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+
+        # Check if folder_path is the application root
+        app_root = str(Path(__file__).parent.parent.parent.parent.resolve())
+        folder_path_resolved = str(Path(folder_path).resolve())
+        print(folder_path_resolved, app_root)
+        if folder_path_resolved == app_root and self.parent is not None:
+            self.add_line("🔵 Get the list of items from this menu")
+            result = self.parent.get_menu()
+            self.add_line(result)
 ```
 
 </details>
