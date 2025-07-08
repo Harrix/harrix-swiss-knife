@@ -372,7 +372,9 @@ class OnNewArticle(ActionBase):
     @ActionBase.handle_exceptions("creating new article")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        article_name = self.get_text_input("Article title", "Enter the name of the article (English, without spaces):")
+        article_name = self.get_text_input(
+            "Article title", "Enter the name of the article (English, without spaces):", "name_of_article"
+        )
         if not article_name:
             return
 

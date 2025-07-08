@@ -290,20 +290,21 @@ class ActionBase:
             return None
         return Path(filename)
 
-    def get_text_input(self, title: str, label: str) -> str | None:
+    def get_text_input(self, title: str, label: str, default_value: str | None = None) -> str | None:
         """Prompt the user for text input via a simple dialog.
 
         Args:
 
         - `title` (`str`): The title of the input dialog.
         - `label` (`str`): The label prompting the user for input.
+        - `default_value` (`str | None`): Default value to pre-fill the input field. Defaults to `None`.
 
         Returns:
 
         - `str | None`: The entered text, or `None` if cancelled or empty.
 
         """
-        text, ok = QInputDialog.getText(None, title, label)
+        text, ok = QInputDialog.getText(None, title, label, text=default_value or "")
         if not (ok and text):
             self.add_line("❌ Text was not entered.")
             return None

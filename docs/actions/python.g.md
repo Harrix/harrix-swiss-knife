@@ -435,7 +435,9 @@ class OnPublishPythonLibrary(ActionBase):
         # Get PyPI token
         self.token = self.config.get("pypi_token", "")
         if not self.token:
-            self.token = self.get_text_input("PyPI token", "Enter the token of the project in PyPI:")
+            self.token = self.get_text_input(
+                "PyPI token", "Enter the token of the project in PyPI:", f"pypi-{'Aa' * 88}"
+            )
         if not self.token:
             return
 
@@ -574,7 +576,9 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         # Get PyPI token
         self.token = self.config.get("pypi_token", "")
         if not self.token:
-            self.token = self.get_text_input("PyPI token", "Enter the token of the project in PyPI:")
+            self.token = self.get_text_input(
+                "PyPI token", "Enter the token of the project in PyPI:", f"pypi-{'Aa' * 88}"
+            )
         if not self.token:
             return
 

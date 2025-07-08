@@ -411,7 +411,9 @@ class OnOptimizeClipboard(ActionBase):
         filename = "image.png"
 
         if kwargs.get("is_dialog"):
-            image_name = self.get_text_input("Image name", "Enter the name of the image (English, without spaces):")
+            image_name = self.get_text_input(
+                "Image name", "Enter the name of the image (English, without spaces):", "image"
+            )
             if not image_name:
                 return
             filename = image_name.replace(" ", "-") + ".png"
@@ -464,7 +466,9 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         filename = "image.png"
 
         if kwargs.get("is_dialog"):
-            image_name = self.get_text_input("Image name", "Enter the name of the image (English, without spaces):")
+            image_name = self.get_text_input(
+                "Image name", "Enter the name of the image (English, without spaces):", "image"
+            )
             if not image_name:
                 return
             filename = image_name.replace(" ", "-") + ".png"
@@ -889,7 +893,7 @@ class OnResizeOptimizePngToAvif(ActionBase):
     @ActionBase.handle_exceptions("resize and PNG to AVIF optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.max_size = self.get_text_input("Max size", "Input max image size in pixels")
+        self.max_size = self.get_text_input("Max size", "Input max image size in pixels", "1024")
 
         if self.max_size is None:
             return
@@ -925,7 +929,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.max_size = self.get_text_input("Max size", "Input max image size in pixels")
+        self.max_size = self.get_text_input("Max size", "Input max image size in pixels", "1024")
 
         if self.max_size is None:
             return
