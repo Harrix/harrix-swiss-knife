@@ -892,7 +892,6 @@ class OnResizeOptimizePngToAvif(ActionBase):
         self.max_size = self.get_text_input("Max size", "Input max image size in pixels")
 
         if self.max_size is None:
-            self.add_line("❌ Max size is not set")
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -929,7 +928,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.max_size = self.get_text_input("Max size", "Input max image size in pixels")
 
         if self.max_size is None:
-            self.add_line("❌ Max size is not set")
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
