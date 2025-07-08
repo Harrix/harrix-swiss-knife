@@ -59,9 +59,9 @@ _Figure 1: Screenshot_
   - ├ Tree view of a folder
   - ├ Tree view of a folder (ignore hidden folders)
 - **Markdown**
-  - ❞ Format quotes as Markdown content
   - 🎬 Get a list of movies, books for web
   - 👉 Increase heading level
+  - ❞ Quotes. Format quotes as Markdown content
   - 😎 Beautify MD and regenerate .g.md in …
   - 😎 Beautify MD in …
   - 🚧 Check in …
