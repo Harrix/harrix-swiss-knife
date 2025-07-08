@@ -38,6 +38,24 @@ class OnClearImages(action_base.ActionBase):
         self.show_result()
 
 
+class OnOpenCameraUploads(action_base.ActionBase):
+    """Open all Camera Uploads folders.
+
+    This action opens all directories specified in the `paths_camera_uploads`
+    configuration setting in the system's file explorer, providing quick access
+    to folders where camera photos are typically uploaded or stored.
+    """
+
+    icon = "📸"
+    title = "Open Camera Uploads"
+
+    @action_base.ActionBase.handle_exceptions("opening camera uploads")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        for path in self.config["paths_camera_uploads"]:
+            h.file.open_file_or_folder(Path(path))
+        self.add_line('The folders from "Camera Uploads" is opened.')
+
 class OnOpenImages(action_base.ActionBase):
     """Open the source images temporary folder.
 

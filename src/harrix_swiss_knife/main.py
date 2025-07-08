@@ -44,6 +44,8 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_items(
             self.menu_images,
             [
+                hsk.images.OnOpenCameraUploads,
+                "-",
                 hsk.images.OnOptimize,
                 hsk.images.OnOptimizeDialogReplace,
                 hsk.images.OnOptimizeFile,
@@ -65,7 +67,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.file.OnBlockDisks,
                 hsk.file.OnCheckFeaturedImage,
                 hsk.file.OnCheckFeaturedImageInFolders,
-                hsk.file.OnOpenCameraUploads,
                 hsk.file.OnTreeViewFolder,
                 hsk.file.OnTreeViewFolderIgnoreHiddenFolders,
                 hsk.file.RenameLargestImagesToFeaturedImage,
