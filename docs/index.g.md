@@ -73,7 +73,7 @@ _Figure 1: Screenshot_
   - 🚧 Check in …
   - 📥 Download images in one MD
   - 📥 Download images in …
-  - 🤏 Generate a short version with only TOC
+  - 🧏 Generate a short version with only TOC
   - 🖼️ Optimize images (with PNG to AVIF) in …
   - 🖼️ Optimize images in one MD
   - 🖼️ Optimize images in …
@@ -179,7 +179,7 @@ CLI commands after installation:
 Example action:
 
 ```python
-class OnCheckFeaturedImageInFolders(action_base.ActionBase):
+class OnCheckFeaturedImageInFolders(ActionBase):
     """Check for featured image files in all configured folders.
 
     This action automatically checks all directories specified in the
@@ -191,14 +191,11 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
     icon = "✅"
     title = "Check featured_image"
 
-    @action_base.ActionBase.handle_exceptions("checking featured image in folders")
+    @ActionBase.handle_exceptions("checking featured image in folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         for path in self.config["paths_with_featured_image"]:
-            try:
-                result = h.file.check_featured_image(path)[1]
-            except Exception as e:
-                result = f"❌ Error: {e}"
+            result = h.file.check_featured_image(path)[1]
             self.add_line(result)
         self.show_result()
 ```
@@ -206,7 +203,7 @@ class OnCheckFeaturedImageInFolders(action_base.ActionBase):
 Example action with QThread:
 
 ```python
-class OnNpmManagePackages(action_base.ActionBase):
+class OnNpmManagePackages(ActionBase):
     """Install or update configured NPM packages globally.
 
     This action manages NPM packages specified in the `config["npm_packages"]` list:
@@ -220,12 +217,12 @@ class OnNpmManagePackages(action_base.ActionBase):
     icon = "📦"
     title = "Install/Update global NPM packages"
 
-    @action_base.ActionBase.handle_exceptions("NPM package management")
+    @ActionBase.handle_exceptions("NPM package management")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @action_base.ActionBase.handle_exceptions("NPM operations thread")
+    @ActionBase.handle_exceptions("NPM operations thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Update NPM itself first
@@ -246,7 +243,7 @@ class OnNpmManagePackages(action_base.ActionBase):
 
         return "NPM packages management completed"
 
-    @action_base.ActionBase.handle_exceptions("NPM thread completion")
+    @ActionBase.handle_exceptions("NPM thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("NPM packages management completed")
@@ -257,19 +254,19 @@ class OnNpmManagePackages(action_base.ActionBase):
 Example action with sequence of QThread:
 
 ```python
-class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
+class OnHarrixActionWithSequenceOfThread(ActionBase):
     """Docstring."""
 
     icon = "👷‍♂️"
     title = "Sequence of thread"
 
-    @action_base.ActionBase.handle_exceptions("action")
+    @ActionBase.handle_exceptions("action")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread_01, self.thread_after_01, self.title)
         return "Started the process chain"
 
-    @action_base.ActionBase.handle_exceptions("action thread 01")
+    @ActionBase.handle_exceptions("action thread 01")
     def in_thread_01(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # First operation
@@ -277,7 +274,7 @@ class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
         time.sleep(5)  # Simulating work
         return "First operation completed"
 
-    @action_base.ActionBase.handle_exceptions("action thread 02")
+    @ActionBase.handle_exceptions("action thread 02")
     def in_thread_02(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Second operation
@@ -285,7 +282,7 @@ class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
         time.sleep(self.time_waiting_seconds)  # Simulating work
         return "Second operation completed"
 
-    @action_base.ActionBase.handle_exceptions("action thread 03")
+    @ActionBase.handle_exceptions("action thread 03")
     def in_thread_03(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Third operation
@@ -293,7 +290,7 @@ class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
         time.sleep(5)  # Simulating work
         return "Third operation completed"
 
-    @action_base.ActionBase.handle_exceptions("action thread 01 completion")
+    @ActionBase.handle_exceptions("action thread 01 completion")
     def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_01(). For handling the results of thread execution."""
         self.add_line(result)  # Log the result from the first thread
@@ -303,7 +300,7 @@ class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
         message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
         self.start_thread(self.in_thread_02, self.thread_after_02, message)
 
-    @action_base.ActionBase.handle_exceptions("action thread 02 completion")
+    @ActionBase.handle_exceptions("action thread 02 completion")
     def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_02(). For handling the results of thread execution."""
         self.add_line(result)  # Log the result from the second thread
@@ -311,7 +308,7 @@ class OnHarrixActionWithSequenceOfThread(action_base.ActionBase):
         # Start the third operation
         self.start_thread(self.in_thread_03, self.thread_after_03, self.title)
 
-    @action_base.ActionBase.handle_exceptions("action thread 03 completion")
+    @ActionBase.handle_exceptions("action thread 03 completion")
     def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_03(). For handling the results of thread execution."""
         self.add_line(result)  # Log the result from the third thread
