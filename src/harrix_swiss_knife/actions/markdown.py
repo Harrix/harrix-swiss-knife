@@ -338,7 +338,7 @@ class OnNewArticle(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         article_name = self.get_text_input(
-            "Article title", "Enter the name of the article (English, without spaces):", "name_of_article"
+            "Article title", "Enter the name of the article (English, without spaces):", "name-of-article"
         )
         if not article_name:
             return
@@ -351,7 +351,7 @@ class OnNewArticle(ActionBase):
         )
         text = text.replace("[NAME]", article_name)
         text = text.replace("[DATE]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d"))
-        text += f"\n# {article_name}\n\n\n"
+        text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 
         result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)
         h.dev.run_command(f'{self.config["editor"]} "{self.config["vscode_workspace_articles"]}" "{filename}"')
