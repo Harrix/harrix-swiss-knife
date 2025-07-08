@@ -354,6 +354,7 @@ async function isAvifAnimated(filePath) {
         // Check for duration > 0 and fps > 0
         const durationMatch = ffOutput.match(/Duration: (\d{2}):(\d{2}):(\d{2}\.\d+)/);
         const fpsMatch = ffOutput.match(/(\d+(?:\.\d+)?)\s*fps/);
+        const frameMatch = ffOutput.match(/(\d+)\s+frames?/i);
 
         let isAnimated = false;
 
@@ -373,7 +374,6 @@ async function isAvifAnimated(filePath) {
         if (fpsMatch) {
           const fps = parseFloat(fpsMatch[1]);
           // Look for frame count in the output
-          const frameMatch = ffOutput.match(/(\d+)\s+frames?/i);
           if (frameMatch) {
             const frameCount = parseInt(frameMatch[1]);
             if (frameCount > 1) {
