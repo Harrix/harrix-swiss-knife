@@ -56,6 +56,7 @@ class OnOpenCameraUploads(ActionBase):
             h.file.open_file_or_folder(Path(path))
         self.add_line('The folders from "Camera Uploads" is opened.')
 
+
 class OnOpenImages(ActionBase):
     """Open the source images temporary folder.
 
