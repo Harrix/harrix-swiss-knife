@@ -354,7 +354,7 @@ class OnNewArticle(ActionBase):
         text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 
         result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)
-        h.dev.run_command(f'{self.config["editor"]} "{self.config["vscode_workspace_articles"]}" "{filename}"')
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_articles"]}" "{filename}"')
         self.add_line(result)
 
 
@@ -373,7 +373,7 @@ class OnNewDiary(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         result, filename = h.md.add_diary_new_dairy_in_year(self.config["path_diary"], self.config["beginning_of_md"])
-        h.dev.run_command(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
@@ -392,7 +392,7 @@ class OnNewDiaryDream(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
-        h.dev.run_command(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
@@ -424,7 +424,7 @@ class OnNewNoteDialog(ActionBase):
         filename_final = filename.stem.replace("-", "--").replace(" ", "-")
 
         result, filename = h.md.add_note(filename.parent, filename_final, text, is_with_images=is_with_images)
-        h.dev.run_command(f'{self.config["editor"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
 
