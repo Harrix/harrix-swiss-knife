@@ -824,10 +824,11 @@ class OnGetListMoviesBooks(ActionBase):
 
         result = ""
         count = 0
+        start_element = "### " if "### " in content else "## "
         for line in content.splitlines():
-            if line.startswith("### "):
+            if line.startswith(start_element):
                 result += f"- {line[4:].strip()}\n"
-                count += 1
+                count += 1  # Увеличиваем счетчик только для строк с заголовками
 
         result += f"\nCount: {count}"
         self.add_line(result)
@@ -871,10 +872,11 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         result = ""
         count = 0
+        start_element = "### " if "### " in content else "## "
         for line in content.splitlines():
-            if line.startswith("### "):
+            if line.startswith(start_element):
                 result += f"- {line[4:].strip()}\n"
-                count += 1
+                count += 1  # Увеличиваем счетчик только для строк с заголовками
 
         result += f"\nCount: {count}"
         self.add_line(result)

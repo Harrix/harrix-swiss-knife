@@ -288,8 +288,9 @@ class OnGetListMoviesBooks(ActionBase):
 
         result = ""
         count = 0
+        start_element = "### " if "### " in content else "## "
         for line in content.splitlines():
-            if line.startswith("### "):
+            if line.startswith(start_element):
                 result += f"- {line[4:].strip()}\n"
                 count += 1
 
