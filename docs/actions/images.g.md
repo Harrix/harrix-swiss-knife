@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `actions_images.py`
+# File `images.py`
 
 <details>
 <summary>📖 Contents</summary>
@@ -13,30 +13,32 @@ lang: en
 
 - [Class `OnClearImages`](#class-onclearimages)
   - [Method `execute`](#method-execute)
-- [Class `OnOpenImages`](#class-onopenimages)
+- [Class `OnOpenCameraUploads`](#class-onopencamerauploads)
   - [Method `execute`](#method-execute-1)
-- [Class `OnOpenOptimizedImages`](#class-onopenoptimizedimages)
+- [Class `OnOpenImages`](#class-onopenimages)
   - [Method `execute`](#method-execute-2)
-- [Class `OnOptimize`](#class-onoptimize)
+- [Class `OnOpenOptimizedImages`](#class-onopenoptimizedimages)
   - [Method `execute`](#method-execute-3)
+- [Class `OnOptimize`](#class-onoptimize)
+  - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
 - [Class `OnOptimizeClipboard`](#class-onoptimizeclipboard)
-  - [Method `execute`](#method-execute-4)
-- [Class `OnOptimizeClipboardDialog`](#class-onoptimizeclipboarddialog)
   - [Method `execute`](#method-execute-5)
-- [Class `OnOptimizeDialogReplace`](#class-onoptimizedialogreplace)
+- [Class `OnOptimizeClipboardDialog`](#class-onoptimizeclipboarddialog)
   - [Method `execute`](#method-execute-6)
+- [Class `OnOptimizeDialogReplace`](#class-onoptimizedialogreplace)
+  - [Method `execute`](#method-execute-7)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
 - [Class `OnOptimizeFile`](#class-onoptimizefile)
-  - [Method `execute`](#method-execute-7)
-- [Class `OnOptimizeQuality`](#class-onoptimizequality)
   - [Method `execute`](#method-execute-8)
+- [Class `OnOptimizeQuality`](#class-onoptimizequality)
+  - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
 - [Class `OnResizeOptimizePngToAvif`](#class-onresizeoptimizepngtoavif)
-  - [Method `execute`](#method-execute-9)
+  - [Method `execute`](#method-execute-10)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
 
@@ -45,7 +47,7 @@ lang: en
 ## Class `OnClearImages`
 
 ```python
-class OnClearImages(action_base.ActionBase)
+class OnClearImages(ActionBase)
 ```
 
 Clear temporary image directories.
@@ -58,12 +60,12 @@ providing a clean workspace for new image operations.
 <summary>Code:</summary>
 
 ```python
-class OnClearImages(action_base.ActionBase):
+class OnClearImages(ActionBase):
 
     icon = "🧹"
     title = "Clear folders images"
 
-    @action_base.ActionBase.handle_exceptions("clearing image folders")
+    @ActionBase.handle_exceptions("clearing image folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp/optimized_images"]
@@ -107,10 +109,61 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
+## Class `OnOpenCameraUploads`
+
+```python
+class OnOpenCameraUploads(ActionBase)
+```
+
+Open all Camera Uploads folders.
+
+This action opens all directories specified in the `paths_camera_uploads`
+configuration setting in the system's file explorer, providing quick access
+to folders where camera photos are typically uploaded or stored.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnOpenCameraUploads(ActionBase):
+
+    icon = "📸"
+    title = "Open Camera Uploads"
+
+    @ActionBase.handle_exceptions("opening camera uploads")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        for path in self.config["paths_camera_uploads"]:
+            h.file.open_file_or_folder(Path(path))
+        self.add_line('The folders from "Camera Uploads" is opened.')
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        for path in self.config["paths_camera_uploads"]:
+            h.file.open_file_or_folder(Path(path))
+        self.add_line('The folders from "Camera Uploads" is opened.')
+```
+
+</details>
+
 ## Class `OnOpenImages`
 
 ```python
-class OnOpenImages(action_base.ActionBase)
+class OnOpenImages(ActionBase)
 ```
 
 Open the source images temporary folder.
@@ -123,12 +176,12 @@ to view or manage the source image files.
 <summary>Code:</summary>
 
 ```python
-class OnOpenImages(action_base.ActionBase):
+class OnOpenImages(ActionBase):
 
     icon = "📂"
     title = "Open the folder images"
 
-    @action_base.ActionBase.handle_exceptions("opening images folder")
+    @ActionBase.handle_exceptions("opening images folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         path = h.dev.get_project_root() / "temp/images"
@@ -169,7 +222,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnOpenOptimizedImages`
 
 ```python
-class OnOpenOptimizedImages(action_base.ActionBase)
+class OnOpenOptimizedImages(ActionBase)
 ```
 
 Open the optimized images temporary folder.
@@ -182,12 +235,12 @@ to view or use the processed image files.
 <summary>Code:</summary>
 
 ```python
-class OnOpenOptimizedImages(action_base.ActionBase):
+class OnOpenOptimizedImages(ActionBase):
 
     icon = "📂"
     title = "Open the folder optimized_images"
 
-    @action_base.ActionBase.handle_exceptions("opening optimized images folder")
+    @ActionBase.handle_exceptions("opening optimized images folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         path = h.dev.get_project_root() / "temp/optimized_images"
@@ -228,7 +281,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnOptimize`
 
 ```python
-class OnOptimize(action_base.ActionBase)
+class OnOptimize(ActionBase)
 ```
 
 Run standard image optimization on all images in the temp folder.
@@ -241,23 +294,23 @@ creating compressed versions in the `optimized_images` directory.
 <summary>Code:</summary>
 
 ```python
-class OnOptimize(action_base.ActionBase):
+class OnOptimize(ActionBase):
 
     icon = "🚀"
     title = "Optimize images"
     bold_title = True
 
-    @action_base.ActionBase.handle_exceptions("image optimization")
+    @ActionBase.handle_exceptions("image optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @action_base.ActionBase.handle_exceptions("optimization thread")
+    @ActionBase.handle_exceptions("optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_command("npm run optimize")
 
-    @action_base.ActionBase.handle_exceptions("optimization thread completion")
+    @ActionBase.handle_exceptions("optimization thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
@@ -328,7 +381,7 @@ def thread_after(self, result: Any) -> None:
 ## Class `OnOptimizeClipboard`
 
 ```python
-class OnOptimizeClipboard(action_base.ActionBase)
+class OnOptimizeClipboard(ActionBase)
 ```
 
 Optimize an image from the clipboard with default naming.
@@ -341,12 +394,12 @@ image path back into the clipboard for easy pasting into documents.
 <summary>Code:</summary>
 
 ```python
-class OnOptimizeClipboard(action_base.ActionBase):
+class OnOptimizeClipboard(ActionBase):
 
     icon = "🚀"
     title = "Optimize image from clipboard"
 
-    @action_base.ActionBase.handle_exceptions("clipboard image optimization")
+    @ActionBase.handle_exceptions("clipboard image optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         image = ImageGrab.grabclipboard()
@@ -445,7 +498,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnOptimizeClipboardDialog`
 
 ```python
-class OnOptimizeClipboardDialog(action_base.ActionBase)
+class OnOptimizeClipboardDialog(ActionBase)
 ```
 
 Optimize an image from the clipboard with custom naming.
@@ -458,12 +511,12 @@ image management in the output directory.
 <summary>Code:</summary>
 
 ```python
-class OnOptimizeClipboardDialog(action_base.ActionBase):
+class OnOptimizeClipboardDialog(ActionBase):
 
     icon = "🚀"
     title = "Optimize image from clipboard as …"
 
-    @action_base.ActionBase.handle_exceptions("clipboard image optimization with dialog")
+    @ActionBase.handle_exceptions("clipboard image optimization with dialog")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         OnOptimizeClipboard().execute(is_dialog=True)
@@ -492,7 +545,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnOptimizeDialogReplace`
 
 ```python
-class OnOptimizeDialogReplace(action_base.ActionBase)
+class OnOptimizeDialogReplace(ActionBase)
 ```
 
 Optimize images in a selected folder and replace the originals.
@@ -505,12 +558,12 @@ with their optimized versions, maintaining a clean directory structure.
 <summary>Code:</summary>
 
 ```python
-class OnOptimizeDialogReplace(action_base.ActionBase):
+class OnOptimizeDialogReplace(ActionBase):
 
     icon = "⬆️"
     title = "Optimize images in … and replace"
 
-    @action_base.ActionBase.handle_exceptions("folder image optimization with replacement")
+    @ActionBase.handle_exceptions("folder image optimization with replacement")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory("Select a folder", self.config["path_articles"])
@@ -519,7 +572,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @action_base.ActionBase.handle_exceptions("folder optimization thread")
+    @ActionBase.handle_exceptions("folder optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -541,7 +594,7 @@ class OnOptimizeDialogReplace(action_base.ActionBase):
 
         return result
 
-    @action_base.ActionBase.handle_exceptions("folder optimization thread completion")
+    @ActionBase.handle_exceptions("folder optimization thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         if self.folder_path is None:
@@ -637,7 +690,7 @@ def thread_after(self, result: Any) -> None:
 ## Class `OnOptimizeFile`
 
 ```python
-class OnOptimizeFile(action_base.ActionBase)
+class OnOptimizeFile(ActionBase)
 ```
 
 Optimize a single image file.
@@ -650,12 +703,12 @@ using the npm optimize script, and saves the optimized version to the
 <summary>Code:</summary>
 
 ```python
-class OnOptimizeFile(action_base.ActionBase):
+class OnOptimizeFile(ActionBase):
 
     icon = "🖼️"
     title = "Optimize one image"
 
-    @action_base.ActionBase.handle_exceptions("single file optimization")
+    @ActionBase.handle_exceptions("single file optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         filename = self.get_open_filename(
@@ -718,7 +771,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnOptimizeQuality`
 
 ```python
-class OnOptimizeQuality(action_base.ActionBase)
+class OnOptimizeQuality(ActionBase)
 ```
 
 Optimize images with higher quality settings.
@@ -732,22 +785,22 @@ images where detail preservation is important.
 <summary>Code:</summary>
 
 ```python
-class OnOptimizeQuality(action_base.ActionBase):
+class OnOptimizeQuality(ActionBase):
 
     icon = "🔝"
     title = "Optimize images (high quality)"
 
-    @action_base.ActionBase.handle_exceptions("high quality optimization")
+    @ActionBase.handle_exceptions("high quality optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @action_base.ActionBase.handle_exceptions("high quality optimization thread")
+    @ActionBase.handle_exceptions("high quality optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_command("npm run optimize quality=true")
 
-    @action_base.ActionBase.handle_exceptions("high quality optimization thread completion")
+    @ActionBase.handle_exceptions("high quality optimization thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
@@ -818,7 +871,7 @@ def thread_after(self, result: Any) -> None:
 ## Class `OnResizeOptimizePngToAvif`
 
 ```python
-class OnResizeOptimizePngToAvif(action_base.ActionBase)
+class OnResizeOptimizePngToAvif(ActionBase)
 ```
 
 Resize and optimize images and convert PNG files to AVIF format too.
@@ -827,25 +880,25 @@ Resize and optimize images and convert PNG files to AVIF format too.
 <summary>Code:</summary>
 
 ```python
-class OnResizeOptimizePngToAvif(action_base.ActionBase):
+class OnResizeOptimizePngToAvif(ActionBase):
 
     icon = "↔️"
     title = "Resize and optimize images (with PNG to AVIF)"
     bold_title = True
 
-    @action_base.ActionBase.handle_exceptions("resize and PNG to AVIF optimization")
+    @ActionBase.handle_exceptions("resize and PNG to AVIF optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.max_size = self.get_text_input("Max size", "Input max image size in pixels")
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @action_base.ActionBase.handle_exceptions("resize and AVIF optimization thread")
+    @ActionBase.handle_exceptions("resize and AVIF optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_command(f"npm run optimize convertPngToAvif=true maxSize={self.max_size}")
 
-    @action_base.ActionBase.handle_exceptions("resize and AVIF optimization thread completion")
+    @ActionBase.handle_exceptions("resize and AVIF optimization thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")

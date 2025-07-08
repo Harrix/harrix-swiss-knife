@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `actions_apps.py`
+# File `apps.py`
 
 <details>
 <summary>📖 Contents</summary>
@@ -20,7 +20,7 @@ lang: en
 ## Class `OnFitness`
 
 ```python
-class OnFitness(action_base.ActionBase)
+class OnFitness(ActionBase)
 ```
 
 Launch the fitness tracking application.
@@ -34,7 +34,7 @@ exercise routines.
 <summary>Code:</summary>
 
 ```python
-class OnFitness(action_base.ActionBase):
+class OnFitness(ActionBase):
 
     icon = "🏃🏻"
     title = "Fitness tracker"
@@ -45,7 +45,7 @@ class OnFitness(action_base.ActionBase):
         self.parent = kwargs.get("parent")
         self.main_window = None
 
-    @action_base.ActionBase.handle_exceptions("launching fitness tracker")
+    @ActionBase.handle_exceptions("launching fitness tracker")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         if self.main_window is None or not isValid(self.main_window):

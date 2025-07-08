@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `actions_file.py`
+# File `files.py`
 
 <details>
 <summary>📖 Contents</summary>
@@ -19,21 +19,19 @@ lang: en
   - [Method `execute`](#method-execute-2)
 - [Class `OnCheckFeaturedImageInFolders`](#class-oncheckfeaturedimageinfolders)
   - [Method `execute`](#method-execute-3)
-- [Class `OnOpenCameraUploads`](#class-onopencamerauploads)
-  - [Method `execute`](#method-execute-4)
 - [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
-  - [Method `execute`](#method-execute-5)
+  - [Method `execute`](#method-execute-4)
 - [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
-  - [Method `execute`](#method-execute-6)
+  - [Method `execute`](#method-execute-5)
 - [Class `RenameLargestImagesToFeaturedImage`](#class-renamelargestimagestofeaturedimage)
-  - [Method `execute`](#method-execute-7)
+  - [Method `execute`](#method-execute-6)
 
 </details>
 
 ## Class `OnAllFilesToParentFolder`
 
 ```python
-class OnAllFilesToParentFolder(action_base.ActionBase)
+class OnAllFilesToParentFolder(ActionBase)
 ```
 
 Move and flatten files from nested directories.
@@ -46,12 +44,12 @@ effectively flattening the directory structure while preserving all files.
 <summary>Code:</summary>
 
 ```python
-class OnAllFilesToParentFolder(action_base.ActionBase):
+class OnAllFilesToParentFolder(ActionBase):
 
     icon = "🗂️"
     title = "Moves and flattens files from nested folders"
 
-    @action_base.ActionBase.handle_exceptions("moving files to parent folder")
+    @ActionBase.handle_exceptions("moving files to parent folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
@@ -92,7 +90,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnBlockDisks`
 
 ```python
-class OnBlockDisks(action_base.ActionBase)
+class OnBlockDisks(ActionBase)
 ```
 
 Lock BitLocker-encrypted drives.
@@ -105,12 +103,12 @@ secure protection of the drive contents.
 <summary>Code:</summary>
 
 ```python
-class OnBlockDisks(action_base.ActionBase):
+class OnBlockDisks(ActionBase):
 
     icon = "🔒"
     title = "Block disks"
 
-    @action_base.ActionBase.handle_exceptions("blocking disks")
+    @ActionBase.handle_exceptions("blocking disks")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in self.config["block_drives"]])
@@ -145,7 +143,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnCheckFeaturedImage`
 
 ```python
-class OnCheckFeaturedImage(action_base.ActionBase)
+class OnCheckFeaturedImage(ActionBase)
 ```
 
 Check for featured image files in a selected folder.
@@ -158,12 +156,12 @@ as preview images or thumbnails for the folder contents.
 <summary>Code:</summary>
 
 ```python
-class OnCheckFeaturedImage(action_base.ActionBase):
+class OnCheckFeaturedImage(ActionBase):
 
     icon = "✅"
     title = "Check featured_image in …"
 
-    @action_base.ActionBase.handle_exceptions("checking featured image")
+    @ActionBase.handle_exceptions("checking featured image")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
@@ -204,7 +202,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnCheckFeaturedImageInFolders`
 
 ```python
-class OnCheckFeaturedImageInFolders(action_base.ActionBase)
+class OnCheckFeaturedImageInFolders(ActionBase)
 ```
 
 Check for featured image files in all configured folders.
@@ -218,12 +216,12 @@ report for each directory.
 <summary>Code:</summary>
 
 ```python
-class OnCheckFeaturedImageInFolders(action_base.ActionBase):
+class OnCheckFeaturedImageInFolders(ActionBase):
 
     icon = "✅"
     title = "Check featured_image"
 
-    @action_base.ActionBase.handle_exceptions("checking featured image in folders")
+    @ActionBase.handle_exceptions("checking featured image in folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         for path in self.config["paths_with_featured_image"]:
@@ -251,57 +249,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             result = h.file.check_featured_image(path)[1]
             self.add_line(result)
         self.show_result()
-```
-
-</details>
-
-## Class `OnOpenCameraUploads`
-
-```python
-class OnOpenCameraUploads(action_base.ActionBase)
-```
-
-Open all Camera Uploads folders.
-
-This action opens all directories specified in the `paths_camera_uploads`
-configuration setting in the system's file explorer, providing quick access
-to folders where camera photos are typically uploaded or stored.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnOpenCameraUploads(action_base.ActionBase):
-
-    icon = "📸"
-    title = "Open Camera Uploads"
-
-    @action_base.ActionBase.handle_exceptions("opening camera uploads")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        for path in self.config["paths_camera_uploads"]:
-            h.file.open_file_or_folder(Path(path))
-        self.add_line('The folders from "Camera Uploads" is opened.')
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        for path in self.config["paths_camera_uploads"]:
-            h.file.open_file_or_folder(Path(path))
-        self.add_line('The folders from "Camera Uploads" is opened.')
 ```
 
 </details>
@@ -309,7 +256,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnTreeViewFolder`
 
 ```python
-class OnTreeViewFolder(action_base.ActionBase)
+class OnTreeViewFolder(ActionBase)
 ```
 
 Generate a text-based tree view of a folder structure.
@@ -322,12 +269,12 @@ similar to the output of the 'tree' command in command-line interfaces.
 <summary>Code:</summary>
 
 ```python
-class OnTreeViewFolder(action_base.ActionBase):
+class OnTreeViewFolder(ActionBase):
 
     icon = "├"
     title = "Tree view of a folder"
 
-    @action_base.ActionBase.handle_exceptions("generating tree view")
+    @ActionBase.handle_exceptions("generating tree view")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
@@ -372,7 +319,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `OnTreeViewFolderIgnoreHiddenFolders`
 
 ```python
-class OnTreeViewFolderIgnoreHiddenFolders(action_base.ActionBase)
+class OnTreeViewFolderIgnoreHiddenFolders(ActionBase)
 ```
 
 Generate a tree view excluding hidden folders.
@@ -385,12 +332,12 @@ that omits hidden directories (those starting with a dot).
 <summary>Code:</summary>
 
 ```python
-class OnTreeViewFolderIgnoreHiddenFolders(action_base.ActionBase):
+class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
 
     icon = "├"
     title = "Tree view of a folder (ignore hidden folders)"
 
-    @action_base.ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
+    @ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
@@ -419,7 +366,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ## Class `RenameLargestImagesToFeaturedImage`
 
 ```python
-class RenameLargestImagesToFeaturedImage(action_base.ActionBase)
+class RenameLargestImagesToFeaturedImage(ActionBase)
 ```
 
 Rename the largest image in each folder to featured_image.
@@ -433,12 +380,12 @@ or preview images across multiple directories.
 <summary>Code:</summary>
 
 ```python
-class RenameLargestImagesToFeaturedImage(action_base.ActionBase):
+class RenameLargestImagesToFeaturedImage(ActionBase):
 
     icon = "🖲️"
     title = "Rename largest images to featured_image in …"
 
-    @action_base.ActionBase.handle_exceptions("renaming largest images")
+    @ActionBase.handle_exceptions("renaming largest images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])

@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `funcs_md.py`
+# File `markdown_utils.py`
 
 <details>
 <summary>📖 Contents</summary>
@@ -21,7 +21,7 @@ lang: en
 ## Function `beautify_markdown_common`
 
 ```python
-def beautify_markdown_common(self: action_base.ActionBase, folder_path: str) -> None
+def beautify_markdown_common(self: ActionBase, folder_path: str) -> None
 ```
 
 Perform common beautification operations on Markdown files in a folder.
@@ -53,7 +53,7 @@ Note:
 
 ```python
 def beautify_markdown_common(
-    self: action_base.ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
+    self: ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
 ) -> None:
     if is_include_summaries_and_combine:
         # Delete *.g.md files

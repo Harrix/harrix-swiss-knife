@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `action_base.py`
+# File `base.py`
 
 <details>
 <summary>📖 Contents</summary>
