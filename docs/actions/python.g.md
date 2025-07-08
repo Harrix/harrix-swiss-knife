@@ -15,14 +15,12 @@ lang: en
   - [Method `execute`](#method-execute)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
-- [Class `OnExtractFunctionsAndClasses`](#class-onextractfunctionsandclasses)
-  - [Method `execute`](#method-execute-1)
 - [Class `OnNewUvProject`](#class-onnewuvproject)
-  - [Method `execute`](#method-execute-2)
+  - [Method `execute`](#method-execute-1)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
 - [Class `OnPublishPythonLibrary`](#class-onpublishpythonlibrary)
-  - [Method `execute`](#method-execute-3)
+  - [Method `execute`](#method-execute-2)
   - [Method `in_thread_01`](#method-in_thread_01)
   - [Method `in_thread_02`](#method-in_thread_02)
   - [Method `in_thread_03`](#method-in_thread_03)
@@ -30,7 +28,7 @@ lang: en
   - [Method `thread_after_02`](#method-thread_after_02)
   - [Method `thread_after_03`](#method-thread_after_03)
 - [Class `OnSortIsortFmtDocsPythonCodeFolder`](#class-onsortisortfmtdocspythoncodefolder)
-  - [Method `execute`](#method-execute-4)
+  - [Method `execute`](#method-execute-3)
   - [Method `format_and_sort_python_common`](#method-format_and_sort_python_common)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
@@ -154,73 +152,6 @@ Execute code in the main thread after in_thread(). For handling the results of t
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-```
-
-</details>
-
-## Class `OnExtractFunctionsAndClasses`
-
-```python
-class OnExtractFunctionsAndClasses(ActionBase)
-```
-
-Extract a formatted Markdown list of functions and classes from a Python file.
-
-This action analyzes a selected Python file and generates a Markdown-formatted list
-of all functions and classes defined within it. The output is presented in a hierarchical
-structure that makes it easy to understand the file's organization and contents.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnExtractFunctionsAndClasses(ActionBase):
-
-    icon = "⬇️"
-    title = "Extracts list of funcs to a MD list from one PY file"
-
-    @ActionBase.handle_exceptions("extracting functions and classes")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        filename = self.get_open_filename(
-            "Select an Python File",
-            self.config["path_github"],
-            "Python Files (*.py);;All Files (*)",
-        )
-        if not filename:
-            return
-
-        result = h.py.extract_functions_and_classes(filename)
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        filename = self.get_open_filename(
-            "Select an Python File",
-            self.config["path_github"],
-            "Python Files (*.py);;All Files (*)",
-        )
-        if not filename:
-            return
-
-        result = h.py.extract_functions_and_classes(filename)
-        self.add_line(result)
         self.show_result()
 ```
 

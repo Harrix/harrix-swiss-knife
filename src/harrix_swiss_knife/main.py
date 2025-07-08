@@ -115,7 +115,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             self.menu_python,
             [
                 hsk.py.OnCheckPythonFolder,
-                hsk.py.OnExtractFunctionsAndClasses,
                 hsk.py.OnNewUvProject,
                 hsk.py.OnPublishPythonLibrary,
                 hsk.py.OnSortIsortFmtDocsPythonCodeFolder,

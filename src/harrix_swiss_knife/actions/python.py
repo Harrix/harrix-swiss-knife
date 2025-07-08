@@ -49,33 +49,6 @@ class OnCheckPythonFolder(ActionBase):
         self.show_result()
 
 
-class OnExtractFunctionsAndClasses(ActionBase):
-    """Extract a formatted Markdown list of functions and classes from a Python file.
-
-    This action analyzes a selected Python file and generates a Markdown-formatted list
-    of all functions and classes defined within it. The output is presented in a hierarchical
-    structure that makes it easy to understand the file's organization and contents.
-    """
-
-    icon = "⬇️"
-    title = "Extracts list of funcs to a MD list from one PY file"
-
-    @ActionBase.handle_exceptions("extracting functions and classes")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        filename = self.get_open_filename(
-            "Select an Python File",
-            self.config["path_github"],
-            "Python Files (*.py);;All Files (*)",
-        )
-        if not filename:
-            return
-
-        result = h.py.extract_functions_and_classes(filename)
-        self.add_line(result)
-        self.show_result()
-
-
 class OnNewUvProject(ActionBase):
     """Create a new Python project with uv package manager.
 
