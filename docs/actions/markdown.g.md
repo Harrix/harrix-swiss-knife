@@ -802,7 +802,23 @@ class OnGetListMoviesBooks(ActionBase):
     @ActionBase.handle_exceptions("extracting movies/books list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        content = self.get_text_textarea("Markdown content", "Input Markdown content")
+        default_text = """### Song of the Sea: 8.5
+
+- **Original or English title:** Song of the Sea
+- **Date watching:** 2019-10-28
+- **Kinopoisk:** <https://www.kinopoisk.ru/film/714248/>
+- **IMDb:** <https://www.imdb.com/title/tt1865505/>
+- **Comments:** A beautiful cartoon that needs to be shown to children.
+
+### Red Turtle: 9
+
+- **Original or English title:** La tortue rouge
+- **Date watching:** 2019-10-12
+- **Kinopoisk:** <https://www.kinopoisk.ru/film/879827/>
+- **IMDb:** <https://www.imdb.com/title/tt3666024/>
+- **Comments:** Beautiful meditative cartoon."""
+
+        content = self.get_text_textarea("Markdown content", "Input Markdown content", default_text)
         if not content:
             return
 
@@ -833,7 +849,23 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        content = self.get_text_textarea("Markdown content", "Input Markdown content")
+        default_text = """### Song of the Sea: 8.5
+
+- **Original or English title:** Song of the Sea
+- **Date watching:** 2019-10-28
+- **Kinopoisk:** <https://www.kinopoisk.ru/film/714248/>
+- **IMDb:** <https://www.imdb.com/title/tt1865505/>
+- **Comments:** A beautiful cartoon that needs to be shown to children.
+
+### Red Turtle: 9
+
+- **Original or English title:** La tortue rouge
+- **Date watching:** 2019-10-12
+- **Kinopoisk:** <https://www.kinopoisk.ru/film/879827/>
+- **IMDb:** <https://www.imdb.com/title/tt3666024/>
+- **Comments:** Beautiful meditative cartoon."""
+
+        content = self.get_text_textarea("Markdown content", "Input Markdown content", default_text)
         if not content:
             return
 
@@ -875,7 +907,9 @@ class OnIncreaseHeadingLevelContent(ActionBase):
     @ActionBase.handle_exceptions("increasing heading level")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        content = self.get_text_textarea("Markdown content", "Input Markdown content")
+        content = self.get_text_textarea(
+            "Markdown content", "Input Markdown content", "# Title\n\nText\n\n## Subtitle\n\nText"
+        )
         if not content:
             return
 
@@ -899,7 +933,9 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        content = self.get_text_textarea("Markdown content", "Input Markdown content")
+        content = self.get_text_textarea(
+            "Markdown content", "Input Markdown content", "# Title\n\nText\n\n## Subtitle\n\nText"
+        )
         if not content:
             return
 
@@ -1569,7 +1605,17 @@ class OnQuotesFormatAsMarkdownContent(ActionBase):
     @ActionBase.handle_exceptions("formatting quotes as markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        content = self.get_text_textarea("Quotes", "Input quotes")
+        default_text = """They can get a big bang out of buying a blanket.
+
+The Catcher in the Rye
+J.D. Salinger
+
+
+I just mean that I used to think about old Spencer quite a lot
+
+The Catcher in the Rye
+J.D. Salinger"""
+        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
         if not content:
             return
 
@@ -1594,7 +1640,17 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        content = self.get_text_textarea("Quotes", "Input quotes")
+        default_text = """They can get a big bang out of buying a blanket.
+
+The Catcher in the Rye
+J.D. Salinger
+
+
+I just mean that I used to think about old Spencer quite a lot
+
+The Catcher in the Rye
+J.D. Salinger"""
+        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
         if not content:
             return
 

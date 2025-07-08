@@ -390,13 +390,14 @@ class ActionBase:
         self.add_line("❌ Dialog was canceled.")
         return None
 
-    def get_text_textarea(self, title: str, label: str) -> str | None:
+    def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None:
         """Open a dialog for multi-line text entry.
 
         Args:
 
         - `title` (`str`): The title of the text area dialog.
         - `label` (`str`): The label prompting the user for input.
+        - `default_text` (`str | None`): Optional default text to pre-fill the text area. Defaults to `None`.
 
         Returns:
 
@@ -416,6 +417,8 @@ class ActionBase:
 
         # Create a multi-line text field
         text_edit = QPlainTextEdit()
+        if default_text is not None:
+            text_edit.setPlainText(default_text)
         layout.addWidget(text_edit)
 
         # Add OK and Cancel buttons
@@ -1113,7 +1116,7 @@ def get_text_input_with_auto(
 ### Method `get_text_textarea`
 
 ```python
-def get_text_textarea(self, title: str, label: str) -> str | None
+def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None
 ```
 
 Open a dialog for multi-line text entry.
@@ -1122,6 +1125,7 @@ Args:
 
 - `title` (`str`): The title of the text area dialog.
 - `label` (`str`): The label prompting the user for input.
+- `default_text` (`str | None`): Optional default text to pre-fill the text area. Defaults to `None`.
 
 Returns:
 
@@ -1131,7 +1135,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_text_textarea(self, title: str, label: str) -> str | None:
+def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None:
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.resize(1024, 768)
@@ -1145,6 +1149,8 @@ def get_text_textarea(self, title: str, label: str) -> str | None:
 
         # Create a multi-line text field
         text_edit = QPlainTextEdit()
+        if default_text is not None:
+            text_edit.setPlainText(default_text)
         layout.addWidget(text_edit)
 
         # Add OK and Cancel buttons
