@@ -14,6 +14,7 @@ lang: en
 - [Class `PythonChecker`](#class-pythonchecker)
   - [Method `__init__`](#method-__init__)
   - [Method `__call__`](#method-__call__)
+  - [Method `check`](#method-check)
   - [Method `_check_all_rules`](#method-_check_all_rules)
   - [Method `_check_content_rules`](#method-_check_content_rules)
   - [Method `_determine_project_root`](#method-_determine_project_root)
@@ -23,7 +24,6 @@ lang: en
   - [Method `_has_russian_letters`](#method-_has_russian_letters)
   - [Method `_parse_rules_string`](#method-_parse_rules_string)
   - [Method `_should_ignore_line`](#method-_should_ignore_line)
-  - [Method `check`](#method-check)
 
 </details>
 
@@ -86,6 +86,22 @@ class PythonChecker:
 
         """
         return self.check(filename, exclude_rules)
+
+    def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
+        """Check Python file for compliance with specified rules.
+
+        Args:
+
+        - `filename` (`Path | str`): Path to the Python file to check.
+        - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
+
+        Returns:
+
+        - `list[str]`: List of error messages found during checking.
+
+        """
+        filename = Path(filename)
+        return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
 
     def _check_all_rules(self, filename: Path, rules: set) -> Generator[str, None, None]:
         """Generate all errors found during checking.
@@ -269,22 +285,6 @@ class PythonChecker:
         ignored_rules = self._parse_rules_string(rules_str)
 
         return rule_code in ignored_rules
-
-    def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
-        """Check Python file for compliance with specified rules.
-
-        Args:
-
-        - `filename` (`Path | str`): Path to the Python file to check.
-        - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
-
-        Returns:
-
-        - `list[str]`: List of error messages found during checking.
-
-        """
-        filename = Path(filename)
-        return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
 ```
 
 </details>
@@ -336,6 +336,34 @@ Returns:
 ```python
 def __call__(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
         return self.check(filename, exclude_rules)
+```
+
+</details>
+
+### Method `check`
+
+```python
+def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]
+```
+
+Check Python file for compliance with specified rules.
+
+Args:
+
+- `filename` (`Path | str`): Path to the Python file to check.
+- `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
+
+Returns:
+
+- `list[str]`: List of error messages found during checking.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
+        filename = Path(filename)
+        return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
 ```
 
 </details>
@@ -627,34 +655,6 @@ def _should_ignore_line(self, line: str, rule_code: str) -> bool:
         ignored_rules = self._parse_rules_string(rules_str)
 
         return rule_code in ignored_rules
-```
-
-</details>
-
-### Method `check`
-
-```python
-def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]
-```
-
-Check Python file for compliance with specified rules.
-
-Args:
-
-- `filename` (`Path | str`): Path to the Python file to check.
-- `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
-
-Returns:
-
-- `list[str]`: List of error messages found during checking.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
-        filename = Path(filename)
-        return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
 ```
 
 </details>

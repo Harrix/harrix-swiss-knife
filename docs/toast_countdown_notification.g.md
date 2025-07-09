@@ -13,10 +13,10 @@ lang: en
 
 - [Class `ToastCountdownNotification`](#class-toastcountdownnotification)
   - [Method `__init__`](#method-__init__)
-  - [Method `_refresh_label_text`](#method-_refresh_label_text)
   - [Method `closeEvent`](#method-closeevent)
   - [Method `start_countdown`](#method-start_countdown)
   - [Method `update_time`](#method-update_time)
+  - [Method `_refresh_label_text`](#method-_refresh_label_text)
 
 </details>
 
@@ -66,14 +66,6 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
 
-    def _refresh_label_text(self) -> None:
-        """Update the notification text with the current elapsed time.
-
-        Refreshes the label to show the original message and the number of seconds
-        that have elapsed since the countdown started.
-        """
-        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
-
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle the notification close event.
 
@@ -101,6 +93,14 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         now = QTime.currentTime()
         self.elapsed_seconds = self.start_time.secsTo(now)
         self._refresh_label_text()
+
+    def _refresh_label_text(self) -> None:
+        """Update the notification text with the current elapsed time.
+
+        Refreshes the label to show the original message and the number of seconds
+        that have elapsed since the countdown started.
+        """
+        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 ```
 
 </details>
@@ -129,27 +129,6 @@ def __init__(self, message: str = "Process is running…", parent: QWidget | Non
         self.elapsed_seconds = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
-```
-
-</details>
-
-### Method `_refresh_label_text`
-
-```python
-def _refresh_label_text(self) -> None
-```
-
-Update the notification text with the current elapsed time.
-
-Refreshes the label to show the original message and the number of seconds
-that have elapsed since the countdown started.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _refresh_label_text(self) -> None:
-        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 ```
 
 </details>
@@ -217,6 +196,27 @@ def update_time(self) -> None:
         now = QTime.currentTime()
         self.elapsed_seconds = self.start_time.secsTo(now)
         self._refresh_label_text()
+```
+
+</details>
+
+### Method `_refresh_label_text`
+
+```python
+def _refresh_label_text(self) -> None
+```
+
+Update the notification text with the current elapsed time.
+
+Refreshes the label to show the original message and the number of seconds
+that have elapsed since the countdown started.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _refresh_label_text(self) -> None:
+        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 ```
 
 </details>

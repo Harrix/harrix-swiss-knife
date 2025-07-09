@@ -13,7 +13,6 @@ lang: en
 
 - [Class `MainMenuBase`](#class-mainmenubase)
   - [Method `__init__`](#method-__init__)
-  - [Method `_add_item`](#method-_add_item)
   - [Method `add_items`](#method-add_items)
   - [Method `add_menus_and_items`](#method-add_menus_and_items)
   - [Method `create_emoji_icon`](#method-create_emoji_icon)
@@ -21,6 +20,7 @@ lang: en
   - [Method `get_icon`](#method-get_icon)
   - [Method `get_menu`](#method-get_menu)
   - [Method `new_menu`](#method-new_menu)
+  - [Method `_add_item`](#method-_add_item)
 
 </details>
 
@@ -48,42 +48,6 @@ class MainMenuBase:
     def __init__(self) -> None:
         """Initialize the `MainMenuBase` with an empty QMenu."""
         self.menu = QMenu()
-
-    def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
-        """Add an item to the given menu.
-
-        Args:
-
-        - `menu` (`QMenu`): The menu to which the action will be added.
-        - `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
-        - `icon` (`str`, optional): Path or emoji for the icon of the menu item. Defaults to `""`.
-
-        Returns:
-
-        - `None`
-
-        """
-        action_instance = class_action(parent=self)
-
-        if icon:
-            action = QAction(self.get_icon(icon), action_instance.title)
-            action.triggered.connect(action_instance)
-            setattr(action, "icon_name", icon)  # noqa: B010
-        elif hasattr(action_instance, "icon") and action_instance.icon:
-            action = QAction(self.get_icon(action_instance.icon), action_instance.title)
-            action.triggered.connect(action_instance)
-            setattr(action, "icon_name", action_instance.icon)  # noqa: B010
-        else:
-            action = QAction(action_instance.title)
-
-        # Check if the action should have bold text
-        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
-            font = action.font()
-            font.setBold(True)
-            action.setFont(font)
-
-        setattr(self, f"action_{class_action.__name__}", action)
-        menu.addAction(action)
 
     def add_items(self, menu: QMenu, items: list) -> None:
         """Add multiple items to the given menu with sorting by title within groups.
@@ -280,51 +244,21 @@ class MainMenuBase:
         menu = QMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
-```
 
-</details>
+    def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
+        """Add an item to the given menu.
 
-### Method `__init__`
+        Args:
 
-```python
-def __init__(self) -> None
-```
+        - `menu` (`QMenu`): The menu to which the action will be added.
+        - `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
+        - `icon` (`str`, optional): Path or emoji for the icon of the menu item. Defaults to `""`.
 
-Initialize the `MainMenuBase` with an empty QMenu.
+        Returns:
 
-<details>
-<summary>Code:</summary>
+        - `None`
 
-```python
-def __init__(self) -> None:
-        self.menu = QMenu()
-```
-
-</details>
-
-### Method `_add_item`
-
-```python
-def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None
-```
-
-Add an item to the given menu.
-
-Args:
-
-- `menu` (`QMenu`): The menu to which the action will be added.
-- `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
-- `icon` (`str`, optional): Path or emoji for the icon of the menu item. Defaults to `""`.
-
-Returns:
-
-- `None`
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
+        """
         action_instance = class_action(parent=self)
 
         if icon:
@@ -346,6 +280,24 @@ def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None
 
         setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
+```
+
+</details>
+
+### Method `__init__`
+
+```python
+def __init__(self) -> None
+```
+
+Initialize the `MainMenuBase` with an empty QMenu.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self) -> None:
+        self.menu = QMenu()
 ```
 
 </details>
@@ -626,6 +578,54 @@ def new_menu(self, title: str, icon: str) -> QMenu:
         menu = QMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
+```
+
+</details>
+
+### Method `_add_item`
+
+```python
+def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None
+```
+
+Add an item to the given menu.
+
+Args:
+
+- `menu` (`QMenu`): The menu to which the action will be added.
+- `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
+- `icon` (`str`, optional): Path or emoji for the icon of the menu item. Defaults to `""`.
+
+Returns:
+
+- `None`
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
+        action_instance = class_action(parent=self)
+
+        if icon:
+            action = QAction(self.get_icon(icon), action_instance.title)
+            action.triggered.connect(action_instance)
+            setattr(action, "icon_name", icon)  # noqa: B010
+        elif hasattr(action_instance, "icon") and action_instance.icon:
+            action = QAction(self.get_icon(action_instance.icon), action_instance.title)
+            action.triggered.connect(action_instance)
+            setattr(action, "icon_name", action_instance.icon)  # noqa: B010
+        else:
+            action = QAction(action_instance.title)
+
+        # Check if the action should have bold text
+        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
+            font = action.font()
+            font.setBold(True)
+            action.setFont(font)
+
+        setattr(self, f"action_{class_action.__name__}", action)
+        menu.addAction(action)
 ```
 
 </details>

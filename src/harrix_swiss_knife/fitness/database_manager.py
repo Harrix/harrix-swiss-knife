@@ -63,108 +63,6 @@ class DatabaseManager:
         except Exception as e:
             print(f"Warning: Error during database cleanup: {e}")
 
-    def _create_query(self) -> QSqlQuery:
-        """Create a QSqlQuery using this manager's database connection.
-
-        Returns:
-
-        - `QSqlQuery`: A query object bound to this database connection.
-
-        """
-        if not self._ensure_connection() or self.db is None:
-            error_msg = "❌ Database connection is not available"
-            raise ConnectionError(error_msg)
-        return QSqlQuery(self.db)
-
-    def _ensure_connection(self) -> bool:
-        """Ensure database connection is open and valid.
-
-        Returns:
-
-        - `bool`: True if connection is valid, False otherwise.
-
-        """
-        if not hasattr(self, "db") or self.db is None or not self.db.isValid():
-            print("Database object is invalid, attempting to reconnect...")
-            try:
-                self._reconnect()
-                return self.db is not None and self.db.isOpen()
-            except Exception as e:
-                print(f"Failed to reconnect to database: {e}")
-                return False
-
-        if self.db is None or not self.db.isOpen():
-            print("Database connection is closed, attempting to reopen...")
-            if self.db is None or not self.db.open():
-                error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
-                print(f"❌ Failed to reopen database: {error_msg}")
-                try:
-                    self._reconnect()
-                    return self.db is not None and self.db.isOpen()
-                except Exception as e:
-                    print(f"❌ Failed to reconnect to database: {e}")
-                    return False
-
-        return True
-
-    def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        """Yield every record in `query` one by one.
-
-        Args:
-
-        - `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery`
-          object.
-
-        Yields:
-
-        - `QSqlQuery`: The same object positioned on consecutive records.
-
-        """
-        if query is None:
-            return
-        while query.next():
-            yield query
-
-    def _reconnect(self) -> None:
-        """Attempt to reconnect to the database."""
-        if hasattr(self, "db") and self.db is not None and self.db.isValid():
-            self.db.close()
-
-        # Remove the old connection
-        if hasattr(self, "connection_name"):
-            QSqlDatabase.removeDatabase(self.connection_name)
-
-        # Create a new connection
-        thread_id = threading.current_thread().ident
-        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
-
-        self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
-        self.db.setDatabaseName(self._db_filename)
-
-        if not self.db.open():
-            error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
-            error_msg = f"❌ Failed to reconnect to database: {error_msg}"
-            raise ConnectionError(error_msg)
-
-    def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        """Convert the full result set in `query` into a list of rows.
-
-        Args:
-
-        - `query` (`QSqlQuery`): An executed query.
-
-        Returns:
-
-        - `list[list[Any]]`: Every database row represented as a list whose
-          elements correspond to column values.
-
-        """
-        result: list[list[Any]] = []
-        while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
-        return result
-
     def add_exercise(self, name: str, unit: str, *, is_type_required: bool) -> bool:
         """Add a new exercise to the database.
 
@@ -1303,6 +1201,108 @@ class DatabaseManager:
         query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
         params = {"v": value, "d": date, "id": record_id}
         return self.execute_simple_query(query, params)
+
+    def _create_query(self) -> QSqlQuery:
+        """Create a QSqlQuery using this manager's database connection.
+
+        Returns:
+
+        - `QSqlQuery`: A query object bound to this database connection.
+
+        """
+        if not self._ensure_connection() or self.db is None:
+            error_msg = "❌ Database connection is not available"
+            raise ConnectionError(error_msg)
+        return QSqlQuery(self.db)
+
+    def _ensure_connection(self) -> bool:
+        """Ensure database connection is open and valid.
+
+        Returns:
+
+        - `bool`: True if connection is valid, False otherwise.
+
+        """
+        if not hasattr(self, "db") or self.db is None or not self.db.isValid():
+            print("Database object is invalid, attempting to reconnect...")
+            try:
+                self._reconnect()
+                return self.db is not None and self.db.isOpen()
+            except Exception as e:
+                print(f"Failed to reconnect to database: {e}")
+                return False
+
+        if self.db is None or not self.db.isOpen():
+            print("Database connection is closed, attempting to reopen...")
+            if self.db is None or not self.db.open():
+                error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
+                print(f"❌ Failed to reopen database: {error_msg}")
+                try:
+                    self._reconnect()
+                    return self.db is not None and self.db.isOpen()
+                except Exception as e:
+                    print(f"❌ Failed to reconnect to database: {e}")
+                    return False
+
+        return True
+
+    def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
+        """Yield every record in `query` one by one.
+
+        Args:
+
+        - `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery`
+          object.
+
+        Yields:
+
+        - `QSqlQuery`: The same object positioned on consecutive records.
+
+        """
+        if query is None:
+            return
+        while query.next():
+            yield query
+
+    def _reconnect(self) -> None:
+        """Attempt to reconnect to the database."""
+        if hasattr(self, "db") and self.db is not None and self.db.isValid():
+            self.db.close()
+
+        # Remove the old connection
+        if hasattr(self, "connection_name"):
+            QSqlDatabase.removeDatabase(self.connection_name)
+
+        # Create a new connection
+        thread_id = threading.current_thread().ident
+        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
+
+        self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
+        self.db.setDatabaseName(self._db_filename)
+
+        if not self.db.open():
+            error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
+            error_msg = f"❌ Failed to reconnect to database: {error_msg}"
+            raise ConnectionError(error_msg)
+
+    def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
+        """Convert the full result set in `query` into a list of rows.
+
+        Args:
+
+        - `query` (`QSqlQuery`): An executed query.
+
+        Returns:
+
+        - `list[list[Any]]`: Every database row represented as a list whose
+          elements correspond to column values.
+
+        """
+        result: list[list[Any]] = []
+        while query.next():
+            row = [query.value(i) for i in range(query.record().count())]
+            result.append(row)
+        return result
 
 
 def _safe_identifier(identifier: str) -> str:

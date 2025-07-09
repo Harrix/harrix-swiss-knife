@@ -57,6 +57,22 @@ class PythonChecker:
         """
         return self.check(filename, exclude_rules)
 
+    def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
+        """Check Python file for compliance with specified rules.
+
+        Args:
+
+        - `filename` (`Path | str`): Path to the Python file to check.
+        - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
+
+        Returns:
+
+        - `list[str]`: List of error messages found during checking.
+
+        """
+        filename = Path(filename)
+        return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))
+
     def _check_all_rules(self, filename: Path, rules: set) -> Generator[str, None, None]:
         """Generate all errors found during checking.
 
@@ -239,19 +255,3 @@ class PythonChecker:
         ignored_rules = self._parse_rules_string(rules_str)
 
         return rule_code in ignored_rules
-
-    def check(self, filename: Path | str, exclude_rules: set | None = None) -> list[str]:
-        """Check Python file for compliance with specified rules.
-
-        Args:
-
-        - `filename` (`Path | str`): Path to the Python file to check.
-        - `exclude_rules` (`set | None`): Set of rule codes to exclude from checking. Defaults to `None`.
-
-        Returns:
-
-        - `list[str]`: List of error messages found during checking.
-
-        """
-        filename = Path(filename)
-        return list(self._check_all_rules(filename, self.all_rules - (exclude_rules or set())))

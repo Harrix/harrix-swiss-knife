@@ -20,22 +20,6 @@ class AboutDialog(ActionBase):
     icon = "ℹ️"  # noqa: RUF001
     title = "About"
 
-    def _get_version_from_pyproject(self) -> str:
-        """Get version from pyproject.toml file.
-
-        Returns:
-            str: Version string from pyproject.toml, or "Unknown" if not found.
-
-        """
-        try:
-            pyproject_path = h.dev.get_project_root() / "pyproject.toml"
-            with Path.open(pyproject_path, "rb") as f:
-                data = tomllib.load(f)
-                return data.get("project", {}).get("version", "Unknown")
-        except Exception as e:
-            self.add_line(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
-            return "Unknown"
-
     @ActionBase.handle_exceptions("about dialog")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -59,6 +43,22 @@ class AboutDialog(ActionBase):
             self.add_line("✅ The About window has been shown")
         else:
             self.add_line("❌ The About window has been canceled")
+
+    def _get_version_from_pyproject(self) -> str:
+        """Get version from pyproject.toml file.
+
+        Returns:
+            str: Version string from pyproject.toml, or "Unknown" if not found.
+
+        """
+        try:
+            pyproject_path = h.dev.get_project_root() / "pyproject.toml"
+            with Path.open(pyproject_path, "rb") as f:
+                data = tomllib.load(f)
+                return data.get("project", {}).get("version", "Unknown")
+        except Exception as e:
+            self.add_line(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
+            return "Unknown"
 
 
 class OnExit(ActionBase):

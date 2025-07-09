@@ -12,8 +12,8 @@ lang: en
 ## Contents
 
 - [Class `AboutDialog`](#class-aboutdialog)
-  - [Method `_get_version_from_pyproject`](#method-_get_version_from_pyproject)
   - [Method `execute`](#method-execute)
+  - [Method `_get_version_from_pyproject`](#method-_get_version_from_pyproject)
 - [Class `OnExit`](#class-onexit)
   - [Method `__init__`](#method-__init__)
   - [Method `execute`](#method-execute-1)
@@ -50,6 +50,30 @@ class AboutDialog(ActionBase):
     icon = "ℹ️"  # noqa: RUF001
     title = "About"
 
+    @ActionBase.handle_exceptions("about dialog")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        version = self._get_version_from_pyproject()
+
+        about_info = self.show_about_dialog(
+            title="About",
+            app_name="harrix-swiss-knife",
+            version=version,
+            description=(
+                "A multifunctional tool for developers.\n"
+                "Includes a rich set of utilities for working with files, images,\n"
+                "Python code, and more."
+            ),
+            author="Anton Sergienko (Harrix)",
+            license_text="MIT License",
+            github="https://github.com/harrix/harrix-swiss-knife",
+        )
+
+        if about_info:
+            self.add_line("✅ The About window has been shown")
+        else:
+            self.add_line("❌ The About window has been canceled")
+
     def _get_version_from_pyproject(self) -> str:
         """Get version from pyproject.toml file.
 
@@ -65,10 +89,23 @@ class AboutDialog(ActionBase):
         except Exception as e:
             self.add_line(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
             return "Unknown"
+```
 
-    @ActionBase.handle_exceptions("about dialog")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         version = self._get_version_from_pyproject()
 
         about_info = self.show_about_dialog(
@@ -117,43 +154,6 @@ def _get_version_from_pyproject(self) -> str:
         except Exception as e:
             self.add_line(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
             return "Unknown"
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        version = self._get_version_from_pyproject()
-
-        about_info = self.show_about_dialog(
-            title="About",
-            app_name="harrix-swiss-knife",
-            version=version,
-            description=(
-                "A multifunctional tool for developers.\n"
-                "Includes a rich set of utilities for working with files, images,\n"
-                "Python code, and more."
-            ),
-            author="Anton Sergienko (Harrix)",
-            license_text="MIT License",
-            github="https://github.com/harrix/harrix-swiss-knife",
-        )
-
-        if about_info:
-            self.add_line("✅ The About window has been shown")
-        else:
-            self.add_line("❌ The About window has been canceled")
 ```
 
 </details>

@@ -48,14 +48,6 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
 
-    def _refresh_label_text(self) -> None:
-        """Update the notification text with the current elapsed time.
-
-        Refreshes the label to show the original message and the number of seconds
-        that have elapsed since the countdown started.
-        """
-        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
-
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle the notification close event.
 
@@ -83,3 +75,11 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         now = QTime.currentTime()
         self.elapsed_seconds = self.start_time.secsTo(now)
         self._refresh_label_text()
+
+    def _refresh_label_text(self) -> None:
+        """Update the notification text with the current elapsed time.
+
+        Refreshes the label to show the original message and the number of seconds
+        that have elapsed since the countdown started.
+        """
+        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")

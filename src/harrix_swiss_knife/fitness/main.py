@@ -163,1284 +163,6 @@ class MainWindow(
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
 
-    def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
-        """Check if the current value would be a new all-time or yearly record.
-
-        Args:
-
-        - `ex_id` (`int`): Exercise ID.
-        - `type_id` (`int`): Type ID.
-        - `current_value` (`float`): Current value to check.
-        - `type_name` (`str`): Type name.
-
-        Returns:
-
-        - `dict | None`: Record information if new record is found, None otherwise.
-
-        """
-        if not self._validate_database_connection() or self.db_manager is None:
-            return None
-
-        try:
-            # Calculate date one year ago
-            one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
-            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
-
-            # Use database manager method
-            all_time_max, yearly_max = self.db_manager.get_exercise_max_values(ex_id, type_id, one_year_ago_str)
-
-            # Check for new records
-            is_all_time_record = current_value > all_time_max
-            is_yearly_record = current_value > yearly_max and not is_all_time_record
-
-            if is_all_time_record or is_yearly_record:
-                return {
-                    "is_all_time": is_all_time_record,
-                    "is_yearly": is_yearly_record,
-                    "current_value": current_value,
-                    "previous_all_time": all_time_max,
-                    "previous_yearly": yearly_max,
-                    "type_name": type_name,
-                }
-        except Exception as e:
-            print(f"Error checking for new records: {e}")
-            # Don't show error to user for first-time records, just return None
-
-        return None
-
-    def _connect_signals(self) -> None:
-        """Wire Qt widgets to their Python slots.
-
-        Connects all UI elements to their respective handler methods, including:
-
-        - Button click events for adding and deleting records
-        - Tab change events
-        - Statistics and export functionality
-        - Auto-save signals for table data changes
-        """
-        self.pushButton_add.clicked.connect(self.on_add_record)
-        self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
-
-        # Connect delete and refresh buttons for all tables (except statistics)
-        tables_with_controls = {"process", "exercises", "types", "weight"}
-        for table_name in tables_with_controls:
-            # Delete buttons
-            delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
-            delete_button = getattr(self, delete_btn_name)
-            delete_button.clicked.connect(partial(self.delete_record, table_name))
-
-            # Refresh buttons
-            refresh_btn_name = "pushButton_refresh" if table_name == "process" else f"pushButton_{table_name}_refresh"
-            refresh_button = getattr(self, refresh_btn_name)
-            refresh_button.clicked.connect(self.update_all)
-
-        # Connect process table selection change signal
-        # Note: This will be connected later in show_tables() after model is created
-
-        # Add buttons
-        self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
-        self.pushButton_type_add.clicked.connect(self.on_add_type)
-        self.pushButton_weight_add.clicked.connect(self.on_add_weight)
-        self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
-
-        # Stats & export
-        self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
-        self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
-        self.pushButton_check_steps.clicked.connect(self.on_check_steps)
-        self.pushButton_export_csv.clicked.connect(self.on_export_csv)
-
-        # Tab change
-        self.tabWidget.currentChanged.connect(self.on_tab_changed)
-
-        # Weight chart signals
-        self.pushButton_update_weight_chart.clicked.connect(self.update_weight_chart)
-        self.pushButton_weight_last_month.clicked.connect(self.set_weight_last_month)
-        self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
-        self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
-
-        # Exercise chart signals
-        self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
-        self.pushButton_show_sets_chart.clicked.connect(self.show_sets_chart)
-        self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
-        self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
-        self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-        self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
-        self.comboBox_chart_exercise.currentIndexChanged.connect(self.on_chart_exercise_changed)
-
-        # Filter signals
-        self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
-        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
-        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
-
-        # Exercise name combobox for types
-        self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
-
-    def _connect_table_auto_save_signals(self) -> None:
-        """Connect dataChanged signals for auto-save functionality.
-
-        This method should be called after models are created and set to table views.
-        """
-        # Connect auto-save signals for each table
-        for table_name in self._SAFE_TABLES:
-            if self.models[table_name] is not None:
-                # Use partial to properly bind table_name
-                handler = partial(self._on_table_data_changed, table_name)
-                model = self.models[table_name]
-                if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    model.sourceModel().dataChanged.connect(handler)
-
-    def _connect_table_selection_signals(self) -> None:
-        """Connect selection change signals for all tables."""
-        # Connect exercises table selection
-        self._connect_table_signals_for_table("exercises", self.on_exercise_selection_changed)
-
-        # Connect statistics table selection
-        selection_model = self.tableView_statistics.selectionModel()
-        if selection_model:
-            selection_model.currentRowChanged.connect(self.on_statistics_selection_changed)
-
-        # Connect process table selection
-        self._connect_table_signals_for_table("process", self.on_process_selection_changed)
-
-        # Connect weight table selection
-        self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
-
-    def _connect_table_signals_for_table(
-        self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]
-    ) -> None:
-        """Connect selection change signal for a specific table.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-        - `selection_handler` (`Callable[[QModelIndex, QModelIndex], None]`): Handler function for selection changes.
-
-        """
-        if table_name in self.table_config:
-            view = self.table_config[table_name][0]
-            selection_model = view.selectionModel()
-            if selection_model:
-                selection_model.currentRowChanged.connect(selection_handler)
-
-    def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
-        """Copy selected cells from table to clipboard as tab-separated text.
-
-        Args:
-
-        - `table_view` (`QTableView`): The table view to copy data from.
-
-        """
-        selection_model = table_view.selectionModel()
-        if not selection_model or not selection_model.hasSelection():
-            return
-
-        # Get selected indexes and sort them by row and column
-        selected_indexes = selection_model.selectedIndexes()
-        if not selected_indexes:
-            return
-
-        # Sort indexes by row first, then by column
-        selected_indexes.sort(key=lambda index: (index.row(), index.column()))
-
-        # Group indexes by row
-        rows_data = {}
-        for index in selected_indexes:
-            row = index.row()
-            if row not in rows_data:
-                rows_data[row] = {}
-
-            # Get cell data
-            cell_data = table_view.model().data(index, Qt.ItemDataRole.DisplayRole)
-            rows_data[row][index.column()] = str(cell_data) if cell_data is not None else ""
-
-        # Build clipboard text
-        clipboard_text = []
-        for row in sorted(rows_data.keys()):
-            row_data = rows_data[row]
-            # Get all columns for this row and fill missing ones with empty strings
-            if row_data:
-                min_col = min(row_data.keys())
-                max_col = max(row_data.keys())
-                clipboard_text.append("\t".join([row_data.get(col, "") for col in range(min_col, max_col + 1)]))
-
-        # Copy to clipboard
-        if clipboard_text:
-            final_text = "\n".join(clipboard_text)
-            clipboard = QApplication.clipboard()
-            clipboard.setText(final_text)
-            print(f"Copied {len(clipboard_text)} rows to clipboard")
-
-    def _create_colored_process_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-        _id_column: int = 4,  # ID is now at index 4 in transformed data
-    ) -> QSortFilterProxyModel:
-        """Return a proxy model filled with colored process data.
-
-        Args:
-
-        - `data` (`list[list]`): The table data with color information.
-        - `headers` (`list[str]`): Column header names.
-        - `_id_column` (`int`): Index of the ID column. Defaults to `4`.
-
-        Returns:
-
-        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
-
-        """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            # Extract color information (last element) and ID
-            row_color = row[5]  # Color is at index 5
-            row_id = row[4]  # ID is at index 4
-
-            # Create items for display columns only (first 4 elements)
-            items = []
-            for col_idx, value in enumerate(row[:4]):  # Only first 4 elements for display
-                item = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
-
-                # Check if this is today's record and make it bold
-                today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-                id_col_date = 3
-                if col_idx == id_col_date and str(value) == today:  # Date column
-                    font = item.font()
-                    font.setBold(True)
-                    item.setFont(font)
-
-                items.append(item)
-
-            model.appendRow(items)
-
-            # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
-
-    def _create_colored_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-        id_column: int = -2,
-    ) -> QSortFilterProxyModel:
-        """Return a proxy model filled with colored table data.
-
-        Args:
-
-        - `data` (`list[list]`): The table data with color information.
-        - `headers` (`list[str]`): Column header names.
-        - `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
-
-        Returns:
-
-        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
-
-        """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            # Extract color information (last element) and ID (second-to-last element)
-            row_color = row[-1]  # Color is at the last position
-            row_id = row[id_column]  # ID is at second-to-last position
-
-            # Create items for display columns only (exclude ID and color)
-            items = []
-            display_data = row[:-2]  # Exclude last two elements (ID and color)
-
-            for _col_idx, value in enumerate(display_data):
-                item = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
-
-                items.append(item)
-
-            model.appendRow(items)
-
-            # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
-
-    def _create_table_model(
-        self,
-        data: list[list[str]],
-        headers: list[str],
-        id_column: int = 0,
-    ) -> QSortFilterProxyModel:
-        """Return a proxy model filled with `data`.
-
-        Args:
-
-        - `data` (`list[list[str]]`): The table data as a list of rows.
-        - `headers` (`list[str]`): Column header names.
-        - `id_column` (`int`): Index of the ID column. Defaults to `0`.
-
-        Returns:
-
-        - `QSortFilterProxyModel`: A filterable and sortable model with the data.
-
-        """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            items = [
-                QStandardItem(str(value) if value is not None else "")
-                for col_idx, value in enumerate(row)
-                if col_idx != id_column
-            ]
-            model.appendRow(items)
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row[id_column])),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
-
-    def _dispose_models(self) -> None:
-        """Detach all models from QTableView and delete them."""
-        for key, model in self.models.items():
-            view = self.table_config[key][0]
-            view.setModel(None)
-            if model is not None:
-                model.deleteLater()
-            self.models[key] = None
-
-        # list-view
-        self.listView_exercises.setModel(None)
-        if self.exercises_list_model is not None:
-            self.exercises_list_model.deleteLater()
-        self.exercises_list_model = None
-
-    def _get_current_selected_exercise(self) -> str | None:
-        """Get the currently selected exercise from the list view.
-
-        Returns:
-
-        - `str | None`: The name of the selected exercise, or None if nothing is selected.
-
-        """
-        selection_model = self.listView_exercises.selectionModel()
-        if not selection_model or not self.exercises_list_model:
-            return None
-
-        current_index = selection_model.currentIndex()
-        if not current_index.isValid():
-            return None
-
-        item = self.exercises_list_model.itemFromIndex(current_index)
-        return item.text() if item else None
-
-    def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
-        """Get the path to the AVIF file for the given exercise.
-
-        Args:
-
-        - `exercise_name` (`str`): Name of the exercise.
-
-        Returns:
-
-        - `Path | None`: Path to the AVIF file if it exists, None otherwise.
-
-        """
-        if not exercise_name or not self.db_manager:
-            return None
-
-        # Form path to AVIF file using exercise name directly
-        db_path = Path(config["sqlite_fitness"])
-        avif_dir = db_path.parent / "fitness_img"
-        avif_path = avif_dir / f"{exercise_name}.avif"
-
-        return avif_path if avif_path.exists() else None
-
-    def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
-        """Get exercise name by ID.
-
-        Args:
-
-        - `exercise_id` (`int`): Exercise ID.
-
-        Returns:
-
-        - `str | None`: Exercise name or None if not found.
-
-        """
-        if not self._validate_database_connection() or self.db_manager is None:
-            return None
-
-        return self.db_manager.get_exercise_name_by_id(exercise_id)
-
-    def _get_last_weight(self) -> float:
-        """Get the last recorded weight value from database.
-
-        Returns:
-
-        - `float`: The last recorded weight value, or 89.0 as default.
-
-        """
-        initial_weight = 89.0
-        if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
-            return initial_weight
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return initial_weight
-
-        try:
-            last_weight = self.db_manager.get_last_weight()
-        except Exception as e:
-            print(f"Error getting last weight: {e}")
-            return initial_weight
-        else:
-            return last_weight if last_weight is not None else initial_weight
-
-    def _get_selected_exercise_from_statistics_table(self) -> str | None:
-        """Get selected exercise name from statistics table.
-
-        Returns:
-
-        - `str | None`: Exercise name or None if nothing selected.
-
-        """
-        current_index = self.tableView_statistics.currentIndex()
-
-        if not current_index.isValid():
-            # Get first row exercise name as default
-            model = self.tableView_statistics.model()
-            if model and model.rowCount() > 0:
-                first_index = model.index(0, 0)
-                exercise_name = model.data(first_index, Qt.ItemDataRole.DisplayRole)
-                return exercise_name.strip() if exercise_name else None
-            return None
-
-        # Get exercise name from selected row (first column)
-        model = self.tableView_statistics.model()
-        if model:
-            exercise_index = model.index(current_index.row(), 0)
-            exercise_name = model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
-            return exercise_name.strip() if exercise_name else None
-
-        return None
-
-    def _get_selected_exercise_from_table(self, table_name: str) -> str | None:
-        """Get selected exercise name from a table.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table ('exercises' or 'statistics').
-
-        Returns:
-
-        - `str | None`: Exercise name or None if nothing selected.
-
-        """
-        if table_name not in self.table_config:
-            return None
-
-        table_view = self.table_config[table_name][0]
-        current_index = table_view.currentIndex()
-
-        if not current_index.isValid():
-            # Get first row exercise name as default
-            model = self.models[table_name]
-            if model and model.rowCount() > 0:
-                first_index = model.index(0, 0)
-                return model.data(first_index, Qt.ItemDataRole.DisplayRole)
-            return None
-
-        # Get exercise name from selected row (first column)
-        model = self.models[table_name]
-        if model:
-            exercise_index = model.index(current_index.row(), 0)
-            return model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
-
-        return None
-
-    def _get_selected_row_id(self, table_name: str) -> int | None:
-        """Get the database ID of the currently selected row.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-
-        Returns:
-
-        - `int | None`: Database ID of selected row or None if no selection.
-
-        """
-        try:
-            table_view, model_key, _ = self.table_config[table_name]
-            model = self.models[model_key]
-
-            if model is None:
-                return None
-
-            index = table_view.currentIndex()
-            if not index.isValid():
-                return None
-
-            source_model = model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return None
-
-            vertical_header_item = source_model.verticalHeaderItem(index.row())
-            return int(vertical_header_item.text()) if vertical_header_item else None
-
-        except (KeyError, ValueError, TypeError, AttributeError):
-            return None
-
-    def _init_database(self) -> None:
-        """Open the SQLite file from `config` (create from recover.sql if missing).
-
-        Attempts to open the database file specified in the configuration.
-        If the file doesn't exist, tries to create it from recover.sql file located
-        in the application directory.
-        If creation fails or no database is available, prompts the user to select a database file.
-        If no database is selected or an error occurs, the application exits.
-        """
-        filename = Path(config["sqlite_fitness"])
-
-        if not filename.exists():
-            # Try to create database from recover.sql in application directory
-            app_dir = Path(__file__).parent  # Directory where this script is located
-            recover_sql_path = app_dir / "recover.sql"
-
-            if recover_sql_path.exists():
-                print(f"Database not found at {filename}")
-                print(f"Attempting to create database from {recover_sql_path}")
-
-                if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
-                    print("Database created successfully from recover.sql")
-                else:
-                    QMessageBox.warning(
-                        self,
-                        "Database Creation Failed",
-                        f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
-                    )
-            else:
-                QMessageBox.information(
-                    self,
-                    "Database Not Found",
-                    f"Database file not found: {filename}\n"
-                    f"recover.sql file not found: {recover_sql_path}\n"
-                    "Please select an existing database file.",
-                )
-
-            # If database still doesn't exist, ask user to select one
-            if not filename.exists():
-                filename_str, _ = QFileDialog.getOpenFileName(
-                    self,
-                    "Open Database",
-                    str(filename.parent),
-                    "SQLite Database (*.db)",
-                )
-                if not filename_str:
-                    QMessageBox.critical(self, "Error", "No database selected")
-                    sys.exit(1)
-                filename = Path(filename_str)
-
-        try:
-            self.db_manager = database_manager.DatabaseManager(
-                str(filename),
-            )
-            print(f"Database opened successfully: {filename}")
-        except (OSError, RuntimeError, ConnectionError) as exc:
-            QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
-
-    def _init_exercise_chart_controls(self) -> None:
-        """Initialize exercise chart controls."""
-        current_date = QDate.currentDate()
-        self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
-        self.dateEdit_chart_to.setDate(current_date)
-
-        # Initialize exercise combobox
-        self.update_chart_comboboxes()
-
-    def _init_exercises_list(self) -> None:
-        """Initialize the exercises list view with a model and connect signals."""
-        self.exercises_list_model = QStandardItemModel()
-        self.listView_exercises.setModel(self.exercises_list_model)
-
-        # Initialize labels with default values
-        self.label_exercise.setText("No exercise selected")
-        self.label_unit.setText("")
-        self.label_last_date_count_today.setText("")
-
-        # Connect selection change signal after model is set
-        selection_model = self.listView_exercises.selectionModel()
-        if selection_model:
-            selection_model.currentChanged.connect(self.on_exercise_selection_changed_list)
-
-    def _init_filter_controls(self) -> None:
-        """Prepare widgets on the `Filters` group box.
-
-        Initializes the filter controls with default values:
-
-        - Sets the date range to the last month
-        - Disables date filtering by default
-        - Connects filter-related signals to their handlers
-        """
-        current_date = QDateTime.currentDateTime().date()
-        self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
-        self.dateEdit_filter_to.setDate(current_date)
-
-        self.checkBox_use_date_filter.setChecked(False)
-
-    def _init_sets_count_display(self) -> None:
-        """Initialize the sets count display."""
-        self.update_sets_count_today()
-
-    def _init_weight_chart_controls(self) -> None:
-        """Initialize weight chart date controls."""
-        current_date = QDate.currentDate()
-        self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
-        self.dateEdit_weight_to.setDate(current_date)
-
-    def _init_weight_controls(self) -> None:
-        """Initialize weight input controls with last recorded values."""
-        last_weight = self._get_last_weight()
-        self.doubleSpinBox_weight.setValue(last_weight)
-        self.dateEdit_weight.setDate(QDate.currentDate())
-
-    def _load_default_exercise_chart(self) -> None:
-        """Load default exercise chart on first set to charts tab."""
-        if not hasattr(self, "_charts_initialized"):
-            self._charts_initialized = True
-
-            if self.db_manager is None:
-                print("❌ Database manager is not initialized")
-                return
-
-            # Set period to Months
-            self.comboBox_chart_period.setCurrentText("Months")
-
-            # Try to set exercise with _id = self.id_steps
-            if self._validate_database_connection():
-                rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
-                if rows:
-                    exercise_name = rows[0][0]
-                    index = self.comboBox_chart_exercise.findText(exercise_name)
-                    if index >= 0:
-                        self.comboBox_chart_exercise.setCurrentIndex(index)
-
-            # Load chart with all time data
-            self.set_chart_all_time()
-
-    def _load_default_statistics(self) -> None:
-        """Load default statistics on first visit to statistics tab."""
-        if not hasattr(self, "_statistics_initialized"):
-            self._statistics_initialized = True
-            # Automatically refresh statistics on first visit
-            self.on_refresh_statistics()
-
-    def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:  # noqa: PLR0911
-        """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
-
-        Args:
-
-        - `exercise_name` (`str`): Name of the exercise to load AVIF for.
-        - `label_key` (`str`): Key identifying which label to update
-          ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
-
-        """
-        # Get the appropriate label widget
-        label_widgets = {
-            "main": self.label_exercise_avif,
-            "exercises": self.label_exercise_avif_2,
-            "types": self.label_exercise_avif_3,
-            "charts": self.label_exercise_avif_4,
-            "statistics": self.label_exercise_avif_5,
-        }
-
-        label_widget = label_widgets.get(label_key)
-        if not label_widget:
-            print(f"Unknown label key: {label_key}")
-            return
-
-        # Stop current animation if exists
-        if self.avif_data[label_key]["timer"]:
-            self.avif_data[label_key]["timer"].stop()
-            self.avif_data[label_key]["timer"] = None
-
-        self.avif_data[label_key]["frames"] = []
-        self.avif_data[label_key]["current_frame"] = 0
-        self.avif_data[label_key]["exercise"] = exercise_name
-
-        # Clear label and reset alignment
-        label_widget.clear()
-        label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        if not exercise_name:
-            label_widget.setText("No exercise selected")
-            return
-
-        # Get path to AVIF
-        avif_path = self._get_exercise_avif_path(exercise_name)
-
-        if avif_path is None:
-            label_widget.setText(f"No AVIF found for:\n{exercise_name}")
-            return
-
-        try:
-            # Try Qt native first
-            pixmap = QPixmap(str(avif_path))
-
-            if not pixmap.isNull():
-                label_size = label_widget.size()
-                scaled_pixmap = pixmap.scaled(
-                    label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-                )
-                label_widget.setPixmap(scaled_pixmap)
-                return
-
-            # Fallback to Pillow with AVIF plugin for animation
-            try:
-                import pillow_avif  # noqa: F401, PLC0415
-
-                # Open with Pillow
-                pil_image = Image.open(avif_path)
-
-                # Handle animated AVIF
-                if getattr(pil_image, "is_animated", False):
-                    # Extract all frames
-                    self.avif_data[label_key]["frames"] = []
-                    label_size = label_widget.size()
-
-                    for frame_index in range(getattr(pil_image, "n_frames", 1)):
-                        pil_image.seek(frame_index)
-
-                        # Create a copy of the frame
-                        frame = pil_image.copy()
-
-                        # Convert to RGB if needed
-                        if frame.mode in ("RGBA", "LA", "P"):
-                            background = Image.new("RGB", frame.size, (255, 255, 255))
-                            if frame.mode == "P":
-                                frame = frame.convert("RGBA")
-                            if frame.mode in ("RGBA", "LA"):
-                                background.paste(frame, mask=frame.split()[-1])
-                            else:
-                                background.paste(frame)
-                            frame = background
-                        elif frame.mode != "RGB":
-                            frame = frame.convert("RGB")
-
-                        # Convert PIL image to QPixmap
-                        buffer = io.BytesIO()
-                        frame.save(buffer, format="PNG")
-                        buffer.seek(0)
-
-                        pixmap = QPixmap()
-                        pixmap.loadFromData(buffer.getvalue())
-
-                        if not pixmap.isNull():
-                            scaled_pixmap = pixmap.scaled(
-                                label_size,
-                                Qt.AspectRatioMode.KeepAspectRatio,
-                                Qt.TransformationMode.SmoothTransformation,
-                            )
-                            self.avif_data[label_key]["frames"].append(scaled_pixmap)
-
-                    if self.avif_data[label_key]["frames"]:
-                        # Show first frame
-                        label_widget.setPixmap(self.avif_data[label_key]["frames"][0])
-
-                        # Start animation timer
-                        self.avif_data[label_key]["timer"] = QTimer()
-                        self.avif_data[label_key]["timer"].timeout.connect(lambda: self._next_avif_frame(label_key))
-
-                        # Get frame duration (default 100ms if not available)
-                        try:
-                            duration = pil_image.info.get("duration", 100)
-                        except Exception:
-                            duration = 100
-
-                        self.avif_data[label_key]["timer"].start(duration)
-                        return
-                else:
-                    # Static image
-                    frame = pil_image
-
-                    # Convert to RGB if needed
-                    if frame.mode in ("RGBA", "LA", "P"):
-                        background = Image.new("RGB", frame.size, (255, 255, 255))
-                        if frame.mode == "P":
-                            frame = frame.convert("RGBA")
-                        if frame.mode in ("RGBA", "LA"):
-                            background.paste(frame, mask=frame.split()[-1])
-                        else:
-                            background.paste(frame)
-                        frame = background
-                    elif frame.mode != "RGB":
-                        frame = frame.convert("RGB")
-
-                    # Convert PIL image to QPixmap
-                    buffer = io.BytesIO()
-                    frame.save(buffer, format="PNG")
-                    buffer.seek(0)
-
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(buffer.getvalue())
-
-                    if not pixmap.isNull():
-                        label_size = label_widget.size()
-                        scaled_pixmap = pixmap.scaled(
-                            label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-                        )
-                        label_widget.setPixmap(scaled_pixmap)
-                        return
-
-            except ImportError as import_error:
-                print(f"Import error: {import_error}")
-                label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
-                return
-            except Exception as pil_error:
-                print(f"Pillow error: {pil_error}")
-
-            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
-
-        except Exception as e:
-            print(f"General error: {e}")
-            label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
-
-    def _load_initial_avifs(self) -> None:
-        """Load AVIF for all labels after complete UI initialization."""
-        # Load main exercise AVIF
-        current_exercise_name = self._get_current_selected_exercise()
-        if current_exercise_name:
-            self._load_exercise_avif(current_exercise_name, "main")
-            # Trigger the selection change to update labels
-            self.on_exercise_selection_changed_list()
-
-        # Load exercises table AVIF (first row by default)
-        self._update_exercises_avif()
-
-        # Load types combobox AVIF
-        self._update_types_avif()
-
-        # Load charts combobox AVIF
-        self._update_charts_avif()
-
-        # Statistics AVIF will be loaded when statistics tab is accessed
-
-    def _next_avif_frame(self, label_key: str) -> None:
-        """Show next frame in AVIF animation for specific label.
-
-        Args:
-
-        - `label_key` (`str`): Key identifying which label to update.
-
-        """
-        if not self.avif_data[label_key]["frames"]:
-            return
-
-        self.avif_data[label_key]["current_frame"] = (self.avif_data[label_key]["current_frame"] + 1) % len(
-            self.avif_data[label_key]["frames"]
-        )
-
-        # Get the appropriate label widget
-        label_widgets = {
-            "main": self.label_exercise_avif,
-            "exercises": self.label_exercise_avif_2,
-            "types": self.label_exercise_avif_3,
-            "charts": self.label_exercise_avif_4,
-            "statistics": self.label_exercise_avif_5,
-        }
-
-        label_widget = label_widgets.get(label_key)
-        if label_widget:
-            label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
-
-    def _on_table_data_changed(
-        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
-    ) -> None:
-        """Handle data changes in table models and auto-save to database.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table that was modified.
-        - `top_left` (`QModelIndex`): Top-left index of the changed area.
-        - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
-        - `_roles` (`list | None`): List of roles that changed. Defaults to `None`.
-
-        """
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if not self._validate_database_connection():
-            return
-
-        try:
-            proxy_model = self.models[table_name]
-            if proxy_model is None:
-                return
-            model = proxy_model.sourceModel()
-            if not isinstance(model, QStandardItemModel):
-                return
-
-            # Process each changed row
-            for row in range(top_left.row(), bottom_right.row() + 1):
-                row_id = model.verticalHeaderItem(row).text()
-                self._auto_save_row(table_name, model, row, row_id)
-
-        except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
-
-    def _refresh_table(
-        self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None
-    ) -> None:
-        """Refresh a table with data.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table to refresh.
-        - `data_getter` (`Callable[[], Any]`): Function to get data from database.
-        - `data_transformer` (`Callable[[Any], Any] | None`): Optional function to transform raw data.
-          Defaults to `None`.
-
-        Raises:
-
-        - `ValueError`: If the table name is unknown.
-
-        """
-        if table_name not in self.table_config:
-            error_msg = f"❌ Unknown table: {table_name}"
-            raise ValueError(error_msg)
-
-        rows = data_getter()
-        if data_transformer:
-            rows = data_transformer(rows)
-
-        view, model_key, headers = self.table_config[table_name]
-        self.models[model_key] = self._create_table_model(rows, headers)
-        view.setModel(self.models[model_key])
-        view.resizeColumnsToContents()
-
-    def _select_exercise_in_list(self, exercise_name: str) -> None:
-        """Select an exercise in the list view by name.
-
-        Args:
-
-        - `exercise_name` (`str`): Name of the exercise to select.
-
-        """
-        if not self.exercises_list_model or not exercise_name:
-            return
-
-        # Find the item with the matching exercise name
-        for row in range(self.exercises_list_model.rowCount()):
-            item = self.exercises_list_model.item(row)
-            if item and item.text() == exercise_name:
-                index = self.exercises_list_model.indexFromItem(item)
-                selection_model = self.listView_exercises.selectionModel()
-                if selection_model:
-                    selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
-                break
-
-    def _setup_ui(self) -> None:
-        """Set up additional UI elements after basic initialization."""
-        # Set emoji for buttons
-        self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
-        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
-        self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
-        self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
-        self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
-        self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
-        self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
-        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
-        self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
-        self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
-        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
-        self.pushButton_types_delete.setText(f"🗑️ {self.pushButton_types_delete.text()}")
-        self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
-        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
-        self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
-        self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
-        self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
-        self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
-        self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
-        self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
-        self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
-        self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
-        self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
-        self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
-        self.pushButton_weight_last_month.setText(f"📅 {self.pushButton_weight_last_month.text()}")
-        self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
-        self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
-        self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
-
-        # Configure splitter proportions
-        self.splitter.setStretchFactor(0, 3)  # tableView gets more space
-        self.splitter.setStretchFactor(1, 1)  # listView gets less space
-        self.splitter.setStretchFactor(2, 0)  # frame with fixed size
-
-    def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
-        """Show congratulations message for new records.
-
-        Args:
-
-        - `exercise` (`str`): Exercise name.
-        - `record_info` (`dict`): Record information from `_check_for_new_records`.
-
-        """
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get exercise unit for display
-            unit = self.db_manager.get_exercise_unit(exercise)
-            unit_text = f" {unit}" if unit else ""
-
-            # Build the message
-            title = "🏆 NEW RECORD! 🏆"
-
-            # Build exercise display name with type if applicable
-            exercise_display = exercise
-            if record_info["type_name"]:
-                exercise_display += f" - {record_info['type_name']}"
-
-            current_value = record_info["current_value"]
-
-            if record_info["is_all_time"]:
-                previous_value = record_info["previous_all_time"]
-                improvement = current_value - previous_value
-
-                # Check if this is the first record for this exercise
-                if previous_value == 0.0:
-                    message = (
-                        f"🎉 Congratulations! You've set your FIRST ALL-TIME RECORD! 🎉\n\n"
-                        f"Exercise: {exercise_display}\n"
-                        f"First Record: {current_value:g}{unit_text}\n\n"
-                        f"🚀 Great start! Keep up the momentum! 🚀"
-                    )
-                else:
-                    message = (
-                        f"🎉 Congratulations! You've set a new ALL-TIME RECORD! 🎉\n\n"
-                        f"Exercise: {exercise_display}\n"
-                        f"New Record: {current_value:g}{unit_text}\n"
-                        f"Previous Best: {previous_value:g}{unit_text}\n"
-                        f"Improvement: +{improvement:g}{unit_text}\n\n"
-                        f"🔥 Amazing achievement! Keep up the great work! 🔥"
-                    )
-            elif record_info["is_yearly"]:
-                previous_value = record_info["previous_yearly"]
-                improvement = current_value - previous_value
-
-                # Check if this is the first yearly record
-                if previous_value == 0.0:
-                    message = (
-                        f"🎊 Congratulations! You've set your FIRST YEARLY RECORD! 🎊\n\n"
-                        f"Exercise: {exercise_display}\n"
-                        f"First Year Record: {current_value:g}{unit_text}\n\n"
-                        f"⭐ Excellent start to the year! ⭐"
-                    )
-                else:
-                    message = (
-                        f"🎊 Congratulations! You've set a new YEARLY RECORD! 🎊\n\n"
-                        f"Exercise: {exercise_display}\n"
-                        f"New Record: {current_value:g}{unit_text}\n"
-                        f"Previous Year Best: {previous_value:g}{unit_text}\n"
-                        f"Improvement: +{improvement:g}{unit_text}\n\n"
-                        f"⭐ Excellent progress this year! ⭐"
-                    )
-            else:
-                return  # Should not happen, but just in case
-
-            # Show the congratulations message
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle(title)
-            msg_box.setText(message)
-            msg_box.setIcon(QMessageBox.Icon.Information)
-
-            # Make the message box more prominent
-            msg_box.setStyleSheet("""
-                QMessageBox {
-                    background-color: #f0f8ff;
-                    font-size: 12px;
-                }
-                QMessageBox QLabel {
-                    color: #2e8b57;
-                    font-weight: bold;
-                }
-            """)
-
-            msg_box.exec()
-
-        except Exception as e:
-            print(f"Error showing record congratulations: {e}")
-
-    def _update_charts_avif(self) -> None:
-        """Update AVIF for charts combobox selection."""
-        exercise_name = self.comboBox_chart_exercise.currentText()
-        if exercise_name:
-            self._load_exercise_avif(exercise_name, "charts")
-
-    def _update_comboboxes(
-        self,
-        *,
-        selected_exercise: str | None = None,
-        selected_type: str | None = None,
-    ) -> None:
-        """Refresh exercise list and type combo-box (optionally keep a selection).
-
-        Args:
-
-        - `selected_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
-        - `selected_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
-
-        """
-        if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            exercises = self.db_manager.get_exercises_by_frequency(500)
-
-            # Block signals during model update
-            selection_model = self.listView_exercises.selectionModel()
-            if selection_model:
-                selection_model.blockSignals(True)  # noqa: FBT003
-
-            # Update exercises list model
-            if self.exercises_list_model is not None:
-                self.exercises_list_model.clear()
-                for exercise in exercises:
-                    item = QStandardItem(exercise)
-                    self.exercises_list_model.appendRow(item)
-
-            # Unblock signals
-            if selection_model:
-                selection_model.blockSignals(False)  # noqa: FBT003
-
-            # Update comboBox_exercise_name for adding types
-            self.comboBox_exercise_name.clear()
-            self.comboBox_exercise_name.addItems(exercises)
-
-            if selected_exercise and selected_exercise in exercises:
-                # Select the exercise in the list view
-                self._select_exercise_in_list(selected_exercise)
-
-                if selected_type:
-                    ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
-                    if ex_id is not None:
-                        types = self.db_manager.get_exercise_types(ex_id)
-                        self.comboBox_type.clear()
-                        self.comboBox_type.addItem("")
-                        self.comboBox_type.addItems(types)
-                        t_idx = self.comboBox_type.findText(selected_type)
-                        if t_idx >= 0:
-                            self.comboBox_type.setCurrentIndex(t_idx)
-            # If no specific selection, select the first exercise by default
-            elif exercises:
-                self._select_exercise_in_list(exercises[0])
-
-            # Update types AVIF after combobox update
-            self._update_types_avif()
-
-        except Exception as e:
-            print(f"Error updating comboboxes: {e}")
-
-    def _update_exercises_avif(self) -> None:
-        """Update AVIF for exercises table selection."""
-        exercise_name = self._get_selected_exercise_from_table("exercises")
-        if exercise_name:
-            self._load_exercise_avif(exercise_name, "exercises")
-
-    def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
-        """Update form fields after process selection change.
-
-        Args:
-
-        - `_exercise_name` (`str`): Name of the selected exercise.
-        - `type_name` (`str`): Type of the selected exercise.
-        - `value_str` (`str`): Value as string from the selected record.
-
-        """
-        try:
-            # Update spinBox_count with the selected value
-            try:
-                value = int(float(value_str))
-                self.spinBox_count.setValue(value)
-            except (ValueError, TypeError):
-                print(f"Could not convert value '{value_str}' to int")
-
-            # Update comboBox_type selection
-            if type_name:
-                type_index = self.comboBox_type.findText(type_name)
-                if type_index >= 0:
-                    self.comboBox_type.setCurrentIndex(type_index)
-                else:
-                    # If type not found, clear selection
-                    self.comboBox_type.setCurrentIndex(0)
-            else:
-                # No type, select empty option
-                self.comboBox_type.setCurrentIndex(0)
-
-        except Exception as e:
-            print(f"Error updating form from process selection: {e}")
-
-    def _update_statistics_avif(self) -> None:
-        """Update AVIF for statistics table based on current mode."""
-        if self.current_statistics_mode == "check_steps":
-            # Always show Steps exercise for check_steps mode
-            steps_exercise_name = self._get_exercise_name_by_id(self.id_steps)
-            if steps_exercise_name:
-                self._load_exercise_avif(steps_exercise_name, "statistics")
-        else:
-            # For other modes, use selected exercise from statistics table
-            exercise_name = self._get_selected_exercise_from_statistics_table()
-            if exercise_name:
-                self._load_exercise_avif(exercise_name, "statistics")
-
-    def _update_types_avif(self) -> None:
-        """Update AVIF for types combobox selection."""
-        exercise_name = self.comboBox_exercise_name.currentText()
-        if exercise_name:
-            self._load_exercise_avif(exercise_name, "types")
-
-    def _validate_database_connection(self) -> bool:
-        """Validate that database connection is available and open.
-
-        Returns:
-
-        - `bool`: True if database connection is valid, False otherwise.
-
-        """
-        if not self.db_manager:
-            print("Database manager is None")
-            return False
-
-        if not self.db_manager.is_database_open():
-            print("Database connection is not open")
-            return False
-
-        return True
-
     @requires_database()
     def apply_filter(self) -> None:
         """Apply combo-box/date filters to the process table."""
@@ -3445,6 +2167,1284 @@ class MainWindow(
         fig.tight_layout()
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
+
+    def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
+        """Check if the current value would be a new all-time or yearly record.
+
+        Args:
+
+        - `ex_id` (`int`): Exercise ID.
+        - `type_id` (`int`): Type ID.
+        - `current_value` (`float`): Current value to check.
+        - `type_name` (`str`): Type name.
+
+        Returns:
+
+        - `dict | None`: Record information if new record is found, None otherwise.
+
+        """
+        if not self._validate_database_connection() or self.db_manager is None:
+            return None
+
+        try:
+            # Calculate date one year ago
+            one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
+            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
+
+            # Use database manager method
+            all_time_max, yearly_max = self.db_manager.get_exercise_max_values(ex_id, type_id, one_year_ago_str)
+
+            # Check for new records
+            is_all_time_record = current_value > all_time_max
+            is_yearly_record = current_value > yearly_max and not is_all_time_record
+
+            if is_all_time_record or is_yearly_record:
+                return {
+                    "is_all_time": is_all_time_record,
+                    "is_yearly": is_yearly_record,
+                    "current_value": current_value,
+                    "previous_all_time": all_time_max,
+                    "previous_yearly": yearly_max,
+                    "type_name": type_name,
+                }
+        except Exception as e:
+            print(f"Error checking for new records: {e}")
+            # Don't show error to user for first-time records, just return None
+
+        return None
+
+    def _connect_signals(self) -> None:
+        """Wire Qt widgets to their Python slots.
+
+        Connects all UI elements to their respective handler methods, including:
+
+        - Button click events for adding and deleting records
+        - Tab change events
+        - Statistics and export functionality
+        - Auto-save signals for table data changes
+        """
+        self.pushButton_add.clicked.connect(self.on_add_record)
+        self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
+
+        # Connect delete and refresh buttons for all tables (except statistics)
+        tables_with_controls = {"process", "exercises", "types", "weight"}
+        for table_name in tables_with_controls:
+            # Delete buttons
+            delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
+            delete_button = getattr(self, delete_btn_name)
+            delete_button.clicked.connect(partial(self.delete_record, table_name))
+
+            # Refresh buttons
+            refresh_btn_name = "pushButton_refresh" if table_name == "process" else f"pushButton_{table_name}_refresh"
+            refresh_button = getattr(self, refresh_btn_name)
+            refresh_button.clicked.connect(self.update_all)
+
+        # Connect process table selection change signal
+        # Note: This will be connected later in show_tables() after model is created
+
+        # Add buttons
+        self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
+        self.pushButton_type_add.clicked.connect(self.on_add_type)
+        self.pushButton_weight_add.clicked.connect(self.on_add_weight)
+        self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
+
+        # Stats & export
+        self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
+        self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
+        self.pushButton_check_steps.clicked.connect(self.on_check_steps)
+        self.pushButton_export_csv.clicked.connect(self.on_export_csv)
+
+        # Tab change
+        self.tabWidget.currentChanged.connect(self.on_tab_changed)
+
+        # Weight chart signals
+        self.pushButton_update_weight_chart.clicked.connect(self.update_weight_chart)
+        self.pushButton_weight_last_month.clicked.connect(self.set_weight_last_month)
+        self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
+        self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
+
+        # Exercise chart signals
+        self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
+        self.pushButton_show_sets_chart.clicked.connect(self.show_sets_chart)
+        self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
+        self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
+        self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
+        self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
+        self.comboBox_chart_exercise.currentIndexChanged.connect(self.on_chart_exercise_changed)
+
+        # Filter signals
+        self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
+        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
+        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
+
+        # Exercise name combobox for types
+        self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
+
+    def _connect_table_auto_save_signals(self) -> None:
+        """Connect dataChanged signals for auto-save functionality.
+
+        This method should be called after models are created and set to table views.
+        """
+        # Connect auto-save signals for each table
+        for table_name in self._SAFE_TABLES:
+            if self.models[table_name] is not None:
+                # Use partial to properly bind table_name
+                handler = partial(self._on_table_data_changed, table_name)
+                model = self.models[table_name]
+                if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
+                    model.sourceModel().dataChanged.connect(handler)
+
+    def _connect_table_selection_signals(self) -> None:
+        """Connect selection change signals for all tables."""
+        # Connect exercises table selection
+        self._connect_table_signals_for_table("exercises", self.on_exercise_selection_changed)
+
+        # Connect statistics table selection
+        selection_model = self.tableView_statistics.selectionModel()
+        if selection_model:
+            selection_model.currentRowChanged.connect(self.on_statistics_selection_changed)
+
+        # Connect process table selection
+        self._connect_table_signals_for_table("process", self.on_process_selection_changed)
+
+        # Connect weight table selection
+        self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
+
+    def _connect_table_signals_for_table(
+        self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]
+    ) -> None:
+        """Connect selection change signal for a specific table.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table.
+        - `selection_handler` (`Callable[[QModelIndex, QModelIndex], None]`): Handler function for selection changes.
+
+        """
+        if table_name in self.table_config:
+            view = self.table_config[table_name][0]
+            selection_model = view.selectionModel()
+            if selection_model:
+                selection_model.currentRowChanged.connect(selection_handler)
+
+    def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
+        """Copy selected cells from table to clipboard as tab-separated text.
+
+        Args:
+
+        - `table_view` (`QTableView`): The table view to copy data from.
+
+        """
+        selection_model = table_view.selectionModel()
+        if not selection_model or not selection_model.hasSelection():
+            return
+
+        # Get selected indexes and sort them by row and column
+        selected_indexes = selection_model.selectedIndexes()
+        if not selected_indexes:
+            return
+
+        # Sort indexes by row first, then by column
+        selected_indexes.sort(key=lambda index: (index.row(), index.column()))
+
+        # Group indexes by row
+        rows_data = {}
+        for index in selected_indexes:
+            row = index.row()
+            if row not in rows_data:
+                rows_data[row] = {}
+
+            # Get cell data
+            cell_data = table_view.model().data(index, Qt.ItemDataRole.DisplayRole)
+            rows_data[row][index.column()] = str(cell_data) if cell_data is not None else ""
+
+        # Build clipboard text
+        clipboard_text = []
+        for row in sorted(rows_data.keys()):
+            row_data = rows_data[row]
+            # Get all columns for this row and fill missing ones with empty strings
+            if row_data:
+                min_col = min(row_data.keys())
+                max_col = max(row_data.keys())
+                clipboard_text.append("\t".join([row_data.get(col, "") for col in range(min_col, max_col + 1)]))
+
+        # Copy to clipboard
+        if clipboard_text:
+            final_text = "\n".join(clipboard_text)
+            clipboard = QApplication.clipboard()
+            clipboard.setText(final_text)
+            print(f"Copied {len(clipboard_text)} rows to clipboard")
+
+    def _create_colored_process_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        _id_column: int = 4,  # ID is now at index 4 in transformed data
+    ) -> QSortFilterProxyModel:
+        """Return a proxy model filled with colored process data.
+
+        Args:
+
+        - `data` (`list[list]`): The table data with color information.
+        - `headers` (`list[str]`): Column header names.
+        - `_id_column` (`int`): Index of the ID column. Defaults to `4`.
+
+        Returns:
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
+
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID
+            row_color = row[5]  # Color is at index 5
+            row_id = row[4]  # ID is at index 4
+
+            # Create items for display columns only (first 4 elements)
+            items = []
+            for col_idx, value in enumerate(row[:4]):  # Only first 4 elements for display
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
+
+                # Check if this is today's record and make it bold
+                today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+                id_col_date = 3
+                if col_idx == id_col_date and str(value) == today:  # Date column
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+
+    def _create_colored_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        id_column: int = -2,
+    ) -> QSortFilterProxyModel:
+        """Return a proxy model filled with colored table data.
+
+        Args:
+
+        - `data` (`list[list]`): The table data with color information.
+        - `headers` (`list[str]`): Column header names.
+        - `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
+
+        Returns:
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
+
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID (second-to-last element)
+            row_color = row[-1]  # Color is at the last position
+            row_id = row[id_column]  # ID is at second-to-last position
+
+            # Create items for display columns only (exclude ID and color)
+            items = []
+            display_data = row[:-2]  # Exclude last two elements (ID and color)
+
+            for _col_idx, value in enumerate(display_data):
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+
+    def _create_table_model(
+        self,
+        data: list[list[str]],
+        headers: list[str],
+        id_column: int = 0,
+    ) -> QSortFilterProxyModel:
+        """Return a proxy model filled with `data`.
+
+        Args:
+
+        - `data` (`list[list[str]]`): The table data as a list of rows.
+        - `headers` (`list[str]`): Column header names.
+        - `id_column` (`int`): Index of the ID column. Defaults to `0`.
+
+        Returns:
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with the data.
+
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            items = [
+                QStandardItem(str(value) if value is not None else "")
+                for col_idx, value in enumerate(row)
+                if col_idx != id_column
+            ]
+            model.appendRow(items)
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row[id_column])),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+
+    def _dispose_models(self) -> None:
+        """Detach all models from QTableView and delete them."""
+        for key, model in self.models.items():
+            view = self.table_config[key][0]
+            view.setModel(None)
+            if model is not None:
+                model.deleteLater()
+            self.models[key] = None
+
+        # list-view
+        self.listView_exercises.setModel(None)
+        if self.exercises_list_model is not None:
+            self.exercises_list_model.deleteLater()
+        self.exercises_list_model = None
+
+    def _get_current_selected_exercise(self) -> str | None:
+        """Get the currently selected exercise from the list view.
+
+        Returns:
+
+        - `str | None`: The name of the selected exercise, or None if nothing is selected.
+
+        """
+        selection_model = self.listView_exercises.selectionModel()
+        if not selection_model or not self.exercises_list_model:
+            return None
+
+        current_index = selection_model.currentIndex()
+        if not current_index.isValid():
+            return None
+
+        item = self.exercises_list_model.itemFromIndex(current_index)
+        return item.text() if item else None
+
+    def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
+        """Get the path to the AVIF file for the given exercise.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise.
+
+        Returns:
+
+        - `Path | None`: Path to the AVIF file if it exists, None otherwise.
+
+        """
+        if not exercise_name or not self.db_manager:
+            return None
+
+        # Form path to AVIF file using exercise name directly
+        db_path = Path(config["sqlite_fitness"])
+        avif_dir = db_path.parent / "fitness_img"
+        avif_path = avif_dir / f"{exercise_name}.avif"
+
+        return avif_path if avif_path.exists() else None
+
+    def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
+        """Get exercise name by ID.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `str | None`: Exercise name or None if not found.
+
+        """
+        if not self._validate_database_connection() or self.db_manager is None:
+            return None
+
+        return self.db_manager.get_exercise_name_by_id(exercise_id)
+
+    def _get_last_weight(self) -> float:
+        """Get the last recorded weight value from database.
+
+        Returns:
+
+        - `float`: The last recorded weight value, or 89.0 as default.
+
+        """
+        initial_weight = 89.0
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return initial_weight
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return initial_weight
+
+        try:
+            last_weight = self.db_manager.get_last_weight()
+        except Exception as e:
+            print(f"Error getting last weight: {e}")
+            return initial_weight
+        else:
+            return last_weight if last_weight is not None else initial_weight
+
+    def _get_selected_exercise_from_statistics_table(self) -> str | None:
+        """Get selected exercise name from statistics table.
+
+        Returns:
+
+        - `str | None`: Exercise name or None if nothing selected.
+
+        """
+        current_index = self.tableView_statistics.currentIndex()
+
+        if not current_index.isValid():
+            # Get first row exercise name as default
+            model = self.tableView_statistics.model()
+            if model and model.rowCount() > 0:
+                first_index = model.index(0, 0)
+                exercise_name = model.data(first_index, Qt.ItemDataRole.DisplayRole)
+                return exercise_name.strip() if exercise_name else None
+            return None
+
+        # Get exercise name from selected row (first column)
+        model = self.tableView_statistics.model()
+        if model:
+            exercise_index = model.index(current_index.row(), 0)
+            exercise_name = model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
+            return exercise_name.strip() if exercise_name else None
+
+        return None
+
+    def _get_selected_exercise_from_table(self, table_name: str) -> str | None:
+        """Get selected exercise name from a table.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table ('exercises' or 'statistics').
+
+        Returns:
+
+        - `str | None`: Exercise name or None if nothing selected.
+
+        """
+        if table_name not in self.table_config:
+            return None
+
+        table_view = self.table_config[table_name][0]
+        current_index = table_view.currentIndex()
+
+        if not current_index.isValid():
+            # Get first row exercise name as default
+            model = self.models[table_name]
+            if model and model.rowCount() > 0:
+                first_index = model.index(0, 0)
+                return model.data(first_index, Qt.ItemDataRole.DisplayRole)
+            return None
+
+        # Get exercise name from selected row (first column)
+        model = self.models[table_name]
+        if model:
+            exercise_index = model.index(current_index.row(), 0)
+            return model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
+
+        return None
+
+    def _get_selected_row_id(self, table_name: str) -> int | None:
+        """Get the database ID of the currently selected row.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table.
+
+        Returns:
+
+        - `int | None`: Database ID of selected row or None if no selection.
+
+        """
+        try:
+            table_view, model_key, _ = self.table_config[table_name]
+            model = self.models[model_key]
+
+            if model is None:
+                return None
+
+            index = table_view.currentIndex()
+            if not index.isValid():
+                return None
+
+            source_model = model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return None
+
+            vertical_header_item = source_model.verticalHeaderItem(index.row())
+            return int(vertical_header_item.text()) if vertical_header_item else None
+
+        except (KeyError, ValueError, TypeError, AttributeError):
+            return None
+
+    def _init_database(self) -> None:
+        """Open the SQLite file from `config` (create from recover.sql if missing).
+
+        Attempts to open the database file specified in the configuration.
+        If the file doesn't exist, tries to create it from recover.sql file located
+        in the application directory.
+        If creation fails or no database is available, prompts the user to select a database file.
+        If no database is selected or an error occurs, the application exits.
+        """
+        filename = Path(config["sqlite_fitness"])
+
+        if not filename.exists():
+            # Try to create database from recover.sql in application directory
+            app_dir = Path(__file__).parent  # Directory where this script is located
+            recover_sql_path = app_dir / "recover.sql"
+
+            if recover_sql_path.exists():
+                print(f"Database not found at {filename}")
+                print(f"Attempting to create database from {recover_sql_path}")
+
+                if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
+                    print("Database created successfully from recover.sql")
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Database Creation Failed",
+                        f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
+                    )
+            else:
+                QMessageBox.information(
+                    self,
+                    "Database Not Found",
+                    f"Database file not found: {filename}\n"
+                    f"recover.sql file not found: {recover_sql_path}\n"
+                    "Please select an existing database file.",
+                )
+
+            # If database still doesn't exist, ask user to select one
+            if not filename.exists():
+                filename_str, _ = QFileDialog.getOpenFileName(
+                    self,
+                    "Open Database",
+                    str(filename.parent),
+                    "SQLite Database (*.db)",
+                )
+                if not filename_str:
+                    QMessageBox.critical(self, "Error", "No database selected")
+                    sys.exit(1)
+                filename = Path(filename_str)
+
+        try:
+            self.db_manager = database_manager.DatabaseManager(
+                str(filename),
+            )
+            print(f"Database opened successfully: {filename}")
+        except (OSError, RuntimeError, ConnectionError) as exc:
+            QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
+            sys.exit(1)
+
+    def _init_exercise_chart_controls(self) -> None:
+        """Initialize exercise chart controls."""
+        current_date = QDate.currentDate()
+        self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_chart_to.setDate(current_date)
+
+        # Initialize exercise combobox
+        self.update_chart_comboboxes()
+
+    def _init_exercises_list(self) -> None:
+        """Initialize the exercises list view with a model and connect signals."""
+        self.exercises_list_model = QStandardItemModel()
+        self.listView_exercises.setModel(self.exercises_list_model)
+
+        # Initialize labels with default values
+        self.label_exercise.setText("No exercise selected")
+        self.label_unit.setText("")
+        self.label_last_date_count_today.setText("")
+
+        # Connect selection change signal after model is set
+        selection_model = self.listView_exercises.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_exercise_selection_changed_list)
+
+    def _init_filter_controls(self) -> None:
+        """Prepare widgets on the `Filters` group box.
+
+        Initializes the filter controls with default values:
+
+        - Sets the date range to the last month
+        - Disables date filtering by default
+        - Connects filter-related signals to their handlers
+        """
+        current_date = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_filter_to.setDate(current_date)
+
+        self.checkBox_use_date_filter.setChecked(False)
+
+    def _init_sets_count_display(self) -> None:
+        """Initialize the sets count display."""
+        self.update_sets_count_today()
+
+    def _init_weight_chart_controls(self) -> None:
+        """Initialize weight chart date controls."""
+        current_date = QDate.currentDate()
+        self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_weight_to.setDate(current_date)
+
+    def _init_weight_controls(self) -> None:
+        """Initialize weight input controls with last recorded values."""
+        last_weight = self._get_last_weight()
+        self.doubleSpinBox_weight.setValue(last_weight)
+        self.dateEdit_weight.setDate(QDate.currentDate())
+
+    def _load_default_exercise_chart(self) -> None:
+        """Load default exercise chart on first set to charts tab."""
+        if not hasattr(self, "_charts_initialized"):
+            self._charts_initialized = True
+
+            if self.db_manager is None:
+                print("❌ Database manager is not initialized")
+                return
+
+            # Set period to Months
+            self.comboBox_chart_period.setCurrentText("Months")
+
+            # Try to set exercise with _id = self.id_steps
+            if self._validate_database_connection():
+                rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
+                if rows:
+                    exercise_name = rows[0][0]
+                    index = self.comboBox_chart_exercise.findText(exercise_name)
+                    if index >= 0:
+                        self.comboBox_chart_exercise.setCurrentIndex(index)
+
+            # Load chart with all time data
+            self.set_chart_all_time()
+
+    def _load_default_statistics(self) -> None:
+        """Load default statistics on first visit to statistics tab."""
+        if not hasattr(self, "_statistics_initialized"):
+            self._statistics_initialized = True
+            # Automatically refresh statistics on first visit
+            self.on_refresh_statistics()
+
+    def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:  # noqa: PLR0911
+        """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise to load AVIF for.
+        - `label_key` (`str`): Key identifying which label to update
+          ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+
+        """
+        # Get the appropriate label widget
+        label_widgets = {
+            "main": self.label_exercise_avif,
+            "exercises": self.label_exercise_avif_2,
+            "types": self.label_exercise_avif_3,
+            "charts": self.label_exercise_avif_4,
+            "statistics": self.label_exercise_avif_5,
+        }
+
+        label_widget = label_widgets.get(label_key)
+        if not label_widget:
+            print(f"Unknown label key: {label_key}")
+            return
+
+        # Stop current animation if exists
+        if self.avif_data[label_key]["timer"]:
+            self.avif_data[label_key]["timer"].stop()
+            self.avif_data[label_key]["timer"] = None
+
+        self.avif_data[label_key]["frames"] = []
+        self.avif_data[label_key]["current_frame"] = 0
+        self.avif_data[label_key]["exercise"] = exercise_name
+
+        # Clear label and reset alignment
+        label_widget.clear()
+        label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        if not exercise_name:
+            label_widget.setText("No exercise selected")
+            return
+
+        # Get path to AVIF
+        avif_path = self._get_exercise_avif_path(exercise_name)
+
+        if avif_path is None:
+            label_widget.setText(f"No AVIF found for:\n{exercise_name}")
+            return
+
+        try:
+            # Try Qt native first
+            pixmap = QPixmap(str(avif_path))
+
+            if not pixmap.isNull():
+                label_size = label_widget.size()
+                scaled_pixmap = pixmap.scaled(
+                    label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                )
+                label_widget.setPixmap(scaled_pixmap)
+                return
+
+            # Fallback to Pillow with AVIF plugin for animation
+            try:
+                import pillow_avif  # noqa: F401, PLC0415
+
+                # Open with Pillow
+                pil_image = Image.open(avif_path)
+
+                # Handle animated AVIF
+                if getattr(pil_image, "is_animated", False):
+                    # Extract all frames
+                    self.avif_data[label_key]["frames"] = []
+                    label_size = label_widget.size()
+
+                    for frame_index in range(getattr(pil_image, "n_frames", 1)):
+                        pil_image.seek(frame_index)
+
+                        # Create a copy of the frame
+                        frame = pil_image.copy()
+
+                        # Convert to RGB if needed
+                        if frame.mode in ("RGBA", "LA", "P"):
+                            background = Image.new("RGB", frame.size, (255, 255, 255))
+                            if frame.mode == "P":
+                                frame = frame.convert("RGBA")
+                            if frame.mode in ("RGBA", "LA"):
+                                background.paste(frame, mask=frame.split()[-1])
+                            else:
+                                background.paste(frame)
+                            frame = background
+                        elif frame.mode != "RGB":
+                            frame = frame.convert("RGB")
+
+                        # Convert PIL image to QPixmap
+                        buffer = io.BytesIO()
+                        frame.save(buffer, format="PNG")
+                        buffer.seek(0)
+
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(buffer.getvalue())
+
+                        if not pixmap.isNull():
+                            scaled_pixmap = pixmap.scaled(
+                                label_size,
+                                Qt.AspectRatioMode.KeepAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation,
+                            )
+                            self.avif_data[label_key]["frames"].append(scaled_pixmap)
+
+                    if self.avif_data[label_key]["frames"]:
+                        # Show first frame
+                        label_widget.setPixmap(self.avif_data[label_key]["frames"][0])
+
+                        # Start animation timer
+                        self.avif_data[label_key]["timer"] = QTimer()
+                        self.avif_data[label_key]["timer"].timeout.connect(lambda: self._next_avif_frame(label_key))
+
+                        # Get frame duration (default 100ms if not available)
+                        try:
+                            duration = pil_image.info.get("duration", 100)
+                        except Exception:
+                            duration = 100
+
+                        self.avif_data[label_key]["timer"].start(duration)
+                        return
+                else:
+                    # Static image
+                    frame = pil_image
+
+                    # Convert to RGB if needed
+                    if frame.mode in ("RGBA", "LA", "P"):
+                        background = Image.new("RGB", frame.size, (255, 255, 255))
+                        if frame.mode == "P":
+                            frame = frame.convert("RGBA")
+                        if frame.mode in ("RGBA", "LA"):
+                            background.paste(frame, mask=frame.split()[-1])
+                        else:
+                            background.paste(frame)
+                        frame = background
+                    elif frame.mode != "RGB":
+                        frame = frame.convert("RGB")
+
+                    # Convert PIL image to QPixmap
+                    buffer = io.BytesIO()
+                    frame.save(buffer, format="PNG")
+                    buffer.seek(0)
+
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(buffer.getvalue())
+
+                    if not pixmap.isNull():
+                        label_size = label_widget.size()
+                        scaled_pixmap = pixmap.scaled(
+                            label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                        )
+                        label_widget.setPixmap(scaled_pixmap)
+                        return
+
+            except ImportError as import_error:
+                print(f"Import error: {import_error}")
+                label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
+                return
+            except Exception as pil_error:
+                print(f"Pillow error: {pil_error}")
+
+            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
+
+        except Exception as e:
+            print(f"General error: {e}")
+            label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+
+    def _load_initial_avifs(self) -> None:
+        """Load AVIF for all labels after complete UI initialization."""
+        # Load main exercise AVIF
+        current_exercise_name = self._get_current_selected_exercise()
+        if current_exercise_name:
+            self._load_exercise_avif(current_exercise_name, "main")
+            # Trigger the selection change to update labels
+            self.on_exercise_selection_changed_list()
+
+        # Load exercises table AVIF (first row by default)
+        self._update_exercises_avif()
+
+        # Load types combobox AVIF
+        self._update_types_avif()
+
+        # Load charts combobox AVIF
+        self._update_charts_avif()
+
+        # Statistics AVIF will be loaded when statistics tab is accessed
+
+    def _next_avif_frame(self, label_key: str) -> None:
+        """Show next frame in AVIF animation for specific label.
+
+        Args:
+
+        - `label_key` (`str`): Key identifying which label to update.
+
+        """
+        if not self.avif_data[label_key]["frames"]:
+            return
+
+        self.avif_data[label_key]["current_frame"] = (self.avif_data[label_key]["current_frame"] + 1) % len(
+            self.avif_data[label_key]["frames"]
+        )
+
+        # Get the appropriate label widget
+        label_widgets = {
+            "main": self.label_exercise_avif,
+            "exercises": self.label_exercise_avif_2,
+            "types": self.label_exercise_avif_3,
+            "charts": self.label_exercise_avif_4,
+            "statistics": self.label_exercise_avif_5,
+        }
+
+        label_widget = label_widgets.get(label_key)
+        if label_widget:
+            label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
+
+    def _on_table_data_changed(
+        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
+    ) -> None:
+        """Handle data changes in table models and auto-save to database.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table that was modified.
+        - `top_left` (`QModelIndex`): Top-left index of the changed area.
+        - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
+        - `_roles` (`list | None`): List of roles that changed. Defaults to `None`.
+
+        """
+        if table_name not in self._SAFE_TABLES:
+            return
+
+        if not self._validate_database_connection():
+            return
+
+        try:
+            proxy_model = self.models[table_name]
+            if proxy_model is None:
+                return
+            model = proxy_model.sourceModel()
+            if not isinstance(model, QStandardItemModel):
+                return
+
+            # Process each changed row
+            for row in range(top_left.row(), bottom_right.row() + 1):
+                row_id = model.verticalHeaderItem(row).text()
+                self._auto_save_row(table_name, model, row, row_id)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+
+    def _refresh_table(
+        self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None
+    ) -> None:
+        """Refresh a table with data.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table to refresh.
+        - `data_getter` (`Callable[[], Any]`): Function to get data from database.
+        - `data_transformer` (`Callable[[Any], Any] | None`): Optional function to transform raw data.
+          Defaults to `None`.
+
+        Raises:
+
+        - `ValueError`: If the table name is unknown.
+
+        """
+        if table_name not in self.table_config:
+            error_msg = f"❌ Unknown table: {table_name}"
+            raise ValueError(error_msg)
+
+        rows = data_getter()
+        if data_transformer:
+            rows = data_transformer(rows)
+
+        view, model_key, headers = self.table_config[table_name]
+        self.models[model_key] = self._create_table_model(rows, headers)
+        view.setModel(self.models[model_key])
+        view.resizeColumnsToContents()
+
+    def _select_exercise_in_list(self, exercise_name: str) -> None:
+        """Select an exercise in the list view by name.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise to select.
+
+        """
+        if not self.exercises_list_model or not exercise_name:
+            return
+
+        # Find the item with the matching exercise name
+        for row in range(self.exercises_list_model.rowCount()):
+            item = self.exercises_list_model.item(row)
+            if item and item.text() == exercise_name:
+                index = self.exercises_list_model.indexFromItem(item)
+                selection_model = self.listView_exercises.selectionModel()
+                if selection_model:
+                    selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                break
+
+    def _setup_ui(self) -> None:
+        """Set up additional UI elements after basic initialization."""
+        # Set emoji for buttons
+        self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
+        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
+        self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
+        self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
+        self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
+        self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
+        self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
+        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
+        self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
+        self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
+        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
+        self.pushButton_types_delete.setText(f"🗑️ {self.pushButton_types_delete.text()}")
+        self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
+        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
+        self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
+        self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
+        self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
+        self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
+        self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
+        self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
+        self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
+        self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
+        self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
+        self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        self.pushButton_weight_last_month.setText(f"📅 {self.pushButton_weight_last_month.text()}")
+        self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
+        self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
+        self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
+
+        # Configure splitter proportions
+        self.splitter.setStretchFactor(0, 3)  # tableView gets more space
+        self.splitter.setStretchFactor(1, 1)  # listView gets less space
+        self.splitter.setStretchFactor(2, 0)  # frame with fixed size
+
+    def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
+        """Show congratulations message for new records.
+
+        Args:
+
+        - `exercise` (`str`): Exercise name.
+        - `record_info` (`dict`): Record information from `_check_for_new_records`.
+
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get exercise unit for display
+            unit = self.db_manager.get_exercise_unit(exercise)
+            unit_text = f" {unit}" if unit else ""
+
+            # Build the message
+            title = "🏆 NEW RECORD! 🏆"
+
+            # Build exercise display name with type if applicable
+            exercise_display = exercise
+            if record_info["type_name"]:
+                exercise_display += f" - {record_info['type_name']}"
+
+            current_value = record_info["current_value"]
+
+            if record_info["is_all_time"]:
+                previous_value = record_info["previous_all_time"]
+                improvement = current_value - previous_value
+
+                # Check if this is the first record for this exercise
+                if previous_value == 0.0:
+                    message = (
+                        f"🎉 Congratulations! You've set your FIRST ALL-TIME RECORD! 🎉\n\n"
+                        f"Exercise: {exercise_display}\n"
+                        f"First Record: {current_value:g}{unit_text}\n\n"
+                        f"🚀 Great start! Keep up the momentum! 🚀"
+                    )
+                else:
+                    message = (
+                        f"🎉 Congratulations! You've set a new ALL-TIME RECORD! 🎉\n\n"
+                        f"Exercise: {exercise_display}\n"
+                        f"New Record: {current_value:g}{unit_text}\n"
+                        f"Previous Best: {previous_value:g}{unit_text}\n"
+                        f"Improvement: +{improvement:g}{unit_text}\n\n"
+                        f"🔥 Amazing achievement! Keep up the great work! 🔥"
+                    )
+            elif record_info["is_yearly"]:
+                previous_value = record_info["previous_yearly"]
+                improvement = current_value - previous_value
+
+                # Check if this is the first yearly record
+                if previous_value == 0.0:
+                    message = (
+                        f"🎊 Congratulations! You've set your FIRST YEARLY RECORD! 🎊\n\n"
+                        f"Exercise: {exercise_display}\n"
+                        f"First Year Record: {current_value:g}{unit_text}\n\n"
+                        f"⭐ Excellent start to the year! ⭐"
+                    )
+                else:
+                    message = (
+                        f"🎊 Congratulations! You've set a new YEARLY RECORD! 🎊\n\n"
+                        f"Exercise: {exercise_display}\n"
+                        f"New Record: {current_value:g}{unit_text}\n"
+                        f"Previous Year Best: {previous_value:g}{unit_text}\n"
+                        f"Improvement: +{improvement:g}{unit_text}\n\n"
+                        f"⭐ Excellent progress this year! ⭐"
+                    )
+            else:
+                return  # Should not happen, but just in case
+
+            # Show the congratulations message
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle(title)
+            msg_box.setText(message)
+            msg_box.setIcon(QMessageBox.Icon.Information)
+
+            # Make the message box more prominent
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #f0f8ff;
+                    font-size: 12px;
+                }
+                QMessageBox QLabel {
+                    color: #2e8b57;
+                    font-weight: bold;
+                }
+            """)
+
+            msg_box.exec()
+
+        except Exception as e:
+            print(f"Error showing record congratulations: {e}")
+
+    def _update_charts_avif(self) -> None:
+        """Update AVIF for charts combobox selection."""
+        exercise_name = self.comboBox_chart_exercise.currentText()
+        if exercise_name:
+            self._load_exercise_avif(exercise_name, "charts")
+
+    def _update_comboboxes(
+        self,
+        *,
+        selected_exercise: str | None = None,
+        selected_type: str | None = None,
+    ) -> None:
+        """Refresh exercise list and type combo-box (optionally keep a selection).
+
+        Args:
+
+        - `selected_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
+        - `selected_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
+
+        """
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+
+            # Block signals during model update
+            selection_model = self.listView_exercises.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
+
+            # Update exercises list model
+            if self.exercises_list_model is not None:
+                self.exercises_list_model.clear()
+                for exercise in exercises:
+                    item = QStandardItem(exercise)
+                    self.exercises_list_model.appendRow(item)
+
+            # Unblock signals
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
+
+            # Update comboBox_exercise_name for adding types
+            self.comboBox_exercise_name.clear()
+            self.comboBox_exercise_name.addItems(exercises)
+
+            if selected_exercise and selected_exercise in exercises:
+                # Select the exercise in the list view
+                self._select_exercise_in_list(selected_exercise)
+
+                if selected_type:
+                    ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
+                    if ex_id is not None:
+                        types = self.db_manager.get_exercise_types(ex_id)
+                        self.comboBox_type.clear()
+                        self.comboBox_type.addItem("")
+                        self.comboBox_type.addItems(types)
+                        t_idx = self.comboBox_type.findText(selected_type)
+                        if t_idx >= 0:
+                            self.comboBox_type.setCurrentIndex(t_idx)
+            # If no specific selection, select the first exercise by default
+            elif exercises:
+                self._select_exercise_in_list(exercises[0])
+
+            # Update types AVIF after combobox update
+            self._update_types_avif()
+
+        except Exception as e:
+            print(f"Error updating comboboxes: {e}")
+
+    def _update_exercises_avif(self) -> None:
+        """Update AVIF for exercises table selection."""
+        exercise_name = self._get_selected_exercise_from_table("exercises")
+        if exercise_name:
+            self._load_exercise_avif(exercise_name, "exercises")
+
+    def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
+        """Update form fields after process selection change.
+
+        Args:
+
+        - `_exercise_name` (`str`): Name of the selected exercise.
+        - `type_name` (`str`): Type of the selected exercise.
+        - `value_str` (`str`): Value as string from the selected record.
+
+        """
+        try:
+            # Update spinBox_count with the selected value
+            try:
+                value = int(float(value_str))
+                self.spinBox_count.setValue(value)
+            except (ValueError, TypeError):
+                print(f"Could not convert value '{value_str}' to int")
+
+            # Update comboBox_type selection
+            if type_name:
+                type_index = self.comboBox_type.findText(type_name)
+                if type_index >= 0:
+                    self.comboBox_type.setCurrentIndex(type_index)
+                else:
+                    # If type not found, clear selection
+                    self.comboBox_type.setCurrentIndex(0)
+            else:
+                # No type, select empty option
+                self.comboBox_type.setCurrentIndex(0)
+
+        except Exception as e:
+            print(f"Error updating form from process selection: {e}")
+
+    def _update_statistics_avif(self) -> None:
+        """Update AVIF for statistics table based on current mode."""
+        if self.current_statistics_mode == "check_steps":
+            # Always show Steps exercise for check_steps mode
+            steps_exercise_name = self._get_exercise_name_by_id(self.id_steps)
+            if steps_exercise_name:
+                self._load_exercise_avif(steps_exercise_name, "statistics")
+        else:
+            # For other modes, use selected exercise from statistics table
+            exercise_name = self._get_selected_exercise_from_statistics_table()
+            if exercise_name:
+                self._load_exercise_avif(exercise_name, "statistics")
+
+    def _update_types_avif(self) -> None:
+        """Update AVIF for types combobox selection."""
+        exercise_name = self.comboBox_exercise_name.currentText()
+        if exercise_name:
+            self._load_exercise_avif(exercise_name, "types")
+
+    def _validate_database_connection(self) -> bool:
+        """Validate that database connection is available and open.
+
+        Returns:
+
+        - `bool`: True if database connection is valid, False otherwise.
+
+        """
+        if not self.db_manager:
+            print("Database manager is None")
+            return False
+
+        if not self.db_manager.is_database_open():
+            print("Database connection is not open")
+            return False
+
+        return True
 
 
 if __name__ == "__main__":
