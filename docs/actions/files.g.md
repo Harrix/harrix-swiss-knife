@@ -23,11 +23,11 @@ lang: en
   - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
-- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
+- [Class `OnRenameLargestImagesToFeaturedImage`](#class-onrenamelargestimagestofeaturedimage)
   - [Method `execute`](#method-execute-5)
-- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
+- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
   - [Method `execute`](#method-execute-6)
-- [Class `RenameLargestImagesToFeaturedImage`](#class-renamelargestimagestofeaturedimage)
+- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
   - [Method `execute`](#method-execute-7)
 
 </details>
@@ -375,6 +375,66 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
+## Class `OnRenameLargestImagesToFeaturedImage`
+
+```python
+class OnRenameLargestImagesToFeaturedImage(ActionBase)
+```
+
+Rename the largest image in each folder to featured_image.
+
+This action prompts the user to select a folder and then identifies
+the largest image file in each subfolder, renaming it to `featured_image`
+while preserving its original extension. This helps standardize thumbnail
+or preview images across multiple directories.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnRenameLargestImagesToFeaturedImage(ActionBase):
+
+    icon = "🖲️"
+    title = "Rename largest images to featured_image in …"
+
+    @ActionBase.handle_exceptions("renaming largest images")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        if folder_path is None:
+            return
+
+        result = h.file.rename_largest_images_to_featured(folder_path)
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        if folder_path is None:
+            return
+
+        result = h.file.rename_largest_images_to_featured(folder_path)
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
 ## Class `OnTreeViewFolder`
 
 ```python
@@ -481,66 +541,6 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
-```
-
-</details>
-
-## Class `RenameLargestImagesToFeaturedImage`
-
-```python
-class RenameLargestImagesToFeaturedImage(ActionBase)
-```
-
-Rename the largest image in each folder to featured_image.
-
-This action prompts the user to select a folder and then identifies
-the largest image file in each subfolder, renaming it to `featured_image`
-while preserving its original extension. This helps standardize thumbnail
-or preview images across multiple directories.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class RenameLargestImagesToFeaturedImage(ActionBase):
-
-    icon = "🖲️"
-    title = "Rename largest images to featured_image in …"
-
-    @ActionBase.handle_exceptions("renaming largest images")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
-        if folder_path is None:
-            return
-
-        result = h.file.rename_largest_images_to_featured(folder_path)
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
-        if folder_path is None:
-            return
-
-        result = h.file.rename_largest_images_to_featured(folder_path)
-        self.add_line(result)
-        self.show_result()
 ```
 
 </details>
