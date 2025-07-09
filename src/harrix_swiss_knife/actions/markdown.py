@@ -444,43 +444,6 @@ class OnNewNoteDialogWithImages(OnNewNoteDialog):
         super().execute(is_with_images=True)
 
 
-class OnOptimizeImages(ActionBase):
-    """Optimize images referenced in a Markdown file.
-
-    This action allows the user to select a Markdown file and optimizes
-    all images referenced within it using the optimize_images_in_md function.
-    """
-
-    icon = "🖼️"
-    title = "Optimize images in one MD"
-
-    @ActionBase.handle_exceptions("optimizing images in markdown file")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.filename = self.get_open_filename(
-            "Open Markdown file",
-            self.config["path_notes"],
-            "Markdown (*.md);;All Files (*)",
-        )
-        if not self.filename:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @ActionBase.handle_exceptions("optimizing images in markdown thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.filename is None:
-            return
-        self.add_line(markdown_utils.optimize_images_in_md(self.filename))
-
-    @ActionBase.handle_exceptions("optimizing images in markdown thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.filename} completed")
-        self.show_result()
-
-
 class OnOptimizeImagesFolderCompareSize(ActionBase):
     """Optimize images in Markdown files with PNG/AVIF size comparison."""
 
