@@ -66,7 +66,7 @@ class OnCheckPythonFolder(ActionBase):
     @ActionBase.handle_exceptions("Python folder checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        checker = python_checker.PythonChecker()
+        checker = h.py_check.PythonChecker()
         if self.folder_path is None:
             return
         errors = h.file.check_func(self.folder_path, ".py", checker)
@@ -122,7 +122,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        checker = python_checker.PythonChecker()
+        checker = h.py_check.PythonChecker()
         if self.folder_path is None:
             return
         errors = h.file.check_func(self.folder_path, ".py", checker)

@@ -339,7 +339,7 @@ class OnCheckMdFolder(ActionBase):
     @ActionBase.handle_exceptions("markdown folder checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        checker = markdown_checker.MarkdownChecker()
+        checker = h.md_check.MarkdownChecker()
         if self.folder_path is None:
             return
         errors = h.file.check_func(self.folder_path, ".md", checker)
@@ -395,7 +395,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        checker = markdown_checker.MarkdownChecker()
+        checker = h.md_check.MarkdownChecker()
         if self.folder_path is None:
             return
         errors = h.file.check_func(self.folder_path, ".md", checker)
