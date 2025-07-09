@@ -7,7 +7,7 @@ license = { file = "LICENSE.md" }
 authors = [{ name = "Anton Sergienko", email = "anton.b.sergienko@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
-    "harrix-pylib>=0.167",
+    "harrix-pylib",
     "libcst>=1.5.1",
     "matplotlib>=3.10.3",
     "pandas>=2.3.0",
@@ -86,3 +86,6 @@ exclude = [
 addopts = "-m 'not slow'"
 
 markers = ["slow: mark a test as slow."]
+
+[tool.uv.sources]
+harrix-pylib = { path = "../harrix-pylib", editable = true }

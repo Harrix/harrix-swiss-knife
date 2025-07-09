@@ -113,26 +113,22 @@ class OnNewUvProject(ActionBase):
 
 
 class OnPublishPythonLibrary(ActionBase):
-    """Publish a new version of a Python library to PyPI and update dependent projects.
+    """Publish a new version of a Python library to PyPI.
 
     This action automates the process of updating, building, and publishing a Python
-    library package to PyPI, then updating all projects that depend on it. The process
-    follows these steps:
+    library package to PyPI. The process follows these steps:
 
     1. Select the library to publish from configured paths
     2. Bump the minor version number of the selected library
     3. Build the package and publish it to PyPI using the provided token
     4. Commit the version changes to the library repository
-    5. Wait for the package to be available on PyPI (20 seconds delay)
-    6. Update all dependent projects (defined in configuration) to use the new version
-    7. Commit the dependency updates to each project's repository
 
     The action requires a PyPI token, which can be provided in the configuration or
     entered when prompted. The entire process is executed in background threads to
-    maintain UI responsiveness, with each major step running in its own thread.
+    maintain UI responsiveness.
 
-    This automation significantly reduces the manual work involved in publishing library
-    updates and ensuring dependent projects stay synchronized with the latest version.
+    Note: Since dependent projects now use editable installs (uv add --editable),
+    they automatically receive updates without needing to update package versions.
     """
 
     icon = "👷‍♂️"
@@ -156,17 +152,6 @@ class OnPublishPythonLibrary(ActionBase):
             )
         if not self.token:
             return
-
-        # Get dependent projects (optional)
-        self.dependent_projects = self.config.get("paths_python_projects", [])
-        if isinstance(self.dependent_projects, list):
-            self.dependent_projects = [
-                Path(self.config["path_github"]) / project
-                for project in self.dependent_projects
-                if (Path(self.config["path_github"]) / project).exists()
-            ]
-        else:
-            self.dependent_projects = []
 
         self.library_name = self.library_path.parts[-1]
         self.start_thread(self.in_thread_01, self.thread_after_01, f"Build and publish {self.library_name}")
@@ -193,76 +178,9 @@ class OnPublishPythonLibrary(ActionBase):
         result = h.dev.run_powershell_script(commands)
         self.add_line(result)
 
-    @ActionBase.handle_exceptions("publishing library waiting thread")
-    def in_thread_02(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        time.sleep(self.time_waiting_seconds)
-
-    @ActionBase.handle_exceptions("publishing library update dependencies thread")
-    def in_thread_03(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if not self.dependent_projects:
-            self.add_line("No dependent projects configured. Skipping dependency updates.")
-            return
-
-        # Update library in dependent projects
-        for project_path in self.dependent_projects:
-            project = Path(project_path)
-            if not project.exists():
-                self.add_line(f"Project path does not exist: {project}")
-                continue
-
-            self.add_line(f"Updating {self.library_name} in {project.name}")
-
-            commands = "uv sync --upgrade && uv sync --upgrade "
-            result = h.dev.run_command(commands, cwd=str(project))
-            self.add_line(result)
-
-            # Update library version in project's pyproject.toml
-            path_toml = project / "pyproject.toml"
-            if not path_toml.exists():
-                self.add_line(f"pyproject.toml not found in {project.name}")
-                continue
-
-            content = path_toml.read_text(encoding="utf8")
-            pattern = self.library_name + r">=(\d+)\.(\d+)"
-            new_content = re.sub(pattern, lambda _: f"{self.library_name}>={self.new_version}", content)
-
-            if content != new_content:
-                path_toml.write_text(new_content, encoding="utf8")
-
-                commands = f"""
-                    cd {project}
-                    uv sync --upgrade
-                    git add pyproject.toml
-                    git add uv.lock
-                    git commit -m "⬆️ Update {self.library_name} to {self.new_version}" """
-                result = h.dev.run_powershell_script(commands)
-                self.add_line(result)
-            else:
-                self.add_line(f"No version update needed for {self.library_name} in {project.name}")
-
-    @ActionBase.handle_exceptions("publishing library thread 01 completion")
+    @ActionBase.handle_exceptions("publishing library thread completion")
     def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_01(). For handling the results of thread execution."""
-        self.time_waiting_seconds = 20
-        message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
-        self.start_thread(self.in_thread_02, self.thread_after_02, message)
-
-    @ActionBase.handle_exceptions("publishing library thread 02 completion")
-    def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread_02(). For handling the results of thread execution."""
-        if self.dependent_projects:
-            self.start_thread(
-                self.in_thread_03, self.thread_after_03, f"Update {self.library_name} in dependent projects"
-            )
-        else:
-            self.show_toast(f"{self.title} completed")
-            self.show_result()
-
-    @ActionBase.handle_exceptions("publishing library thread 03 completion")
-    def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread_03(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
