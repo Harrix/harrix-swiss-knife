@@ -481,42 +481,6 @@ class OnOptimizeImages(ActionBase):
         self.show_result()
 
 
-class OnOptimizeImagesFolder(ActionBase):
-    """Optimize images referenced in Markdown files within a selected folder.
-
-    This action processes all Markdown files in a selected directory, identifying image
-    references and performing various optimizations to improve image quality, reduce file size,
-    and enhance overall performance.
-    """
-
-    icon = "🖼️"
-    title = "Optimize images in …"
-
-    @ActionBase.handle_exceptions("optimizing images in folder")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @ActionBase.handle_exceptions("optimizing images folder thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", markdown_utils.optimize_images_in_md))
-
-    @ActionBase.handle_exceptions("optimizing images folder thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-
-
 class OnOptimizeImagesFolderCompareSize(ActionBase):
     """Optimize images in Markdown files with PNG/AVIF size comparison."""
 
