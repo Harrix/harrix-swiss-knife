@@ -444,11 +444,11 @@ class OnNewNoteDialogWithImages(OnNewNoteDialog):
         super().execute(is_with_images=True)
 
 
-class OnOptimizeImagesFolderCompareSize(ActionBase):
+class OnOptimizeImagesFolder(ActionBase):
     """Optimize images in Markdown files with PNG/AVIF size comparison."""
 
     icon = "⚖️"
-    title = "Optimize images (compare PNG/AVIF sizes) in …"
+    title = "Optimize images in MD in …"
 
     @ActionBase.handle_exceptions("optimizing images with size comparison")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
