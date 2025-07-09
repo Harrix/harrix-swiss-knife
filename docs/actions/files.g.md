@@ -19,12 +19,16 @@ lang: en
   - [Method `execute`](#method-execute-2)
 - [Class `OnCheckFeaturedImageInFolders`](#class-oncheckfeaturedimageinfolders)
   - [Method `execute`](#method-execute-3)
-- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
+- [Class `OnRenameFb2Files`](#class-onrenamefb2files)
   - [Method `execute`](#method-execute-4)
-- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
+  - [Method `in_thread`](#method-in_thread)
+  - [Method `thread_after`](#method-thread_after)
+- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
   - [Method `execute`](#method-execute-5)
-- [Class `RenameLargestImagesToFeaturedImage`](#class-renamelargestimagestofeaturedimage)
+- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
   - [Method `execute`](#method-execute-6)
+- [Class `RenameLargestImagesToFeaturedImage`](#class-renamelargestimagestofeaturedimage)
+  - [Method `execute`](#method-execute-7)
 
 </details>
 
@@ -248,6 +252,124 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         for path in self.config["paths_with_featured_image"]:
             result = h.file.check_featured_image(path)[1]
             self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+## Class `OnRenameFb2Files`
+
+```python
+class OnRenameFb2Files(ActionBase)
+```
+
+Rename FB2 files based on metadata from file content.
+
+This action prompts the user to select a folder and then processes all FB2 files
+within it, extracting author, title, and year information from the XML metadata.
+Files are renamed according to the pattern: "Author - Title - Year.fb2" (year is optional).
+
+If metadata extraction fails, the action attempts to transliterate the filename
+from English to Russian, assuming it might be a transliterated Russian title.
+If transliteration doesn't improve the filename, it remains unchanged.
+
+This provides a one-click solution for organizing and standardizing FB2 book collections
+with proper naming conventions based on actual book metadata.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnRenameFb2Files(ActionBase):
+
+    icon = "📚"
+    title = "Rename FB2 files in …"
+
+    @ActionBase.handle_exceptions("renaming FB2 files")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_existing_directory("Select a folder with FB2 files", self.config["path_3d"])
+        if self.folder_path is None:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("renaming FB2 files thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        self.add_line(f"🔵 Starting FB2 file processing for path: {self.folder_path}")
+        if self.folder_path is None:
+            return
+
+        self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_fb2_file))
+
+    @ActionBase.handle_exceptions("renaming FB2 files thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.folder_path = self.get_existing_directory("Select a folder with FB2 files", self.config["path_3d"])
+        if self.folder_path is None:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        self.add_line(f"🔵 Starting FB2 file processing for path: {self.folder_path}")
+        if self.folder_path is None:
+            return
+
+        self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_fb2_file))
+```
+
+</details>
+
+### Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 

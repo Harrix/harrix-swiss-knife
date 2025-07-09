@@ -83,6 +83,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.file.OnTreeViewFolder,
                 hsk.file.OnTreeViewFolderIgnoreHiddenFolders,
                 hsk.file.RenameLargestImagesToFeaturedImage,
+                hsk.file.OnRenameFb2Files,
             ],
         )
 
@@ -216,6 +217,7 @@ def __init__(self) -> None:
                 hsk.file.OnTreeViewFolder,
                 hsk.file.OnTreeViewFolderIgnoreHiddenFolders,
                 hsk.file.RenameLargestImagesToFeaturedImage,
+                hsk.file.OnRenameFb2Files,
             ],
         )
 
