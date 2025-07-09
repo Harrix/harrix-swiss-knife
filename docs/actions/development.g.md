@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [Class `AboutDialog`](#class-aboutdialog)
+- [Class `OnAboutDialog`](#class-onaboutdialog)
   - [Method `execute`](#method-execute)
   - [Method `_get_version_from_pyproject`](#method-_get_version_from_pyproject)
 - [Class `OnExit`](#class-onexit)
@@ -30,10 +30,10 @@ lang: en
 
 </details>
 
-## Class `AboutDialog`
+## Class `OnAboutDialog`
 
 ```python
-class AboutDialog(ActionBase)
+class OnAboutDialog(ActionBase)
 ```
 
 Show the about dialog with program information.
@@ -45,7 +45,7 @@ including version, description, author, and license information.
 <summary>Code:</summary>
 
 ```python
-class AboutDialog(ActionBase):
+class OnAboutDialog(ActionBase):
 
     icon = "ℹ️"  # noqa: RUF001
     title = "About"

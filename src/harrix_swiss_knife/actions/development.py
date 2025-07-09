@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.actions.base import ActionBase
 
 
-class AboutDialog(ActionBase):
+class OnAboutDialog(ActionBase):
     """Show the about dialog with program information.
 
     This action displays a dialog window containing information about the application,
