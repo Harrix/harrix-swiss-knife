@@ -31,16 +31,16 @@ lang: en
   - [Method `execute`](#method-execute-7)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnOptimizeFile`](#class-onoptimizefile)
-  - [Method `execute`](#method-execute-8)
 - [Class `OnOptimizeQuality`](#class-onoptimizequality)
-  - [Method `execute`](#method-execute-9)
+  - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnResizeOptimizePngToAvif`](#class-onresizeoptimizepngtoavif)
-  - [Method `execute`](#method-execute-10)
+- [Class `OnOptimizeResizePngToAvif`](#class-onoptimizeresizepngtoavif)
+  - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
+- [Class `OnOptimizeSingleImage`](#class-onoptimizesingleimage)
+  - [Method `execute`](#method-execute-10)
 
 </details>
 
@@ -691,87 +691,6 @@ def thread_after(self, result: Any) -> None:
 
 </details>
 
-## Class `OnOptimizeFile`
-
-```python
-class OnOptimizeFile(ActionBase)
-```
-
-Optimize a single image file.
-
-This action prompts the user to select a single image file, processes it
-using the npm optimize script, and saves the optimized version to the
-`optimized_images` directory for easy access.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnOptimizeFile(ActionBase):
-
-    icon = "🖼️"
-    title = "Optimize one image"
-
-    @ActionBase.handle_exceptions("single file optimization")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        filename = self.get_open_filename(
-            "Select an Image File",
-            self.config["path_articles"],
-            "Image Files (*.jpg *.jpeg *.webp *.png *.svg *.avif *.mp4);;All Files (*)",
-        )
-        if not filename:
-            return
-
-        with TemporaryDirectory() as temp_folder:
-            temp_filename = Path(temp_folder) / Path(filename).name
-            shutil.copy(filename, temp_filename)
-
-            commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-            result = h.dev.run_command(commands)
-
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        filename = self.get_open_filename(
-            "Select an Image File",
-            self.config["path_articles"],
-            "Image Files (*.jpg *.jpeg *.webp *.png *.svg *.avif *.mp4);;All Files (*)",
-        )
-        if not filename:
-            return
-
-        with TemporaryDirectory() as temp_folder:
-            temp_filename = Path(temp_folder) / Path(filename).name
-            shutil.copy(filename, temp_filename)
-
-            commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-            result = h.dev.run_command(commands)
-
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
 ## Class `OnOptimizeQuality`
 
 ```python
@@ -872,10 +791,10 @@ def thread_after(self, result: Any) -> None:
 
 </details>
 
-## Class `OnResizeOptimizePngToAvif`
+## Class `OnOptimizeResizePngToAvif`
 
 ```python
-class OnResizeOptimizePngToAvif(ActionBase)
+class OnOptimizeResizePngToAvif(ActionBase)
 ```
 
 Resize and optimize images and convert PNG files to AVIF format too.
@@ -884,7 +803,7 @@ Resize and optimize images and convert PNG files to AVIF format too.
 <summary>Code:</summary>
 
 ```python
-class OnResizeOptimizePngToAvif(ActionBase):
+class OnOptimizeResizePngToAvif(ActionBase):
 
     icon = "↔️"
     title = "Resize and optimize images (with PNG to AVIF)"
@@ -972,6 +891,87 @@ Execute code in the main thread after in_thread(). For handling the results of t
 def thread_after(self, result: Any) -> None:
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+## Class `OnOptimizeSingleImage`
+
+```python
+class OnOptimizeSingleImage(ActionBase)
+```
+
+Optimize a single image file.
+
+This action prompts the user to select a single image file, processes it
+using the npm optimize script, and saves the optimized version to the
+`optimized_images` directory for easy access.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnOptimizeSingleImage(ActionBase):
+
+    icon = "🖼️"
+    title = "Optimize one image"
+
+    @ActionBase.handle_exceptions("single file optimization")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        filename = self.get_open_filename(
+            "Select an Image File",
+            self.config["path_articles"],
+            "Image Files (*.jpg *.jpeg *.webp *.png *.svg *.avif *.mp4);;All Files (*)",
+        )
+        if not filename:
+            return
+
+        with TemporaryDirectory() as temp_folder:
+            temp_filename = Path(temp_folder) / Path(filename).name
+            shutil.copy(filename, temp_filename)
+
+            commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
+            result = h.dev.run_command(commands)
+
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        filename = self.get_open_filename(
+            "Select an Image File",
+            self.config["path_articles"],
+            "Image Files (*.jpg *.jpeg *.webp *.png *.svg *.avif *.mp4);;All Files (*)",
+        )
+        if not filename:
+            return
+
+        with TemporaryDirectory() as temp_folder:
+            temp_filename = Path(temp_folder) / Path(filename).name
+            shutil.copy(filename, temp_filename)
+
+            commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
+            result = h.dev.run_command(commands)
+
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.add_line(result)
         self.show_result()
 ```

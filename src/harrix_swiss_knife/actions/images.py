@@ -258,40 +258,6 @@ class OnOptimizeDialogReplace(ActionBase):
         self.show_result()
 
 
-class OnOptimizeFile(ActionBase):
-    """Optimize a single image file.
-
-    This action prompts the user to select a single image file, processes it
-    using the npm optimize script, and saves the optimized version to the
-    `optimized_images` directory for easy access.
-    """
-
-    icon = "🖼️"
-    title = "Optimize one image"
-
-    @ActionBase.handle_exceptions("single file optimization")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        filename = self.get_open_filename(
-            "Select an Image File",
-            self.config["path_articles"],
-            "Image Files (*.jpg *.jpeg *.webp *.png *.svg *.avif *.mp4);;All Files (*)",
-        )
-        if not filename:
-            return
-
-        with TemporaryDirectory() as temp_folder:
-            temp_filename = Path(temp_folder) / Path(filename).name
-            shutil.copy(filename, temp_filename)
-
-            commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
-            result = h.dev.run_command(commands)
-
-        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
-        self.add_line(result)
-        self.show_result()
-
-
 class OnOptimizeQuality(ActionBase):
     """Optimize images with higher quality settings.
 
@@ -323,7 +289,7 @@ class OnOptimizeQuality(ActionBase):
         self.show_result()
 
 
-class OnResizeOptimizePngToAvif(ActionBase):
+class OnOptimizeResizePngToAvif(ActionBase):
     """Resize and optimize images and convert PNG files to AVIF format too."""
 
     icon = "↔️"
@@ -350,5 +316,39 @@ class OnResizeOptimizePngToAvif(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.show_toast("Optimize completed")
+        self.add_line(result)
+        self.show_result()
+
+
+class OnOptimizeSingleImage(ActionBase):
+    """Optimize a single image file.
+
+    This action prompts the user to select a single image file, processes it
+    using the npm optimize script, and saves the optimized version to the
+    `optimized_images` directory for easy access.
+    """
+
+    icon = "🖼️"
+    title = "Optimize one image"
+
+    @ActionBase.handle_exceptions("single file optimization")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        filename = self.get_open_filename(
+            "Select an Image File",
+            self.config["path_articles"],
+            "Image Files (*.jpg *.jpeg *.webp *.png *.svg *.avif *.mp4);;All Files (*)",
+        )
+        if not filename:
+            return
+
+        with TemporaryDirectory() as temp_folder:
+            temp_filename = Path(temp_folder) / Path(filename).name
+            shutil.copy(filename, temp_filename)
+
+            commands: str = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
+            result = h.dev.run_command(commands)
+
+        h.file.open_file_or_folder(h.dev.get_project_root() / "temp/optimized_images")
         self.add_line(result)
         self.show_result()
