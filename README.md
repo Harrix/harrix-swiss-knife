@@ -29,6 +29,8 @@ This is a **personal** project tailored to **specific personal** tasks.
 
 GitHub: <https://github.com/Harrix/harrix-swiss-knife>
 
+Documentation: [docs](https://github.com/Harrix/harrix-swiss-knife/blob/main/docs/index.g.md)
+
 This project provides a Windows application with a system tray context menu, featuring mini-programs designed to automate specific personal tasks.
 
 ![Screenshot](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/screenshot.png)
