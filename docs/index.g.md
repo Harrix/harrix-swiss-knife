@@ -73,7 +73,6 @@ _Figure 1: Screenshot_
   - 😎 Beautify MD and regenerate .g.md in …
   - 😎 Beautify MD in …
   - 🚧 Check in …
-  - 📥 Download images in one MD
   - 📥 Download images in …
   - 🧏 Generate a short version with only TOC
   - ⚖️ Optimize images in MD in …
