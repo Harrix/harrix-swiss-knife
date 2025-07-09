@@ -27,6 +27,7 @@ lang: en
   - [Method `get_text_textarea`](#method-get_text_textarea)
   - [Method `handle_error`](#method-handle_error)
   - [Method `handle_exceptions`](#method-handle_exceptions)
+  - [Method `show_about_dialog`](#method-show_about_dialog)
   - [Method `show_instructions`](#method-show_instructions)
   - [Method `show_result`](#method-show_result)
   - [Method `show_text_multiline`](#method-show_text_multiline)
@@ -482,6 +483,100 @@ class ActionBase:
             return wrapper
 
         return decorator
+
+    def show_about_dialog(
+        self,
+        title: str = "About",
+        app_name: str = "Harrix Swiss Knife",
+        version: str = "1.0.0",
+        description: str = "",
+        author: str = "",
+        license_text: str = "",
+        github: str = "",
+    ) -> str | None:
+        """Open a dialog to display information about the program.
+
+        Args:
+
+        - `title` (`str`): The title of the about dialog. Defaults to `"About"`.
+        - `app_name` (`str`): The name of the application. Defaults to `"Harrix Swiss Knife"`.
+        - `version` (`str`): The version of the application. Defaults to `"1.0.0"`.
+        - `description` (`str`): Description of the application. Defaults to `""`.
+        - `author` (`str`): Author information. Defaults to `""`.
+        - `license_text` (`str`): License information. Defaults to `""`.
+        - `github` (`str`): Link to the GitHub repository. Defaults to `""`.
+
+        Returns:
+
+        - `str | None`: The displayed information text, or `None` if cancelled.
+
+        """
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(600, 500)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Create a text browser widget
+        text_browser = QTextBrowser()
+
+        # Build the about text
+        about_text = f"# {app_name}\n\n"
+
+        if version:
+            about_text += f"Version: {version}\n\n"
+
+        if description:
+            about_text += f"{description}\n\n"
+
+        if author:
+            about_text += f"Author: {author}\n\n"
+
+        if license_text:
+            about_text += f"License: {license_text}\n\n"
+
+        if github:
+            about_text += f"GitHub: <{github}>\n\n"
+
+        # Use setPlainText to preserve multiline formatting
+        text_browser.setPlainText(about_text)
+
+        # Set a readable font
+        font = QFont("JetBrains Mono", 10)
+        text_browser.setFont(font)
+
+        layout.addWidget(text_browser)
+
+        # Create a horizontal layout for buttons
+        button_layout = QHBoxLayout()
+
+        # Add a Copy button
+        copy_button = QPushButton("Copy to Clipboard")
+
+        def click_copy_button() -> None:
+            QGuiApplication.clipboard().setText(about_text)
+            self.show_toast("About information copied to Clipboard")
+
+        copy_button.clicked.connect(click_copy_button)
+        button_layout.addWidget(copy_button)
+
+        # Add OK button
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_button)
+
+        # Add the button layout to the main layout
+        layout.addLayout(button_layout)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            return about_text
+        return None
 
     def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
         """Open a dialog to display instructions with basic Markdown support.
@@ -1299,6 +1394,112 @@ def handle_exceptions(
             return wrapper
 
         return decorator
+```
+
+</details>
+
+### Method `show_about_dialog`
+
+```python
+def show_about_dialog(self, title: str = "About", app_name: str = "Harrix Swiss Knife", version: str = "1.0.0", description: str = "", author: str = "", license_text: str = "", github: str = "") -> str | None
+```
+
+Open a dialog to display information about the program.
+
+Args:
+
+- `title` (`str`): The title of the about dialog. Defaults to `"About"`.
+- `app_name` (`str`): The name of the application. Defaults to `"Harrix Swiss Knife"`.
+- `version` (`str`): The version of the application. Defaults to `"1.0.0"`.
+- `description` (`str`): Description of the application. Defaults to `""`.
+- `author` (`str`): Author information. Defaults to `""`.
+- `license_text` (`str`): License information. Defaults to `""`.
+- `github` (`str`): Link to the GitHub repository. Defaults to `""`.
+
+Returns:
+
+- `str | None`: The displayed information text, or `None` if cancelled.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_about_dialog(
+        self,
+        title: str = "About",
+        app_name: str = "Harrix Swiss Knife",
+        version: str = "1.0.0",
+        description: str = "",
+        author: str = "",
+        license_text: str = "",
+        github: str = "",
+    ) -> str | None:
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(600, 500)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Create a text browser widget
+        text_browser = QTextBrowser()
+
+        # Build the about text
+        about_text = f"# {app_name}\n\n"
+
+        if version:
+            about_text += f"Version: {version}\n\n"
+
+        if description:
+            about_text += f"{description}\n\n"
+
+        if author:
+            about_text += f"Author: {author}\n\n"
+
+        if license_text:
+            about_text += f"License: {license_text}\n\n"
+
+        if github:
+            about_text += f"GitHub: <{github}>\n\n"
+
+        # Use setPlainText to preserve multiline formatting
+        text_browser.setPlainText(about_text)
+
+        # Set a readable font
+        font = QFont("JetBrains Mono", 10)
+        text_browser.setFont(font)
+
+        layout.addWidget(text_browser)
+
+        # Create a horizontal layout for buttons
+        button_layout = QHBoxLayout()
+
+        # Add a Copy button
+        copy_button = QPushButton("Copy to Clipboard")
+
+        def click_copy_button() -> None:
+            QGuiApplication.clipboard().setText(about_text)
+            self.show_toast("About information copied to Clipboard")
+
+        copy_button.clicked.connect(click_copy_button)
+        button_layout.addWidget(copy_button)
+
+        # Add OK button
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_button)
+
+        # Add the button layout to the main layout
+        layout.addLayout(button_layout)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            return about_text
+        return None
 ```
 
 </details>

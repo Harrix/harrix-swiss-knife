@@ -32,6 +32,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_items(
             self.menu_dev,
             [
+                hsk.dev.AboutDialog,
                 hsk.dev.OnNpmManagePackages,
                 hsk.dev.OnOpenConfigJson,
                 hsk.dev.OnUvUpdate,

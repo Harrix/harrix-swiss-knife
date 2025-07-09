@@ -8,7 +8,7 @@ lang: en
 
 ![Featured image](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/featured-image.svg)
 
-This is a **personal** project tailored to **specific personal** tasks.
+A multifunctional tool for developers with a rich set of utilities for working with files, images, Python code, and more.
 
 <details>
 <summary>📖 Contents</summary>
@@ -28,6 +28,8 @@ This is a **personal** project tailored to **specific personal** tasks.
 - [License](#license)
 
 </details>
+
+This is a **personal** project tailored to **specific personal** tasks.
 
 ![GitHub](https://img.shields.io/badge/GitHub-harrix--swiss--knife-blue?logo=github) ![GitHub](https://img.shields.io/github/license/Harrix/harrix-swiss-knife)
 
@@ -73,10 +75,7 @@ _Figure 1: Screenshot_
   - 📥 Download images in one MD
   - 📥 Download images in …
   - 🧏 Generate a short version with only TOC
-  - ⚖️ Optimize images (compare PNG/AVIF sizes) in …
-  - 🖼️ Optimize images (with PNG to AVIF) in …
-  - 🖼️ Optimize images in one MD
-  - 🖼️ Optimize images in …
+  - ⚖️ Optimize images in MD in …
   - ❞ Quotes. Add author and title
   - 📶 Sort sections in one MD
 - **New Markdown**
