@@ -295,6 +295,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "ruff" },
+    { name = "transliterate" },
 ]
 
 [package.metadata]
@@ -303,6 +304,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "ruff", specifier = ">=0.9.2" },
+    { name = "transliterate" },
 ]
 
 [package.metadata.requires-dev]
@@ -1235,6 +1237,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/5b/b9/1ed31d167be802da0fc95020d04cd27b7d7065cc6fbefdd2f9186f60d7bd/tomli-2.2.1-cp313-cp313-win32.whl", hash = "sha256:d3f5614314d758649ab2ab3a62d4f2004c825922f9e370b29416484086b264ec", size = 98724, upload-time = "2024-11-27T22:38:32.837Z" },
     { url = "https://files.pythonhosted.org/packages/c7/32/b0963458706accd9afcfeb867c0f9175a741bf7b19cd424230714d722198/tomli-2.2.1-cp313-cp313-win_amd64.whl", hash = "sha256:a38aa0308e754b0e3c67e344754dff64999ff9b513e691d0e786265c93583c69", size = 109383, upload-time = "2024-11-27T22:38:34.455Z" },
     { url = "https://files.pythonhosted.org/packages/6e/c2/61d3e0f47e2b74ef40a68b9e6ad5984f6241a942f7cd3bbfbdbd03861ea9/tomli-2.2.1-py3-none-any.whl", hash = "sha256:cb55c73c5f4408779d0cf3eef9f762b9c9f147a77de7b258bef0a5628adc85cc", size = 14257, upload-time = "2024-11-27T22:38:35.385Z" },
+]
+
+[[package]]
+name = "transliterate"
+version = "1.10.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/88/e3/84a89c289a5cf00c7aeabfb5a862a6e4cdc25819701cf1c454a18d32ac33/transliterate-1.10.2.tar.gz", hash = "sha256:bc608e0d48e687db9c2b1d7ea7c381afe0d1849cad216087d8e03d8d06a57c85", size = 43088, upload-time = "2018-09-17T20:52:37.984Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a1/6e/9a9d597dbdd6d0172427c8cc07c35736471e631060df9e59eeb87687f817/transliterate-1.10.2-py2.py3-none-any.whl", hash = "sha256:010a5021bf6021689c4fade0985f3f7b3db1f2f16a48a09a56797f171c08ed42", size = 45780, upload-time = "2018-09-17T20:52:40.332Z" },
 ]
 
 [[package]]
