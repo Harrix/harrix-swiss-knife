@@ -61,20 +61,16 @@ lang: en
   - [Method `execute`](#method-execute-15)
   - [Method `in_thread`](#method-in_thread-8)
   - [Method `thread_after`](#method-thread_after-8)
-- [Class `OnOptimizeImagesFolderPngToAvif`](#class-onoptimizeimagesfolderpngtoavif)
+- [Class `OnQuotesFormatAsMarkdownContent`](#class-onquotesformatasmarkdowncontent)
   - [Method `execute`](#method-execute-16)
+- [Class `OnQuotesGenerateAuthorAndBook`](#class-onquotesgenerateauthorandbook)
+  - [Method `execute`](#method-execute-17)
   - [Method `in_thread`](#method-in_thread-9)
   - [Method `thread_after`](#method-thread_after-9)
-- [Class `OnQuotesFormatAsMarkdownContent`](#class-onquotesformatasmarkdowncontent)
-  - [Method `execute`](#method-execute-17)
-- [Class `OnQuotesGenerateAuthorAndBook`](#class-onquotesgenerateauthorandbook)
+- [Class `OnSortSections`](#class-onsortsections)
   - [Method `execute`](#method-execute-18)
   - [Method `in_thread`](#method-in_thread-10)
   - [Method `thread_after`](#method-thread_after-10)
-- [Class `OnSortSections`](#class-onsortsections)
-  - [Method `execute`](#method-execute-19)
-  - [Method `in_thread`](#method-in_thread-11)
-  - [Method `thread_after`](#method-thread_after-11)
 
 </details>
 
@@ -1568,113 +1564,6 @@ def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
         self.add_line(h.file.apply_func(self.folder_path, ".md", markdown_utils.optimize_images_in_md_compare_sizes))
-```
-
-</details>
-
-### Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-```
-
-</details>
-
-## Class `OnOptimizeImagesFolderPngToAvif`
-
-```python
-class OnOptimizeImagesFolderPngToAvif(ActionBase)
-```
-
-Optimize images in Markdown files and convert PNG images to AVIF format too.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnOptimizeImagesFolderPngToAvif(ActionBase):
-
-    icon = "🖼️"
-    title = "Optimize images (with PNG to AVIF) in …"
-
-    @ActionBase.handle_exceptions("optimizing images with PNG to AVIF conversion")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @ActionBase.handle_exceptions("optimizing images PNG to AVIF thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", markdown_utils.optimize_images_in_md_png_to_avif))
-
-    @ActionBase.handle_exceptions("optimizing images PNG to AVIF thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-```
-
-</details>
-
-### Method `in_thread`
-
-```python
-def in_thread(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> str | None:
-        if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", markdown_utils.optimize_images_in_md_png_to_avif))
 ```
 
 </details>

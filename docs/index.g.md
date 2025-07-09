@@ -73,6 +73,7 @@ _Figure 1: Screenshot_
   - 📥 Download images in one MD
   - 📥 Download images in …
   - 🧏 Generate a short version with only TOC
+  - ⚖️ Optimize images (compare PNG/AVIF sizes) in …
   - 🖼️ Optimize images (with PNG to AVIF) in …
   - 🖼️ Optimize images in one MD
   - 🖼️ Optimize images in …
