@@ -246,19 +246,20 @@ function convertGifMp4ToAvif(filePath, outputFilePath, file, maxSize) {
  */
 async function processPng(filePath, file, quality, convertPngToAvif, outputFilePathAvif, outputFilePathPng, maxSize) {
   try {
-    if (convertPngToAvif) {
-      // Convert PNG to AVIF
+    if (convertPngToAvif === "compare") {
+      // New mode: compare sizes and keep smaller
+      return await processPngCompareSize(filePath, file, quality, outputFilePathAvif, outputFilePathPng, maxSize);
+    } else if (convertPngToAvif) {
+      // Original AVIF conversion mode
       const qualityValue = quality ? 93 : 63;
       let sharpInstance = sharp(filePath);
-
-      // Resize if needed
       sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
-
       await sharpInstance.avif({ quality: qualityValue }).toFile(outputFilePathAvif);
       console.log(`✅ File ${file} successfully converted from PNG to AVIF.`);
+      return ".avif";
     } else {
+      // Original PNG optimization mode
       if (quality) {
-        // If quality is true, copy the file without changes (but still resize if needed)
         if (maxSize) {
           let sharpInstance = sharp(filePath);
           sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
@@ -269,19 +270,16 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
           console.log(`File ${file} copied without changes.`);
         }
       } else {
-        // Options for PNG optimization
         const pngOptions = {
           compressionLevel: 9,
           adaptiveFiltering: true,
-          colors: 256, // reduce colors to 256 for 8-bit PNG
+          colors: 256,
         };
 
-        // Step 1: Optimize with Sharp (and resize if needed)
         let sharpInstance = sharp(filePath);
         sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
         const optimizedBuffer = await sharpInstance.png(pngOptions).toBuffer();
 
-        // Step 2: Further optimize with imagemin-pngquant
         const pngQuantBuffer = await imagemin.buffer(optimizedBuffer, {
           plugins: [
             imageminPngquant({
@@ -295,9 +293,11 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
         fs.writeFileSync(outputFilePathPng, pngQuantBuffer);
         console.log(`✅ File ${file} successfully optimized.`);
       }
+      return ".png";
     }
   } catch (error) {
     console.error(`❌ Error while processing file ${file}:`, error);
+    return ".png";
   }
 }
 
@@ -919,9 +919,8 @@ function optimizeSvg(filePath, outputFilePath, file) {
 async function processImage(file, { imagesFolder, outputFolder, quality, convertPngToAvif, maxSize }) {
   const filePath = path.join(imagesFolder, file);
 
-  // Skip directories
   if (fs.lstatSync(filePath).isDirectory()) {
-    return;
+    return null;
   }
 
   const ext = path.extname(file).toLowerCase();
@@ -935,28 +934,35 @@ async function processImage(file, { imagesFolder, outputFolder, quality, convert
     case ".jpeg":
     case ".webp":
       await convertJpgWebpToAvif(filePath, outputFilePathAvif, quality, file, maxSize);
-      break;
+      return ".avif";
 
     case ".gif":
     case ".mp4":
       convertGifMp4ToAvif(filePath, outputFilePathAvif, file, maxSize);
-      break;
+      return ".avif";
 
     case ".png":
-      await processPng(filePath, file, quality, convertPngToAvif, outputFilePathAvif, outputFilePathPng, maxSize);
-      break;
+      return await processPng(
+        filePath,
+        file,
+        quality,
+        convertPngToAvif,
+        outputFilePathAvif,
+        outputFilePathPng,
+        maxSize
+      );
 
     case ".avif":
       await processAvif(filePath, outputFilePathAvif, file, quality, maxSize);
-      break;
+      return ".avif";
 
     case ".svg":
       optimizeSvg(filePath, outputFilePathSvg, file);
-      break;
+      return ".svg";
 
     default:
       console.log(`🔵 File ${file} is skipped because its format is not supported.`);
-      break;
+      return null;
   }
 }
 
@@ -1018,10 +1024,94 @@ async function main() {
       return;
     }
 
+    const results = {};
+
     for (const file of files) {
-      await processImage(file, { imagesFolder, outputFolder, quality, convertPngToAvif, maxSize });
+      const resultExt = await processImage(file, { imagesFolder, outputFolder, quality, convertPngToAvif, maxSize });
+      if (resultExt) {
+        const originalName = path.parse(file).name;
+        results[originalName] = resultExt;
+      }
     }
+
+    // Сохраняем результаты в JSON файл
+    const resultsPath = path.join(outputFolder, "optimization_results.json");
+    fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
+    console.log(`📄 Results saved to ${resultsPath}`);
   });
+}
+
+/**
+ * Compare PNG and AVIF file sizes and keep the smaller one.
+ *
+ * Converts PNG to AVIF, compares file sizes, and keeps only the smaller version.
+ * This ensures optimal file size while maintaining quality.
+ *
+ * Args:
+ *
+ * - `filePath` (`string`): The source PNG file path.
+ * - `file` (`string`): The original filename for logging purposes.
+ * - `quality` (`boolean`): Quality setting flag.
+ * - `outputFilePathAvif` (`string`): The destination path for AVIF conversion.
+ * - `outputFilePathPng` (`string`): The destination path for PNG optimization.
+ * - `maxSize` (`number|null`): Maximum width or height in pixels for resizing.
+ *
+ * Returns:
+ *
+ * - `Promise<string>`: Resolves with the extension of the kept file ('.png' or '.avif').
+ */
+async function processPngCompareSize(filePath, file, quality, outputFilePathAvif, outputFilePathPng, maxSize) {
+  try {
+    // Step 1: Optimize PNG
+    const pngOptions = {
+      compressionLevel: 9,
+      adaptiveFiltering: true,
+      colors: 256,
+    };
+
+    let sharpInstance = sharp(filePath);
+    sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
+    const optimizedPngBuffer = await sharpInstance.png(pngOptions).toBuffer();
+
+    const pngQuantBuffer = await imagemin.buffer(optimizedPngBuffer, {
+      plugins: [
+        imageminPngquant({
+          quality: [0.6, 0.8],
+          strip: true,
+          speed: 1,
+        }),
+      ],
+    });
+
+    // Step 2: Convert to AVIF
+    const qualityValue = quality ? 93 : 63;
+    sharpInstance = sharp(filePath);
+    sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
+    const avifBuffer = await sharpInstance.avif({ quality: qualityValue }).toBuffer();
+
+    // Step 3: Compare sizes
+    const pngSize = pngQuantBuffer.length;
+    const avifSize = avifBuffer.length;
+
+    console.log(`📊 File ${file} size comparison:`);
+    console.log(`   PNG: ${(pngSize / 1024).toFixed(2)} KB`);
+    console.log(`   AVIF: ${(avifSize / 1024).toFixed(2)} KB`);
+
+    if (pngSize <= avifSize) {
+      // Keep PNG
+      fs.writeFileSync(outputFilePathPng, pngQuantBuffer);
+      console.log(`✅ File ${file} kept as PNG (smaller size)`);
+      return ".png";
+    } else {
+      // Keep AVIF
+      fs.writeFileSync(outputFilePathAvif, avifBuffer);
+      console.log(`✅ File ${file} converted to AVIF (smaller size)`);
+      return ".avif";
+    }
+  } catch (error) {
+    console.error(`❌ Error while processing file ${file}:`, error);
+    return ".png"; // Default to PNG on error
+  }
 }
 
 // Execute main function

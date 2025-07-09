@@ -517,6 +517,37 @@ class OnOptimizeImagesFolder(ActionBase):
         self.show_result()
 
 
+class OnOptimizeImagesFolderCompareSize(ActionBase):
+    """Optimize images in Markdown files with PNG/AVIF size comparison."""
+
+    icon = "⚖️"
+    title = "Optimize images (compare PNG/AVIF sizes) in …"
+
+    @ActionBase.handle_exceptions("optimizing images with size comparison")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with Markdown files", self.config["path_articles"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("optimizing images with size comparison thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.folder_path is None:
+            return
+        self.add_line(h.file.apply_func(self.folder_path, ".md", markdown_utils.optimize_images_in_md_compare_sizes))
+
+    @ActionBase.handle_exceptions("optimizing images with size comparison thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
+
+
 class OnOptimizeImagesFolderPngToAvif(ActionBase):
     """Optimize images in Markdown files and convert PNG images to AVIF format too."""
 

@@ -1,5 +1,6 @@
 """Module with functions for `actions/markdown.py`."""
 
+import json
 import re
 import shutil
 from pathlib import Path
@@ -101,12 +102,43 @@ def optimize_images_in_md(filename: Path | str) -> str:
     return "File is not changed."
 
 
+def optimize_images_in_md_compare_sizes(filename: Path | str) -> str:
+    """Optimize images in a Markdown file with PNG/AVIF size comparison.
+
+    This function reads a Markdown file, processes any local images referenced in it,
+    optimizes them, and for PNG images compares optimized PNG vs AVIF sizes to keep the smaller one.
+
+    Args:
+
+    - `filename` (`Path | str`): Path to the Markdown file to process.
+
+    Returns:
+
+    - `str`: A status message indicating whether the file was modified.
+
+    """
+    filename = Path(filename)
+    with Path.open(filename, encoding="utf-8") as f:
+        document = f.read()
+
+    document_new = optimize_images_in_md_content(
+        document, filename.parent, is_convert_png_to_avif=False, is_compare_png_avif_sizes=True
+    )
+
+    if document != document_new:
+        with Path.open(filename, "w", encoding="utf-8") as file:
+            file.write(document_new)
+        return f"✅ File {filename} applied."
+    return "File is not changed."
+
+
 def optimize_images_in_md_content(
     markdown_text: str,
     path_md: Path | str,
     image_folder: str = "img",
     *,
     is_convert_png_to_avif: bool = False,
+    is_compare_png_avif_sizes: bool = False,
 ) -> str:
     """Optimize images referenced in Markdown content by converting them to more efficient formats.
 
@@ -120,6 +152,8 @@ def optimize_images_in_md_content(
     - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
     - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
     - `is_convert_png_to_avif` (`bool`): Flag for converting PNG to AVIF. Defaults to `False`.
+    - `is_compare_png_avif_sizes` (`bool`): Flag for comparing PNG and AVIF sizes and keeping smaller.
+      Defaults to `False`.
 
     Returns:
 
@@ -128,7 +162,11 @@ def optimize_images_in_md_content(
     Notes:
 
     - Images with extensions .jpg, .jpeg, .webp, .gif, and .mp4 will be converted to .avif
-    - PNG and SVG files keep their original format but may still be optimized
+    - PNG files behavior depends on flags:
+      - If `is_compare_png_avif_sizes` is True: compares optimized PNG vs AVIF and keeps smaller
+      - If `is_convert_png_to_avif` is True: converts PNG to AVIF
+      - Otherwise: optimizes PNG and keeps as PNG
+    - SVG files keep their original format but may still be optimized
     - The optimization process uses an external npm script
     - Code blocks in the Markdown are preserved without changes
 
@@ -188,11 +226,16 @@ def optimize_images_in_md_content(
                     if ext in supported_extensions:
                         # Determine the new extension based on the current one
                         new_ext = ext
-                        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"] or (
-                            ext == ".png" and is_convert_png_to_avif
-                        ):
+                        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
                             new_ext = ".avif"
-                        # For .png and .svg, keep the original extension
+                        elif ext == ".png":
+                            if is_compare_png_avif_sizes:
+                                # Will be determined by the optimization script
+                                pass
+                            elif is_convert_png_to_avif:
+                                new_ext = ".avif"
+                            # Otherwise keep .png
+                        # For .svg and .avif, keep the original extension
 
                         # Create temporary directory for optimization
                         with TemporaryDirectory() as temp_folder:
@@ -202,12 +245,28 @@ def optimize_images_in_md_content(
 
                             # Run the optimization command
                             commands = f'npm run optimize imagesFolder="{temp_folder}"'
-                            if is_convert_png_to_avif:
+                            if is_compare_png_avif_sizes and ext == ".png":
+                                commands += " convertPngToAvif=compare"
+                            elif is_convert_png_to_avif and ext == ".png":
                                 commands += " convertPngToAvif=true"
+
                             h.dev.run_command(commands)
 
-                            # Path to the optimized image
+                            # Path to the optimized images directory
                             optimized_images_dir = temp_folder_path / "temp"
+
+                            # For PNG with size comparison, check results file
+                            if is_compare_png_avif_sizes and ext == ".png":
+                                results_file = optimized_images_dir / "optimization_results.json"
+                                if results_file.exists():
+                                    with Path.open(results_file) as f:
+                                        results = json.load(f)
+
+                                    stem = image_filename.stem
+                                    if stem in results:
+                                        new_ext = results[stem]
+
+                            # Path to the optimized image
                             optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
 
                             # Check if the optimization was successful
