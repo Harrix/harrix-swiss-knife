@@ -74,34 +74,6 @@ def beautify_markdown_common(
     self.add_line(result)
 
 
-def optimize_images_in_md(filename: Path | str) -> str:
-    """Optimize images in a Markdown file by converting them to more efficient formats.
-
-    This function reads a Markdown file, processes any local images referenced in it,
-    optimizes them, and updates the Markdown content to reference the optimized images.
-
-    Args:
-
-    - `filename` (`Path | str`): Path to the Markdown file to process.
-
-    Returns:
-
-    - `str`: A status message indicating whether the file was modified.
-
-    """
-    filename = Path(filename)
-    with Path.open(filename, encoding="utf-8") as f:
-        document = f.read()
-
-    document_new = optimize_images_in_md_content(document, filename.parent, is_convert_png_to_avif=False)
-
-    if document != document_new:
-        with Path.open(filename, "w", encoding="utf-8") as file:
-            file.write(document_new)
-        return f"✅ File {filename} applied."
-    return "File is not changed."
-
-
 def optimize_images_in_md_compare_sizes(filename: Path | str) -> str:
     """Optimize images in a Markdown file with PNG/AVIF size comparison.
 
@@ -311,31 +283,3 @@ def optimize_images_in_md_content(
     content_md = "\n".join(new_lines)
 
     return yaml_md + "\n\n" + content_md
-
-
-def optimize_images_in_md_png_to_avif(filename: Path | str) -> str:
-    """Optimize images in a Markdown file by converting them to more efficient formats. PNG converts to AVIF too.
-
-    This function reads a Markdown file, processes any local images referenced in it,
-    optimizes them, and updates the Markdown content to reference the optimized images.
-
-    Args:
-
-    - `filename` (`Path | str`): Path to the Markdown file to process.
-
-    Returns:
-
-    - `str`: A status message indicating whether the file was modified.
-
-    """
-    filename = Path(filename)
-    with Path.open(filename, encoding="utf-8") as f:
-        document = f.read()
-
-    document_new = optimize_images_in_md_content(document, filename.parent, is_convert_png_to_avif=True)
-
-    if document != document_new:
-        with Path.open(filename, "w", encoding="utf-8") as file:
-            file.write(document_new)
-        return f"✅ File {filename} applied."
-    return "File is not changed."
