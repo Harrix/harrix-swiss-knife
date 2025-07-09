@@ -143,44 +143,6 @@ class OnCheckMdFolder(ActionBase):
         self.show_result()
 
 
-class OnDownloadAndReplaceImages(ActionBase):
-    """Download remote images and replace URLs with local references in a Markdown file.
-
-    This action processes a selected Markdown file to find image URLs, downloads the images
-    to a local directory, and updates the Markdown to reference these local copies instead
-    of the remote URLs, improving document portability and reducing external dependencies.
-    """
-
-    icon = "📥"
-    title = "Download images in one MD"
-
-    @ActionBase.handle_exceptions("downloading images in markdown file")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.filename = self.get_open_filename(
-            "Open Markdown file",
-            self.config["path_notes"],
-            "Markdown (*.md);;All Files (*)",
-        )
-        if not self.filename:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @ActionBase.handle_exceptions("downloading images thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.filename is None:
-            return
-        self.add_line(h.md.download_and_replace_images(self.filename))
-
-    @ActionBase.handle_exceptions("downloading images thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.filename} completed")
-        self.show_result()
-
-
 class OnDownloadAndReplaceImagesFolder(ActionBase):
     """Download remote images and replace URLs with local references in multiple Markdown files.
 

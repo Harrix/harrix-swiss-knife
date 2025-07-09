@@ -23,49 +23,45 @@ lang: en
   - [Method `execute`](#method-execute-2)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnDownloadAndReplaceImages`](#class-ondownloadandreplaceimages)
+- [Class `OnDownloadAndReplaceImagesFolder`](#class-ondownloadandreplaceimagesfolder)
   - [Method `execute`](#method-execute-3)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
-- [Class `OnDownloadAndReplaceImagesFolder`](#class-ondownloadandreplaceimagesfolder)
+- [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
   - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread-4)
   - [Method `thread_after`](#method-thread_after-4)
-- [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
-  - [Method `execute`](#method-execute-5)
-  - [Method `in_thread`](#method-in_thread-5)
-  - [Method `thread_after`](#method-thread_after-5)
 - [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
-  - [Method `execute`](#method-execute-6)
+  - [Method `execute`](#method-execute-5)
 - [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
-  - [Method `execute`](#method-execute-7)
+  - [Method `execute`](#method-execute-6)
 - [Class `OnNewArticle`](#class-onnewarticle)
-  - [Method `execute`](#method-execute-8)
+  - [Method `execute`](#method-execute-7)
 - [Class `OnNewDiary`](#class-onnewdiary)
-  - [Method `execute`](#method-execute-9)
+  - [Method `execute`](#method-execute-8)
 - [Class `OnNewDiaryDream`](#class-onnewdiarydream)
-  - [Method `execute`](#method-execute-10)
+  - [Method `execute`](#method-execute-9)
 - [Class `OnNewNoteDialog`](#class-onnewnotedialog)
-  - [Method `execute`](#method-execute-11)
+  - [Method `execute`](#method-execute-10)
 - [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
-  - [Method `execute`](#method-execute-12)
+  - [Method `execute`](#method-execute-11)
 - [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
-  - [Method `execute`](#method-execute-13)
-  - [Method `in_thread`](#method-in_thread-6)
+  - [Method `execute`](#method-execute-12)
+  - [Method `in_thread`](#method-in_thread-5)
   - [Method `optimize_images_content_line`](#method-optimize_images_content_line)
   - [Method `optimize_images_in_md_compare_sizes`](#method-optimize_images_in_md_compare_sizes)
   - [Method `optimize_images_in_md_content`](#method-optimize_images_in_md_content)
-  - [Method `thread_after`](#method-thread_after-6)
+  - [Method `thread_after`](#method-thread_after-5)
 - [Class `OnQuotesFormatAsMarkdownContent`](#class-onquotesformatasmarkdowncontent)
-  - [Method `execute`](#method-execute-14)
+  - [Method `execute`](#method-execute-13)
 - [Class `OnQuotesGenerateAuthorAndBook`](#class-onquotesgenerateauthorandbook)
+  - [Method `execute`](#method-execute-14)
+  - [Method `in_thread`](#method-in_thread-6)
+  - [Method `thread_after`](#method-thread_after-6)
+- [Class `OnSortSections`](#class-onsortsections)
   - [Method `execute`](#method-execute-15)
   - [Method `in_thread`](#method-in_thread-7)
   - [Method `thread_after`](#method-thread_after-7)
-- [Class `OnSortSections`](#class-onsortsections)
-  - [Method `execute`](#method-execute-16)
-  - [Method `in_thread`](#method-in_thread-8)
-  - [Method `thread_after`](#method-thread_after-8)
 
 </details>
 
@@ -426,121 +422,6 @@ Execute code in the main thread after in_thread(). For handling the results of t
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} {self.folder_path} completed")
-        self.show_result()
-```
-
-</details>
-
-## Class `OnDownloadAndReplaceImages`
-
-```python
-class OnDownloadAndReplaceImages(ActionBase)
-```
-
-Download remote images and replace URLs with local references in a Markdown file.
-
-This action processes a selected Markdown file to find image URLs, downloads the images
-to a local directory, and updates the Markdown to reference these local copies instead
-of the remote URLs, improving document portability and reducing external dependencies.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnDownloadAndReplaceImages(ActionBase):
-
-    icon = "📥"
-    title = "Download images in one MD"
-
-    @ActionBase.handle_exceptions("downloading images in markdown file")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.filename = self.get_open_filename(
-            "Open Markdown file",
-            self.config["path_notes"],
-            "Markdown (*.md);;All Files (*)",
-        )
-        if not self.filename:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @ActionBase.handle_exceptions("downloading images thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.filename is None:
-            return
-        self.add_line(h.md.download_and_replace_images(self.filename))
-
-    @ActionBase.handle_exceptions("downloading images thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.filename} completed")
-        self.show_result()
-```
-
-</details>
-
-### Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.filename = self.get_open_filename(
-            "Open Markdown file",
-            self.config["path_notes"],
-            "Markdown (*.md);;All Files (*)",
-        )
-        if not self.filename:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-```
-
-</details>
-
-### Method `in_thread`
-
-```python
-def in_thread(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> str | None:
-        if self.filename is None:
-            return
-        self.add_line(h.md.download_and_replace_images(self.filename))
-```
-
-</details>
-
-### Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} {self.filename} completed")
         self.show_result()
 ```
 
