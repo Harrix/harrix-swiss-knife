@@ -66,6 +66,7 @@ _Figure 1: Screenshot_
   - ✅ Check featured_image in …
   - 🗂️ Moves and flattens files from nested folders
   - 📚 Rename FB2 files in …
+  - 📚 Rename PDF files in …
   - 🖲️ Rename largest images to featured_image in …
   - ├ Tree view of a folder
   - ├ Tree view of a folder (ignore hidden folders)
