@@ -57,6 +57,25 @@ class OnOpenCameraUploads(ActionBase):
         self.add_line('The folders from "Camera Uploads" is opened.')
 
 
+class OnOpenCameraUploadsShort(ActionBase):
+    """Open all Camera Uploads folders (short list of folders).
+
+    This action opens all directories specified in the `paths_camera_uploads`
+    configuration setting in the system's file explorer, providing quick access
+    to folders where camera photos are typically uploaded or stored.
+    """
+
+    icon = "📸"
+    title = "Open Camera Uploads (short list of folders)"
+
+    @ActionBase.handle_exceptions("opening camera uploads")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        for path in self.config["paths_camera_uploads-short"]:
+            h.file.open_file_or_folder(Path(path))
+        self.add_line('The folders from "Camera Uploads" is opened.')
+
+
 class OnOpenImages(ActionBase):
     """Open the source images temporary folder.
 

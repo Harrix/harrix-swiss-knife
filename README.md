@@ -46,6 +46,7 @@ _Figure 1: Screenshot_
   - 📥 Update uv
 - **Images**
   - 📸 Open Camera Uploads
+  - 📸 Open Camera Uploads (short list of folders)
   - 🚀 Optimize images
   - 🔝 Optimize images (high quality)
   - ⬆️ Optimize images in … and replace

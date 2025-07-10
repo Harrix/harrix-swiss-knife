@@ -45,6 +45,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             self.menu_images,
             [
                 hsk.images.OnOpenCameraUploads,
+                hsk.images.OnOpenCameraUploadsShort,
                 "-",
                 hsk.images.OnOptimize,
                 hsk.images.OnOptimizeDialogReplace,

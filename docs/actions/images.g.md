@@ -15,30 +15,32 @@ lang: en
   - [Method `execute`](#method-execute)
 - [Class `OnOpenCameraUploads`](#class-onopencamerauploads)
   - [Method `execute`](#method-execute-1)
-- [Class `OnOpenImages`](#class-onopenimages)
+- [Class `OnOpenCameraUploadsShort`](#class-onopencamerauploadsshort)
   - [Method `execute`](#method-execute-2)
-- [Class `OnOpenOptimizedImages`](#class-onopenoptimizedimages)
+- [Class `OnOpenImages`](#class-onopenimages)
   - [Method `execute`](#method-execute-3)
-- [Class `OnOptimize`](#class-onoptimize)
+- [Class `OnOpenOptimizedImages`](#class-onopenoptimizedimages)
   - [Method `execute`](#method-execute-4)
+- [Class `OnOptimize`](#class-onoptimize)
+  - [Method `execute`](#method-execute-5)
   - [Method `in_thread`](#method-in_thread)
   - [Method `optimize_images_common`](#method-optimize_images_common)
   - [Method `thread_after`](#method-thread_after)
 - [Class `OnOptimizeClipboard`](#class-onoptimizeclipboard)
-  - [Method `execute`](#method-execute-5)
-- [Class `OnOptimizeClipboardDialog`](#class-onoptimizeclipboarddialog)
   - [Method `execute`](#method-execute-6)
-- [Class `OnOptimizeDialogReplace`](#class-onoptimizedialogreplace)
+- [Class `OnOptimizeClipboardDialog`](#class-onoptimizeclipboarddialog)
   - [Method `execute`](#method-execute-7)
+- [Class `OnOptimizeDialogReplace`](#class-onoptimizedialogreplace)
+  - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
 - [Class `OnOptimizeQuality`](#class-onoptimizequality)
   - [Method `in_thread`](#method-in_thread-2)
 - [Class `OnOptimizeResizePngToAvif`](#class-onoptimizeresizepngtoavif)
-  - [Method `execute`](#method-execute-8)
+  - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-3)
 - [Class `OnOptimizeSingleImage`](#class-onoptimizesingleimage)
-  - [Method `execute`](#method-execute-9)
+  - [Method `execute`](#method-execute-10)
 
 </details>
 
@@ -152,6 +154,57 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         for path in self.config["paths_camera_uploads"]:
+            h.file.open_file_or_folder(Path(path))
+        self.add_line('The folders from "Camera Uploads" is opened.')
+```
+
+</details>
+
+## Class `OnOpenCameraUploadsShort`
+
+```python
+class OnOpenCameraUploadsShort(ActionBase)
+```
+
+Open all Camera Uploads folders (short list of folders).
+
+This action opens all directories specified in the `paths_camera_uploads`
+configuration setting in the system's file explorer, providing quick access
+to folders where camera photos are typically uploaded or stored.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnOpenCameraUploadsShort(ActionBase):
+
+    icon = "📸"
+    title = "Open Camera Uploads (short list of folders)"
+
+    @ActionBase.handle_exceptions("opening camera uploads")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        for path in self.config["paths_camera_uploads-short"]:
+            h.file.open_file_or_folder(Path(path))
+        self.add_line('The folders from "Camera Uploads" is opened.')
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        for path in self.config["paths_camera_uploads-short"]:
             h.file.open_file_or_folder(Path(path))
         self.add_line('The folders from "Camera Uploads" is opened.')
 ```
