@@ -201,7 +201,7 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
-            "Select a folder with FB2, Epub, PDF files", self.config["path_3d"]
+            "Select a folder with FB2, Epub, PDF files", self.config["path_books"]
         )
         if self.folder_path is None:
             return
