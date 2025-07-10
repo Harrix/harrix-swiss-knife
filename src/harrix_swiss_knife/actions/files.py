@@ -138,6 +138,47 @@ class OnExtractZipArchives(ActionBase):
         self.show_result()
 
 
+class OnRemoveEmptyFoldersThreaded(ActionBase):
+    """Remove all empty folders recursively with threading support.
+
+    This action provides the same functionality as OnRemoveEmptyFolders but
+    executes the operation in a separate thread to prevent UI blocking when
+    processing large directory structures. A progress toast notification is
+    shown upon completion.
+
+    This is recommended for cleaning large directory trees where the operation
+    might take several seconds or more to complete.
+    """
+
+    icon = "🗑️"
+    title = "Remove empty folders in …"
+
+    @ActionBase.handle_exceptions("removing empty folders")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_existing_directory("Select a folder to clean empty folders", self.config["path_3d"])
+        if self.folder_path is None:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("removing empty folders thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.folder_path is None:
+            return
+
+        self.add_line(f"🔵 Starting empty folder cleanup for path: {self.folder_path}")
+        result = h.file.remove_empty_folders(self.folder_path)
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("removing empty folders thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+
+
 class OnRenameFb2EpubPdfFiles(ActionBase):
     """Rename FB2, Epub, PDF files based on metadata from file content.
 

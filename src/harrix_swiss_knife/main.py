@@ -68,6 +68,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.file.OnCheckFeaturedImage,
                 hsk.file.OnCheckFeaturedImageInFolders,
                 hsk.file.OnExtractZipArchives,
+                hsk.file.OnRemoveEmptyFoldersThreaded,
                 hsk.file.OnRenameFb2EpubPdfFiles,
                 hsk.file.OnRenameLargestImagesToFeaturedImage,
                 hsk.file.OnTreeViewFolder,

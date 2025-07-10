@@ -23,16 +23,20 @@ lang: en
   - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
-- [Class `OnRenameFb2EpubPdfFiles`](#class-onrenamefb2epubpdffiles)
+- [Class `OnRemoveEmptyFoldersThreaded`](#class-onremoveemptyfoldersthreaded)
   - [Method `execute`](#method-execute-5)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnRenameLargestImagesToFeaturedImage`](#class-onrenamelargestimagestofeaturedimage)
+- [Class `OnRenameFb2EpubPdfFiles`](#class-onrenamefb2epubpdffiles)
   - [Method `execute`](#method-execute-6)
-- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
+  - [Method `in_thread`](#method-in_thread-2)
+  - [Method `thread_after`](#method-thread_after-2)
+- [Class `OnRenameLargestImagesToFeaturedImage`](#class-onrenamelargestimagestofeaturedimage)
   - [Method `execute`](#method-execute-7)
-- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
+- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
   - [Method `execute`](#method-execute-8)
+- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
+  - [Method `execute`](#method-execute-9)
 
 </details>
 
@@ -357,6 +361,123 @@ def in_thread(self) -> str | None:
 
         self.add_line(f"🔵 Starting ZIP archive extraction for path: {self.folder_path}")
         self.add_line(h.file.apply_func(self.folder_path, ".zip", h.file.extract_zip_archive))
+```
+
+</details>
+
+### Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+## Class `OnRemoveEmptyFoldersThreaded`
+
+```python
+class OnRemoveEmptyFoldersThreaded(ActionBase)
+```
+
+Remove all empty folders recursively with threading support.
+
+This action provides the same functionality as OnRemoveEmptyFolders but
+executes the operation in a separate thread to prevent UI blocking when
+processing large directory structures. A progress toast notification is
+shown upon completion.
+
+This is recommended for cleaning large directory trees where the operation
+might take several seconds or more to complete.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnRemoveEmptyFoldersThreaded(ActionBase):
+
+    icon = "🗑️"
+    title = "Remove empty folders in …"
+
+    @ActionBase.handle_exceptions("removing empty folders")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_existing_directory("Select a folder to clean empty folders", self.config["path_3d"])
+        if self.folder_path is None:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("removing empty folders thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.folder_path is None:
+            return
+
+        self.add_line(f"🔵 Starting empty folder cleanup for path: {self.folder_path}")
+        result = h.file.remove_empty_folders(self.folder_path)
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("removing empty folders thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.folder_path = self.get_existing_directory("Select a folder to clean empty folders", self.config["path_3d"])
+        if self.folder_path is None:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        if self.folder_path is None:
+            return
+
+        self.add_line(f"🔵 Starting empty folder cleanup for path: {self.folder_path}")
+        result = h.file.remove_empty_folders(self.folder_path)
+        self.add_line(result)
 ```
 
 </details>
