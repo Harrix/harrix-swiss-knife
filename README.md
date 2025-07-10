@@ -58,6 +58,7 @@ _Figure 1: Screenshot_
   - 🔒 Block disks
   - ✅ Check featured_image
   - ✅ Check featured_image in …
+  - 📦 Extract ZIP archives in …
   - 🗂️ Moves and flattens files from nested folders
   - 📚 Rename FB2, Epub, PDF files in …
   - 🖲️ Rename largest images to featured_image in …
