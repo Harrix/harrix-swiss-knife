@@ -174,6 +174,7 @@ CLI commands after installation:
 - Add a new action `class On<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
 - Site for searching emojis: <https://emojidb.org/>.
 - In `main.py` add action `self.add_items(...)`.
+- Run or restart `harrix-swiss-knife`.
 - From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort, make docs in PY files` and select the folder `harrix_swiss_knife`.
 
 Example action:
