@@ -17,6 +17,7 @@ lang: en
   - [Method `add_line`](#method-add_line)
   - [Method `config`](#method-config)
   - [Method `execute`](#method-execute)
+  - [Method `get_checkbox_selection`](#method-get_checkbox_selection)
   - [Method `get_choice_from_list`](#method-get_choice_from_list)
   - [Method `get_existing_directory`](#method-get_existing_directory)
   - [Method `get_folder_with_choice_option`](#method-get_folder_with_choice_option)
@@ -128,6 +129,79 @@ class ActionBase:
         """
         msg = "The execute method must be implemented in subclasses"
         raise NotImplementedError(msg)
+
+    def get_checkbox_selection(
+        self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None
+    ) -> list[str] | None:
+        """Open a dialog to select multiple items from a list using checkboxes.
+
+        Args:
+
+        - `title` (`str`): The title of the selection dialog.
+        - `label` (`str`): The label prompting the user for selection.
+        - `choices` (`list[str]`): List of string options to choose from.
+        - `default_selected` (`list[str] | None`): List of choices that should be selected by default.
+          Defaults to `None`.
+
+        Returns:
+
+        - `list[str] | None`: The selected choices as a list, or `None` if cancelled.
+
+        """
+        if not choices:
+            self.add_line("❌ No choices provided.")
+            return None
+
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(500, 400)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create checkboxes for each choice
+        checkboxes = []
+        for choice in choices:
+            checkbox = QCheckBox(choice)
+            # Set larger font for the checkboxes
+            font = checkbox.font()
+            font.setPointSize(11)
+            checkbox.setFont(font)
+
+            # Set default selection if provided
+            if default_selected and choice in default_selected:
+                checkbox.setChecked(True)
+
+            checkboxes.append(checkbox)
+            layout.addWidget(checkbox)
+
+        # Add some spacing before buttons
+        layout.addStretch()
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            selected_choices = [checkbox.text() for checkbox in checkboxes if checkbox.isChecked()]
+            if not selected_choices:
+                self.add_line("❌ No items were selected.")
+                return None
+            return selected_choices
+
+        self.add_line("❌ Dialog was canceled.")
+        return None
 
     def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> str | None:
         """Open a dialog to select one item from a list of choices.
@@ -920,6 +994,91 @@ Raises:
 def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
         msg = "The execute method must be implemented in subclasses"
         raise NotImplementedError(msg)
+```
+
+</details>
+
+### Method `get_checkbox_selection`
+
+```python
+def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None) -> list[str] | None
+```
+
+Open a dialog to select multiple items from a list using checkboxes.
+
+Args:
+
+- `title` (`str`): The title of the selection dialog.
+- `label` (`str`): The label prompting the user for selection.
+- `choices` (`list[str]`): List of string options to choose from.
+- `default_selected` (`list[str] | None`): List of choices that should be selected by default.
+  Defaults to `None`.
+
+Returns:
+
+- `list[str] | None`: The selected choices as a list, or `None` if cancelled.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_checkbox_selection(
+        self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None
+    ) -> list[str] | None:
+        if not choices:
+            self.add_line("❌ No choices provided.")
+            return None
+
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(500, 400)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create checkboxes for each choice
+        checkboxes = []
+        for choice in choices:
+            checkbox = QCheckBox(choice)
+            # Set larger font for the checkboxes
+            font = checkbox.font()
+            font.setPointSize(11)
+            checkbox.setFont(font)
+
+            # Set default selection if provided
+            if default_selected and choice in default_selected:
+                checkbox.setChecked(True)
+
+            checkboxes.append(checkbox)
+            layout.addWidget(checkbox)
+
+        # Add some spacing before buttons
+        layout.addStretch()
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            selected_choices = [checkbox.text() for checkbox in checkboxes if checkbox.isChecked()]
+            if not selected_choices:
+                self.add_line("❌ No items were selected.")
+                return None
+            return selected_choices
+
+        self.add_line("❌ Dialog was canceled.")
+        return None
 ```
 
 </details>

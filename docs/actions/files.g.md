@@ -538,6 +538,26 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
         if self.folder_path is None:
             return
 
+        # Define available operations
+        operations = [
+            "📖 Rename FB2 files by metadata",
+            "📖 Rename Epub files by metadata",
+            "📖 Rename PDF files by metadata",
+            "🔄 Transliterate filenames (FB2, Epub, PDF)",
+        ]
+
+        # Get user selection for operations
+        selected_operations = self.get_checkbox_selection(
+            "Select Operations",
+            "Choose which operations to perform:",
+            operations,
+            default_selected=operations,  # All selected by default
+        )
+
+        if selected_operations is None:
+            return
+
+        self.selected_operations = selected_operations
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files thread")
@@ -546,12 +566,24 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
         if self.folder_path is None:
             return
 
-        self.add_line(f"🔵 Starting FB2 file processing for path: {self.folder_path}")
-        self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_fb2_file))
-        self.add_line(f"🔵 Starting Epub file processing for path: {self.folder_path}")
-        self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_epub_file))
-        self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
-        self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
+        # Execute selected operations
+        if "📖 Rename FB2 files by metadata" in self.selected_operations:
+            self.add_line(f"🔵 Starting FB2 file processing for path: {self.folder_path}")
+            self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_fb2_file))
+
+        if "📖 Rename Epub files by metadata" in self.selected_operations:
+            self.add_line(f"🔵 Starting Epub file processing for path: {self.folder_path}")
+            self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_epub_file))
+
+        if "📖 Rename PDF files by metadata" in self.selected_operations:
+            self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
+            self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
+
+        if "🔄 Transliterate filenames (FB2, Epub, PDF)" in self.selected_operations:
+            self.add_line(f"🔵 Starting transliteration for path: {self.folder_path}")
+            self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_transliterated_file))
 
     @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -581,6 +613,26 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if self.folder_path is None:
             return
 
+        # Define available operations
+        operations = [
+            "📖 Rename FB2 files by metadata",
+            "📖 Rename Epub files by metadata",
+            "📖 Rename PDF files by metadata",
+            "🔄 Transliterate filenames (FB2, Epub, PDF)",
+        ]
+
+        # Get user selection for operations
+        selected_operations = self.get_checkbox_selection(
+            "Select Operations",
+            "Choose which operations to perform:",
+            operations,
+            default_selected=operations,  # All selected by default
+        )
+
+        if selected_operations is None:
+            return
+
+        self.selected_operations = selected_operations
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
@@ -602,12 +654,24 @@ def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
 
-        self.add_line(f"🔵 Starting FB2 file processing for path: {self.folder_path}")
-        self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_fb2_file))
-        self.add_line(f"🔵 Starting Epub file processing for path: {self.folder_path}")
-        self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_epub_file))
-        self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
-        self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
+        # Execute selected operations
+        if "📖 Rename FB2 files by metadata" in self.selected_operations:
+            self.add_line(f"🔵 Starting FB2 file processing for path: {self.folder_path}")
+            self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_fb2_file))
+
+        if "📖 Rename Epub files by metadata" in self.selected_operations:
+            self.add_line(f"🔵 Starting Epub file processing for path: {self.folder_path}")
+            self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_epub_file))
+
+        if "📖 Rename PDF files by metadata" in self.selected_operations:
+            self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
+            self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
+
+        if "🔄 Transliterate filenames (FB2, Epub, PDF)" in self.selected_operations:
+            self.add_line(f"🔵 Starting transliteration for path: {self.folder_path}")
+            self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_transliterated_file))
 ```
 
 </details>
