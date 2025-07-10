@@ -252,6 +252,15 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
         self.add_line("🔵 Sort Python code elements")
         self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
 
+        # Check if folder_path is the application root
+        app_root = str(Path(__file__).parent.parent.parent.parent.resolve())
+        folder_path_resolved = str(Path(folder_path).resolve())
+        print(folder_path_resolved, app_root)
+        if folder_path_resolved == app_root and self.parent is not None:
+            self.add_line("🔵 Get the list of items from this menu")
+            result = self.parent.get_menu()
+            self.add_line(result)
+
         if is_include_docs_generation:
             # Generate markdown documentation
             self.add_line("🔵 Generate markdown documentation")
@@ -261,15 +270,6 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
             # Format markdown files with prettier
             self.add_line("🔵 Format markdown files")
             markdown_utils.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
-
-        # Check if folder_path is the application root
-        app_root = str(Path(__file__).parent.parent.parent.parent.resolve())
-        folder_path_resolved = str(Path(folder_path).resolve())
-        print(folder_path_resolved, app_root)
-        if folder_path_resolved == app_root and self.parent is not None:
-            self.add_line("🔵 Get the list of items from this menu")
-            result = self.parent.get_menu()
-            self.add_line(result)
 
     @ActionBase.handle_exceptions("formatting and sorting Python with docs thread")
     def in_thread(self) -> str | None:
