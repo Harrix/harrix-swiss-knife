@@ -19,7 +19,7 @@ lang: en
   - [Method `execute`](#method-execute-2)
 - [Class `OnCheckFeaturedImageInFolders`](#class-oncheckfeaturedimageinfolders)
   - [Method `execute`](#method-execute-3)
-- [Class `OnRenameFb2PDFFiles`](#class-onrenamefb2pdffiles)
+- [Class `OnRenameFb2EpubPdfFiles`](#class-onrenamefb2epubpdffiles)
   - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
@@ -257,15 +257,15 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnRenameFb2PDFFiles`
+## Class `OnRenameFb2EpubPdfFiles`
 
 ```python
-class OnRenameFb2PDFFiles(ActionBase)
+class OnRenameFb2EpubPdfFiles(ActionBase)
 ```
 
-Rename FB2, PDF files based on metadata from file content.
+Rename FB2, Epub, PDF files based on metadata from file content.
 
-This action prompts the user to select a folder and then processes all FB2, PDF files
+This action prompts the user to select a folder and then processes all FB2, Epub, PDF files
 within it, extracting author, title, and year information from the metadata.
 Files are renamed according to the pattern: "Author - Title - Year.ext" (year is optional).
 
@@ -273,28 +273,30 @@ If metadata extraction fails, the action attempts to transliterate the filename
 from English to Russian, assuming it might be a transliterated Russian title.
 If transliteration doesn't improve the filename, it remains unchanged.
 
-This provides a one-click solution for organizing and standardizing FB2, PDF book collections
+This provides a one-click solution for organizing and standardizing FB2, Epub, PDF book collections
 with proper naming conventions based on actual book metadata.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class OnRenameFb2PDFFiles(ActionBase):
+class OnRenameFb2EpubPdfFiles(ActionBase):
 
     icon = "📚"
-    title = "Rename FB2, PDF files in …"
+    title = "Rename FB2, Epub, PDF files in …"
 
-    @ActionBase.handle_exceptions("renaming FB2, PDF files")
+    @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with FB2, PDF files", self.config["path_3d"])
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with FB2, Epub, PDF files", self.config["path_3d"]
+        )
         if self.folder_path is None:
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("renaming FB2, PDF files thread")
+    @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
@@ -302,10 +304,12 @@ class OnRenameFb2PDFFiles(ActionBase):
 
         self.add_line(f"🔵 Starting FB2 file processing for path: {self.folder_path}")
         self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_fb2_file))
+        self.add_line(f"🔵 Starting Epub file processing for path: {self.folder_path}")
+        self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_epub_file))
         self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
         self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
 
-    @ActionBase.handle_exceptions("renaming FB2, PDF files thread completion")
+    @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
@@ -327,7 +331,9 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_existing_directory("Select a folder with FB2, PDF files", self.config["path_3d"])
+        self.folder_path = self.get_existing_directory(
+            "Select a folder with FB2, Epub, PDF files", self.config["path_3d"]
+        )
         if self.folder_path is None:
             return
 
@@ -354,6 +360,8 @@ def in_thread(self) -> str | None:
 
         self.add_line(f"🔵 Starting FB2 file processing for path: {self.folder_path}")
         self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_fb2_file))
+        self.add_line(f"🔵 Starting Epub file processing for path: {self.folder_path}")
+        self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_epub_file))
         self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
         self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
 ```
