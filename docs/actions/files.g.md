@@ -543,7 +543,7 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
             "📖 Rename FB2 files by metadata",
             "📖 Rename Epub files by metadata",
             "📖 Rename PDF files by metadata",
-            "🔄 Transliterate filenames (FB2, Epub, PDF)",
+            "🔄 Transliterate filenames (FB2, Epub, PDF, TXT, DOC, DOCX, RTF)",
         ]
 
         # Get user selection for operations
@@ -579,11 +579,15 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
             self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
             self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
 
-        if "🔄 Transliterate filenames (FB2, Epub, PDF)" in self.selected_operations:
+        if "🔄 Transliterate filenames (FB2, Epub, PDF, TXT, DOC, DOCX, RTF)" in self.selected_operations:
             self.add_line(f"🔵 Starting transliteration for path: {self.folder_path}")
             self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_transliterated_file))
             self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_transliterated_file))
             self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".txt", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".doc", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".docx", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".rtf", h.file.rename_transliterated_file))
 
     @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -618,7 +622,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             "📖 Rename FB2 files by metadata",
             "📖 Rename Epub files by metadata",
             "📖 Rename PDF files by metadata",
-            "🔄 Transliterate filenames (FB2, Epub, PDF)",
+            "🔄 Transliterate filenames (FB2, Epub, PDF, TXT, DOC, DOCX, RTF)",
         ]
 
         # Get user selection for operations
@@ -667,11 +671,15 @@ def in_thread(self) -> str | None:
             self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
             self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
 
-        if "🔄 Transliterate filenames (FB2, Epub, PDF)" in self.selected_operations:
+        if "🔄 Transliterate filenames (FB2, Epub, PDF, TXT, DOC, DOCX, RTF)" in self.selected_operations:
             self.add_line(f"🔵 Starting transliteration for path: {self.folder_path}")
             self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_transliterated_file))
             self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_transliterated_file))
             self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".txt", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".doc", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".docx", h.file.rename_transliterated_file))
+            self.add_line(h.file.apply_func(self.folder_path, ".rtf", h.file.rename_transliterated_file))
 ```
 
 </details>
