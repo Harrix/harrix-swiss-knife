@@ -27,6 +27,7 @@ class MainWindow(QMainWindow):
     - `list_widget` (`QListWidget`): Widget to display the list of menu actions.
     - `text_edit` (`QTextEdit`): Widget to display information about performed actions.
     - `update_timer` (`QTimer`): Timer for periodically updating the text edit content.
+    - `current_content` (`str`): Current content of the output file to track changes.
 
     """
 
@@ -61,6 +62,9 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.text_edit)
 
         splitter.setSizes([300, 700])
+
+        # Initialize current content to track changes
+        self.current_content = ""
 
         # Initialize timer for updating text edit content
         self.update_timer = QTimer()
@@ -173,8 +177,9 @@ class MainWindow(QMainWindow):
     def update_output_content(self) -> None:
         """Update the text edit content from the output.txt file.
 
-        Reads the content of the output.txt file and displays it in the text edit widget.
-        If the file doesn't exist or can't be read, displays an appropriate message.
+        Reads the content of the output.txt file and displays it in the text edit widget
+        only if the content has changed. If the file doesn't exist or can't be read,
+        displays an appropriate message.
 
         Returns:
 
@@ -185,8 +190,22 @@ class MainWindow(QMainWindow):
             output_file = h.dev.get_project_root() / "temp/output.txt"
             if output_file.exists():
                 output_txt = output_file.read_text(encoding="utf8")
-                self.text_edit.setPlainText(output_txt)
+                if output_txt != self.current_content:
+                    self.text_edit.setPlainText(output_txt)
+                    self.current_content = output_txt
+                    # Scroll to the end of the text
+                    self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
             else:
-                self.text_edit.setPlainText("File output.txt not found")
+                error_message = "File output.txt not found"
+                if error_message != self.current_content:
+                    self.text_edit.setPlainText(error_message)
+                    self.current_content = error_message
+                    # Scroll to the end of the text
+                    self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
         except Exception as e:
-            self.text_edit.setPlainText(f"File reading error: {e!s}")
+            error_message = f"File reading error: {e!s}"
+            if error_message != self.current_content:
+                self.text_edit.setPlainText(error_message)
+                self.current_content = error_message
+                # Scroll to the end of the text
+                self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
