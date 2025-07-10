@@ -10,7 +10,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 import harrix_swiss_knife as hsk
-from harrix_swiss_knife import resources_rc  # noqa: F401
+from harrix_swiss_knife import main_window, resources_rc  # noqa: F401
 
 
 class MainMenu(hsk.main_menu_base.MainMenuBase):
@@ -154,4 +154,10 @@ if __name__ == "__main__":
     tray_icon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu)
     tray_icon.setToolTip("harrix-swiss-knife")
     tray_icon.show()
+
+    # Create and show main window at startup
+    main_window_instance = main_window.MainWindow(main_menu.menu)
+    tray_icon.main_window = main_window_instance
+    main_window_instance.show()
+
     sys.exit(app.exec())
