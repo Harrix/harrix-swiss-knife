@@ -394,6 +394,49 @@ class OnTreeViewFolder(ActionBase):
         self.show_result()
 
 
+class OnListFilesSimple(ActionBase):
+    """Generate a simple list of all files in a directory structure.
+
+    This action prompts the user to select a folder and then creates
+    a simple text list of all files with their relative paths,
+    similar to a flat file listing without directory tree structure.
+    """
+
+    icon = "📄"
+    title = "List files simple"
+
+    @ActionBase.handle_exceptions("generating file list")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        if folder_path is None:
+            return
+
+        result = h.file.list_files_simple(
+            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False)
+        )
+        self.add_line(result)
+        self.show_result()
+
+
+class OnListFilesSimpleIgnoreHiddenFolders(ActionBase):
+    """Generate a simple file list excluding hidden folders.
+
+    This action extends OnListFilesSimple by automatically setting the
+    is_ignore_hidden_folders flag to true, creating a cleaner file list
+    that omits hidden directories and files (those starting with a dot
+    or matching common ignore patterns like .git, __pycache__, etc.).
+    """
+
+    icon = "📄"
+    title = "List files simple (ignore hidden folders)"
+
+    @ActionBase.handle_exceptions("generating file list ignoring hidden folders")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        OnListFilesSimple().execute(is_ignore_hidden_folders=True)
+
+
 class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
     """Generate a tree view excluding hidden folders.
 
