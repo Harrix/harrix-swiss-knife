@@ -63,6 +63,7 @@ _Figure 1: Screenshot_
   - 🗂️ Moves and flattens files from nested folders
   - 🗑️ Remove empty folders in …
   - 📚 Rename FB2, Epub, PDF files in …
+  - 📝 Rename files by mapping in …
   - 🖲️ Rename largest images to featured_image in …
   - ├ Tree view of a folder
   - ├ Tree view of a folder (ignore hidden folders)

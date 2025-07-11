@@ -23,7 +23,7 @@ lang: en
   - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
-- [Class `OnRemoveEmptyFoldersThreaded`](#class-onremoveemptyfoldersthreaded)
+- [Class `OnRemoveEmptyFolders`](#class-onremoveemptyfolders)
   - [Method `execute`](#method-execute-5)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
@@ -31,12 +31,17 @@ lang: en
   - [Method `execute`](#method-execute-6)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnRenameLargestImagesToFeaturedImage`](#class-onrenamelargestimagestofeaturedimage)
+- [Class `OnRenameFilesByMapping`](#class-onrenamefilesbymapping)
   - [Method `execute`](#method-execute-7)
-- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
+  - [Method `in_thread`](#method-in_thread-3)
+  - [Method `thread_after`](#method-thread_after-3)
+  - [Method `_parse_mapping_text`](#method-_parse_mapping_text)
+- [Class `OnRenameLargestImagesToFeaturedImage`](#class-onrenamelargestimagestofeaturedimage)
   - [Method `execute`](#method-execute-8)
-- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
+- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
   - [Method `execute`](#method-execute-9)
+- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
+  - [Method `execute`](#method-execute-10)
 
 </details>
 
@@ -384,27 +389,22 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnRemoveEmptyFoldersThreaded`
+## Class `OnRemoveEmptyFolders`
 
 ```python
-class OnRemoveEmptyFoldersThreaded(ActionBase)
+class OnRemoveEmptyFolders(ActionBase)
 ```
 
-Remove all empty folders recursively with threading support.
+Remove all empty folders recursively.
 
-This action provides the same functionality as OnRemoveEmptyFolders but
-executes the operation in a separate thread to prevent UI blocking when
-processing large directory structures. A progress toast notification is
-shown upon completion.
-
-This is recommended for cleaning large directory trees where the operation
-might take several seconds or more to complete.
+This action prompts the user to select a folder and then removes all empty
+folders recursively from the selected directory.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class OnRemoveEmptyFoldersThreaded(ActionBase):
+class OnRemoveEmptyFolders(ActionBase):
 
     icon = "🗑️"
     title = "Remove empty folders in …"
@@ -543,7 +543,6 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
             "📖 Rename FB2 files by metadata",
             "📖 Rename Epub files by metadata",
             "📖 Rename PDF files by metadata",
-            "🔄 Transliterate filenames (FB2, Epub, PDF, TXT, DOC, DOCX, RTF)",
         ]
 
         # Get user selection for operations
@@ -579,16 +578,6 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
             self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
             self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
 
-        if "🔄 Transliterate filenames (FB2, Epub, PDF, TXT, DOC, DOCX, RTF)" in self.selected_operations:
-            self.add_line(f"🔵 Starting transliteration for path: {self.folder_path}")
-            self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".txt", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".doc", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".docx", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".rtf", h.file.rename_transliterated_file))
-
     @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -622,7 +611,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             "📖 Rename FB2 files by metadata",
             "📖 Rename Epub files by metadata",
             "📖 Rename PDF files by metadata",
-            "🔄 Transliterate filenames (FB2, Epub, PDF, TXT, DOC, DOCX, RTF)",
         ]
 
         # Get user selection for operations
@@ -670,16 +658,6 @@ def in_thread(self) -> str | None:
         if "📖 Rename PDF files by metadata" in self.selected_operations:
             self.add_line(f"🔵 Starting PDF file processing for path: {self.folder_path}")
             self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_pdf_file))
-
-        if "🔄 Transliterate filenames (FB2, Epub, PDF, TXT, DOC, DOCX, RTF)" in self.selected_operations:
-            self.add_line(f"🔵 Starting transliteration for path: {self.folder_path}")
-            self.add_line(h.file.apply_func(self.folder_path, ".fb2", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".epub", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".pdf", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".txt", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".doc", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".docx", h.file.rename_transliterated_file))
-            self.add_line(h.file.apply_func(self.folder_path, ".rtf", h.file.rename_transliterated_file))
 ```
 
 </details>
@@ -699,6 +677,252 @@ Execute code in the main thread after in_thread(). For handling the results of t
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
+```
+
+</details>
+
+## Class `OnRenameFilesByMapping`
+
+```python
+class OnRenameFilesByMapping(ActionBase)
+```
+
+Rename files recursively based on a mapping dictionary.
+
+This action prompts the user to select a folder and provide a mapping text
+(old filename TAB new filename per line), then renames files recursively
+from the selected directory according to the mapping.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnRenameFilesByMapping(ActionBase):
+
+    icon = "📝"
+    title = "Rename files by mapping in …"
+
+    @ActionBase.handle_exceptions("renaming files by mapping")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_existing_directory("Select a folder to rename files", self.config["path_3d"])
+        if self.folder_path is None:
+            return
+
+        # Get mapping text from user
+        mapping_text = self.get_text_textarea(
+            "File Rename Mapping",
+            "Enter file rename mapping (one per line):\nold_filename.ext<TAB>new_filename.ext",
+            "old_file.txt\tnew_file.txt\nconfig.json\tsettings.json",
+        )
+        if mapping_text is None:
+            return
+
+        # Parse mapping text into dictionary
+        self.rename_mapping = self._parse_mapping_text(mapping_text)
+        if not self.rename_mapping:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("renaming files by mapping thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.folder_path is None or not self.rename_mapping:
+            return
+
+        self.add_line(f"🔵 Starting file renaming for path: {self.folder_path}")
+        self.add_line(f"🔵 Renaming {len(self.rename_mapping)} file mappings")
+        result = h.file.rename_files_by_mapping(self.folder_path, self.rename_mapping)
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("renaming files by mapping thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+
+    def _parse_mapping_text(self, mapping_text: str) -> dict[str, str] | None:
+        """Parse mapping text into a dictionary.
+
+        Args:
+            mapping_text (str): Text with old_filename<TAB>new_filename per line
+
+        Returns:
+            dict[str, str] | None: Dictionary mapping old names to new names, or None if error
+        """
+        try:
+            mapping_dict = {}
+            lines = mapping_text.strip().split("\n")
+
+            for line_num, line in enumerate(lines, 1):
+                line = line.strip()
+                if not line:  # Skip empty lines
+                    continue
+
+                # Split by tab character
+                parts = line.split("\t")
+                if len(parts) != 2:
+                    self.add_line(
+                        f"❌ Invalid format on line {line_num}: '{line}'. Expected: old_filename<TAB>new_filename"
+                    )
+                    return None
+
+                old_name, new_name = parts[0].strip(), parts[1].strip()
+
+                if not old_name or not new_name:
+                    self.add_line(f"❌ Empty filename on line {line_num}: '{line}'")
+                    return None
+
+                mapping_dict[old_name] = new_name
+
+            if not mapping_dict:
+                self.add_line("❌ No valid mappings found in the text")
+                return None
+
+            self.add_line(f"✅ Parsed {len(mapping_dict)} file mappings")
+            return mapping_dict
+
+        except Exception as e:
+            self.add_line(f"❌ Error parsing mapping text: {e}")
+            return None
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.folder_path = self.get_existing_directory("Select a folder to rename files", self.config["path_3d"])
+        if self.folder_path is None:
+            return
+
+        # Get mapping text from user
+        mapping_text = self.get_text_textarea(
+            "File Rename Mapping",
+            "Enter file rename mapping (one per line):\nold_filename.ext<TAB>new_filename.ext",
+            "old_file.txt\tnew_file.txt\nconfig.json\tsettings.json",
+        )
+        if mapping_text is None:
+            return
+
+        # Parse mapping text into dictionary
+        self.rename_mapping = self._parse_mapping_text(mapping_text)
+        if not self.rename_mapping:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        if self.folder_path is None or not self.rename_mapping:
+            return
+
+        self.add_line(f"🔵 Starting file renaming for path: {self.folder_path}")
+        self.add_line(f"🔵 Renaming {len(self.rename_mapping)} file mappings")
+        result = h.file.rename_files_by_mapping(self.folder_path, self.rename_mapping)
+        self.add_line(result)
+```
+
+</details>
+
+### Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+### Method `_parse_mapping_text`
+
+```python
+def _parse_mapping_text(self, mapping_text: str) -> dict[str, str] | None
+```
+
+Parse mapping text into a dictionary.
+
+Args:
+mapping_text (str): Text with old_filename<TAB>new_filename per line
+
+Returns:
+dict[str, str] | None: Dictionary mapping old names to new names, or None if error
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _parse_mapping_text(self, mapping_text: str) -> dict[str, str] | None:
+        try:
+            mapping_dict = {}
+            lines = mapping_text.strip().split("\n")
+
+            for line_num, line in enumerate(lines, 1):
+                line = line.strip()
+                if not line:  # Skip empty lines
+                    continue
+
+                # Split by tab character
+                parts = line.split("\t")
+                if len(parts) != 2:
+                    self.add_line(
+                        f"❌ Invalid format on line {line_num}: '{line}'. Expected: old_filename<TAB>new_filename"
+                    )
+                    return None
+
+                old_name, new_name = parts[0].strip(), parts[1].strip()
+
+                if not old_name or not new_name:
+                    self.add_line(f"❌ Empty filename on line {line_num}: '{line}'")
+                    return None
+
+                mapping_dict[old_name] = new_name
+
+            if not mapping_dict:
+                self.add_line("❌ No valid mappings found in the text")
+                return None
+
+            self.add_line(f"✅ Parsed {len(mapping_dict)} file mappings")
+            return mapping_dict
+
+        except Exception as e:
+            self.add_line(f"❌ Error parsing mapping text: {e}")
+            return None
 ```
 
 </details>
