@@ -77,11 +77,11 @@ _Figure 1: Screenshot_
   - 🎬 Get a list of movies, books for web
   - 👉 Increase heading level
   - ❞ Quotes. Format quotes as Markdown content
-  - 😎 Beautify MD and regenerate .g.md in …
-  - 😎 Beautify MD in …
+  - 💎 Beautify MD and regenerate .g.md in …
+  - 💎 Beautify MD in …
   - 🚧 Check in …
   - 📥 Download images in …
-  - 🧏 Generate a short version with only TOC
+  - 📑 Generate a short version with only TOC
   - ⚖️ Optimize images in MD in …
   - ❞ Quotes. Add author and title
   - 📶 Sort sections in one MD
@@ -94,9 +94,9 @@ _Figure 1: Screenshot_
 - **Python**
   - 🚧 Check PY in …
   - 🐍 New uv project
-  - 👷‍♂️ Publish Python library to PyPI
+  - ⚡ Publish Python library to PyPI
   - 🌟 isort, ruff format, sort in PY files
-  - ⭐ isort, ruff format, sort, make docs in PY files
+  - 🌟 isort, ruff format, sort, make docs in PY files
 - 🏃🏻 Fitness tracker
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …

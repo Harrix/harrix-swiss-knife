@@ -128,7 +128,7 @@ class OnPublishPythonLibrary(ActionBase):
     they automatically receive updates without needing to update package versions.
     """
 
-    icon = "👷‍♂️"
+    icon = "⚡"
     title = "Publish Python library to PyPI"
 
     @ActionBase.handle_exceptions("publishing Python library")
@@ -197,7 +197,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
     5. Formatting generated Markdown files with prettier for consistent styling
     """
 
-    icon = "⭐"
+    icon = "🌟"
     title = "isort, ruff format, sort, make docs in PY files"
     bold_title = True
 

@@ -28,7 +28,7 @@ class OnBeautifyMdFolder(ActionBase):
     formatted collection of Markdown documents.
     """
 
-    icon = "😎"
+    icon = "💎"
     title = "Beautify MD in …"
 
     def beautify_markdown_common(
@@ -136,7 +136,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
     formatted collection of Markdown documents.
     """
 
-    icon = "😎"
+    icon = "💎"
     title = "Beautify MD and regenerate .g.md in …"
     bold_title = True
 
@@ -248,7 +248,7 @@ class OnGenerateShortNoteTocWithLinks(ActionBase):
     Useful for creating quick reference documents or previews of longer content.
     """
 
-    icon = "🧏"
+    icon = "📑"
     title = "Generate a short version with only TOC"
 
     @ActionBase.handle_exceptions("generating short note with TOC")

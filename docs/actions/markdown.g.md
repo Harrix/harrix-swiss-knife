@@ -91,7 +91,7 @@ formatted collection of Markdown documents.
 ```python
 class OnBeautifyMdFolder(ActionBase):
 
-    icon = "😎"
+    icon = "💎"
     title = "Beautify MD in …"
 
     def beautify_markdown_common(
@@ -349,7 +349,7 @@ formatted collection of Markdown documents.
 ```python
 class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
 
-    icon = "😎"
+    icon = "💎"
     title = "Beautify MD and regenerate .g.md in …"
     bold_title = True
 
@@ -694,7 +694,7 @@ Useful for creating quick reference documents or previews of longer content.
 ```python
 class OnGenerateShortNoteTocWithLinks(ActionBase):
 
-    icon = "🧏"
+    icon = "📑"
     title = "Generate a short version with only TOC"
 
     @ActionBase.handle_exceptions("generating short note with TOC")

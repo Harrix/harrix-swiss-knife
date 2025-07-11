@@ -343,7 +343,7 @@ they automatically receive updates without needing to update package versions.
 ```python
 class OnPublishPythonLibrary(ActionBase):
 
-    icon = "👷‍♂️"
+    icon = "⚡"
     title = "Publish Python library to PyPI"
 
     @ActionBase.handle_exceptions("publishing Python library")
@@ -513,7 +513,7 @@ five steps:
 ```python
 class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
 
-    icon = "⭐"
+    icon = "🌟"
     title = "isort, ruff format, sort, make docs in PY files"
     bold_title = True
 
