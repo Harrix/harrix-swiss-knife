@@ -60,6 +60,8 @@ _Figure 1: Screenshot_
   - ✅ Check featured_image
   - ✅ Check featured_image in …
   - 📦 Extract ZIP archives in …
+  - 📄 List files simple
+  - 📄 List files simple (ignore hidden folders)
   - 🗂️ Moves and flattens files from nested folders
   - 🗑️ Remove empty folders in …
   - 📚 Rename FB2, Epub, PDF files in …

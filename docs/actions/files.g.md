@@ -23,25 +23,29 @@ lang: en
   - [Method `execute`](#method-execute-4)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
-- [Class `OnRemoveEmptyFolders`](#class-onremoveemptyfolders)
+- [Class `OnListFilesSimple`](#class-onlistfilessimple)
   - [Method `execute`](#method-execute-5)
+- [Class `OnListFilesSimpleIgnoreHiddenFolders`](#class-onlistfilessimpleignorehiddenfolders)
+  - [Method `execute`](#method-execute-6)
+- [Class `OnRemoveEmptyFolders`](#class-onremoveemptyfolders)
+  - [Method `execute`](#method-execute-7)
   - [Method `in_thread`](#method-in_thread-1)
   - [Method `thread_after`](#method-thread_after-1)
 - [Class `OnRenameFb2EpubPdfFiles`](#class-onrenamefb2epubpdffiles)
-  - [Method `execute`](#method-execute-6)
+  - [Method `execute`](#method-execute-8)
   - [Method `in_thread`](#method-in_thread-2)
   - [Method `thread_after`](#method-thread_after-2)
 - [Class `OnRenameFilesByMapping`](#class-onrenamefilesbymapping)
-  - [Method `execute`](#method-execute-7)
+  - [Method `execute`](#method-execute-9)
   - [Method `in_thread`](#method-in_thread-3)
   - [Method `thread_after`](#method-thread_after-3)
   - [Method `_parse_mapping_text`](#method-_parse_mapping_text)
 - [Class `OnRenameLargestImagesToFeaturedImage`](#class-onrenamelargestimagestofeaturedimage)
-  - [Method `execute`](#method-execute-8)
-- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
-  - [Method `execute`](#method-execute-9)
-- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
   - [Method `execute`](#method-execute-10)
+- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
+  - [Method `execute`](#method-execute-11)
+- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
+  - [Method `execute`](#method-execute-12)
 
 </details>
 
@@ -385,6 +389,117 @@ Execute code in the main thread after in_thread(). For handling the results of t
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
+```
+
+</details>
+
+## Class `OnListFilesSimple`
+
+```python
+class OnListFilesSimple(ActionBase)
+```
+
+Generate a simple list of all files in a directory structure.
+
+This action prompts the user to select a folder and then creates
+a simple text list of all files with their relative paths,
+similar to a flat file listing without directory tree structure.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnListFilesSimple(ActionBase):
+
+    icon = "📄"
+    title = "List files simple"
+
+    @ActionBase.handle_exceptions("generating file list")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        if folder_path is None:
+            return
+
+        result = h.file.list_files_simple(
+            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False)
+        )
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        if folder_path is None:
+            return
+
+        result = h.file.list_files_simple(
+            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False)
+        )
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+## Class `OnListFilesSimpleIgnoreHiddenFolders`
+
+```python
+class OnListFilesSimpleIgnoreHiddenFolders(ActionBase)
+```
+
+Generate a simple file list excluding hidden folders.
+
+This action extends OnListFilesSimple by automatically setting the
+is_ignore_hidden_folders flag to true, creating a cleaner file list
+that omits hidden directories and files (those starting with a dot
+or matching common ignore patterns like .git, **pycache**, etc.).
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnListFilesSimpleIgnoreHiddenFolders(ActionBase):
+
+    icon = "📄"
+    title = "List files simple (ignore hidden folders)"
+
+    @ActionBase.handle_exceptions("generating file list ignoring hidden folders")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        OnListFilesSimple().execute(is_ignore_hidden_folders=True)
+```
+
+</details>
+
+### Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        OnListFilesSimple().execute(is_ignore_hidden_folders=True)
 ```
 
 </details>
