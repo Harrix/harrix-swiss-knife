@@ -5,8 +5,8 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions import markdown_utils
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.markdown import OnBeautifyMdFolder
 
 
 class OnCheckPythonFolder(ActionBase):
@@ -269,7 +269,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
 
             # Format markdown files with prettier
             self.add_line("🔵 Format markdown files")
-            markdown_utils.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+            OnBeautifyMdFolder.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
 
     @ActionBase.handle_exceptions("formatting and sorting Python with docs thread")
     def in_thread(self) -> str | None:

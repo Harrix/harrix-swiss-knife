@@ -585,7 +585,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
 
             # Format markdown files with prettier
             self.add_line("🔵 Format markdown files")
-            markdown_utils.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+            OnBeautifyMdFolder.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
 
     @ActionBase.handle_exceptions("formatting and sorting Python with docs thread")
     def in_thread(self) -> str | None:
@@ -707,7 +707,7 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
 
             # Format markdown files with prettier
             self.add_line("🔵 Format markdown files")
-            markdown_utils.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+            OnBeautifyMdFolder.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
 ```
 
 </details>
