@@ -37,9 +37,9 @@ class OnBeautifyMdFolder(ActionBase):
         """Perform common beautification operations on Markdown files in a folder.
 
         This method applies a series of enhancement operations to all Markdown files
-        in the specified folder, including image caption generation, table of contents
-        creation, YAML formatting, and Prettier formatting. Optionally includes
-        summary generation and file combination operations.
+        in the specified folder, including file renaming (spaces to hyphens), image
+        caption generation, table of contents creation, YAML formatting, and Prettier
+        formatting. Optionally includes summary generation and file combination operations.
 
         Args:
 
@@ -57,12 +57,17 @@ class OnBeautifyMdFolder(ActionBase):
         - All operations are logged using `self.add_line()` for user feedback.
         - If `is_include_summaries_and_combine` is `True`, the method will first delete
           existing `*.g.md` files, then generate summaries and combine files.
+        - File renaming converts spaces to hyphens in filenames for better URL compatibility.
 
         """
         if is_include_summaries_and_combine:
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
             self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
+
+        # Rename files with spaces to hyphens
+        self.add_line("🔵 Rename files with spaces to hyphens")
+        self.add_line(h.file.apply_func(folder_path, ".md", h.file.rename_file_spaces_to_hyphens))
 
         # Generate image captions
         self.add_line("🔵 Generate image captions")
