@@ -5,11 +5,11 @@
 🤖 Python + Node.js application for automating personal tasks in Windows.
 
 <details>
-<summary>📖 Contents</summary>
+<summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [List of commands](#list-of-commands)
+- [📋 List of commands](#-list-of-commands)
 - [Deploy on an empty machine (Windows)](#deploy-on-an-empty-machine-windows)
   - [Prerequisites](#prerequisites)
   - [Installation steps](#installation-steps)
@@ -37,7 +37,7 @@ This project provides a Windows application with a system tray context menu, fea
 
 _Figure 1: Screenshot_
 
-## List of commands
+## 📋 List of commands
 
 - **Dev**
   - ℹ️ About
