@@ -15,17 +15,18 @@ lang: en
 
 ## Contents
 
+- [✨ Features](#-features)
 - [📋 List of commands](#-list-of-commands)
-- [Deploy on an empty machine (Windows)](#deploy-on-an-empty-machine-windows)
+- [🛠️ Deploy on an empty machine (Windows)](#-deploy-on-an-empty-machine-windows)
   - [Prerequisites](#prerequisites)
   - [Installation steps](#installation-steps)
   - [Running from command line](#running-from-command-line)
-- [Development](#development)
+- [⚙️ Development](#-development)
   - [CLI commands](#cli-commands)
   - [Add a new action](#add-a-new-action)
   - [Add file to a resource file](#add-file-to-a-resource-file)
-- [Create a shortcut](#create-a-shortcut)
-- [License](#license)
+- [🔗 Create a shortcut](#-create-a-shortcut)
+- [📄 License](#-license)
 
 </details>
 
@@ -42,6 +43,15 @@ This project provides a Windows application with a system tray context menu, fea
 ![Screenshot](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/screenshot.png)
 
 _Figure 1: Screenshot_
+
+## ✨ Features
+
+- 🖼️ **Image Processing** - Optimize, resize, convert images with advanced compression
+- 📁 **File Operations** - Batch file management, archive extraction, folder organization
+- 📝 **Markdown Tools** - Document processing, TOC generation, content formatting
+- 🐍 **Python Development** - Project setup, code formatting, PyPI publishing
+- 🖥️ **System Tray Integration** - Quick access through Windows system tray menu
+- ⚡ **Personal Automation** - Custom workflows tailored for specific tasks
 
 ## 📋 List of commands
 
@@ -104,7 +114,7 @@ _Figure 1: Screenshot_
 - 🚀 Optimize image from clipboard as …
 - × Exit
 
-## Deploy on an empty machine (Windows)
+## 🛠️ Deploy on an empty machine (Windows)
 
 ### Prerequisites
 
@@ -159,7 +169,7 @@ After installation, you can run the script from terminal:
 c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
 
-## Development
+## ⚙️ Development
 
 <details>
 <summary>Development ⬇️</summary>
@@ -349,7 +359,7 @@ pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resou
 
 </details>
 
-## Create a shortcut
+## 🔗 Create a shortcut
 
 To create a desktop shortcut, use the following path:
 
@@ -357,6 +367,6 @@ To create a desktop shortcut, use the following path:
 C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
 
-## License
+## 📄 License
 
-License: [MIT](https://github.com/Harrix/harrix-swiss-knife/blob/main/LICENSE.md).
+This project is licensed under the [MIT License](https://github.com/Harrix/harrix-swiss-knife/blob/main/LICENSE.md).
