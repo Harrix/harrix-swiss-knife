@@ -1024,20 +1024,9 @@ async function main() {
       return;
     }
 
-    const results = {};
-
     for (const file of files) {
-      const resultExt = await processImage(file, { imagesFolder, outputFolder, quality, convertPngToAvif, maxSize });
-      if (resultExt) {
-        const originalName = path.parse(file).name;
-        results[originalName] = resultExt;
-      }
+      await processImage(file, { imagesFolder, outputFolder, quality, convertPngToAvif, maxSize });
     }
-
-    // Сохраняем результаты в JSON файл
-    const resultsPath = path.join(outputFolder, "optimization_results.json");
-    fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
-    console.log(`📄 Results saved to ${resultsPath}`);
   });
 }
 
