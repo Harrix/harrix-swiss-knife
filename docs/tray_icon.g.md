@@ -7,7 +7,7 @@ lang: en
 # File `tray_icon.py`
 
 <details>
-<summary>📖 Contents</summary>
+<summary>📖 Contents ⬇️</summary>
 
 ## Contents
 

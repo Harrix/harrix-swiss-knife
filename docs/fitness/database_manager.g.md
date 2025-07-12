@@ -7,7 +7,7 @@ lang: en
 # File `database_manager.py`
 
 <details>
-<summary>📖 Contents</summary>
+<summary>📖 Contents ⬇️</summary>
 
 ## Contents
 

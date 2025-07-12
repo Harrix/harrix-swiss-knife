@@ -7,7 +7,7 @@ lang: en
 # File `development.py`
 
 <details>
-<summary>📖 Contents</summary>
+<summary>📖 Contents ⬇️</summary>
 
 ## Contents
 

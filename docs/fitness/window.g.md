@@ -7,7 +7,7 @@ lang: en
 # File `window.py`
 
 <details>
-<summary>📖 Contents</summary>
+<summary>📖 Contents ⬇️</summary>
 
 ## Contents
 

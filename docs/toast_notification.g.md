@@ -7,7 +7,7 @@ lang: en
 # File `toast_notification.py`
 
 <details>
-<summary>📖 Contents</summary>
+<summary>📖 Contents ⬇️</summary>
 
 ## Contents
 

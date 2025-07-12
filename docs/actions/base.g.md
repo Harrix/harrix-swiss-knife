@@ -7,7 +7,7 @@ lang: en
 # File `base.py`
 
 <details>
-<summary>📖 Contents</summary>
+<summary>📖 Contents ⬇️</summary>
 
 ## Contents
 

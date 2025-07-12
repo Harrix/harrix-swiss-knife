@@ -7,7 +7,7 @@ lang: en
 # File `main_menu_base.py`
 
 <details>
-<summary>📖 Contents</summary>
+<summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
@@ -211,7 +211,7 @@ class MainMenuBase:
         This method:
 
         - Reads the content of README.md.
-        - Locates the section to update by looking for "## List of commands" and the next heading.
+        - Locates the section to update by looking for "## 📋 List of commands" and the next heading.
         - Inserts the current menu structure into the file between these markers.
         - Overwrites the README.md with the updated content.
         - Returns the Markdown representation of the menu.
@@ -224,7 +224,7 @@ class MainMenuBase:
         filename = h.dev.get_project_root() / "README.md"
         list_of_menu = "\n".join(self.generate_markdown_from_qmenu(self.menu))
 
-        h.md.replace_section(filename, list_of_menu, "## List of commands")
+        h.md.replace_section(filename, list_of_menu, "## 📋 List of commands")
 
         return list_of_menu
 
@@ -529,7 +529,7 @@ Update the README.md file with the current menu structure.
 This method:
 
 - Reads the content of README.md.
-- Locates the section to update by looking for "## List of commands" and the next heading.
+- Locates the section to update by looking for "## 📋 List of commands" and the next heading.
 - Inserts the current menu structure into the file between these markers.
 - Overwrites the README.md with the updated content.
 - Returns the Markdown representation of the menu.
@@ -546,7 +546,7 @@ def get_menu(self) -> str:
         filename = h.dev.get_project_root() / "README.md"
         list_of_menu = "\n".join(self.generate_markdown_from_qmenu(self.menu))
 
-        h.md.replace_section(filename, list_of_menu, "## List of commands")
+        h.md.replace_section(filename, list_of_menu, "## 📋 List of commands")
 
         return list_of_menu
 ```
