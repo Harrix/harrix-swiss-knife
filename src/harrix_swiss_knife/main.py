@@ -156,7 +156,7 @@ if __name__ == "__main__":
     main_menu = MainMenu()
 
     tray_icon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu)
-    tray_icon.setToolTip("harrix-swiss-knife")
+    tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()
 
     # Create and show main window at startup

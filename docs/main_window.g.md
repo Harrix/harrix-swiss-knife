@@ -55,7 +55,7 @@ class MainWindow(QMainWindow):
         """
         super().__init__()
 
-        self.setWindowTitle("harrix-swiss-knife")
+        self.setWindowTitle("Harrix Swiss Knife")
         self.resize(1024, 800)
         # Main widget and layout
         central_widget = QWidget()
@@ -246,7 +246,7 @@ and connects signals to their respective handlers.
 def __init__(self, menu: QMenu) -> None:
         super().__init__()
 
-        self.setWindowTitle("harrix-swiss-knife")
+        self.setWindowTitle("Harrix Swiss Knife")
         self.resize(1024, 800)
         # Main widget and layout
         central_widget = QWidget()

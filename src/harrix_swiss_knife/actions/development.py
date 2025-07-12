@@ -27,7 +27,7 @@ class OnAboutDialog(ActionBase):
 
         about_info = self.show_about_dialog(
             title="About",
-            app_name="harrix-swiss-knife",
+            app_name="Harrix Swiss Knife",
             version=version,
             description=(
                 "A multifunctional tool for developers.\n"

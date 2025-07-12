@@ -1,4 +1,4 @@
-"""Main window module for the harrix-swiss-knife application.
+"""Main window module for Harrix Swiss Knife application.
 
 This module provides the MainWindow class that serves as the primary user interface
 for the application, displaying menu actions and handling user interactions.
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         """
         super().__init__()
 
-        self.setWindowTitle("harrix-swiss-knife")
+        self.setWindowTitle("Harrix Swiss Knife")
         self.resize(1024, 800)
         # Main widget and layout
         central_widget = QWidget()

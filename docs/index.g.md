@@ -4,11 +4,11 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# harrix-swiss-knife
+# Harrix Swiss Knife
 
 ![Featured image](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/featured-image.svg)
 
-A multifunctional tool for developers with a rich set of utilities for working with files, images, Python code, and more.
+🤖 Python + Node.js application for automating personal tasks in Windows.
 
 <details>
 <summary>📖 Contents</summary>
