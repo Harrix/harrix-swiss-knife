@@ -11,7 +11,7 @@
     "imagemin": "^9.0.1",
     "imagemin-pngquant": "^10.0.0",
     "minimist": "^1.2.8",
-    "sharp": "^0.33.5",
-    "svgo": "^3.3.2"
+    "sharp": "^0.34.3",
+    "svgo": "^4.0.0"
   }
 }
