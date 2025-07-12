@@ -9,18 +9,18 @@
 
 ## Contents
 
-- [✨ Features](#-features)
-- [📋 List of commands](#-list-of-commands)
-- [🛠️ Deploy on an empty machine (Windows)](#-deploy-on-an-empty-machine-windows)
+- [✨ Features](#%E2%9C%A8-features)
+- [📋 List of commands](#list-of-commands)
+- [🛠️ Deploy on an empty machine (Windows)](#%EF%B8%8F-deploy-on-an-empty-machine-windows)
   - [Prerequisites](#prerequisites)
   - [Installation steps](#installation-steps)
   - [Running from command line](#running-from-command-line)
-- [⚙️ Development](#-development)
+- [⚙️ Development](#%E2%9A%99%EF%B8%8F-development)
   - [CLI commands](#cli-commands)
   - [Add a new action](#add-a-new-action)
   - [Add file to a resource file](#add-file-to-a-resource-file)
-- [🔗 Create a shortcut](#-create-a-shortcut)
-- [📄 License](#-license)
+- [🔗 Create a shortcut](#create-a-shortcut)
+- [📄 License](#license)
 
 </details>
 
