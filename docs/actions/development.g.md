@@ -16,17 +16,17 @@ lang: en
   - [Method `_get_version_from_pyproject`](#method-_get_version_from_pyproject)
 - [Class `OnExit`](#class-onexit)
   - [Method `__init__`](#method-__init__)
-  - [Method `execute`](#method-execute-1)
-- [Class `OnNpmManagePackages`](#class-onnpmmanagepackages)
   - [Method `execute`](#method-execute-2)
+- [Class `OnNpmManagePackages`](#class-onnpmmanagepackages)
+  - [Method `execute`](#method-execute-3)
   - [Method `in_thread`](#method-in_thread)
   - [Method `thread_after`](#method-thread_after)
 - [Class `OnOpenConfigJson`](#class-onopenconfigjson)
-  - [Method `execute`](#method-execute-3)
-- [Class `OnUvUpdate`](#class-onuvupdate)
   - [Method `execute`](#method-execute-4)
-  - [Method `in_thread`](#method-in_thread-1)
-  - [Method `thread_after`](#method-thread_after-1)
+- [Class `OnUvUpdate`](#class-onuvupdate)
+  - [Method `execute`](#method-execute-5)
+  - [Method `in_thread`](#method-in_thread-2)
+  - [Method `thread_after`](#method-thread_after-2)
 
 </details>
 
