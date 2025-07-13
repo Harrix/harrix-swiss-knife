@@ -78,7 +78,7 @@
   ],
   "pypi_token": "snippet:config/pypi-token.txt",
   "start_pattern_py_projects": "python-project-",
-  "sqlite_fitness": "D:/Dropbox/Lists/fitness.db",
+  "sqlite_fitness": "D:/Dropbox/Databases/fitness.db",
   "vscode_workspace_articles": "D:/Dropbox/_Temp/_VS Code Workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_notes": "D:/Dropbox/_Temp/_VS Code Workspaces/Notes.code-workspace"
 }
