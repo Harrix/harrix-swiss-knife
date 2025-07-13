@@ -4,41 +4,41 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `base.py`
+# 📄 File `base.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `ActionBase`](#class-actionbase)
-  - [Method `__init__`](#method-__init__)
-  - [Method `__call__`](#method-__call__)
-  - [Method `add_line`](#method-add_line)
-  - [Method `config`](#method-config)
-  - [Method `execute`](#method-execute)
-  - [Method `get_checkbox_selection`](#method-get_checkbox_selection)
-  - [Method `get_choice_from_list`](#method-get_choice_from_list)
-  - [Method `get_existing_directory`](#method-get_existing_directory)
-  - [Method `get_folder_with_choice_option`](#method-get_folder_with_choice_option)
-  - [Method `get_open_filename`](#method-get_open_filename)
-  - [Method `get_save_filename`](#method-get_save_filename)
-  - [Method `get_text_input`](#method-get_text_input)
-  - [Method `get_text_input_with_auto`](#method-get_text_input_with_auto)
-  - [Method `get_text_textarea`](#method-get_text_textarea)
-  - [Method `handle_error`](#method-handle_error)
-  - [Method `handle_exceptions`](#method-handle_exceptions)
-  - [Method `show_about_dialog`](#method-show_about_dialog)
-  - [Method `show_instructions`](#method-show_instructions)
-  - [Method `show_result`](#method-show_result)
-  - [Method `show_text_multiline`](#method-show_text_multiline)
-  - [Method `show_toast`](#method-show_toast)
-  - [Method `start_thread`](#method-start_thread)
-  - [Method `text_to_clipboard`](#method-text_to_clipboard)
+- [🏛️ Class `ActionBase`](#%EF%B8%8F-class-actionbase)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `__call__`](#%EF%B8%8F-method-__call__)
+  - [⚙️ Method `add_line`](#%EF%B8%8F-method-add_line)
+  - [⚙️ Method `config`](#%EF%B8%8F-method-config)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `get_checkbox_selection`](#%EF%B8%8F-method-get_checkbox_selection)
+  - [⚙️ Method `get_choice_from_list`](#%EF%B8%8F-method-get_choice_from_list)
+  - [⚙️ Method `get_existing_directory`](#%EF%B8%8F-method-get_existing_directory)
+  - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option)
+  - [⚙️ Method `get_open_filename`](#%EF%B8%8F-method-get_open_filename)
+  - [⚙️ Method `get_save_filename`](#%EF%B8%8F-method-get_save_filename)
+  - [⚙️ Method `get_text_input`](#%EF%B8%8F-method-get_text_input)
+  - [⚙️ Method `get_text_input_with_auto`](#%EF%B8%8F-method-get_text_input_with_auto)
+  - [⚙️ Method `get_text_textarea`](#%EF%B8%8F-method-get_text_textarea)
+  - [⚙️ Method `handle_error`](#%EF%B8%8F-method-handle_error)
+  - [⚙️ Method `handle_exceptions`](#%EF%B8%8F-method-handle_exceptions)
+  - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
+  - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
+  - [⚙️ Method `show_result`](#%EF%B8%8F-method-show_result)
+  - [⚙️ Method `show_text_multiline`](#%EF%B8%8F-method-show_text_multiline)
+  - [⚙️ Method `show_toast`](#%EF%B8%8F-method-show_toast)
+  - [⚙️ Method `start_thread`](#%EF%B8%8F-method-start_thread)
+  - [⚙️ Method `text_to_clipboard`](#%EF%B8%8F-method-text_to_clipboard)
 
 </details>
 
-## Class `ActionBase`
+## 🏛️ Class `ActionBase`
 
 ```python
 class ActionBase
@@ -872,7 +872,7 @@ class ActionBase:
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, **kwargs: Any) -> None
@@ -898,7 +898,7 @@ def __init__(self, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `__call__`
+### ⚙️ Method `__call__`
 
 ```python
 def __call__(self, *args: Any, **kwargs: Any) -> Any
@@ -927,7 +927,7 @@ def __call__(self, *args: Any, **kwargs: Any) -> Any:
 
 </details>
 
-### Method `add_line`
+### ⚙️ Method `add_line`
 
 ```python
 def add_line(self, line: str) -> None
@@ -952,7 +952,7 @@ def add_line(self, line: str) -> None:
 
 </details>
 
-### Method `config`
+### ⚙️ Method `config`
 
 ```python
 def config(self) -> dict
@@ -970,7 +970,7 @@ def config(self) -> dict:
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> NoReturn
@@ -998,7 +998,7 @@ def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
 
 </details>
 
-### Method `get_checkbox_selection`
+### ⚙️ Method `get_checkbox_selection`
 
 ```python
 def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None) -> list[str] | None
@@ -1083,7 +1083,7 @@ def get_checkbox_selection(
 
 </details>
 
-### Method `get_choice_from_list`
+### ⚙️ Method `get_choice_from_list`
 
 ```python
 def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> str | None
@@ -1166,7 +1166,7 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
 
 </details>
 
-### Method `get_existing_directory`
+### ⚙️ Method `get_existing_directory`
 
 ```python
 def get_existing_directory(self, title: str, default_path: str) -> Path | None
@@ -1197,7 +1197,7 @@ def get_existing_directory(self, title: str, default_path: str) -> Path | None:
 
 </details>
 
-### Method `get_folder_with_choice_option`
+### ⚙️ Method `get_folder_with_choice_option`
 
 ```python
 def get_folder_with_choice_option(self, title: str, folders_list: list[str], default_path: str, choice_text: str = "📚 Choice a folder …") -> Path | None
@@ -1248,7 +1248,7 @@ def get_folder_with_choice_option(
 
 </details>
 
-### Method `get_open_filename`
+### ⚙️ Method `get_open_filename`
 
 ```python
 def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None
@@ -1280,7 +1280,7 @@ def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path
 
 </details>
 
-### Method `get_save_filename`
+### ⚙️ Method `get_save_filename`
 
 ```python
 def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None
@@ -1312,7 +1312,7 @@ def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path
 
 </details>
 
-### Method `get_text_input`
+### ⚙️ Method `get_text_input`
 
 ```python
 def get_text_input(self, title: str, label: str, default_value: str | None = None) -> str | None
@@ -1344,7 +1344,7 @@ def get_text_input(self, title: str, label: str, default_value: str | None = Non
 
 </details>
 
-### Method `get_text_input_with_auto`
+### ⚙️ Method `get_text_input_with_auto`
 
 ```python
 def get_text_input_with_auto(self, title: str, label: str, auto_generator: Callable[[], str] | None = None, auto_button_text: str = "🤖 Auto") -> str | None
@@ -1430,7 +1430,7 @@ def get_text_input_with_auto(
 
 </details>
 
-### Method `get_text_textarea`
+### ⚙️ Method `get_text_textarea`
 
 ```python
 def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None
@@ -1493,7 +1493,7 @@ def get_text_textarea(self, title: str, label: str, default_text: str | None = N
 
 </details>
 
-### Method `handle_error`
+### ⚙️ Method `handle_error`
 
 ```python
 def handle_error(self, error: Exception, context: str) -> None
@@ -1517,7 +1517,7 @@ def handle_error(self, error: Exception, context: str) -> None:
 
 </details>
 
-### Method `handle_exceptions`
+### ⚙️ Method `handle_exceptions`
 
 ```python
 def handle_exceptions(context: str = "") -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
@@ -1557,7 +1557,7 @@ def handle_exceptions(
 
 </details>
 
-### Method `show_about_dialog`
+### ⚙️ Method `show_about_dialog`
 
 ```python
 def show_about_dialog(self, title: str = "About", app_name: str = "Harrix Swiss Knife", version: str = "1.0.0", description: str = "", author: str = "", license_text: str = "", github: str = "") -> str | None
@@ -1663,7 +1663,7 @@ def show_about_dialog(
 
 </details>
 
-### Method `show_instructions`
+### ⚙️ Method `show_instructions`
 
 ```python
 def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None
@@ -1737,7 +1737,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
 
 </details>
 
-### Method `show_result`
+### ⚙️ Method `show_result`
 
 ```python
 def show_result(self) -> str | None
@@ -1759,7 +1759,7 @@ def show_result(self) -> str | None:
 
 </details>
 
-### Method `show_text_multiline`
+### ⚙️ Method `show_text_multiline`
 
 ```python
 def show_text_multiline(self, text: str, title: str = "Result") -> str | None
@@ -1833,7 +1833,7 @@ def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
 
 </details>
 
-### Method `show_toast`
+### ⚙️ Method `show_toast`
 
 ```python
 def show_toast(self, message: str, duration: int = 2000) -> None
@@ -1857,7 +1857,7 @@ def show_toast(self, message: str, duration: int = 2000) -> None:
 
 </details>
 
-### Method `start_thread`
+### ⚙️ Method `start_thread`
 
 ```python
 def start_thread(self, work_function: Callable, callback_function: Callable, message: str = "") -> None
@@ -1920,7 +1920,7 @@ def start_thread(self, work_function: Callable, callback_function: Callable, mes
 
 </details>
 
-### Method `text_to_clipboard`
+### ⚙️ Method `text_to_clipboard`
 
 ```python
 def text_to_clipboard(self, text: str) -> None

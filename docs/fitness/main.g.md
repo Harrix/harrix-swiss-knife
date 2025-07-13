@@ -4,100 +4,100 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `main.py`
+# 📄 File `main.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `MainWindow`](#class-mainwindow)
-  - [Method `__init__`](#method-__init__)
-  - [Method `apply_filter`](#method-apply_filter)
-  - [Method `clear_filter`](#method-clear_filter)
-  - [Method `closeEvent`](#method-closeevent)
-  - [Method `delete_record`](#method-delete_record)
-  - [Method `generate_pastel_colors_mathematical`](#method-generate_pastel_colors_mathematical)
-  - [Method `keyPressEvent`](#method-keypressevent)
-  - [Method `on_add_exercise`](#method-on_add_exercise)
-  - [Method `on_add_record`](#method-on_add_record)
-  - [Method `on_add_type`](#method-on_add_type)
-  - [Method `on_add_weight`](#method-on_add_weight)
-  - [Method `on_chart_exercise_changed`](#method-on_chart_exercise_changed)
-  - [Method `on_check_steps`](#method-on_check_steps)
-  - [Method `on_exercise_name_changed`](#method-on_exercise_name_changed)
-  - [Method `on_exercise_selection_changed`](#method-on_exercise_selection_changed)
-  - [Method `on_exercise_selection_changed_list`](#method-on_exercise_selection_changed_list)
-  - [Method `on_export_csv`](#method-on_export_csv)
-  - [Method `on_process_selection_changed`](#method-on_process_selection_changed)
-  - [Method `on_refresh_statistics`](#method-on_refresh_statistics)
-  - [Method `on_show_last_exercises`](#method-on_show_last_exercises)
-  - [Method `on_statistics_selection_changed`](#method-on_statistics_selection_changed)
-  - [Method `on_tab_changed`](#method-on_tab_changed)
-  - [Method `on_weight_selection_changed`](#method-on_weight_selection_changed)
-  - [Method `set_chart_all_time`](#method-set_chart_all_time)
-  - [Method `set_chart_last_month`](#method-set_chart_last_month)
-  - [Method `set_chart_last_year`](#method-set_chart_last_year)
-  - [Method `set_today_date`](#method-set_today_date)
-  - [Method `set_weight_all_time`](#method-set_weight_all_time)
-  - [Method `set_weight_last_month`](#method-set_weight_last_month)
-  - [Method `set_weight_last_year`](#method-set_weight_last_year)
-  - [Method `set_yesterday_date`](#method-set_yesterday_date)
-  - [Method `show_sets_chart`](#method-show_sets_chart)
-  - [Method `show_tables`](#method-show_tables)
-  - [Method `update_all`](#method-update_all)
-  - [Method `update_chart_comboboxes`](#method-update_chart_comboboxes)
-  - [Method `update_chart_type_combobox`](#method-update_chart_type_combobox)
-  - [Method `update_exercise_chart`](#method-update_exercise_chart)
-  - [Method `update_filter_comboboxes`](#method-update_filter_comboboxes)
-  - [Method `update_filter_type_combobox`](#method-update_filter_type_combobox)
-  - [Method `update_sets_count_today`](#method-update_sets_count_today)
-  - [Method `update_weight_chart`](#method-update_weight_chart)
-  - [Method `_check_for_new_records`](#method-_check_for_new_records)
-  - [Method `_connect_signals`](#method-_connect_signals)
-  - [Method `_connect_table_auto_save_signals`](#method-_connect_table_auto_save_signals)
-  - [Method `_connect_table_selection_signals`](#method-_connect_table_selection_signals)
-  - [Method `_connect_table_signals_for_table`](#method-_connect_table_signals_for_table)
-  - [Method `_copy_table_selection_to_clipboard`](#method-_copy_table_selection_to_clipboard)
-  - [Method `_create_colored_process_table_model`](#method-_create_colored_process_table_model)
-  - [Method `_create_colored_table_model`](#method-_create_colored_table_model)
-  - [Method `_create_table_model`](#method-_create_table_model)
-  - [Method `_dispose_models`](#method-_dispose_models)
-  - [Method `_get_current_selected_exercise`](#method-_get_current_selected_exercise)
-  - [Method `_get_exercise_avif_path`](#method-_get_exercise_avif_path)
-  - [Method `_get_exercise_name_by_id`](#method-_get_exercise_name_by_id)
-  - [Method `_get_last_weight`](#method-_get_last_weight)
-  - [Method `_get_selected_exercise_from_statistics_table`](#method-_get_selected_exercise_from_statistics_table)
-  - [Method `_get_selected_exercise_from_table`](#method-_get_selected_exercise_from_table)
-  - [Method `_get_selected_row_id`](#method-_get_selected_row_id)
-  - [Method `_init_database`](#method-_init_database)
-  - [Method `_init_exercise_chart_controls`](#method-_init_exercise_chart_controls)
-  - [Method `_init_exercises_list`](#method-_init_exercises_list)
-  - [Method `_init_filter_controls`](#method-_init_filter_controls)
-  - [Method `_init_sets_count_display`](#method-_init_sets_count_display)
-  - [Method `_init_weight_chart_controls`](#method-_init_weight_chart_controls)
-  - [Method `_init_weight_controls`](#method-_init_weight_controls)
-  - [Method `_load_default_exercise_chart`](#method-_load_default_exercise_chart)
-  - [Method `_load_default_statistics`](#method-_load_default_statistics)
-  - [Method `_load_exercise_avif`](#method-_load_exercise_avif)
-  - [Method `_load_initial_avifs`](#method-_load_initial_avifs)
-  - [Method `_next_avif_frame`](#method-_next_avif_frame)
-  - [Method `_on_table_data_changed`](#method-_on_table_data_changed)
-  - [Method `_refresh_table`](#method-_refresh_table)
-  - [Method `_select_exercise_in_list`](#method-_select_exercise_in_list)
-  - [Method `_setup_ui`](#method-_setup_ui)
-  - [Method `_show_record_congratulations`](#method-_show_record_congratulations)
-  - [Method `_update_charts_avif`](#method-_update_charts_avif)
-  - [Method `_update_comboboxes`](#method-_update_comboboxes)
-  - [Method `_update_exercises_avif`](#method-_update_exercises_avif)
-  - [Method `_update_form_from_process_selection`](#method-_update_form_from_process_selection)
-  - [Method `_update_statistics_avif`](#method-_update_statistics_avif)
-  - [Method `_update_types_avif`](#method-_update_types_avif)
-  - [Method `_validate_database_connection`](#method-_validate_database_connection)
+- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
+  - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
+  - [⚙️ Method `generate_pastel_colors_mathematical`](#%EF%B8%8F-method-generate_pastel_colors_mathematical)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `on_add_exercise`](#%EF%B8%8F-method-on_add_exercise)
+  - [⚙️ Method `on_add_record`](#%EF%B8%8F-method-on_add_record)
+  - [⚙️ Method `on_add_type`](#%EF%B8%8F-method-on_add_type)
+  - [⚙️ Method `on_add_weight`](#%EF%B8%8F-method-on_add_weight)
+  - [⚙️ Method `on_chart_exercise_changed`](#%EF%B8%8F-method-on_chart_exercise_changed)
+  - [⚙️ Method `on_check_steps`](#%EF%B8%8F-method-on_check_steps)
+  - [⚙️ Method `on_exercise_name_changed`](#%EF%B8%8F-method-on_exercise_name_changed)
+  - [⚙️ Method `on_exercise_selection_changed`](#%EF%B8%8F-method-on_exercise_selection_changed)
+  - [⚙️ Method `on_exercise_selection_changed_list`](#%EF%B8%8F-method-on_exercise_selection_changed_list)
+  - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
+  - [⚙️ Method `on_process_selection_changed`](#%EF%B8%8F-method-on_process_selection_changed)
+  - [⚙️ Method `on_refresh_statistics`](#%EF%B8%8F-method-on_refresh_statistics)
+  - [⚙️ Method `on_show_last_exercises`](#%EF%B8%8F-method-on_show_last_exercises)
+  - [⚙️ Method `on_statistics_selection_changed`](#%EF%B8%8F-method-on_statistics_selection_changed)
+  - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
+  - [⚙️ Method `on_weight_selection_changed`](#%EF%B8%8F-method-on_weight_selection_changed)
+  - [⚙️ Method `set_chart_all_time`](#%EF%B8%8F-method-set_chart_all_time)
+  - [⚙️ Method `set_chart_last_month`](#%EF%B8%8F-method-set_chart_last_month)
+  - [⚙️ Method `set_chart_last_year`](#%EF%B8%8F-method-set_chart_last_year)
+  - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
+  - [⚙️ Method `set_weight_all_time`](#%EF%B8%8F-method-set_weight_all_time)
+  - [⚙️ Method `set_weight_last_month`](#%EF%B8%8F-method-set_weight_last_month)
+  - [⚙️ Method `set_weight_last_year`](#%EF%B8%8F-method-set_weight_last_year)
+  - [⚙️ Method `set_yesterday_date`](#%EF%B8%8F-method-set_yesterday_date)
+  - [⚙️ Method `show_sets_chart`](#%EF%B8%8F-method-show_sets_chart)
+  - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
+  - [⚙️ Method `update_all`](#%EF%B8%8F-method-update_all)
+  - [⚙️ Method `update_chart_comboboxes`](#%EF%B8%8F-method-update_chart_comboboxes)
+  - [⚙️ Method `update_chart_type_combobox`](#%EF%B8%8F-method-update_chart_type_combobox)
+  - [⚙️ Method `update_exercise_chart`](#%EF%B8%8F-method-update_exercise_chart)
+  - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
+  - [⚙️ Method `update_filter_type_combobox`](#%EF%B8%8F-method-update_filter_type_combobox)
+  - [⚙️ Method `update_sets_count_today`](#%EF%B8%8F-method-update_sets_count_today)
+  - [⚙️ Method `update_weight_chart`](#%EF%B8%8F-method-update_weight_chart)
+  - [⚙️ Method `_check_for_new_records`](#%EF%B8%8F-method-_check_for_new_records)
+  - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
+  - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
+  - [⚙️ Method `_connect_table_selection_signals`](#%EF%B8%8F-method-_connect_table_selection_signals)
+  - [⚙️ Method `_connect_table_signals_for_table`](#%EF%B8%8F-method-_connect_table_signals_for_table)
+  - [⚙️ Method `_copy_table_selection_to_clipboard`](#%EF%B8%8F-method-_copy_table_selection_to_clipboard)
+  - [⚙️ Method `_create_colored_process_table_model`](#%EF%B8%8F-method-_create_colored_process_table_model)
+  - [⚙️ Method `_create_colored_table_model`](#%EF%B8%8F-method-_create_colored_table_model)
+  - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
+  - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
+  - [⚙️ Method `_get_current_selected_exercise`](#%EF%B8%8F-method-_get_current_selected_exercise)
+  - [⚙️ Method `_get_exercise_avif_path`](#%EF%B8%8F-method-_get_exercise_avif_path)
+  - [⚙️ Method `_get_exercise_name_by_id`](#%EF%B8%8F-method-_get_exercise_name_by_id)
+  - [⚙️ Method `_get_last_weight`](#%EF%B8%8F-method-_get_last_weight)
+  - [⚙️ Method `_get_selected_exercise_from_statistics_table`](#%EF%B8%8F-method-_get_selected_exercise_from_statistics_table)
+  - [⚙️ Method `_get_selected_exercise_from_table`](#%EF%B8%8F-method-_get_selected_exercise_from_table)
+  - [⚙️ Method `_get_selected_row_id`](#%EF%B8%8F-method-_get_selected_row_id)
+  - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
+  - [⚙️ Method `_init_exercise_chart_controls`](#%EF%B8%8F-method-_init_exercise_chart_controls)
+  - [⚙️ Method `_init_exercises_list`](#%EF%B8%8F-method-_init_exercises_list)
+  - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
+  - [⚙️ Method `_init_sets_count_display`](#%EF%B8%8F-method-_init_sets_count_display)
+  - [⚙️ Method `_init_weight_chart_controls`](#%EF%B8%8F-method-_init_weight_chart_controls)
+  - [⚙️ Method `_init_weight_controls`](#%EF%B8%8F-method-_init_weight_controls)
+  - [⚙️ Method `_load_default_exercise_chart`](#%EF%B8%8F-method-_load_default_exercise_chart)
+  - [⚙️ Method `_load_default_statistics`](#%EF%B8%8F-method-_load_default_statistics)
+  - [⚙️ Method `_load_exercise_avif`](#%EF%B8%8F-method-_load_exercise_avif)
+  - [⚙️ Method `_load_initial_avifs`](#%EF%B8%8F-method-_load_initial_avifs)
+  - [⚙️ Method `_next_avif_frame`](#%EF%B8%8F-method-_next_avif_frame)
+  - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
+  - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
+  - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
+  - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
+  - [⚙️ Method `_show_record_congratulations`](#%EF%B8%8F-method-_show_record_congratulations)
+  - [⚙️ Method `_update_charts_avif`](#%EF%B8%8F-method-_update_charts_avif)
+  - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
+  - [⚙️ Method `_update_exercises_avif`](#%EF%B8%8F-method-_update_exercises_avif)
+  - [⚙️ Method `_update_form_from_process_selection`](#%EF%B8%8F-method-_update_form_from_process_selection)
+  - [⚙️ Method `_update_statistics_avif`](#%EF%B8%8F-method-_update_statistics_avif)
+  - [⚙️ Method `_update_types_avif`](#%EF%B8%8F-method-_update_types_avif)
+  - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
 
 </details>
 
-## Class `MainWindow`
+## 🏛️ Class `MainWindow`
 
 ```python
 class MainWindow(QMainWindow, window.Ui_MainWindow, TableOperations, ChartOperations, DateOperations, AutoSaveOperations, ValidationOperations)
@@ -3513,7 +3513,7 @@ class MainWindow(
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self) -> None
@@ -3611,7 +3611,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
 </details>
 
-### Method `apply_filter`
+### ⚙️ Method `apply_filter`
 
 ```python
 def apply_filter(self) -> None
@@ -3679,7 +3679,7 @@ def apply_filter(self) -> None:
 
 </details>
 
-### Method `clear_filter`
+### ⚙️ Method `clear_filter`
 
 ```python
 def clear_filter(self) -> None
@@ -3712,7 +3712,7 @@ def clear_filter(self) -> None:
 
 </details>
 
-### Method `closeEvent`
+### ⚙️ Method `closeEvent`
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None
@@ -3750,7 +3750,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 
 </details>
 
-### Method `delete_record`
+### ⚙️ Method `delete_record`
 
 ```python
 def delete_record(self, table_name: str) -> None
@@ -3808,7 +3808,7 @@ def delete_record(self, table_name: str) -> None:
 
 </details>
 
-### Method `generate_pastel_colors_mathematical`
+### ⚙️ Method `generate_pastel_colors_mathematical`
 
 ```python
 def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]
@@ -3851,7 +3851,7 @@ def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
 
 </details>
 
-### Method `keyPressEvent`
+### ⚙️ Method `keyPressEvent`
 
 ```python
 def keyPressEvent(self, event: QKeyEvent) -> None
@@ -3899,7 +3899,7 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 
 </details>
 
-### Method `on_add_exercise`
+### ⚙️ Method `on_add_exercise`
 
 ```python
 def on_add_exercise(self) -> None
@@ -3937,7 +3937,7 @@ def on_add_exercise(self) -> None:
 
 </details>
 
-### Method `on_add_record`
+### ⚙️ Method `on_add_record`
 
 ```python
 def on_add_record(self) -> None
@@ -4016,7 +4016,7 @@ def on_add_record(self) -> None:
 
 </details>
 
-### Method `on_add_type`
+### ⚙️ Method `on_add_type`
 
 ```python
 def on_add_type(self) -> None
@@ -4060,7 +4060,7 @@ def on_add_type(self) -> None:
 
 </details>
 
-### Method `on_add_weight`
+### ⚙️ Method `on_add_weight`
 
 ```python
 def on_add_weight(self) -> None
@@ -4108,7 +4108,7 @@ def on_add_weight(self) -> None:
 
 </details>
 
-### Method `on_chart_exercise_changed`
+### ⚙️ Method `on_chart_exercise_changed`
 
 ```python
 def on_chart_exercise_changed(self, _index: int = -1) -> None
@@ -4130,7 +4130,7 @@ def on_chart_exercise_changed(self, _index: int = -1) -> None:
 
 </details>
 
-### Method `on_check_steps`
+### ⚙️ Method `on_check_steps`
 
 ```python
 def on_check_steps(self) -> None
@@ -4309,7 +4309,7 @@ def on_check_steps(self) -> None:
 
 </details>
 
-### Method `on_exercise_name_changed`
+### ⚙️ Method `on_exercise_name_changed`
 
 ```python
 def on_exercise_name_changed(self, _index: int = -1) -> None
@@ -4331,7 +4331,7 @@ def on_exercise_name_changed(self, _index: int = -1) -> None:
 
 </details>
 
-### Method `on_exercise_selection_changed`
+### ⚙️ Method `on_exercise_selection_changed`
 
 ```python
 def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
@@ -4380,7 +4380,7 @@ def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModel
 
 </details>
 
-### Method `on_exercise_selection_changed_list`
+### ⚙️ Method `on_exercise_selection_changed_list`
 
 ```python
 def on_exercise_selection_changed_list(self) -> None
@@ -4515,7 +4515,7 @@ def on_exercise_selection_changed_list(self) -> None:
 
 </details>
 
-### Method `on_export_csv`
+### ⚙️ Method `on_export_csv`
 
 ```python
 def on_export_csv(self) -> None
@@ -4560,7 +4560,7 @@ def on_export_csv(self) -> None:
 
 </details>
 
-### Method `on_process_selection_changed`
+### ⚙️ Method `on_process_selection_changed`
 
 ```python
 def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
@@ -4622,7 +4622,7 @@ def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIn
 
 </details>
 
-### Method `on_refresh_statistics`
+### ⚙️ Method `on_refresh_statistics`
 
 ```python
 def on_refresh_statistics(self) -> None
@@ -4939,7 +4939,7 @@ def on_refresh_statistics(self) -> None:
 
 </details>
 
-### Method `on_show_last_exercises`
+### ⚙️ Method `on_show_last_exercises`
 
 ```python
 def on_show_last_exercises(self) -> None
@@ -5087,7 +5087,7 @@ def on_show_last_exercises(self) -> None:
 
 </details>
 
-### Method `on_statistics_selection_changed`
+### ⚙️ Method `on_statistics_selection_changed`
 
 ```python
 def on_statistics_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
@@ -5112,7 +5112,7 @@ def on_statistics_selection_changed(self, _current: QModelIndex, _previous: QMod
 
 </details>
 
-### Method `on_tab_changed`
+### ⚙️ Method `on_tab_changed`
 
 ```python
 def on_tab_changed(self, index: int) -> None
@@ -5151,7 +5151,7 @@ def on_tab_changed(self, index: int) -> None:
 
 </details>
 
-### Method `on_weight_selection_changed`
+### ⚙️ Method `on_weight_selection_changed`
 
 ```python
 def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
@@ -5207,7 +5207,7 @@ def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIn
 
 </details>
 
-### Method `set_chart_all_time`
+### ⚙️ Method `set_chart_all_time`
 
 ```python
 def set_chart_all_time(self) -> None
@@ -5226,7 +5226,7 @@ def set_chart_all_time(self) -> None:
 
 </details>
 
-### Method `set_chart_last_month`
+### ⚙️ Method `set_chart_last_month`
 
 ```python
 def set_chart_last_month(self) -> None
@@ -5245,7 +5245,7 @@ def set_chart_last_month(self) -> None:
 
 </details>
 
-### Method `set_chart_last_year`
+### ⚙️ Method `set_chart_last_year`
 
 ```python
 def set_chart_last_year(self) -> None
@@ -5264,7 +5264,7 @@ def set_chart_last_year(self) -> None:
 
 </details>
 
-### Method `set_today_date`
+### ⚙️ Method `set_today_date`
 
 ```python
 def set_today_date(self) -> None
@@ -5295,7 +5295,7 @@ def set_today_date(self) -> None:
 
 </details>
 
-### Method `set_weight_all_time`
+### ⚙️ Method `set_weight_all_time`
 
 ```python
 def set_weight_all_time(self) -> None
@@ -5314,7 +5314,7 @@ def set_weight_all_time(self) -> None:
 
 </details>
 
-### Method `set_weight_last_month`
+### ⚙️ Method `set_weight_last_month`
 
 ```python
 def set_weight_last_month(self) -> None
@@ -5333,7 +5333,7 @@ def set_weight_last_month(self) -> None:
 
 </details>
 
-### Method `set_weight_last_year`
+### ⚙️ Method `set_weight_last_year`
 
 ```python
 def set_weight_last_year(self) -> None
@@ -5352,7 +5352,7 @@ def set_weight_last_year(self) -> None:
 
 </details>
 
-### Method `set_yesterday_date`
+### ⚙️ Method `set_yesterday_date`
 
 ```python
 def set_yesterday_date(self) -> None
@@ -5374,7 +5374,7 @@ def set_yesterday_date(self) -> None:
 
 </details>
 
-### Method `show_sets_chart`
+### ⚙️ Method `show_sets_chart`
 
 ```python
 def show_sets_chart(self) -> None
@@ -5466,7 +5466,7 @@ def show_sets_chart(self) -> None:
 
 </details>
 
-### Method `show_tables`
+### ⚙️ Method `show_tables`
 
 ```python
 def show_tables(self) -> None
@@ -5630,7 +5630,7 @@ def show_tables(self) -> None:
 
 </details>
 
-### Method `update_all`
+### ⚙️ Method `update_all`
 
 ```python
 def update_all(self) -> None
@@ -5700,7 +5700,7 @@ def update_all(
 
 </details>
 
-### Method `update_chart_comboboxes`
+### ⚙️ Method `update_chart_comboboxes`
 
 ```python
 def update_chart_comboboxes(self) -> None
@@ -5736,7 +5736,7 @@ def update_chart_comboboxes(self) -> None:
 
 </details>
 
-### Method `update_chart_type_combobox`
+### ⚙️ Method `update_chart_type_combobox`
 
 ```python
 def update_chart_type_combobox(self, _index: int = -1) -> None
@@ -5774,7 +5774,7 @@ def update_chart_type_combobox(self, _index: int = -1) -> None:
 
 </details>
 
-### Method `update_exercise_chart`
+### ⚙️ Method `update_exercise_chart`
 
 ```python
 def update_exercise_chart(self) -> None
@@ -5904,7 +5904,7 @@ def update_exercise_chart(self) -> None:
 
 </details>
 
-### Method `update_filter_comboboxes`
+### ⚙️ Method `update_filter_comboboxes`
 
 ```python
 def update_filter_comboboxes(self) -> None
@@ -5947,7 +5947,7 @@ def update_filter_comboboxes(self) -> None:
 
 </details>
 
-### Method `update_filter_type_combobox`
+### ⚙️ Method `update_filter_type_combobox`
 
 ```python
 def update_filter_type_combobox(self, _index: int = -1) -> None
@@ -5995,7 +5995,7 @@ def update_filter_type_combobox(self, _index: int = -1) -> None:
 
 </details>
 
-### Method `update_sets_count_today`
+### ⚙️ Method `update_sets_count_today`
 
 ```python
 def update_sets_count_today(self) -> None
@@ -6026,7 +6026,7 @@ def update_sets_count_today(self) -> None:
 
 </details>
 
-### Method `update_weight_chart`
+### ⚙️ Method `update_weight_chart`
 
 ```python
 def update_weight_chart(self) -> None
@@ -6124,7 +6124,7 @@ def update_weight_chart(self) -> None:
 
 </details>
 
-### Method `_check_for_new_records`
+### ⚙️ Method `_check_for_new_records`
 
 ```python
 def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None
@@ -6181,7 +6181,7 @@ def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float,
 
 </details>
 
-### Method `_connect_signals`
+### ⚙️ Method `_connect_signals`
 
 ```python
 def _connect_signals(self) -> None
@@ -6261,7 +6261,7 @@ def _connect_signals(self) -> None:
 
 </details>
 
-### Method `_connect_table_auto_save_signals`
+### ⚙️ Method `_connect_table_auto_save_signals`
 
 ```python
 def _connect_table_auto_save_signals(self) -> None
@@ -6288,7 +6288,7 @@ def _connect_table_auto_save_signals(self) -> None:
 
 </details>
 
-### Method `_connect_table_selection_signals`
+### ⚙️ Method `_connect_table_selection_signals`
 
 ```python
 def _connect_table_selection_signals(self) -> None
@@ -6318,7 +6318,7 @@ def _connect_table_selection_signals(self) -> None:
 
 </details>
 
-### Method `_connect_table_signals_for_table`
+### ⚙️ Method `_connect_table_signals_for_table`
 
 ```python
 def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]) -> None
@@ -6347,7 +6347,7 @@ def _connect_table_signals_for_table(
 
 </details>
 
-### Method `_copy_table_selection_to_clipboard`
+### ⚙️ Method `_copy_table_selection_to_clipboard`
 
 ```python
 def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None
@@ -6407,7 +6407,7 @@ def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
 
 </details>
 
-### Method `_create_colored_process_table_model`
+### ⚙️ Method `_create_colored_process_table_model`
 
 ```python
 def _create_colored_process_table_model(self, data: list[list], headers: list[str], _id_column: int = 4) -> QSortFilterProxyModel
@@ -6476,7 +6476,7 @@ def _create_colored_process_table_model(
 
 </details>
 
-### Method `_create_colored_table_model`
+### ⚙️ Method `_create_colored_table_model`
 
 ```python
 def _create_colored_table_model(self, data: list[list], headers: list[str], id_column: int = -2) -> QSortFilterProxyModel
@@ -6539,7 +6539,7 @@ def _create_colored_table_model(
 
 </details>
 
-### Method `_create_table_model`
+### ⚙️ Method `_create_table_model`
 
 ```python
 def _create_table_model(self, data: list[list[str]], headers: list[str], id_column: int = 0) -> QSortFilterProxyModel
@@ -6589,7 +6589,7 @@ def _create_table_model(
 
 </details>
 
-### Method `_dispose_models`
+### ⚙️ Method `_dispose_models`
 
 ```python
 def _dispose_models(self) -> None
@@ -6618,7 +6618,7 @@ def _dispose_models(self) -> None:
 
 </details>
 
-### Method `_get_current_selected_exercise`
+### ⚙️ Method `_get_current_selected_exercise`
 
 ```python
 def _get_current_selected_exercise(self) -> str | None
@@ -6649,7 +6649,7 @@ def _get_current_selected_exercise(self) -> str | None:
 
 </details>
 
-### Method `_get_exercise_avif_path`
+### ⚙️ Method `_get_exercise_avif_path`
 
 ```python
 def _get_exercise_avif_path(self, exercise_name: str) -> Path | None
@@ -6683,7 +6683,7 @@ def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
 
 </details>
 
-### Method `_get_exercise_name_by_id`
+### ⚙️ Method `_get_exercise_name_by_id`
 
 ```python
 def _get_exercise_name_by_id(self, exercise_id: int) -> str | None
@@ -6712,7 +6712,7 @@ def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
 
 </details>
 
-### Method `_get_last_weight`
+### ⚙️ Method `_get_last_weight`
 
 ```python
 def _get_last_weight(self) -> float
@@ -6748,7 +6748,7 @@ def _get_last_weight(self) -> float:
 
 </details>
 
-### Method `_get_selected_exercise_from_statistics_table`
+### ⚙️ Method `_get_selected_exercise_from_statistics_table`
 
 ```python
 def _get_selected_exercise_from_statistics_table(self) -> str | None
@@ -6788,7 +6788,7 @@ def _get_selected_exercise_from_statistics_table(self) -> str | None:
 
 </details>
 
-### Method `_get_selected_exercise_from_table`
+### ⚙️ Method `_get_selected_exercise_from_table`
 
 ```python
 def _get_selected_exercise_from_table(self, table_name: str) -> str | None
@@ -6834,7 +6834,7 @@ def _get_selected_exercise_from_table(self, table_name: str) -> str | None:
 
 </details>
 
-### Method `_get_selected_row_id`
+### ⚙️ Method `_get_selected_row_id`
 
 ```python
 def _get_selected_row_id(self, table_name: str) -> int | None
@@ -6879,7 +6879,7 @@ def _get_selected_row_id(self, table_name: str) -> int | None:
 
 </details>
 
-### Method `_init_database`
+### ⚙️ Method `_init_database`
 
 ```python
 def _init_database(self) -> None
@@ -6951,7 +6951,7 @@ def _init_database(self) -> None:
 
 </details>
 
-### Method `_init_exercise_chart_controls`
+### ⚙️ Method `_init_exercise_chart_controls`
 
 ```python
 def _init_exercise_chart_controls(self) -> None
@@ -6974,7 +6974,7 @@ def _init_exercise_chart_controls(self) -> None:
 
 </details>
 
-### Method `_init_exercises_list`
+### ⚙️ Method `_init_exercises_list`
 
 ```python
 def _init_exercises_list(self) -> None
@@ -7003,7 +7003,7 @@ def _init_exercises_list(self) -> None:
 
 </details>
 
-### Method `_init_filter_controls`
+### ⚙️ Method `_init_filter_controls`
 
 ```python
 def _init_filter_controls(self) -> None
@@ -7031,7 +7031,7 @@ def _init_filter_controls(self) -> None:
 
 </details>
 
-### Method `_init_sets_count_display`
+### ⚙️ Method `_init_sets_count_display`
 
 ```python
 def _init_sets_count_display(self) -> None
@@ -7049,7 +7049,7 @@ def _init_sets_count_display(self) -> None:
 
 </details>
 
-### Method `_init_weight_chart_controls`
+### ⚙️ Method `_init_weight_chart_controls`
 
 ```python
 def _init_weight_chart_controls(self) -> None
@@ -7069,7 +7069,7 @@ def _init_weight_chart_controls(self) -> None:
 
 </details>
 
-### Method `_init_weight_controls`
+### ⚙️ Method `_init_weight_controls`
 
 ```python
 def _init_weight_controls(self) -> None
@@ -7089,7 +7089,7 @@ def _init_weight_controls(self) -> None:
 
 </details>
 
-### Method `_load_default_exercise_chart`
+### ⚙️ Method `_load_default_exercise_chart`
 
 ```python
 def _load_default_exercise_chart(self) -> None
@@ -7127,7 +7127,7 @@ def _load_default_exercise_chart(self) -> None:
 
 </details>
 
-### Method `_load_default_statistics`
+### ⚙️ Method `_load_default_statistics`
 
 ```python
 def _load_default_statistics(self) -> None
@@ -7148,7 +7148,7 @@ def _load_default_statistics(self) -> None:
 
 </details>
 
-### Method `_load_exercise_avif`
+### ⚙️ Method `_load_exercise_avif`
 
 ```python
 def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None
@@ -7330,7 +7330,7 @@ def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> No
 
 </details>
 
-### Method `_load_initial_avifs`
+### ⚙️ Method `_load_initial_avifs`
 
 ```python
 def _load_initial_avifs(self) -> None
@@ -7362,7 +7362,7 @@ def _load_initial_avifs(self) -> None:
 
 </details>
 
-### Method `_next_avif_frame`
+### ⚙️ Method `_next_avif_frame`
 
 ```python
 def _next_avif_frame(self, label_key: str) -> None
@@ -7402,7 +7402,7 @@ def _next_avif_frame(self, label_key: str) -> None:
 
 </details>
 
-### Method `_on_table_data_changed`
+### ⚙️ Method `_on_table_data_changed`
 
 ```python
 def _on_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None) -> None
@@ -7449,7 +7449,7 @@ def _on_table_data_changed(
 
 </details>
 
-### Method `_refresh_table`
+### ⚙️ Method `_refresh_table`
 
 ```python
 def _refresh_table(self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None) -> None
@@ -7491,7 +7491,7 @@ def _refresh_table(
 
 </details>
 
-### Method `_select_exercise_in_list`
+### ⚙️ Method `_select_exercise_in_list`
 
 ```python
 def _select_exercise_in_list(self, exercise_name: str) -> None
@@ -7524,7 +7524,7 @@ def _select_exercise_in_list(self, exercise_name: str) -> None:
 
 </details>
 
-### Method `_setup_ui`
+### ⚙️ Method `_setup_ui`
 
 ```python
 def _setup_ui(self) -> None
@@ -7575,7 +7575,7 @@ def _setup_ui(self) -> None:
 
 </details>
 
-### Method `_show_record_congratulations`
+### ⚙️ Method `_show_record_congratulations`
 
 ```python
 def _show_record_congratulations(self, exercise: str, record_info: dict) -> None
@@ -7683,7 +7683,7 @@ def _show_record_congratulations(self, exercise: str, record_info: dict) -> None
 
 </details>
 
-### Method `_update_charts_avif`
+### ⚙️ Method `_update_charts_avif`
 
 ```python
 def _update_charts_avif(self) -> None
@@ -7703,7 +7703,7 @@ def _update_charts_avif(self) -> None:
 
 </details>
 
-### Method `_update_comboboxes`
+### ⚙️ Method `_update_comboboxes`
 
 ```python
 def _update_comboboxes(self) -> None
@@ -7784,7 +7784,7 @@ def _update_comboboxes(
 
 </details>
 
-### Method `_update_exercises_avif`
+### ⚙️ Method `_update_exercises_avif`
 
 ```python
 def _update_exercises_avif(self) -> None
@@ -7804,7 +7804,7 @@ def _update_exercises_avif(self) -> None:
 
 </details>
 
-### Method `_update_form_from_process_selection`
+### ⚙️ Method `_update_form_from_process_selection`
 
 ```python
 def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None
@@ -7849,7 +7849,7 @@ def _update_form_from_process_selection(self, _exercise_name: str, type_name: st
 
 </details>
 
-### Method `_update_statistics_avif`
+### ⚙️ Method `_update_statistics_avif`
 
 ```python
 def _update_statistics_avif(self) -> None
@@ -7876,7 +7876,7 @@ def _update_statistics_avif(self) -> None:
 
 </details>
 
-### Method `_update_types_avif`
+### ⚙️ Method `_update_types_avif`
 
 ```python
 def _update_types_avif(self) -> None
@@ -7896,7 +7896,7 @@ def _update_types_avif(self) -> None:
 
 </details>
 
-### Method `_validate_database_connection`
+### ⚙️ Method `_validate_database_connection`
 
 ```python
 def _validate_database_connection(self) -> bool

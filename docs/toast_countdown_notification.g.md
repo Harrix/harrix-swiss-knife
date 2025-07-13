@@ -4,23 +4,23 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `toast_countdown_notification.py`
+# 📄 File `toast_countdown_notification.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `ToastCountdownNotification`](#class-toastcountdownnotification)
-  - [Method `__init__`](#method-__init__)
-  - [Method `closeEvent`](#method-closeevent)
-  - [Method `start_countdown`](#method-start_countdown)
-  - [Method `update_time`](#method-update_time)
-  - [Method `_refresh_label_text`](#method-_refresh_label_text)
+- [🏛️ Class `ToastCountdownNotification`](#%EF%B8%8F-class-toastcountdownnotification)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `start_countdown`](#%EF%B8%8F-method-start_countdown)
+  - [⚙️ Method `update_time`](#%EF%B8%8F-method-update_time)
+  - [⚙️ Method `_refresh_label_text`](#%EF%B8%8F-method-_refresh_label_text)
 
 </details>
 
-## Class `ToastCountdownNotification`
+## 🏛️ Class `ToastCountdownNotification`
 
 ```python
 class ToastCountdownNotification(toast_notification_base.ToastNotificationBase)
@@ -105,7 +105,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, message: str = "Process is running…", parent: QWidget | None = None) -> None
@@ -133,7 +133,7 @@ def __init__(self, message: str = "Process is running…", parent: QWidget | Non
 
 </details>
 
-### Method `closeEvent`
+### ⚙️ Method `closeEvent`
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None
@@ -158,7 +158,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 
 </details>
 
-### Method `start_countdown`
+### ⚙️ Method `start_countdown`
 
 ```python
 def start_countdown(self) -> None
@@ -178,7 +178,7 @@ def start_countdown(self) -> None:
 
 </details>
 
-### Method `update_time`
+### ⚙️ Method `update_time`
 
 ```python
 def update_time(self) -> None
@@ -200,7 +200,7 @@ def update_time(self) -> None:
 
 </details>
 
-### Method `_refresh_label_text`
+### ⚙️ Method `_refresh_label_text`
 
 ```python
 def _refresh_label_text(self) -> None

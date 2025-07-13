@@ -4,19 +4,19 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `main.py`
+# 📄 File `main.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `MainMenu`](#class-mainmenu)
-  - [Method `__init__`](#method-__init__)
+- [🏛️ Class `MainMenu`](#%EF%B8%8F-class-mainmenu)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 
 </details>
 
-## Class `MainMenu`
+## 🏛️ Class `MainMenu`
 
 ```python
 class MainMenu(hsk.main_menu_base.MainMenuBase)
@@ -163,7 +163,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self) -> None

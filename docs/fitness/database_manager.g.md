@@ -4,72 +4,72 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `database_manager.py`
+# 📄 File `database_manager.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `DatabaseManager`](#class-databasemanager)
-  - [Method `__init__`](#method-__init__)
-  - [Method `__del__`](#method-__del__)
-  - [Method `add_exercise`](#method-add_exercise)
-  - [Method `add_exercise_type`](#method-add_exercise_type)
-  - [Method `add_process_record`](#method-add_process_record)
-  - [Method `add_weight_record`](#method-add_weight_record)
-  - [Method `check_exercise_exists`](#method-check_exercise_exists)
-  - [Method `close`](#method-close)
-  - [Method `create_database_from_sql`](#method-create_database_from_sql)
-  - [Method `delete_exercise`](#method-delete_exercise)
-  - [Method `delete_exercise_type`](#method-delete_exercise_type)
-  - [Method `delete_process_record`](#method-delete_process_record)
-  - [Method `delete_weight_record`](#method-delete_weight_record)
-  - [Method `execute_query`](#method-execute_query)
-  - [Method `execute_simple_query`](#method-execute_simple_query)
-  - [Method `get_all_exercise_types`](#method-get_all_exercise_types)
-  - [Method `get_all_exercises`](#method-get_all_exercises)
-  - [Method `get_all_process_records`](#method-get_all_process_records)
-  - [Method `get_all_weight_records`](#method-get_all_weight_records)
-  - [Method `get_earliest_exercise_date`](#method-get_earliest_exercise_date)
-  - [Method `get_earliest_process_date`](#method-get_earliest_process_date)
-  - [Method `get_earliest_weight_date`](#method-get_earliest_weight_date)
-  - [Method `get_exercise_chart_data`](#method-get_exercise_chart_data)
-  - [Method `get_exercise_max_values`](#method-get_exercise_max_values)
-  - [Method `get_exercise_name_by_id`](#method-get_exercise_name_by_id)
-  - [Method `get_exercise_steps_records`](#method-get_exercise_steps_records)
-  - [Method `get_exercise_total_today`](#method-get_exercise_total_today)
-  - [Method `get_exercise_types`](#method-get_exercise_types)
-  - [Method `get_exercise_unit`](#method-get_exercise_unit)
-  - [Method `get_exercises_by_frequency`](#method-get_exercises_by_frequency)
-  - [Method `get_filtered_process_records`](#method-get_filtered_process_records)
-  - [Method `get_id`](#method-get_id)
-  - [Method `get_items`](#method-get_items)
-  - [Method `get_last_exercise_date`](#method-get_last_exercise_date)
-  - [Method `get_last_exercise_dates`](#method-get_last_exercise_dates)
-  - [Method `get_last_exercise_record`](#method-get_last_exercise_record)
-  - [Method `get_last_weight`](#method-get_last_weight)
-  - [Method `get_rows`](#method-get_rows)
-  - [Method `get_sets_chart_data`](#method-get_sets_chart_data)
-  - [Method `get_sets_count_today`](#method-get_sets_count_today)
-  - [Method `get_statistics_data`](#method-get_statistics_data)
-  - [Method `get_weight_chart_data`](#method-get_weight_chart_data)
-  - [Method `is_database_open`](#method-is_database_open)
-  - [Method `is_exercise_type_required`](#method-is_exercise_type_required)
-  - [Method `update_exercise`](#method-update_exercise)
-  - [Method `update_exercise_type`](#method-update_exercise_type)
-  - [Method `update_process_record`](#method-update_process_record)
-  - [Method `update_weight_record`](#method-update_weight_record)
-  - [Method `_create_query`](#method-_create_query)
-  - [Method `_ensure_connection`](#method-_ensure_connection)
-  - [Method `_iter_query`](#method-_iter_query)
-  - [Method `_reconnect`](#method-_reconnect)
-  - [Method `_rows_from_query`](#method-_rows_from_query)
-- [Function `_safe_identifier`](#function-_safe_identifier)
+- [🏛️ Class `DatabaseManager`](#%EF%B8%8F-class-databasemanager)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `__del__`](#%EF%B8%8F-method-__del__)
+  - [⚙️ Method `add_exercise`](#%EF%B8%8F-method-add_exercise)
+  - [⚙️ Method `add_exercise_type`](#%EF%B8%8F-method-add_exercise_type)
+  - [⚙️ Method `add_process_record`](#%EF%B8%8F-method-add_process_record)
+  - [⚙️ Method `add_weight_record`](#%EF%B8%8F-method-add_weight_record)
+  - [⚙️ Method `check_exercise_exists`](#%EF%B8%8F-method-check_exercise_exists)
+  - [⚙️ Method `close`](#%EF%B8%8F-method-close)
+  - [⚙️ Method `create_database_from_sql`](#%EF%B8%8F-method-create_database_from_sql)
+  - [⚙️ Method `delete_exercise`](#%EF%B8%8F-method-delete_exercise)
+  - [⚙️ Method `delete_exercise_type`](#%EF%B8%8F-method-delete_exercise_type)
+  - [⚙️ Method `delete_process_record`](#%EF%B8%8F-method-delete_process_record)
+  - [⚙️ Method `delete_weight_record`](#%EF%B8%8F-method-delete_weight_record)
+  - [⚙️ Method `execute_query`](#%EF%B8%8F-method-execute_query)
+  - [⚙️ Method `execute_simple_query`](#%EF%B8%8F-method-execute_simple_query)
+  - [⚙️ Method `get_all_exercise_types`](#%EF%B8%8F-method-get_all_exercise_types)
+  - [⚙️ Method `get_all_exercises`](#%EF%B8%8F-method-get_all_exercises)
+  - [⚙️ Method `get_all_process_records`](#%EF%B8%8F-method-get_all_process_records)
+  - [⚙️ Method `get_all_weight_records`](#%EF%B8%8F-method-get_all_weight_records)
+  - [⚙️ Method `get_earliest_exercise_date`](#%EF%B8%8F-method-get_earliest_exercise_date)
+  - [⚙️ Method `get_earliest_process_date`](#%EF%B8%8F-method-get_earliest_process_date)
+  - [⚙️ Method `get_earliest_weight_date`](#%EF%B8%8F-method-get_earliest_weight_date)
+  - [⚙️ Method `get_exercise_chart_data`](#%EF%B8%8F-method-get_exercise_chart_data)
+  - [⚙️ Method `get_exercise_max_values`](#%EF%B8%8F-method-get_exercise_max_values)
+  - [⚙️ Method `get_exercise_name_by_id`](#%EF%B8%8F-method-get_exercise_name_by_id)
+  - [⚙️ Method `get_exercise_steps_records`](#%EF%B8%8F-method-get_exercise_steps_records)
+  - [⚙️ Method `get_exercise_total_today`](#%EF%B8%8F-method-get_exercise_total_today)
+  - [⚙️ Method `get_exercise_types`](#%EF%B8%8F-method-get_exercise_types)
+  - [⚙️ Method `get_exercise_unit`](#%EF%B8%8F-method-get_exercise_unit)
+  - [⚙️ Method `get_exercises_by_frequency`](#%EF%B8%8F-method-get_exercises_by_frequency)
+  - [⚙️ Method `get_filtered_process_records`](#%EF%B8%8F-method-get_filtered_process_records)
+  - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
+  - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
+  - [⚙️ Method `get_last_exercise_date`](#%EF%B8%8F-method-get_last_exercise_date)
+  - [⚙️ Method `get_last_exercise_dates`](#%EF%B8%8F-method-get_last_exercise_dates)
+  - [⚙️ Method `get_last_exercise_record`](#%EF%B8%8F-method-get_last_exercise_record)
+  - [⚙️ Method `get_last_weight`](#%EF%B8%8F-method-get_last_weight)
+  - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
+  - [⚙️ Method `get_sets_chart_data`](#%EF%B8%8F-method-get_sets_chart_data)
+  - [⚙️ Method `get_sets_count_today`](#%EF%B8%8F-method-get_sets_count_today)
+  - [⚙️ Method `get_statistics_data`](#%EF%B8%8F-method-get_statistics_data)
+  - [⚙️ Method `get_weight_chart_data`](#%EF%B8%8F-method-get_weight_chart_data)
+  - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
+  - [⚙️ Method `is_exercise_type_required`](#%EF%B8%8F-method-is_exercise_type_required)
+  - [⚙️ Method `update_exercise`](#%EF%B8%8F-method-update_exercise)
+  - [⚙️ Method `update_exercise_type`](#%EF%B8%8F-method-update_exercise_type)
+  - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
+  - [⚙️ Method `update_weight_record`](#%EF%B8%8F-method-update_weight_record)
+  - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
+  - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
+  - [⚙️ Method `_iter_query`](#%EF%B8%8F-method-_iter_query)
+  - [⚙️ Method `_reconnect`](#%EF%B8%8F-method-_reconnect)
+  - [⚙️ Method `_rows_from_query`](#%EF%B8%8F-method-_rows_from_query)
+- [🔧 Function `_safe_identifier`](#-function-_safe_identifier)
 
 </details>
 
-## Class `DatabaseManager`
+## 🏛️ Class `DatabaseManager`
 
 ```python
 class DatabaseManager
@@ -1368,7 +1368,7 @@ class DatabaseManager:
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, db_filename: str) -> None
@@ -1408,7 +1408,7 @@ def __init__(self, db_filename: str) -> None:
 
 </details>
 
-### Method `__del__`
+### ⚙️ Method `__del__`
 
 ```python
 def __del__(self) -> None
@@ -1429,7 +1429,7 @@ def __del__(self) -> None:
 
 </details>
 
-### Method `add_exercise`
+### ⚙️ Method `add_exercise`
 
 ```python
 def add_exercise(self, name: str, unit: str) -> bool
@@ -1459,7 +1459,7 @@ def add_exercise(self, name: str, unit: str, *, is_type_required: bool) -> bool:
 
 </details>
 
-### Method `add_exercise_type`
+### ⚙️ Method `add_exercise_type`
 
 ```python
 def add_exercise_type(self, exercise_id: int, type_name: str) -> bool
@@ -1487,7 +1487,7 @@ def add_exercise_type(self, exercise_id: int, type_name: str) -> bool:
 
 </details>
 
-### Method `add_process_record`
+### ⚙️ Method `add_process_record`
 
 ```python
 def add_process_record(self, exercise_id: int, type_id: int, value: str, date: str) -> bool
@@ -1532,7 +1532,7 @@ def add_process_record(self, exercise_id: int, type_id: int, value: str, date: s
 
 </details>
 
-### Method `add_weight_record`
+### ⚙️ Method `add_weight_record`
 
 ```python
 def add_weight_record(self, value: float, date: str) -> bool
@@ -1560,7 +1560,7 @@ def add_weight_record(self, value: float, date: str) -> bool:
 
 </details>
 
-### Method `check_exercise_exists`
+### ⚙️ Method `check_exercise_exists`
 
 ```python
 def check_exercise_exists(self, exercise_id: int) -> bool
@@ -1587,7 +1587,7 @@ def check_exercise_exists(self, exercise_id: int) -> bool:
 
 </details>
 
-### Method `close`
+### ⚙️ Method `close`
 
 ```python
 def close(self) -> None
@@ -1614,7 +1614,7 @@ def close(self) -> None:
 
 </details>
 
-### Method `create_database_from_sql`
+### ⚙️ Method `create_database_from_sql`
 
 ```python
 def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool
@@ -1689,7 +1689,7 @@ def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
 
 </details>
 
-### Method `delete_exercise`
+### ⚙️ Method `delete_exercise`
 
 ```python
 def delete_exercise(self, exercise_id: int) -> bool
@@ -1716,7 +1716,7 @@ def delete_exercise(self, exercise_id: int) -> bool:
 
 </details>
 
-### Method `delete_exercise_type`
+### ⚙️ Method `delete_exercise_type`
 
 ```python
 def delete_exercise_type(self, type_id: int) -> bool
@@ -1743,7 +1743,7 @@ def delete_exercise_type(self, type_id: int) -> bool:
 
 </details>
 
-### Method `delete_process_record`
+### ⚙️ Method `delete_process_record`
 
 ```python
 def delete_process_record(self, record_id: int) -> bool
@@ -1770,7 +1770,7 @@ def delete_process_record(self, record_id: int) -> bool:
 
 </details>
 
-### Method `delete_weight_record`
+### ⚙️ Method `delete_weight_record`
 
 ```python
 def delete_weight_record(self, record_id: int) -> bool
@@ -1797,7 +1797,7 @@ def delete_weight_record(self, record_id: int) -> bool:
 
 </details>
 
-### Method `execute_query`
+### ⚙️ Method `execute_query`
 
 ```python
 def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None
@@ -1861,7 +1861,7 @@ def execute_query(
 
 </details>
 
-### Method `execute_simple_query`
+### ⚙️ Method `execute_simple_query`
 
 ```python
 def execute_simple_query(self, query_text: str, params: dict[str, Any] | None = None) -> bool
@@ -1927,7 +1927,7 @@ def execute_simple_query(
 
 </details>
 
-### Method `get_all_exercise_types`
+### ⚙️ Method `get_all_exercise_types`
 
 ```python
 def get_all_exercise_types(self) -> list[list[Any]]
@@ -1953,7 +1953,7 @@ def get_all_exercise_types(self) -> list[list[Any]]:
 
 </details>
 
-### Method `get_all_exercises`
+### ⚙️ Method `get_all_exercises`
 
 ```python
 def get_all_exercises(self) -> list[list[Any]]
@@ -1975,7 +1975,7 @@ def get_all_exercises(self) -> list[list[Any]]:
 
 </details>
 
-### Method `get_all_process_records`
+### ⚙️ Method `get_all_process_records`
 
 ```python
 def get_all_process_records(self) -> list[list[Any]]
@@ -2010,7 +2010,7 @@ def get_all_process_records(self) -> list[list[Any]]:
 
 </details>
 
-### Method `get_all_weight_records`
+### ⚙️ Method `get_all_weight_records`
 
 ```python
 def get_all_weight_records(self) -> list[list[Any]]
@@ -2032,7 +2032,7 @@ def get_all_weight_records(self) -> list[list[Any]]:
 
 </details>
 
-### Method `get_earliest_exercise_date`
+### ⚙️ Method `get_earliest_exercise_date`
 
 ```python
 def get_earliest_exercise_date(self, exercise_name: str, exercise_type: str | None = None) -> str | None
@@ -2075,7 +2075,7 @@ def get_earliest_exercise_date(self, exercise_name: str, exercise_type: str | No
 
 </details>
 
-### Method `get_earliest_process_date`
+### ⚙️ Method `get_earliest_process_date`
 
 ```python
 def get_earliest_process_date(self) -> str | None
@@ -2098,7 +2098,7 @@ def get_earliest_process_date(self) -> str | None:
 
 </details>
 
-### Method `get_earliest_weight_date`
+### ⚙️ Method `get_earliest_weight_date`
 
 ```python
 def get_earliest_weight_date(self) -> str | None
@@ -2121,7 +2121,7 @@ def get_earliest_weight_date(self) -> str | None:
 
 </details>
 
-### Method `get_exercise_chart_data`
+### ⚙️ Method `get_exercise_chart_data`
 
 ```python
 def get_exercise_chart_data(self, exercise_name: str, exercise_type: str | None = None, date_from: str | None = None, date_to: str | None = None) -> list[tuple[str, str]]
@@ -2177,7 +2177,7 @@ def get_exercise_chart_data(
 
 </details>
 
-### Method `get_exercise_max_values`
+### ⚙️ Method `get_exercise_max_values`
 
 ```python
 def get_exercise_max_values(self, exercise_id: int, type_id: int, date_from: str | None = None) -> tuple[float, float]
@@ -2249,7 +2249,7 @@ def get_exercise_max_values(
 
 </details>
 
-### Method `get_exercise_name_by_id`
+### ⚙️ Method `get_exercise_name_by_id`
 
 ```python
 def get_exercise_name_by_id(self, exercise_id: int) -> str | None
@@ -2276,7 +2276,7 @@ def get_exercise_name_by_id(self, exercise_id: int) -> str | None:
 
 </details>
 
-### Method `get_exercise_steps_records`
+### ⚙️ Method `get_exercise_steps_records`
 
 ```python
 def get_exercise_steps_records(self, exercise_id: int) -> list[tuple[str, int, str]]
@@ -2314,7 +2314,7 @@ def get_exercise_steps_records(self, exercise_id: int) -> list[tuple[str, int, s
 
 </details>
 
-### Method `get_exercise_total_today`
+### ⚙️ Method `get_exercise_total_today`
 
 ```python
 def get_exercise_total_today(self, exercise_id: int) -> float
@@ -2350,7 +2350,7 @@ def get_exercise_total_today(self, exercise_id: int) -> float:
 
 </details>
 
-### Method `get_exercise_types`
+### ⚙️ Method `get_exercise_types`
 
 ```python
 def get_exercise_types(self, exercise_id: int) -> list[str]
@@ -2376,7 +2376,7 @@ def get_exercise_types(self, exercise_id: int) -> list[str]:
 
 </details>
 
-### Method `get_exercise_unit`
+### ⚙️ Method `get_exercise_unit`
 
 ```python
 def get_exercise_unit(self, exercise_name: str) -> str
@@ -2405,7 +2405,7 @@ def get_exercise_unit(self, exercise_name: str) -> str:
 
 </details>
 
-### Method `get_exercises_by_frequency`
+### ⚙️ Method `get_exercises_by_frequency`
 
 ```python
 def get_exercises_by_frequency(self, limit: int = 500) -> list[str]
@@ -2453,7 +2453,7 @@ def get_exercises_by_frequency(self, limit: int = 500) -> list[str]:
 
 </details>
 
-### Method `get_filtered_process_records`
+### ⚙️ Method `get_filtered_process_records`
 
 ```python
 def get_filtered_process_records(self, exercise_name: str | None = None, exercise_type: str | None = None, date_from: str | None = None, date_to: str | None = None) -> list[list[Any]]
@@ -2523,7 +2523,7 @@ def get_filtered_process_records(
 
 </details>
 
-### Method `get_id`
+### ⚙️ Method `get_id`
 
 ```python
 def get_id(self, table: str, name_column: str, name_value: str, id_column: str = "_id", condition: str | None = None) -> int | None
@@ -2577,7 +2577,7 @@ def get_id(
 
 </details>
 
-### Method `get_items`
+### ⚙️ Method `get_items`
 
 ```python
 def get_items(self, table: str, column: str, condition: str | None = None, order_by: str | None = None) -> list[Any]
@@ -2632,7 +2632,7 @@ def get_items(
 
 </details>
 
-### Method `get_last_exercise_date`
+### ⚙️ Method `get_last_exercise_date`
 
 ```python
 def get_last_exercise_date(self, exercise_id: int) -> str | None
@@ -2668,7 +2668,7 @@ def get_last_exercise_date(self, exercise_id: int) -> str | None:
 
 </details>
 
-### Method `get_last_exercise_dates`
+### ⚙️ Method `get_last_exercise_dates`
 
 ```python
 def get_last_exercise_dates(self) -> list[tuple[str, str]]
@@ -2701,7 +2701,7 @@ def get_last_exercise_dates(self) -> list[tuple[str, str]]:
 
 </details>
 
-### Method `get_last_exercise_record`
+### ⚙️ Method `get_last_exercise_record`
 
 ```python
 def get_last_exercise_record(self, exercise_id: int) -> tuple[str, str] | None
@@ -2738,7 +2738,7 @@ def get_last_exercise_record(self, exercise_id: int) -> tuple[str, str] | None:
 
 </details>
 
-### Method `get_last_weight`
+### ⚙️ Method `get_last_weight`
 
 ```python
 def get_last_weight(self) -> float | None
@@ -2766,7 +2766,7 @@ def get_last_weight(self) -> float | None:
 
 </details>
 
-### Method `get_rows`
+### ⚙️ Method `get_rows`
 
 ```python
 def get_rows(self, query_text: str, params: dict[str, Any] | None = None) -> list[list[Any]]
@@ -2804,7 +2804,7 @@ def get_rows(
 
 </details>
 
-### Method `get_sets_chart_data`
+### ⚙️ Method `get_sets_chart_data`
 
 ```python
 def get_sets_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, int]]
@@ -2840,7 +2840,7 @@ def get_sets_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, i
 
 </details>
 
-### Method `get_sets_count_today`
+### ⚙️ Method `get_sets_count_today`
 
 ```python
 def get_sets_count_today(self) -> int
@@ -2864,7 +2864,7 @@ def get_sets_count_today(self) -> int:
 
 </details>
 
-### Method `get_statistics_data`
+### ⚙️ Method `get_statistics_data`
 
 ```python
 def get_statistics_data(self) -> list[tuple[str, str, float, str]]
@@ -2896,7 +2896,7 @@ def get_statistics_data(self) -> list[tuple[str, str, float, str]]:
 
 </details>
 
-### Method `get_weight_chart_data`
+### ⚙️ Method `get_weight_chart_data`
 
 ```python
 def get_weight_chart_data(self, date_from: str, date_to: str) -> list[tuple[float, str]]
@@ -2931,7 +2931,7 @@ def get_weight_chart_data(self, date_from: str, date_to: str) -> list[tuple[floa
 
 </details>
 
-### Method `is_database_open`
+### ⚙️ Method `is_database_open`
 
 ```python
 def is_database_open(self) -> bool
@@ -2953,7 +2953,7 @@ def is_database_open(self) -> bool:
 
 </details>
 
-### Method `is_exercise_type_required`
+### ⚙️ Method `is_exercise_type_required`
 
 ```python
 def is_exercise_type_required(self, exercise_id: int) -> bool
@@ -2980,7 +2980,7 @@ def is_exercise_type_required(self, exercise_id: int) -> bool:
 
 </details>
 
-### Method `update_exercise`
+### ⚙️ Method `update_exercise`
 
 ```python
 def update_exercise(self, exercise_id: int, name: str, unit: str) -> bool
@@ -3016,7 +3016,7 @@ def update_exercise(self, exercise_id: int, name: str, unit: str, *, is_type_req
 
 </details>
 
-### Method `update_exercise_type`
+### ⚙️ Method `update_exercise_type`
 
 ```python
 def update_exercise_type(self, type_id: int, exercise_id: int, type_name: str) -> bool
@@ -3046,7 +3046,7 @@ def update_exercise_type(self, type_id: int, exercise_id: int, type_name: str) -
 
 </details>
 
-### Method `update_process_record`
+### ⚙️ Method `update_process_record`
 
 ```python
 def update_process_record(self, record_id: int, exercise_id: int, type_id: int, value: str, date: str) -> bool
@@ -3091,7 +3091,7 @@ def update_process_record(self, record_id: int, exercise_id: int, type_id: int, 
 
 </details>
 
-### Method `update_weight_record`
+### ⚙️ Method `update_weight_record`
 
 ```python
 def update_weight_record(self, record_id: int, value: float, date: str) -> bool
@@ -3121,7 +3121,7 @@ def update_weight_record(self, record_id: int, value: float, date: str) -> bool:
 
 </details>
 
-### Method `_create_query`
+### ⚙️ Method `_create_query`
 
 ```python
 def _create_query(self) -> QSqlQuery
@@ -3146,7 +3146,7 @@ def _create_query(self) -> QSqlQuery:
 
 </details>
 
-### Method `_ensure_connection`
+### ⚙️ Method `_ensure_connection`
 
 ```python
 def _ensure_connection(self) -> bool
@@ -3189,7 +3189,7 @@ def _ensure_connection(self) -> bool:
 
 </details>
 
-### Method `_iter_query`
+### ⚙️ Method `_iter_query`
 
 ```python
 def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]
@@ -3219,7 +3219,7 @@ def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
 
 </details>
 
-### Method `_reconnect`
+### ⚙️ Method `_reconnect`
 
 ```python
 def _reconnect(self) -> None
@@ -3254,7 +3254,7 @@ def _reconnect(self) -> None:
 
 </details>
 
-### Method `_rows_from_query`
+### ⚙️ Method `_rows_from_query`
 
 ```python
 def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]
@@ -3285,7 +3285,7 @@ def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
 
 </details>
 
-## Function `_safe_identifier`
+## 🔧 Function `_safe_identifier`
 
 ```python
 def _safe_identifier(identifier: str) -> str

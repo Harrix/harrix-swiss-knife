@@ -4,20 +4,20 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `apps.py`
+# 📄 File `apps.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `OnFitness`](#class-onfitness)
-  - [Method `__init__`](#method-__init__)
-  - [Method `execute`](#method-execute)
+- [🏛️ Class `OnFitness`](#%EF%B8%8F-class-onfitness)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 
-## Class `OnFitness`
+## 🏛️ Class `OnFitness`
 
 ```python
 class OnFitness(ActionBase)
@@ -58,7 +58,7 @@ class OnFitness(ActionBase):
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, **kwargs) -> None
@@ -78,7 +78,7 @@ def __init__(self, **kwargs) -> None:  # noqa: ANN003
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None

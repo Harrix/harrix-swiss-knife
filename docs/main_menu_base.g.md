@@ -4,27 +4,27 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `main_menu_base.py`
+# 📄 File `main_menu_base.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `MainMenuBase`](#class-mainmenubase)
-  - [Method `__init__`](#method-__init__)
-  - [Method `add_items`](#method-add_items)
-  - [Method `add_menus_and_items`](#method-add_menus_and_items)
-  - [Method `create_emoji_icon`](#method-create_emoji_icon)
-  - [Method `generate_markdown_from_qmenu`](#method-generate_markdown_from_qmenu)
-  - [Method `get_icon`](#method-get_icon)
-  - [Method `get_menu`](#method-get_menu)
-  - [Method `new_menu`](#method-new_menu)
-  - [Method `_add_item`](#method-_add_item)
+- [🏛️ Class `MainMenuBase`](#%EF%B8%8F-class-mainmenubase)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `add_items`](#%EF%B8%8F-method-add_items)
+  - [⚙️ Method `add_menus_and_items`](#%EF%B8%8F-method-add_menus_and_items)
+  - [⚙️ Method `create_emoji_icon`](#%EF%B8%8F-method-create_emoji_icon)
+  - [⚙️ Method `generate_markdown_from_qmenu`](#%EF%B8%8F-method-generate_markdown_from_qmenu)
+  - [⚙️ Method `get_icon`](#%EF%B8%8F-method-get_icon)
+  - [⚙️ Method `get_menu`](#%EF%B8%8F-method-get_menu)
+  - [⚙️ Method `new_menu`](#%EF%B8%8F-method-new_menu)
+  - [⚙️ Method `_add_item`](#%EF%B8%8F-method-_add_item)
 
 </details>
 
-## Class `MainMenuBase`
+## 🏛️ Class `MainMenuBase`
 
 ```python
 class MainMenuBase
@@ -290,7 +290,7 @@ class MainMenuBase:
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self) -> None
@@ -308,7 +308,7 @@ def __init__(self) -> None:
 
 </details>
 
-### Method `add_items`
+### ⚙️ Method `add_items`
 
 ```python
 def add_items(self, menu: QMenu, items: list) -> None
@@ -362,7 +362,7 @@ def add_items(self, menu: QMenu, items: list) -> None:
 
 </details>
 
-### Method `add_menus_and_items`
+### ⚙️ Method `add_menus_and_items`
 
 ```python
 def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None
@@ -402,7 +402,7 @@ def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, ite
 
 </details>
 
-### Method `create_emoji_icon`
+### ⚙️ Method `create_emoji_icon`
 
 ```python
 def create_emoji_icon(self, emoji: str, size: int = 32) -> QIcon
@@ -439,7 +439,7 @@ def create_emoji_icon(self, emoji: str, size: int = 32) -> QIcon:
 
 </details>
 
-### Method `generate_markdown_from_qmenu`
+### ⚙️ Method `generate_markdown_from_qmenu`
 
 ```python
 def generate_markdown_from_qmenu(self, menu: QMenu, level: int = 0) -> list[str]
@@ -486,7 +486,7 @@ def generate_markdown_from_qmenu(self, menu: QMenu, level: int = 0) -> list[str]
 
 </details>
 
-### Method `get_icon`
+### ⚙️ Method `get_icon`
 
 ```python
 def get_icon(self, icon: str, size: int = 32) -> QIcon
@@ -524,7 +524,7 @@ def get_icon(self, icon: str, size: int = 32) -> QIcon:
 
 </details>
 
-### Method `get_menu`
+### ⚙️ Method `get_menu`
 
 ```python
 def get_menu(self) -> str
@@ -559,7 +559,7 @@ def get_menu(self) -> str:
 
 </details>
 
-### Method `new_menu`
+### ⚙️ Method `new_menu`
 
 ```python
 def new_menu(self, title: str, icon: str) -> QMenu
@@ -588,7 +588,7 @@ def new_menu(self, title: str, icon: str) -> QMenu:
 
 </details>
 
-### Method `_add_item`
+### ⚙️ Method `_add_item`
 
 ```python
 def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None

@@ -4,19 +4,19 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `resources_rc.py`
+# 📄 File `resources_rc.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Function `qCleanupResources`](#function-qcleanupresources)
-- [Function `qInitResources`](#function-qinitresources)
+- [🔧 Function `qCleanupResources`](#-function-qcleanupresources)
+- [🔧 Function `qInitResources`](#-function-qinitresources)
 
 </details>
 
-## Function `qCleanupResources`
+## 🔧 Function `qCleanupResources`
 
 ```python
 def qCleanupResources() -> None
@@ -34,7 +34,7 @@ def qCleanupResources() -> None:
 
 </details>
 
-## Function `qInitResources`
+## 🔧 Function `qInitResources`
 
 ```python
 def qInitResources() -> None

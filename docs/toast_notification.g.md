@@ -4,19 +4,19 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `toast_notification.py`
+# 📄 File `toast_notification.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `ToastNotification`](#class-toastnotification)
-  - [Method `__init__`](#method-__init__)
+- [🏛️ Class `ToastNotification`](#%EF%B8%8F-class-toastnotification)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 
 </details>
 
-## Class `ToastNotification`
+## 🏛️ Class `ToastNotification`
 
 ```python
 class ToastNotification(toast_notification_base.ToastNotificationBase)
@@ -62,7 +62,7 @@ class ToastNotification(toast_notification_base.ToastNotificationBase):
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, message: str, duration: int = 1000, parent: QWidget | None = None) -> None

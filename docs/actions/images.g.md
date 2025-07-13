@@ -4,47 +4,47 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `images.py`
+# 📄 File `images.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `OnClearImages`](#class-onclearimages)
-  - [Method `execute`](#method-execute)
-- [Class `OnOpenCameraUploads`](#class-onopencamerauploads)
-  - [Method `execute`](#method-execute-1)
-- [Class `OnOpenCameraUploadsShort`](#class-onopencamerauploadsshort)
-  - [Method `execute`](#method-execute-2)
-- [Class `OnOpenImages`](#class-onopenimages)
-  - [Method `execute`](#method-execute-3)
-- [Class `OnOpenOptimizedImages`](#class-onopenoptimizedimages)
-  - [Method `execute`](#method-execute-4)
-- [Class `OnOptimize`](#class-onoptimize)
-  - [Method `execute`](#method-execute-5)
-  - [Method `in_thread`](#method-in_thread)
-  - [Method `optimize_images_common`](#method-optimize_images_common)
-  - [Method `thread_after`](#method-thread_after)
-- [Class `OnOptimizeClipboard`](#class-onoptimizeclipboard)
-  - [Method `execute`](#method-execute-6)
-- [Class `OnOptimizeClipboardDialog`](#class-onoptimizeclipboarddialog)
-  - [Method `execute`](#method-execute-7)
-- [Class `OnOptimizeDialogReplace`](#class-onoptimizedialogreplace)
-  - [Method `execute`](#method-execute-8)
-  - [Method `in_thread`](#method-in_thread-1)
-  - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnOptimizeQuality`](#class-onoptimizequality)
-  - [Method `in_thread`](#method-in_thread-2)
-- [Class `OnOptimizeResizePngToAvif`](#class-onoptimizeresizepngtoavif)
-  - [Method `execute`](#method-execute-9)
-  - [Method `in_thread`](#method-in_thread-3)
-- [Class `OnOptimizeSingleImage`](#class-onoptimizesingleimage)
-  - [Method `execute`](#method-execute-10)
+- [🏛️ Class `OnClearImages`](#%EF%B8%8F-class-onclearimages)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnOpenCameraUploads`](#%EF%B8%8F-class-onopencamerauploads)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
+- [🏛️ Class `OnOpenCameraUploadsShort`](#%EF%B8%8F-class-onopencamerauploadsshort)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
+- [🏛️ Class `OnOpenImages`](#%EF%B8%8F-class-onopenimages)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+- [🏛️ Class `OnOpenOptimizedImages`](#%EF%B8%8F-class-onopenoptimizedimages)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+- [🏛️ Class `OnOptimize`](#%EF%B8%8F-class-onoptimize)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `optimize_images_common`](#%EF%B8%8F-method-optimize_images_common)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+- [🏛️ Class `OnOptimizeClipboard`](#%EF%B8%8F-class-onoptimizeclipboard)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
+- [🏛️ Class `OnOptimizeClipboardDialog`](#%EF%B8%8F-class-onoptimizeclipboarddialog)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
+- [🏛️ Class `OnOptimizeDialogReplace`](#%EF%B8%8F-class-onoptimizedialogreplace)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
+- [🏛️ Class `OnOptimizeQuality`](#%EF%B8%8F-class-onoptimizequality)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
+- [🏛️ Class `OnOptimizeResizePngToAvif`](#%EF%B8%8F-class-onoptimizeresizepngtoavif)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
+- [🏛️ Class `OnOptimizeSingleImage`](#%EF%B8%8F-class-onoptimizesingleimage)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
 
 </details>
 
-## Class `OnClearImages`
+## 🏛️ Class `OnClearImages`
 
 ```python
 class OnClearImages(ActionBase)
@@ -82,7 +82,7 @@ class OnClearImages(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -109,7 +109,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnOpenCameraUploads`
+## 🏛️ Class `OnOpenCameraUploads`
 
 ```python
 class OnOpenCameraUploads(ActionBase)
@@ -140,7 +140,7 @@ class OnOpenCameraUploads(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -160,7 +160,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnOpenCameraUploadsShort`
+## 🏛️ Class `OnOpenCameraUploadsShort`
 
 ```python
 class OnOpenCameraUploadsShort(ActionBase)
@@ -191,7 +191,7 @@ class OnOpenCameraUploadsShort(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -211,7 +211,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnOpenImages`
+## 🏛️ Class `OnOpenImages`
 
 ```python
 class OnOpenImages(ActionBase)
@@ -246,7 +246,7 @@ class OnOpenImages(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -270,7 +270,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnOpenOptimizedImages`
+## 🏛️ Class `OnOpenOptimizedImages`
 
 ```python
 class OnOpenOptimizedImages(ActionBase)
@@ -305,7 +305,7 @@ class OnOpenOptimizedImages(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -329,7 +329,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnOptimize`
+## 🏛️ Class `OnOptimize`
 
 ```python
 class OnOptimize(ActionBase)
@@ -389,7 +389,7 @@ class OnOptimize(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -407,7 +407,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -425,7 +425,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `optimize_images_common`
+### ⚙️ Method `optimize_images_common`
 
 ```python
 def optimize_images_common(self, command: str, output_folder: str | Path | None = None) -> str | None
@@ -455,7 +455,7 @@ def optimize_images_common(self, command: str, output_folder: str | Path | None 
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -475,7 +475,7 @@ def thread_after(self, result: Any) -> None:
 
 </details>
 
-## Class `OnOptimizeClipboard`
+## 🏛️ Class `OnOptimizeClipboard`
 
 ```python
 class OnOptimizeClipboard(ActionBase)
@@ -542,7 +542,7 @@ class OnOptimizeClipboard(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -597,7 +597,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnOptimizeClipboardDialog`
+## 🏛️ Class `OnOptimizeClipboardDialog`
 
 ```python
 class OnOptimizeClipboardDialog(ActionBase)
@@ -627,7 +627,7 @@ class OnOptimizeClipboardDialog(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -645,7 +645,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnOptimizeDialogReplace`
+## 🏛️ Class `OnOptimizeDialogReplace`
 
 ```python
 class OnOptimizeDialogReplace(OnOptimize)
@@ -712,7 +712,7 @@ class OnOptimizeDialogReplace(OnOptimize):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -734,7 +734,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -770,7 +770,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -793,7 +793,7 @@ def thread_after(self, result: Any) -> None:
 
 </details>
 
-## Class `OnOptimizeQuality`
+## 🏛️ Class `OnOptimizeQuality`
 
 ```python
 class OnOptimizeQuality(OnOptimize)
@@ -826,7 +826,7 @@ class OnOptimizeQuality(OnOptimize):
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -846,7 +846,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-## Class `OnOptimizeResizePngToAvif`
+## 🏛️ Class `OnOptimizeResizePngToAvif`
 
 ```python
 class OnOptimizeResizePngToAvif(OnOptimize)
@@ -885,7 +885,7 @@ class OnOptimizeResizePngToAvif(OnOptimize):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -908,7 +908,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -929,7 +929,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-## Class `OnOptimizeSingleImage`
+## 🏛️ Class `OnOptimizeSingleImage`
 
 ```python
 class OnOptimizeSingleImage(OnOptimize)
@@ -978,7 +978,7 @@ class OnOptimizeSingleImage(OnOptimize):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None

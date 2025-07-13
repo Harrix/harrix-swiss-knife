@@ -4,38 +4,38 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `python.py`
+# 📄 File `python.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `OnCheckPythonFolder`](#class-oncheckpythonfolder)
-  - [Method `execute`](#method-execute)
-  - [Method `in_thread`](#method-in_thread)
-  - [Method `thread_after`](#method-thread_after)
-- [Class `OnNewUvProject`](#class-onnewuvproject)
-  - [Method `execute`](#method-execute-1)
-  - [Method `in_thread`](#method-in_thread-1)
-  - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnPublishPythonLibrary`](#class-onpublishpythonlibrary)
-  - [Method `execute`](#method-execute-2)
-  - [Method `in_thread_01`](#method-in_thread_01)
-  - [Method `thread_after_01`](#method-thread_after_01)
-- [Class `OnSortIsortFmtDocsPythonCodeFolder`](#class-onsortisortfmtdocspythoncodefolder)
-  - [Method `__init__`](#method-__init__)
-  - [Method `execute`](#method-execute-3)
-  - [Method `format_and_sort_python_common`](#method-format_and_sort_python_common)
-  - [Method `in_thread`](#method-in_thread-2)
-  - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnSortIsortFmtPythonCodeFolder`](#class-onsortisortfmtpythoncodefolder)
-  - [Method `in_thread`](#method-in_thread-3)
-  - [Method `thread_after`](#method-thread_after-3)
+- [🏛️ Class `OnCheckPythonFolder`](#%EF%B8%8F-class-oncheckpythonfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+- [🏛️ Class `OnNewUvProject`](#%EF%B8%8F-class-onnewuvproject)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
+- [🏛️ Class `OnPublishPythonLibrary`](#%EF%B8%8F-class-onpublishpythonlibrary)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
+  - [⚙️ Method `in_thread_01`](#%EF%B8%8F-method-in_thread_01)
+  - [⚙️ Method `thread_after_01`](#%EF%B8%8F-method-thread_after_01)
+- [🏛️ Class `OnSortIsortFmtDocsPythonCodeFolder`](#%EF%B8%8F-class-onsortisortfmtdocspythoncodefolder)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+  - [⚙️ Method `format_and_sort_python_common`](#%EF%B8%8F-method-format_and_sort_python_common)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
+- [🏛️ Class `OnSortIsortFmtPythonCodeFolder`](#%EF%B8%8F-class-onsortisortfmtpythoncodefolder)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
 
 </details>
 
-## Class `OnCheckPythonFolder`
+## 🏛️ Class `OnCheckPythonFolder`
 
 ```python
 class OnCheckPythonFolder(ActionBase)
@@ -85,7 +85,7 @@ class OnCheckPythonFolder(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -109,7 +109,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -135,7 +135,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -154,7 +154,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnNewUvProject`
+## 🏛️ Class `OnNewUvProject`
 
 ```python
 class OnNewUvProject(ActionBase)
@@ -229,7 +229,7 @@ class OnNewUvProject(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -267,7 +267,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -295,7 +295,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -314,7 +314,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnPublishPythonLibrary`
+## 🏛️ Class `OnPublishPythonLibrary`
 
 ```python
 class OnPublishPythonLibrary(ActionBase)
@@ -399,7 +399,7 @@ class OnPublishPythonLibrary(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -434,7 +434,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread_01`
+### ⚙️ Method `in_thread_01`
 
 ```python
 def in_thread_01(self) -> str | None
@@ -469,7 +469,7 @@ def in_thread_01(self) -> str | None:
 
 </details>
 
-### Method `thread_after_01`
+### ⚙️ Method `thread_after_01`
 
 ```python
 def thread_after_01(self, result: Any) -> None
@@ -488,7 +488,7 @@ def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnSortIsortFmtDocsPythonCodeFolder`
+## 🏛️ Class `OnSortIsortFmtDocsPythonCodeFolder`
 
 ```python
 class OnSortIsortFmtDocsPythonCodeFolder(ActionBase)
@@ -603,7 +603,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, **kwargs) -> None
@@ -622,7 +622,7 @@ def __init__(self, **kwargs) -> None:  # noqa: ANN003
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -646,7 +646,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `format_and_sort_python_common`
+### ⚙️ Method `format_and_sort_python_common`
 
 ```python
 def format_and_sort_python_common(self, folder_path: str) -> None
@@ -712,7 +712,7 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -732,7 +732,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -751,7 +751,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnSortIsortFmtPythonCodeFolder`
+## 🏛️ Class `OnSortIsortFmtPythonCodeFolder`
 
 ```python
 class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder)
@@ -793,7 +793,7 @@ class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder):
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -813,7 +813,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None

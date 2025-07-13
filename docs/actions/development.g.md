@@ -4,33 +4,33 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `development.py`
+# 📄 File `development.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `OnAboutDialog`](#class-onaboutdialog)
-  - [Method `execute`](#method-execute)
-  - [Method `_get_version_from_pyproject`](#method-_get_version_from_pyproject)
-- [Class `OnExit`](#class-onexit)
-  - [Method `__init__`](#method-__init__)
-  - [Method `execute`](#method-execute-1)
-- [Class `OnNpmManagePackages`](#class-onnpmmanagepackages)
-  - [Method `execute`](#method-execute-2)
-  - [Method `in_thread`](#method-in_thread)
-  - [Method `thread_after`](#method-thread_after)
-- [Class `OnOpenConfigJson`](#class-onopenconfigjson)
-  - [Method `execute`](#method-execute-3)
-- [Class `OnUvUpdate`](#class-onuvupdate)
-  - [Method `execute`](#method-execute-4)
-  - [Method `in_thread`](#method-in_thread-1)
-  - [Method `thread_after`](#method-thread_after-1)
+- [🏛️ Class `OnAboutDialog`](#%EF%B8%8F-class-onaboutdialog)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `_get_version_from_pyproject`](#%EF%B8%8F-method-_get_version_from_pyproject)
+- [🏛️ Class `OnExit`](#%EF%B8%8F-class-onexit)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
+- [🏛️ Class `OnNpmManagePackages`](#%EF%B8%8F-class-onnpmmanagepackages)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+- [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+- [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
 
 </details>
 
-## Class `OnAboutDialog`
+## 🏛️ Class `OnAboutDialog`
 
 ```python
 class OnAboutDialog(ActionBase)
@@ -93,7 +93,7 @@ class OnAboutDialog(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -130,7 +130,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `_get_version_from_pyproject`
+### ⚙️ Method `_get_version_from_pyproject`
 
 ```python
 def _get_version_from_pyproject(self) -> str
@@ -158,7 +158,7 @@ def _get_version_from_pyproject(self) -> str:
 
 </details>
 
-## Class `OnExit`
+## 🏛️ Class `OnExit`
 
 ```python
 class OnExit(ActionBase)
@@ -191,7 +191,7 @@ class OnExit(ActionBase):
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, **kwargs) -> None
@@ -210,7 +210,7 @@ def __init__(self, **kwargs) -> None:  # noqa: ANN003
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -228,7 +228,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnNpmManagePackages`
+## 🏛️ Class `OnNpmManagePackages`
 
 ```python
 class OnNpmManagePackages(ActionBase)
@@ -289,7 +289,7 @@ class OnNpmManagePackages(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -307,7 +307,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -341,7 +341,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -361,7 +361,7 @@ def thread_after(self, result: Any) -> None:
 
 </details>
 
-## Class `OnOpenConfigJson`
+## 🏛️ Class `OnOpenConfigJson`
 
 ```python
 class OnOpenConfigJson(ActionBase)
@@ -392,7 +392,7 @@ class OnOpenConfigJson(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -412,7 +412,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnUvUpdate`
+## 🏛️ Class `OnUvUpdate`
 
 ```python
 class OnUvUpdate(ActionBase)
@@ -454,7 +454,7 @@ class OnUvUpdate(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -472,7 +472,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -491,7 +491,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None

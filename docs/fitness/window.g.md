@@ -4,20 +4,20 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `window.py`
+# 📄 File `window.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `Ui_MainWindow`](#class-ui_mainwindow)
-  - [Method `retranslateUi`](#method-retranslateui)
-  - [Method `setupUi`](#method-setupui)
+- [🏛️ Class `Ui_MainWindow`](#%EF%B8%8F-class-ui_mainwindow)
+  - [⚙️ Method `retranslateUi`](#%EF%B8%8F-method-retranslateui)
+  - [⚙️ Method `setupUi`](#%EF%B8%8F-method-setupui)
 
 </details>
 
-## Class `Ui_MainWindow`
+## 🏛️ Class `Ui_MainWindow`
 
 ```python
 class Ui_MainWindow(object)
@@ -1001,7 +1001,7 @@ class Ui_MainWindow(object):
 
 </details>
 
-### Method `retranslateUi`
+### ⚙️ Method `retranslateUi`
 
 ```python
 def retranslateUi(self, MainWindow)
@@ -1110,7 +1110,7 @@ def retranslateUi(self, MainWindow):
 
 </details>
 
-### Method `setupUi`
+### ⚙️ Method `setupUi`
 
 ```python
 def setupUi(self, MainWindow)

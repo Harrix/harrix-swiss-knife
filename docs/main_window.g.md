@@ -4,24 +4,24 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `main_window.py`
+# 📄 File `main_window.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `MainWindow`](#class-mainwindow)
-  - [Method `__init__`](#method-__init__)
-  - [Method `closeEvent`](#method-closeevent)
-  - [Method `on_item_clicked`](#method-on_item_clicked)
-  - [Method `populate_list`](#method-populate_list)
-  - [Method `showEvent`](#method-showevent)
-  - [Method `update_output_content`](#method-update_output_content)
+- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `on_item_clicked`](#%EF%B8%8F-method-on_item_clicked)
+  - [⚙️ Method `populate_list`](#%EF%B8%8F-method-populate_list)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
+  - [⚙️ Method `update_output_content`](#%EF%B8%8F-method-update_output_content)
 
 </details>
 
-## Class `MainWindow`
+## 🏛️ Class `MainWindow`
 
 ```python
 class MainWindow(QMainWindow)
@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, menu: QMenu) -> None
@@ -282,7 +282,7 @@ def __init__(self, menu: QMenu) -> None:
 
 </details>
 
-### Method `closeEvent`
+### ⚙️ Method `closeEvent`
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None
@@ -309,7 +309,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 
 </details>
 
-### Method `on_item_clicked`
+### ⚙️ Method `on_item_clicked`
 
 ```python
 def on_item_clicked(self, item: QListWidgetItem) -> None
@@ -346,7 +346,7 @@ def on_item_clicked(self, item: QListWidgetItem) -> None:
 
 </details>
 
-### Method `populate_list`
+### ⚙️ Method `populate_list`
 
 ```python
 def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None
@@ -401,7 +401,7 @@ def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
 
 </details>
 
-### Method `showEvent`
+### ⚙️ Method `showEvent`
 
 ```python
 def showEvent(self, event: QShowEvent) -> None
@@ -427,7 +427,7 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
 
 </details>
 
-### Method `update_output_content`
+### ⚙️ Method `update_output_content`
 
 ```python
 def update_output_content(self) -> None

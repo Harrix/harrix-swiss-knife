@@ -4,20 +4,20 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `tray_icon.py`
+# 📄 File `tray_icon.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `TrayIcon`](#class-trayicon)
-  - [Method `__init__`](#method-__init__)
-  - [Method `on_activated`](#method-on_activated)
+- [🏛️ Class `TrayIcon`](#%EF%B8%8F-class-trayicon)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `on_activated`](#%EF%B8%8F-method-on_activated)
 
 </details>
 
-## Class `TrayIcon`
+## 🏛️ Class `TrayIcon`
 
 ```python
 class TrayIcon(QSystemTrayIcon)
@@ -81,7 +81,7 @@ class TrayIcon(QSystemTrayIcon):
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None) -> None
@@ -115,7 +115,7 @@ def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None) -> N
 
 </details>
 
-### Method `on_activated`
+### ⚙️ Method `on_activated`
 
 ```python
 def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None

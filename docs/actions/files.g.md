@@ -4,52 +4,52 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `files.py`
+# 📄 File `files.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `OnAllFilesToParentFolder`](#class-onallfilestoparentfolder)
-  - [Method `execute`](#method-execute)
-- [Class `OnBlockDisks`](#class-onblockdisks)
-  - [Method `execute`](#method-execute-1)
-- [Class `OnCheckFeaturedImage`](#class-oncheckfeaturedimage)
-  - [Method `execute`](#method-execute-2)
-- [Class `OnCheckFeaturedImageInFolders`](#class-oncheckfeaturedimageinfolders)
-  - [Method `execute`](#method-execute-3)
-- [Class `OnExtractZipArchives`](#class-onextractziparchives)
-  - [Method `execute`](#method-execute-4)
-  - [Method `in_thread`](#method-in_thread)
-  - [Method `thread_after`](#method-thread_after)
-- [Class `OnListFilesSimple`](#class-onlistfilessimple)
-  - [Method `execute`](#method-execute-5)
-- [Class `OnListFilesSimpleIgnoreHiddenFolders`](#class-onlistfilessimpleignorehiddenfolders)
-  - [Method `execute`](#method-execute-6)
-- [Class `OnRemoveEmptyFolders`](#class-onremoveemptyfolders)
-  - [Method `execute`](#method-execute-7)
-  - [Method `in_thread`](#method-in_thread-1)
-  - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnRenameFb2EpubPdfFiles`](#class-onrenamefb2epubpdffiles)
-  - [Method `execute`](#method-execute-8)
-  - [Method `in_thread`](#method-in_thread-2)
-  - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnRenameFilesByMapping`](#class-onrenamefilesbymapping)
-  - [Method `execute`](#method-execute-9)
-  - [Method `in_thread`](#method-in_thread-3)
-  - [Method `thread_after`](#method-thread_after-3)
-  - [Method `_parse_mapping_text`](#method-_parse_mapping_text)
-- [Class `OnRenameLargestImagesToFeaturedImage`](#class-onrenamelargestimagestofeaturedimage)
-  - [Method `execute`](#method-execute-10)
-- [Class `OnTreeViewFolder`](#class-ontreeviewfolder)
-  - [Method `execute`](#method-execute-11)
-- [Class `OnTreeViewFolderIgnoreHiddenFolders`](#class-ontreeviewfolderignorehiddenfolders)
-  - [Method `execute`](#method-execute-12)
+- [🏛️ Class `OnAllFilesToParentFolder`](#%EF%B8%8F-class-onallfilestoparentfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnBlockDisks`](#%EF%B8%8F-class-onblockdisks)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
+- [🏛️ Class `OnCheckFeaturedImage`](#%EF%B8%8F-class-oncheckfeaturedimage)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
+- [🏛️ Class `OnCheckFeaturedImageInFolders`](#%EF%B8%8F-class-oncheckfeaturedimageinfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+- [🏛️ Class `OnExtractZipArchives`](#%EF%B8%8F-class-onextractziparchives)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+- [🏛️ Class `OnListFilesSimple`](#%EF%B8%8F-class-onlistfilessimple)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
+- [🏛️ Class `OnListFilesSimpleIgnoreHiddenFolders`](#%EF%B8%8F-class-onlistfilessimpleignorehiddenfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
+- [🏛️ Class `OnRemoveEmptyFolders`](#%EF%B8%8F-class-onremoveemptyfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
+- [🏛️ Class `OnRenameFb2EpubPdfFiles`](#%EF%B8%8F-class-onrenamefb2epubpdffiles)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
+- [🏛️ Class `OnRenameFilesByMapping`](#%EF%B8%8F-class-onrenamefilesbymapping)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
+  - [⚙️ Method `_parse_mapping_text`](#%EF%B8%8F-method-_parse_mapping_text)
+- [🏛️ Class `OnRenameLargestImagesToFeaturedImage`](#%EF%B8%8F-class-onrenamelargestimagestofeaturedimage)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
+- [🏛️ Class `OnTreeViewFolder`](#%EF%B8%8F-class-ontreeviewfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
+- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
 
 </details>
 
-## Class `OnAllFilesToParentFolder`
+## 🏛️ Class `OnAllFilesToParentFolder`
 
 ```python
 class OnAllFilesToParentFolder(ActionBase)
@@ -84,7 +84,7 @@ class OnAllFilesToParentFolder(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -108,7 +108,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnBlockDisks`
+## 🏛️ Class `OnBlockDisks`
 
 ```python
 class OnBlockDisks(ActionBase)
@@ -140,7 +140,7 @@ class OnBlockDisks(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -161,7 +161,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnCheckFeaturedImage`
+## 🏛️ Class `OnCheckFeaturedImage`
 
 ```python
 class OnCheckFeaturedImage(ActionBase)
@@ -196,7 +196,7 @@ class OnCheckFeaturedImage(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -220,7 +220,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnCheckFeaturedImageInFolders`
+## 🏛️ Class `OnCheckFeaturedImageInFolders`
 
 ```python
 class OnCheckFeaturedImageInFolders(ActionBase)
@@ -253,7 +253,7 @@ class OnCheckFeaturedImageInFolders(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -274,7 +274,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnExtractZipArchives`
+## 🏛️ Class `OnExtractZipArchives`
 
 ```python
 class OnExtractZipArchives(ActionBase)
@@ -330,7 +330,7 @@ class OnExtractZipArchives(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -352,7 +352,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -374,7 +374,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -393,7 +393,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnListFilesSimple`
+## 🏛️ Class `OnListFilesSimple`
 
 ```python
 class OnListFilesSimple(ActionBase)
@@ -430,7 +430,7 @@ class OnListFilesSimple(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -456,7 +456,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnListFilesSimpleIgnoreHiddenFolders`
+## 🏛️ Class `OnListFilesSimpleIgnoreHiddenFolders`
 
 ```python
 class OnListFilesSimpleIgnoreHiddenFolders(ActionBase)
@@ -486,7 +486,7 @@ class OnListFilesSimpleIgnoreHiddenFolders(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -504,7 +504,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnRemoveEmptyFolders`
+## 🏛️ Class `OnRemoveEmptyFolders`
 
 ```python
 class OnRemoveEmptyFolders(ActionBase)
@@ -552,7 +552,7 @@ class OnRemoveEmptyFolders(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -574,7 +574,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -597,7 +597,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -616,7 +616,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnRenameFb2EpubPdfFiles`
+## 🏛️ Class `OnRenameFb2EpubPdfFiles`
 
 ```python
 class OnRenameFb2EpubPdfFiles(ActionBase)
@@ -702,7 +702,7 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -745,7 +745,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -777,7 +777,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -796,7 +796,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnRenameFilesByMapping`
+## 🏛️ Class `OnRenameFilesByMapping`
 
 ```python
 class OnRenameFilesByMapping(ActionBase)
@@ -907,7 +907,7 @@ class OnRenameFilesByMapping(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -943,7 +943,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -967,7 +967,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -986,7 +986,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `_parse_mapping_text`
+### ⚙️ Method `_parse_mapping_text`
 
 ```python
 def _parse_mapping_text(self, mapping_text: str) -> dict[str, str] | None
@@ -1045,7 +1045,7 @@ def _parse_mapping_text(self, mapping_text: str) -> dict[str, str] | None:
 
 </details>
 
-## Class `OnRenameLargestImagesToFeaturedImage`
+## 🏛️ Class `OnRenameLargestImagesToFeaturedImage`
 
 ```python
 class OnRenameLargestImagesToFeaturedImage(ActionBase)
@@ -1081,7 +1081,7 @@ class OnRenameLargestImagesToFeaturedImage(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -1105,7 +1105,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnTreeViewFolder`
+## 🏛️ Class `OnTreeViewFolder`
 
 ```python
 class OnTreeViewFolder(ActionBase)
@@ -1142,7 +1142,7 @@ class OnTreeViewFolder(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -1168,7 +1168,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnTreeViewFolderIgnoreHiddenFolders`
+## 🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`
 
 ```python
 class OnTreeViewFolderIgnoreHiddenFolders(ActionBase)
@@ -1197,7 +1197,7 @@ class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None

@@ -4,69 +4,69 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `markdown.py`
+# 📄 File `markdown.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `OnBeautifyMdFolder`](#class-onbeautifymdfolder)
-  - [Method `beautify_markdown_common`](#method-beautify_markdown_common)
-  - [Method `execute`](#method-execute)
-  - [Method `in_thread`](#method-in_thread)
-  - [Method `thread_after`](#method-thread_after)
-- [Class `OnBeautifyMdFolderAndRegenerateGMd`](#class-onbeautifymdfolderandregenerategmd)
-  - [Method `execute`](#method-execute-1)
-  - [Method `in_thread`](#method-in_thread-1)
-  - [Method `thread_after`](#method-thread_after-1)
-- [Class `OnCheckMdFolder`](#class-oncheckmdfolder)
-  - [Method `execute`](#method-execute-2)
-  - [Method `in_thread`](#method-in_thread-2)
-  - [Method `thread_after`](#method-thread_after-2)
-- [Class `OnDownloadAndReplaceImagesFolder`](#class-ondownloadandreplaceimagesfolder)
-  - [Method `execute`](#method-execute-3)
-  - [Method `in_thread`](#method-in_thread-3)
-  - [Method `thread_after`](#method-thread_after-3)
-- [Class `OnGenerateShortNoteTocWithLinks`](#class-ongenerateshortnotetocwithlinks)
-  - [Method `execute`](#method-execute-4)
-  - [Method `in_thread`](#method-in_thread-4)
-  - [Method `thread_after`](#method-thread_after-4)
-- [Class `OnGetListMoviesBooks`](#class-ongetlistmoviesbooks)
-  - [Method `execute`](#method-execute-5)
-- [Class `OnIncreaseHeadingLevelContent`](#class-onincreaseheadinglevelcontent)
-  - [Method `execute`](#method-execute-6)
-- [Class `OnNewArticle`](#class-onnewarticle)
-  - [Method `execute`](#method-execute-7)
-- [Class `OnNewDiary`](#class-onnewdiary)
-  - [Method `execute`](#method-execute-8)
-- [Class `OnNewDiaryDream`](#class-onnewdiarydream)
-  - [Method `execute`](#method-execute-9)
-- [Class `OnNewNoteDialog`](#class-onnewnotedialog)
-  - [Method `execute`](#method-execute-10)
-- [Class `OnNewNoteDialogWithImages`](#class-onnewnotedialogwithimages)
-  - [Method `execute`](#method-execute-11)
-- [Class `OnOptimizeImagesFolder`](#class-onoptimizeimagesfolder)
-  - [Method `execute`](#method-execute-12)
-  - [Method `in_thread`](#method-in_thread-5)
-  - [Method `optimize_images_content_line`](#method-optimize_images_content_line)
-  - [Method `optimize_images_in_md_compare_sizes`](#method-optimize_images_in_md_compare_sizes)
-  - [Method `optimize_images_in_md_content`](#method-optimize_images_in_md_content)
-  - [Method `thread_after`](#method-thread_after-5)
-- [Class `OnQuotesFormatAsMarkdownContent`](#class-onquotesformatasmarkdowncontent)
-  - [Method `execute`](#method-execute-13)
-- [Class `OnQuotesGenerateAuthorAndBook`](#class-onquotesgenerateauthorandbook)
-  - [Method `execute`](#method-execute-14)
-  - [Method `in_thread`](#method-in_thread-6)
-  - [Method `thread_after`](#method-thread_after-6)
-- [Class `OnSortSections`](#class-onsortsections)
-  - [Method `execute`](#method-execute-15)
-  - [Method `in_thread`](#method-in_thread-7)
-  - [Method `thread_after`](#method-thread_after-7)
+- [🏛️ Class `OnBeautifyMdFolder`](#%EF%B8%8F-class-onbeautifymdfolder)
+  - [⚙️ Method `beautify_markdown_common`](#%EF%B8%8F-method-beautify_markdown_common)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+- [🏛️ Class `OnBeautifyMdFolderAndRegenerateGMd`](#%EF%B8%8F-class-onbeautifymdfolderandregenerategmd)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
+- [🏛️ Class `OnCheckMdFolder`](#%EF%B8%8F-class-oncheckmdfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
+- [🏛️ Class `OnDownloadAndReplaceImagesFolder`](#%EF%B8%8F-class-ondownloadandreplaceimagesfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
+- [🏛️ Class `OnGenerateShortNoteTocWithLinks`](#%EF%B8%8F-class-ongenerateshortnotetocwithlinks)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-4)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-4)
+- [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
+- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
+- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
+- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
+- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
+- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
+- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
+- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-5)
+  - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
+  - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
+  - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-5)
+- [🏛️ Class `OnQuotesFormatAsMarkdownContent`](#%EF%B8%8F-class-onquotesformatasmarkdowncontent)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
+- [🏛️ Class `OnQuotesGenerateAuthorAndBook`](#%EF%B8%8F-class-onquotesgenerateauthorandbook)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
+- [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
 
 </details>
 
-## Class `OnBeautifyMdFolder`
+## 🏛️ Class `OnBeautifyMdFolder`
 
 ```python
 class OnBeautifyMdFolder(ActionBase)
@@ -189,7 +189,7 @@ class OnBeautifyMdFolder(ActionBase):
 
 </details>
 
-### Method `beautify_markdown_common`
+### ⚙️ Method `beautify_markdown_common`
 
 ```python
 def beautify_markdown_common(self: ActionBase, folder_path: str) -> None
@@ -268,7 +268,7 @@ def beautify_markdown_common(
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -292,7 +292,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -313,7 +313,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -332,7 +332,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnBeautifyMdFolderAndRegenerateGMd`
+## 🏛️ Class `OnBeautifyMdFolderAndRegenerateGMd`
 
 ```python
 class OnBeautifyMdFolderAndRegenerateGMd(ActionBase)
@@ -391,7 +391,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -415,7 +415,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -436,7 +436,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -455,7 +455,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnCheckMdFolder`
+## 🏛️ Class `OnCheckMdFolder`
 
 ```python
 class OnCheckMdFolder(ActionBase)
@@ -505,7 +505,7 @@ class OnCheckMdFolder(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -529,7 +529,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -555,7 +555,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -574,7 +574,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnDownloadAndReplaceImagesFolder`
+## 🏛️ Class `OnDownloadAndReplaceImagesFolder`
 
 ```python
 class OnDownloadAndReplaceImagesFolder(ActionBase)
@@ -623,7 +623,7 @@ class OnDownloadAndReplaceImagesFolder(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -647,7 +647,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -667,7 +667,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -686,7 +686,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnGenerateShortNoteTocWithLinks`
+## 🏛️ Class `OnGenerateShortNoteTocWithLinks`
 
 ```python
 class OnGenerateShortNoteTocWithLinks(ActionBase)
@@ -736,7 +736,7 @@ class OnGenerateShortNoteTocWithLinks(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -762,7 +762,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -782,7 +782,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -801,7 +801,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnGetListMoviesBooks`
+## 🏛️ Class `OnGetListMoviesBooks`
 
 ```python
 class OnGetListMoviesBooks(ActionBase)
@@ -860,7 +860,7 @@ class OnGetListMoviesBooks(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -908,7 +908,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnIncreaseHeadingLevelContent`
+## 🏛️ Class `OnIncreaseHeadingLevelContent`
 
 ```python
 class OnIncreaseHeadingLevelContent(ActionBase)
@@ -945,7 +945,7 @@ class OnIncreaseHeadingLevelContent(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -971,7 +971,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnNewArticle`
+## 🏛️ Class `OnNewArticle`
 
 ```python
 class OnNewArticle(ActionBase)
@@ -1017,7 +1017,7 @@ class OnNewArticle(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -1053,7 +1053,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnNewDiary`
+## 🏛️ Class `OnNewDiary`
 
 ```python
 class OnNewDiary(ActionBase)
@@ -1084,7 +1084,7 @@ class OnNewDiary(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -1104,7 +1104,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnNewDiaryDream`
+## 🏛️ Class `OnNewDiaryDream`
 
 ```python
 class OnNewDiaryDream(ActionBase)
@@ -1135,7 +1135,7 @@ class OnNewDiaryDream(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -1155,7 +1155,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnNewNoteDialog`
+## 🏛️ Class `OnNewNoteDialog`
 
 ```python
 class OnNewNoteDialog(ActionBase)
@@ -1199,7 +1199,7 @@ class OnNewNoteDialog(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -1232,7 +1232,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnNewNoteDialogWithImages`
+## 🏛️ Class `OnNewNoteDialogWithImages`
 
 ```python
 class OnNewNoteDialogWithImages(OnNewNoteDialog)
@@ -1260,7 +1260,7 @@ class OnNewNoteDialogWithImages(OnNewNoteDialog):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -1278,7 +1278,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnOptimizeImagesFolder`
+## 🏛️ Class `OnOptimizeImagesFolder`
 
 ```python
 class OnOptimizeImagesFolder(ActionBase)
@@ -1541,7 +1541,7 @@ class OnOptimizeImagesFolder(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -1565,7 +1565,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -1585,7 +1585,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `optimize_images_content_line`
+### ⚙️ Method `optimize_images_content_line`
 
 ```python
 def optimize_images_content_line(self, markdown_line: str, path_md: Path | str, image_folder: str = "img") -> str
@@ -1733,7 +1733,7 @@ def optimize_images_content_line(
 
 </details>
 
-### Method `optimize_images_in_md_compare_sizes`
+### ⚙️ Method `optimize_images_in_md_compare_sizes`
 
 ```python
 def optimize_images_in_md_compare_sizes(self, filename: Path | str) -> str
@@ -1774,7 +1774,7 @@ def optimize_images_in_md_compare_sizes(self, filename: Path | str) -> str:
 
 </details>
 
-### Method `optimize_images_in_md_content`
+### ⚙️ Method `optimize_images_in_md_content`
 
 ```python
 def optimize_images_in_md_content(self, markdown_text: str, path_md: Path | str, image_folder: str = "img") -> str
@@ -1847,7 +1847,7 @@ def optimize_images_in_md_content(
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -1866,7 +1866,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnQuotesFormatAsMarkdownContent`
+## 🏛️ Class `OnQuotesFormatAsMarkdownContent`
 
 ```python
 class OnQuotesFormatAsMarkdownContent(ActionBase)
@@ -1908,7 +1908,7 @@ J.D. Salinger"""
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -1943,7 +1943,7 @@ J.D. Salinger"""
 
 </details>
 
-## Class `OnQuotesGenerateAuthorAndBook`
+## 🏛️ Class `OnQuotesGenerateAuthorAndBook`
 
 ```python
 class OnQuotesGenerateAuthorAndBook(ActionBase)
@@ -2031,7 +2031,7 @@ return
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -2094,7 +2094,7 @@ return
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -2115,7 +2115,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None
@@ -2134,7 +2134,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## Class `OnSortSections`
+## 🏛️ Class `OnSortSections`
 
 ```python
 class OnSortSections(ActionBase)
@@ -2198,7 +2198,7 @@ class OnSortSections(ActionBase):
 
 </details>
 
-### Method `execute`
+### ⚙️ Method `execute`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
@@ -2224,7 +2224,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### Method `in_thread`
+### ⚙️ Method `in_thread`
 
 ```python
 def in_thread(self) -> str | None
@@ -2244,7 +2244,7 @@ def in_thread(self) -> str | None:
 
 </details>
 
-### Method `thread_after`
+### ⚙️ Method `thread_after`
 
 ```python
 def thread_after(self, result: Any) -> None

@@ -4,23 +4,23 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `toast_notification_base.py`
+# 📄 File `toast_notification_base.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `ToastNotificationBase`](#class-toastnotificationbase)
-  - [Method `__init__`](#method-__init__)
-  - [Method `mouseDoubleClickEvent`](#method-mousedoubleclickevent)
-  - [Method `mouseMoveEvent`](#method-mousemoveevent)
-  - [Method `mousePressEvent`](#method-mousepressevent)
-  - [Method `mouseReleaseEvent`](#method-mousereleaseevent)
+- [🏛️ Class `ToastNotificationBase`](#%EF%B8%8F-class-toastnotificationbase)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
+  - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
+  - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
+  - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
 
 </details>
 
-## Class `ToastNotificationBase`
+## 🏛️ Class `ToastNotificationBase`
 
 ```python
 class ToastNotificationBase(QDialog)
@@ -155,7 +155,7 @@ class ToastNotificationBase(QDialog):
 
 </details>
 
-### Method `__init__`
+### ⚙️ Method `__init__`
 
 ```python
 def __init__(self, message: str, parent: QWidget | None = None) -> None
@@ -211,7 +211,7 @@ def __init__(self, message: str, parent: QWidget | None = None) -> None:
 
 </details>
 
-### Method `mouseDoubleClickEvent`
+### ⚙️ Method `mouseDoubleClickEvent`
 
 ```python
 def mouseDoubleClickEvent(self, event: QMouseEvent) -> None
@@ -246,7 +246,7 @@ def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 
 </details>
 
-### Method `mouseMoveEvent`
+### ⚙️ Method `mouseMoveEvent`
 
 ```python
 def mouseMoveEvent(self, event: QMouseEvent) -> None
@@ -270,7 +270,7 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 
 </details>
 
-### Method `mousePressEvent`
+### ⚙️ Method `mousePressEvent`
 
 ```python
 def mousePressEvent(self, event: QMouseEvent) -> None
@@ -296,7 +296,7 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 
 </details>
 
-### Method `mouseReleaseEvent`
+### ⚙️ Method `mouseReleaseEvent`
 
 ```python
 def mouseReleaseEvent(self, event: QMouseEvent) -> None

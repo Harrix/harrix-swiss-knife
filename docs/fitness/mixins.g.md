@@ -4,44 +4,44 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# File `mixins.py`
+# 📄 File `mixins.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [Class `AutoSaveOperations`](#class-autosaveoperations)
-  - [Method `_auto_save_row`](#method-_auto_save_row)
-  - [Method `_save_exercise_data`](#method-_save_exercise_data)
-  - [Method `_save_process_data`](#method-_save_process_data)
-  - [Method `_save_type_data`](#method-_save_type_data)
-  - [Method `_save_weight_data`](#method-_save_weight_data)
-- [Class `ChartOperations`](#class-chartoperations)
-  - [Method `_add_stats_box`](#method-_add_stats_box)
-  - [Method `_clear_layout`](#method-_clear_layout)
-  - [Method `_create_chart`](#method-_create_chart)
-  - [Method `_fill_missing_periods_with_zeros`](#method-_fill_missing_periods_with_zeros)
-  - [Method `_format_chart_x_axis`](#method-_format_chart_x_axis)
-  - [Method `_format_default_stats`](#method-_format_default_stats)
-  - [Method `_group_data_by_period`](#method-_group_data_by_period)
-  - [Method `_group_data_by_period_with_max`](#method-_group_data_by_period_with_max)
-  - [Method `_plot_data`](#method-_plot_data)
-  - [Method `_show_no_data_label`](#method-_show_no_data_label)
-- [Class `DateOperations`](#class-dateoperations)
-  - [Method `_increment_date_widget`](#method-_increment_date_widget)
-  - [Method `_set_date_range`](#method-_set_date_range)
-- [Class `TableOperations`](#class-tableoperations)
-  - [Method `_connect_table_signals`](#method-_connect_table_signals)
-  - [Method `_get_selected_row_id`](#method-_get_selected_row_id)
-  - [Method `_refresh_table`](#method-_refresh_table)
-- [Class `ValidationOperations`](#class-validationoperations)
-  - [Method `_is_valid_date`](#method-_is_valid_date)
-- [Function `requires_database`](#function-requires_database)
+- [🏛️ Class `AutoSaveOperations`](#%EF%B8%8F-class-autosaveoperations)
+  - [⚙️ Method `_auto_save_row`](#%EF%B8%8F-method-_auto_save_row)
+  - [⚙️ Method `_save_exercise_data`](#%EF%B8%8F-method-_save_exercise_data)
+  - [⚙️ Method `_save_process_data`](#%EF%B8%8F-method-_save_process_data)
+  - [⚙️ Method `_save_type_data`](#%EF%B8%8F-method-_save_type_data)
+  - [⚙️ Method `_save_weight_data`](#%EF%B8%8F-method-_save_weight_data)
+- [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
+  - [⚙️ Method `_add_stats_box`](#%EF%B8%8F-method-_add_stats_box)
+  - [⚙️ Method `_clear_layout`](#%EF%B8%8F-method-_clear_layout)
+  - [⚙️ Method `_create_chart`](#%EF%B8%8F-method-_create_chart)
+  - [⚙️ Method `_fill_missing_periods_with_zeros`](#%EF%B8%8F-method-_fill_missing_periods_with_zeros)
+  - [⚙️ Method `_format_chart_x_axis`](#%EF%B8%8F-method-_format_chart_x_axis)
+  - [⚙️ Method `_format_default_stats`](#%EF%B8%8F-method-_format_default_stats)
+  - [⚙️ Method `_group_data_by_period`](#%EF%B8%8F-method-_group_data_by_period)
+  - [⚙️ Method `_group_data_by_period_with_max`](#%EF%B8%8F-method-_group_data_by_period_with_max)
+  - [⚙️ Method `_plot_data`](#%EF%B8%8F-method-_plot_data)
+  - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
+- [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
+  - [⚙️ Method `_increment_date_widget`](#%EF%B8%8F-method-_increment_date_widget)
+  - [⚙️ Method `_set_date_range`](#%EF%B8%8F-method-_set_date_range)
+- [🏛️ Class `TableOperations`](#%EF%B8%8F-class-tableoperations)
+  - [⚙️ Method `_connect_table_signals`](#%EF%B8%8F-method-_connect_table_signals)
+  - [⚙️ Method `_get_selected_row_id`](#%EF%B8%8F-method-_get_selected_row_id)
+  - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
+- [🏛️ Class `ValidationOperations`](#%EF%B8%8F-class-validationoperations)
+  - [⚙️ Method `_is_valid_date`](#%EF%B8%8F-method-_is_valid_date)
+- [🔧 Function `requires_database`](#-function-requires_database)
 
 </details>
 
-## Class `AutoSaveOperations`
+## 🏛️ Class `AutoSaveOperations`
 
 ```python
 class AutoSaveOperations
@@ -240,7 +240,7 @@ class AutoSaveOperations:
 
 </details>
 
-### Method `_auto_save_row`
+### ⚙️ Method `_auto_save_row`
 
 ```python
 def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None
@@ -280,7 +280,7 @@ def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, r
 
 </details>
 
-### Method `_save_exercise_data`
+### ⚙️ Method `_save_exercise_data`
 
 ```python
 def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
@@ -324,7 +324,7 @@ def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) 
 
 </details>
 
-### Method `_save_process_data`
+### ⚙️ Method `_save_process_data`
 
 ```python
 def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
@@ -383,7 +383,7 @@ def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -
 
 </details>
 
-### Method `_save_type_data`
+### ⚙️ Method `_save_type_data`
 
 ```python
 def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
@@ -431,7 +431,7 @@ def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> N
 
 </details>
 
-### Method `_save_weight_data`
+### ⚙️ Method `_save_weight_data`
 
 ```python
 def _save_weight_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
@@ -475,7 +475,7 @@ def _save_weight_data(self, model: QStandardItemModel, row: int, row_id: str) ->
 
 </details>
 
-## Class `ChartOperations`
+## 🏛️ Class `ChartOperations`
 
 ```python
 class ChartOperations
@@ -968,7 +968,7 @@ class ChartOperations:
 
 </details>
 
-### Method `_add_stats_box`
+### ⚙️ Method `_add_stats_box`
 
 ```python
 def _add_stats_box(self, ax: Axes, stats_text: str, color: str = "lightgray") -> None
@@ -1001,7 +1001,7 @@ def _add_stats_box(self, ax: Axes, stats_text: str, color: str = "lightgray") ->
 
 </details>
 
-### Method `_clear_layout`
+### ⚙️ Method `_clear_layout`
 
 ```python
 def _clear_layout(self, layout: QLayout) -> None
@@ -1026,7 +1026,7 @@ def _clear_layout(self, layout: QLayout) -> None:
 
 </details>
 
-### Method `_create_chart`
+### ⚙️ Method `_create_chart`
 
 ```python
 def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
@@ -1116,7 +1116,7 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
 
 </details>
 
-### Method `_fill_missing_periods_with_zeros`
+### ⚙️ Method `_fill_missing_periods_with_zeros`
 
 ```python
 def _fill_missing_periods_with_zeros(self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None) -> list[tuple]
@@ -1202,7 +1202,7 @@ def _fill_missing_periods_with_zeros(
 
 </details>
 
-### Method `_format_chart_x_axis`
+### ⚙️ Method `_format_chart_x_axis`
 
 ```python
 def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None
@@ -1251,7 +1251,7 @@ def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
 
 </details>
 
-### Method `_format_default_stats`
+### ⚙️ Method `_format_default_stats`
 
 ```python
 def _format_default_stats(self, values: list, unit: str = "") -> str
@@ -1289,7 +1289,7 @@ def _format_default_stats(self, values: list, unit: str = "") -> str:
 
 </details>
 
-### Method `_group_data_by_period`
+### ⚙️ Method `_group_data_by_period`
 
 ```python
 def _group_data_by_period(self, rows: list, period: str, value_type: str = "float") -> dict
@@ -1350,7 +1350,7 @@ def _group_data_by_period(self, rows: list, period: str, value_type: str = "floa
 
 </details>
 
-### Method `_group_data_by_period_with_max`
+### ⚙️ Method `_group_data_by_period_with_max`
 
 ```python
 def _group_data_by_period_with_max(self, rows: list, period: str, value_type: str = "float") -> dict
@@ -1417,7 +1417,7 @@ def _group_data_by_period_with_max(self, rows: list, period: str, value_type: st
 
 </details>
 
-### Method `_plot_data`
+### ⚙️ Method `_plot_data`
 
 ```python
 def _plot_data(self, ax: Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None, period: str | None = None) -> None
@@ -1536,7 +1536,7 @@ def _plot_data(
 
 </details>
 
-### Method `_show_no_data_label`
+### ⚙️ Method `_show_no_data_label`
 
 ```python
 def _show_no_data_label(self, layout: QLayout, text: str) -> None
@@ -1561,7 +1561,7 @@ def _show_no_data_label(self, layout: QLayout, text: str) -> None:
 
 </details>
 
-## Class `DateOperations`
+## 🏛️ Class `DateOperations`
 
 ```python
 class DateOperations
@@ -1639,7 +1639,7 @@ class DateOperations:
 
 </details>
 
-### Method `_increment_date_widget`
+### ⚙️ Method `_increment_date_widget`
 
 ```python
 def _increment_date_widget(self, date_widget: QDateEdit) -> None
@@ -1670,7 +1670,7 @@ def _increment_date_widget(self, date_widget: QDateEdit) -> None:
 
 </details>
 
-### Method `_set_date_range`
+### ⚙️ Method `_set_date_range`
 
 ```python
 def _set_date_range(self, from_widget: QDateEdit, to_widget: QDateEdit, months: int = 0, years: int = 0) -> None
@@ -1721,7 +1721,7 @@ def _set_date_range(
 
 </details>
 
-## Class `TableOperations`
+## 🏛️ Class `TableOperations`
 
 ```python
 class TableOperations
@@ -1817,7 +1817,7 @@ class TableOperations:
 
 </details>
 
-### Method `_connect_table_signals`
+### ⚙️ Method `_connect_table_signals`
 
 ```python
 def _connect_table_signals(self, table_name: str, selection_handler: Callable) -> None
@@ -1843,7 +1843,7 @@ def _connect_table_signals(self, table_name: str, selection_handler: Callable) -
 
 </details>
 
-### Method `_get_selected_row_id`
+### ⚙️ Method `_get_selected_row_id`
 
 ```python
 def _get_selected_row_id(self, table_name: str) -> int | None
@@ -1888,7 +1888,7 @@ def _get_selected_row_id(self, table_name: str) -> int | None:
 
 </details>
 
-### Method `_refresh_table`
+### ⚙️ Method `_refresh_table`
 
 ```python
 def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable[[list], list] | None = None) -> None
@@ -1930,7 +1930,7 @@ def _refresh_table(
 
 </details>
 
-## Class `ValidationOperations`
+## 🏛️ Class `ValidationOperations`
 
 ```python
 class ValidationOperations
@@ -1970,7 +1970,7 @@ class ValidationOperations:
 
 </details>
 
-### Method `_is_valid_date`
+### ⚙️ Method `_is_valid_date`
 
 ```python
 def _is_valid_date(date_str: str) -> bool
@@ -2004,7 +2004,7 @@ def _is_valid_date(date_str: str) -> bool:
 
 </details>
 
-## Function `requires_database`
+## 🔧 Function `requires_database`
 
 ```python
 def requires_database() -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
