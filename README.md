@@ -57,11 +57,11 @@ _Figure 1: Screenshot_
 - **Images**
   - 📸 Open Camera Uploads
   - 📸 Open Camera Uploads (short list of folders)
-  - 🚀 Optimize images
+  - 🚀 ★ Optimize images
   - 🔝 Optimize images (high quality)
   - ⬆️ Optimize images in … and replace
   - 🖼️ Optimize one image
-  - ↔️ Resize and optimize images (with PNG to AVIF)
+  - ↔️ ★ Resize and optimize images (with PNG to AVIF)
   - 🧹 Clear folders images
   - 📂 Open the folder images
   - 📂 Open the folder optimized_images
@@ -83,7 +83,7 @@ _Figure 1: Screenshot_
   - 🎬 Get a list of movies, books for web
   - 👉 Increase heading level
   - ❞ Quotes. Format quotes as Markdown content
-  - 💎 Beautify MD and regenerate .g.md in …
+  - 💎 ★ Beautify MD and regenerate .g.md in …
   - 💎 Beautify MD in …
   - 🚧 Check in …
   - 📥 Download images in …
@@ -102,7 +102,7 @@ _Figure 1: Screenshot_
   - 🐍 New uv project
   - ⚡ Publish Python library to PyPI
   - 🌟 isort, ruff format, sort in PY files
-  - 🌟 isort, ruff format, sort, make docs in PY files
+  - 🌟 ★ isort, ruff format, sort, make docs in PY files
 - 🏃🏻 Fitness tracker
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
