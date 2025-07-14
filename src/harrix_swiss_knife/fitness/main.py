@@ -739,7 +739,6 @@ class MainWindow(
 
         # Calculate date ranges for each month
         today = datetime.now(tz=timezone.utc)
-        current_year = today.year
 
         # Get data for each month
         monthly_data = []
@@ -952,15 +951,16 @@ class MainWindow(
             "coral",
         ]
 
-        for i in range(years_count):
+        for _i in range(years_count):
             # Calculate year
-            year = current_year - i
+            year = current_year - _i
 
             # Calculate start and end of the same month for this year
             month_start = datetime(year, selected_month, 1, tzinfo=timezone.utc)
 
             # Calculate end of month
-            if selected_month == 12:
+            count_month = 12
+            if selected_month == count_month:
                 next_month = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
             else:
                 next_month = datetime(year, selected_month + 1, 1, tzinfo=timezone.utc)
@@ -973,9 +973,6 @@ class MainWindow(
                     # If we're in the selected month, limit to today
                     if today.month == selected_month:
                         month_end = today
-                    # If we're past the selected month, use the full month
-                    else:
-                        month_end = month_end  # Keep the calculated month_end
                 else:
                     # If the selected month hasn't started yet this year, skip this year
                     continue
@@ -1036,7 +1033,7 @@ class MainWindow(
         ax = fig.add_subplot(111)
 
         # Plot each year's data
-        for i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
+        for _i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
             if data:
                 x_values = [item[0] for item in data]
                 y_values = [item[1] for item in data]
@@ -3313,8 +3310,18 @@ class MainWindow(
         # Initialize same months comparison combobox
         self.comboBox_compare_same_months.clear()
         months = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
         ]
         self.comboBox_compare_same_months.addItems(months)
 

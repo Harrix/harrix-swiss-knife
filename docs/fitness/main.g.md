@@ -807,7 +807,6 @@ class MainWindow(
 
         # Calculate date ranges for each month
         today = datetime.now(tz=timezone.utc)
-        current_year = today.year
 
         # Get data for each month
         monthly_data = []
@@ -927,7 +926,7 @@ class MainWindow(
                     last_y = y_values[-1]
 
                     # Format label with month and year
-                    month_year = labels[i].replace(" (Current)", "")  # Remove "(Current)" suffix
+                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
                     label_text = month_year
 
                     ax.annotate(
@@ -987,9 +986,12 @@ class MainWindow(
         # Get exercise unit for Y-axis label
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        # Calculate current month and year
+        # Get selected month and current year
+        selected_month_index = self.comboBox_compare_same_months.currentIndex()
+        selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
+
         today = datetime.now(tz=timezone.utc)
-        current_month = today.month
+        selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
         # Get data for each year
@@ -1017,23 +1019,31 @@ class MainWindow(
             "coral",
         ]
 
-        for i in range(years_count):
+        for _i in range(years_count):
             # Calculate year
-            year = current_year - i
+            year = current_year - _i
 
             # Calculate start and end of the same month for this year
-            month_start = datetime(year, current_month, 1, tzinfo=timezone.utc)
+            month_start = datetime(year, selected_month, 1, tzinfo=timezone.utc)
 
             # Calculate end of month
-            if current_month == 12:
+            count_month = 12
+            if selected_month == count_month:
                 next_month = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
             else:
-                next_month = datetime(year, current_month + 1, 1, tzinfo=timezone.utc)
+                next_month = datetime(year, selected_month + 1, 1, tzinfo=timezone.utc)
             month_end = next_month - timedelta(days=1)
 
-            # For current year, limit to today
+            # For current year, limit to today only if we're in the selected month or past it
             if year == current_year:
-                month_end = today
+                # Check if the selected month has already started this year
+                if today.month >= selected_month:
+                    # If we're in the selected month, limit to today
+                    if today.month == selected_month:
+                        month_end = today
+                else:
+                    # If the selected month hasn't started yet this year, skip this year
+                    continue
 
             # Format dates for database query
             date_from = month_start.strftime("%Y-%m-%d")
@@ -1068,12 +1078,13 @@ class MainWindow(
                     yearly_data.append(cumulative_data)
 
                     # Determine color based on whether it's current year or not
-                    if i == 0:  # Current year
+                    # Note: i represents the year offset, but we need to check if this year actually has data
+                    if year == current_year:  # Current year
                         colors.append("red")  # Current year in red
                         labels.append(f"{month_start.strftime('%B %Y')} (Current)")
                     else:
                         # Use different colors from palette for other years
-                        color_index = (i - 1) % len(color_palette)  # -1 because current year uses red
+                        color_index = (len(yearly_data) - 2) % len(color_palette)  # -2 because current year uses red
                         colors.append(color_palette[color_index])
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
@@ -1090,14 +1101,16 @@ class MainWindow(
         ax = fig.add_subplot(111)
 
         # Plot each year's data
-        for i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
+        for _i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
             if data:
                 x_values = [item[0] for item in data]
                 y_values = [item[1] for item in data]
 
                 # Plot with different line styles for better distinction
-                line_style = "-" if i == 0 else "--"  # Solid for current year, dashed for others
-                line_width = 3 if i == 0 else 2  # Thicker for current year
+                # Check if this is the current year by looking at the label
+                is_current_year = "(Current)" in label
+                line_style = "-" if is_current_year else "--"  # Solid for current year, dashed for others
+                line_width = 3 if is_current_year else 2  # Thicker for current year
                 max_points = 10
 
                 ax.plot(
@@ -1118,7 +1131,7 @@ class MainWindow(
                     last_y = y_values[-1]
 
                     # Format label with month and year
-                    month_year = labels[i].replace(" (Current)", "")  # Remove "(Current)" suffix
+                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
                     label_text = month_year
 
                     ax.annotate(
@@ -1138,11 +1151,11 @@ class MainWindow(
         ax.set_ylabel(y_label, fontsize=12)
 
         # Build title
-        month_name = today.strftime("%B")
+        selected_month_name = self.comboBox_compare_same_months.currentText()
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
             chart_title += f" - {exercise_type}"
-        chart_title += f" ({month_name} comparison - last {years_count} years)"
+        chart_title += f" ({selected_month_name} comparison - last {years_count} years)"
         ax.set_title(chart_title, fontsize=14, fontweight="bold")
 
         ax.grid(visible=True, alpha=0.3)
@@ -3362,6 +3375,28 @@ class MainWindow(
         # Initialize exercise combobox
         self.update_chart_comboboxes()
 
+        # Initialize same months comparison combobox
+        self.comboBox_compare_same_months.clear()
+        months = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
+        self.comboBox_compare_same_months.addItems(months)
+
+        # Set current month as default
+        current_month_index = current_date.month() - 1  # QDate.month() returns 1-12, we need 0-11
+        self.comboBox_compare_same_months.setCurrentIndex(current_month_index)
+
     def _init_exercises_list(self) -> None:
         """Initialize the exercises list view with a model and connect signals."""
         self.exercises_list_model = QStandardItemModel()
@@ -4876,7 +4911,6 @@ def on_compare_last_months(self) -> None:
 
         # Calculate date ranges for each month
         today = datetime.now(tz=timezone.utc)
-        current_year = today.year
 
         # Get data for each month
         monthly_data = []
@@ -4996,7 +5030,7 @@ def on_compare_last_months(self) -> None:
                     last_y = y_values[-1]
 
                     # Format label with month and year
-                    month_year = labels[i].replace(" (Current)", "")  # Remove "(Current)" suffix
+                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
                     label_text = month_year
 
                     ax.annotate(
@@ -5068,9 +5102,12 @@ def on_compare_same_months(self) -> None:
         # Get exercise unit for Y-axis label
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        # Calculate current month and year
+        # Get selected month and current year
+        selected_month_index = self.comboBox_compare_same_months.currentIndex()
+        selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
+
         today = datetime.now(tz=timezone.utc)
-        current_month = today.month
+        selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
         # Get data for each year
@@ -5098,23 +5135,31 @@ def on_compare_same_months(self) -> None:
             "coral",
         ]
 
-        for i in range(years_count):
+        for _i in range(years_count):
             # Calculate year
-            year = current_year - i
+            year = current_year - _i
 
             # Calculate start and end of the same month for this year
-            month_start = datetime(year, current_month, 1, tzinfo=timezone.utc)
+            month_start = datetime(year, selected_month, 1, tzinfo=timezone.utc)
 
             # Calculate end of month
-            if current_month == 12:
+            count_month = 12
+            if selected_month == count_month:
                 next_month = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
             else:
-                next_month = datetime(year, current_month + 1, 1, tzinfo=timezone.utc)
+                next_month = datetime(year, selected_month + 1, 1, tzinfo=timezone.utc)
             month_end = next_month - timedelta(days=1)
 
-            # For current year, limit to today
+            # For current year, limit to today only if we're in the selected month or past it
             if year == current_year:
-                month_end = today
+                # Check if the selected month has already started this year
+                if today.month >= selected_month:
+                    # If we're in the selected month, limit to today
+                    if today.month == selected_month:
+                        month_end = today
+                else:
+                    # If the selected month hasn't started yet this year, skip this year
+                    continue
 
             # Format dates for database query
             date_from = month_start.strftime("%Y-%m-%d")
@@ -5149,12 +5194,13 @@ def on_compare_same_months(self) -> None:
                     yearly_data.append(cumulative_data)
 
                     # Determine color based on whether it's current year or not
-                    if i == 0:  # Current year
+                    # Note: i represents the year offset, but we need to check if this year actually has data
+                    if year == current_year:  # Current year
                         colors.append("red")  # Current year in red
                         labels.append(f"{month_start.strftime('%B %Y')} (Current)")
                     else:
                         # Use different colors from palette for other years
-                        color_index = (i - 1) % len(color_palette)  # -1 because current year uses red
+                        color_index = (len(yearly_data) - 2) % len(color_palette)  # -2 because current year uses red
                         colors.append(color_palette[color_index])
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
@@ -5171,14 +5217,16 @@ def on_compare_same_months(self) -> None:
         ax = fig.add_subplot(111)
 
         # Plot each year's data
-        for i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
+        for _i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
             if data:
                 x_values = [item[0] for item in data]
                 y_values = [item[1] for item in data]
 
                 # Plot with different line styles for better distinction
-                line_style = "-" if i == 0 else "--"  # Solid for current year, dashed for others
-                line_width = 3 if i == 0 else 2  # Thicker for current year
+                # Check if this is the current year by looking at the label
+                is_current_year = "(Current)" in label
+                line_style = "-" if is_current_year else "--"  # Solid for current year, dashed for others
+                line_width = 3 if is_current_year else 2  # Thicker for current year
                 max_points = 10
 
                 ax.plot(
@@ -5199,7 +5247,7 @@ def on_compare_same_months(self) -> None:
                     last_y = y_values[-1]
 
                     # Format label with month and year
-                    month_year = labels[i].replace(" (Current)", "")  # Remove "(Current)" suffix
+                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
                     label_text = month_year
 
                     ax.annotate(
@@ -5219,11 +5267,11 @@ def on_compare_same_months(self) -> None:
         ax.set_ylabel(y_label, fontsize=12)
 
         # Build title
-        month_name = today.strftime("%B")
+        selected_month_name = self.comboBox_compare_same_months.currentText()
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
             chart_title += f" - {exercise_type}"
-        chart_title += f" ({month_name} comparison - last {years_count} years)"
+        chart_title += f" ({selected_month_name} comparison - last {years_count} years)"
         ax.set_title(chart_title, fontsize=14, fontweight="bold")
 
         ax.grid(visible=True, alpha=0.3)
@@ -8063,6 +8111,28 @@ def _init_exercise_chart_controls(self) -> None:
 
         # Initialize exercise combobox
         self.update_chart_comboboxes()
+
+        # Initialize same months comparison combobox
+        self.comboBox_compare_same_months.clear()
+        months = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
+        self.comboBox_compare_same_months.addItems(months)
+
+        # Set current month as default
+        current_month_index = current_date.month() - 1  # QDate.month() returns 1-12, we need 0-11
+        self.comboBox_compare_same_months.setCurrentIndex(current_month_index)
 ```
 
 </details>
