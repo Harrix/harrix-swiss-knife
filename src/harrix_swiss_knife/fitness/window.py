@@ -157,6 +157,9 @@ class Ui_MainWindow(object):
         self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.pushButton_compare_last.setText(QCoreApplication.translate("MainWindow", "Compare last months", None))
+        self.pushButton_compare_same_months.setText(
+            QCoreApplication.translate("MainWindow", "Compare same months", None)
+        )
         self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
@@ -891,6 +894,10 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_update_chart)
 
+        self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
+
         self.pushButton_show_sets_chart = QPushButton(self.frame_charts_controls)
         self.pushButton_show_sets_chart.setObjectName("pushButton_show_sets_chart")
 
@@ -900,10 +907,6 @@ class Ui_MainWindow(object):
         self.pushButton_show_kcal.setObjectName("pushButton_show_kcal")
 
         self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_show_kcal)
-
-        self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
 
         self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_1)
 
@@ -954,6 +957,11 @@ class Ui_MainWindow(object):
         self.pushButton_compare_last.setObjectName("pushButton_compare_last")
 
         self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_compare_last)
+
+        self.pushButton_compare_same_months = QPushButton(self.frame_charts_controls)
+        self.pushButton_compare_same_months.setObjectName("pushButton_compare_same_months")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_compare_same_months)
 
         self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
         self.spinBox_compare_last.setObjectName("spinBox_compare_last")

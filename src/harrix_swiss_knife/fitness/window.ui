@@ -1216,6 +1216,19 @@
                 </widget>
                </item>
                <item>
+                <spacer name="horizontalSpacer_charts">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
                 <widget class="QPushButton" name="pushButton_show_sets_chart">
                  <property name="text">
                   <string>Show Sets Chart</string>
@@ -1228,19 +1241,6 @@
                   <string>Kcal</string>
                  </property>
                 </widget>
-               </item>
-               <item>
-                <spacer name="horizontalSpacer_charts">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
                </item>
               </layout>
              </item>
@@ -1318,6 +1318,13 @@
                 <widget class="QPushButton" name="pushButton_compare_last">
                  <property name="text">
                   <string>Compare last months</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_compare_same_months">
+                 <property name="text">
+                  <string>Compare same months</string>
                  </property>
                 </widget>
                </item>
