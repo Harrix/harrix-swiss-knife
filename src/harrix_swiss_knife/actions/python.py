@@ -313,3 +313,43 @@ class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+
+class OnUpdateUvDependencies(ActionBase):
+    """Update Python project dependencies using uv sync --upgrade.
+
+    This action allows the user to select a Python project folder and update all its
+    dependencies using the uv package manager. The action runs `uv sync --upgrade` to
+    update all packages to their latest compatible versions according to the project's
+    dependency specifications.
+    """
+
+    icon = "⬆️"
+    title = "Update uv dependencies"
+
+    @ActionBase.handle_exceptions("updating uv dependencies")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select a folder with Python project", self.config["paths_python_projects"], self.config["path_github"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("updating uv dependencies thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.folder_path is None:
+            return
+
+        commands = "uv sync --upgrade"
+        result = h.dev.run_command(commands, cwd=str(self.folder_path))
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("updating uv dependencies thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()

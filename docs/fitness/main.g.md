@@ -2158,8 +2158,14 @@ class MainWindow(
             self.label_count_sets_today.setText("0")
 
     @requires_database(is_show_warning=False)
-    def update_statistics_exercise_combobox(self) -> None:
-        """Update statistics exercise combobox with available exercises."""
+    def update_statistics_exercise_combobox(self, _index: int = -1) -> None:
+        """Update statistics exercise combobox with available exercises.
+
+        Args:
+
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+
+        """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -6098,16 +6104,20 @@ def update_sets_count_today(self) -> None:
 ### ⚙️ Method `update_statistics_exercise_combobox`
 
 ```python
-def update_statistics_exercise_combobox(self) -> None
+def update_statistics_exercise_combobox(self, _index: int = -1) -> None
 ```
 
 Update statistics exercise combobox with available exercises.
+
+Args:
+
+- `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def update_statistics_exercise_combobox(self) -> None:
+def update_statistics_exercise_combobox(self, _index: int = -1) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
