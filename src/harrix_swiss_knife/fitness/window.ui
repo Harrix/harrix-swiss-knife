@@ -1314,6 +1314,20 @@
                  </property>
                 </spacer>
                </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_compare_last">
+                 <property name="text">
+                  <string>Compare last months</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="spinBox_compare_last">
+                 <property name="value">
+                  <number>3</number>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </item>
             </layout>

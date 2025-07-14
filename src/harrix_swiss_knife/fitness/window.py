@@ -156,6 +156,7 @@ class Ui_MainWindow(object):
         self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
         self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
+        self.pushButton_compare_last.setText(QCoreApplication.translate("MainWindow", "Compare last months", None))
         self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
@@ -948,6 +949,17 @@ class Ui_MainWindow(object):
         self.horizontalSpacer_charts_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_charts_controls_2.addItem(self.horizontalSpacer_charts_2)
+
+        self.pushButton_compare_last = QPushButton(self.frame_charts_controls)
+        self.pushButton_compare_last.setObjectName("pushButton_compare_last")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_compare_last)
+
+        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
+        self.spinBox_compare_last.setObjectName("spinBox_compare_last")
+        self.spinBox_compare_last.setValue(3)
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
 
         self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_2)
 

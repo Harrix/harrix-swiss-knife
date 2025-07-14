@@ -25,6 +25,7 @@ lang: en
   - [⚙️ Method `on_add_weight`](#%EF%B8%8F-method-on_add_weight)
   - [⚙️ Method `on_chart_exercise_changed`](#%EF%B8%8F-method-on_chart_exercise_changed)
   - [⚙️ Method `on_check_steps`](#%EF%B8%8F-method-on_check_steps)
+  - [⚙️ Method `on_compare_last_months`](#%EF%B8%8F-method-on_compare_last_months)
   - [⚙️ Method `on_exercise_name_changed`](#%EF%B8%8F-method-on_exercise_name_changed)
   - [⚙️ Method `on_exercise_selection_changed`](#%EF%B8%8F-method-on_exercise_selection_changed)
   - [⚙️ Method `on_exercise_selection_changed_list`](#%EF%B8%8F-method-on_exercise_selection_changed_list)
@@ -778,6 +779,171 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
+
+    @requires_database()
+    def on_compare_last_months(self) -> None:
+        """Show comparison chart of exercise progress over the last few months.
+
+        Creates a chart showing cumulative exercise values for the selected exercise
+        over the last N months (where N is determined by spinBox_compare_last).
+        The current year is highlighted in red, while previous months are shown
+        in different shades of blue.
+        """
+        exercise = self.comboBox_chart_exercise.currentText()
+        exercise_type = self.comboBox_chart_type.currentText()
+        months_count = self.spinBox_compare_last.value()
+
+        if not exercise:
+            self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get exercise unit for Y-axis label
+        exercise_unit = self.db_manager.get_exercise_unit(exercise)
+
+        # Calculate date ranges for each month
+        today = datetime.now(tz=timezone.utc)
+        current_year = today.year
+
+        # Get data for each month
+        monthly_data = []
+        colors = []
+        labels = []
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_start = month_date.replace(day=1)
+            if i == 0:  # Current month
+                month_end = today
+            else:
+                month_end = month_start.replace(day=28) + timedelta(days=4)
+                month_end = month_end.replace(day=1) - timedelta(days=1)
+
+            # Format dates for database query
+            date_from = month_start.strftime("%Y-%m-%d")
+            date_to = month_end.strftime("%Y-%m-%d")
+
+            # Get exercise data for this month
+            rows = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=exercise_type if exercise_type != "All types" else None,
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+            if rows:
+                # Convert to datetime objects and calculate cumulative values
+                cumulative_data = []
+                cumulative_value = 0.0
+
+                for date_str, value_str in rows:
+                    try:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                        value = float(value_str)
+                        cumulative_value += value
+
+                        # Calculate day of month (1-31) for x-axis
+                        day_of_month = date_obj.day
+                        cumulative_data.append((day_of_month, cumulative_value))
+                    except (ValueError, TypeError):
+                        continue
+
+                if cumulative_data:
+                    monthly_data.append(cumulative_data)
+
+                    # Determine color based on year
+                    if month_start.year == current_year:
+                        colors.append("red")  # Current year in red
+                        labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+                    else:
+                        # Different shades of blue for previous years
+                        blue_intensity = max(0.3, 1.0 - (i * 0.2))  # Fade blue for older months
+                        colors.append(f"#{0:02x}{0:02x}{int(blue_intensity * 255):02x}")
+                        labels.append(f"{month_start.strftime('%B %Y')}")
+
+        if not monthly_data:
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            return
+
+        # Clear existing chart
+        self._clear_layout(self.verticalLayout_charts_content)
+
+        # Create matplotlib figure
+        fig = Figure(figsize=(12, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+        ax = fig.add_subplot(111)
+
+        # Plot each month's data
+        for i, (data, color, label) in enumerate(zip(monthly_data, colors, labels, strict=False)):
+            if data:
+                x_values = [item[0] for item in data]
+                y_values = [item[1] for item in data]
+
+                # Plot with different line styles for better distinction
+                line_style = "-" if i == 0 else "--"  # Solid for current month, dashed for others
+                line_width = 3 if i == 0 else 2  # Thicker for current month
+                max_points = 10
+
+                ax.plot(
+                    x_values,
+                    y_values,
+                    color=color,
+                    linestyle=line_style,
+                    linewidth=line_width,
+                    alpha=0.8,
+                    label=label,
+                    marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
+                    markersize=4,
+                )
+
+                # Add value labels for the last point of each line
+                if x_values and y_values:
+                    last_x = x_values[-1]
+                    last_y = y_values[-1]
+
+                    # Format label
+                    if isinstance(last_y, int) or last_y == int(last_y):
+                        label_text = str(int(last_y))
+                    else:
+                        label_text = f"{last_y:.1f}"
+
+                    ax.annotate(
+                        label_text,
+                        (last_x, last_y),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    )
+
+        # Customize plot
+        ax.set_xlabel("Day of Month", fontsize=12)
+        y_label = f"Cumulative Value ({exercise_unit})" if exercise_unit else "Cumulative Value"
+        ax.set_ylabel(y_label, fontsize=12)
+
+        # Build title
+        chart_title = f"{exercise}"
+        if exercise_type and exercise_type != "All types":
+            chart_title += f" - {exercise_type}"
+        chart_title += f" (Last {months_count} months comparison)"
+        ax.set_title(chart_title, fontsize=14, fontweight="bold")
+
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="upper left", fontsize=10)
+
+        # Set x-axis to show days 1-31
+        ax.set_xlim(1, 31)
+        ax.set_xticks(range(1, 32, 2))  # Show every other day for readability
+
+        fig.tight_layout()
+        self.verticalLayout_charts_content.addWidget(canvas)
+        canvas.draw()
 
     def on_exercise_name_changed(self, _index: int = -1) -> None:
         """Handle exercise name combobox selection change.
@@ -2464,6 +2630,7 @@ class MainWindow(
         self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
         self.pushButton_show_sets_chart.clicked.connect(self.show_sets_chart)
         self.pushButton_show_kcal.clicked.connect(self.show_kcal_chart)
+        self.pushButton_compare_last.clicked.connect(self.on_compare_last_months)
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
@@ -3390,6 +3557,7 @@ class MainWindow(
         self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
         self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
         self.pushButton_show_kcal.setText(f"🔥 {self.pushButton_show_kcal.text()}")
+        self.pushButton_compare_last.setText(f"📊 {self.pushButton_compare_last.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
@@ -4456,6 +4624,183 @@ def on_check_steps(self) -> None:
 
         except Exception as e:
             QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
+```
+
+</details>
+
+### ⚙️ Method `on_compare_last_months`
+
+```python
+def on_compare_last_months(self) -> None
+```
+
+Show comparison chart of exercise progress over the last few months.
+
+Creates a chart showing cumulative exercise values for the selected exercise
+over the last N months (where N is determined by spinBox_compare_last).
+The current year is highlighted in red, while previous months are shown
+in different shades of blue.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_compare_last_months(self) -> None:
+        exercise = self.comboBox_chart_exercise.currentText()
+        exercise_type = self.comboBox_chart_type.currentText()
+        months_count = self.spinBox_compare_last.value()
+
+        if not exercise:
+            self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get exercise unit for Y-axis label
+        exercise_unit = self.db_manager.get_exercise_unit(exercise)
+
+        # Calculate date ranges for each month
+        today = datetime.now(tz=timezone.utc)
+        current_year = today.year
+
+        # Get data for each month
+        monthly_data = []
+        colors = []
+        labels = []
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_start = month_date.replace(day=1)
+            if i == 0:  # Current month
+                month_end = today
+            else:
+                month_end = month_start.replace(day=28) + timedelta(days=4)
+                month_end = month_end.replace(day=1) - timedelta(days=1)
+
+            # Format dates for database query
+            date_from = month_start.strftime("%Y-%m-%d")
+            date_to = month_end.strftime("%Y-%m-%d")
+
+            # Get exercise data for this month
+            rows = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=exercise_type if exercise_type != "All types" else None,
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+            if rows:
+                # Convert to datetime objects and calculate cumulative values
+                cumulative_data = []
+                cumulative_value = 0.0
+
+                for date_str, value_str in rows:
+                    try:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                        value = float(value_str)
+                        cumulative_value += value
+
+                        # Calculate day of month (1-31) for x-axis
+                        day_of_month = date_obj.day
+                        cumulative_data.append((day_of_month, cumulative_value))
+                    except (ValueError, TypeError):
+                        continue
+
+                if cumulative_data:
+                    monthly_data.append(cumulative_data)
+
+                    # Determine color based on year
+                    if month_start.year == current_year:
+                        colors.append("red")  # Current year in red
+                        labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+                    else:
+                        # Different shades of blue for previous years
+                        blue_intensity = max(0.3, 1.0 - (i * 0.2))  # Fade blue for older months
+                        colors.append(f"#{0:02x}{0:02x}{int(blue_intensity * 255):02x}")
+                        labels.append(f"{month_start.strftime('%B %Y')}")
+
+        if not monthly_data:
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            return
+
+        # Clear existing chart
+        self._clear_layout(self.verticalLayout_charts_content)
+
+        # Create matplotlib figure
+        fig = Figure(figsize=(12, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+        ax = fig.add_subplot(111)
+
+        # Plot each month's data
+        for i, (data, color, label) in enumerate(zip(monthly_data, colors, labels, strict=False)):
+            if data:
+                x_values = [item[0] for item in data]
+                y_values = [item[1] for item in data]
+
+                # Plot with different line styles for better distinction
+                line_style = "-" if i == 0 else "--"  # Solid for current month, dashed for others
+                line_width = 3 if i == 0 else 2  # Thicker for current month
+                max_points = 10
+
+                ax.plot(
+                    x_values,
+                    y_values,
+                    color=color,
+                    linestyle=line_style,
+                    linewidth=line_width,
+                    alpha=0.8,
+                    label=label,
+                    marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
+                    markersize=4,
+                )
+
+                # Add value labels for the last point of each line
+                if x_values and y_values:
+                    last_x = x_values[-1]
+                    last_y = y_values[-1]
+
+                    # Format label
+                    if isinstance(last_y, int) or last_y == int(last_y):
+                        label_text = str(int(last_y))
+                    else:
+                        label_text = f"{last_y:.1f}"
+
+                    ax.annotate(
+                        label_text,
+                        (last_x, last_y),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    )
+
+        # Customize plot
+        ax.set_xlabel("Day of Month", fontsize=12)
+        y_label = f"Cumulative Value ({exercise_unit})" if exercise_unit else "Cumulative Value"
+        ax.set_ylabel(y_label, fontsize=12)
+
+        # Build title
+        chart_title = f"{exercise}"
+        if exercise_type and exercise_type != "All types":
+            chart_title += f" - {exercise_type}"
+        chart_title += f" (Last {months_count} months comparison)"
+        ax.set_title(chart_title, fontsize=14, fontweight="bold")
+
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="upper left", fontsize=10)
+
+        # Set x-axis to show days 1-31
+        ax.set_xlim(1, 31)
+        ax.set_xticks(range(1, 32, 2))  # Show every other day for readability
+
+        fig.tight_layout()
+        self.verticalLayout_charts_content.addWidget(canvas)
+        canvas.draw()
 ```
 
 </details>
@@ -6551,6 +6896,7 @@ def _connect_signals(self) -> None:
         self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
         self.pushButton_show_sets_chart.clicked.connect(self.show_sets_chart)
         self.pushButton_show_kcal.clicked.connect(self.show_kcal_chart)
+        self.pushButton_compare_last.clicked.connect(self.on_compare_last_months)
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
@@ -7872,6 +8218,7 @@ def _setup_ui(self) -> None:
         self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
         self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
         self.pushButton_show_kcal.setText(f"🔥 {self.pushButton_show_kcal.text()}")
+        self.pushButton_compare_last.setText(f"📊 {self.pushButton_compare_last.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
