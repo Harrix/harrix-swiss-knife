@@ -46,6 +46,7 @@ lang: en
   - [⚙️ Method `get_filtered_statistics_data`](#%EF%B8%8F-method-get_filtered_statistics_data)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
+  - [⚙️ Method `get_kcal_chart_data`](#%EF%B8%8F-method-get_kcal_chart_data)
   - [⚙️ Method `get_last_exercise_date`](#%EF%B8%8F-method-get_last_exercise_date)
   - [⚙️ Method `get_last_exercise_dates`](#%EF%B8%8F-method-get_last_exercise_dates)
   - [⚙️ Method `get_last_exercise_record`](#%EF%B8%8F-method-get_last_exercise_record)
@@ -991,6 +992,34 @@ class DatabaseManager:
                 result.append(query.value(0))
             query.clear()  # Clear the query to release resources
         return result
+
+    def get_kcal_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
+        """Get calories data for charting.
+
+        Args:
+
+        - `date_from` (`str`): From date (YYYY-MM-DD).
+        - `date_to` (`str`): To date (YYYY-MM-DD).
+
+        Returns:
+
+        - `list[tuple[str, float]]`: List of (date, calories) tuples.
+
+        """
+        query = """
+            SELECT p.date,
+                   SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+            WHERE p.date BETWEEN :date_from AND :date_to
+            AND p.date IS NOT NULL
+            AND e.calories_per_unit > 0
+            GROUP BY p.date
+            ORDER BY p.date ASC
+        """
+        rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
+        return [(row[0], float(row[1])) for row in rows]
 
     def get_last_exercise_date(self, exercise_id: int) -> str | None:
         """Get the date of the last recorded exercise (regardless of type).
@@ -2715,6 +2744,46 @@ def get_items(
                 result.append(query.value(0))
             query.clear()  # Clear the query to release resources
         return result
+```
+
+</details>
+
+### ⚙️ Method `get_kcal_chart_data`
+
+```python
+def get_kcal_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]
+```
+
+Get calories data for charting.
+
+Args:
+
+- `date_from` (`str`): From date (YYYY-MM-DD).
+- `date_to` (`str`): To date (YYYY-MM-DD).
+
+Returns:
+
+- `list[tuple[str, float]]`: List of (date, calories) tuples.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_kcal_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
+        query = """
+            SELECT p.date,
+                   SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+            WHERE p.date BETWEEN :date_from AND :date_to
+            AND p.date IS NOT NULL
+            AND e.calories_per_unit > 0
+            GROUP BY p.date
+            ORDER BY p.date ASC
+        """
+        rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
+        return [(row[0], float(row[1])) for row in rows]
 ```
 
 </details>

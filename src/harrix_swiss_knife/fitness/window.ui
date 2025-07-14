@@ -1223,6 +1223,13 @@
                 </widget>
                </item>
                <item>
+                <widget class="QPushButton" name="pushButton_show_kcal">
+                 <property name="text">
+                  <string>Kcal</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <spacer name="horizontalSpacer_charts">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>

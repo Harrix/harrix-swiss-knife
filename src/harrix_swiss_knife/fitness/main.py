@@ -1550,6 +1550,88 @@ class MainWindow(
         self.dateEdit.setDate(yesterday)
 
     @requires_database()
+    def show_kcal_chart(self) -> None:
+        """Show chart of total calories using database manager."""
+        period = self.comboBox_chart_period.currentText()
+        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+        use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get calories data using database manager
+        rows = self.db_manager.get_kcal_chart_data(date_from, date_to)
+
+        # Convert to datetime objects for processing
+        datetime_data = []
+        for date_str, calories in rows:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                datetime_data.append((date_obj, float(calories)))
+            except (ValueError, TypeError):
+                continue
+
+        # Group data by period with aggregation based on checkbox
+        if use_max_value:
+            # For calories chart, we need to convert the data format for max grouping
+            # Convert from (date_str, calories) to (date_str, calories_str)
+            string_rows = [(date_str, str(calories)) for date_str, calories in rows]
+            grouped_data = self._group_data_by_period_with_max(string_rows, period, value_type="float")
+        else:
+            grouped_data = self._group_data_by_period(rows, period, value_type="float")
+
+        if not grouped_data:
+            self._show_no_data_label(self.verticalLayout_charts_content, "No calories data to display")
+            return
+
+        # Prepare chart data
+        chart_data = list(grouped_data.items())
+
+        # For calories chart, respect the selected date range
+        # But don't extend beyond today
+        today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+        chart_date_from = date_from
+        chart_date_to = min(today, date_to)
+
+        # Build chart title with aggregation type
+        aggregation_type = "Max" if use_max_value else "Total"
+        chart_title = f"Calories burned ({aggregation_type}, {period})"
+
+        # Define custom statistics formatter for calories with aggregation type
+        def format_calories_stats(values: list) -> str:
+            min_val = min(values)
+            max_val = max(values)
+            avg_val = sum(values) / len(values)
+
+            if use_max_value:
+                # For max values, don't show total (it doesn't make sense)
+                return f"Min: {min_val:.1f} kcal | Max: {max_val:.1f} kcal | Avg: {avg_val:.1f} kcal"
+            # For sum values, show total
+            total_val = sum(values)
+            return (
+                f"Min: {min_val:.1f} kcal | Max: {max_val:.1f} kcal | "
+                f"Avg: {avg_val:.1f} kcal | Total: {total_val:.1f} kcal"
+            )
+
+        # Create chart configuration
+        chart_config = {
+            "title": chart_title,
+            "xlabel": "Date",
+            "ylabel": f"{aggregation_type} calories (kcal)",
+            "color": "orange",
+            "show_stats": True,
+            "period": period,
+            "stats_formatter": format_calories_stats,
+            "fill_zero_periods": True,  # Enable zero filling
+            "date_from": chart_date_from,  # Use selected start date
+            "date_to": chart_date_to,  # Don't go beyond today
+        }
+
+        self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
+
+    @requires_database()
     def show_sets_chart(self) -> None:
         """Show chart of total sets using database manager."""
         period = self.comboBox_chart_period.currentText()
@@ -2315,6 +2397,7 @@ class MainWindow(
         # Exercise chart signals
         self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
         self.pushButton_show_sets_chart.clicked.connect(self.show_sets_chart)
+        self.pushButton_show_kcal.clicked.connect(self.show_kcal_chart)
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
@@ -3240,6 +3323,7 @@ class MainWindow(
         self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
         self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
         self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
+        self.pushButton_show_kcal.setText(f"🔥 {self.pushButton_show_kcal.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
