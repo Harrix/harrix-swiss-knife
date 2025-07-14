@@ -969,6 +969,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
 
+        self.comboBox_compare_same_months = QComboBox(self.frame_charts_controls)
+        self.comboBox_compare_same_months.setObjectName("comboBox_compare_same_months")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.comboBox_compare_same_months)
+
         self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_2)
 
         self.horizontalLayout_23.addWidget(self.frame_charts_controls)

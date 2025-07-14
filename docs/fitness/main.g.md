@@ -807,6 +807,7 @@ class MainWindow(
 
         # Calculate date ranges for each month
         today = datetime.now(tz=timezone.utc)
+        current_year = today.year
 
         # Get data for each month
         monthly_data = []
@@ -968,9 +969,8 @@ class MainWindow(
         """Show comparison chart of exercise progress for the same month across different years.
 
         Creates a chart showing cumulative exercise values for the selected exercise
-        for the same month across different years (e.g., all Octobers if current month is October).
-        The current year is highlighted in red, while previous years are shown
-        in different shades of blue.
+        for the same month across different years. The current year is highlighted in red,
+        while previous years are shown in different colors.
         """
         exercise = self.comboBox_chart_exercise.currentText()
         exercise_type = self.comboBox_chart_type.currentText()
@@ -987,10 +987,10 @@ class MainWindow(
         # Get exercise unit for Y-axis label
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        # Calculate date ranges for each year
+        # Calculate current month and year
         today = datetime.now(tz=timezone.utc)
-        current_year = today.year
         current_month = today.month
+        current_year = today.year
 
         # Get data for each year
         yearly_data = []
@@ -1018,21 +1018,22 @@ class MainWindow(
         ]
 
         for i in range(years_count):
-            # Calculate start and end of the same month for each year
+            # Calculate year
             year = current_year - i
+
+            # Calculate start and end of the same month for this year
             month_start = datetime(year, current_month, 1, tzinfo=timezone.utc)
 
             # Calculate end of month
-            count_months = 12
-            if current_month == count_months:
+            if current_month == 12:
                 next_month = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
             else:
                 next_month = datetime(year, current_month + 1, 1, tzinfo=timezone.utc)
             month_end = next_month - timedelta(days=1)
 
             # For current year, limit to today
-            if i == 0:  # Current year
-                month_end = min(month_end, today)
+            if year == current_year:
+                month_end = today
 
             # Format dates for database query
             date_from = month_start.strftime("%Y-%m-%d")
@@ -1137,10 +1138,11 @@ class MainWindow(
         ax.set_ylabel(y_label, fontsize=12)
 
         # Build title
+        month_name = today.strftime("%B")
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
             chart_title += f" - {exercise_type}"
-        chart_title += f" ({today.strftime('%B')} comparison - last {years_count} years)"
+        chart_title += f" ({month_name} comparison - last {years_count} years)"
         ax.set_title(chart_title, fontsize=14, fontweight="bold")
 
         ax.grid(visible=True, alpha=0.3)
@@ -4874,6 +4876,7 @@ def on_compare_last_months(self) -> None:
 
         # Calculate date ranges for each month
         today = datetime.now(tz=timezone.utc)
+        current_year = today.year
 
         # Get data for each month
         monthly_data = []
@@ -5042,9 +5045,8 @@ def on_compare_same_months(self) -> None
 Show comparison chart of exercise progress for the same month across different years.
 
 Creates a chart showing cumulative exercise values for the selected exercise
-for the same month across different years (e.g., all Octobers if current month is October).
-The current year is highlighted in red, while previous years are shown
-in different shades of blue.
+for the same month across different years. The current year is highlighted in red,
+while previous years are shown in different colors.
 
 <details>
 <summary>Code:</summary>
@@ -5066,10 +5068,10 @@ def on_compare_same_months(self) -> None:
         # Get exercise unit for Y-axis label
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        # Calculate date ranges for each year
+        # Calculate current month and year
         today = datetime.now(tz=timezone.utc)
-        current_year = today.year
         current_month = today.month
+        current_year = today.year
 
         # Get data for each year
         yearly_data = []
@@ -5097,21 +5099,22 @@ def on_compare_same_months(self) -> None:
         ]
 
         for i in range(years_count):
-            # Calculate start and end of the same month for each year
+            # Calculate year
             year = current_year - i
+
+            # Calculate start and end of the same month for this year
             month_start = datetime(year, current_month, 1, tzinfo=timezone.utc)
 
             # Calculate end of month
-            count_months = 12
-            if current_month == count_months:
+            if current_month == 12:
                 next_month = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
             else:
                 next_month = datetime(year, current_month + 1, 1, tzinfo=timezone.utc)
             month_end = next_month - timedelta(days=1)
 
             # For current year, limit to today
-            if i == 0:  # Current year
-                month_end = min(month_end, today)
+            if year == current_year:
+                month_end = today
 
             # Format dates for database query
             date_from = month_start.strftime("%Y-%m-%d")
@@ -5216,10 +5219,11 @@ def on_compare_same_months(self) -> None:
         ax.set_ylabel(y_label, fontsize=12)
 
         # Build title
+        month_name = today.strftime("%B")
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
             chart_title += f" - {exercise_type}"
-        chart_title += f" ({today.strftime('%B')} comparison - last {years_count} years)"
+        chart_title += f" ({month_name} comparison - last {years_count} years)"
         ax.set_title(chart_title, fontsize=14, fontweight="bold")
 
         ax.grid(visible=True, alpha=0.3)

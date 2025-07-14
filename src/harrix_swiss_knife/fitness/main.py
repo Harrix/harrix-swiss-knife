@@ -739,6 +739,7 @@ class MainWindow(
 
         # Calculate date ranges for each month
         today = datetime.now(tz=timezone.utc)
+        current_year = today.year
 
         # Get data for each month
         monthly_data = []
@@ -858,7 +859,7 @@ class MainWindow(
                     last_y = y_values[-1]
 
                     # Format label with month and year
-                    month_year = labels[i].replace(" (Current)", "")  # Remove "(Current)" suffix
+                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
                     label_text = month_year
 
                     ax.annotate(
@@ -900,9 +901,8 @@ class MainWindow(
         """Show comparison chart of exercise progress for the same month across different years.
 
         Creates a chart showing cumulative exercise values for the selected exercise
-        for the same month across different years (e.g., all Octobers if current month is October).
-        The current year is highlighted in red, while previous years are shown
-        in different shades of blue.
+        for the same month across different years. The current year is highlighted in red,
+        while previous years are shown in different colors.
         """
         exercise = self.comboBox_chart_exercise.currentText()
         exercise_type = self.comboBox_chart_type.currentText()
@@ -919,10 +919,13 @@ class MainWindow(
         # Get exercise unit for Y-axis label
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        # Calculate date ranges for each year
+        # Get selected month and current year
+        selected_month_index = self.comboBox_compare_same_months.currentIndex()
+        selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
+
         today = datetime.now(tz=timezone.utc)
+        selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
-        current_month = today.month
 
         # Get data for each year
         yearly_data = []
@@ -950,21 +953,32 @@ class MainWindow(
         ]
 
         for i in range(years_count):
-            # Calculate start and end of the same month for each year
+            # Calculate year
             year = current_year - i
-            month_start = datetime(year, current_month, 1, tzinfo=timezone.utc)
+
+            # Calculate start and end of the same month for this year
+            month_start = datetime(year, selected_month, 1, tzinfo=timezone.utc)
 
             # Calculate end of month
-            count_months = 12
-            if current_month == count_months:
+            if selected_month == 12:
                 next_month = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
             else:
-                next_month = datetime(year, current_month + 1, 1, tzinfo=timezone.utc)
+                next_month = datetime(year, selected_month + 1, 1, tzinfo=timezone.utc)
             month_end = next_month - timedelta(days=1)
 
-            # For current year, limit to today
-            if i == 0:  # Current year
-                month_end = min(month_end, today)
+            # For current year, limit to today only if we're in the selected month or past it
+            if year == current_year:
+                # Check if the selected month has already started this year
+                if today.month >= selected_month:
+                    # If we're in the selected month, limit to today
+                    if today.month == selected_month:
+                        month_end = today
+                    # If we're past the selected month, use the full month
+                    else:
+                        month_end = month_end  # Keep the calculated month_end
+                else:
+                    # If the selected month hasn't started yet this year, skip this year
+                    continue
 
             # Format dates for database query
             date_from = month_start.strftime("%Y-%m-%d")
@@ -999,12 +1013,13 @@ class MainWindow(
                     yearly_data.append(cumulative_data)
 
                     # Determine color based on whether it's current year or not
-                    if i == 0:  # Current year
+                    # Note: i represents the year offset, but we need to check if this year actually has data
+                    if year == current_year:  # Current year
                         colors.append("red")  # Current year in red
                         labels.append(f"{month_start.strftime('%B %Y')} (Current)")
                     else:
                         # Use different colors from palette for other years
-                        color_index = (i - 1) % len(color_palette)  # -1 because current year uses red
+                        color_index = (len(yearly_data) - 2) % len(color_palette)  # -2 because current year uses red
                         colors.append(color_palette[color_index])
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
@@ -1027,8 +1042,10 @@ class MainWindow(
                 y_values = [item[1] for item in data]
 
                 # Plot with different line styles for better distinction
-                line_style = "-" if i == 0 else "--"  # Solid for current year, dashed for others
-                line_width = 3 if i == 0 else 2  # Thicker for current year
+                # Check if this is the current year by looking at the label
+                is_current_year = "(Current)" in label
+                line_style = "-" if is_current_year else "--"  # Solid for current year, dashed for others
+                line_width = 3 if is_current_year else 2  # Thicker for current year
                 max_points = 10
 
                 ax.plot(
@@ -1049,7 +1066,7 @@ class MainWindow(
                     last_y = y_values[-1]
 
                     # Format label with month and year
-                    month_year = labels[i].replace(" (Current)", "")  # Remove "(Current)" suffix
+                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
                     label_text = month_year
 
                     ax.annotate(
@@ -1069,10 +1086,11 @@ class MainWindow(
         ax.set_ylabel(y_label, fontsize=12)
 
         # Build title
+        selected_month_name = self.comboBox_compare_same_months.currentText()
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
             chart_title += f" - {exercise_type}"
-        chart_title += f" ({today.strftime('%B')} comparison - last {years_count} years)"
+        chart_title += f" ({selected_month_name} comparison - last {years_count} years)"
         ax.set_title(chart_title, fontsize=14, fontweight="bold")
 
         ax.grid(visible=True, alpha=0.3)
@@ -3291,6 +3309,18 @@ class MainWindow(
 
         # Initialize exercise combobox
         self.update_chart_comboboxes()
+
+        # Initialize same months comparison combobox
+        self.comboBox_compare_same_months.clear()
+        months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ]
+        self.comboBox_compare_same_months.addItems(months)
+
+        # Set current month as default
+        current_month_index = current_date.month() - 1  # QDate.month() returns 1-12, we need 0-11
+        self.comboBox_compare_same_months.setCurrentIndex(current_month_index)
 
     def _init_exercises_list(self) -> None:
         """Initialize the exercises list view with a model and connect signals."""

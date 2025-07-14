@@ -1335,6 +1335,9 @@
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QComboBox" name="comboBox_compare_same_months"/>
+               </item>
               </layout>
              </item>
             </layout>
