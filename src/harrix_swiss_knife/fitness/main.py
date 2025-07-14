@@ -1111,32 +1111,6 @@ class MainWindow(
         """
         self._update_types_avif()
 
-    def on_exercise_type_changed(self, _index: int = -1) -> None:
-        """Handle exercise type combobox selection change and sync with statistics.
-
-        Args:
-
-        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
-
-        """
-        # Get current exercise from list view
-        current_exercise = self._get_current_selected_exercise()
-        if not current_exercise:
-            return
-
-        # Update statistics exercise combobox if statistics tab is initialized
-        if hasattr(self, "_statistics_initialized"):
-            # Block signals to prevent recursive updates
-            self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
-
-            # Find and select the current exercise in statistics combobox
-            index = self.comboBox_records_select_exercise.findText(current_exercise)
-            if index >= 0:
-                self.comboBox_records_select_exercise.setCurrentIndex(index)
-
-            # Unblock signals
-            self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
-
     def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when exercise selection changes in the table.
 
@@ -1294,6 +1268,32 @@ class MainWindow(
             self.comboBox_type.setEnabled(False)
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
+
+    def on_exercise_type_changed(self, _index: int = -1) -> None:
+        """Handle exercise type combobox selection change and sync with statistics.
+
+        Args:
+
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+
+        """
+        # Get current exercise from list view
+        current_exercise = self._get_current_selected_exercise()
+        if not current_exercise:
+            return
+
+        # Update statistics exercise combobox if statistics tab is initialized
+        if hasattr(self, "_statistics_initialized"):
+            # Block signals to prevent recursive updates
+            self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
+
+            # Find and select the current exercise in statistics combobox
+            index = self.comboBox_records_select_exercise.findText(current_exercise)
+            if index >= 0:
+                self.comboBox_records_select_exercise.setCurrentIndex(index)
+
+            # Unblock signals
+            self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
 
     def on_export_csv(self) -> None:
         """Save current `process` view to a CSV file (semicolon-separated).
@@ -4069,6 +4069,7 @@ class MainWindow(
             return False
 
         return True
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
