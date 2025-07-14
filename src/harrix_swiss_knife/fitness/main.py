@@ -1111,6 +1111,32 @@ class MainWindow(
         """
         self._update_types_avif()
 
+    def on_exercise_type_changed(self, _index: int = -1) -> None:
+        """Handle exercise type combobox selection change and sync with statistics.
+
+        Args:
+
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+
+        """
+        # Get current exercise from list view
+        current_exercise = self._get_current_selected_exercise()
+        if not current_exercise:
+            return
+
+        # Update statistics exercise combobox if statistics tab is initialized
+        if hasattr(self, "_statistics_initialized"):
+            # Block signals to prevent recursive updates
+            self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
+
+            # Find and select the current exercise in statistics combobox
+            index = self.comboBox_records_select_exercise.findText(current_exercise)
+            if index >= 0:
+                self.comboBox_records_select_exercise.setCurrentIndex(index)
+
+            # Unblock signals
+            self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+
     def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when exercise selection changes in the table.
 
@@ -1835,6 +1861,23 @@ class MainWindow(
             self.set_weight_all_time()
         elif index == index_tab_statistics:  # Statistics tab
             self._load_default_statistics()
+            # If statistics is already initialized, update with current exercise
+            if hasattr(self, "_statistics_initialized"):
+                current_exercise = self._get_current_selected_exercise()
+                if current_exercise:
+                    # Block signals to prevent recursive updates
+                    self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
+
+                    # Find and select the current exercise in statistics combobox
+                    index = self.comboBox_records_select_exercise.findText(current_exercise)
+                    if index >= 0:
+                        self.comboBox_records_select_exercise.setCurrentIndex(index)
+
+                    # Unblock signals
+                    self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+
+                    # Refresh statistics with the selected exercise
+                    self.on_refresh_statistics()
 
     def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when weight selection changes in the table.
@@ -2802,6 +2845,9 @@ class MainWindow(
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
 
+        # Exercise type combobox for statistics sync
+        self.comboBox_type.currentIndexChanged.connect(self.on_exercise_type_changed)
+
         # Statistics exercise combobox
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
@@ -3405,6 +3451,21 @@ class MainWindow(
             self._statistics_initialized = True
             # Initialize statistics exercise combobox
             self.update_statistics_exercise_combobox()
+
+            # Get current exercise from main tab and set it in statistics combobox
+            current_exercise = self._get_current_selected_exercise()
+            if current_exercise:
+                # Block signals to prevent recursive updates
+                self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
+
+                # Find and select the current exercise in statistics combobox
+                index = self.comboBox_records_select_exercise.findText(current_exercise)
+                if index >= 0:
+                    self.comboBox_records_select_exercise.setCurrentIndex(index)
+
+                # Unblock signals
+                self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+
             # Automatically refresh statistics on first visit
             self.on_refresh_statistics()
 
@@ -4008,7 +4069,6 @@ class MainWindow(
             return False
 
         return True
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
