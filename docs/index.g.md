@@ -105,6 +105,7 @@ _Figure 1: Screenshot_
   - 📓 New note with images
 - **Python**
   - 🚧 Check PY in …
+  - 🐍 New uv library
   - 🐍 New uv project
   - ⚡ Publish Python library to PyPI
   - ⬆️ Update uv dependencies

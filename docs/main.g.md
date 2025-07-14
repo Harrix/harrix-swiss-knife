@@ -132,6 +132,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             self.menu_python,
             [
                 hsk.py.OnCheckPythonFolder,
+                hsk.py.OnNewUvLibrary,
                 hsk.py.OnNewUvProject,
                 hsk.py.OnPublishPythonLibrary,
                 hsk.py.OnSortIsortFmtDocsPythonCodeFolder,
@@ -273,6 +274,7 @@ def __init__(self) -> None:
             self.menu_python,
             [
                 hsk.py.OnCheckPythonFolder,
+                hsk.py.OnNewUvLibrary,
                 hsk.py.OnNewUvProject,
                 hsk.py.OnPublishPythonLibrary,
                 hsk.py.OnSortIsortFmtDocsPythonCodeFolder,
