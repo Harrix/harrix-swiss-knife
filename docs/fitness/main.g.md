@@ -813,6 +813,26 @@ class MainWindow(
         colors = []
         labels = []
 
+        # Define a color palette for different months (excluding red for current month)
+        color_palette = [
+            "blue",
+            "green",
+            "orange",
+            "purple",
+            "brown",
+            "pink",
+            "gray",
+            "olive",
+            "cyan",
+            "magenta",
+            "teal",
+            "navy",
+            "maroon",
+            "lime",
+            "indigo",
+            "coral",
+        ]
+
         for i in range(months_count):
             # Calculate start and end of month
             month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
@@ -855,14 +875,14 @@ class MainWindow(
                 if cumulative_data:
                     monthly_data.append(cumulative_data)
 
-                    # Determine color based on year
-                    if month_start.year == current_year:
-                        colors.append("red")  # Current year in red
+                    # Determine color based on whether it's current month or not
+                    if i == 0:  # Current month
+                        colors.append("red")  # Current month in red
                         labels.append(f"{month_start.strftime('%B %Y')} (Current)")
                     else:
-                        # Different shades of blue for previous years
-                        blue_intensity = max(0.3, 1.0 - (i * 0.2))  # Fade blue for older months
-                        colors.append(f"#{0:02x}{0:02x}{int(blue_intensity * 255):02x}")
+                        # Use different colors from palette for other months
+                        color_index = (i - 1) % len(color_palette)  # -1 because current month uses red
+                        colors.append(color_palette[color_index])
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         if not monthly_data:
@@ -4670,6 +4690,26 @@ def on_compare_last_months(self) -> None:
         colors = []
         labels = []
 
+        # Define a color palette for different months (excluding red for current month)
+        color_palette = [
+            "blue",
+            "green",
+            "orange",
+            "purple",
+            "brown",
+            "pink",
+            "gray",
+            "olive",
+            "cyan",
+            "magenta",
+            "teal",
+            "navy",
+            "maroon",
+            "lime",
+            "indigo",
+            "coral",
+        ]
+
         for i in range(months_count):
             # Calculate start and end of month
             month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
@@ -4712,14 +4752,14 @@ def on_compare_last_months(self) -> None:
                 if cumulative_data:
                     monthly_data.append(cumulative_data)
 
-                    # Determine color based on year
-                    if month_start.year == current_year:
-                        colors.append("red")  # Current year in red
+                    # Determine color based on whether it's current month or not
+                    if i == 0:  # Current month
+                        colors.append("red")  # Current month in red
                         labels.append(f"{month_start.strftime('%B %Y')} (Current)")
                     else:
-                        # Different shades of blue for previous years
-                        blue_intensity = max(0.3, 1.0 - (i * 0.2))  # Fade blue for older months
-                        colors.append(f"#{0:02x}{0:02x}{int(blue_intensity * 255):02x}")
+                        # Use different colors from palette for other months
+                        color_index = (i - 1) % len(color_palette)  # -1 because current month uses red
+                        colors.append(color_palette[color_index])
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         if not monthly_data:
