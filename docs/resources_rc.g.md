@@ -19,7 +19,7 @@ lang: en
 ## 🔧 Function `qCleanupResources`
 
 ```python
-def qCleanupResources() -> None
+def qCleanupResources()
 ```
 
 _No docstring provided._
@@ -28,7 +28,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def qCleanupResources() -> None:
+def qCleanupResources():
     QtCore.qUnregisterResourceData(0x03, qt_resource_struct, qt_resource_name, qt_resource_data)
 ```
 
@@ -37,7 +37,7 @@ def qCleanupResources() -> None:
 ## 🔧 Function `qInitResources`
 
 ```python
-def qInitResources() -> None
+def qInitResources()
 ```
 
 _No docstring provided._
@@ -46,7 +46,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def qInitResources() -> None:
+def qInitResources():
     QtCore.qRegisterResourceData(0x03, qt_resource_struct, qt_resource_name, qt_resource_data)
 ```
 

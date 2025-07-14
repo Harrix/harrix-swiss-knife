@@ -43,6 +43,7 @@ lang: en
   - [⚙️ Method `get_exercise_unit`](#%EF%B8%8F-method-get_exercise_unit)
   - [⚙️ Method `get_exercises_by_frequency`](#%EF%B8%8F-method-get_exercises_by_frequency)
   - [⚙️ Method `get_filtered_process_records`](#%EF%B8%8F-method-get_filtered_process_records)
+  - [⚙️ Method `get_filtered_statistics_data`](#%EF%B8%8F-method-get_filtered_statistics_data)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
   - [⚙️ Method `get_last_exercise_date`](#%EF%B8%8F-method-get_last_exercise_date)
@@ -868,6 +869,43 @@ class DatabaseManager:
         query_text += " ORDER BY p.date DESC, p._id DESC"
 
         return self.get_rows(query_text, params)
+
+    def get_filtered_statistics_data(self, exercise_name: str | None = None) -> list[tuple[str, str, float, str]]:
+        """Get filtered data for statistics display.
+
+        Args:
+
+        - `exercise_name` (`str | None`): Exercise name to filter by. Defaults to `None` for all exercises.
+
+        Returns:
+
+        - `list[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value, date) tuples.
+
+        """
+        conditions = []
+        params = {}
+
+        if exercise_name:
+            conditions.append("e.name = :exercise")
+            params["exercise"] = exercise_name
+
+        query = """
+            SELECT e.name,
+                   IFNULL(t.type, ''),
+                   p.value,
+                   p.date
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id
+        """
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY p._id DESC"
+
+        rows = self.get_rows(query, params)
+        return [(row[0], row[1], float(row[2]), row[3]) for row in rows]
 
     def get_id(
         self,
@@ -2519,6 +2557,55 @@ def get_filtered_process_records(
         query_text += " ORDER BY p.date DESC, p._id DESC"
 
         return self.get_rows(query_text, params)
+```
+
+</details>
+
+### ⚙️ Method `get_filtered_statistics_data`
+
+```python
+def get_filtered_statistics_data(self, exercise_name: str | None = None) -> list[tuple[str, str, float, str]]
+```
+
+Get filtered data for statistics display.
+
+Args:
+
+- `exercise_name` (`str | None`): Exercise name to filter by. Defaults to `None` for all exercises.
+
+Returns:
+
+- `list[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value, date) tuples.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_filtered_statistics_data(self, exercise_name: str | None = None) -> list[tuple[str, str, float, str]]:
+        conditions = []
+        params = {}
+
+        if exercise_name:
+            conditions.append("e.name = :exercise")
+            params["exercise"] = exercise_name
+
+        query = """
+            SELECT e.name,
+                   IFNULL(t.type, ''),
+                   p.value,
+                   p.date
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id
+        """
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY p._id DESC"
+
+        rows = self.get_rows(query, params)
+        return [(row[0], row[1], float(row[2]), row[3]) for row in rows]
 ```
 
 </details>

@@ -978,8 +978,13 @@ class MainWindow(
             # Clear any existing spans before creating new view
             self.tableView_statistics.clearSpans()
 
-            # Get statistics data using database manager
-            rows = self.db_manager.get_statistics_data()
+            # Get selected exercise from comboBox_records_select_exercise
+            selected_exercise = self.comboBox_records_select_exercise.currentText()
+
+            # Get statistics data using database manager with optional filtering
+            rows = self.db_manager.get_filtered_statistics_data(
+                exercise_name=selected_exercise if selected_exercise else None
+            )
 
             if not rows:
                 # If no data, show empty table
@@ -1816,6 +1821,10 @@ class MainWindow(
 
         self.update_filter_comboboxes()
 
+        # Update statistics exercise combobox if statistics tab is initialized
+        if hasattr(self, "_statistics_initialized"):
+            self.update_statistics_exercise_combobox()
+
         # Clear the exercise addition form after updating
         self.lineEdit_exercise_name.clear()
         self.lineEdit_exercise_unit.clear()
@@ -2083,6 +2092,46 @@ class MainWindow(
             print(f"Error getting sets count for today: {e}")
             self.label_count_sets_today.setText("0")
 
+    @requires_database(is_show_warning=False)
+    def update_statistics_exercise_combobox(self, _index: int = -1) -> None:
+        """Update statistics exercise combobox with available exercises.
+
+        Args:
+
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get exercises sorted by frequency
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+
+            # Block signals during update
+            self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
+
+            # Store current selection
+            current_exercise = self.comboBox_records_select_exercise.currentText()
+
+            # Clear and populate combobox
+            self.comboBox_records_select_exercise.clear()
+            self.comboBox_records_select_exercise.addItem("")  # Empty option for all exercises
+            self.comboBox_records_select_exercise.addItems(exercises)
+
+            # Restore selection if it still exists
+            if current_exercise:
+                index = self.comboBox_records_select_exercise.findText(current_exercise)
+                if index >= 0:
+                    self.comboBox_records_select_exercise.setCurrentIndex(index)
+
+            # Unblock signals
+            self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+
+        except Exception as e:
+            print(f"Error updating statistics exercise combobox: {e}")
+
     @requires_database()
     def update_weight_chart(self) -> None:
         """Update the weight chart using database manager."""
@@ -2279,6 +2328,10 @@ class MainWindow(
 
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
+
+        # Statistics exercise combobox
+        self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
+        self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
 
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
@@ -2855,6 +2908,8 @@ class MainWindow(
         """Load default statistics on first visit to statistics tab."""
         if not hasattr(self, "_statistics_initialized"):
             self._statistics_initialized = True
+            # Initialize statistics exercise combobox
+            self.update_statistics_exercise_combobox()
             # Automatically refresh statistics on first visit
             self.on_refresh_statistics()
 
@@ -3416,6 +3471,16 @@ class MainWindow(
             steps_exercise_name = self._get_exercise_name_by_id(self.id_steps)
             if steps_exercise_name:
                 self._load_exercise_avif(steps_exercise_name, "statistics")
+        elif self.current_statistics_mode == "records":
+            # For records mode, use selected exercise from comboBox_records_select_exercise
+            selected_exercise = self.comboBox_records_select_exercise.currentText()
+            if selected_exercise:
+                self._load_exercise_avif(selected_exercise, "statistics")
+            else:
+                # If no exercise selected in combobox, use selected exercise from table
+                exercise_name = self._get_selected_exercise_from_statistics_table()
+                if exercise_name:
+                    self._load_exercise_avif(exercise_name, "statistics")
         else:
             # For other modes, use selected exercise from statistics table
             exercise_name = self._get_selected_exercise_from_statistics_table()

@@ -1386,10 +1386,28 @@
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_16">
            <item>
-            <widget class="QPushButton" name="pushButton_statistics_refresh">
-             <property name="text">
+            <widget class="QGroupBox" name="groupBox_10">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="title">
               <string>Records</string>
              </property>
+             <layout class="QVBoxLayout" name="verticalLayout_19">
+              <item>
+               <widget class="QComboBox" name="comboBox_records_select_exercise"/>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_statistics_refresh">
+                <property name="text">
+                 <string>Records</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </item>
            <item>

@@ -808,6 +808,43 @@ class DatabaseManager:
 
         return self.get_rows(query_text, params)
 
+    def get_filtered_statistics_data(self, exercise_name: str | None = None) -> list[tuple[str, str, float, str]]:
+        """Get filtered data for statistics display.
+
+        Args:
+
+        - `exercise_name` (`str | None`): Exercise name to filter by. Defaults to `None` for all exercises.
+
+        Returns:
+
+        - `list[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value, date) tuples.
+
+        """
+        conditions = []
+        params = {}
+
+        if exercise_name:
+            conditions.append("e.name = :exercise")
+            params["exercise"] = exercise_name
+
+        query = """
+            SELECT e.name,
+                   IFNULL(t.type, ''),
+                   p.value,
+                   p.date
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id
+        """
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY p._id DESC"
+
+        rows = self.get_rows(query, params)
+        return [(row[0], row[1], float(row[2]), row[3]) for row in rows]
+
     def get_id(
         self,
         table: str,

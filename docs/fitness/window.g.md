@@ -118,6 +118,7 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
+        self.groupBox_10.setTitle(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
         self.pushButton_check_steps.setText(QCoreApplication.translate("MainWindow", "Check steps", None))
@@ -946,10 +947,22 @@ class Ui_MainWindow(object):
         self.frame_5.setFrameShadow(QFrame.Raised)
         self.verticalLayout_16 = QVBoxLayout(self.frame_5)
         self.verticalLayout_16.setObjectName("verticalLayout_16")
-        self.pushButton_statistics_refresh = QPushButton(self.frame_5)
+        self.groupBox_10 = QGroupBox(self.frame_5)
+        self.groupBox_10.setObjectName("groupBox_10")
+        self.groupBox_10.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_19 = QVBoxLayout(self.groupBox_10)
+        self.verticalLayout_19.setObjectName("verticalLayout_19")
+        self.comboBox_records_select_exercise = QComboBox(self.groupBox_10)
+        self.comboBox_records_select_exercise.setObjectName("comboBox_records_select_exercise")
+
+        self.verticalLayout_19.addWidget(self.comboBox_records_select_exercise)
+
+        self.pushButton_statistics_refresh = QPushButton(self.groupBox_10)
         self.pushButton_statistics_refresh.setObjectName("pushButton_statistics_refresh")
 
-        self.verticalLayout_16.addWidget(self.pushButton_statistics_refresh)
+        self.verticalLayout_19.addWidget(self.pushButton_statistics_refresh)
+
+        self.verticalLayout_16.addWidget(self.groupBox_10)
 
         self.pushButton_last_exercises = QPushButton(self.frame_5)
         self.pushButton_last_exercises.setObjectName("pushButton_last_exercises")
@@ -1099,6 +1112,7 @@ def retranslateUi(self, MainWindow):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
+        self.groupBox_10.setTitle(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
         self.pushButton_check_steps.setText(QCoreApplication.translate("MainWindow", "Check steps", None))
@@ -1942,10 +1956,22 @@ def setupUi(self, MainWindow):
         self.frame_5.setFrameShadow(QFrame.Raised)
         self.verticalLayout_16 = QVBoxLayout(self.frame_5)
         self.verticalLayout_16.setObjectName("verticalLayout_16")
-        self.pushButton_statistics_refresh = QPushButton(self.frame_5)
+        self.groupBox_10 = QGroupBox(self.frame_5)
+        self.groupBox_10.setObjectName("groupBox_10")
+        self.groupBox_10.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_19 = QVBoxLayout(self.groupBox_10)
+        self.verticalLayout_19.setObjectName("verticalLayout_19")
+        self.comboBox_records_select_exercise = QComboBox(self.groupBox_10)
+        self.comboBox_records_select_exercise.setObjectName("comboBox_records_select_exercise")
+
+        self.verticalLayout_19.addWidget(self.comboBox_records_select_exercise)
+
+        self.pushButton_statistics_refresh = QPushButton(self.groupBox_10)
         self.pushButton_statistics_refresh.setObjectName("pushButton_statistics_refresh")
 
-        self.verticalLayout_16.addWidget(self.pushButton_statistics_refresh)
+        self.verticalLayout_19.addWidget(self.pushButton_statistics_refresh)
+
+        self.verticalLayout_16.addWidget(self.groupBox_10)
 
         self.pushButton_last_exercises = QPushButton(self.frame_5)
         self.pushButton_last_exercises.setObjectName("pushButton_last_exercises")
