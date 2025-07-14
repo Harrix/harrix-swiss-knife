@@ -384,7 +384,7 @@ class OnPublishPythonLibrary(ActionBase):
         # Build and publish
         commands = f"""
             cd {self.library_path}
-            uv sync --upgrade
+            uv sync --upgrade --active
             Remove-Item -Path "{self.library_path}/dist/*" -Recurse -Force -ErrorAction SilentlyContinue
             uv build
             uv publish --token {self.token}
@@ -460,7 +460,7 @@ def in_thread_01(self) -> str | None:
         # Build and publish
         commands = f"""
             cd {self.library_path}
-            uv sync --upgrade
+            uv sync --upgrade --active
             Remove-Item -Path "{self.library_path}/dist/*" -Recurse -Force -ErrorAction SilentlyContinue
             uv build
             uv publish --token {self.token}
@@ -875,7 +875,7 @@ class OnUpdateUvDependencies(ActionBase):
         if self.folder_path is None:
             return
 
-        commands = "uv sync --upgrade"
+        commands = "uv sync --upgrade --active"
         result = h.dev.run_command(commands, cwd=str(self.folder_path))
         self.add_line(result)
 
@@ -928,7 +928,7 @@ def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
 
-        commands = "uv sync --upgrade"
+        commands = "uv sync --upgrade --active"
         result = h.dev.run_command(commands, cwd=str(self.folder_path))
         self.add_line(result)
 ```
