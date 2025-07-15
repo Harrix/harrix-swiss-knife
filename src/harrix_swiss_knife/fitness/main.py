@@ -112,6 +112,9 @@ class MainWindow(
         # Food items list model
         self.food_items_list_model: QStandardItemModel | None = None
 
+        # Favorite food items list model
+        self.favorite_food_items_list_model: QStandardItemModel | None = None
+
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
@@ -167,6 +170,7 @@ class MainWindow(
         self._init_exercise_chart_controls()
         self._init_exercises_list()
         self._init_food_items_list()
+        self._init_favorite_food_items_list()
         self._init_sets_count_display()
         self.update_all()
 
@@ -1417,7 +1421,7 @@ class MainWindow(
             # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
             food_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories = food_item_data
 
-                        # Update form fields with selected food item data
+            # Update form fields with selected food item data
             # Fields for adding new food item
             self.lineEdit_food_name.setText(name)
             if name_en:
@@ -1439,6 +1443,10 @@ class MainWindow(
                 self.doubleSpinBox_food_default_cal.setValue(default_portion_calories)
             else:
                 self.doubleSpinBox_food_default_cal.setValue(0)
+
+            # Set drink checkboxes
+            self.checkBox_food_is_drink.setChecked(is_drink == 1)
+            self.checkBox_is_drink.setChecked(is_drink == 1)
 
             # Fields for adding food log record
             self.lineEdit_food_manual_name.setText(name)
@@ -2589,6 +2597,17 @@ class MainWindow(
         current_exercise: str | None = None,
         current_type: str | None = None,
     ) -> None:
+        """Refresh all data (legacy method - use specific update methods instead)."""
+        self.update_exercise_data(is_skip_date_update, is_preserve_selections, current_exercise, current_type)
+        self.update_food_data()
+
+    def update_exercise_data(
+        self,
+        is_skip_date_update: bool = False,
+        is_preserve_selections: bool = False,
+        current_exercise: str | None = None,
+        current_type: str | None = None,
+    ) -> None:
         """Refresh tables, list view and (optionally) dates.
 
         Updates all UI elements with the latest data from the database.
@@ -2645,6 +2664,7 @@ class MainWindow(
 
         # Update food items list
         self._update_food_items_list()
+        self._update_favorite_food_items_list()
 
     @requires_database(is_show_warning=False)
     def update_chart_comboboxes(self) -> None:
@@ -3557,6 +3577,12 @@ class MainWindow(
             self.food_items_list_model.deleteLater()
         self.food_items_list_model = None
 
+        # favorite food items list-view
+        self.listView_favorite_food_items.setModel(None)
+        if self.favorite_food_items_list_model is not None:
+            self.favorite_food_items_list_model.deleteLater()
+        self.favorite_food_items_list_model = None
+
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
 
@@ -3865,6 +3891,16 @@ class MainWindow(
 
         # Connect selection change signal after model is set
         selection_model = self.listView_food_items.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+
+    def _init_favorite_food_items_list(self) -> None:
+        """Initialize the favorite food items list view with a model and connect signals."""
+        self.favorite_food_items_list_model = QStandardItemModel()
+        self.listView_favorite_food_items.setModel(self.favorite_food_items_list_model)
+
+        # Connect selection change signal after model is set
+        selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model:
             selection_model.currentChanged.connect(self.on_food_item_selection_changed)
 
@@ -4529,6 +4565,39 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating food items list: {e}")
+
+    def _update_favorite_food_items_list(self) -> None:
+        """Refresh favorite food items list view with popular items from database."""
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get popular food items from recent records (top 20)
+            popular_food_items = self.db_manager.get_popular_food_items(500)[:20]
+
+            # Block signals during model update
+            selection_model = self.listView_favorite_food_items.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
+
+            # Update favorite food items list model
+            if self.favorite_food_items_list_model is not None:
+                self.favorite_food_items_list_model.clear()
+                for food_name in popular_food_items:
+                    item = QStandardItem(food_name)
+                    self.favorite_food_items_list_model.appendRow(item)
+
+            # Unblock signals
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
+
+        except Exception as e:
+            print(f"Error updating favorite food items list: {e}")
 
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""

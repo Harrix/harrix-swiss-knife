@@ -1527,6 +1527,32 @@ class DatabaseManager:
         rows = self.get_rows(query, params)
         return rows[0] if rows else None
 
+    def get_popular_food_items(self, limit: int = 500) -> list[str]:
+        """Get popular food items from recent food_log records.
+
+        Args:
+
+        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `500`.
+
+        Returns:
+
+        - `list[str]`: List of food item names sorted by popularity (most popular first).
+
+        """
+        query = f"""
+            SELECT name, COUNT(*) as usage_count
+            FROM (
+                SELECT name FROM food_log
+                WHERE name IS NOT NULL AND name != ''
+                ORDER BY date DESC, _id DESC
+                LIMIT {limit}
+            ) as recent_foods
+            GROUP BY name
+            ORDER BY usage_count DESC, name ASC
+        """
+        rows = self.get_rows(query)
+        return [row[0] for row in rows if row[0]]
+
     def get_food_log_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
         """Get food log data for charting.
 
