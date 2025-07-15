@@ -244,17 +244,22 @@ class MainWindow(
         # Get values from UI
         food_name = self.lineEdit_food_manual_name.text().strip()
         weight = self.doubleSpinBox_food_weight.value()
-        portion_calories = self.doubleSpinBox_food_calories.value()
-        calories_100 = self.doubleSpinBox_food_manual_calories.value()
+        calories = self.doubleSpinBox_food_calories.value()
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
+        use_weight = self.radioButton_use_weight.isChecked()
 
         # Validate required fields
         if not food_name:
             QMessageBox.warning(self, "Error", "Enter food name")
             return
 
-        if calories_100 <= 0:
-            QMessageBox.warning(self, "Error", "Calories per 100g must be greater than 0")
+        if calories <= 0:
+            QMessageBox.warning(self, "Error", "Calories must be greater than 0")
+            return
+
+        # Validate weight based on radio button selection
+        if use_weight and weight <= 0:
+            QMessageBox.warning(self, "Error", "Weight is required when using weight mode")
             return
 
         # Validate the date
@@ -267,13 +272,17 @@ class MainWindow(
             return
 
         try:
+            # Determine calories_100 and portion_calories based on radio button
+            calories_100 = calories if use_weight else None
+            portion_calories = calories if not use_weight else None
+
             # Use database manager method
             if self.db_manager.add_food_log_record(
                 date=food_date,
                 calories_100=calories_100,
                 name=food_name,
                 weight=weight if weight > 0 else None,
-                portion_calories=portion_calories if portion_calories > 0 else None
+                portion_calories=portion_calories
             ):
                 # Apply date increment logic
                 self._increment_date_widget(self.dateEdit_food)
@@ -388,10 +397,11 @@ class MainWindow(
 
             if calories_per_100g:
                 self.doubleSpinBox_food_calories.setValue(calories_per_100g)
-                self.doubleSpinBox_food_manual_calories.setValue(calories_per_100g)
             else:
                 self.doubleSpinBox_food_calories.setValue(0)
-                self.doubleSpinBox_food_manual_calories.setValue(0)
+
+            # Update calories calculation
+            self.update_calories_calculation()
 
         except Exception as e:
             print(f"Error in food item selection changed: {e}")
@@ -514,6 +524,26 @@ class MainWindow(
         self.update_food_calories_today()
         self.show_tables()
 
+    def update_calories_calculation(self) -> None:
+        """Update the calories calculation label based on radio button selection and values."""
+        weight = self.doubleSpinBox_food_weight.value()
+        calories = self.doubleSpinBox_food_calories.value()
+        use_weight = self.radioButton_use_weight.isChecked()
+
+        if use_weight:
+            # Weight mode: calories per 100g
+            if weight > 0 and calories > 0:
+                calculated_calories = (weight * calories) / 100
+                self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
+            else:
+                self.label_food_calories_calc.setText("Total: 0.0 kcal")
+        else:
+            # Portion mode: direct calories
+            if calories > 0:
+                self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
+            else:
+                self.label_food_calories_calc.setText("Total: 0.0 kcal")
+
     def update_food_calories_today(self) -> None:
         """Update the label showing calories consumed today."""
         if self.db_manager is None:
@@ -548,6 +578,12 @@ class MainWindow(
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
+
+        # Connect radio buttons and spin boxes for calories calculation
+        self.radioButton_use_weight.clicked.connect(self.update_calories_calculation)
+        self.radioButton_use_calories.clicked.connect(self.update_calories_calculation)
+        self.doubleSpinBox_food_weight.valueChanged.connect(self.update_calories_calculation)
+        self.doubleSpinBox_food_calories.valueChanged.connect(self.update_calories_calculation)
 
         # Export functionality removed - no export button in UI
 
@@ -921,6 +957,10 @@ class MainWindow(
         self.splitter_food.setStretchFactor(0, 3)  # tableView_food_log gets more space
         self.splitter_food.setStretchFactor(1, 1)  # widget_food_middle gets less space
         self.splitter_food.setStretchFactor(2, 0)  # frame_food_controls with fixed size
+
+        # Set initial radio button state and update calories calculation
+        self.radioButton_use_weight.setChecked(True)
+        self.update_calories_calculation()
 
     def _update_food_items_list(self) -> None:
         """Refresh food items list view with data from database."""

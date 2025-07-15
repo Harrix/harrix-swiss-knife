@@ -1337,7 +1337,7 @@ class DatabaseManager:
     def add_food_log_record(
         self,
         date: str,
-        calories_100: float,
+        calories_100: float | None = None,
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
@@ -1348,7 +1348,7 @@ class DatabaseManager:
         Args:
 
         - `date` (`str`): Date in YYYY-MM-DD format.
-        - `calories_100` (`float`): Calories per 100g.
+        - `calories_100` (`float | None`): Calories per 100g. Defaults to `None`.
         - `name` (`str | None`): Food name. Defaults to `None`.
         - `name_en` (`str | None`): English food name. Defaults to `None`.
         - `weight` (`float | None`): Weight in grams. Defaults to `None`.
@@ -1454,7 +1454,7 @@ class DatabaseManager:
         self,
         record_id: int,
         date: str,
-        calories_100: float,
+        calories_100: float | None = None,
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
@@ -1466,7 +1466,7 @@ class DatabaseManager:
 
         - `record_id` (`int`): Record ID.
         - `date` (`str`): Date in YYYY-MM-DD format.
-        - `calories_100` (`float`): Calories per 100g.
+        - `calories_100` (`float | None`): Calories per 100g. Defaults to `None`.
         - `name` (`str | None`): Food name. Defaults to `None`.
         - `name_en` (`str | None`): English food name. Defaults to `None`.
         - `weight` (`float | None`): Weight in grams. Defaults to `None`.

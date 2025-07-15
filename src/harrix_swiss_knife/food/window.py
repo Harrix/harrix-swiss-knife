@@ -112,17 +112,8 @@ class Ui_MainWindow(object):
         self.verticalLayout_food_controls.setObjectName(u"verticalLayout_food_controls")
         self.groupBox_food_add = QGroupBox(self.frame_food_controls)
         self.groupBox_food_add.setObjectName(u"groupBox_food_add")
-        self.verticalLayout_food_add = QVBoxLayout(self.groupBox_food_add)
-        self.verticalLayout_food_add.setObjectName(u"verticalLayout_food_add")
-        self.label_food_selected = QLabel(self.groupBox_food_add)
-        self.label_food_selected.setObjectName(u"label_food_selected")
-        font = QFont()
-        font.setPointSize(12)
-        font.setBold(True)
-        self.label_food_selected.setFont(font)
-
-        self.verticalLayout_food_add.addWidget(self.label_food_selected)
-
+        self.verticalLayout = QVBoxLayout(self.groupBox_food_add)
+        self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout_food_manual_name = QHBoxLayout()
         self.horizontalLayout_food_manual_name.setObjectName(u"horizontalLayout_food_manual_name")
         self.label_food_manual_name = QLabel(self.groupBox_food_add)
@@ -136,23 +127,36 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_manual_name.addWidget(self.lineEdit_food_manual_name)
 
 
-        self.verticalLayout_food_add.addLayout(self.horizontalLayout_food_manual_name)
+        self.verticalLayout.addLayout(self.horizontalLayout_food_manual_name)
 
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.checkBox_food_is_drink = QCheckBox(self.groupBox_food_add)
         self.checkBox_food_is_drink.setObjectName(u"checkBox_food_is_drink")
 
-        self.verticalLayout_food_add.addWidget(self.checkBox_food_is_drink)
+        self.horizontalLayout_2.addWidget(self.checkBox_food_is_drink)
 
         self.radioButton_use_weight = QRadioButton(self.groupBox_food_add)
         self.radioButton_use_weight.setObjectName(u"radioButton_use_weight")
         self.radioButton_use_weight.setChecked(True)
 
-        self.verticalLayout_food_add.addWidget(self.radioButton_use_weight)
+        self.horizontalLayout_2.addWidget(self.radioButton_use_weight)
+
+        self.radioButton_use_calories = QRadioButton(self.groupBox_food_add)
+        self.radioButton_use_calories.setObjectName(u"radioButton_use_calories")
+
+        self.horizontalLayout_2.addWidget(self.radioButton_use_calories)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
 
         self.horizontalLayout_food_weight = QHBoxLayout()
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
         self.doubleSpinBox_food_weight = QDoubleSpinBox(self.groupBox_food_add)
         self.doubleSpinBox_food_weight.setObjectName(u"doubleSpinBox_food_weight")
+        font = QFont()
+        font.setPointSize(12)
+        font.setBold(True)
         self.doubleSpinBox_food_weight.setFont(font)
         self.doubleSpinBox_food_weight.setStyleSheet(u"QDoubleSpinBox {\n"
 "                                          background-color: #e3f2fd;\n"
@@ -185,34 +189,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_weight.addWidget(self.label_food_calories)
 
 
-        self.verticalLayout_food_add.addLayout(self.horizontalLayout_food_weight)
-
-        self.radioButton_use_calories = QRadioButton(self.groupBox_food_add)
-        self.radioButton_use_calories.setObjectName(u"radioButton_use_calories")
-
-        self.verticalLayout_food_add.addWidget(self.radioButton_use_calories)
-
-        self.horizontalLayout_food_manual_calories = QHBoxLayout()
-        self.horizontalLayout_food_manual_calories.setObjectName(u"horizontalLayout_food_manual_calories")
-        self.doubleSpinBox_food_manual_calories = QDoubleSpinBox(self.groupBox_food_add)
-        self.doubleSpinBox_food_manual_calories.setObjectName(u"doubleSpinBox_food_manual_calories")
-        self.doubleSpinBox_food_manual_calories.setEnabled(False)
-        self.doubleSpinBox_food_manual_calories.setFont(font)
-        self.doubleSpinBox_food_manual_calories.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: #e3f2fd;\n"
-"                                          }")
-        self.doubleSpinBox_food_manual_calories.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
-        self.doubleSpinBox_food_manual_calories.setMaximum(10000.000000000000000)
-
-        self.horizontalLayout_food_manual_calories.addWidget(self.doubleSpinBox_food_manual_calories)
-
-        self.label_food_manual_calories_unit = QLabel(self.groupBox_food_add)
-        self.label_food_manual_calories_unit.setObjectName(u"label_food_manual_calories_unit")
-
-        self.horizontalLayout_food_manual_calories.addWidget(self.label_food_manual_calories_unit)
-
-
-        self.verticalLayout_food_add.addLayout(self.horizontalLayout_food_manual_calories)
+        self.verticalLayout.addLayout(self.horizontalLayout_food_weight)
 
         self.label_food_calories_calc = QLabel(self.groupBox_food_add)
         self.label_food_calories_calc.setObjectName(u"label_food_calories_calc")
@@ -221,7 +198,7 @@ class Ui_MainWindow(object):
         font1.setBold(True)
         self.label_food_calories_calc.setFont(font1)
 
-        self.verticalLayout_food_add.addWidget(self.label_food_calories_calc)
+        self.verticalLayout.addWidget(self.label_food_calories_calc)
 
         self.horizontalLayout_food_date = QHBoxLayout()
         self.horizontalLayout_food_date.setObjectName(u"horizontalLayout_food_date")
@@ -240,7 +217,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_date.addWidget(self.pushButton_food_yesterday)
 
 
-        self.verticalLayout_food_add.addLayout(self.horizontalLayout_food_date)
+        self.verticalLayout.addLayout(self.horizontalLayout_food_date)
 
         self.pushButton_food_add = QPushButton(self.groupBox_food_add)
         self.pushButton_food_add.setObjectName(u"pushButton_food_add")
@@ -258,7 +235,7 @@ class Ui_MainWindow(object):
 "                                      background-color: #90caf9;\n"
 "                                      }")
 
-        self.verticalLayout_food_add.addWidget(self.pushButton_food_add)
+        self.verticalLayout.addWidget(self.pushButton_food_add)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_add)
@@ -494,7 +471,7 @@ class Ui_MainWindow(object):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName(u"scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 98, 28))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1331, 760))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName(u"verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -530,15 +507,13 @@ class Ui_MainWindow(object):
         self.label_favorite_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Favorite Items:", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
-        self.label_food_selected.setText(QCoreApplication.translate("MainWindow", u"Select food item or enter manually", None))
         self.label_food_manual_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
         self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name (optional if selected from list)", None))
         self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"This is a drink", None))
         self.radioButton_use_weight.setText(QCoreApplication.translate("MainWindow", u"Calculate by weight", None))
+        self.radioButton_use_calories.setText(QCoreApplication.translate("MainWindow", u"Enter calories directly", None))
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal", None))
-        self.radioButton_use_calories.setText(QCoreApplication.translate("MainWindow", u"Enter calories directly", None))
-        self.label_food_manual_calories_unit.setText(QCoreApplication.translate("MainWindow", u"kcal", None))
         self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_food_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))

@@ -115,21 +115,7 @@
               <property name="title">
                <string>Add Food Entry</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_food_add">
-               <item>
-                <widget class="QLabel" name="label_food_selected">
-                 <property name="font">
-                  <font>
-                   <pointsize>12</pointsize>
-                   <weight>75</weight>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Select food item or enter manually</string>
-                 </property>
-                </widget>
-               </item>
+              <layout class="QVBoxLayout" name="verticalLayout">
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_manual_name">
                  <item>
@@ -149,21 +135,32 @@
                 </layout>
                </item>
                <item>
-                <widget class="QCheckBox" name="checkBox_food_is_drink">
-                 <property name="text">
-                  <string>This is a drink</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="radioButton_use_weight">
-                 <property name="text">
-                  <string>Calculate by weight</string>
-                 </property>
-                 <property name="checked">
-                  <bool>true</bool>
-                 </property>
-                </widget>
+                <layout class="QHBoxLayout" name="horizontalLayout_2">
+                 <item>
+                  <widget class="QCheckBox" name="checkBox_food_is_drink">
+                   <property name="text">
+                    <string>This is a drink</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QRadioButton" name="radioButton_use_weight">
+                   <property name="text">
+                    <string>Calculate by weight</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QRadioButton" name="radioButton_use_calories">
+                   <property name="text">
+                    <string>Enter calories directly</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_weight">
@@ -223,49 +220,6 @@
                  </item>
                  <item>
                   <widget class="QLabel" name="label_food_calories">
-                   <property name="text">
-                    <string>kcal</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="radioButton_use_calories">
-                 <property name="text">
-                  <string>Enter calories directly</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_food_manual_calories">
-                 <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_food_manual_calories">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <pointsize>12</pointsize>
-                     <weight>75</weight>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">QDoubleSpinBox {
-                                          background-color: #e3f2fd;
-                                          }</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                   <property name="maximum">
-                    <double>10000.000000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_food_manual_calories_unit">
                    <property name="text">
                     <string>kcal</string>
                    </property>
@@ -681,8 +635,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>98</width>
-             <height>28</height>
+             <width>1331</width>
+             <height>760</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_food_stats_content"/>
