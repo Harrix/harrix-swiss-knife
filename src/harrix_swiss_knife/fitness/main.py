@@ -109,6 +109,9 @@ class MainWindow(
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
 
+        # Food items list model
+        self.food_items_list_model: QStandardItemModel | None = None
+
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
@@ -163,6 +166,7 @@ class MainWindow(
         self._init_weight_controls()
         self._init_exercise_chart_controls()
         self._init_exercises_list()
+        self._init_food_items_list()
         self._init_sets_count_display()
         self.update_all()
 
@@ -1389,6 +1393,48 @@ class MainWindow(
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
 
+    def on_food_item_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
+        """Handle food item selection change in the list view."""
+        food_item = self._get_current_selected_food_item()
+        if not food_item:
+            return
+
+        # Check if database manager is available and connection is open
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get food item data from database
+            food_item_data = self.db_manager.get_food_item_by_name(food_item)
+            if not food_item_data:
+                return
+
+            # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+            food_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories = food_item_data
+
+            # Update form fields with selected food item data
+            self.lineEdit_food_manual_name.setText(name)
+            if name_en:
+                self.lineEdit_food_name_en.setText(name_en)
+
+            if calories_per_100g:
+                self.doubleSpinBox_food_cal100.setValue(calories_per_100g)
+
+            if default_portion_weight:
+                self.doubleSpinBox_food_weight.setValue(default_portion_weight)
+
+            if default_portion_calories:
+                self.doubleSpinBox_food_calories.setValue(default_portion_calories)
+                self.doubleSpinBox_food_manual_calories.setValue(default_portion_calories)
+
+        except Exception as e:
+            print(f"Error in food item selection changed: {e}")
+
     def on_exercise_type_changed(self, _index: int = -1) -> None:
         """Handle exercise type combobox selection change and sync with statistics.
 
@@ -2575,6 +2621,9 @@ class MainWindow(
         self._update_types_avif()
         self._update_charts_avif()
 
+        # Update food items list
+        self._update_food_items_list()
+
     @requires_database(is_show_warning=False)
     def update_chart_comboboxes(self) -> None:
         """Update exercise and type comboboxes for charts."""
@@ -3480,6 +3529,12 @@ class MainWindow(
             self.exercises_list_model.deleteLater()
         self.exercises_list_model = None
 
+        # food items list-view
+        self.listView_food_items.setModel(None)
+        if self.food_items_list_model is not None:
+            self.food_items_list_model.deleteLater()
+        self.food_items_list_model = None
+
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
 
@@ -3497,6 +3552,25 @@ class MainWindow(
             return None
 
         item = self.exercises_list_model.itemFromIndex(current_index)
+        return item.text() if item else None
+
+    def _get_current_selected_food_item(self) -> str | None:
+        """Get the currently selected food item from the list view.
+
+        Returns:
+
+        - `str | None`: The name of the selected food item, or None if nothing is selected.
+
+        """
+        selection_model = self.listView_food_items.selectionModel()
+        if not selection_model or not self.food_items_list_model:
+            return None
+
+        current_index = selection_model.currentIndex()
+        if not current_index.isValid():
+            return None
+
+        item = self.food_items_list_model.itemFromIndex(current_index)
         return item.text() if item else None
 
     def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
@@ -3761,6 +3835,16 @@ class MainWindow(
         selection_model = self.listView_exercises.selectionModel()
         if selection_model:
             selection_model.currentChanged.connect(self.on_exercise_selection_changed_list)
+
+    def _init_food_items_list(self) -> None:
+        """Initialize the food items list view with a model and connect signals."""
+        self.food_items_list_model = QStandardItemModel()
+        self.listView_food_items.setModel(self.food_items_list_model)
+
+        # Connect selection change signal after model is set
+        selection_model = self.listView_food_items.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
 
     def _init_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box.
@@ -4388,6 +4472,41 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
+
+    def _update_food_items_list(self) -> None:
+        """Refresh food items list view with data from database."""
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get food items sorted by name
+            food_items_data = self.db_manager.get_all_food_items()
+
+            # Block signals during model update
+            selection_model = self.listView_food_items.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
+
+            # Update food items list model
+            if self.food_items_list_model is not None:
+                self.food_items_list_model.clear()
+                for food_item_row in food_items_data:
+                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                    food_name = food_item_row[1]  # name is at index 1
+                    item = QStandardItem(food_name)
+                    self.food_items_list_model.appendRow(item)
+
+            # Unblock signals
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
+
+        except Exception as e:
+            print(f"Error updating food items list: {e}")
 
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""
