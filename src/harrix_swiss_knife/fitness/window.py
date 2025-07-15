@@ -365,7 +365,7 @@ class Ui_MainWindow(object):
         self.listView_favorite_food_items = QListView(self.widget_food_middle)
         self.listView_favorite_food_items.setObjectName(u"listView_favorite_food_items")
         self.listView_favorite_food_items.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #FF9800;\n"
+"                                border: 2px solid #2196F3;\n"
 "                                border-radius: 4px;\n"
 "                                background-color: white;\n"
 "                                }\n"
@@ -374,11 +374,11 @@ class Ui_MainWindow(object):
 "                                border-bottom: 1px solid #e0e0e0;\n"
 "                                }\n"
 "                                QListView::item:selected {\n"
-"                                background-color: #fff3e0;\n"
+"                                background-color: #e3f2fd;\n"
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"
-"                                background-color: #ffeaa7;\n"
+"                                background-color: #bbdefb;\n"
 "                                }")
 
         self.verticalLayout_food_middle.addWidget(self.listView_favorite_food_items)
@@ -391,7 +391,7 @@ class Ui_MainWindow(object):
         self.listView_food_items = QListView(self.widget_food_middle)
         self.listView_food_items.setObjectName(u"listView_food_items")
         self.listView_food_items.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #FF9800;\n"
+"                                border: 2px solid #2196F3;\n"
 "                                border-radius: 4px;\n"
 "                                background-color: white;\n"
 "                                }\n"
@@ -400,11 +400,11 @@ class Ui_MainWindow(object):
 "                                border-bottom: 1px solid #e0e0e0;\n"
 "                                }\n"
 "                                QListView::item:selected {\n"
-"                                background-color: #fff3e0;\n"
+"                                background-color: #e3f2fd;\n"
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"
-"                                background-color: #ffeaa7;\n"
+"                                background-color: #bbdefb;\n"
 "                                }")
 
         self.verticalLayout_food_middle.addWidget(self.listView_food_items)
@@ -459,7 +459,7 @@ class Ui_MainWindow(object):
         self.doubleSpinBox_food_weight.setObjectName(u"doubleSpinBox_food_weight")
         self.doubleSpinBox_food_weight.setFont(font)
         self.doubleSpinBox_food_weight.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: #fff3e0;\n"
+"                                          background-color: #e3f2fd;\n"
 "                                          }")
         self.doubleSpinBox_food_weight.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
         self.doubleSpinBox_food_weight.setMaximum(10000.000000000000000)
@@ -476,7 +476,7 @@ class Ui_MainWindow(object):
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
         self.doubleSpinBox_food_calories.setFont(font)
         self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: #fff3e0;\n"
+"                                          background-color: #e3f2fd;\n"
 "                                          }")
         self.doubleSpinBox_food_calories.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
         self.doubleSpinBox_food_calories.setMaximum(10000.000000000000000)
@@ -503,7 +503,7 @@ class Ui_MainWindow(object):
         self.doubleSpinBox_food_manual_calories.setEnabled(False)
         self.doubleSpinBox_food_manual_calories.setFont(font)
         self.doubleSpinBox_food_manual_calories.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: #fff3e0;\n"
+"                                          background-color: #e3f2fd;\n"
 "                                          }")
         self.doubleSpinBox_food_manual_calories.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
         self.doubleSpinBox_food_manual_calories.setMaximum(10000.000000000000000)
@@ -551,15 +551,15 @@ class Ui_MainWindow(object):
         self.pushButton_food_add.setMinimumSize(QSize(0, 41))
         self.pushButton_food_add.setFont(font)
         self.pushButton_food_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #fff3e0;\n"
-"                                      border: 1px solid #FF9800;\n"
+"                                      background-color: #e3f2fd;\n"
+"                                      border: 1px solid #2196F3;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #ffeaa7;\n"
+"                                      background-color: #bbdefb;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #fdcb6e;\n"
+"                                      background-color: #90caf9;\n"
 "                                      }")
 
         self.verticalLayout_food_add.addWidget(self.pushButton_food_add)

@@ -570,7 +570,7 @@
                           <widget class="QListView" name="listView_favorite_food_items">
                             <property name="styleSheet">
                               <string notr="true">QListView {
-                                border: 2px solid #FF9800;
+                                border: 2px solid #2196F3;
                                 border-radius: 4px;
                                 background-color: white;
                                 }
@@ -579,11 +579,11 @@
                                 border-bottom: 1px solid #e0e0e0;
                                 }
                                 QListView::item:selected {
-                                background-color: #fff3e0;
+                                background-color: #e3f2fd;
                                 color: black;
                                 }
                                 QListView::item:hover {
-                                background-color: #ffeaa7;
+                                background-color: #bbdefb;
                                 }</string>
                             </property>
                           </widget>
@@ -599,7 +599,7 @@
                           <widget class="QListView" name="listView_food_items">
                             <property name="styleSheet">
                               <string notr="true">QListView {
-                                border: 2px solid #FF9800;
+                                border: 2px solid #2196F3;
                                 border-radius: 4px;
                                 background-color: white;
                                 }
@@ -608,11 +608,11 @@
                                 border-bottom: 1px solid #e0e0e0;
                                 }
                                 QListView::item:selected {
-                                background-color: #fff3e0;
+                                background-color: #e3f2fd;
                                 color: black;
                                 }
                                 QListView::item:hover {
-                                background-color: #ffeaa7;
+                                background-color: #bbdefb;
                                 }</string>
                             </property>
                           </widget>
@@ -701,7 +701,7 @@
                                       </property>
                                       <property name="styleSheet">
                                         <string notr="true">QDoubleSpinBox {
-                                          background-color: #fff3e0;
+                                          background-color: #e3f2fd;
                                           }</string>
                                       </property>
                                       <property name="alignment">
@@ -734,7 +734,7 @@
                                       </property>
                                       <property name="styleSheet">
                                         <string notr="true">QDoubleSpinBox {
-                                          background-color: #fff3e0;
+                                          background-color: #e3f2fd;
                                           }</string>
                                       </property>
                                       <property name="alignment">
@@ -779,7 +779,7 @@
                                       </property>
                                       <property name="styleSheet">
                                         <string notr="true">QDoubleSpinBox {
-                                          background-color: #fff3e0;
+                                          background-color: #e3f2fd;
                                           }</string>
                                       </property>
                                       <property name="alignment">
@@ -866,15 +866,15 @@
                                   </property>
                                   <property name="styleSheet">
                                     <string notr="true">QPushButton {
-                                      background-color: #fff3e0;
-                                      border: 1px solid #FF9800;
+                                      background-color: #e3f2fd;
+                                      border: 1px solid #2196F3;
                                       border-radius: 4px;
                                       }
                                       QPushButton:hover {
-                                      background-color: #ffeaa7;
+                                      background-color: #bbdefb;
                                       }
                                       QPushButton:pressed {
-                                      background-color: #fdcb6e;
+                                      background-color: #90caf9;
                                       }</string>
                                   </property>
                                   <property name="text">
