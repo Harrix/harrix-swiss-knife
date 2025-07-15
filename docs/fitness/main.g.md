@@ -879,10 +879,7 @@ class MainWindow(
                     last_value = cumulative_data[-1][1] if cumulative_data else 0.0
 
                     # For current month, extend to today or end of month, whichever is earlier
-                    if i == 0:  # Current month
-                        max_day = min(today.day, 31)  # Don't go beyond today or end of month
-                    else:
-                        max_day = 31  # For past months, extend to end of month
+                    max_day = min(today.day, 31) if i == 0 else 31
 
                     # Add horizontal extension if needed
                     if last_day < max_day:
@@ -1095,10 +1092,7 @@ class MainWindow(
                     last_value = cumulative_data[-1][1] if cumulative_data else 0.0
 
                     # For current year, extend to today or end of month, whichever is earlier
-                    if year == current_year:  # Current year
-                        max_day = min(today.day, 31)  # Don't go beyond today or end of month
-                    else:
-                        max_day = 31  # For past years, extend to end of month
+                    max_day = min(today.day, 31) if year == current_year else 31
 
                     # Add horizontal extension if needed
                     if last_day < max_day:
@@ -5072,10 +5066,7 @@ def on_compare_last_months(self) -> None:
                     last_value = cumulative_data[-1][1] if cumulative_data else 0.0
 
                     # For current month, extend to today or end of month, whichever is earlier
-                    if i == 0:  # Current month
-                        max_day = min(today.day, 31)  # Don't go beyond today or end of month
-                    else:
-                        max_day = 31  # For past months, extend to end of month
+                    max_day = min(today.day, 31) if i == 0 else 31
 
                     # Add horizontal extension if needed
                     if last_day < max_day:
@@ -5300,10 +5291,7 @@ def on_compare_same_months(self) -> None:
                     last_value = cumulative_data[-1][1] if cumulative_data else 0.0
 
                     # For current year, extend to today or end of month, whichever is earlier
-                    if year == current_year:  # Current year
-                        max_day = min(today.day, 31)  # Don't go beyond today or end of month
-                    else:
-                        max_day = 31  # For past years, extend to end of month
+                    max_day = min(today.day, 31) if year == current_year else 31
 
                     # Add horizontal extension if needed
                     if last_day < max_day:

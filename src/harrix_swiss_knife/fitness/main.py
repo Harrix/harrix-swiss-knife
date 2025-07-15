@@ -805,6 +805,17 @@ class MainWindow(
                         continue
 
                 if cumulative_data:
+                    # Extend the line horizontally to the end of the month if needed
+                    last_day = cumulative_data[-1][0] if cumulative_data else 1
+                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
+
+                    # For current month, extend to today or end of month, whichever is earlier
+                    max_day = min(today.day, 31) if i == 0 else 31
+
+                    # Add horizontal extension if needed
+                    if last_day < max_day:
+                        cumulative_data.append((max_day, last_value))
+
                     monthly_data.append(cumulative_data)
 
                     # Determine color based on whether it's current month or not
@@ -1007,6 +1018,17 @@ class MainWindow(
                         continue
 
                 if cumulative_data:
+                    # Extend the line horizontally to the end of the month if needed
+                    last_day = cumulative_data[-1][0] if cumulative_data else 1
+                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
+
+                    # For current year, extend to today or end of month, whichever is earlier
+                    max_day = min(today.day, 31) if year == current_year else 31
+
+                    # Add horizontal extension if needed
+                    if last_day < max_day:
+                        cumulative_data.append((max_day, last_value))
+
                     yearly_data.append(cumulative_data)
 
                     # Determine color based on whether it's current year or not
