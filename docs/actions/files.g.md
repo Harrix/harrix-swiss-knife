@@ -23,29 +23,31 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-- [🏛️ Class `OnListFilesSimple`](#%EF%B8%8F-class-onlistfilessimple)
+- [🏛️ Class `OnListFilesCurrentFolder`](#%EF%B8%8F-class-onlistfilescurrentfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
-- [🏛️ Class `OnListFilesSimpleIgnoreHiddenFolders`](#%EF%B8%8F-class-onlistfilessimpleignorehiddenfolders)
+- [🏛️ Class `OnListFilesSimple`](#%EF%B8%8F-class-onlistfilessimple)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
-- [🏛️ Class `OnRemoveEmptyFolders`](#%EF%B8%8F-class-onremoveemptyfolders)
+- [🏛️ Class `OnListFilesSimpleIgnoreHiddenFolders`](#%EF%B8%8F-class-onlistfilessimpleignorehiddenfolders)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
+- [🏛️ Class `OnRemoveEmptyFolders`](#%EF%B8%8F-class-onremoveemptyfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
 - [🏛️ Class `OnRenameFb2EpubPdfFiles`](#%EF%B8%8F-class-onrenamefb2epubpdffiles)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
 - [🏛️ Class `OnRenameFilesByMapping`](#%EF%B8%8F-class-onrenamefilesbymapping)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
   - [⚙️ Method `_parse_mapping_text`](#%EF%B8%8F-method-_parse_mapping_text)
 - [🏛️ Class `OnRenameLargestImagesToFeaturedImage`](#%EF%B8%8F-class-onrenamelargestimagestofeaturedimage)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
-- [🏛️ Class `OnTreeViewFolder`](#%EF%B8%8F-class-ontreeviewfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
-- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
+- [🏛️ Class `OnTreeViewFolder`](#%EF%B8%8F-class-ontreeviewfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
+- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
 
 </details>
 
@@ -388,6 +390,70 @@ Execute code in the main thread after in_thread(). For handling the results of t
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+## 🏛️ Class `OnListFilesCurrentFolder`
+
+```python
+class OnListFilesCurrentFolder(ActionBase)
+```
+
+Generate a simple list of files from the current directory only.
+
+This action prompts the user to select a folder and then creates
+a simple text list of all files in the selected directory only,
+without entering any subdirectories. This provides a flat view
+of files at the current level.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnListFilesCurrentFolder(ActionBase):
+
+    icon = "📄"
+    title = "List files current folder"
+
+    @ActionBase.handle_exceptions("generating current folder file list")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        if folder_path is None:
+            return
+
+        result = h.file.list_files_simple(
+            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False), is_only_files=True
+        )
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        if folder_path is None:
+            return
+
+        result = h.file.list_files_simple(
+            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False), is_only_files=True
+        )
+        self.add_line(result)
         self.show_result()
 ```
 

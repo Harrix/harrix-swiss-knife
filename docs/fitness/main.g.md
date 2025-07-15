@@ -874,6 +874,20 @@ class MainWindow(
                         continue
 
                 if cumulative_data:
+                    # Extend the line horizontally to the end of the month if needed
+                    last_day = cumulative_data[-1][0] if cumulative_data else 1
+                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
+
+                    # For current month, extend to today or end of month, whichever is earlier
+                    if i == 0:  # Current month
+                        max_day = min(today.day, 31)  # Don't go beyond today or end of month
+                    else:
+                        max_day = 31  # For past months, extend to end of month
+
+                    # Add horizontal extension if needed
+                    if last_day < max_day:
+                        cumulative_data.append((max_day, last_value))
+
                     monthly_data.append(cumulative_data)
 
                     # Determine color based on whether it's current month or not
@@ -1076,6 +1090,20 @@ class MainWindow(
                         continue
 
                 if cumulative_data:
+                    # Extend the line horizontally to the end of the month if needed
+                    last_day = cumulative_data[-1][0] if cumulative_data else 1
+                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
+
+                    # For current year, extend to today or end of month, whichever is earlier
+                    if year == current_year:  # Current year
+                        max_day = min(today.day, 31)  # Don't go beyond today or end of month
+                    else:
+                        max_day = 31  # For past years, extend to end of month
+
+                    # Add horizontal extension if needed
+                    if last_day < max_day:
+                        cumulative_data.append((max_day, last_value))
+
                     yearly_data.append(cumulative_data)
 
                     # Determine color based on whether it's current year or not
@@ -5039,6 +5067,20 @@ def on_compare_last_months(self) -> None:
                         continue
 
                 if cumulative_data:
+                    # Extend the line horizontally to the end of the month if needed
+                    last_day = cumulative_data[-1][0] if cumulative_data else 1
+                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
+
+                    # For current month, extend to today or end of month, whichever is earlier
+                    if i == 0:  # Current month
+                        max_day = min(today.day, 31)  # Don't go beyond today or end of month
+                    else:
+                        max_day = 31  # For past months, extend to end of month
+
+                    # Add horizontal extension if needed
+                    if last_day < max_day:
+                        cumulative_data.append((max_day, last_value))
+
                     monthly_data.append(cumulative_data)
 
                     # Determine color based on whether it's current month or not
@@ -5253,6 +5295,20 @@ def on_compare_same_months(self) -> None:
                         continue
 
                 if cumulative_data:
+                    # Extend the line horizontally to the end of the month if needed
+                    last_day = cumulative_data[-1][0] if cumulative_data else 1
+                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
+
+                    # For current year, extend to today or end of month, whichever is earlier
+                    if year == current_year:  # Current year
+                        max_day = min(today.day, 31)  # Don't go beyond today or end of month
+                    else:
+                        max_day = 31  # For past years, extend to end of month
+
+                    # Add horizontal extension if needed
+                    if last_day < max_day:
+                        cumulative_data.append((max_day, last_value))
+
                     yearly_data.append(cumulative_data)
 
                     # Determine color based on whether it's current year or not

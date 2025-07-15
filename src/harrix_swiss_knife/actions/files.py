@@ -138,6 +138,32 @@ class OnExtractZipArchives(ActionBase):
         self.show_result()
 
 
+class OnListFilesCurrentFolder(ActionBase):
+    """Generate a simple list of files from the current directory only.
+
+    This action prompts the user to select a folder and then creates
+    a simple text list of all files in the selected directory only,
+    without entering any subdirectories. This provides a flat view
+    of files at the current level.
+    """
+
+    icon = "📄"
+    title = "List files current folder"
+
+    @ActionBase.handle_exceptions("generating current folder file list")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        if folder_path is None:
+            return
+
+        result = h.file.list_files_simple(
+            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False), is_only_files=True
+        )
+        self.add_line(result)
+        self.show_result()
+
+
 class OnListFilesSimple(ActionBase):
     """Generate a simple list of all files in a directory structure.
 
