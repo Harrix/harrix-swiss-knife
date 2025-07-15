@@ -1962,11 +1962,11 @@ class MainWindow(
         - `index` (`int`): The index of the newly selected tab.
 
         """
-        index_tab_weight = 2
-        index_tab_charts = 3
-        index_tab_statistics = 4
-        index_tab_food = 5
-        index_tab_food_stats = 6
+        index_tab_weight = 3
+        index_tab_charts = 4
+        index_tab_statistics = 5
+        index_tab_food = 6
+        index_tab_food_stats = 7
 
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
