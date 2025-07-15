@@ -1447,9 +1447,9 @@ class MainWindow(
             else:
                 self.doubleSpinBox_food_weight.setValue(0)
 
-            if default_portion_calories:
-                self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                self.doubleSpinBox_food_manual_calories.setValue(default_portion_calories)
+            if calories_per_100g:
+                self.doubleSpinBox_food_calories.setValue(calories_per_100g)
+                self.doubleSpinBox_food_manual_calories.setValue(calories_per_100g)
             else:
                 self.doubleSpinBox_food_calories.setValue(0)
                 self.doubleSpinBox_food_manual_calories.setValue(0)
