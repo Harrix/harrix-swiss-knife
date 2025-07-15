@@ -77,7 +77,7 @@ class MainWindow(
     """
 
     _SAFE_TABLES: frozenset[str] = frozenset(
-        {"process", "exercises", "types", "weight", "food_items", "food_log"},
+        {"process", "exercises", "types", "weight", "food_log"},
     )
 
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
@@ -116,7 +116,6 @@ class MainWindow(
             "types": None,
             "weight": None,
             "statistics": None,
-            "food_items": None,
             "food_log": None,
         }
 
@@ -3044,7 +3043,7 @@ class MainWindow(
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
         # Connect delete and refresh buttons for all tables (except statistics)
-        tables_with_controls = {"process", "exercises", "types", "weight", "food_log"}
+        tables_with_controls = {"process", "exercises", "types", "weight"}
         for table_name in tables_with_controls:
             # Delete buttons
             delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
@@ -3055,6 +3054,10 @@ class MainWindow(
             refresh_btn_name = "pushButton_refresh" if table_name == "process" else f"pushButton_{table_name}_refresh"
             refresh_button = getattr(self, refresh_btn_name)
             refresh_button.clicked.connect(self.update_all)
+
+        # Connect food buttons manually since they have different naming
+        self.pushButton_food_delete.clicked.connect(partial(self.delete_record, "food_log"))
+        self.pushButton_food_refresh.clicked.connect(self.update_all)
 
         # Connect process table selection change signal
         # Note: This will be connected later in show_tables() after model is created
@@ -4095,8 +4098,6 @@ class MainWindow(
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
-        self.pushButton_food_items_delete.setText(f"🗑️ {self.pushButton_food_items_delete.text()}")
-        self.pushButton_food_items_refresh.setText(f"🔄 {self.pushButton_food_items_refresh.text()}")
 
         # Food statistics buttons
         self.pushButton_food_stats_update.setText(f"🔄 {self.pushButton_food_stats_update.text()}")
