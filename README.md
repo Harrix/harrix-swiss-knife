@@ -70,6 +70,7 @@ _Figure 1: Screenshot_
   - ✅ Check featured_image
   - ✅ Check featured_image in …
   - 📦 Extract ZIP archives in …
+  - 📄 List files current folder
   - 📄 List files simple
   - 📄 List files simple (ignore hidden folders)
   - 🗂️ Moves and flattens files from nested folders
