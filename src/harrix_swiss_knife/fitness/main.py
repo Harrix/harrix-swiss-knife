@@ -1417,20 +1417,42 @@ class MainWindow(
             # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
             food_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories = food_item_data
 
-            # Update form fields with selected food item data
-            self.lineEdit_food_manual_name.setText(name)
+                        # Update form fields with selected food item data
+            # Fields for adding new food item
+            self.lineEdit_food_name.setText(name)
             if name_en:
                 self.lineEdit_food_name_en.setText(name_en)
+            else:
+                self.lineEdit_food_name_en.clear()
 
             if calories_per_100g:
                 self.doubleSpinBox_food_cal100.setValue(calories_per_100g)
+            else:
+                self.doubleSpinBox_food_cal100.setValue(0)
 
             if default_portion_weight:
+                self.doubleSpinBox_food_default_weight.setValue(default_portion_weight)
+            else:
+                self.doubleSpinBox_food_default_weight.setValue(0)
+
+            if default_portion_calories:
+                self.doubleSpinBox_food_default_cal.setValue(default_portion_calories)
+            else:
+                self.doubleSpinBox_food_default_cal.setValue(0)
+
+            # Fields for adding food log record
+            self.lineEdit_food_manual_name.setText(name)
+            if default_portion_weight:
                 self.doubleSpinBox_food_weight.setValue(default_portion_weight)
+            else:
+                self.doubleSpinBox_food_weight.setValue(0)
 
             if default_portion_calories:
                 self.doubleSpinBox_food_calories.setValue(default_portion_calories)
                 self.doubleSpinBox_food_manual_calories.setValue(default_portion_calories)
+            else:
+                self.doubleSpinBox_food_calories.setValue(0)
+                self.doubleSpinBox_food_manual_calories.setValue(0)
 
         except Exception as e:
             print(f"Error in food item selection changed: {e}")
