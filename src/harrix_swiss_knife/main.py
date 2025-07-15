@@ -142,6 +142,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             ],
             items=[
                 hsk.apps.OnFitness,
+                hsk.apps.OnFood,
                 "-",
                 hsk.images.OnOptimizeClipboard,
                 hsk.images.OnOptimizeClipboardDialog,
