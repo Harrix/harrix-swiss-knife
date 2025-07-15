@@ -1,0 +1,1269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+  <class>MainWindow</class>
+  <widget class="QMainWindow" name="MainWindow">
+    <property name="geometry">
+      <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1400</width>
+        <height>950</height>
+      </rect>
+    </property>
+    <property name="windowTitle">
+      <string>Finance Tracker</string>
+    </property>
+    <widget class="QWidget" name="centralWidget">
+      <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+          <widget class="QTabWidget" name="tabWidget">
+            <property name="currentIndex">
+              <number>0</number>
+            </property>
+            <widget class="QWidget" name="tab_transactions">
+              <attribute name="title">
+                <string>Transactions</string>
+              </attribute>
+              <layout class="QHBoxLayout" name="horizontalLayout_main">
+                <item>
+                  <widget class="QSplitter" name="splitter">
+                    <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="childrenCollapsible">
+                      <bool>false</bool>
+                    </property>
+                    <widget class="QTableView" name="tableView_transactions" />
+                    <widget class="QWidget" name="widget_middle">
+                      <layout class="QVBoxLayout" name="verticalLayout">
+                        <item>
+                          <widget class="QLabel" name="label_categories">
+                            <property name="text">
+                              <string>Categories:</string>
+                            </property>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QListView" name="listView_categories">
+                            <property name="maximumSize">
+                              <size>
+                                <width>16777215</width>
+                                <height>16777215</height>
+                              </size>
+                            </property>
+                            <property name="styleSheet">
+                              <string notr="true">QListView {
+                                border: 2px solid #4CAF50;
+                                border-radius: 4px;
+                                background-color: white;
+                                }
+                                QListView::item {
+                                padding: 4px;
+                                border-bottom: 1px solid #e0e0e0;
+                                }
+                                QListView::item:selected {
+                                background-color: #e8f5e8;
+                                color: black;
+                                }
+                                QListView::item:hover {
+                                background-color: #f0f8f0;
+                                }</string>
+                            </property>
+                          </widget>
+                        </item>
+                      </layout>
+                    </widget>
+                    <widget class="QFrame" name="frame">
+                      <property name="minimumSize">
+                        <size>
+                          <width>380</width>
+                          <height>0</height>
+                        </size>
+                      </property>
+                      <property name="maximumSize">
+                        <size>
+                          <width>16777215</width>
+                          <height>16777215</height>
+                        </size>
+                      </property>
+                      <property name="frameShape">
+                        <enum>QFrame::StyledPanel</enum>
+                      </property>
+                      <property name="frameShadow">
+                        <enum>QFrame::Raised</enum>
+                      </property>
+                      <layout class="QVBoxLayout" name="verticalLayout_3">
+                        <item>
+                          <widget class="QGroupBox" name="groupBox_transaction">
+                            <property name="minimumSize">
+                              <size>
+                                <width>0</width>
+                                <height>280</height>
+                              </size>
+                            </property>
+                            <property name="title">
+                              <string>Transaction Details</string>
+                            </property>
+                            <layout class="QVBoxLayout" name="verticalLayout_5">
+                              <item>
+                                <widget class="QLabel" name="label_category">
+                                  <property name="font">
+                                    <font>
+                                      <pointsize>12</pointsize>
+                                      <weight>75</weight>
+                                      <bold>true</bold>
+                                    </font>
+                                  </property>
+                                  <property name="text">
+                                    <string>Select Category</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <layout class="QHBoxLayout" name="horizontalLayout_type">
+                                  <item>
+                                    <widget class="QRadioButton" name="radioButton_income">
+                                      <property name="text">
+                                        <string>Income</string>
+                                      </property>
+                                      <property name="styleSheet">
+                                        <string notr="true">QRadioButton {
+                                          color: green;
+                                          font-weight: bold;
+                                          }</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QRadioButton" name="radioButton_expense">
+                                      <property name="text">
+                                        <string>Expense</string>
+                                      </property>
+                                      <property name="checked">
+                                        <bool>true</bool>
+                                      </property>
+                                      <property name="styleSheet">
+                                        <string notr="true">QRadioButton {
+                                          color: red;
+                                          font-weight: bold;
+                                          }</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </item>
+                              <item>
+                                <layout class="QHBoxLayout" name="horizontalLayout_amount">
+                                  <item>
+                                    <widget class="QDoubleSpinBox" name="doubleSpinBox_amount">
+                                      <property name="font">
+                                        <font>
+                                          <pointsize>12</pointsize>
+                                          <weight>75</weight>
+                                          <bold>true</bold>
+                                        </font>
+                                      </property>
+                                      <property name="styleSheet">
+                                        <string notr="true">QDoubleSpinBox {
+                                          background-color: lightblue;
+                                          }</string>
+                                      </property>
+                                      <property name="alignment">
+                                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                      </property>
+                                      <property name="maximum">
+                                        <double>999999.990000000000000</double>
+                                      </property>
+                                      <property name="value">
+                                        <double>100.000000000000000</double>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QLabel" name="label_currency">
+                                      <property name="maximumSize">
+                                        <size>
+                                          <width>61</width>
+                                          <height>16777215</height>
+                                        </size>
+                                      </property>
+                                      <property name="text">
+                                        <string>USD</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </item>
+                              <item>
+                                <widget class="QComboBox" name="comboBox_category" />
+                              </item>
+                              <item>
+                                <widget class="QLineEdit" name="lineEdit_description">
+                                  <property name="placeholderText">
+                                    <string>Description (optional)</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <layout class="QHBoxLayout" name="horizontalLayout_date">
+                                  <item>
+                                    <widget class="QDateEdit" name="dateEdit">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>191</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="alignment">
+                                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                      </property>
+                                      <property name="displayFormat">
+                                        <string>yyyy-MM-dd</string>
+                                      </property>
+                                      <property name="calendarPopup">
+                                        <bool>true</bool>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QPushButton" name="pushButton_yesterday">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>61</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="text">
+                                        <string>Yesterday</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </item>
+                              <item>
+                                <widget class="QPushButton" name="pushButton_add">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>0</width>
+                                      <height>41</height>
+                                    </size>
+                                  </property>
+                                  <property name="font">
+                                    <font>
+                                      <pointsize>12</pointsize>
+                                      <weight>75</weight>
+                                      <bold>true</bold>
+                                    </font>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">QPushButton {
+                                      background-color: lightgreen;
+                                      border: 1px solid #4CAF50;
+                                      border-radius: 4px;
+                                      }
+                                      QPushButton:hover {
+                                      background-color: #90EE90;
+                                      }
+                                      QPushButton:pressed {
+                                      background-color: #7FDD7F;
+                                      }</string>
+                                  </property>
+                                  <property name="text">
+                                    <string>Add Transaction</string>
+                                  </property>
+                                </widget>
+                              </item>
+                            </layout>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QGroupBox" name="groupBox_commands">
+                            <property name="minimumSize">
+                              <size>
+                                <width>0</width>
+                                <height>0</height>
+                              </size>
+                            </property>
+                            <property name="title">
+                              <string>Commands</string>
+                            </property>
+                            <layout class="QVBoxLayout" name="verticalLayout_2">
+                              <item>
+                                <layout class="QHBoxLayout" name="horizontalLayout_8">
+                                  <item>
+                                    <widget class="QPushButton" name="pushButton_delete">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>80</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="text">
+                                        <string>Delete</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QPushButton" name="pushButton_refresh">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>80</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="text">
+                                        <string>Refresh</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QPushButton" name="pushButton_export_csv">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>80</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="text">
+                                        <string>Export CSV</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </item>
+                            </layout>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QGroupBox" name="groupBox_filter">
+                            <property name="minimumSize">
+                              <size>
+                                <width>0</width>
+                                <height>201</height>
+                              </size>
+                            </property>
+                            <property name="title">
+                              <string>Filter</string>
+                            </property>
+                            <layout class="QVBoxLayout" name="verticalLayout_4">
+                              <item>
+                                <layout class="QHBoxLayout" name="horizontalLayout_9">
+                                  <item>
+                                    <widget class="QLabel" name="label_filter_category">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>61</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="text">
+                                        <string>Category:</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QComboBox" name="comboBox_filter_category">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>191</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </item>
+                              <item>
+                                <layout class="QHBoxLayout" name="horizontalLayout_10">
+                                  <item>
+                                    <widget class="QLabel" name="label_filter_type">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>61</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="text">
+                                        <string>Type:</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QComboBox" name="comboBox_filter_type">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>191</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </item>
+                              <item>
+                                <layout class="QHBoxLayout" name="horizontalLayout_11">
+                                  <item>
+                                    <widget class="QLabel" name="label_filter_date">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>61</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="text">
+                                        <string>Date:</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QDateEdit" name="dateEdit_filter_from">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>191</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="alignment">
+                                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                      </property>
+                                      <property name="displayFormat">
+                                        <string>yyyy-MM-dd</string>
+                                      </property>
+                                      <property name="calendarPopup">
+                                        <bool>true</bool>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </item>
+                              <item>
+                                <layout class="QHBoxLayout" name="horizontalLayout_12">
+                                  <item>
+                                    <widget class="QLabel" name="label_filter_to">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>61</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="text">
+                                        <string>to</string>
+                                      </property>
+                                      <property name="alignment">
+                                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QDateEdit" name="dateEdit_filter_to">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>191</width>
+                                          <height>0</height>
+                                        </size>
+                                      </property>
+                                      <property name="alignment">
+                                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                      </property>
+                                      <property name="displayFormat">
+                                        <string>yyyy-MM-dd</string>
+                                      </property>
+                                      <property name="calendarPopup">
+                                        <bool>true</bool>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </item>
+                              <item>
+                                <widget class="QCheckBox" name="checkBox_use_date_filter">
+                                  <property name="text">
+                                    <string>Use date filter</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item>
+                                <layout class="QHBoxLayout" name="horizontalLayout_7">
+                                  <item>
+                                    <widget class="QPushButton" name="pushButton_clear_filter">
+                                      <property name="text">
+                                        <string>Clear Filter</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QPushButton" name="pushButton_apply_filter">
+                                      <property name="text">
+                                        <string>Apply Filter</string>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </item>
+                            </layout>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QGroupBox" name="groupBox_daily_balance">
+                            <property name="minimumSize">
+                              <size>
+                                <width>0</width>
+                                <height>100</height>
+                              </size>
+                            </property>
+                            <property name="title">
+                              <string>Today's Balance</string>
+                            </property>
+                            <layout class="QVBoxLayout" name="verticalLayout_17">
+                              <item>
+                                <widget class="QLabel" name="label_daily_balance">
+                                  <property name="font">
+                                    <font>
+                                      <pointsize>24</pointsize>
+                                      <weight>75</weight>
+                                      <bold>true</bold>
+                                    </font>
+                                  </property>
+                                  <property name="text">
+                                    <string>$0.00</string>
+                                  </property>
+                                  <property name="alignment">
+                                    <set>Qt::AlignCenter</set>
+                                  </property>
+                                </widget>
+                              </item>
+                            </layout>
+                          </widget>
+                        </item>
+                        <item>
+                          <spacer name="verticalSpacer">
+                            <property name="orientation">
+                              <enum>Qt::Vertical</enum>
+                            </property>
+                            <property name="sizeHint" stdset="0">
+                              <size>
+                                <width>20</width>
+                                <height>143</height>
+                              </size>
+                            </property>
+                          </spacer>
+                        </item>
+                      </layout>
+                    </widget>
+                  </widget>
+                </item>
+              </layout>
+            </widget>
+            <widget class="QWidget" name="tab_categories">
+              <attribute name="title">
+                <string>Categories</string>
+              </attribute>
+              <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <item>
+                  <widget class="QTableView" name="tableView_categories" />
+                </item>
+                <item>
+                  <widget class="QFrame" name="frame_2">
+                    <property name="minimumSize">
+                      <size>
+                        <width>300</width>
+                        <height>0</height>
+                      </size>
+                    </property>
+                    <property name="maximumSize">
+                      <size>
+                        <width>300</width>
+                        <height>16777215</height>
+                      </size>
+                    </property>
+                    <property name="frameShape">
+                      <enum>QFrame::StyledPanel</enum>
+                    </property>
+                    <property name="frameShadow">
+                      <enum>QFrame::Raised</enum>
+                    </property>
+                    <layout class="QVBoxLayout" name="verticalLayout_15">
+                      <item>
+                        <widget class="QGroupBox" name="groupBox_2">
+                          <property name="title">
+                            <string>Add New Category</string>
+                          </property>
+                          <layout class="QVBoxLayout" name="verticalLayout_10">
+                            <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_17">
+                                <item>
+                                  <widget class="QLabel" name="label_5">
+                                    <property name="minimumSize">
+                                      <size>
+                                        <width>61</width>
+                                        <height>0</height>
+                                      </size>
+                                    </property>
+                                    <property name="text">
+                                      <string>Name:</string>
+                                    </property>
+                                  </widget>
+                                </item>
+                                <item>
+                                  <widget class="QLineEdit" name="lineEdit_category_name">
+                                    <property name="minimumSize">
+                                      <size>
+                                        <width>170</width>
+                                        <height>0</height>
+                                      </size>
+                                    </property>
+                                  </widget>
+                                </item>
+                              </layout>
+                            </item>
+                            <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_18">
+                                <item>
+                                  <widget class="QLabel" name="label_6">
+                                    <property name="minimumSize">
+                                      <size>
+                                        <width>61</width>
+                                        <height>0</height>
+                                      </size>
+                                    </property>
+                                    <property name="text">
+                                      <string>Type:</string>
+                                    </property>
+                                  </widget>
+                                </item>
+                                <item>
+                                  <widget class="QComboBox" name="comboBox_category_type">
+                                    <property name="minimumSize">
+                                      <size>
+                                        <width>170</width>
+                                        <height>0</height>
+                                      </size>
+                                    </property>
+                                    <item>
+                                      <property name="text">
+                                        <string>Expense</string>
+                                      </property>
+                                    </item>
+                                    <item>
+                                      <property name="text">
+                                        <string>Income</string>
+                                      </property>
+                                    </item>
+                                  </widget>
+                                </item>
+                              </layout>
+                            </item>
+                            <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_color">
+                                <item>
+                                  <widget class="QLabel" name="label_color">
+                                    <property name="minimumSize">
+                                      <size>
+                                        <width>61</width>
+                                        <height>0</height>
+                                      </size>
+                                    </property>
+                                    <property name="text">
+                                      <string>Color:</string>
+                                    </property>
+                                  </widget>
+                                </item>
+                                <item>
+                                  <widget class="QPushButton" name="pushButton_color_picker">
+                                    <property name="minimumSize">
+                                      <size>
+                                        <width>170</width>
+                                        <height>30</height>
+                                      </size>
+                                    </property>
+                                    <property name="text">
+                                      <string>Choose Color</string>
+                                    </property>
+                                    <property name="styleSheet">
+                                      <string notr="true">background-color: #4CAF50;</string>
+                                    </property>
+                                  </widget>
+                                </item>
+                              </layout>
+                            </item>
+                            <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_19">
+                                <item>
+                                  <spacer name="horizontalSpacer_4">
+                                    <property name="orientation">
+                                      <enum>Qt::Horizontal</enum>
+                                    </property>
+                                    <property name="sizeHint" stdset="0">
+                                      <size>
+                                        <width>40</width>
+                                        <height>20</height>
+                                      </size>
+                                    </property>
+                                  </spacer>
+                                </item>
+                                <item>
+                                  <widget class="QPushButton" name="pushButton_category_add">
+                                    <property name="text">
+                                      <string>Add Category</string>
+                                    </property>
+                                  </widget>
+                                </item>
+                              </layout>
+                            </item>
+                          </layout>
+                        </widget>
+                      </item>
+                      <item>
+                        <widget class="QGroupBox" name="groupBox_7">
+                          <property name="title">
+                            <string>Commands</string>
+                          </property>
+                          <layout class="QVBoxLayout" name="verticalLayout_11">
+                            <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_20">
+                                <item>
+                                  <widget class="QPushButton" name="pushButton_categories_delete">
+                                    <property name="text">
+                                      <string>Delete</string>
+                                    </property>
+                                  </widget>
+                                </item>
+                                <item>
+                                  <widget class="QPushButton" name="pushButton_categories_refresh">
+                                    <property name="text">
+                                      <string>Refresh</string>
+                                    </property>
+                                  </widget>
+                                </item>
+                              </layout>
+                            </item>
+                          </layout>
+                        </widget>
+                      </item>
+                      <item>
+                        <spacer name="verticalSpacer_2">
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                          <property name="sizeHint" stdset="0">
+                            <size>
+                              <width>20</width>
+                              <height>581</height>
+                            </size>
+                          </property>
+                        </spacer>
+                      </item>
+                    </layout>
+                  </widget>
+                </item>
+              </layout>
+            </widget>
+            <widget class="QWidget" name="tab_budget">
+              <attribute name="title">
+                <string>Budget</string>
+              </attribute>
+              <layout class="QHBoxLayout" name="horizontalLayout_budget">
+                <item>
+                  <widget class="QTableView" name="tableView_budget" />
+                </item>
+                <item>
+                  <widget class="QFrame" name="frame_budget">
+                    <property name="minimumSize">
+                      <size>
+                        <width>300</width>
+                        <height>0</height>
+                      </size>
+                    </property>
+                    <property name="maximumSize">
+                      <size>
+                        <width>300</width>
+                        <height>16777215</height>
+                      </size>
+                    </property>
+                    <property name="frameShape">
+                      <enum>QFrame::StyledPanel</enum>
+                    </property>
+                    <property name="frameShadow">
+                      <enum>QFrame::Raised</enum>
+                    </property>
+                    <layout class="QVBoxLayout" name="verticalLayout_budget">
+                      <item>
+                        <widget class="QGroupBox" name="groupBox_budget_add">
+                          <property name="title">
+                            <string>Set Budget</string>
+                          </property>
+                          <layout class="QVBoxLayout" name="verticalLayout_budget_add">
+                            <item>
+                              <widget class="QComboBox" name="comboBox_budget_category" />
+                            </item>
+                            <item>
+                              <widget class="QDoubleSpinBox" name="doubleSpinBox_budget_amount">
+                                <property name="maximum">
+                                  <double>999999.990000000000000</double>
+                                </property>
+                                <property name="value">
+                                  <double>1000.000000000000000</double>
+                                </property>
+                              </widget>
+                            </item>
+                            <item>
+                              <widget class="QComboBox" name="comboBox_budget_period">
+                                <item>
+                                  <property name="text">
+                                    <string>Monthly</string>
+                                  </property>
+                                </item>
+                                <item>
+                                  <property name="text">
+                                    <string>Weekly</string>
+                                  </property>
+                                </item>
+                                <item>
+                                  <property name="text">
+                                    <string>Daily</string>
+                                  </property>
+                                </item>
+                              </widget>
+                            </item>
+                            <item>
+                              <widget class="QPushButton" name="pushButton_budget_add">
+                                <property name="text">
+                                  <string>Set Budget</string>
+                                </property>
+                              </widget>
+                            </item>
+                          </layout>
+                        </widget>
+                      </item>
+                      <item>
+                        <widget class="QGroupBox" name="groupBox_budget_commands">
+                          <property name="title">
+                            <string>Commands</string>
+                          </property>
+                          <layout class="QVBoxLayout" name="verticalLayout_budget_commands">
+                            <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_budget_commands">
+                                <item>
+                                  <widget class="QPushButton" name="pushButton_budget_delete">
+                                    <property name="text">
+                                      <string>Delete</string>
+                                    </property>
+                                  </widget>
+                                </item>
+                                <item>
+                                  <widget class="QPushButton" name="pushButton_budget_refresh">
+                                    <property name="text">
+                                      <string>Refresh</string>
+                                    </property>
+                                  </widget>
+                                </item>
+                              </layout>
+                            </item>
+                          </layout>
+                        </widget>
+                      </item>
+                      <item>
+                        <spacer name="verticalSpacer_budget">
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                          <property name="sizeHint" stdset="0">
+                            <size>
+                              <width>20</width>
+                              <height>40</height>
+                            </size>
+                          </property>
+                        </spacer>
+                      </item>
+                    </layout>
+                  </widget>
+                </item>
+              </layout>
+            </widget>
+            <widget class="QWidget" name="tab_charts">
+              <attribute name="title">
+                <string>Charts</string>
+              </attribute>
+              <layout class="QVBoxLayout" name="verticalLayout_18">
+                <item>
+                  <widget class="QFrame" name="frame_charts_controls">
+                    <property name="maximumSize">
+                      <size>
+                        <width>16777215</width>
+                        <height>120</height>
+                      </size>
+                    </property>
+                    <property name="frameShape">
+                      <enum>QFrame::StyledPanel</enum>
+                    </property>
+                    <property name="frameShadow">
+                      <enum>QFrame::Raised</enum>
+                    </property>
+                    <layout class="QVBoxLayout" name="verticalLayout_charts_controls">
+                      <item>
+                        <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_1">
+                          <item>
+                            <widget class="QLabel" name="label_chart_category">
+                              <property name="text">
+                                <string>Category:</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QComboBox" name="comboBox_chart_category">
+                              <property name="minimumSize">
+                                <size>
+                                  <width>201</width>
+                                  <height>0</height>
+                                </size>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QLabel" name="label_chart_type">
+                              <property name="text">
+                                <string>Type:</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QComboBox" name="comboBox_chart_type">
+                              <property name="minimumSize">
+                                <size>
+                                  <width>151</width>
+                                  <height>0</height>
+                                </size>
+                              </property>
+                              <item>
+                                <property name="text">
+                                  <string>All</string>
+                                </property>
+                              </item>
+                              <item>
+                                <property name="text">
+                                  <string>Income</string>
+                                </property>
+                              </item>
+                              <item>
+                                <property name="text">
+                                  <string>Expense</string>
+                                </property>
+                              </item>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QLabel" name="label_chart_period">
+                              <property name="text">
+                                <string>Period:</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QComboBox" name="comboBox_chart_period">
+                              <item>
+                                <property name="text">
+                                  <string>Days</string>
+                                </property>
+                              </item>
+                              <item>
+                                <property name="text">
+                                  <string>Months</string>
+                                </property>
+                              </item>
+                              <item>
+                                <property name="text">
+                                  <string>Years</string>
+                                </property>
+                              </item>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QPushButton" name="pushButton_update_chart">
+                              <property name="text">
+                                <string>Update Chart</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <spacer name="horizontalSpacer_charts">
+                              <property name="orientation">
+                                <enum>Qt::Horizontal</enum>
+                              </property>
+                              <property name="sizeHint" stdset="0">
+                                <size>
+                                  <width>40</width>
+                                  <height>20</height>
+                                </size>
+                              </property>
+                            </spacer>
+                          </item>
+                          <item>
+                            <widget class="QPushButton" name="pushButton_pie_chart">
+                              <property name="text">
+                                <string>Pie Chart</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QPushButton" name="pushButton_balance_chart">
+                              <property name="text">
+                                <string>Balance Chart</string>
+                              </property>
+                            </widget>
+                          </item>
+                        </layout>
+                      </item>
+                      <item>
+                        <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_2">
+                          <item>
+                            <widget class="QLabel" name="label_chart_from">
+                              <property name="text">
+                                <string>From:</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QDateEdit" name="dateEdit_chart_from">
+                              <property name="displayFormat">
+                                <string>yyyy-MM-dd</string>
+                              </property>
+                              <property name="calendarPopup">
+                                <bool>true</bool>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QLabel" name="label_chart_to">
+                              <property name="text">
+                                <string>To:</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QDateEdit" name="dateEdit_chart_to">
+                              <property name="displayFormat">
+                                <string>yyyy-MM-dd</string>
+                              </property>
+                              <property name="calendarPopup">
+                                <bool>true</bool>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QPushButton" name="pushButton_chart_last_month">
+                              <property name="text">
+                                <string>Last Month</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QPushButton" name="pushButton_chart_last_year">
+                              <property name="text">
+                                <string>Last Year</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QPushButton" name="pushButton_chart_all_time">
+                              <property name="text">
+                                <string>All Time</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <spacer name="horizontalSpacer_charts_2">
+                              <property name="orientation">
+                                <enum>Qt::Horizontal</enum>
+                              </property>
+                              <property name="sizeHint" stdset="0">
+                                <size>
+                                  <width>40</width>
+                                  <height>20</height>
+                                </size>
+                              </property>
+                            </spacer>
+                          </item>
+                        </layout>
+                      </item>
+                    </layout>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QScrollArea" name="scrollArea_charts">
+                    <property name="widgetResizable">
+                      <bool>true</bool>
+                    </property>
+                    <widget class="QWidget" name="scrollAreaWidgetContents_charts">
+                      <property name="geometry">
+                        <rect>
+                          <x>0</x>
+                          <y>0</y>
+                          <width>1356</width>
+                          <height>775</height>
+                        </rect>
+                      </property>
+                      <layout class="QVBoxLayout" name="verticalLayout_charts_content" />
+                    </widget>
+                  </widget>
+                </item>
+              </layout>
+            </widget>
+            <widget class="QWidget" name="tab_reports">
+              <attribute name="title">
+                <string>Reports</string>
+              </attribute>
+              <layout class="QHBoxLayout" name="horizontalLayout_6">
+                <item>
+                  <widget class="QTableView" name="tableView_reports" />
+                </item>
+                <item>
+                  <widget class="QFrame" name="frame_5">
+                    <property name="minimumSize">
+                      <size>
+                        <width>300</width>
+                        <height>0</height>
+                      </size>
+                    </property>
+                    <property name="maximumSize">
+                      <size>
+                        <width>300</width>
+                        <height>16777215</height>
+                      </size>
+                    </property>
+                    <property name="frameShape">
+                      <enum>QFrame::StyledPanel</enum>
+                    </property>
+                    <property name="frameShadow">
+                      <enum>QFrame::Raised</enum>
+                    </property>
+                    <layout class="QVBoxLayout" name="verticalLayout_16">
+                      <item>
+                        <widget class="QGroupBox" name="groupBox_10">
+                          <property name="minimumSize">
+                            <size>
+                              <width>0</width>
+                              <height>0</height>
+                            </size>
+                          </property>
+                          <property name="title">
+                            <string>Generate Report</string>
+                          </property>
+                          <layout class="QVBoxLayout" name="verticalLayout_19">
+                            <item>
+                              <widget class="QComboBox" name="comboBox_report_type">
+                                <item>
+                                  <property name="text">
+                                    <string>Monthly Summary</string>
+                                  </property>
+                                </item>
+                                <item>
+                                  <property name="text">
+                                    <string>Category Analysis</string>
+                                  </property>
+                                </item>
+                                <item>
+                                  <property name="text">
+                                    <string>Budget vs Actual</string>
+                                  </property>
+                                </item>
+                                <item>
+                                  <property name="text">
+                                    <string>Income vs Expenses</string>
+                                  </property>
+                                </item>
+                              </widget>
+                            </item>
+                            <item>
+                              <widget class="QPushButton" name="pushButton_generate_report">
+                                <property name="text">
+                                  <string>Generate Report</string>
+                                </property>
+                              </widget>
+                            </item>
+                          </layout>
+                        </widget>
+                      </item>
+                      <item>
+                        <widget class="QGroupBox" name="groupBox_summary">
+                          <property name="title">
+                            <string>Quick Summary</string>
+                          </property>
+                          <layout class="QVBoxLayout" name="verticalLayout_summary">
+                            <item>
+                              <widget class="QLabel" name="label_total_income">
+                                <property name="text">
+                                  <string>Total Income: $0.00</string>
+                                </property>
+                                <property name="styleSheet">
+                                  <string notr="true">color: green; font-weight: bold;</string>
+                                </property>
+                              </widget>
+                            </item>
+                            <item>
+                              <widget class="QLabel" name="label_total_expenses">
+                                <property name="text">
+                                  <string>Total Expenses: $0.00</string>
+                                </property>
+                                <property name="styleSheet">
+                                  <string notr="true">color: red; font-weight: bold;</string>
+                                </property>
+                              </widget>
+                            </item>
+                            <item>
+                              <widget class="QLabel" name="label_net_balance">
+                                <property name="text">
+                                  <string>Net Balance: $0.00</string>
+                                </property>
+                                <property name="styleSheet">
+                                  <string notr="true">font-weight: bold; font-size: 14px;</string>
+                                </property>
+                              </widget>
+                            </item>
+                          </layout>
+                        </widget>
+                      </item>
+                      <item>
+                        <spacer name="verticalSpacer_4">
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                          <property name="sizeHint" stdset="0">
+                            <size>
+                              <width>20</width>
+                              <height>40</height>
+                            </size>
+                          </property>
+                        </spacer>
+                      </item>
+                    </layout>
+                  </widget>
+                </item>
+              </layout>
+            </widget>
+          </widget>
+        </item>
+      </layout>
+    </widget>
+    <widget class="QMenuBar" name="menuBar">
+      <property name="geometry">
+        <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>1400</width>
+          <height>21</height>
+        </rect>
+      </property>
+    </widget>
+    <widget class="QToolBar" name="mainToolBar">
+      <attribute name="toolBarArea">
+        <enum>TopToolBarArea</enum>
+      </attribute>
+      <attribute name="toolBarBreak">
+        <bool>false</bool>
+      </attribute>
+    </widget>
+    <widget class="QStatusBar" name="statusBar" />
+  </widget>
+  <resources />
+  <connections />
+</ui>
