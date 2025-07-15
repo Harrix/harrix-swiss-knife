@@ -1267,6 +1267,318 @@ class DatabaseManager:
         params = {"v": value, "d": date, "id": record_id}
         return self.execute_simple_query(query, params)
 
+    def get_all_food_items(self) -> list[list[Any]]:
+        """Get all food items.
+
+        Returns:
+
+        - `list[list[Any]]`: List of food items [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories].
+
+        """
+        return self.get_rows("""
+            SELECT _id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories
+            FROM food_items
+            ORDER BY name
+        """)
+
+    def get_all_food_log_records(self) -> list[list[Any]]:
+        """Get all food log records.
+
+        Returns:
+
+        - `list[list[Any]]`: List of food log records [_id, date, weight, portion_calories, calculated_calories, name, name_en].
+
+        """
+        return self.get_rows("""
+            SELECT _id, date, weight, portion_calories, calculated_calories, name, name_en
+            FROM food_log
+            ORDER BY date DESC, _id DESC
+        """)
+
+    def add_food_item(
+        self,
+        name: str,
+        name_en: str | None = None,
+        is_drink: bool = False,
+        calories_per_100g: float | None = None,
+        default_portion_weight: float | None = None,
+        default_portion_calories: float | None = None
+    ) -> bool:
+        """Add a new food item.
+
+        Args:
+
+        - `name` (`str`): Food item name.
+        - `name_en` (`str | None`): English name. Defaults to `None`.
+        - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
+        - `calories_per_100g` (`float | None`): Calories per 100g. Defaults to `None`.
+        - `default_portion_weight` (`float | None`): Default portion weight. Defaults to `None`.
+        - `default_portion_calories` (`float | None`): Default portion calories. Defaults to `None`.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = """
+            INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories)
+            VALUES (:name, :name_en, :is_drink, :calories_per_100g, :default_portion_weight, :default_portion_calories)
+        """
+        params = {
+            "name": name,
+            "name_en": name_en,
+            "is_drink": 1 if is_drink else 0,
+            "calories_per_100g": calories_per_100g,
+            "default_portion_weight": default_portion_weight,
+            "default_portion_calories": default_portion_calories,
+        }
+        return self.execute_simple_query(query, params)
+
+    def add_food_log_record(
+        self,
+        date: str,
+        calculated_calories: float,
+        name: str | None = None,
+        name_en: str | None = None,
+        weight: float | None = None,
+        portion_calories: float | None = None
+    ) -> bool:
+        """Add a new food log record.
+
+        Args:
+
+        - `date` (`str`): Date in YYYY-MM-DD format.
+        - `calculated_calories` (`float`): Calculated calories.
+        - `name` (`str | None`): Food name. Defaults to `None`.
+        - `name_en` (`str | None`): English food name. Defaults to `None`.
+        - `weight` (`float | None`): Weight in grams. Defaults to `None`.
+        - `portion_calories` (`float | None`): Portion calories. Defaults to `None`.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = """
+            INSERT INTO food_log (date, weight, portion_calories, calculated_calories, name, name_en)
+            VALUES (:date, :weight, :portion_calories, :calculated_calories, :name, :name_en)
+        """
+        params = {
+            "date": date,
+            "weight": weight,
+            "portion_calories": portion_calories,
+            "calculated_calories": calculated_calories,
+            "name": name,
+            "name_en": name_en,
+        }
+        return self.execute_simple_query(query, params)
+
+    def delete_food_item(self, food_item_id: int) -> bool:
+        """Delete a food item.
+
+        Args:
+
+        - `food_item_id` (`int`): Food item ID.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = "DELETE FROM food_items WHERE _id = :id"
+        params = {"id": food_item_id}
+        return self.execute_simple_query(query, params)
+
+    def delete_food_log_record(self, record_id: int) -> bool:
+        """Delete a food log record.
+
+        Args:
+
+        - `record_id` (`int`): Record ID.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = "DELETE FROM food_log WHERE _id = :id"
+        params = {"id": record_id}
+        return self.execute_simple_query(query, params)
+
+    def update_food_item(
+        self,
+        food_item_id: int,
+        name: str,
+        name_en: str | None = None,
+        is_drink: bool = False,
+        calories_per_100g: float | None = None,
+        default_portion_weight: float | None = None,
+        default_portion_calories: float | None = None
+    ) -> bool:
+        """Update a food item.
+
+        Args:
+
+        - `food_item_id` (`int`): Food item ID.
+        - `name` (`str`): Food item name.
+        - `name_en` (`str | None`): English name. Defaults to `None`.
+        - `is_drink` (`bool`): Whether it's a drink. Defaults to `False`.
+        - `calories_per_100g` (`float | None`): Calories per 100g. Defaults to `None`.
+        - `default_portion_weight` (`float | None`): Default portion weight. Defaults to `None`.
+        - `default_portion_calories` (`float | None`): Default portion calories. Defaults to `None`.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = """
+            UPDATE food_items
+            SET name = :name, name_en = :name_en, is_drink = :is_drink,
+                calories_per_100g = :calories_per_100g, default_portion_weight = :default_portion_weight,
+                default_portion_calories = :default_portion_calories
+            WHERE _id = :id
+        """
+        params = {
+            "id": food_item_id,
+            "name": name,
+            "name_en": name_en,
+            "is_drink": 1 if is_drink else 0,
+            "calories_per_100g": calories_per_100g,
+            "default_portion_weight": default_portion_weight,
+            "default_portion_calories": default_portion_calories,
+        }
+        return self.execute_simple_query(query, params)
+
+    def update_food_log_record(
+        self,
+        record_id: int,
+        date: str,
+        calculated_calories: float,
+        name: str | None = None,
+        name_en: str | None = None,
+        weight: float | None = None,
+        portion_calories: float | None = None
+    ) -> bool:
+        """Update a food log record.
+
+        Args:
+
+        - `record_id` (`int`): Record ID.
+        - `date` (`str`): Date in YYYY-MM-DD format.
+        - `calculated_calories` (`float`): Calculated calories.
+        - `name` (`str | None`): Food name. Defaults to `None`.
+        - `name_en` (`str | None`): English food name. Defaults to `None`.
+        - `weight` (`float | None`): Weight in grams. Defaults to `None`.
+        - `portion_calories` (`float | None`): Portion calories. Defaults to `None`.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = """
+            UPDATE food_log
+            SET date = :date, weight = :weight, portion_calories = :portion_calories,
+                calculated_calories = :calculated_calories, name = :name, name_en = :name_en
+            WHERE _id = :id
+        """
+        params = {
+            "id": record_id,
+            "date": date,
+            "weight": weight,
+            "portion_calories": portion_calories,
+            "calculated_calories": calculated_calories,
+            "name": name,
+            "name_en": name_en,
+        }
+        return self.execute_simple_query(query, params)
+
+    def get_food_items_by_name(self, limit: int = 500) -> list[str]:
+        """Get food items sorted by name.
+
+        Args:
+
+        - `limit` (`int`): Maximum number of items to return. Defaults to `500`.
+
+        Returns:
+
+        - `list[str]`: List of food item names.
+
+        """
+        query = f"SELECT name FROM food_items ORDER BY name LIMIT {limit}"
+        rows = self.get_rows(query)
+        return [row[0] for row in rows if row[0]]
+
+    def get_food_item_by_name(self, name: str) -> list[Any] | None:
+        """Get food item by name.
+
+        Args:
+
+        - `name` (`str`): Food item name.
+
+        Returns:
+
+        - `list[Any] | None`: Food item data or None if not found.
+
+        """
+        query = "SELECT _id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories FROM food_items WHERE name = :name"
+        params = {"name": name}
+        rows = self.get_rows(query, params)
+        return rows[0] if rows else None
+
+    def get_food_log_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
+        """Get food log data for charting.
+
+        Args:
+
+        - `date_from` (`str`): From date (YYYY-MM-DD).
+        - `date_to` (`str`): To date (YYYY-MM-DD).
+
+        Returns:
+
+        - `list[tuple[str, float]]`: List of (date, calculated_calories) tuples.
+
+        """
+        query = """
+            SELECT date, SUM(calculated_calories) as total_calories
+            FROM food_log
+            WHERE date BETWEEN :date_from AND :date_to
+            GROUP BY date
+            ORDER BY date ASC
+        """
+        params = {"date_from": date_from, "date_to": date_to}
+        rows = self.get_rows(query, params)
+        return [(row[0], float(row[1])) for row in rows]
+
+    def get_food_calories_today(self) -> float:
+        """Get total calories consumed today.
+
+        Returns:
+
+        - `float`: Total calories today.
+
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        query = "SELECT SUM(calculated_calories) FROM food_log WHERE date = :today"
+        params = {"today": today}
+        rows = self.get_rows(query, params)
+        return float(rows[0][0]) if rows and rows[0][0] is not None else 0.0
+
+    def get_food_calories_count_today(self) -> int:
+        """Get count of food entries today.
+
+        Returns:
+
+        - `int`: Count of food entries today.
+
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        query = "SELECT COUNT(*) FROM food_log WHERE date = :today"
+        params = {"today": today}
+        rows = self.get_rows(query, params)
+        return int(rows[0][0]) if rows else 0
+
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.
 

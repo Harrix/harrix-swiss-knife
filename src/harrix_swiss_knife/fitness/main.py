@@ -77,7 +77,7 @@ class MainWindow(
     """
 
     _SAFE_TABLES: frozenset[str] = frozenset(
-        {"process", "exercises", "types", "weight"},
+        {"process", "exercises", "types", "weight", "food_items", "food_log"},
     )
 
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
@@ -116,6 +116,8 @@ class MainWindow(
             "types": None,
             "weight": None,
             "statistics": None,
+            "food_items": None,
+            "food_log": None,
         }
 
         # Chart configuration
@@ -144,6 +146,11 @@ class MainWindow(
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
+            "food_log": (
+                self.tableView_food_log,
+                "food_log",
+                ["Date", "Weight", "Portion Calories", "Calculated Calories", "Name", "English Name"],
+            ),
         }
 
         # Define colors for different exercises (expanded palette)
@@ -535,6 +542,97 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add weight: {e}")
+
+    @requires_database()
+    def on_add_food_log(self) -> None:
+        """Insert a new food log record using database manager."""
+        # Get values from UI
+        food_name = self.lineEdit_food_manual_name.text().strip()
+        weight = self.doubleSpinBox_food_weight.value()
+        portion_calories = self.doubleSpinBox_food_calories.value()
+        calculated_calories = self.doubleSpinBox_food_manual_calories.value()
+        food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
+
+        # Validate required fields
+        if not food_name:
+            QMessageBox.warning(self, "Error", "Enter food name")
+            return
+
+        if calculated_calories <= 0:
+            QMessageBox.warning(self, "Error", "Calculated calories must be greater than 0")
+            return
+
+        # Validate the date
+        if not self._is_valid_date(food_date):
+            QMessageBox.warning(self, "Error", "Invalid date format")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Use database manager method
+            if self.db_manager.add_food_log_record(
+                date=food_date,
+                calculated_calories=calculated_calories,
+                name=food_name,
+                weight=weight if weight > 0 else None,
+                portion_calories=portion_calories if portion_calories > 0 else None
+            ):
+                # Apply date increment logic
+                self._increment_date_widget(self.dateEdit_food)
+
+                # Update UI
+                self.show_tables()
+                self.update_food_calories_today()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add food log record")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add food log record: {e}")
+
+    @requires_database()
+    def on_add_food_item(self) -> None:
+        """Insert a new food item using database manager."""
+        name = self.lineEdit_food_name.text().strip()
+        name_en = self.lineEdit_food_name_en.text().strip()
+        is_drink = self.checkBox_food_is_drink.isChecked()
+        calories_per_100g = self.doubleSpinBox_food_cal100.value()
+        default_portion_weight = self.doubleSpinBox_food_default_weight.value()
+        default_portion_calories = self.doubleSpinBox_food_default_cal.value()
+
+        if not name:
+            QMessageBox.warning(self, "Error", "Enter food name")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Use database manager method
+            if self.db_manager.add_food_item(
+                name=name,
+                name_en=name_en if name_en else None,
+                is_drink=is_drink,
+                calories_per_100g=calories_per_100g if calories_per_100g > 0 else None,
+                default_portion_weight=default_portion_weight if default_portion_weight > 0 else None,
+                default_portion_calories=default_portion_calories if default_portion_calories > 0 else None
+            ):
+                self.update_all()
+                # Clear form
+                self.lineEdit_food_name.clear()
+                self.lineEdit_food_name_en.clear()
+                self.checkBox_food_is_drink.setChecked(False)
+                self.doubleSpinBox_food_cal100.setValue(0)
+                self.doubleSpinBox_food_default_weight.setValue(0)
+                self.doubleSpinBox_food_default_cal.setValue(0)
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add food item")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add food item: {e}")
 
     @requires_database()
     def on_chart_exercise_changed(self, _index: int = -1) -> None:
@@ -1868,6 +1966,8 @@ class MainWindow(
         index_tab_weight = 2
         index_tab_charts = 3
         index_tab_statistics = 4
+        index_tab_food = 5
+        index_tab_food_stats = 6
 
         if index == 0:  # Main tab
             self.update_filter_comboboxes()
@@ -1881,6 +1981,10 @@ class MainWindow(
             self._update_charts_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
+        elif index == index_tab_food:  # Food tab
+            self.update_food_calories_today()
+        elif index == index_tab_food_stats:  # Food Statistics tab
+            self._load_default_food_statistics()
         elif index == index_tab_statistics:  # Statistics tab
             self._load_default_statistics()
             # If statistics is already initialized, update with current exercise
@@ -1974,6 +2078,9 @@ class MainWindow(
         # Set the weight QDateEdit to today's date
         self.dateEdit_weight.setDate(today_qdate)
 
+        # Set the food QDateEdit to today's date
+        self.dateEdit_food.setDate(today_qdate)
+
         # Set the weight spinbox to the last recorded weight
         last_weight = self._get_last_weight()
         self.doubleSpinBox_weight.setValue(last_weight)
@@ -1993,6 +2100,24 @@ class MainWindow(
         self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, years=1)
         self.update_weight_chart()
 
+    def set_food_stats_last_week(self) -> None:
+        """Set food stats date range to last week."""
+        # Set date range manually since _set_date_range doesn't support weeks
+        current_date = QDate.currentDate()
+        self.dateEdit_food_stats_to.setDate(current_date)
+        self.dateEdit_food_stats_from.setDate(current_date.addDays(-7))
+        self.update_food_chart()
+
+    def set_food_stats_last_month(self) -> None:
+        """Set food stats date range to last month."""
+        self._set_date_range(self.dateEdit_food_stats_from, self.dateEdit_food_stats_to, months=1)
+        self.update_food_chart()
+
+    def set_food_stats_last_year(self) -> None:
+        """Set food stats date range to last year."""
+        self._set_date_range(self.dateEdit_food_stats_from, self.dateEdit_food_stats_to, years=1)
+        self.update_food_chart()
+
     def set_yesterday_date(self) -> None:
         """Set yesterday's date in the main date edit field.
 
@@ -2001,6 +2126,15 @@ class MainWindow(
         """
         yesterday = QDate.currentDate().addDays(-1)
         self.dateEdit.setDate(yesterday)
+
+    def set_food_yesterday_date(self) -> None:
+        """Set yesterday's date in the food date edit field.
+
+        Sets the dateEdit_food widget to yesterday's date for convenient entry
+        of food records from the previous day.
+        """
+        yesterday = QDate.currentDate().addDays(-1)
+        self.dateEdit_food.setDate(yesterday)
 
     @requires_database()
     def show_kcal_chart(self) -> None:
@@ -2268,6 +2402,9 @@ class MainWindow(
             # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
 
+            # Refresh food_log table
+            self._refresh_table("food_log", self.db_manager.get_all_food_log_records)
+
             # Configure weight table header - mixed approach: interactive + stretch last
             weight_header = self.tableView_weight.horizontalHeader()
             # Set first column to interactive (resizable)
@@ -2277,6 +2414,21 @@ class MainWindow(
             # Set default width for resizable column
             self.tableView_weight.setColumnWidth(0, 100)  # Weight
             # Date column will stretch automatically
+
+            # Configure food_log table header - mixed approach: interactive + stretch last
+            food_log_header = self.tableView_food_log.horizontalHeader()
+            # Set first columns to interactive (resizable)
+            for i in range(food_log_header.count() - 1):
+                food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            food_log_header.setSectionResizeMode(food_log_header.count() - 1, food_log_header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            self.tableView_food_log.setColumnWidth(0, 120)  # Date
+            self.tableView_food_log.setColumnWidth(1, 80)   # Weight
+            self.tableView_food_log.setColumnWidth(2, 120)  # Portion Calories
+            self.tableView_food_log.setColumnWidth(3, 140)  # Calculated Calories
+            self.tableView_food_log.setColumnWidth(4, 150)  # Name
+            # English Name column will stretch automatically
 
             # Configure exercises table header - mixed approach: interactive + stretch last
             exercises_header = self.tableView_exercises.horizontalHeader()
@@ -2308,6 +2460,9 @@ class MainWindow(
 
             # Update sets count for today
             self.update_sets_count_today()
+
+            # Update food calories for today
+            self.update_food_calories_today()
 
         except Exception as e:
             print(f"Error showing tables: {e}")
@@ -2627,6 +2782,24 @@ class MainWindow(
             print(f"Error getting sets count for today: {e}")
             self.label_count_sets_today.setText("0")
 
+    def update_food_calories_today(self) -> None:
+        """Update the label showing calories consumed today."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        if not self._validate_database_connection():
+            self.label_food_today.setText("0 kcal")
+            return
+
+        try:
+            calories = self.db_manager.get_food_calories_today()
+            count = self.db_manager.get_food_calories_count_today()
+            self.label_food_today.setText(f"{calories:.1f} kcal ({count} items)")
+        except Exception as e:
+            print(f"Error getting food calories for today: {e}")
+            self.label_food_today.setText("0 kcal")
+
     @requires_database(is_show_warning=False)
     def update_statistics_exercise_combobox(self, _index: int = -1) -> None:
         """Update statistics exercise combobox with available exercises.
@@ -2752,6 +2925,66 @@ class MainWindow(
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
 
+    @requires_database()
+    def update_food_chart(self) -> None:
+        """Update the food chart using database manager."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
+        period = self.comboBox_food_stats_period.currentText()
+
+        # Get food data using database manager
+        rows = self.db_manager.get_food_log_chart_data(date_from, date_to)
+
+        if not rows:
+            self._show_no_data_label(
+                self.verticalLayout_food_stats_content, "No food data found for the selected period"
+            )
+            return
+
+        # Group data by period
+        grouped_data = self._group_data_by_period(rows, period, value_type="float")
+
+        if not grouped_data:
+            self._show_no_data_label(
+                self.verticalLayout_food_stats_content, "No data to display"
+            )
+            return
+
+        # Prepare chart data
+        chart_data = list(grouped_data.items())
+
+        # Define custom statistics formatter for food calories
+        def format_food_stats(values: list) -> str:
+            min_val = min(values)
+            max_val = max(values)
+            avg_val = sum(values) / len(values)
+            total_val = sum(values)
+
+            return (
+                f"Min: {min_val:.1f} kcal | Max: {max_val:.1f} kcal | "
+                f"Avg: {avg_val:.1f} kcal | Total: {total_val:.1f} kcal"
+            )
+
+        # Create chart configuration
+        chart_config = {
+            "title": "Food Calories Consumption",
+            "xlabel": "Date",
+            "ylabel": "Calories (kcal)",
+            "color": "orange",
+            "show_stats": True,
+            "period": period,
+            "stats_formatter": format_food_stats,
+            "fill_zero_periods": True,
+            "date_from": date_from,
+            "date_to": date_to,
+        }
+
+        self._create_chart(self.verticalLayout_food_stats_content, chart_data, chart_config)
+
     def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
         """Check if the current value would be a new all-time or yearly record.
 
@@ -2811,7 +3044,7 @@ class MainWindow(
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
         # Connect delete and refresh buttons for all tables (except statistics)
-        tables_with_controls = {"process", "exercises", "types", "weight"}
+        tables_with_controls = {"process", "exercises", "types", "weight", "food_log"}
         for table_name in tables_with_controls:
             # Delete buttons
             delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
@@ -2832,6 +3065,11 @@ class MainWindow(
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
 
+        # Food buttons
+        self.pushButton_food_add.clicked.connect(self.on_add_food_log)
+        self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
+        self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
+
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
         self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
@@ -2846,6 +3084,12 @@ class MainWindow(
         self.pushButton_weight_last_month.clicked.connect(self.set_weight_last_month)
         self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
         self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
+
+        # Food chart signals
+        self.pushButton_food_stats_update.clicked.connect(self.update_food_chart)
+        self.pushButton_food_stats_last_week.clicked.connect(self.set_food_stats_last_week)
+        self.pushButton_food_stats_last_month.clicked.connect(self.set_food_stats_last_month)
+        self.pushButton_food_stats_last_year.clicked.connect(self.set_food_stats_last_year)
 
         # Exercise chart signals
         self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
@@ -3491,6 +3735,21 @@ class MainWindow(
             # Automatically refresh statistics on first visit
             self.on_refresh_statistics()
 
+    def _load_default_food_statistics(self) -> None:
+        """Load default food statistics on first visit to food statistics tab."""
+        if not hasattr(self, "_food_statistics_initialized"):
+            self._food_statistics_initialized = True
+            # Set default date range to last month
+            current_date = QDate.currentDate()
+            self.dateEdit_food_stats_from.setDate(current_date.addMonths(-1))
+            self.dateEdit_food_stats_to.setDate(current_date)
+
+            # Set default period to Days
+            self.comboBox_food_stats_period.setCurrentText("Days")
+
+            # Load default food chart
+            self.update_food_chart()
+
     def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:  # noqa: PLR0911
         """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
 
@@ -3829,6 +4088,21 @@ class MainWindow(
         self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
         self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
         self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
+
+        # Food buttons
+        self.pushButton_food_add.setText(f"🍽️ {self.pushButton_food_add.text()}")
+        self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")
+        self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
+        self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
+        self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
+        self.pushButton_food_items_delete.setText(f"🗑️ {self.pushButton_food_items_delete.text()}")
+        self.pushButton_food_items_refresh.setText(f"🔄 {self.pushButton_food_items_refresh.text()}")
+
+        # Food statistics buttons
+        self.pushButton_food_stats_update.setText(f"🔄 {self.pushButton_food_stats_update.text()}")
+        self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
+        self.pushButton_food_stats_last_month.setText(f"📅 {self.pushButton_food_stats_last_month.text()}")
+        self.pushButton_food_stats_last_year.setText(f"📅 {self.pushButton_food_stats_last_year.text()}")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 3)  # tableView gets more space
