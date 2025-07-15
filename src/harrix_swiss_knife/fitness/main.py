@@ -148,7 +148,7 @@ class MainWindow(
             "food_log": (
                 self.tableView_food_log,
                 "food_log",
-                ["Date", "Weight", "Portion Calories", "Calculated Calories", "Name", "English Name"],
+                ["Name", "Weight", "Calculated Calories", "Portion Calories", "Date", "English Name"],
             ),
         }
 
@@ -369,6 +369,7 @@ class MainWindow(
                 self.tableView_exercise_types,
                 self.tableView_weight,
                 self.tableView_statistics,
+                self.tableView_food_log,
             ]
 
             for table_view in table_views:
@@ -2401,8 +2402,53 @@ class MainWindow(
             # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
 
-            # Refresh food_log table
-            self._refresh_table("food_log", self.db_manager.get_all_food_log_records)
+            def transform_food_log_data(rows: list[list]) -> list[list]:
+                """Refresh food_log table with data transformation and coloring.
+
+                Args:
+
+                - `rows` (`list[list]`): Raw food_log data from database.
+
+                Returns:
+
+                - `list[list]`: Transformed food_log data.
+
+                """
+                # Get all unique dates and assign colors
+                unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
+                date_to_color = {}
+
+                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
+                    color_index = idx % len(self.exercise_colors)
+                    date_to_color[date_str] = self.exercise_colors[color_index]
+
+                                # Transform data and add color information
+                transformed_rows = []
+                for row in rows:
+                    # Original transformation:
+                    # [id, date, weight, portion_calories, calculated_calories, name, name_en] ->
+                    # [name, weight, calculated_calories, portion_calories, date, name_en]
+                    transformed_row = [row[5], row[2], row[4], row[3], row[1], row[6]]
+
+                    # Add color information based on date
+                    date_str = row[1]
+                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
+
+                    # Add original ID and color to the row for later use
+                    transformed_row.extend([row[0], date_color])  # [name, weight, calculated_calories, portion_calories, date, name_en, id, color]
+                    transformed_rows.append(transformed_row)
+
+                return transformed_rows
+
+            # Get food_log data and transform it
+            food_log_rows = self.db_manager.get_all_food_log_records()
+            transformed_food_log_data = transform_food_log_data(food_log_rows)
+
+            # Create food_log table model with coloring
+            self.models["food_log"] = self._create_colored_food_log_table_model(
+                transformed_food_log_data, self.table_config["food_log"][2]
+            )
+            self.tableView_food_log.setModel(self.models["food_log"])
 
             # Configure weight table header - mixed approach: interactive + stretch last
             weight_header = self.tableView_weight.horizontalHeader()
@@ -2422,11 +2468,11 @@ class MainWindow(
             # Set last column to stretch to fill remaining space
             food_log_header.setSectionResizeMode(food_log_header.count() - 1, food_log_header.ResizeMode.Stretch)
             # Set default column widths for resizable columns
-            self.tableView_food_log.setColumnWidth(0, 120)  # Date
+            self.tableView_food_log.setColumnWidth(0, 150)  # Name
             self.tableView_food_log.setColumnWidth(1, 80)   # Weight
-            self.tableView_food_log.setColumnWidth(2, 120)  # Portion Calories
-            self.tableView_food_log.setColumnWidth(3, 140)  # Calculated Calories
-            self.tableView_food_log.setColumnWidth(4, 150)  # Name
+            self.tableView_food_log.setColumnWidth(2, 140)  # Calculated Calories
+            self.tableView_food_log.setColumnWidth(3, 120)  # Portion Calories
+            self.tableView_food_log.setColumnWidth(4, 120)  # Date
             # English Name column will stretch automatically
 
             # Configure exercises table header - mixed approach: interactive + stretch last
@@ -3254,6 +3300,63 @@ class MainWindow(
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
                 id_col_date = 3
+                if col_idx == id_col_date and str(value) == today:  # Date column
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+
+    def _create_colored_food_log_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        _id_column: int = 6,  # ID is now at index 6 in transformed data
+    ) -> QSortFilterProxyModel:
+        """Return a proxy model filled with colored food_log data.
+
+        Args:
+
+        - `data` (`list[list]`): The table data with color information.
+        - `headers` (`list[str]`): Column header names.
+        - `_id_column` (`int`): Index of the ID column. Defaults to `6`.
+
+        Returns:
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
+
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID
+            row_color = row[7]  # Color is at index 7
+            row_id = row[6]  # ID is at index 6
+
+            # Create items for display columns only (first 6 elements)
+            items = []
+            for col_idx, value in enumerate(row[:6]):  # Only first 6 elements for display
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
+
+                # Check if this is today's record and make it bold
+                today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+                id_col_date = 4  # Date column is now at index 4
                 if col_idx == id_col_date and str(value) == today:  # Date column
                     font = item.font()
                     font.setBold(True)
