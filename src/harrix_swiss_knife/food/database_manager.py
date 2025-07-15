@@ -1286,11 +1286,11 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[list[Any]]`: List of food log records [_id, date, weight, portion_calories, calculated_calories, name, name_en].
+        - `list[list[Any]]`: List of food log records [_id, date, weight, portion_calories, calories_100, name, name_en].
 
         """
         return self.get_rows("""
-            SELECT _id, date, weight, portion_calories, calculated_calories, name, name_en
+            SELECT _id, date, weight, portion_calories, calories_100, name, name_en
             FROM food_log
             ORDER BY date DESC, _id DESC
         """)
@@ -1337,7 +1337,7 @@ class DatabaseManager:
     def add_food_log_record(
         self,
         date: str,
-        calculated_calories: float,
+        calories_100: float,
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
@@ -1348,7 +1348,7 @@ class DatabaseManager:
         Args:
 
         - `date` (`str`): Date in YYYY-MM-DD format.
-        - `calculated_calories` (`float`): Calculated calories.
+        - `calories_100` (`float`): Calories per 100g.
         - `name` (`str | None`): Food name. Defaults to `None`.
         - `name_en` (`str | None`): English food name. Defaults to `None`.
         - `weight` (`float | None`): Weight in grams. Defaults to `None`.
@@ -1360,14 +1360,14 @@ class DatabaseManager:
 
         """
         query = """
-            INSERT INTO food_log (date, weight, portion_calories, calculated_calories, name, name_en)
-            VALUES (:date, :weight, :portion_calories, :calculated_calories, :name, :name_en)
+            INSERT INTO food_log (date, weight, portion_calories, calories_100, name, name_en)
+            VALUES (:date, :weight, :portion_calories, :calories_100, :name, :name_en)
         """
         params = {
             "date": date,
             "weight": weight,
             "portion_calories": portion_calories,
-            "calculated_calories": calculated_calories,
+            "calories_100": calories_100,
             "name": name,
             "name_en": name_en,
         }
@@ -1454,7 +1454,7 @@ class DatabaseManager:
         self,
         record_id: int,
         date: str,
-        calculated_calories: float,
+        calories_100: float,
         name: str | None = None,
         name_en: str | None = None,
         weight: float | None = None,
@@ -1466,7 +1466,7 @@ class DatabaseManager:
 
         - `record_id` (`int`): Record ID.
         - `date` (`str`): Date in YYYY-MM-DD format.
-        - `calculated_calories` (`float`): Calculated calories.
+        - `calories_100` (`float`): Calories per 100g.
         - `name` (`str | None`): Food name. Defaults to `None`.
         - `name_en` (`str | None`): English food name. Defaults to `None`.
         - `weight` (`float | None`): Weight in grams. Defaults to `None`.
@@ -1480,7 +1480,7 @@ class DatabaseManager:
         query = """
             UPDATE food_log
             SET date = :date, weight = :weight, portion_calories = :portion_calories,
-                calculated_calories = :calculated_calories, name = :name, name_en = :name_en
+                calories_100 = :calories_100, name = :name, name_en = :name_en
             WHERE _id = :id
         """
         params = {
@@ -1488,7 +1488,7 @@ class DatabaseManager:
             "date": date,
             "weight": weight,
             "portion_calories": portion_calories,
-            "calculated_calories": calculated_calories,
+            "calories_100": calories_100,
             "name": name,
             "name_en": name_en,
         }
@@ -1563,11 +1563,11 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[tuple[str, float]]`: List of (date, calculated_calories) tuples.
+        - `list[tuple[str, float]]`: List of (date, calories_100) tuples.
 
         """
         query = """
-            SELECT date, SUM(calculated_calories) as total_calories
+            SELECT date, SUM(calories_100) as total_calories
             FROM food_log
             WHERE date BETWEEN :date_from AND :date_to
             GROUP BY date
@@ -1601,7 +1601,7 @@ class DatabaseManager:
 
         """
         today = datetime.now().strftime("%Y-%m-%d")
-        query = "SELECT SUM(calculated_calories) FROM food_log WHERE date = :today"
+        query = "SELECT SUM(calories_100) FROM food_log WHERE date = :today"
         params = {"today": today}
         rows = self.get_rows(query, params)
 

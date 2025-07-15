@@ -101,7 +101,7 @@ class MainWindow(
             "food_log": (
                 self.tableView_food_log,
                 "food_log",
-                ["Name", "Weight", "Calculated Calories", "Portion Calories", "Date", "English Name"],
+                ["Name", "Weight", "Calories per 100g", "Portion Calories", "Date", "English Name"],
             ),
         }
 
@@ -245,7 +245,7 @@ class MainWindow(
         food_name = self.lineEdit_food_manual_name.text().strip()
         weight = self.doubleSpinBox_food_weight.value()
         portion_calories = self.doubleSpinBox_food_calories.value()
-        calculated_calories = self.doubleSpinBox_food_manual_calories.value()
+        calories_100 = self.doubleSpinBox_food_manual_calories.value()
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
 
         # Validate required fields
@@ -253,8 +253,8 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Enter food name")
             return
 
-        if calculated_calories <= 0:
-            QMessageBox.warning(self, "Error", "Calculated calories must be greater than 0")
+        if calories_100 <= 0:
+            QMessageBox.warning(self, "Error", "Calories per 100g must be greater than 0")
             return
 
         # Validate the date
@@ -270,7 +270,7 @@ class MainWindow(
             # Use database manager method
             if self.db_manager.add_food_log_record(
                 date=food_date,
-                calculated_calories=calculated_calories,
+                calories_100=calories_100,
                 name=food_name,
                 weight=weight if weight > 0 else None,
                 portion_calories=portion_calories if portion_calories > 0 else None
@@ -447,8 +447,8 @@ class MainWindow(
                 transformed_rows = []
                 for row in rows:
                     # Original transformation:
-                    # [id, date, weight, portion_calories, calculated_calories, name, name_en] ->
-                    # [name, weight, calculated_calories, portion_calories, date, name_en]
+                    # [id, date, weight, portion_calories, calories_100, name, name_en] ->
+                    # [name, weight, calories_100, portion_calories, date, name_en]
                     transformed_row = [row[5], row[2], row[4], row[3], row[1], row[6]]
 
                     # Add color information based on date
@@ -456,7 +456,7 @@ class MainWindow(
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], date_color])  # [name, weight, calculated_calories, portion_calories, date, name_en, id, color]
+                    transformed_row.extend([row[0], date_color])  # [name, weight, calories_100, portion_calories, date, name_en, id, color]
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -481,7 +481,7 @@ class MainWindow(
             # Set default column widths for resizable columns
             self.tableView_food_log.setColumnWidth(0, 150)  # Name
             self.tableView_food_log.setColumnWidth(1, 80)   # Weight
-            self.tableView_food_log.setColumnWidth(2, 140)  # Calculated Calories
+            self.tableView_food_log.setColumnWidth(2, 140)  # Calories per 100g
             self.tableView_food_log.setColumnWidth(3, 120)  # Portion Calories
             self.tableView_food_log.setColumnWidth(4, 120)  # Date
             # English Name column will stretch automatically

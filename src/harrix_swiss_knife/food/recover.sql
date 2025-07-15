@@ -13,7 +13,7 @@ CREATE TABLE "food_log" (
     "date" TEXT NOT NULL,
     "weight" REAL DEFAULT NULL,
     "portion_calories" REAL DEFAULT NULL,
-    "calculated_calories" REAL NOT NULL,
+    "calories_100" REAL NOT NULL,
     "name" TEXT DEFAULT NULL,
     "name_en" TEXT DEFAULT NULL
 );
