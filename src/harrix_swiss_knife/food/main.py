@@ -113,6 +113,7 @@ class MainWindow(
         self._connect_signals()
         self._init_food_items_list()
         self._init_favorite_food_items_list()
+        self.set_today_date()  # Set current date in dateEdit_food
         self.update_food_data()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
