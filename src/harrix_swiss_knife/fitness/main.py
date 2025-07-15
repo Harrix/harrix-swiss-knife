@@ -4110,6 +4110,11 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 0)  # frame with fixed size
 
+        # Configure food splitter proportions (same as main splitter)
+        self.splitter_food.setStretchFactor(0, 3)  # tableView_food_log gets more space
+        self.splitter_food.setStretchFactor(1, 1)  # widget_food_middle gets less space
+        self.splitter_food.setStretchFactor(2, 0)  # frame_food_controls with fixed size
+
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
 
