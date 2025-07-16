@@ -566,7 +566,7 @@ class MainWindow(
             return
 
         if not self._validate_database_connection():
-            self.label_food_today.setText("0 kcal\n0,0 л")
+            self.label_food_today.setText("0 kcal\n0,0 l")
             return
 
         try:
@@ -575,7 +575,7 @@ class MainWindow(
             drinks_weight = self.db_manager.get_drinks_weight_today()
             drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
             drinks_liters_str = f"{drinks_liters:.1f}".replace(".", ",")
-            self.label_food_today.setText(f"{calories:.1f} kcal ({count} items)\n{drinks_liters_str} л")
+            self.label_food_today.setText(f"{calories:.1f} kcal ({count} items)\n{drinks_liters_str} l")
         except Exception as e:
             print(f"Error getting food calories for today: {e}")
             self.label_food_today.setText("0 kcal\n0,0 l")
