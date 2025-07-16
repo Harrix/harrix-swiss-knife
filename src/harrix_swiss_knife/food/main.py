@@ -1106,6 +1106,11 @@ class MainWindow(
         self.pushButton_food_stats_last_year.setText(f"📅 {self.pushButton_food_stats_last_year.text()}")
         self.pushButton_food_stats_update.setText(f"🔄 {self.pushButton_food_stats_update.text()}")
 
+        # Set decimal places for calorie spin boxes
+        self.doubleSpinBox_food_calories.setDecimals(1)
+        self.doubleSpinBox_food_cal100.setDecimals(1)
+        self.doubleSpinBox_food_default_cal.setDecimals(1)
+
         # Export button removed from UI
 
         # Configure food splitter proportions
@@ -1117,7 +1122,7 @@ class MainWindow(
         self.radioButton_use_weight.setChecked(True)
         self.update_calories_calculation()
 
-                # Initialize food stats date range (will be set after database initialization)
+        # Initialize food stats date range (will be set after database initialization)
         today = QDate.currentDate()
         month_ago = today.addMonths(-1)
         self.dateEdit_food_stats_from.setDate(month_ago)
