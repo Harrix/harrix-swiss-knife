@@ -693,6 +693,29 @@ class DatabaseManager:
         rows = self.get_rows(query, params)
         return rows[0] if rows else None
 
+    def get_food_log_item_by_name(self, name: str) -> list[Any] | None:
+        """Get food item data by name from food_log table (most recent record).
+
+        Args:
+
+        - `name` (`str`): Name of the food item to find.
+
+        Returns:
+
+        - `list[Any] | None`: Food item data as [name, name_en, is_drink, calories_per_100g, weight, portion_calories] or None if not found.
+
+        """
+        query = """
+            SELECT name, name_en, is_drink, calories_per_100g, weight, portion_calories
+            FROM food_log
+            WHERE name = :name
+            ORDER BY date DESC, _id DESC
+            LIMIT 1
+        """
+        params = {"name": name}
+        rows = self.get_rows(query, params)
+        return rows[0] if rows else None
+
     def get_popular_food_items(self, limit: int = 500) -> list[str]:
         """Get popular food items from recent food_log records.
 
