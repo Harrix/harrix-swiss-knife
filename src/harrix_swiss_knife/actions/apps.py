@@ -37,6 +37,7 @@ class OnFitness(ActionBase):
         self.main_window.raise_()
         self.main_window.activateWindow()
 
+
 class OnFood(ActionBase):
     """Launch the food tracking application.
 

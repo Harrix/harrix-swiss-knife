@@ -213,7 +213,6 @@ class MainWindow(QMainWindow):
                 # Scroll to the end of the text
                 self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
 
-
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
         screen_geometry = QApplication.primaryScreen().geometry()
@@ -240,5 +239,5 @@ class MainWindow(QMainWindow):
                 screen_center.x() - window_width // 2,
                 title_bar_height,  # Position below title bar
                 window_width,
-                window_height
+                window_height,
             )

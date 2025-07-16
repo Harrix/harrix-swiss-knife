@@ -87,8 +87,6 @@ class MainWindow(
 
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
-
-
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
         self.current_movie: QMovie | None = None
@@ -156,7 +154,7 @@ class MainWindow(
         self._init_sets_count_display()
         self.update_all()
 
-                                        # Load initial AVIF animations after UI is ready
+        # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
 
         # Set window size and position based on screen resolution
@@ -2744,6 +2742,31 @@ class MainWindow(
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
 
+    def _adjust_process_table_columns(self) -> None:
+        """Adjust process table column widths proportionally to window size."""
+        if not hasattr(self, "tableView_process") or not self.tableView_process.model():
+            return
+
+        # Get current table width (approximate available width for table)
+        table_width = self.tableView_process.width()
+        if table_width <= 0:
+            # Fallback to window width if table width is not available
+            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
+
+        # Ensure minimum table width for better appearance
+        table_width = max(table_width, 800)
+
+        # Define proportional distribution of total width
+        # Total: 100% = 40% + 25% + 20% + 15%
+        proportions = [0.40, 0.25, 0.20, 0.15]  # Exercise, Exercise Type, Quantity, Date
+
+        # Calculate widths based on proportions
+        column_widths = [int(table_width * prop) for prop in proportions]
+
+        # Apply widths to all columns
+        for i, width in enumerate(column_widths):
+            self.tableView_process.setColumnWidth(i, width)
+
     def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
         """Check if the current value would be a new all-time or yearly record.
 
@@ -3127,6 +3150,12 @@ class MainWindow(
         if self.exercises_list_model is not None:
             self.exercises_list_model.deleteLater()
         self.exercises_list_model = None
+
+    def _finish_window_initialization(self) -> None:
+        """Finish window initialization by showing the window and adjusting columns."""
+        self.show()
+        # Adjust columns after window is shown and has proper dimensions
+        QTimer.singleShot(50, self._adjust_process_table_columns)
 
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
@@ -3710,6 +3739,22 @@ class MainWindow(
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
+    def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double-click on exercises list to open statistics tab.
+
+        Args:
+
+        - `index` (`QModelIndex`): Index of the double-clicked item.
+
+        """
+        # Find the statistics tab index
+        for i in range(self.tabWidget.count()):
+            tab_widget = self.tabWidget.widget(i)
+            if tab_widget and tab_widget.objectName() == "tab_4":
+                # Switch to statistics tab
+                self.tabWidget.setCurrentIndex(i)
+                break
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -3744,6 +3789,20 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+
+    def _on_window_resize(self, event) -> None:
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `event`: The resize event.
+
+        """
+        # Call parent resize event first
+        super().resizeEvent(event)
+
+        # Adjust process table column widths based on window size
+        self._adjust_process_table_columns()
 
     def _refresh_table(
         self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None
@@ -3862,7 +3921,7 @@ class MainWindow(
                 screen_center.x() - window_width // 2,
                 title_bar_height,  # Position below title bar
                 window_width,
-                window_height
+                window_height,
             )
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
@@ -4104,51 +4163,6 @@ class MainWindow(
         if exercise_name:
             self._load_exercise_avif(exercise_name, "types")
 
-    def _on_window_resize(self, event) -> None:
-        """Handle window resize event and adjust table column widths proportionally.
-
-        Args:
-
-        - `event`: The resize event.
-
-        """
-        # Call parent resize event first
-        super().resizeEvent(event)
-
-        # Adjust process table column widths based on window size
-        self._adjust_process_table_columns()
-
-    def _finish_window_initialization(self) -> None:
-        """Finish window initialization by showing the window and adjusting columns."""
-        self.show()
-        # Adjust columns after window is shown and has proper dimensions
-        QTimer.singleShot(50, self._adjust_process_table_columns)
-
-    def _adjust_process_table_columns(self) -> None:
-        """Adjust process table column widths proportionally to window size."""
-        if not hasattr(self, "tableView_process") or not self.tableView_process.model():
-            return
-
-        # Get current table width (approximate available width for table)
-        table_width = self.tableView_process.width()
-        if table_width <= 0:
-            # Fallback to window width if table width is not available
-            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
-
-        # Ensure minimum table width for better appearance
-        table_width = max(table_width, 800)
-
-        # Define proportional distribution of total width
-        # Total: 100% = 40% + 25% + 20% + 15%
-        proportions = [0.40, 0.25, 0.20, 0.15]  # Exercise, Exercise Type, Quantity, Date
-
-        # Calculate widths based on proportions
-        column_widths = [int(table_width * prop) for prop in proportions]
-
-        # Apply widths to all columns
-        for i, width in enumerate(column_widths):
-            self.tableView_process.setColumnWidth(i, width)
-
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
 
@@ -4166,22 +4180,6 @@ class MainWindow(
             return False
 
         return True
-
-    def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
-        """Handle double-click on exercises list to open statistics tab.
-
-        Args:
-
-        - `index` (`QModelIndex`): Index of the double-clicked item.
-
-        """
-        # Find the statistics tab index
-        for i in range(self.tabWidget.count()):
-            tab_widget = self.tabWidget.widget(i)
-            if tab_widget and tab_widget.objectName() == "tab_4":
-                # Switch to statistics tab
-                self.tabWidget.setCurrentIndex(i)
-                break
 
 
 if __name__ == "__main__":

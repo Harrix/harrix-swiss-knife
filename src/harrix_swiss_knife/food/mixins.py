@@ -105,6 +105,92 @@ class AutoSaveOperations:
             self._update_comboboxes()
             self.update_filter_comboboxes()
 
+    def _save_food_log_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        """Save food log data.
+
+        Args:
+
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
+
+        """
+        # Get data from model columns
+        # Column order: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+        name = model.data(model.index(row, 0)) or ""
+        is_drink_str = model.data(model.index(row, 1)) or ""
+        weight_str = model.data(model.index(row, 2)) or ""
+        calories_per_100g_str = model.data(model.index(row, 3)) or ""
+        portion_calories_str = model.data(model.index(row, 4)) or ""
+        date = model.data(model.index(row, 6)) or ""
+        name_en = model.data(model.index(row, 7)) or ""
+
+        # Validate food name
+        if not name.strip():
+            QMessageBox.warning(None, "Validation Error", "Food name cannot be empty")
+            return
+
+        # Validate date format
+        if not self._is_valid_date(date):
+            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
+            return
+
+        # Parse numeric values
+        weight = None
+        calories_per_100g = None
+        portion_calories = None
+
+        try:
+            if weight_str.strip():
+                weight = float(weight_str)
+                if weight <= 0:
+                    QMessageBox.warning(None, "Validation Error", "Weight must be a positive number")
+                    return
+        except (ValueError, TypeError):
+            if weight_str.strip():  # Only show error if there's actually a value
+                QMessageBox.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
+                return
+
+        try:
+            if calories_per_100g_str.strip():
+                calories_per_100g = float(calories_per_100g_str)
+        except (ValueError, TypeError):
+            if calories_per_100g_str.strip():  # Only show error if there's actually a value
+                QMessageBox.warning(
+                    None, "Validation Error", f"Invalid calories per 100g value: {calories_per_100g_str}"
+                )
+                return
+
+        try:
+            if portion_calories_str.strip():
+                portion_calories = float(portion_calories_str)
+                if portion_calories <= 0:
+                    QMessageBox.warning(None, "Validation Error", "Portion calories must be a positive number")
+                    return
+        except (ValueError, TypeError):
+            if portion_calories_str.strip():  # Only show error if there's actually a value
+                QMessageBox.warning(None, "Validation Error", f"Invalid portion calories value: {portion_calories_str}")
+                return
+
+        # Parse is_drink value
+        is_drink = is_drink_str.strip().lower() in ["yes", "true", "1", "да"]
+
+        # Update database
+        if not self.db_manager.update_food_log_record(
+            int(row_id),
+            date=date,
+            calories_per_100g=calories_per_100g,
+            name=name.strip(),
+            name_en=name_en.strip() if name_en.strip() else None,
+            weight=weight,
+            portion_calories=portion_calories,
+            is_drink=is_drink,
+        ):
+            QMessageBox.warning(None, "Database Error", "Failed to save food log record")
+        else:
+            # Update related UI elements
+            self.update_food_calories_today()
+
     def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save process record data.
 
@@ -219,90 +305,6 @@ class AutoSaveOperations:
         # Update database
         if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
             QMessageBox.warning(None, "Database Error", "Failed to save weight record")
-
-    def _save_food_log_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save food log data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        # Get data from model columns
-        # Column order: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
-        name = model.data(model.index(row, 0)) or ""
-        is_drink_str = model.data(model.index(row, 1)) or ""
-        weight_str = model.data(model.index(row, 2)) or ""
-        calories_per_100g_str = model.data(model.index(row, 3)) or ""
-        portion_calories_str = model.data(model.index(row, 4)) or ""
-        date = model.data(model.index(row, 6)) or ""
-        name_en = model.data(model.index(row, 7)) or ""
-
-        # Validate food name
-        if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Food name cannot be empty")
-            return
-
-        # Validate date format
-        if not self._is_valid_date(date):
-            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
-            return
-
-        # Parse numeric values
-        weight = None
-        calories_per_100g = None
-        portion_calories = None
-
-        try:
-            if weight_str.strip():
-                weight = float(weight_str)
-                if weight <= 0:
-                    QMessageBox.warning(None, "Validation Error", "Weight must be a positive number")
-                    return
-        except (ValueError, TypeError):
-            if weight_str.strip():  # Only show error if there's actually a value
-                QMessageBox.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
-                return
-
-        try:
-            if calories_per_100g_str.strip():
-                calories_per_100g = float(calories_per_100g_str)
-        except (ValueError, TypeError):
-            if calories_per_100g_str.strip():  # Only show error if there's actually a value
-                QMessageBox.warning(None, "Validation Error", f"Invalid calories per 100g value: {calories_per_100g_str}")
-                return
-
-        try:
-            if portion_calories_str.strip():
-                portion_calories = float(portion_calories_str)
-                if portion_calories <= 0:
-                    QMessageBox.warning(None, "Validation Error", "Portion calories must be a positive number")
-                    return
-        except (ValueError, TypeError):
-            if portion_calories_str.strip():  # Only show error if there's actually a value
-                QMessageBox.warning(None, "Validation Error", f"Invalid portion calories value: {portion_calories_str}")
-                return
-
-        # Parse is_drink value
-        is_drink = is_drink_str.strip().lower() in ["yes", "true", "1", "да"]
-
-        # Update database
-        if not self.db_manager.update_food_log_record(
-            int(row_id),
-            date=date,
-            calories_per_100g=calories_per_100g,
-            name=name.strip(),
-            name_en=name_en.strip() if name_en.strip() else None,
-            weight=weight,
-            portion_calories=portion_calories,
-            is_drink=is_drink
-        ):
-            QMessageBox.warning(None, "Database Error", "Failed to save food log record")
-        else:
-            # Update related UI elements
-            self.update_food_calories_today()
 
 
 class ChartOperations:
@@ -450,7 +452,7 @@ class ChartOperations:
             end_date = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, None)
+                value = data_dict.get(current_date)
                 result.append((current_date, value))
                 count_months = 12
                 if current_date.month == count_months:
@@ -463,7 +465,7 @@ class ChartOperations:
             end_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, None)
+                value = data_dict.get(current_date)
                 result.append((current_date, value))
                 current_date = current_date.replace(year=current_date.year + 1)
 
@@ -472,7 +474,7 @@ class ChartOperations:
             end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, None)
+                value = data_dict.get(current_date)
                 result.append((current_date, value))
                 current_date += timedelta(days=1)
 

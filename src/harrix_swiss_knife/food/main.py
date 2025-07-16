@@ -96,7 +96,16 @@ class MainWindow(
             "food_log": (
                 self.tableView_food_log,
                 "food_log",
-                ["Name", "Is Drink", "Weight", "Calories per 100g", "Portion Calories", "Calculated Calories", "Date", "English Name"],
+                [
+                    "Name",
+                    "Is Drink",
+                    "Weight",
+                    "Calories per 100g",
+                    "Portion Calories",
+                    "Calculated Calories",
+                    "Date",
+                    "English Name",
+                ],
             ),
             "kcal_per_day": (
                 self.tableView_kcal_per_day,
@@ -197,6 +206,7 @@ class MainWindow(
 
         """
         import colorsys
+
         colors = []
 
         for i in range(count):
@@ -248,18 +258,54 @@ class MainWindow(
         # Handle Enter key on various widgets to trigger add button
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             focused_widget = QApplication.focusWidget()
-            if focused_widget == self.doubleSpinBox_food_calories:
-                self.pushButton_food_add.click()
-                return
-            elif focused_widget == self.spinBox_food_weight:
-                self.pushButton_food_add.click()
-                return
-            elif focused_widget == self.checkBox_food_is_drink:
+            if focused_widget == self.doubleSpinBox_food_calories or focused_widget == self.spinBox_food_weight or focused_widget == self.checkBox_food_is_drink:
                 self.pushButton_food_add.click()
                 return
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
+
+    @requires_database()
+    def on_add_food_item(self) -> None:
+        """Insert a new food item using database manager."""
+        name = self.lineEdit_food_name.text().strip()
+        name_en = self.lineEdit_food_name_en.text().strip()
+        is_drink = self.checkBox_food_is_drink.isChecked()
+        calories_per_100g = self.doubleSpinBox_food_cal100.value()
+        default_portion_weight = self.spinBox_food_default_weight.value()
+        default_portion_calories = self.doubleSpinBox_food_default_cal.value()
+
+        if not name:
+            QMessageBox.warning(self, "Error", "Enter food name")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Use database manager method
+            if self.db_manager.add_food_item(
+                name=name,
+                name_en=name_en if name_en else None,
+                is_drink=is_drink,
+                calories_per_100g=calories_per_100g if calories_per_100g > 0 else None,
+                default_portion_weight=default_portion_weight if default_portion_weight > 0 else None,
+                default_portion_calories=default_portion_calories if default_portion_calories > 0 else None,
+            ):
+                self.update_food_data()
+                # Clear form
+                self.lineEdit_food_name.clear()
+                self.lineEdit_food_name_en.clear()
+                self.checkBox_food_is_drink.setChecked(False)
+                self.doubleSpinBox_food_cal100.setValue(0)
+                self.spinBox_food_default_weight.setValue(0)
+                self.doubleSpinBox_food_default_cal.setValue(0)
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add food item")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add food item: {e}")
 
     @requires_database()
     def on_add_food_log(self) -> None:
@@ -303,7 +349,7 @@ class MainWindow(
                 name=food_name,
                 weight=weight if weight > 0 else None,
                 portion_calories=portion_calories,
-                is_drink=is_drink
+                is_drink=is_drink,
             ):
                 # Update UI - only food-related data
                 self.update_food_data()
@@ -316,48 +362,6 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add food log record: {e}")
-
-    @requires_database()
-    def on_add_food_item(self) -> None:
-        """Insert a new food item using database manager."""
-        name = self.lineEdit_food_name.text().strip()
-        name_en = self.lineEdit_food_name_en.text().strip()
-        is_drink = self.checkBox_food_is_drink.isChecked()
-        calories_per_100g = self.doubleSpinBox_food_cal100.value()
-        default_portion_weight = self.spinBox_food_default_weight.value()
-        default_portion_calories = self.doubleSpinBox_food_default_cal.value()
-
-        if not name:
-            QMessageBox.warning(self, "Error", "Enter food name")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Use database manager method
-            if self.db_manager.add_food_item(
-                name=name,
-                name_en=name_en if name_en else None,
-                is_drink=is_drink,
-                calories_per_100g=calories_per_100g if calories_per_100g > 0 else None,
-                default_portion_weight=default_portion_weight if default_portion_weight > 0 else None,
-                default_portion_calories=default_portion_calories if default_portion_calories > 0 else None
-            ):
-                self.update_food_data()
-                # Clear form
-                self.lineEdit_food_name.clear()
-                self.lineEdit_food_name_en.clear()
-                self.checkBox_food_is_drink.setChecked(False)
-                self.doubleSpinBox_food_cal100.setValue(0)
-                self.spinBox_food_default_weight.setValue(0)
-                self.doubleSpinBox_food_default_cal.setValue(0)
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add food item")
-
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add food item: {e}")
 
     def on_food_item_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle food item selection change in the list view."""
@@ -380,7 +384,15 @@ class MainWindow(
 
             if food_item_data:
                 # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
-                food_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories = food_item_data
+                (
+                    food_id,
+                    name,
+                    name_en,
+                    is_drink,
+                    calories_per_100g,
+                    default_portion_weight,
+                    default_portion_calories,
+                ) = food_item_data
 
                 # Populate groupBox_food_add fields (food log record form)
                 self.lineEdit_food_manual_name.setText(name)
@@ -402,8 +414,12 @@ class MainWindow(
                 self.lineEdit_food_name_en.setText(name_en if name_en else "")
                 self.checkBox_is_drink.setChecked(is_drink == 1)
                 self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
-                self.spinBox_food_default_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
-                self.doubleSpinBox_food_default_cal.setValue(default_portion_calories if default_portion_calories else 0)
+                self.spinBox_food_default_weight.setValue(
+                    int(default_portion_weight) if default_portion_weight else 100
+                )
+                self.doubleSpinBox_food_default_cal.setValue(
+                    default_portion_calories if default_portion_calories else 0
+                )
 
             else:
                 # If not found in food_items, try to get from food_log (for popular items)
@@ -480,13 +496,19 @@ class MainWindow(
             name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
             is_drink = source_model.item(index.row(), 1).text() == "1" if source_model.item(index.row(), 1) else False
             weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
-            calories_per_100g_str = source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
-            portion_calories_str = source_model.item(index.row(), 4).text() if source_model.item(index.row(), 4) else "0"
+            calories_per_100g_str = (
+                source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
+            )
+            portion_calories_str = (
+                source_model.item(index.row(), 4).text() if source_model.item(index.row(), 4) else "0"
+            )
             name_en = source_model.item(index.row(), 7).text() if source_model.item(index.row(), 7) else ""
 
             # Convert string values to appropriate types
             weight = float(weight_str) if weight_str and weight_str != "" else 0
-            calories_per_100g = float(calories_per_100g_str) if calories_per_100g_str and calories_per_100g_str != "" else 0
+            calories_per_100g = (
+                float(calories_per_100g_str) if calories_per_100g_str and calories_per_100g_str != "" else 0
+            )
             portion_calories = float(portion_calories_str) if portion_calories_str and portion_calories_str != "" else 0
 
             # Populate groupBox_food_add fields (food log record form)
@@ -518,12 +540,43 @@ class MainWindow(
         except Exception as e:
             print(f"Error in food log table cell clicked: {e}")
 
+    def on_food_stats_last_month(self) -> None:
+        """Set date range to last month and update chart."""
+        today = QDate.currentDate()
+        month_ago = today.addMonths(-1)
 
+        self.dateEdit_food_stats_from.setDate(month_ago)
+        self.dateEdit_food_stats_to.setDate(today)
 
-    def set_today_date(self) -> None:
-        """Set today's date in the food date edit field."""
-        today_qdate = QDate.currentDate()
-        self.dateEdit_food.setDate(today_qdate)
+        self._update_food_calories_chart()
+
+    def on_food_stats_last_week(self) -> None:
+        """Set date range to last week and update chart."""
+        today = QDate.currentDate()
+        week_ago = today.addDays(-7)
+
+        self.dateEdit_food_stats_from.setDate(week_ago)
+        self.dateEdit_food_stats_to.setDate(today)
+
+        self._update_food_calories_chart()
+
+    def on_food_stats_last_year(self) -> None:
+        """Set date range to last year and update chart."""
+        today = QDate.currentDate()
+        year_ago = today.addYears(-1)
+
+        self.dateEdit_food_stats_from.setDate(year_ago)
+        self.dateEdit_food_stats_to.setDate(today)
+
+        self._update_food_calories_chart()
+
+    def on_food_stats_period_changed(self) -> None:
+        """Handle period selection change and update chart."""
+        self._update_food_calories_chart()
+
+    def on_food_stats_update(self) -> None:
+        """Update the food calories chart."""
+        self._update_food_calories_chart()
 
     def set_food_yesterday_date(self) -> None:
         """Set yesterday's date in the food date edit field.
@@ -533,6 +586,11 @@ class MainWindow(
         """
         yesterday = QDate.currentDate().addDays(-1)
         self.dateEdit_food.setDate(yesterday)
+
+    def set_today_date(self) -> None:
+        """Set today's date in the food date edit field."""
+        today_qdate = QDate.currentDate()
+        self.dateEdit_food.setDate(today_qdate)
 
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods."""
@@ -545,6 +603,7 @@ class MainWindow(
             return
 
         try:
+
             def transform_food_log_data(rows: list[list]) -> list[list]:
                 """Refresh food_log table with data transformation and coloring.
 
@@ -593,14 +652,25 @@ class MainWindow(
                         # Calculate from weight and calories per 100g
                         calculated_calories = (float(calories_per_100g) * float(weight)) / 100
 
-                    transformed_row = [row[5], "1" if row[7] == 1 else "", row[2], calories_per_100g_display, portion_calories, f"{calculated_calories:.1f}", row[1], row[6]]
+                    transformed_row = [
+                        row[5],
+                        "1" if row[7] == 1 else "",
+                        row[2],
+                        calories_per_100g_display,
+                        portion_calories,
+                        f"{calculated_calories:.1f}",
+                        row[1],
+                        row[6],
+                    ]
 
                     # Add color information based on date
                     date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], date_color])  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_row.extend(
+                        [row[0], date_color]
+                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -618,7 +688,9 @@ class MainWindow(
             self.tableView_food_log.setModel(self.models["food_log"])
 
             # Enable editing for the table
-            self.tableView_food_log.setEditTriggers(QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed)
+            self.tableView_food_log.setEditTriggers(
+                QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
+            )
 
             # Configure food_log table header - interactive mode for all columns
             food_log_header = self.tableView_food_log.horizontalHeader()
@@ -640,21 +712,6 @@ class MainWindow(
         except Exception as e:
             print(f"Error showing tables: {e}")
             QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
-
-    def update_food_data(self) -> None:
-        """Refresh food-related data only.
-
-        Updates food items lists and calories count.
-        """
-        if not self._validate_database_connection():
-            print("Database connection not available for update_food_data")
-            return
-
-        # Update food items list
-        self._update_food_items_list()
-        self._update_favorite_food_items_list()
-        self.update_food_calories_today()
-        self.show_tables()
 
     def update_calories_calculation(self) -> None:
         """Update the calories calculation label based on radio button selection and values."""
@@ -694,6 +751,66 @@ class MainWindow(
         except Exception as e:
             print(f"Error getting food calories for today: {e}")
             self.label_food_today.setText("0 kcal\n0,0 liters")
+
+    def update_food_data(self) -> None:
+        """Refresh food-related data only.
+
+        Updates food items lists and calories count.
+        """
+        if not self._validate_database_connection():
+            print("Database connection not available for update_food_data")
+            return
+
+        # Update food items list
+        self._update_food_items_list()
+        self._update_favorite_food_items_list()
+        self.update_food_calories_today()
+        self.show_tables()
+
+    def _adjust_food_log_table_columns(self) -> None:
+        """Adjust food log table column widths proportionally to window size."""
+        if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
+            return
+
+        # Get current table width (approximate available width for table)
+        table_width = self.tableView_food_log.width()
+        if table_width <= 0:
+            # Fallback to window width if table width is not available
+            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
+
+        # Ensure minimum table width for better appearance
+        table_width = max(table_width, 800)
+
+        # Define proportional distribution of total width
+        # Total: 100% = 20% + 6% + 6% + 12% + 10% + 10% + 12% + 24%
+        proportions = [
+            0.20,
+            0.06,
+            0.06,
+            0.12,
+            0.10,
+            0.10,
+            0.12,
+            0.24,
+        ]  # Name, Is Drink, Weight, Calories per 100g, Portion Calories, Calculated Calories, Date, English Name
+
+        # Calculate widths based on proportions
+        column_widths = [int(table_width * prop) for prop in proportions]
+
+        # Apply widths to all columns
+        for i, width in enumerate(column_widths):
+            self.tableView_food_log.setColumnWidth(i, width)
+
+    def _adjust_kcal_per_day_table_columns(self) -> None:
+        """Set column widths for kcal per day table."""
+        if not hasattr(self, "tableView_kcal_per_day") or not self.tableView_kcal_per_day.model():
+            return
+
+        # Set first column (Date) to fixed width of 80px
+        self.tableView_kcal_per_day.setColumnWidth(0, 80)
+
+        # Set second column (Calories) to stretch to remaining space
+        self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -872,6 +989,66 @@ class MainWindow(
         proxy.setSourceModel(model)
         return proxy
 
+    def _create_colored_kcal_per_day_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+    ) -> QSortFilterProxyModel:
+        """Return a proxy model filled with colored kcal per day data.
+
+        Args:
+
+        - `data` (`list[list]`): The table data.
+        - `headers` (`list[str]`): Column header names.
+
+        Returns:
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
+
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            items = []
+            row_color = None
+
+            # Determine row color based on calories (second column)
+            if len(row) > 1:
+                try:
+                    calories = float(row[1]) if row[1] else 0.0
+                    if calories <= 1800:
+                        # Green for low calories
+                        row_color = QColor(144, 238, 144)
+                    elif calories <= 2100:
+                        # Green-yellow for medium-low calories
+                        row_color = QColor(255, 255, 224)
+                    elif calories <= 2500:
+                        # Yellow for medium-high calories
+                        row_color = QColor(255, 228, 196)
+                    else:
+                        # Red for high calories
+                        row_color = QColor(255, 192, 203)
+                except (ValueError, TypeError):
+                    # If calories can't be parsed, use default background
+                    pass
+
+            # Create items for all columns
+            for col_idx, value in enumerate(row):
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Apply row color to all items in the row
+                if row_color:
+                    item.setBackground(QBrush(row_color))
+
+                items.append(item)
+
+            model.appendRow(items)
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+
     def _create_table_model(
         self,
         data: list[list[str]],
@@ -930,6 +1107,45 @@ class MainWindow(
         if self.favorite_food_items_list_model is not None:
             self.favorite_food_items_list_model.deleteLater()
         self.favorite_food_items_list_model = None
+
+    def _filter_food_items(self, text: str) -> None:
+        """Filter food items lists based on input text.
+
+        Args:
+            text (str): Filter text from lineEdit_food_manual_name
+
+        """
+        if not text:
+            # If text is empty, show all items
+            self._show_all_food_items()
+            return
+
+        # Convert to lowercase for case-insensitive search
+        filter_text = text.lower()
+
+        # Filter favorite food items
+        if self.favorite_food_items_list_model:
+            for i in range(self.favorite_food_items_list_model.rowCount()):
+                item = self.favorite_food_items_list_model.item(i)
+                if item:
+                    item_text = item.text().lower()
+                    # Hide/show row based on filter match
+                    self.listView_favorite_food_items.setRowHidden(i, filter_text not in item_text)
+
+        # Filter main food items
+        if self.food_items_list_model:
+            for i in range(self.food_items_list_model.rowCount()):
+                item = self.food_items_list_model.item(i)
+                if item:
+                    item_text = item.text().lower()
+                    # Hide/show row based on filter match
+                    self.listView_food_items.setRowHidden(i, filter_text not in item_text)
+
+    def _finish_window_initialization(self) -> None:
+        """Finish window initialization by showing the window and adjusting columns."""
+        self.show()
+        # Adjust columns after window is shown and has proper dimensions
+        QTimer.singleShot(50, self._adjust_food_log_table_columns)
 
     def _get_current_selected_food_item(self) -> str | None:
         """Get the currently selected food item from either list view.
@@ -1051,6 +1267,16 @@ class MainWindow(
             QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
 
+    def _init_favorite_food_items_list(self) -> None:
+        """Initialize the favorite food items list view with a model and connect signals."""
+        self.favorite_food_items_list_model = QStandardItemModel()
+        self.listView_favorite_food_items.setModel(self.favorite_food_items_list_model)
+
+        # Connect selection change signal after model is set
+        selection_model = self.listView_favorite_food_items.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+
     def _init_food_items_list(self) -> None:
         """Initialize the food items list view with a model and connect signals."""
         self.food_items_list_model = QStandardItemModel()
@@ -1061,15 +1287,37 @@ class MainWindow(
         if selection_model:
             selection_model.currentChanged.connect(self.on_food_item_selection_changed)
 
-    def _init_favorite_food_items_list(self) -> None:
-        """Initialize the favorite food items list view with a model and connect signals."""
-        self.favorite_food_items_list_model = QStandardItemModel()
-        self.listView_favorite_food_items.setModel(self.favorite_food_items_list_model)
+    def _init_food_stats_dates(self) -> None:
+        """Initialize food stats date range with earliest date from database."""
+        if not self.db_manager or not self._validate_database_connection():
+            return
 
-        # Connect selection change signal after model is set
-        selection_model = self.listView_favorite_food_items.selectionModel()
-        if selection_model:
-            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+        try:
+            earliest_date_str = self.db_manager.get_earliest_food_log_date()
+            if earliest_date_str:
+                earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
+                if earliest_date.isValid():
+                    self.dateEdit_food_stats_from.setDate(earliest_date)
+        except Exception as e:
+            print(f"Error getting earliest food log date: {e}")
+
+    def _on_tab_changed(self, index: int) -> None:
+        """Handle tab widget index change.
+
+        Args:
+
+        - `index` (`int`): Index of the newly selected tab.
+
+        """
+        # Get the widget at the current index
+        current_widget = self.tabWidget.widget(index)
+        if current_widget is None:
+            return
+
+        # Check if the current tab is the food stats tab
+        if current_widget.objectName() == "tab_food_stats":
+            self._update_kcal_per_day_table()
+            self._update_food_calories_chart()
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
@@ -1105,6 +1353,20 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+
+    def _on_window_resize(self, event) -> None:
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `event`: The resize event.
+
+        """
+        # Call parent resize event first
+        super().resizeEvent(event)
+
+        # Adjust food log table column widths based on window size
+        self._adjust_food_log_table_columns()
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
@@ -1172,43 +1434,20 @@ class MainWindow(
                 screen_center.x() - window_width // 2,
                 title_bar_height,  # Position below title bar
                 window_width,
-                window_height
+                window_height,
             )
 
-    def _update_food_items_list(self) -> None:
-        """Refresh food items list view with data from database."""
-        if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
-            return
+    def _show_all_food_items(self) -> None:
+        """Show all food items in both lists (remove filtering)."""
+        # Show all favorite food items
+        if self.favorite_food_items_list_model:
+            for i in range(self.favorite_food_items_list_model.rowCount()):
+                self.listView_favorite_food_items.setRowHidden(i, False)
 
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get food items sorted by name
-            food_items_data = self.db_manager.get_all_food_items()
-
-            # Block signals during model update
-            selection_model = self.listView_food_items.selectionModel()
-            if selection_model:
-                selection_model.blockSignals(True)  # noqa: FBT003
-
-            # Update food items list model
-            if self.food_items_list_model is not None:
-                self.food_items_list_model.clear()
-                for food_item_row in food_items_data:
-                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
-                    food_name = food_item_row[1]  # name is at index 1
-                    item = QStandardItem(food_name)
-                    self.food_items_list_model.appendRow(item)
-
-            # Unblock signals
-            if selection_model:
-                selection_model.blockSignals(False)  # noqa: FBT003
-
-        except Exception as e:
-            print(f"Error updating food items list: {e}")
+        # Show all main food items
+        if self.food_items_list_model:
+            for i in range(self.food_items_list_model.rowCount()):
+                self.listView_food_items.setRowHidden(i, False)
 
     def _update_favorite_food_items_list(self) -> None:
         """Refresh favorite food items list view with popular items from database."""
@@ -1242,199 +1481,6 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating favorite food items list: {e}")
-
-    def _on_window_resize(self, event) -> None:
-        """Handle window resize event and adjust table column widths proportionally.
-
-        Args:
-
-        - `event`: The resize event.
-
-        """
-        # Call parent resize event first
-        super().resizeEvent(event)
-
-        # Adjust food log table column widths based on window size
-        self._adjust_food_log_table_columns()
-
-    def _finish_window_initialization(self) -> None:
-        """Finish window initialization by showing the window and adjusting columns."""
-        self.show()
-        # Adjust columns after window is shown and has proper dimensions
-        QTimer.singleShot(50, self._adjust_food_log_table_columns)
-
-    def _adjust_food_log_table_columns(self) -> None:
-        """Adjust food log table column widths proportionally to window size."""
-        if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
-            return
-
-        # Get current table width (approximate available width for table)
-        table_width = self.tableView_food_log.width()
-        if table_width <= 0:
-            # Fallback to window width if table width is not available
-            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
-
-        # Ensure minimum table width for better appearance
-        table_width = max(table_width, 800)
-
-        # Define proportional distribution of total width
-        # Total: 100% = 20% + 6% + 6% + 12% + 10% + 10% + 12% + 24%
-        proportions = [0.20, 0.06, 0.06, 0.12, 0.10, 0.10, 0.12, 0.24]  # Name, Is Drink, Weight, Calories per 100g, Portion Calories, Calculated Calories, Date, English Name
-
-        # Calculate widths based on proportions
-        column_widths = [int(table_width * prop) for prop in proportions]
-
-        # Apply widths to all columns
-        for i, width in enumerate(column_widths):
-            self.tableView_food_log.setColumnWidth(i, width)
-
-    def _validate_database_connection(self) -> bool:
-        """Validate that database connection is available and open.
-
-        Returns:
-
-        - `bool`: True if database connection is valid, False otherwise.
-
-        """
-        if not self.db_manager:
-            print("Database manager is None")
-            return False
-
-        if not self.db_manager.is_database_open():
-            print("Database connection is not open")
-            return False
-
-        return True
-
-    def _on_tab_changed(self, index: int) -> None:
-        """Handle tab widget index change.
-
-        Args:
-
-        - `index` (`int`): Index of the newly selected tab.
-
-        """
-        # Get the widget at the current index
-        current_widget = self.tabWidget.widget(index)
-        if current_widget is None:
-            return
-
-        # Check if the current tab is the food stats tab
-        if current_widget.objectName() == "tab_food_stats":
-            self._update_kcal_per_day_table()
-            self._update_food_calories_chart()
-
-    def _update_kcal_per_day_table(self) -> None:
-        """Update the calories per day table with data from database."""
-        if not self._validate_database_connection():
-            print("Database connection not available for updating kcal per day table")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get calories per day data for all days
-            kcal_per_day_data = self.db_manager.get_calories_per_day()
-
-            # Transform data for display
-            transformed_data = []
-            for row in kcal_per_day_data:
-                date_str = str(row[0]) if row[0] is not None else ""
-                calories = row[1] if row[1] is not None else 0.0
-                # Format calories to 1 decimal place
-                calories_str = f"{float(calories):.1f}" if calories else "0.0"
-                transformed_data.append([date_str, calories_str])
-
-            # Create colored table model
-            self.models["kcal_per_day"] = self._create_colored_kcal_per_day_table_model(
-                transformed_data, self.table_config["kcal_per_day"][2]
-            )
-            self.tableView_kcal_per_day.setModel(self.models["kcal_per_day"])
-
-            # Configure table header
-            kcal_per_day_header = self.tableView_kcal_per_day.horizontalHeader()
-            # Set all columns to interactive (resizable)
-            for i in range(kcal_per_day_header.count()):
-                kcal_per_day_header.setSectionResizeMode(i, kcal_per_day_header.ResizeMode.Interactive)
-            # Set proportional column widths
-            self._adjust_kcal_per_day_table_columns()
-
-        except Exception as e:
-            print(f"Error updating kcal per day table: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
-
-    def _adjust_kcal_per_day_table_columns(self) -> None:
-        """Set column widths for kcal per day table."""
-        if not hasattr(self, "tableView_kcal_per_day") or not self.tableView_kcal_per_day.model():
-            return
-
-        # Set first column (Date) to fixed width of 80px
-        self.tableView_kcal_per_day.setColumnWidth(0, 80)
-
-        # Set second column (Calories) to stretch to remaining space
-        self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
-
-    def _create_colored_kcal_per_day_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-    ) -> QSortFilterProxyModel:
-        """Return a proxy model filled with colored kcal per day data.
-
-        Args:
-
-        - `data` (`list[list]`): The table data.
-        - `headers` (`list[str]`): Column header names.
-
-        Returns:
-
-        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
-
-        """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            items = []
-            row_color = None
-
-            # Determine row color based on calories (second column)
-            if len(row) > 1:
-                try:
-                    calories = float(row[1]) if row[1] else 0.0
-                    if calories <= 1800:
-                        # Green for low calories
-                        row_color = QColor(144, 238, 144)
-                    elif calories <= 2100:
-                        # Green-yellow for medium-low calories
-                        row_color = QColor(255, 255, 224)
-                    elif calories <= 2500:
-                        # Yellow for medium-high calories
-                        row_color = QColor(255, 228, 196)
-                    else:
-                        # Red for high calories
-                        row_color = QColor(255, 192, 203)
-                except (ValueError, TypeError):
-                    # If calories can't be parsed, use default background
-                    pass
-
-            # Create items for all columns
-            for col_idx, value in enumerate(row):
-                item = QStandardItem(str(value) if value is not None else "")
-
-                # Apply row color to all items in the row
-                if row_color:
-                    item.setBackground(QBrush(row_color))
-
-                items.append(item)
-
-            model.appendRow(items)
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
 
     def _update_food_calories_chart(self) -> None:
         """Update the food calories chart with data from database."""
@@ -1493,101 +1539,99 @@ class MainWindow(
             print(f"Error updating food calories chart: {e}")
             QMessageBox.warning(self, "Chart Error", f"Failed to create calories chart: {e}")
 
-    def on_food_stats_last_week(self) -> None:
-        """Set date range to last week and update chart."""
-        today = QDate.currentDate()
-        week_ago = today.addDays(-7)
+    def _update_food_items_list(self) -> None:
+        """Refresh food items list view with data from database."""
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
 
-        self.dateEdit_food_stats_from.setDate(week_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self._update_food_calories_chart()
-
-    def on_food_stats_last_month(self) -> None:
-        """Set date range to last month and update chart."""
-        today = QDate.currentDate()
-        month_ago = today.addMonths(-1)
-
-        self.dateEdit_food_stats_from.setDate(month_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self._update_food_calories_chart()
-
-    def on_food_stats_last_year(self) -> None:
-        """Set date range to last year and update chart."""
-        today = QDate.currentDate()
-        year_ago = today.addYears(-1)
-
-        self.dateEdit_food_stats_from.setDate(year_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self._update_food_calories_chart()
-
-    def on_food_stats_update(self) -> None:
-        """Update the food calories chart."""
-        self._update_food_calories_chart()
-
-    def on_food_stats_period_changed(self) -> None:
-        """Handle period selection change and update chart."""
-        self._update_food_calories_chart()
-
-    def _init_food_stats_dates(self) -> None:
-        """Initialize food stats date range with earliest date from database."""
-        if not self.db_manager or not self._validate_database_connection():
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
             return
 
         try:
-            earliest_date_str = self.db_manager.get_earliest_food_log_date()
-            if earliest_date_str:
-                earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-                if earliest_date.isValid():
-                    self.dateEdit_food_stats_from.setDate(earliest_date)
+            # Get food items sorted by name
+            food_items_data = self.db_manager.get_all_food_items()
+
+            # Block signals during model update
+            selection_model = self.listView_food_items.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
+
+            # Update food items list model
+            if self.food_items_list_model is not None:
+                self.food_items_list_model.clear()
+                for food_item_row in food_items_data:
+                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                    food_name = food_item_row[1]  # name is at index 1
+                    item = QStandardItem(food_name)
+                    self.food_items_list_model.appendRow(item)
+
+            # Unblock signals
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
+
         except Exception as e:
-            print(f"Error getting earliest food log date: {e}")
+            print(f"Error updating food items list: {e}")
 
-    def _filter_food_items(self, text: str) -> None:
-        """Filter food items lists based on input text.
-
-        Args:
-            text (str): Filter text from lineEdit_food_manual_name
-        """
-        if not text:
-            # If text is empty, show all items
-            self._show_all_food_items()
+    def _update_kcal_per_day_table(self) -> None:
+        """Update the calories per day table with data from database."""
+        if not self._validate_database_connection():
+            print("Database connection not available for updating kcal per day table")
             return
 
-        # Convert to lowercase for case-insensitive search
-        filter_text = text.lower()
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
 
-        # Filter favorite food items
-        if self.favorite_food_items_list_model:
-            for i in range(self.favorite_food_items_list_model.rowCount()):
-                item = self.favorite_food_items_list_model.item(i)
-                if item:
-                    item_text = item.text().lower()
-                    # Hide/show row based on filter match
-                    self.listView_favorite_food_items.setRowHidden(i, filter_text not in item_text)
+        try:
+            # Get calories per day data for all days
+            kcal_per_day_data = self.db_manager.get_calories_per_day()
 
-        # Filter main food items
-        if self.food_items_list_model:
-            for i in range(self.food_items_list_model.rowCount()):
-                item = self.food_items_list_model.item(i)
-                if item:
-                    item_text = item.text().lower()
-                    # Hide/show row based on filter match
-                    self.listView_food_items.setRowHidden(i, filter_text not in item_text)
+            # Transform data for display
+            transformed_data = []
+            for row in kcal_per_day_data:
+                date_str = str(row[0]) if row[0] is not None else ""
+                calories = row[1] if row[1] is not None else 0.0
+                # Format calories to 1 decimal place
+                calories_str = f"{float(calories):.1f}" if calories else "0.0"
+                transformed_data.append([date_str, calories_str])
 
-    def _show_all_food_items(self) -> None:
-        """Show all food items in both lists (remove filtering)."""
-        # Show all favorite food items
-        if self.favorite_food_items_list_model:
-            for i in range(self.favorite_food_items_list_model.rowCount()):
-                self.listView_favorite_food_items.setRowHidden(i, False)
+            # Create colored table model
+            self.models["kcal_per_day"] = self._create_colored_kcal_per_day_table_model(
+                transformed_data, self.table_config["kcal_per_day"][2]
+            )
+            self.tableView_kcal_per_day.setModel(self.models["kcal_per_day"])
 
-        # Show all main food items
-        if self.food_items_list_model:
-            for i in range(self.food_items_list_model.rowCount()):
-                self.listView_food_items.setRowHidden(i, False)
+            # Configure table header
+            kcal_per_day_header = self.tableView_kcal_per_day.horizontalHeader()
+            # Set all columns to interactive (resizable)
+            for i in range(kcal_per_day_header.count()):
+                kcal_per_day_header.setSectionResizeMode(i, kcal_per_day_header.ResizeMode.Interactive)
+            # Set proportional column widths
+            self._adjust_kcal_per_day_table_columns()
+
+        except Exception as e:
+            print(f"Error updating kcal per day table: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
+
+    def _validate_database_connection(self) -> bool:
+        """Validate that database connection is available and open.
+
+        Returns:
+
+        - `bool`: True if database connection is valid, False otherwise.
+
+        """
+        if not self.db_manager:
+            print("Database manager is None")
+            return False
+
+        if not self.db_manager.is_database_open():
+            print("Database connection is not open")
+            return False
+
+        return True
 
 
 if __name__ == "__main__":
