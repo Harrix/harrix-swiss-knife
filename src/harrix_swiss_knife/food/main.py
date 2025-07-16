@@ -286,9 +286,6 @@ class MainWindow(
                 portion_calories=portion_calories,
                 is_drink=is_drink
             ):
-                # Apply date increment logic
-                self._increment_date_widget(self.dateEdit_food)
-
                 # Update UI - only food-related data
                 self.update_food_data()
             else:
