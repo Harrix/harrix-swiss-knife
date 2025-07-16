@@ -4114,7 +4114,7 @@ class MainWindow(
 
     def _adjust_process_table_columns(self) -> None:
         """Adjust process table column widths proportionally to window size."""
-        if not hasattr(self, 'tableView_process') or not self.tableView_process.model():
+        if not hasattr(self, "tableView_process") or not self.tableView_process.model():
             return
 
         # Get current table width (approximate available width for table)
@@ -4124,8 +4124,7 @@ class MainWindow(
             table_width = self.width() * 0.7  # Assume table takes ~70% of window width
 
         # Ensure minimum table width for better appearance
-        if table_width < 800:
-            table_width = 800
+        table_width = max(table_width, 800)
 
         # Define proportional distribution of total width
         # Total: 100% = 40% + 25% + 20% + 15%

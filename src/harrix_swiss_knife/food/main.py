@@ -1089,7 +1089,7 @@ class MainWindow(
 
     def _adjust_food_log_table_columns(self) -> None:
         """Adjust food log table column widths proportionally to window size."""
-        if not hasattr(self, 'tableView_food_log') or not self.tableView_food_log.model():
+        if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
             return
 
         # Get current table width (approximate available width for table)
@@ -1099,8 +1099,7 @@ class MainWindow(
             table_width = self.width() * 0.7  # Assume table takes ~70% of window width
 
         # Ensure minimum table width for better appearance
-        if table_width < 800:
-            table_width = 800
+        table_width = max(table_width, 800)
 
         # Define proportional distribution of total width
         # Total: 100% = 25% + 8% + 8% + 15% + 12% + 12% + 20%
