@@ -11,7 +11,7 @@ from functools import partial
 from pathlib import Path
 
 import harrix_pylib as h
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
 
@@ -110,6 +110,9 @@ class MainWindow(
         self.set_today_date()  # Set current date in dateEdit_food
         self.update_food_data()
         self._setup_window_size_and_position()
+
+        # Adjust table column widths after UI is fully initialized
+        QTimer.singleShot(200, self._adjust_food_log_table_columns)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
@@ -491,21 +494,13 @@ class MainWindow(
             # Enable editing for the table
             self.tableView_food_log.setEditTriggers(QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed)
 
-            # Configure food_log table header - mixed approach: interactive + stretch last
+            # Configure food_log table header - interactive mode for all columns
             food_log_header = self.tableView_food_log.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(food_log_header.count() - 1):
+            # Set all columns to interactive (resizable)
+            for i in range(food_log_header.count()):
                 food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            food_log_header.setSectionResizeMode(food_log_header.count() - 1, food_log_header.ResizeMode.Stretch)
-            # Set default column widths for resizable columns
-            self.tableView_food_log.setColumnWidth(0, 150)  # Name
-            self.tableView_food_log.setColumnWidth(1, 80)   # Is Drink
-            self.tableView_food_log.setColumnWidth(2, 80)   # Weight
-            self.tableView_food_log.setColumnWidth(3, 140)  # Calories per 100g
-            self.tableView_food_log.setColumnWidth(4, 120)  # Portion Calories
-            self.tableView_food_log.setColumnWidth(5, 120)  # Date
-            self.tableView_food_log.setColumnWidth(6, 100)  # English Name
+            # Set proportional column widths for all columns
+            self._adjust_food_log_table_columns()
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -586,6 +581,9 @@ class MainWindow(
         # Connect delete and refresh buttons for food tables
         self.pushButton_food_delete.clicked.connect(partial(self.delete_record, "food_log"))
         self.pushButton_food_refresh.clicked.connect(self.update_food_data)
+
+        # Connect window resize event for automatic column resizing
+        self.resizeEvent = self._on_window_resize
 
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
@@ -1074,6 +1072,46 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating favorite food items list: {e}")
+
+    def _on_window_resize(self, event) -> None:
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `event`: The resize event.
+
+        """
+        # Call parent resize event first
+        super().resizeEvent(event)
+
+        # Adjust food log table column widths based on window size
+        self._adjust_food_log_table_columns()
+
+    def _adjust_food_log_table_columns(self) -> None:
+        """Adjust food log table column widths proportionally to window size."""
+        if not hasattr(self, 'tableView_food_log') or not self.tableView_food_log.model():
+            return
+
+        # Get current table width (approximate available width for table)
+        table_width = self.tableView_food_log.width()
+        if table_width <= 0:
+            # Fallback to window width if table width is not available
+            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
+
+        # Ensure minimum table width for better appearance
+        if table_width < 800:
+            table_width = 800
+
+        # Define proportional distribution of total width
+        # Total: 100% = 25% + 8% + 8% + 15% + 12% + 12% + 20%
+        proportions = [0.25, 0.08, 0.08, 0.15, 0.12, 0.12, 0.20]  # Name, Is Drink, Weight, Calories per 100g, Portion Calories, Date, English Name
+
+        # Calculate widths based on proportions
+        column_widths = [int(table_width * prop) for prop in proportions]
+
+        # Apply widths to all columns
+        for i, width in enumerate(column_widths):
+            self.tableView_food_log.setColumnWidth(i, width)
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.

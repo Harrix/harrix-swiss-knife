@@ -156,11 +156,14 @@ class MainWindow(
         self._init_sets_count_display()
         self.update_all()
 
-        # Load initial AVIF animations after UI is ready
+                        # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
 
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
+
+        # Adjust table column widths after UI is fully initialized
+        QTimer.singleShot(200, self._adjust_process_table_columns)
 
     @requires_database()
     def apply_filter(self) -> None:
@@ -205,18 +208,13 @@ class MainWindow(
         )
         self.tableView_process.setModel(self.models["process"])
 
-        # Configure header with mixed approach after applying filter
+        # Configure header with interactive mode for all columns
         header = self.tableView_process.horizontalHeader()
-        # Set first columns to interactive (resizable)
-        for i in range(header.count() - 1):
+        # Set all columns to interactive (resizable)
+        for i in range(header.count()):
             header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        # Set last column to stretch to fill remaining space
-        header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-        # Restore default column widths for resizable columns
-        self.tableView_process.setColumnWidth(0, 200)  # Exercise
-        self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
-        self.tableView_process.setColumnWidth(2, 120)  # Quantity
-        # Date column will stretch automatically
+        # Set proportional column widths for all columns
+        self._adjust_process_table_columns()
 
     def clear_filter(self) -> None:
         """Reset all process-table filters.
@@ -2251,18 +2249,13 @@ class MainWindow(
             )
             self.tableView_process.setModel(self.models["process"])
 
-            # Configure process table header - mixed approach: interactive + stretch last
+            # Configure process table header - interactive mode for all columns
             process_header = self.tableView_process.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(process_header.count() - 1):
+            # Set all columns to interactive (resizable)
+            for i in range(process_header.count()):
                 process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            process_header.setSectionResizeMode(process_header.count() - 1, process_header.ResizeMode.Stretch)
-            # Set default column widths for resizable columns
-            self.tableView_process.setColumnWidth(0, 200)  # Exercise
-            self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
-            self.tableView_process.setColumnWidth(2, 120)  # Quantity
-            # Date column will stretch automatically
+            # Set proportional column widths for all columns
+            self._adjust_process_table_columns()
 
             # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
@@ -2808,6 +2801,9 @@ class MainWindow(
         """
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
+
+        # Connect window resize event for automatic column resizing
+        self.resizeEvent = self._on_window_resize
 
         # Connect delete and refresh buttons for all tables (except statistics)
         tables_with_controls = {"process", "exercises", "types", "weight"}
@@ -4101,6 +4097,46 @@ class MainWindow(
         exercise_name = self.comboBox_exercise_name.currentText()
         if exercise_name:
             self._load_exercise_avif(exercise_name, "types")
+
+    def _on_window_resize(self, event) -> None:
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `event`: The resize event.
+
+        """
+        # Call parent resize event first
+        super().resizeEvent(event)
+
+        # Adjust process table column widths based on window size
+        self._adjust_process_table_columns()
+
+    def _adjust_process_table_columns(self) -> None:
+        """Adjust process table column widths proportionally to window size."""
+        if not hasattr(self, 'tableView_process') or not self.tableView_process.model():
+            return
+
+        # Get current table width (approximate available width for table)
+        table_width = self.tableView_process.width()
+        if table_width <= 0:
+            # Fallback to window width if table width is not available
+            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
+
+        # Ensure minimum table width for better appearance
+        if table_width < 800:
+            table_width = 800
+
+        # Define proportional distribution of total width
+        # Total: 100% = 40% + 25% + 20% + 15%
+        proportions = [0.40, 0.25, 0.20, 0.15]  # Exercise, Exercise Type, Quantity, Date
+
+        # Calculate widths based on proportions
+        column_widths = [int(table_width * prop) for prop in proportions]
+
+        # Apply widths to all columns
+        for i, width in enumerate(column_widths):
+            self.tableView_process.setColumnWidth(i, width)
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
