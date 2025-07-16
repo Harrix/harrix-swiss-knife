@@ -464,7 +464,7 @@ class MainWindow(
                     # Original transformation:
                     # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
                     # [name, is_drink, weight, calories_per_100g, portion_calories, date, name_en]
-                    transformed_row = [row[5], "Yes" if row[7] == 1 else "No", row[2], row[4], row[3], row[1], row[6]]
+                    transformed_row = [row[5], "1" if row[7] == 1 else "", row[2], row[4], row[3], row[1], row[6]]
 
                     # Add color information based on date
                     date_str = row[1]
