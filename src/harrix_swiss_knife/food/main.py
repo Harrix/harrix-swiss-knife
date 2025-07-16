@@ -301,6 +301,10 @@ class MainWindow(
             ):
                 # Update UI - only food-related data
                 self.update_food_data()
+
+                # Move focus to food name field and select all text
+                self.lineEdit_food_manual_name.setFocus()
+                self.lineEdit_food_manual_name.selectAll()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add food log record")
 
