@@ -386,8 +386,8 @@ class ChartOperations:
         x_values = [item[0] for item in data]
         y_values = [item[1] for item in data]
 
-        # Count non-zero values for label display decision
-        non_zero_count = sum(1 for y in y_values if y != 0)
+        # Count non-zero and non-None values for label display decision
+        non_zero_count = sum(1 for y in y_values if y is not None and y != 0)
 
         # Plot data
         self._plot_data(
@@ -408,13 +408,13 @@ class ChartOperations:
         if chart_config.get("show_stats", True) and len(y_values) > 1:
             stats_formatter = chart_config.get("stats_formatter")
             if stats_formatter:
-                # Filter out zero values for statistics
-                non_zero_values = [y for y in y_values if y != 0]
+                # Filter out zero and None values for statistics
+                non_zero_values = [y for y in y_values if y is not None and y != 0]
                 if non_zero_values:
                     stats_text = stats_formatter(non_zero_values)
                     self._add_stats_box(ax, stats_text)
             else:
-                non_zero_values = [y for y in y_values if y != 0]
+                non_zero_values = [y for y in y_values if y is not None and y != 0]
                 if non_zero_values:
                     stats_text = self._format_default_stats(non_zero_values, chart_config.get("stats_unit", ""))
                     self._add_stats_box(ax, stats_text)
@@ -426,27 +426,12 @@ class ChartOperations:
     def _fill_missing_periods_with_zeros(
         self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None
     ) -> list[tuple]:
-        """Fill missing periods with zero values.
-
-        Args:
-
-        - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
-        - `period` (`str`): Period type (Days, Months, Years).
-        - `date_from` (`str | None`): Start date string (YYYY-MM-DD).
-        - `date_to` (`str | None`): End date string (YYYY-MM-DD).
-
-        Returns:
-
-        - `list[tuple]`: Data with missing periods filled with zeros.
-
-        """
+        """Fill missing periods with None values (for gaps in chart)."""
         if not data:
             return data
 
-        # Convert existing data to dict for quick lookup
         data_dict = {item[0]: item[1] for item in data}
 
-        # Determine date range
         if date_from and date_to:
             try:
                 start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -454,11 +439,9 @@ class ChartOperations:
             except ValueError:
                 return data
         else:
-            # Use data range if no explicit dates provided
             start_date = min(item[0] for item in data)
             end_date = max(item[0] for item in data)
 
-        # Generate all periods in the range
         result = []
         current_date = start_date
 
@@ -467,10 +450,8 @@ class ChartOperations:
             end_date = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, 0)
+                value = data_dict.get(current_date, None)
                 result.append((current_date, value))
-
-                # Move to next month
                 count_months = 12
                 if current_date.month == count_months:
                     current_date = current_date.replace(year=current_date.year + 1, month=1)
@@ -482,7 +463,7 @@ class ChartOperations:
             end_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, 0)
+                value = data_dict.get(current_date, None)
                 result.append((current_date, value))
                 current_date = current_date.replace(year=current_date.year + 1)
 
@@ -491,7 +472,7 @@ class ChartOperations:
             end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, 0)
+                value = data_dict.get(current_date, None)
                 result.append((current_date, value))
                 current_date += timedelta(days=1)
 
@@ -547,14 +528,20 @@ class ChartOperations:
         - `str`: Formatted statistics string.
 
         """
-        min_val = min(values)
-        max_val = max(values)
-        avg_val = sum(values) / len(values)
+        # Filter out None values
+        valid_values = [v for v in values if v is not None]
+
+        if not valid_values:
+            return "No data"
+
+        min_val = min(valid_values)
+        max_val = max(valid_values)
+        avg_val = sum(valid_values) / len(valid_values)
 
         unit_suffix = f" {unit}" if unit else ""
 
         # Format based on value type
-        if all(isinstance(v, int) for v in values):
+        if all(isinstance(v, int) for v in valid_values):
             return (
                 f"Min: {int(min_val)}{unit_suffix} | Max: {int(max_val)}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
             )
@@ -718,9 +705,9 @@ class ChartOperations:
                 markerfacecolor=plot_color,
                 markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
             )
-            # Add value labels only for non-zero values
+            # Add value labels only for non-zero and non-None values
             for x, y in zip(x_values, y_values, strict=False):
-                if y != 0:  # Only label non-zero points
+                if y is not None and y != 0:  # Only label non-zero and non-None points
                     # Format label based on value type - remove unnecessary .0
                     label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
@@ -747,8 +734,8 @@ class ChartOperations:
                 last_x = x_values[-1]
                 last_y = y_values[-1]
 
-                # Only label if the last point is non-zero
-                if last_y != 0:
+                # Only label if the last point is non-zero and non-None
+                if last_y is not None and last_y != 0:
                     # Format label based on value type - remove unnecessary .0
                     if isinstance(last_y, int) or last_y == int(last_y):
                         label_text = str(int(last_y))

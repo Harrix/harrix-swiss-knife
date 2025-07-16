@@ -582,8 +582,8 @@ class Ui_MainWindow(object):
         self.pushButton_food_stats_last_year.setText(QCoreApplication.translate("MainWindow", u"Last Year", None))
         self.pushButton_food_stats_update.setText(QCoreApplication.translate("MainWindow", u"Update Chart", None))
         self.comboBox_food_stats_period.setItemText(0, QCoreApplication.translate("MainWindow", u"Days", None))
-        self.comboBox_food_stats_period.setItemText(1, QCoreApplication.translate("MainWindow", u"Weeks", None))
-        self.comboBox_food_stats_period.setItemText(2, QCoreApplication.translate("MainWindow", u"Months", None))
+        self.comboBox_food_stats_period.setItemText(1, QCoreApplication.translate("MainWindow", u"Months", None))
+        self.comboBox_food_stats_period.setItemText(2, QCoreApplication.translate("MainWindow", u"Years", None))
 
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_stats), QCoreApplication.translate("MainWindow", u"Food Statistics", None))
     # retranslateUi

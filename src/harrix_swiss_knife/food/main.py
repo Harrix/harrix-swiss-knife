@@ -108,6 +108,9 @@ class MainWindow(
         # Define colors for different dates (expanded palette)
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
+        # Chart configuration
+        self.max_count_points_in_charts = 50
+
         # Initialize application
         self._init_database()
         self._connect_signals()
@@ -615,6 +618,13 @@ class MainWindow(
         self.spinBox_food_weight.valueChanged.connect(self.update_calories_calculation)
         self.doubleSpinBox_food_calories.valueChanged.connect(self.update_calories_calculation)
 
+        # Connect food stats controls
+        self.pushButton_food_stats_last_week.clicked.connect(self.on_food_stats_last_week)
+        self.pushButton_food_stats_last_month.clicked.connect(self.on_food_stats_last_month)
+        self.pushButton_food_stats_last_year.clicked.connect(self.on_food_stats_last_year)
+        self.pushButton_food_stats_update.clicked.connect(self.on_food_stats_update)
+        self.comboBox_food_stats_period.currentTextChanged.connect(self.on_food_stats_period_changed)
+
         # Export functionality removed - no export button in UI
 
     def _connect_table_auto_save_signals(self) -> None:
@@ -992,6 +1002,12 @@ class MainWindow(
         self.radioButton_use_weight.setChecked(True)
         self.update_calories_calculation()
 
+        # Initialize food stats date range (last month by default)
+        today = QDate.currentDate()
+        month_ago = today.addMonths(-1)
+        self.dateEdit_food_stats_from.setDate(month_ago)
+        self.dateEdit_food_stats_to.setDate(today)
+
         # Set focus to the food name input field for quick data entry
         self.lineEdit_food_manual_name.setFocus()
 
@@ -1171,6 +1187,7 @@ class MainWindow(
         # Check if the current tab is the food stats tab
         if current_widget.objectName() == "tab_food_stats":
             self._update_kcal_per_day_table()
+            self._update_food_calories_chart()
 
     def _update_kcal_per_day_table(self) -> None:
         """Update the calories per day table with data from database."""
@@ -1283,6 +1300,101 @@ class MainWindow(
         proxy = QSortFilterProxyModel()
         proxy.setSourceModel(model)
         return proxy
+
+    def _update_food_calories_chart(self) -> None:
+        """Update the food calories chart with data from database."""
+        if not self._validate_database_connection():
+            print("Database connection not available for updating food calories chart")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get date range from UI
+            date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
+            period = self.comboBox_food_stats_period.currentText()
+
+            # Get calories data for the selected period
+            kcal_data = self.db_manager.get_calories_per_day()
+
+            # Filter data by date range
+            filtered_data = []
+            for row in kcal_data:
+                date_str = str(row[0]) if row[0] is not None else ""
+                calories = row[1] if row[1] is not None else 0.0
+
+                if date_from <= date_str <= date_to:
+                    filtered_data.append((date_str, calories))
+
+            # Group data by period
+            grouped_data = self._group_data_by_period(filtered_data, period, "float")
+
+            # Convert to list of tuples for chart
+            chart_data = [(date, value) for date, value in grouped_data.items()]
+
+            # Create chart configuration
+            chart_config = {
+                "title": f"Calories Consumed ({period})",
+                "xlabel": "Date",
+                "ylabel": "Calories (kcal)",
+                "color": "blue",
+                "show_stats": True,
+                "stats_unit": "kcal",
+                "period": period,
+                "fill_zero_periods": True,
+                "date_from": date_from,
+                "date_to": date_to,
+            }
+
+            # Create chart
+            layout = self.scrollAreaWidgetContents_food_stats.layout()
+            if layout is not None:
+                self._create_chart(layout, chart_data, chart_config)
+
+        except Exception as e:
+            print(f"Error updating food calories chart: {e}")
+            QMessageBox.warning(self, "Chart Error", f"Failed to create calories chart: {e}")
+
+    def on_food_stats_last_week(self) -> None:
+        """Set date range to last week and update chart."""
+        today = QDate.currentDate()
+        week_ago = today.addDays(-7)
+
+        self.dateEdit_food_stats_from.setDate(week_ago)
+        self.dateEdit_food_stats_to.setDate(today)
+
+        self._update_food_calories_chart()
+
+    def on_food_stats_last_month(self) -> None:
+        """Set date range to last month and update chart."""
+        today = QDate.currentDate()
+        month_ago = today.addMonths(-1)
+
+        self.dateEdit_food_stats_from.setDate(month_ago)
+        self.dateEdit_food_stats_to.setDate(today)
+
+        self._update_food_calories_chart()
+
+    def on_food_stats_last_year(self) -> None:
+        """Set date range to last year and update chart."""
+        today = QDate.currentDate()
+        year_ago = today.addYears(-1)
+
+        self.dateEdit_food_stats_from.setDate(year_ago)
+        self.dateEdit_food_stats_to.setDate(today)
+
+        self._update_food_calories_chart()
+
+    def on_food_stats_update(self) -> None:
+        """Update the food calories chart."""
+        self._update_food_calories_chart()
+
+    def on_food_stats_period_changed(self) -> None:
+        """Handle period selection change and update chart."""
+        self._update_food_calories_chart()
 
 
 if __name__ == "__main__":
