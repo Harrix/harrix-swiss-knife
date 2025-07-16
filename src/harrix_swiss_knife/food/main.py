@@ -489,7 +489,9 @@ class MainWindow(
                 return transformed_rows
 
             # Get food_log data and transform it
-            food_log_rows = self.db_manager.get_all_food_log_records()
+            # Use limited records for table display to improve performance with large datasets
+            # Statistics methods will still analyze all records from the database
+            food_log_rows = self.db_manager.get_recent_food_log_records(5000)
             transformed_food_log_data = transform_food_log_data(food_log_rows)
 
             # Create food_log table model with coloring

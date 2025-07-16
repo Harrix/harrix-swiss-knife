@@ -1295,6 +1295,25 @@ class DatabaseManager:
             ORDER BY date DESC, _id DESC
         """)
 
+    def get_recent_food_log_records(self, limit: int = 5000) -> list[list[Any]]:
+        """Get recent food log records for table display.
+
+        Args:
+
+        - `limit` (`int`): Maximum number of records to return. Defaults to `5000`.
+
+        Returns:
+
+        - `list[list[Any]]`: List of recent food log records [_id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink].
+
+        """
+        return self.get_rows(f"""
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+            ORDER BY date DESC, _id DESC
+            LIMIT {limit}
+        """)
+
     def add_food_item(
         self,
         name: str,
