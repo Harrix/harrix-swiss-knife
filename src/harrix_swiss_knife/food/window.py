@@ -19,9 +19,9 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateEdit,
     QDoubleSpinBox, QFrame, QGroupBox, QHBoxLayout,
     QHeaderView, QLabel, QLineEdit, QListView,
     QMainWindow, QMenuBar, QPushButton, QRadioButton,
-    QScrollArea, QSizePolicy, QSpacerItem, QSplitter,
-    QStatusBar, QTabWidget, QTableView, QToolBar,
-    QVBoxLayout, QWidget)
+    QScrollArea, QSizePolicy, QSpacerItem, QSpinBox,
+    QSplitter, QStatusBar, QTabWidget, QTableView,
+    QToolBar, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -131,20 +131,20 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_weight = QHBoxLayout()
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
-        self.doubleSpinBox_food_weight = QDoubleSpinBox(self.groupBox_food_add)
-        self.doubleSpinBox_food_weight.setObjectName(u"doubleSpinBox_food_weight")
+        self.spinBox_food_weight = QSpinBox(self.groupBox_food_add)
+        self.spinBox_food_weight.setObjectName(u"spinBox_food_weight")
         font = QFont()
         font.setPointSize(12)
         font.setBold(True)
-        self.doubleSpinBox_food_weight.setFont(font)
-        self.doubleSpinBox_food_weight.setStyleSheet(u"QDoubleSpinBox {\n"
+        self.spinBox_food_weight.setFont(font)
+        self.spinBox_food_weight.setStyleSheet(u"QSpinBox {\n"
 "                                          background-color: #e3f2fd;\n"
 "                                          }")
-        self.doubleSpinBox_food_weight.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
-        self.doubleSpinBox_food_weight.setMaximum(10000.000000000000000)
-        self.doubleSpinBox_food_weight.setValue(100.000000000000000)
+        self.spinBox_food_weight.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.spinBox_food_weight.setMaximum(10000)
+        self.spinBox_food_weight.setValue(100)
 
-        self.horizontalLayout_food_weight.addWidget(self.doubleSpinBox_food_weight)
+        self.horizontalLayout_food_weight.addWidget(self.spinBox_food_weight)
 
         self.label_food_weight_unit = QLabel(self.groupBox_food_add)
         self.label_food_weight_unit.setObjectName(u"label_food_weight_unit")

@@ -243,7 +243,7 @@ class MainWindow(
         """Insert a new food log record using database manager."""
         # Get values from UI
         food_name = self.lineEdit_food_manual_name.text().strip()
-        weight = self.doubleSpinBox_food_weight.value()
+        weight = self.spinBox_food_weight.value()
         calories = self.doubleSpinBox_food_calories.value()
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
         use_weight = self.radioButton_use_weight.isChecked()
@@ -297,7 +297,7 @@ class MainWindow(
         name_en = self.lineEdit_food_name_en.text().strip()
         is_drink = self.checkBox_food_is_drink.isChecked()
         calories_per_100g = self.doubleSpinBox_food_cal100.value()
-        default_portion_weight = self.doubleSpinBox_food_default_weight.value()
+        default_portion_weight = self.spinBox_food_default_weight.value()
         default_portion_calories = self.doubleSpinBox_food_default_cal.value()
 
         if not name:
@@ -324,7 +324,7 @@ class MainWindow(
                 self.lineEdit_food_name_en.clear()
                 self.checkBox_food_is_drink.setChecked(False)
                 self.doubleSpinBox_food_cal100.setValue(0)
-                self.doubleSpinBox_food_default_weight.setValue(0)
+                self.spinBox_food_default_weight.setValue(0)
                 self.doubleSpinBox_food_default_cal.setValue(0)
             else:
                 QMessageBox.warning(self, "Error", "Failed to add food item")
@@ -370,9 +370,9 @@ class MainWindow(
                 self.doubleSpinBox_food_cal100.setValue(0)
 
             if default_portion_weight:
-                self.doubleSpinBox_food_default_weight.setValue(default_portion_weight)
+                self.spinBox_food_default_weight.setValue(default_portion_weight)
             else:
-                self.doubleSpinBox_food_default_weight.setValue(0)
+                self.spinBox_food_default_weight.setValue(0)
 
             if default_portion_calories:
                 self.doubleSpinBox_food_default_cal.setValue(default_portion_calories)
@@ -386,9 +386,9 @@ class MainWindow(
             # Fields for adding food log record
             self.lineEdit_food_manual_name.setText(name)
             if default_portion_weight:
-                self.doubleSpinBox_food_weight.setValue(default_portion_weight)
+                self.spinBox_food_weight.setValue(int(default_portion_weight))
             else:
-                self.doubleSpinBox_food_weight.setValue(0)
+                self.spinBox_food_weight.setValue(0)
 
             if calories_per_100g:
                 self.doubleSpinBox_food_calories.setValue(calories_per_100g)
@@ -542,7 +542,7 @@ class MainWindow(
 
     def update_calories_calculation(self) -> None:
         """Update the calories calculation label based on radio button selection and values."""
-        weight = self.doubleSpinBox_food_weight.value()
+        weight = self.spinBox_food_weight.value()
         calories = self.doubleSpinBox_food_calories.value()
         use_weight = self.radioButton_use_weight.isChecked()
 
@@ -597,7 +597,7 @@ class MainWindow(
         # Connect radio buttons and spin boxes for calories calculation
         self.radioButton_use_weight.clicked.connect(self.update_calories_calculation)
         self.radioButton_use_calories.clicked.connect(self.update_calories_calculation)
-        self.doubleSpinBox_food_weight.valueChanged.connect(self.update_calories_calculation)
+        self.spinBox_food_weight.valueChanged.connect(self.update_calories_calculation)
         self.doubleSpinBox_food_calories.valueChanged.connect(self.update_calories_calculation)
 
         # Export functionality removed - no export button in UI

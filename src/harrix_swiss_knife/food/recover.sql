@@ -1,22 +1,24 @@
 CREATE TABLE "food_items" (
-    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
-    "name" TEXT NOT NULL,
-    "name_en" TEXT,
-    "is_drink" INTEGER NOT NULL DEFAULT 0,
-    "calories_per_100g" REAL DEFAULT NULL,
-    "default_portion_weight" REAL DEFAULT NULL,
-    "default_portion_calories" REAL DEFAULT NULL
+	"_id"	INTEGER,
+	"name"	TEXT NOT NULL,
+	"name_en"	TEXT,
+	"is_drink"	INTEGER NOT NULL DEFAULT 0,
+	"calories_per_100g"	REAL DEFAULT NULL,
+	"default_portion_weight"	INTEGER DEFAULT NULL,
+	"default_portion_calories"	REAL DEFAULT NULL,
+	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 
 CREATE TABLE "food_log" (
-    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
-    "date" TEXT NOT NULL,
-    "weight" REAL DEFAULT NULL,
-    "portion_calories" REAL DEFAULT NULL,
-    "is_drink" INTEGER NOT NULL DEFAULT 0,
-    "calories_per_100g" REAL NOT NULL,
-    "name" TEXT DEFAULT NULL,
-    "name_en" TEXT DEFAULT NULL
+	"_id"	INTEGER,
+	"date"	TEXT,
+	"weight"	INTEGER DEFAULT NULL,
+	"portion_calories"	REAL DEFAULT NULL,
+	"calories_per_100g"	REAL NOT NULL,
+	"name"	TEXT DEFAULT NULL,
+	"name_en"	TEXT DEFAULT NULL,
+	"is_drink"	INTEGER NOT NULL DEFAULT 0,
+	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 
 INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories) VALUES
