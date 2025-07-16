@@ -231,14 +231,14 @@ class AutoSaveOperations:
 
         """
         # Get data from model columns
-        # Column order: [name, is_drink, weight, calories_per_100g, portion_calories, date, name_en]
+        # Column order: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
         name = model.data(model.index(row, 0)) or ""
         is_drink_str = model.data(model.index(row, 1)) or ""
         weight_str = model.data(model.index(row, 2)) or ""
         calories_per_100g_str = model.data(model.index(row, 3)) or ""
         portion_calories_str = model.data(model.index(row, 4)) or ""
-        date = model.data(model.index(row, 5)) or ""
-        name_en = model.data(model.index(row, 6)) or ""
+        date = model.data(model.index(row, 6)) or ""
+        name_en = model.data(model.index(row, 7)) or ""
 
         # Validate food name
         if not name.strip():

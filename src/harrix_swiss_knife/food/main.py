@@ -96,7 +96,7 @@ class MainWindow(
             "food_log": (
                 self.tableView_food_log,
                 "food_log",
-                ["Name", "Is Drink", "Weight", "Calories per 100g", "Portion Calories", "Date", "English Name"],
+                ["Name", "Is Drink", "Weight", "Calories per 100g", "Portion Calories", "Calculated Calories", "Date", "English Name"],
             ),
             "kcal_per_day": (
                 self.tableView_kcal_per_day,
@@ -476,13 +476,13 @@ class MainWindow(
                 return
 
             # Get data from the table model directly
-            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, date, name_en]
+            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
             is_drink = source_model.item(index.row(), 1).text() == "1" if source_model.item(index.row(), 1) else False
             weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
             calories_per_100g_str = source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
             portion_calories_str = source_model.item(index.row(), 4).text() if source_model.item(index.row(), 4) else "0"
-            name_en = source_model.item(index.row(), 6).text() if source_model.item(index.row(), 6) else ""
+            name_en = source_model.item(index.row(), 7).text() if source_model.item(index.row(), 7) else ""
 
             # Convert string values to appropriate types
             weight = float(weight_str) if weight_str and weight_str != "" else 0
@@ -570,11 +570,12 @@ class MainWindow(
                 for row in rows:
                     # Original transformation:
                     # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
-                    # [name, is_drink, weight, calories_per_100g, portion_calories, date, name_en]
+                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
 
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
                     calories_per_100g = row[4]
+                    weight = row[2]
 
                     # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
                     # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
@@ -583,14 +584,23 @@ class MainWindow(
                     else:
                         calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
 
-                    transformed_row = [row[5], "1" if row[7] == 1 else "", row[2], calories_per_100g_display, portion_calories, row[1], row[6]]
+                    # Calculate total calories
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        # Use portion calories directly
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        # Calculate from weight and calories per 100g
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    transformed_row = [row[5], "1" if row[7] == 1 else "", row[2], calories_per_100g_display, portion_calories, f"{calculated_calories:.1f}", row[1], row[6]]
 
                     # Add color information based on date
                     date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], date_color])  # [name, is_drink, weight, calories_per_100g, portion_calories, date, name_en, id, color]
+                    transformed_row.extend([row[0], date_color])  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -804,7 +814,7 @@ class MainWindow(
         self,
         data: list[list],
         headers: list[str],
-        _id_column: int = 7,  # ID is now at index 7 in transformed data
+        _id_column: int = 8,  # ID is now at index 8 in transformed data
     ) -> QSortFilterProxyModel:
         """Return a proxy model filled with colored food_log data.
 
@@ -812,7 +822,7 @@ class MainWindow(
 
         - `data` (`list[list]`): The table data with color information.
         - `headers` (`list[str]`): Column header names.
-        - `_id_column` (`int`): Index of the ID column. Defaults to `7`.
+        - `_id_column` (`int`): Index of the ID column. Defaults to `8`.
 
         Returns:
 
@@ -824,20 +834,24 @@ class MainWindow(
 
         for row_idx, row in enumerate(data):
             # Extract color information (last element) and ID
-            row_color = row[8]  # Color is at index 8
-            row_id = row[7]  # ID is at index 7
+            row_color = row[9]  # Color is at index 9
+            row_id = row[8]  # ID is at index 8
 
-            # Create items for display columns only (first 7 elements)
+            # Create items for display columns only (first 8 elements)
             items = []
-            for col_idx, value in enumerate(row[:7]):  # Only first 7 elements for display
+            for col_idx, value in enumerate(row[:8]):  # Only first 8 elements for display
                 item = QStandardItem(str(value) if value is not None else "")
 
                 # Set background color for the item
                 item.setBackground(QBrush(row_color))
 
+                # Make calculated calories column non-editable (column 5)
+                if col_idx == 5:
+                    item.setEditable(False)
+
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-                id_col_date = 5  # Date column is now at index 5
+                id_col_date = 6  # Date column is now at index 6
                 if col_idx == id_col_date and str(value) == today:  # Date column
                     font = item.font()
                     font.setBold(True)
@@ -1263,8 +1277,8 @@ class MainWindow(
         table_width = max(table_width, 800)
 
         # Define proportional distribution of total width
-        # Total: 100% = 25% + 8% + 8% + 15% + 12% + 12% + 20%
-        proportions = [0.25, 0.08, 0.08, 0.15, 0.12, 0.12, 0.20]  # Name, Is Drink, Weight, Calories per 100g, Portion Calories, Date, English Name
+        # Total: 100% = 20% + 6% + 6% + 12% + 10% + 10% + 12% + 24%
+        proportions = [0.20, 0.06, 0.06, 0.12, 0.10, 0.10, 0.12, 0.24]  # Name, Is Drink, Weight, Calories per 100g, Portion Calories, Calculated Calories, Date, English Name
 
         # Calculate widths based on proportions
         column_widths = [int(table_width * prop) for prop in proportions]
