@@ -431,6 +431,64 @@ class MainWindow(
         except Exception as e:
             print(f"Error in food item selection changed: {e}")
 
+    def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
+        """Handle food log table cell click and populate form fields with row data."""
+        try:
+            # Get the row ID from the vertical header
+            proxy_model = self.models["food_log"]
+            if proxy_model is None:
+                return
+            source_model = proxy_model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return
+
+            row_id = source_model.verticalHeaderItem(index.row())
+            if not row_id:
+                return
+
+            # Get data from the table model directly
+            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, date, name_en]
+            name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
+            is_drink = source_model.item(index.row(), 1).text() == "1" if source_model.item(index.row(), 1) else False
+            weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
+            calories_per_100g_str = source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
+            portion_calories_str = source_model.item(index.row(), 4).text() if source_model.item(index.row(), 4) else "0"
+            name_en = source_model.item(index.row(), 6).text() if source_model.item(index.row(), 6) else ""
+
+            # Convert string values to appropriate types
+            weight = float(weight_str) if weight_str and weight_str != "" else 0
+            calories_per_100g = float(calories_per_100g_str) if calories_per_100g_str and calories_per_100g_str != "" else 0
+            portion_calories = float(portion_calories_str) if portion_calories_str and portion_calories_str != "" else 0
+
+            # Populate groupBox_food_add fields (food log record form)
+            self.lineEdit_food_manual_name.setText(name)
+            self.spinBox_food_weight.setValue(int(weight) if weight > 0 else 0)
+            self.checkBox_food_is_drink.setChecked(is_drink)
+
+            # Determine radio button state based on portion_calories
+            if portion_calories > 0:
+                # Use portion calories mode
+                self.radioButton_use_calories.setChecked(True)
+                self.doubleSpinBox_food_calories.setValue(portion_calories)
+            else:
+                # Use weight mode
+                self.radioButton_use_weight.setChecked(True)
+                self.doubleSpinBox_food_calories.setValue(calories_per_100g)
+
+            # Populate groupBox_food_items fields (food item form)
+            self.lineEdit_food_name.setText(name)
+            self.lineEdit_food_name_en.setText(name_en)
+            self.checkBox_is_drink.setChecked(is_drink)
+            self.doubleSpinBox_food_cal100.setValue(calories_per_100g)
+            self.spinBox_food_default_weight.setValue(int(weight) if weight > 0 else 0)
+            self.doubleSpinBox_food_default_cal.setValue(portion_calories)
+
+            # Update calories calculation
+            self.update_calories_calculation()
+
+        except Exception as e:
+            print(f"Error in food log table cell clicked: {e}")
+
 
 
     def set_today_date(self) -> None:
@@ -661,6 +719,9 @@ class MainWindow(
         selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model:
             selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+
+        # Connect food log table cell click
+        self.tableView_food_log.clicked.connect(self.on_food_log_table_cell_clicked)
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from table to clipboard as tab-separated text.
