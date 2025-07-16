@@ -841,6 +841,22 @@ class DatabaseManager:
         """
         return self.get_rows(query)
 
+    def get_earliest_food_log_date(self) -> str | None:
+        """Get the earliest date from food_log table.
+
+        Returns:
+
+        - `str | None`: The earliest date in YYYY-MM-DD format, or None if no records exist.
+
+        """
+        query = "SELECT MIN(date) FROM food_log WHERE date IS NOT NULL"
+        rows = self.get_rows(query)
+
+        if not rows or not rows[0] or rows[0][0] is None:
+            return None
+
+        return str(rows[0][0])
+
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.
 

@@ -120,6 +120,9 @@ class MainWindow(
         self.update_food_data()
         self._setup_window_size_and_position()
 
+        # Initialize food stats date range with earliest date from database
+        self._init_food_stats_dates()
+
         # Adjust table column widths and show window after UI is fully initialized
         QTimer.singleShot(200, self._finish_window_initialization)
 
@@ -1009,7 +1012,7 @@ class MainWindow(
         self.radioButton_use_weight.setChecked(True)
         self.update_calories_calculation()
 
-        # Initialize food stats date range (last month by default)
+                # Initialize food stats date range (will be set after database initialization)
         today = QDate.currentDate()
         month_ago = today.addMonths(-1)
         self.dateEdit_food_stats_from.setDate(month_ago)
@@ -1402,6 +1405,20 @@ class MainWindow(
     def on_food_stats_period_changed(self) -> None:
         """Handle period selection change and update chart."""
         self._update_food_calories_chart()
+
+    def _init_food_stats_dates(self) -> None:
+        """Initialize food stats date range with earliest date from database."""
+        if not self.db_manager or not self._validate_database_connection():
+            return
+
+        try:
+            earliest_date_str = self.db_manager.get_earliest_food_log_date()
+            if earliest_date_str:
+                earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
+                if earliest_date.isValid():
+                    self.dateEdit_food_stats_from.setDate(earliest_date)
+        except Exception as e:
+            print(f"Error getting earliest food log date: {e}")
 
 
 if __name__ == "__main__":
