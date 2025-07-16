@@ -8,6 +8,7 @@ import harrix_pylib as h
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QListWidget,
     QListWidgetItem,
@@ -76,6 +77,8 @@ class MainWindow(QMainWindow):
 
         # Connect the itemClicked signal to an event handler
         self.list_widget.itemClicked.connect(self.on_item_clicked)
+
+        self._setup_window_size_and_position()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Override the close event to hide the window instead of closing it.
@@ -209,3 +212,33 @@ class MainWindow(QMainWindow):
                 self.current_content = error_message
                 # Scroll to the end of the text
                 self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+
+
+    def _setup_window_size_and_position(self) -> None:
+        """Set window size and position based on screen resolution and characteristics."""
+        screen_geometry = QApplication.primaryScreen().geometry()
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+
+        # Determine window size and position based on screen characteristics
+        aspect_ratio = screen_width / screen_height
+        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+
+        if is_standard_aspect and screen_width >= 1920:
+            # For standard aspect ratios with width >= 1920, maximize window
+            self.showMaximized()
+        else:
+            title_bar_height = 30  # Approximate title bar height
+            windows_task_bar_height = 48  # Approximate windows task bar height
+            # For other cases, use fixed width and full height minus title bar
+            window_width = 1920
+            window_height = screen_height - title_bar_height - windows_task_bar_height
+            # Position window on screen
+            screen_center = screen_geometry.center()
+            # Center horizontally, position at top vertically with title bar offset
+            self.setGeometry(
+                screen_center.x() - window_width // 2,
+                title_bar_height,  # Position below title bar
+                window_width,
+                window_height
+            )

@@ -160,32 +160,7 @@ class MainWindow(
         QTimer.singleShot(100, self._load_initial_avifs)
 
         # Set window size and position based on screen resolution
-        screen_geometry = QApplication.primaryScreen().geometry()
-        screen_width = screen_geometry.width()
-        screen_height = screen_geometry.height()
-
-        # Determine window size and position based on screen characteristics
-        aspect_ratio = screen_width / screen_height
-        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
-
-        if is_standard_aspect and screen_width >= 1920:
-            # For standard aspect ratios with width > 1920, maximize window
-            self.showMaximized()
-        else:
-            title_bar_height = 30  # Approximate title bar height
-            windows_task_bar_height = 48  # Approximate windows task bar height
-            # For other cases, use fixed width and full height minus title bar
-            window_width = 1920
-            window_height = screen_height - title_bar_height - windows_task_bar_height
-            # Position window on screen
-            screen_center = screen_geometry.center()
-            # Center horizontally, position at top vertically with title bar offset
-            self.setGeometry(
-                screen_center.x() - window_width // 2,
-                title_bar_height,  # Position below title bar
-                window_width,
-                window_height
-            )
+        self._setup_window_size_and_position()
 
     @requires_database()
     def apply_filter(self) -> None:
@@ -3858,6 +3833,35 @@ class MainWindow(
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 3)  # tableView gets more space
+
+    def _setup_window_size_and_position(self) -> None:
+        """Set window size and position based on screen resolution and characteristics."""
+        screen_geometry = QApplication.primaryScreen().geometry()
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+
+        # Determine window size and position based on screen characteristics
+        aspect_ratio = screen_width / screen_height
+        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+
+        if is_standard_aspect and screen_width >= 1920:
+            # For standard aspect ratios with width >= 1920, maximize window
+            self.showMaximized()
+        else:
+            title_bar_height = 30  # Approximate title bar height
+            windows_task_bar_height = 48  # Approximate windows task bar height
+            # For other cases, use fixed width and full height minus title bar
+            window_width = 1920
+            window_height = screen_height - title_bar_height - windows_task_bar_height
+            # Position window on screen
+            screen_center = screen_geometry.center()
+            # Center horizontally, position at top vertically with title bar offset
+            self.setGeometry(
+                screen_center.x() - window_width // 2,
+                title_bar_height,  # Position below title bar
+                window_width,
+                window_height
+            )
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.

@@ -76,12 +76,6 @@ class MainWindow(
 
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
-        # Center window on screen
-        screen_center = QApplication.primaryScreen().geometry().center()
-        self.setGeometry(
-            screen_center.x() - self.width() // 2, screen_center.y() - self.height() // 2, self.width(), self.height()
-        )
-
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
 
@@ -115,6 +109,7 @@ class MainWindow(
         self._init_favorite_food_items_list()
         self.set_today_date()  # Set current date in dateEdit_food
         self.update_food_data()
+        self._setup_window_size_and_position()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
@@ -982,6 +977,35 @@ class MainWindow(
 
         # Set focus to the food name input field for quick data entry
         self.lineEdit_food_manual_name.setFocus()
+
+    def _setup_window_size_and_position(self) -> None:
+        """Set window size and position based on screen resolution and characteristics."""
+        screen_geometry = QApplication.primaryScreen().geometry()
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+
+        # Determine window size and position based on screen characteristics
+        aspect_ratio = screen_width / screen_height
+        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+
+        if is_standard_aspect and screen_width >= 1920:
+            # For standard aspect ratios with width >= 1920, maximize window
+            self.showMaximized()
+        else:
+            title_bar_height = 30  # Approximate title bar height
+            windows_task_bar_height = 48  # Approximate windows task bar height
+            # For other cases, use fixed width and full height minus title bar
+            window_width = 1920
+            window_height = screen_height - title_bar_height - windows_task_bar_height
+            # Position window on screen
+            screen_center = screen_geometry.center()
+            # Center horizontally, position at top vertically with title bar offset
+            self.setGeometry(
+                screen_center.x() - window_width // 2,
+                title_bar_height,  # Position below title bar
+                window_width,
+                window_height
+            )
 
     def _update_food_items_list(self) -> None:
         """Refresh food items list view with data from database."""
