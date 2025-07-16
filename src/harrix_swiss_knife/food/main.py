@@ -233,6 +233,13 @@ class MainWindow(
                     self._copy_table_selection_to_clipboard(table_view)
                     return
 
+        # Handle Enter key on doubleSpinBox_food_calories to trigger add button
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            focused_widget = QApplication.focusWidget()
+            if focused_widget == self.doubleSpinBox_food_calories:
+                self.pushButton_food_add.click()
+                return
+
         # Call parent implementation for other key events
         super().keyPressEvent(event)
 
