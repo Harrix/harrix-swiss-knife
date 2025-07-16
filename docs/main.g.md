@@ -155,6 +155,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             ],
             items=[
                 hsk.apps.OnFitness,
+                hsk.apps.OnFood,
                 "-",
                 hsk.images.OnOptimizeClipboard,
                 hsk.images.OnOptimizeClipboardDialog,
@@ -298,6 +299,7 @@ def __init__(self) -> None:
             ],
             items=[
                 hsk.apps.OnFitness,
+                hsk.apps.OnFood,
                 "-",
                 hsk.images.OnOptimizeClipboard,
                 hsk.images.OnOptimizeClipboardDialog,

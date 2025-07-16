@@ -58,6 +58,7 @@ lang: en
   - [⚙️ Method `update_sets_count_today`](#%EF%B8%8F-method-update_sets_count_today)
   - [⚙️ Method `update_statistics_exercise_combobox`](#%EF%B8%8F-method-update_statistics_exercise_combobox)
   - [⚙️ Method `update_weight_chart`](#%EF%B8%8F-method-update_weight_chart)
+  - [⚙️ Method `_adjust_process_table_columns`](#%EF%B8%8F-method-_adjust_process_table_columns)
   - [⚙️ Method `_check_for_new_records`](#%EF%B8%8F-method-_check_for_new_records)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
@@ -68,6 +69,7 @@ lang: en
   - [⚙️ Method `_create_colored_table_model`](#%EF%B8%8F-method-_create_colored_table_model)
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
+  - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
   - [⚙️ Method `_get_current_selected_exercise`](#%EF%B8%8F-method-_get_current_selected_exercise)
   - [⚙️ Method `_get_exercise_avif_path`](#%EF%B8%8F-method-_get_exercise_avif_path)
   - [⚙️ Method `_get_exercise_name_by_id`](#%EF%B8%8F-method-_get_exercise_name_by_id)
@@ -87,10 +89,13 @@ lang: en
   - [⚙️ Method `_load_exercise_avif`](#%EF%B8%8F-method-_load_exercise_avif)
   - [⚙️ Method `_load_initial_avifs`](#%EF%B8%8F-method-_load_initial_avifs)
   - [⚙️ Method `_next_avif_frame`](#%EF%B8%8F-method-_next_avif_frame)
+  - [⚙️ Method `_on_exercises_list_double_clicked`](#%EF%B8%8F-method-_on_exercises_list_double_clicked)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
+  - [⚙️ Method `_on_window_resize`](#%EF%B8%8F-method-_on_window_resize)
   - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
+  - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_record_congratulations`](#%EF%B8%8F-method-_show_record_congratulations)
   - [⚙️ Method `_update_charts_avif`](#%EF%B8%8F-method-_update_charts_avif)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
@@ -155,12 +160,6 @@ class MainWindow(
         self._setup_ui()
 
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-
-        # Center window on screen
-        screen_center = QApplication.primaryScreen().geometry().center()
-        self.setGeometry(
-            screen_center.x() - self.width() // 2, screen_center.y() - self.height() // 2, self.width(), self.height()
-        )
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
@@ -232,6 +231,12 @@ class MainWindow(
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
 
+        # Set window size and position based on screen resolution
+        self._setup_window_size_and_position()
+
+        # Adjust table column widths and show window after UI is fully initialized
+        QTimer.singleShot(200, self._finish_window_initialization)
+
     @requires_database()
     def apply_filter(self) -> None:
         """Apply combo-box/date filters to the process table."""
@@ -275,18 +280,13 @@ class MainWindow(
         )
         self.tableView_process.setModel(self.models["process"])
 
-        # Configure header with mixed approach after applying filter
+        # Configure header with interactive mode for all columns
         header = self.tableView_process.horizontalHeader()
-        # Set first columns to interactive (resizable)
-        for i in range(header.count() - 1):
+        # Set all columns to interactive (resizable)
+        for i in range(header.count()):
             header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        # Set last column to stretch to fill remaining space
-        header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-        # Restore default column widths for resizable columns
-        self.tableView_process.setColumnWidth(0, 200)  # Exercise
-        self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
-        self.tableView_process.setColumnWidth(2, 120)  # Quantity
-        # Date column will stretch automatically
+        # Set proportional column widths for all columns
+        self._adjust_process_table_columns()
 
     def clear_filter(self) -> None:
         """Reset all process-table filters.
@@ -2321,18 +2321,13 @@ class MainWindow(
             )
             self.tableView_process.setModel(self.models["process"])
 
-            # Configure process table header - mixed approach: interactive + stretch last
+            # Configure process table header - interactive mode for all columns
             process_header = self.tableView_process.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(process_header.count() - 1):
+            # Set all columns to interactive (resizable)
+            for i in range(process_header.count()):
                 process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            process_header.setSectionResizeMode(process_header.count() - 1, process_header.ResizeMode.Stretch)
-            # Set default column widths for resizable columns
-            self.tableView_process.setColumnWidth(0, 200)  # Exercise
-            self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
-            self.tableView_process.setColumnWidth(2, 120)  # Quantity
-            # Date column will stretch automatically
+            # Set proportional column widths for all columns
+            self._adjust_process_table_columns()
 
             # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
@@ -2821,6 +2816,31 @@ class MainWindow(
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
 
+    def _adjust_process_table_columns(self) -> None:
+        """Adjust process table column widths proportionally to window size."""
+        if not hasattr(self, "tableView_process") or not self.tableView_process.model():
+            return
+
+        # Get current table width (approximate available width for table)
+        table_width = self.tableView_process.width()
+        if table_width <= 0:
+            # Fallback to window width if table width is not available
+            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
+
+        # Ensure minimum table width for better appearance
+        table_width = max(table_width, 800)
+
+        # Define proportional distribution of total width
+        # Total: 100% = 40% + 25% + 20% + 15%
+        proportions = [0.40, 0.25, 0.20, 0.15]  # Exercise, Exercise Type, Quantity, Date
+
+        # Calculate widths based on proportions
+        column_widths = [int(table_width * prop) for prop in proportions]
+
+        # Apply widths to all columns
+        for i, width in enumerate(column_widths):
+            self.tableView_process.setColumnWidth(i, width)
+
     def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
         """Check if the current value would be a new all-time or yearly record.
 
@@ -2878,6 +2898,9 @@ class MainWindow(
         """
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
+
+        # Connect window resize event for automatic column resizing
+        self.resizeEvent = self._on_window_resize
 
         # Connect delete and refresh buttons for all tables (except statistics)
         tables_with_controls = {"process", "exercises", "types", "weight"}
@@ -2942,6 +2965,9 @@ class MainWindow(
         # Statistics exercise combobox
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
+
+        # Connect double-click signal for exercises list to open statistics tab
+        self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
 
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
@@ -3198,6 +3224,12 @@ class MainWindow(
         if self.exercises_list_model is not None:
             self.exercises_list_model.deleteLater()
         self.exercises_list_model = None
+
+    def _finish_window_initialization(self) -> None:
+        """Finish window initialization by showing the window and adjusting columns."""
+        self.show()
+        # Adjust columns after window is shown and has proper dimensions
+        QTimer.singleShot(50, self._adjust_process_table_columns)
 
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
@@ -3470,6 +3502,9 @@ class MainWindow(
         """Initialize the exercises list view with a model and connect signals."""
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
+
+        # Disable editing for exercises list
+        self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
         # Initialize labels with default values
         self.label_exercise.setText("No exercise selected")
@@ -3778,6 +3813,22 @@ class MainWindow(
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
+    def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double-click on exercises list to open statistics tab.
+
+        Args:
+
+        - `index` (`QModelIndex`): Index of the double-clicked item.
+
+        """
+        # Find the statistics tab index
+        for i in range(self.tabWidget.count()):
+            tab_widget = self.tabWidget.widget(i)
+            if tab_widget and tab_widget.objectName() == "tab_4":
+                # Switch to statistics tab
+                self.tabWidget.setCurrentIndex(i)
+                break
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -3812,6 +3863,20 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+
+    def _on_window_resize(self, event) -> None:
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `event`: The resize event.
+
+        """
+        # Call parent resize event first
+        super().resizeEvent(event)
+
+        # Adjust process table column widths based on window size
+        self._adjust_process_table_columns()
 
     def _refresh_table(
         self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None
@@ -3900,9 +3965,38 @@ class MainWindow(
         self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
 
         # Configure splitter proportions
-        self.splitter.setStretchFactor(0, 3)  # tableView gets more space
+        self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
-        self.splitter.setStretchFactor(2, 0)  # frame with fixed size
+        self.splitter.setStretchFactor(2, 3)  # tableView gets more space
+
+    def _setup_window_size_and_position(self) -> None:
+        """Set window size and position based on screen resolution and characteristics."""
+        screen_geometry = QApplication.primaryScreen().geometry()
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+
+        # Determine window size and position based on screen characteristics
+        aspect_ratio = screen_width / screen_height
+        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+
+        if is_standard_aspect and screen_width >= 1920:
+            # For standard aspect ratios with width >= 1920, maximize window
+            self.showMaximized()
+        else:
+            title_bar_height = 30  # Approximate title bar height
+            windows_task_bar_height = 48  # Approximate windows task bar height
+            # For other cases, use fixed width and full height minus title bar
+            window_width = 1920
+            window_height = screen_height - title_bar_height - windows_task_bar_height
+            # Position window on screen
+            screen_center = screen_geometry.center()
+            # Center horizontally, position at top vertically with title bar offset
+            self.setGeometry(
+                screen_center.x() - window_width // 2,
+                title_bar_height,  # Position below title bar
+                window_width,
+                window_height,
+            )
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
@@ -4183,12 +4277,6 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
-        # Center window on screen
-        screen_center = QApplication.primaryScreen().geometry().center()
-        self.setGeometry(
-            screen_center.x() - self.width() // 2, screen_center.y() - self.height() // 2, self.width(), self.height()
-        )
-
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
         self.current_movie: QMovie | None = None
@@ -4258,6 +4346,12 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
+
+        # Set window size and position based on screen resolution
+        self._setup_window_size_and_position()
+
+        # Adjust table column widths and show window after UI is fully initialized
+        QTimer.singleShot(200, self._finish_window_initialization)
 ```
 
 </details>
@@ -4315,17 +4409,13 @@ def apply_filter(self) -> None:
         )
         self.tableView_process.setModel(self.models["process"])
 
-        # Configure header with mixed approach after applying filter
+        # Configure header with interactive mode for all columns
         header = self.tableView_process.horizontalHeader()
-        # Set first columns to interactive (resizable)
-        for i in range(header.count() - 1):
+        # Set all columns to interactive (resizable)
+        for i in range(header.count()):
             header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        # Set last column to stretch to fill remaining space
-        header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-        # Restore default column widths for resizable columns
-        self.tableView_process.setColumnWidth(0, 200)  # Exercise
-        self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
-        self.tableView_process.setColumnWidth(2, 120)  # Quantity
+        # Set proportional column widths for all columns
+        self._adjust_process_table_columns()
 ```
 
 </details>
@@ -6806,18 +6896,13 @@ def show_tables(self) -> None:
             )
             self.tableView_process.setModel(self.models["process"])
 
-            # Configure process table header - mixed approach: interactive + stretch last
+            # Configure process table header - interactive mode for all columns
             process_header = self.tableView_process.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(process_header.count() - 1):
+            # Set all columns to interactive (resizable)
+            for i in range(process_header.count()):
                 process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            process_header.setSectionResizeMode(process_header.count() - 1, process_header.ResizeMode.Stretch)
-            # Set default column widths for resizable columns
-            self.tableView_process.setColumnWidth(0, 200)  # Exercise
-            self.tableView_process.setColumnWidth(1, 150)  # Exercise Type
-            self.tableView_process.setColumnWidth(2, 120)  # Quantity
-            # Date column will stretch automatically
+            # Set proportional column widths for all columns
+            self._adjust_process_table_columns()
 
             # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
@@ -7419,6 +7504,45 @@ def update_weight_chart(self) -> None:
 
 </details>
 
+### ⚙️ Method `_adjust_process_table_columns`
+
+```python
+def _adjust_process_table_columns(self) -> None
+```
+
+Adjust process table column widths proportionally to window size.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _adjust_process_table_columns(self) -> None:
+        if not hasattr(self, "tableView_process") or not self.tableView_process.model():
+            return
+
+        # Get current table width (approximate available width for table)
+        table_width = self.tableView_process.width()
+        if table_width <= 0:
+            # Fallback to window width if table width is not available
+            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
+
+        # Ensure minimum table width for better appearance
+        table_width = max(table_width, 800)
+
+        # Define proportional distribution of total width
+        # Total: 100% = 40% + 25% + 20% + 15%
+        proportions = [0.40, 0.25, 0.20, 0.15]  # Exercise, Exercise Type, Quantity, Date
+
+        # Calculate widths based on proportions
+        column_widths = [int(table_width * prop) for prop in proportions]
+
+        # Apply widths to all columns
+        for i, width in enumerate(column_widths):
+            self.tableView_process.setColumnWidth(i, width)
+```
+
+</details>
+
 ### ⚙️ Method `_check_for_new_records`
 
 ```python
@@ -7499,6 +7623,9 @@ def _connect_signals(self) -> None:
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
+        # Connect window resize event for automatic column resizing
+        self.resizeEvent = self._on_window_resize
+
         # Connect delete and refresh buttons for all tables (except statistics)
         tables_with_controls = {"process", "exercises", "types", "weight"}
         for table_name in tables_with_controls:
@@ -7562,6 +7689,9 @@ def _connect_signals(self) -> None:
         # Statistics exercise combobox
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
+
+        # Connect double-click signal for exercises list to open statistics tab
+        self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
 ```
 
 </details>
@@ -7919,6 +8049,26 @@ def _dispose_models(self) -> None:
         if self.exercises_list_model is not None:
             self.exercises_list_model.deleteLater()
         self.exercises_list_model = None
+```
+
+</details>
+
+### ⚙️ Method `_finish_window_initialization`
+
+```python
+def _finish_window_initialization(self) -> None
+```
+
+Finish window initialization by showing the window and adjusting columns.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _finish_window_initialization(self) -> None:
+        self.show()
+        # Adjust columns after window is shown and has proper dimensions
+        QTimer.singleShot(50, self._adjust_process_table_columns)
 ```
 
 </details>
@@ -8316,6 +8466,9 @@ Initialize the exercises list view with a model and connect signals.
 def _init_exercises_list(self) -> None:
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
+
+        # Disable editing for exercises list
+        self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
         # Initialize labels with default values
         self.label_exercise.setText("No exercise selected")
@@ -8746,6 +8899,34 @@ def _next_avif_frame(self, label_key: str) -> None:
 
 </details>
 
+### ⚙️ Method `_on_exercises_list_double_clicked`
+
+```python
+def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None
+```
+
+Handle double-click on exercises list to open statistics tab.
+
+Args:
+
+- `index` (`QModelIndex`): Index of the double-clicked item.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+        # Find the statistics tab index
+        for i in range(self.tabWidget.count()):
+            tab_widget = self.tabWidget.widget(i)
+            if tab_widget and tab_widget.objectName() == "tab_4":
+                # Switch to statistics tab
+                self.tabWidget.setCurrentIndex(i)
+                break
+```
+
+</details>
+
 ### ⚙️ Method `_on_table_data_changed`
 
 ```python
@@ -8789,6 +8970,32 @@ def _on_table_data_changed(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+```
+
+</details>
+
+### ⚙️ Method `_on_window_resize`
+
+```python
+def _on_window_resize(self, event) -> None
+```
+
+Handle window resize event and adjust table column widths proportionally.
+
+Args:
+
+- `event`: The resize event.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_window_resize(self, event) -> None:
+        # Call parent resize event first
+        super().resizeEvent(event)
+
+        # Adjust process table column widths based on window size
+        self._adjust_process_table_columns()
 ```
 
 </details>
@@ -8915,9 +9122,52 @@ def _setup_ui(self) -> None:
         self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
 
         # Configure splitter proportions
-        self.splitter.setStretchFactor(0, 3)  # tableView gets more space
+        self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
-        self.splitter.setStretchFactor(2, 0)  # frame with fixed size
+        self.splitter.setStretchFactor(2, 3)  # tableView gets more space
+```
+
+</details>
+
+### ⚙️ Method `_setup_window_size_and_position`
+
+```python
+def _setup_window_size_and_position(self) -> None
+```
+
+Set window size and position based on screen resolution and characteristics.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_window_size_and_position(self) -> None:
+        screen_geometry = QApplication.primaryScreen().geometry()
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+
+        # Determine window size and position based on screen characteristics
+        aspect_ratio = screen_width / screen_height
+        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+
+        if is_standard_aspect and screen_width >= 1920:
+            # For standard aspect ratios with width >= 1920, maximize window
+            self.showMaximized()
+        else:
+            title_bar_height = 30  # Approximate title bar height
+            windows_task_bar_height = 48  # Approximate windows task bar height
+            # For other cases, use fixed width and full height minus title bar
+            window_width = 1920
+            window_height = screen_height - title_bar_height - windows_task_bar_height
+            # Position window on screen
+            screen_center = screen_geometry.center()
+            # Center horizontally, position at top vertically with title bar offset
+            self.setGeometry(
+                screen_center.x() - window_width // 2,
+                title_bar_height,  # Position below title bar
+                window_width,
+                window_height,
+            )
 ```
 
 </details>

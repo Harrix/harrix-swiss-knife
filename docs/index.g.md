@@ -113,6 +113,7 @@ _Figure 1: Screenshot_
   - 🌟 isort, ruff format, sort in PY files
   - 🌟 ★ isort, ruff format, sort, make docs in PY files
 - 🏃🏻 Fitness tracker
+- 🍎 Food tracker
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit
@@ -185,7 +186,8 @@ CLI commands after installation:
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
 - `ruff check` — lint the project's Python files.
 - `ruff check --fix` — lint and fix the project's Python files.
-- `pyside6-uic src/harrix_swiss_knife/fitness/window.ui -o src/harrix_swiss_knife/fitness/window.py` — convert UI file to PY class.
+- `pyside6-uic src/harrix_swiss_knife/fitness/window.ui -o src/harrix_swiss_knife/fitness/window.py` — convert Fitness UI file to PY class.
+- `pyside6-uic src/harrix_swiss_knife/food/window.ui -o src/harrix_swiss_knife/food/window.py` — convert Food UI file to PY class.
 - `isort .` — sort imports.
 - `ruff format` — format the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.

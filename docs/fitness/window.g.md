@@ -34,7 +34,6 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Fitness tracker", None))
-        self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
@@ -59,6 +58,7 @@ class Ui_MainWindow(object):
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", "Count of Sets Today", None))
         self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
+        self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
@@ -80,6 +80,12 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
         )
+        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Weight", None))
+        self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
+        self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
+        self.pushButton_weight_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
+        self.pushButton_weight_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.label_weight_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_weight_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.label_weight_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
@@ -88,12 +94,6 @@ class Ui_MainWindow(object):
         self.pushButton_weight_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_weight_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.pushButton_update_weight_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Weight", None))
-        self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
-        self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
-        self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.pushButton_weight_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
-        self.pushButton_weight_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None)
         )
@@ -150,44 +150,6 @@ class Ui_MainWindow(object):
         self.splitter.setObjectName("splitter")
         self.splitter.setOrientation(Qt.Horizontal)
         self.splitter.setChildrenCollapsible(False)
-        self.tableView_process = QTableView(self.splitter)
-        self.tableView_process.setObjectName("tableView_process")
-        self.splitter.addWidget(self.tableView_process)
-        self.widget_middle = QWidget(self.splitter)
-        self.widget_middle.setObjectName("widget_middle")
-        self.verticalLayout = QVBoxLayout(self.widget_middle)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.label_7 = QLabel(self.widget_middle)
-        self.label_7.setObjectName("label_7")
-
-        self.verticalLayout.addWidget(self.label_7)
-
-        self.listView_exercises = QListView(self.widget_middle)
-        self.listView_exercises.setObjectName("listView_exercises")
-        self.listView_exercises.setMaximumSize(QSize(16777215, 16777215))
-        self.listView_exercises.setStyleSheet(
-            "QListView {\n"
-            "                                border: 2px solid #4CAF50;\n"
-            "                                border-radius: 4px;\n"
-            "                                background-color: white;\n"
-            "                                }\n"
-            "                                QListView::item {\n"
-            "                                padding: 4px;\n"
-            "                                border-bottom: 1px solid #e0e0e0;\n"
-            "                                }\n"
-            "                                QListView::item:selected {\n"
-            "                                background-color: #e8f5e8;\n"
-            "                                color: black;\n"
-            "                                }\n"
-            "                                QListView::item:hover {\n"
-            "                                background-color: #f0f8f0;\n"
-            "                                }"
-        )
-
-        self.verticalLayout.addWidget(self.listView_exercises)
-
-        self.splitter.addWidget(self.widget_middle)
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName("frame")
         self.frame.setMinimumSize(QSize(350, 0))
@@ -439,6 +401,44 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.addItem(self.verticalSpacer)
 
         self.splitter.addWidget(self.frame)
+        self.widget_middle = QWidget(self.splitter)
+        self.widget_middle.setObjectName("widget_middle")
+        self.verticalLayout = QVBoxLayout(self.widget_middle)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.label_7 = QLabel(self.widget_middle)
+        self.label_7.setObjectName("label_7")
+
+        self.verticalLayout.addWidget(self.label_7)
+
+        self.listView_exercises = QListView(self.widget_middle)
+        self.listView_exercises.setObjectName("listView_exercises")
+        self.listView_exercises.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_exercises.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
+
+        self.verticalLayout.addWidget(self.listView_exercises)
+
+        self.splitter.addWidget(self.widget_middle)
+        self.tableView_process = QTableView(self.splitter)
+        self.tableView_process.setObjectName("tableView_process")
+        self.splitter.addWidget(self.tableView_process)
 
         self.horizontalLayout_main.addWidget(self.splitter)
 
@@ -456,11 +456,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2 = QHBoxLayout(self.widget_top)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.tableView_exercises = QTableView(self.widget_top)
-        self.tableView_exercises.setObjectName("tableView_exercises")
-
-        self.horizontalLayout_2.addWidget(self.tableView_exercises)
-
         self.frame_2 = QFrame(self.widget_top)
         self.frame_2.setObjectName("frame_2")
         self.frame_2.setMinimumSize(QSize(250, 0))
@@ -560,17 +555,17 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addWidget(self.frame_2)
 
+        self.tableView_exercises = QTableView(self.widget_top)
+        self.tableView_exercises.setObjectName("tableView_exercises")
+
+        self.horizontalLayout_2.addWidget(self.tableView_exercises)
+
         self.splitter_2.addWidget(self.widget_top)
         self.widget_bottom = QWidget(self.splitter_2)
         self.widget_bottom.setObjectName("widget_bottom")
         self.horizontalLayout_3 = QHBoxLayout(self.widget_bottom)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.horizontalLayout_3.setContentsMargins(0, 0, 0, 0)
-        self.tableView_exercise_types = QTableView(self.widget_bottom)
-        self.tableView_exercise_types.setObjectName("tableView_exercise_types")
-
-        self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
-
         self.frame_3 = QFrame(self.widget_bottom)
         self.frame_3.setObjectName("frame_3")
         self.frame_3.setMinimumSize(QSize(250, 0))
@@ -643,6 +638,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3.addWidget(self.frame_3)
 
+        self.tableView_exercise_types = QTableView(self.widget_bottom)
+        self.tableView_exercise_types.setObjectName("tableView_exercise_types")
+
+        self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
+
         self.splitter_2.addWidget(self.widget_bottom)
 
         self.horizontalLayout_4.addWidget(self.splitter_2)
@@ -652,6 +652,75 @@ class Ui_MainWindow(object):
         self.tab_5.setObjectName("tab_5")
         self.horizontalLayout_5 = QHBoxLayout(self.tab_5)
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.frame_4 = QFrame(self.tab_5)
+        self.frame_4.setObjectName("frame_4")
+        self.frame_4.setMinimumSize(QSize(250, 0))
+        self.frame_4.setMaximumSize(QSize(250, 16777215))
+        self.frame_4.setFrameShape(QFrame.StyledPanel)
+        self.frame_4.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_9 = QVBoxLayout(self.frame_4)
+        self.verticalLayout_9.setObjectName("verticalLayout_9")
+        self.groupBox_4 = QGroupBox(self.frame_4)
+        self.groupBox_4.setObjectName("groupBox_4")
+        self.verticalLayout_7 = QVBoxLayout(self.groupBox_4)
+        self.verticalLayout_7.setObjectName("verticalLayout_7")
+        self.doubleSpinBox_weight = QDoubleSpinBox(self.groupBox_4)
+        self.doubleSpinBox_weight.setObjectName("doubleSpinBox_weight")
+        self.doubleSpinBox_weight.setMaximum(300.000000000000000)
+        self.doubleSpinBox_weight.setValue(89.000000000000000)
+
+        self.verticalLayout_7.addWidget(self.doubleSpinBox_weight)
+
+        self.dateEdit_weight = QDateEdit(self.groupBox_4)
+        self.dateEdit_weight.setObjectName("dateEdit_weight")
+        self.dateEdit_weight.setMinimumSize(QSize(191, 0))
+        self.dateEdit_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_weight.setCalendarPopup(True)
+
+        self.verticalLayout_7.addWidget(self.dateEdit_weight)
+
+        self.horizontalLayout_15 = QHBoxLayout()
+        self.horizontalLayout_15.setObjectName("horizontalLayout_15")
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_15.addItem(self.horizontalSpacer_3)
+
+        self.pushButton_weight_add = QPushButton(self.groupBox_4)
+        self.pushButton_weight_add.setObjectName("pushButton_weight_add")
+
+        self.horizontalLayout_15.addWidget(self.pushButton_weight_add)
+
+        self.verticalLayout_7.addLayout(self.horizontalLayout_15)
+
+        self.verticalLayout_9.addWidget(self.groupBox_4)
+
+        self.groupBox_6 = QGroupBox(self.frame_4)
+        self.groupBox_6.setObjectName("groupBox_6")
+        self.verticalLayout_8 = QVBoxLayout(self.groupBox_6)
+        self.verticalLayout_8.setObjectName("verticalLayout_8")
+        self.horizontalLayout_16 = QHBoxLayout()
+        self.horizontalLayout_16.setObjectName("horizontalLayout_16")
+        self.pushButton_weight_delete = QPushButton(self.groupBox_6)
+        self.pushButton_weight_delete.setObjectName("pushButton_weight_delete")
+
+        self.horizontalLayout_16.addWidget(self.pushButton_weight_delete)
+
+        self.pushButton_weight_refresh = QPushButton(self.groupBox_6)
+        self.pushButton_weight_refresh.setObjectName("pushButton_weight_refresh")
+
+        self.horizontalLayout_16.addWidget(self.pushButton_weight_refresh)
+
+        self.verticalLayout_8.addLayout(self.horizontalLayout_16)
+
+        self.verticalLayout_9.addWidget(self.groupBox_6)
+
+        self.tableView_weight = QTableView(self.frame_4)
+        self.tableView_weight.setObjectName("tableView_weight")
+
+        self.verticalLayout_9.addWidget(self.tableView_weight)
+
+        self.horizontalLayout_5.addWidget(self.frame_4)
+
         self.verticalLayout_6 = QVBoxLayout()
         self.verticalLayout_6.setObjectName("verticalLayout_6")
         self.frame_weight_controls = QFrame(self.tab_5)
@@ -722,75 +791,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_6.addWidget(self.scrollArea_weight_chart)
 
         self.horizontalLayout_5.addLayout(self.verticalLayout_6)
-
-        self.frame_4 = QFrame(self.tab_5)
-        self.frame_4.setObjectName("frame_4")
-        self.frame_4.setMinimumSize(QSize(250, 0))
-        self.frame_4.setMaximumSize(QSize(250, 16777215))
-        self.frame_4.setFrameShape(QFrame.StyledPanel)
-        self.frame_4.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_9 = QVBoxLayout(self.frame_4)
-        self.verticalLayout_9.setObjectName("verticalLayout_9")
-        self.groupBox_4 = QGroupBox(self.frame_4)
-        self.groupBox_4.setObjectName("groupBox_4")
-        self.verticalLayout_7 = QVBoxLayout(self.groupBox_4)
-        self.verticalLayout_7.setObjectName("verticalLayout_7")
-        self.doubleSpinBox_weight = QDoubleSpinBox(self.groupBox_4)
-        self.doubleSpinBox_weight.setObjectName("doubleSpinBox_weight")
-        self.doubleSpinBox_weight.setMaximum(300.000000000000000)
-        self.doubleSpinBox_weight.setValue(89.000000000000000)
-
-        self.verticalLayout_7.addWidget(self.doubleSpinBox_weight)
-
-        self.dateEdit_weight = QDateEdit(self.groupBox_4)
-        self.dateEdit_weight.setObjectName("dateEdit_weight")
-        self.dateEdit_weight.setMinimumSize(QSize(191, 0))
-        self.dateEdit_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
-        self.dateEdit_weight.setCalendarPopup(True)
-
-        self.verticalLayout_7.addWidget(self.dateEdit_weight)
-
-        self.horizontalLayout_15 = QHBoxLayout()
-        self.horizontalLayout_15.setObjectName("horizontalLayout_15")
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_15.addItem(self.horizontalSpacer_3)
-
-        self.pushButton_weight_add = QPushButton(self.groupBox_4)
-        self.pushButton_weight_add.setObjectName("pushButton_weight_add")
-
-        self.horizontalLayout_15.addWidget(self.pushButton_weight_add)
-
-        self.verticalLayout_7.addLayout(self.horizontalLayout_15)
-
-        self.verticalLayout_9.addWidget(self.groupBox_4)
-
-        self.groupBox_6 = QGroupBox(self.frame_4)
-        self.groupBox_6.setObjectName("groupBox_6")
-        self.verticalLayout_8 = QVBoxLayout(self.groupBox_6)
-        self.verticalLayout_8.setObjectName("verticalLayout_8")
-        self.horizontalLayout_16 = QHBoxLayout()
-        self.horizontalLayout_16.setObjectName("horizontalLayout_16")
-        self.pushButton_weight_delete = QPushButton(self.groupBox_6)
-        self.pushButton_weight_delete.setObjectName("pushButton_weight_delete")
-
-        self.horizontalLayout_16.addWidget(self.pushButton_weight_delete)
-
-        self.pushButton_weight_refresh = QPushButton(self.groupBox_6)
-        self.pushButton_weight_refresh.setObjectName("pushButton_weight_refresh")
-
-        self.horizontalLayout_16.addWidget(self.pushButton_weight_refresh)
-
-        self.verticalLayout_8.addLayout(self.horizontalLayout_16)
-
-        self.verticalLayout_9.addWidget(self.groupBox_6)
-
-        self.tableView_weight = QTableView(self.frame_4)
-        self.tableView_weight.setObjectName("tableView_weight")
-
-        self.verticalLayout_9.addWidget(self.tableView_weight)
-
-        self.horizontalLayout_5.addWidget(self.frame_4)
 
         self.tabWidget.addTab(self.tab_5, "")
         self.tab_charts = QWidget()
@@ -965,11 +965,6 @@ class Ui_MainWindow(object):
         self.tab_4.setObjectName("tab_4")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_4)
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.tableView_statistics = QTableView(self.tab_4)
-        self.tableView_statistics.setObjectName("tableView_statistics")
-
-        self.horizontalLayout_6.addWidget(self.tableView_statistics)
-
         self.frame_5 = QFrame(self.tab_4)
         self.frame_5.setObjectName("frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
@@ -1020,6 +1015,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_6.addWidget(self.frame_5)
 
+        self.tableView_statistics = QTableView(self.tab_4)
+        self.tableView_statistics.setObjectName("tableView_statistics")
+
+        self.horizontalLayout_6.addWidget(self.tableView_statistics)
+
         self.tabWidget.addTab(self.tab_4, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
@@ -1059,7 +1059,6 @@ _No docstring provided._
 ```python
 def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Fitness tracker", None))
-        self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", "Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
@@ -1084,6 +1083,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", "Count of Sets Today", None))
         self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
+        self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
@@ -1105,6 +1105,12 @@ def retranslateUi(self, MainWindow):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", "Exercises", None)
         )
+        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Weight", None))
+        self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
+        self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
+        self.pushButton_weight_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
+        self.pushButton_weight_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.label_weight_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_weight_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.label_weight_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
@@ -1113,12 +1119,6 @@ def retranslateUi(self, MainWindow):
         self.pushButton_weight_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_weight_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.pushButton_update_weight_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", "Add New Weight", None))
-        self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
-        self.pushButton_weight_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
-        self.groupBox_6.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.pushButton_weight_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
-        self.pushButton_weight_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None)
         )
@@ -1190,44 +1190,6 @@ def setupUi(self, MainWindow):
         self.splitter.setObjectName("splitter")
         self.splitter.setOrientation(Qt.Horizontal)
         self.splitter.setChildrenCollapsible(False)
-        self.tableView_process = QTableView(self.splitter)
-        self.tableView_process.setObjectName("tableView_process")
-        self.splitter.addWidget(self.tableView_process)
-        self.widget_middle = QWidget(self.splitter)
-        self.widget_middle.setObjectName("widget_middle")
-        self.verticalLayout = QVBoxLayout(self.widget_middle)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.label_7 = QLabel(self.widget_middle)
-        self.label_7.setObjectName("label_7")
-
-        self.verticalLayout.addWidget(self.label_7)
-
-        self.listView_exercises = QListView(self.widget_middle)
-        self.listView_exercises.setObjectName("listView_exercises")
-        self.listView_exercises.setMaximumSize(QSize(16777215, 16777215))
-        self.listView_exercises.setStyleSheet(
-            "QListView {\n"
-            "                                border: 2px solid #4CAF50;\n"
-            "                                border-radius: 4px;\n"
-            "                                background-color: white;\n"
-            "                                }\n"
-            "                                QListView::item {\n"
-            "                                padding: 4px;\n"
-            "                                border-bottom: 1px solid #e0e0e0;\n"
-            "                                }\n"
-            "                                QListView::item:selected {\n"
-            "                                background-color: #e8f5e8;\n"
-            "                                color: black;\n"
-            "                                }\n"
-            "                                QListView::item:hover {\n"
-            "                                background-color: #f0f8f0;\n"
-            "                                }"
-        )
-
-        self.verticalLayout.addWidget(self.listView_exercises)
-
-        self.splitter.addWidget(self.widget_middle)
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName("frame")
         self.frame.setMinimumSize(QSize(350, 0))
@@ -1479,6 +1441,44 @@ def setupUi(self, MainWindow):
         self.verticalLayout_3.addItem(self.verticalSpacer)
 
         self.splitter.addWidget(self.frame)
+        self.widget_middle = QWidget(self.splitter)
+        self.widget_middle.setObjectName("widget_middle")
+        self.verticalLayout = QVBoxLayout(self.widget_middle)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.label_7 = QLabel(self.widget_middle)
+        self.label_7.setObjectName("label_7")
+
+        self.verticalLayout.addWidget(self.label_7)
+
+        self.listView_exercises = QListView(self.widget_middle)
+        self.listView_exercises.setObjectName("listView_exercises")
+        self.listView_exercises.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_exercises.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
+
+        self.verticalLayout.addWidget(self.listView_exercises)
+
+        self.splitter.addWidget(self.widget_middle)
+        self.tableView_process = QTableView(self.splitter)
+        self.tableView_process.setObjectName("tableView_process")
+        self.splitter.addWidget(self.tableView_process)
 
         self.horizontalLayout_main.addWidget(self.splitter)
 
@@ -1496,11 +1496,6 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_2 = QHBoxLayout(self.widget_top)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.tableView_exercises = QTableView(self.widget_top)
-        self.tableView_exercises.setObjectName("tableView_exercises")
-
-        self.horizontalLayout_2.addWidget(self.tableView_exercises)
-
         self.frame_2 = QFrame(self.widget_top)
         self.frame_2.setObjectName("frame_2")
         self.frame_2.setMinimumSize(QSize(250, 0))
@@ -1600,17 +1595,17 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_2.addWidget(self.frame_2)
 
+        self.tableView_exercises = QTableView(self.widget_top)
+        self.tableView_exercises.setObjectName("tableView_exercises")
+
+        self.horizontalLayout_2.addWidget(self.tableView_exercises)
+
         self.splitter_2.addWidget(self.widget_top)
         self.widget_bottom = QWidget(self.splitter_2)
         self.widget_bottom.setObjectName("widget_bottom")
         self.horizontalLayout_3 = QHBoxLayout(self.widget_bottom)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.horizontalLayout_3.setContentsMargins(0, 0, 0, 0)
-        self.tableView_exercise_types = QTableView(self.widget_bottom)
-        self.tableView_exercise_types.setObjectName("tableView_exercise_types")
-
-        self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
-
         self.frame_3 = QFrame(self.widget_bottom)
         self.frame_3.setObjectName("frame_3")
         self.frame_3.setMinimumSize(QSize(250, 0))
@@ -1683,6 +1678,11 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_3.addWidget(self.frame_3)
 
+        self.tableView_exercise_types = QTableView(self.widget_bottom)
+        self.tableView_exercise_types.setObjectName("tableView_exercise_types")
+
+        self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
+
         self.splitter_2.addWidget(self.widget_bottom)
 
         self.horizontalLayout_4.addWidget(self.splitter_2)
@@ -1692,6 +1692,75 @@ def setupUi(self, MainWindow):
         self.tab_5.setObjectName("tab_5")
         self.horizontalLayout_5 = QHBoxLayout(self.tab_5)
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.frame_4 = QFrame(self.tab_5)
+        self.frame_4.setObjectName("frame_4")
+        self.frame_4.setMinimumSize(QSize(250, 0))
+        self.frame_4.setMaximumSize(QSize(250, 16777215))
+        self.frame_4.setFrameShape(QFrame.StyledPanel)
+        self.frame_4.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_9 = QVBoxLayout(self.frame_4)
+        self.verticalLayout_9.setObjectName("verticalLayout_9")
+        self.groupBox_4 = QGroupBox(self.frame_4)
+        self.groupBox_4.setObjectName("groupBox_4")
+        self.verticalLayout_7 = QVBoxLayout(self.groupBox_4)
+        self.verticalLayout_7.setObjectName("verticalLayout_7")
+        self.doubleSpinBox_weight = QDoubleSpinBox(self.groupBox_4)
+        self.doubleSpinBox_weight.setObjectName("doubleSpinBox_weight")
+        self.doubleSpinBox_weight.setMaximum(300.000000000000000)
+        self.doubleSpinBox_weight.setValue(89.000000000000000)
+
+        self.verticalLayout_7.addWidget(self.doubleSpinBox_weight)
+
+        self.dateEdit_weight = QDateEdit(self.groupBox_4)
+        self.dateEdit_weight.setObjectName("dateEdit_weight")
+        self.dateEdit_weight.setMinimumSize(QSize(191, 0))
+        self.dateEdit_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_weight.setCalendarPopup(True)
+
+        self.verticalLayout_7.addWidget(self.dateEdit_weight)
+
+        self.horizontalLayout_15 = QHBoxLayout()
+        self.horizontalLayout_15.setObjectName("horizontalLayout_15")
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_15.addItem(self.horizontalSpacer_3)
+
+        self.pushButton_weight_add = QPushButton(self.groupBox_4)
+        self.pushButton_weight_add.setObjectName("pushButton_weight_add")
+
+        self.horizontalLayout_15.addWidget(self.pushButton_weight_add)
+
+        self.verticalLayout_7.addLayout(self.horizontalLayout_15)
+
+        self.verticalLayout_9.addWidget(self.groupBox_4)
+
+        self.groupBox_6 = QGroupBox(self.frame_4)
+        self.groupBox_6.setObjectName("groupBox_6")
+        self.verticalLayout_8 = QVBoxLayout(self.groupBox_6)
+        self.verticalLayout_8.setObjectName("verticalLayout_8")
+        self.horizontalLayout_16 = QHBoxLayout()
+        self.horizontalLayout_16.setObjectName("horizontalLayout_16")
+        self.pushButton_weight_delete = QPushButton(self.groupBox_6)
+        self.pushButton_weight_delete.setObjectName("pushButton_weight_delete")
+
+        self.horizontalLayout_16.addWidget(self.pushButton_weight_delete)
+
+        self.pushButton_weight_refresh = QPushButton(self.groupBox_6)
+        self.pushButton_weight_refresh.setObjectName("pushButton_weight_refresh")
+
+        self.horizontalLayout_16.addWidget(self.pushButton_weight_refresh)
+
+        self.verticalLayout_8.addLayout(self.horizontalLayout_16)
+
+        self.verticalLayout_9.addWidget(self.groupBox_6)
+
+        self.tableView_weight = QTableView(self.frame_4)
+        self.tableView_weight.setObjectName("tableView_weight")
+
+        self.verticalLayout_9.addWidget(self.tableView_weight)
+
+        self.horizontalLayout_5.addWidget(self.frame_4)
+
         self.verticalLayout_6 = QVBoxLayout()
         self.verticalLayout_6.setObjectName("verticalLayout_6")
         self.frame_weight_controls = QFrame(self.tab_5)
@@ -1762,75 +1831,6 @@ def setupUi(self, MainWindow):
         self.verticalLayout_6.addWidget(self.scrollArea_weight_chart)
 
         self.horizontalLayout_5.addLayout(self.verticalLayout_6)
-
-        self.frame_4 = QFrame(self.tab_5)
-        self.frame_4.setObjectName("frame_4")
-        self.frame_4.setMinimumSize(QSize(250, 0))
-        self.frame_4.setMaximumSize(QSize(250, 16777215))
-        self.frame_4.setFrameShape(QFrame.StyledPanel)
-        self.frame_4.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_9 = QVBoxLayout(self.frame_4)
-        self.verticalLayout_9.setObjectName("verticalLayout_9")
-        self.groupBox_4 = QGroupBox(self.frame_4)
-        self.groupBox_4.setObjectName("groupBox_4")
-        self.verticalLayout_7 = QVBoxLayout(self.groupBox_4)
-        self.verticalLayout_7.setObjectName("verticalLayout_7")
-        self.doubleSpinBox_weight = QDoubleSpinBox(self.groupBox_4)
-        self.doubleSpinBox_weight.setObjectName("doubleSpinBox_weight")
-        self.doubleSpinBox_weight.setMaximum(300.000000000000000)
-        self.doubleSpinBox_weight.setValue(89.000000000000000)
-
-        self.verticalLayout_7.addWidget(self.doubleSpinBox_weight)
-
-        self.dateEdit_weight = QDateEdit(self.groupBox_4)
-        self.dateEdit_weight.setObjectName("dateEdit_weight")
-        self.dateEdit_weight.setMinimumSize(QSize(191, 0))
-        self.dateEdit_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
-        self.dateEdit_weight.setCalendarPopup(True)
-
-        self.verticalLayout_7.addWidget(self.dateEdit_weight)
-
-        self.horizontalLayout_15 = QHBoxLayout()
-        self.horizontalLayout_15.setObjectName("horizontalLayout_15")
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_15.addItem(self.horizontalSpacer_3)
-
-        self.pushButton_weight_add = QPushButton(self.groupBox_4)
-        self.pushButton_weight_add.setObjectName("pushButton_weight_add")
-
-        self.horizontalLayout_15.addWidget(self.pushButton_weight_add)
-
-        self.verticalLayout_7.addLayout(self.horizontalLayout_15)
-
-        self.verticalLayout_9.addWidget(self.groupBox_4)
-
-        self.groupBox_6 = QGroupBox(self.frame_4)
-        self.groupBox_6.setObjectName("groupBox_6")
-        self.verticalLayout_8 = QVBoxLayout(self.groupBox_6)
-        self.verticalLayout_8.setObjectName("verticalLayout_8")
-        self.horizontalLayout_16 = QHBoxLayout()
-        self.horizontalLayout_16.setObjectName("horizontalLayout_16")
-        self.pushButton_weight_delete = QPushButton(self.groupBox_6)
-        self.pushButton_weight_delete.setObjectName("pushButton_weight_delete")
-
-        self.horizontalLayout_16.addWidget(self.pushButton_weight_delete)
-
-        self.pushButton_weight_refresh = QPushButton(self.groupBox_6)
-        self.pushButton_weight_refresh.setObjectName("pushButton_weight_refresh")
-
-        self.horizontalLayout_16.addWidget(self.pushButton_weight_refresh)
-
-        self.verticalLayout_8.addLayout(self.horizontalLayout_16)
-
-        self.verticalLayout_9.addWidget(self.groupBox_6)
-
-        self.tableView_weight = QTableView(self.frame_4)
-        self.tableView_weight.setObjectName("tableView_weight")
-
-        self.verticalLayout_9.addWidget(self.tableView_weight)
-
-        self.horizontalLayout_5.addWidget(self.frame_4)
 
         self.tabWidget.addTab(self.tab_5, "")
         self.tab_charts = QWidget()
@@ -2005,11 +2005,6 @@ def setupUi(self, MainWindow):
         self.tab_4.setObjectName("tab_4")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_4)
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.tableView_statistics = QTableView(self.tab_4)
-        self.tableView_statistics.setObjectName("tableView_statistics")
-
-        self.horizontalLayout_6.addWidget(self.tableView_statistics)
-
         self.frame_5 = QFrame(self.tab_4)
         self.frame_5.setObjectName("frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
@@ -2059,6 +2054,11 @@ def setupUi(self, MainWindow):
         self.verticalLayout_16.addItem(self.verticalSpacer_4)
 
         self.horizontalLayout_6.addWidget(self.frame_5)
+
+        self.tableView_statistics = QTableView(self.tab_4)
+        self.tableView_statistics.setObjectName("tableView_statistics")
+
+        self.horizontalLayout_6.addWidget(self.tableView_statistics)
 
         self.tabWidget.addTab(self.tab_4, "")
 
