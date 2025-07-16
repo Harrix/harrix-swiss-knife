@@ -1000,6 +1000,13 @@ class MainWindow(
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
+
+        # Set emoji for food stats buttons
+        self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
+        self.pushButton_food_stats_last_month.setText(f"📅 {self.pushButton_food_stats_last_month.text()}")
+        self.pushButton_food_stats_last_year.setText(f"📅 {self.pushButton_food_stats_last_year.text()}")
+        self.pushButton_food_stats_update.setText(f"🔄 {self.pushButton_food_stats_update.text()}")
+
         # Export button removed from UI
 
         # Configure food splitter proportions
