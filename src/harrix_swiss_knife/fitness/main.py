@@ -23,7 +23,7 @@ from matplotlib.ticker import MultipleLocator
 from PIL import Image
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QMovie, QPixmap, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
+from PySide6.QtWidgets import QApplication, QFileDialog, QListView, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife.fitness import database_manager, window
 from harrix_swiss_knife.fitness.mixins import (
@@ -2869,6 +2869,9 @@ class MainWindow(
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
 
+        # Connect double-click signal for exercises list to open statistics tab
+        self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
+
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
 
@@ -3396,6 +3399,9 @@ class MainWindow(
         """Initialize the exercises list view with a model and connect signals."""
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
+
+        # Disable editing for exercises list
+        self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
         # Initialize labels with default values
         self.label_exercise.setText("No exercise selected")
@@ -4160,6 +4166,22 @@ class MainWindow(
             return False
 
         return True
+
+    def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double-click on exercises list to open statistics tab.
+
+        Args:
+
+        - `index` (`QModelIndex`): Index of the double-clicked item.
+
+        """
+        # Find the statistics tab index
+        for i in range(self.tabWidget.count()):
+            tab_widget = self.tabWidget.widget(i)
+            if tab_widget and tab_widget.objectName() == "tab_4":
+                # Switch to statistics tab
+                self.tabWidget.setCurrentIndex(i)
+                break
 
 
 if __name__ == "__main__":
