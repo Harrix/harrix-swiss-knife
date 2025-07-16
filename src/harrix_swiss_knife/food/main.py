@@ -965,9 +965,9 @@ class MainWindow(
         # Export button removed from UI
 
         # Configure food splitter proportions
-        self.splitter_food.setStretchFactor(0, 3)  # tableView_food_log gets more space
+        self.splitter_food.setStretchFactor(0, 0)  # frame_food_controls with fixed size
         self.splitter_food.setStretchFactor(1, 1)  # widget_food_middle gets less space
-        self.splitter_food.setStretchFactor(2, 0)  # frame_food_controls with fixed size
+        self.splitter_food.setStretchFactor(2, 3)  # tableView_food_log gets more space
 
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)

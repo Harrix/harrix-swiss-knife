@@ -33,69 +33,6 @@
                     <property name="childrenCollapsible">
                       <bool>false</bool>
                     </property>
-                    <widget class="QTableView" name="tableView_food_log" />
-                    <widget class="QWidget" name="widget_food_middle">
-                      <layout class="QVBoxLayout" name="verticalLayout_food_middle">
-                        <item>
-                          <widget class="QLabel" name="label_favorite_food_items">
-                            <property name="text">
-                              <string>Food Favorite Items:</string>
-                            </property>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QListView" name="listView_favorite_food_items">
-                            <property name="styleSheet">
-                              <string notr="true">QListView {
-                                border: 2px solid #2196F3;
-                                border-radius: 4px;
-                                background-color: white;
-                                }
-                                QListView::item {
-                                padding: 4px;
-                                border-bottom: 1px solid #e0e0e0;
-                                }
-                                QListView::item:selected {
-                                background-color: #e3f2fd;
-                                color: black;
-                                }
-                                QListView::item:hover {
-                                background-color: #bbdefb;
-                                }</string>
-                            </property>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QLabel" name="label_food_items">
-                            <property name="text">
-                              <string>Food Items:</string>
-                            </property>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QListView" name="listView_food_items">
-                            <property name="styleSheet">
-                              <string notr="true">QListView {
-                                border: 2px solid #2196F3;
-                                border-radius: 4px;
-                                background-color: white;
-                                }
-                                QListView::item {
-                                padding: 4px;
-                                border-bottom: 1px solid #e0e0e0;
-                                }
-                                QListView::item:selected {
-                                background-color: #e3f2fd;
-                                color: black;
-                                }
-                                QListView::item:hover {
-                                background-color: #bbdefb;
-                                }</string>
-                            </property>
-                          </widget>
-                        </item>
-                      </layout>
-                    </widget>
                     <widget class="QFrame" name="frame_food_controls">
                       <property name="minimumSize">
                         <size>
@@ -529,6 +466,69 @@
                         </item>
                       </layout>
                     </widget>
+                    <widget class="QWidget" name="widget_food_middle">
+                      <layout class="QVBoxLayout" name="verticalLayout_food_middle">
+                        <item>
+                          <widget class="QLabel" name="label_favorite_food_items">
+                            <property name="text">
+                              <string>Food Favorite Items:</string>
+                            </property>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QListView" name="listView_favorite_food_items">
+                            <property name="styleSheet">
+                              <string notr="true">QListView {
+                                border: 2px solid #2196F3;
+                                border-radius: 4px;
+                                background-color: white;
+                                }
+                                QListView::item {
+                                padding: 4px;
+                                border-bottom: 1px solid #e0e0e0;
+                                }
+                                QListView::item:selected {
+                                background-color: #e3f2fd;
+                                color: black;
+                                }
+                                QListView::item:hover {
+                                background-color: #bbdefb;
+                                }</string>
+                            </property>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QLabel" name="label_food_items">
+                            <property name="text">
+                              <string>Food Items:</string>
+                            </property>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QListView" name="listView_food_items">
+                            <property name="styleSheet">
+                              <string notr="true">QListView {
+                                border: 2px solid #2196F3;
+                                border-radius: 4px;
+                                background-color: white;
+                                }
+                                QListView::item {
+                                padding: 4px;
+                                border-bottom: 1px solid #e0e0e0;
+                                }
+                                QListView::item:selected {
+                                background-color: #e3f2fd;
+                                color: black;
+                                }
+                                QListView::item:hover {
+                                background-color: #bbdefb;
+                                }</string>
+                            </property>
+                          </widget>
+                        </item>
+                      </layout>
+                    </widget>
+                    <widget class="QTableView" name="tableView_food_log" />
                   </widget>
                 </item>
               </layout>
