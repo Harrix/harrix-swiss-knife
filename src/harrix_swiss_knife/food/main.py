@@ -239,6 +239,9 @@ class MainWindow(
             if focused_widget == self.doubleSpinBox_food_calories:
                 self.pushButton_food_add.click()
                 return
+            elif focused_widget == self.checkBox_food_is_drink:
+                self.pushButton_food_add.click()
+                return
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
