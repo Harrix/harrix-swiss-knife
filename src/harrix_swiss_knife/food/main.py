@@ -731,7 +731,8 @@ class MainWindow(
         self.pushButton_food_stats_update.clicked.connect(self.on_food_stats_update)
         self.comboBox_food_stats_period.currentTextChanged.connect(self.on_food_stats_period_changed)
 
-        # Export functionality removed - no export button in UI
+        # Connect food name input for real-time filtering
+        self.lineEdit_food_manual_name.textChanged.connect(self._filter_food_items)
 
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
@@ -1543,6 +1544,50 @@ class MainWindow(
                     self.dateEdit_food_stats_from.setDate(earliest_date)
         except Exception as e:
             print(f"Error getting earliest food log date: {e}")
+
+    def _filter_food_items(self, text: str) -> None:
+        """Filter food items lists based on input text.
+
+        Args:
+            text (str): Filter text from lineEdit_food_manual_name
+        """
+        if not text:
+            # If text is empty, show all items
+            self._show_all_food_items()
+            return
+
+        # Convert to lowercase for case-insensitive search
+        filter_text = text.lower()
+
+        # Filter favorite food items
+        if self.favorite_food_items_list_model:
+            for i in range(self.favorite_food_items_list_model.rowCount()):
+                item = self.favorite_food_items_list_model.item(i)
+                if item:
+                    item_text = item.text().lower()
+                    # Hide/show row based on filter match
+                    self.listView_favorite_food_items.setRowHidden(i, filter_text not in item_text)
+
+        # Filter main food items
+        if self.food_items_list_model:
+            for i in range(self.food_items_list_model.rowCount()):
+                item = self.food_items_list_model.item(i)
+                if item:
+                    item_text = item.text().lower()
+                    # Hide/show row based on filter match
+                    self.listView_food_items.setRowHidden(i, filter_text not in item_text)
+
+    def _show_all_food_items(self) -> None:
+        """Show all food items in both lists (remove filtering)."""
+        # Show all favorite food items
+        if self.favorite_food_items_list_model:
+            for i in range(self.favorite_food_items_list_model.rowCount()):
+                self.listView_favorite_food_items.setRowHidden(i, False)
+
+        # Show all main food items
+        if self.food_items_list_model:
+            for i in range(self.food_items_list_model.rowCount()):
+                self.listView_food_items.setRowHidden(i, False)
 
 
 if __name__ == "__main__":
