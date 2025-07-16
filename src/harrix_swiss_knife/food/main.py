@@ -101,7 +101,7 @@ class MainWindow(
             "food_log": (
                 self.tableView_food_log,
                 "food_log",
-                ["Name", "Weight", "Calories per 100g", "Portion Calories", "Date", "English Name"],
+                ["Name", "Weight", "Calories per 100g", "Portion Calories", "Date", "English Name", "Is Drink"],
             ),
         }
 
@@ -247,6 +247,7 @@ class MainWindow(
         calories = self.doubleSpinBox_food_calories.value()
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
         use_weight = self.radioButton_use_weight.isChecked()
+        is_drink = self.checkBox_food_is_drink.isChecked()
 
         # Validate required fields
         if not food_name:
@@ -272,17 +273,18 @@ class MainWindow(
             return
 
         try:
-            # Determine calories_100 and portion_calories based on radio button
-            calories_100 = calories if use_weight else None
+            # Determine calories_per_100g and portion_calories based on radio button
+            calories_per_100g = calories if use_weight else None
             portion_calories = calories if not use_weight else None
 
             # Use database manager method
             if self.db_manager.add_food_log_record(
                 date=food_date,
-                calories_100=calories_100,
+                calories_per_100g=calories_per_100g,
                 name=food_name,
                 weight=weight if weight > 0 else None,
-                portion_calories=portion_calories
+                portion_calories=portion_calories,
+                is_drink=is_drink
             ):
                 # Apply date increment logic
                 self._increment_date_widget(self.dateEdit_food)
@@ -400,6 +402,9 @@ class MainWindow(
             else:
                 self.doubleSpinBox_food_calories.setValue(0)
 
+            # Set drink checkbox for food log record
+            self.checkBox_food_is_drink.setChecked(is_drink == 1)
+
             # Update calories calculation
             self.update_calories_calculation()
 
@@ -457,16 +462,16 @@ class MainWindow(
                 transformed_rows = []
                 for row in rows:
                     # Original transformation:
-                    # [id, date, weight, portion_calories, calories_100, name, name_en] ->
-                    # [name, weight, calories_100, portion_calories, date, name_en]
-                    transformed_row = [row[5], row[2], row[4], row[3], row[1], row[6]]
+                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
+                    # [name, weight, calories_per_100g, portion_calories, date, name_en, is_drink]
+                    transformed_row = [row[5], row[2], row[4], row[3], row[1], row[6], "Yes" if row[7] == 1 else "No"]
 
                     # Add color information based on date
                     date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], date_color])  # [name, weight, calories_100, portion_calories, date, name_en, id, color]
+                    transformed_row.extend([row[0], date_color])  # [name, weight, calories_per_100g, portion_calories, date, name_en, is_drink, id, color]
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -481,6 +486,9 @@ class MainWindow(
             )
             self.tableView_food_log.setModel(self.models["food_log"])
 
+            # Enable editing for the table
+            self.tableView_food_log.setEditTriggers(QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed)
+
             # Configure food_log table header - mixed approach: interactive + stretch last
             food_log_header = self.tableView_food_log.horizontalHeader()
             # Set first columns to interactive (resizable)
@@ -494,7 +502,8 @@ class MainWindow(
             self.tableView_food_log.setColumnWidth(2, 140)  # Calories per 100g
             self.tableView_food_log.setColumnWidth(3, 120)  # Portion Calories
             self.tableView_food_log.setColumnWidth(4, 120)  # Date
-            # English Name column will stretch automatically
+            self.tableView_food_log.setColumnWidth(5, 100)  # English Name
+            # Is Drink column will stretch automatically
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -665,7 +674,7 @@ class MainWindow(
         self,
         data: list[list],
         headers: list[str],
-        _id_column: int = 6,  # ID is now at index 6 in transformed data
+        _id_column: int = 7,  # ID is now at index 7 in transformed data
     ) -> QSortFilterProxyModel:
         """Return a proxy model filled with colored food_log data.
 
@@ -673,7 +682,7 @@ class MainWindow(
 
         - `data` (`list[list]`): The table data with color information.
         - `headers` (`list[str]`): Column header names.
-        - `_id_column` (`int`): Index of the ID column. Defaults to `6`.
+        - `_id_column` (`int`): Index of the ID column. Defaults to `7`.
 
         Returns:
 
@@ -685,12 +694,12 @@ class MainWindow(
 
         for row_idx, row in enumerate(data):
             # Extract color information (last element) and ID
-            row_color = row[7]  # Color is at index 7
-            row_id = row[6]  # ID is at index 6
+            row_color = row[8]  # Color is at index 8
+            row_id = row[7]  # ID is at index 7
 
-            # Create items for display columns only (first 6 elements)
+            # Create items for display columns only (first 7 elements)
             items = []
-            for col_idx, value in enumerate(row[:6]):  # Only first 6 elements for display
+            for col_idx, value in enumerate(row[:7]):  # Only first 7 elements for display
                 item = QStandardItem(str(value) if value is not None else "")
 
                 # Set background color for the item
