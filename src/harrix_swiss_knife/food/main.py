@@ -546,12 +546,11 @@ class MainWindow(
                 self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
             else:
                 self.label_food_calories_calc.setText("Total: 0.0 kcal")
+        # Portion mode: direct calories
+        elif calories > 0:
+            self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
         else:
-            # Portion mode: direct calories
-            if calories > 0:
-                self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
-            else:
-                self.label_food_calories_calc.setText("Total: 0.0 kcal")
+            self.label_food_calories_calc.setText("Total: 0.0 kcal")
 
     def update_food_calories_today(self) -> None:
         """Update the label showing calories consumed today."""
