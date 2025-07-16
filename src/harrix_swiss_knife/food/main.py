@@ -560,22 +560,25 @@ class MainWindow(
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
 
     def update_food_calories_today(self) -> None:
-        """Update the label showing calories consumed today."""
+        """Update the label showing calories consumed today and drinks weight in liters (comma as decimal separator)."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         if not self._validate_database_connection():
-            self.label_food_today.setText("0 kcal")
+            self.label_food_today.setText("0 kcal\n0,0 л")
             return
 
         try:
             calories = self.db_manager.get_food_calories_today()
             count = self.db_manager.get_food_calories_count_today()
-            self.label_food_today.setText(f"{calories:.1f} kcal ({count} items)")
+            drinks_weight = self.db_manager.get_drinks_weight_today()
+            drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
+            drinks_liters_str = f"{drinks_liters:.1f}".replace(".", ",")
+            self.label_food_today.setText(f"{calories:.1f} kcal ({count} items)\n{drinks_liters_str} л")
         except Exception as e:
             print(f"Error getting food calories for today: {e}")
-            self.label_food_today.setText("0 kcal")
+            self.label_food_today.setText("0 kcal\n0,0 l")
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.

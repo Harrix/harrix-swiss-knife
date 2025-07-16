@@ -799,6 +799,23 @@ class DatabaseManager:
         rows = self.get_rows(query, params)
         return int(rows[0][0]) if rows else 0
 
+    def get_drinks_weight_today(self) -> int:
+        """Get total weight of drinks consumed today.
+
+        Returns:
+
+        - `int`: Total weight of drinks in grams.
+
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        query = "SELECT SUM(weight) FROM food_log WHERE date = :today AND is_drink = 1 AND weight IS NOT NULL"
+        params = {"today": today}
+        rows = self.get_rows(query, params)
+        try:
+            return int(rows[0][0]) if rows and rows[0][0] is not None and rows[0][0] != "" else 0
+        except (ValueError, TypeError):
+            return 0
+
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.
 
