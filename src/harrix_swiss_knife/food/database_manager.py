@@ -767,7 +767,19 @@ class DatabaseManager:
 
         """
         today = datetime.now().strftime("%Y-%m-%d")
-        query = "SELECT SUM(calories_per_100g) FROM food_log WHERE date = :today"
+        query = """
+            SELECT SUM(
+                CASE
+                    WHEN portion_calories IS NOT NULL AND portion_calories > 0
+                    THEN portion_calories
+                    WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0 AND weight IS NOT NULL AND weight > 0
+                    THEN (calories_per_100g * weight) / 100
+                    ELSE 0
+                END
+            ) as total_calories
+            FROM food_log
+            WHERE date = :today
+        """
         params = {"today": today}
         rows = self.get_rows(query, params)
 
