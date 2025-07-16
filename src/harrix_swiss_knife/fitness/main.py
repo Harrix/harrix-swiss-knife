@@ -3831,9 +3831,9 @@ class MainWindow(
         self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
 
         # Configure splitter proportions
-        self.splitter.setStretchFactor(0, 3)  # tableView gets more space
+        self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
-        self.splitter.setStretchFactor(2, 0)  # frame with fixed size
+        self.splitter.setStretchFactor(2, 3)  # tableView gets more space
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
