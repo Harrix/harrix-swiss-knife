@@ -980,6 +980,9 @@ class MainWindow(
         self.radioButton_use_weight.setChecked(True)
         self.update_calories_calculation()
 
+        # Set focus to the food name input field for quick data entry
+        self.lineEdit_food_manual_name.setFocus()
+
     def _update_food_items_list(self) -> None:
         """Refresh food items list view with data from database."""
         if not self._validate_database_connection():
