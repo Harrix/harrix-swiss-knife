@@ -81,6 +81,21 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_food_middle.addWidget(self.label_food_items)
 
+        self.horizontalLayout_4 = QHBoxLayout()
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
+        self.label_filter_food_items = QLabel(self.widget_food_middle)
+        self.label_filter_food_items.setObjectName(u"label_filter_food_items")
+
+        self.horizontalLayout_4.addWidget(self.label_filter_food_items)
+
+        self.lineEdit_filter_food_items = QLineEdit(self.widget_food_middle)
+        self.lineEdit_filter_food_items.setObjectName(u"lineEdit_filter_food_items")
+
+        self.horizontalLayout_4.addWidget(self.lineEdit_filter_food_items)
+
+
+        self.verticalLayout_food_middle.addLayout(self.horizontalLayout_4)
+
         self.listView_food_items = QListView(self.widget_food_middle)
         self.listView_food_items.setObjectName(u"listView_food_items")
         self.listView_food_items.setStyleSheet(u"QListView {\n"
@@ -116,13 +131,11 @@ class Ui_MainWindow(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout_food_manual_name = QHBoxLayout()
         self.horizontalLayout_food_manual_name.setObjectName(u"horizontalLayout_food_manual_name")
-        self.label_food_manual_name = QLabel(self.groupBox_food_add)
-        self.label_food_manual_name.setObjectName(u"label_food_manual_name")
-
-        self.horizontalLayout_food_manual_name.addWidget(self.label_food_manual_name)
-
         self.lineEdit_food_manual_name = QLineEdit(self.groupBox_food_add)
         self.lineEdit_food_manual_name.setObjectName(u"lineEdit_food_manual_name")
+        font = QFont()
+        font.setPointSize(12)
+        self.lineEdit_food_manual_name.setFont(font)
 
         self.horizontalLayout_food_manual_name.addWidget(self.lineEdit_food_manual_name)
 
@@ -133,10 +146,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
         self.spinBox_food_weight = QSpinBox(self.groupBox_food_add)
         self.spinBox_food_weight.setObjectName(u"spinBox_food_weight")
-        font = QFont()
-        font.setPointSize(12)
-        font.setBold(True)
-        self.spinBox_food_weight.setFont(font)
+        font1 = QFont()
+        font1.setPointSize(12)
+        font1.setBold(True)
+        self.spinBox_food_weight.setFont(font1)
         self.spinBox_food_weight.setStyleSheet(u"QSpinBox {\n"
 "                                          background-color: #e3f2fd;\n"
 "                                          }")
@@ -153,7 +166,7 @@ class Ui_MainWindow(object):
 
         self.doubleSpinBox_food_calories = QDoubleSpinBox(self.groupBox_food_add)
         self.doubleSpinBox_food_calories.setObjectName(u"doubleSpinBox_food_calories")
-        self.doubleSpinBox_food_calories.setFont(font)
+        self.doubleSpinBox_food_calories.setFont(font1)
         self.doubleSpinBox_food_calories.setStyleSheet(u"QDoubleSpinBox {\n"
 "                                          background-color: #e3f2fd;\n"
 "                                          }")
@@ -193,10 +206,10 @@ class Ui_MainWindow(object):
 
         self.label_food_calories_calc = QLabel(self.groupBox_food_add)
         self.label_food_calories_calc.setObjectName(u"label_food_calories_calc")
-        font1 = QFont()
-        font1.setPointSize(10)
-        font1.setBold(True)
-        self.label_food_calories_calc.setFont(font1)
+        font2 = QFont()
+        font2.setPointSize(10)
+        font2.setBold(True)
+        self.label_food_calories_calc.setFont(font2)
 
         self.verticalLayout.addWidget(self.label_food_calories_calc)
 
@@ -222,7 +235,7 @@ class Ui_MainWindow(object):
         self.pushButton_food_add = QPushButton(self.groupBox_food_add)
         self.pushButton_food_add.setObjectName(u"pushButton_food_add")
         self.pushButton_food_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_food_add.setFont(font)
+        self.pushButton_food_add.setFont(font1)
         self.pushButton_food_add.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #e3f2fd;\n"
 "                                      border: 1px solid #2196F3;\n"
@@ -388,17 +401,17 @@ class Ui_MainWindow(object):
 
         self.groupBox_food_today = QGroupBox(self.frame_food_controls)
         self.groupBox_food_today.setObjectName(u"groupBox_food_today")
-        self.verticalLayout_food_today = QVBoxLayout(self.groupBox_food_today)
-        self.verticalLayout_food_today.setObjectName(u"verticalLayout_food_today")
+        self.horizontalLayout_5 = QHBoxLayout(self.groupBox_food_today)
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
         self.label_food_today = QLabel(self.groupBox_food_today)
         self.label_food_today.setObjectName(u"label_food_today")
-        font2 = QFont()
-        font2.setPointSize(30)
-        font2.setBold(True)
-        self.label_food_today.setFont(font2)
+        font3 = QFont()
+        font3.setPointSize(30)
+        font3.setBold(True)
+        self.label_food_today.setFont(font3)
         self.label_food_today.setAlignment(Qt.AlignCenter)
 
-        self.verticalLayout_food_today.addWidget(self.label_food_today)
+        self.horizontalLayout_5.addWidget(self.label_food_today)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_today)
@@ -520,8 +533,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Food tracker", None))
         self.label_favorite_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Favorite Items:", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
+        self.label_filter_food_items.setText(QCoreApplication.translate("MainWindow", u"Filter:", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
-        self.label_food_manual_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
         self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name (optional if selected from list)", None))
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal", None))
