@@ -101,7 +101,7 @@ class MainWindow(
             "food_log": (
                 self.tableView_food_log,
                 "food_log",
-                ["Name", "Weight", "Calories per 100g", "Portion Calories", "Date", "English Name", "Is Drink"],
+                ["Name", "Is Drink", "Weight", "Calories per 100g", "Portion Calories", "Date", "English Name"],
             ),
         }
 
@@ -463,15 +463,15 @@ class MainWindow(
                 for row in rows:
                     # Original transformation:
                     # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
-                    # [name, weight, calories_per_100g, portion_calories, date, name_en, is_drink]
-                    transformed_row = [row[5], row[2], row[4], row[3], row[1], row[6], "Yes" if row[7] == 1 else "No"]
+                    # [name, is_drink, weight, calories_per_100g, portion_calories, date, name_en]
+                    transformed_row = [row[5], "Yes" if row[7] == 1 else "No", row[2], row[4], row[3], row[1], row[6]]
 
                     # Add color information based on date
                     date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], date_color])  # [name, weight, calories_per_100g, portion_calories, date, name_en, is_drink, id, color]
+                    transformed_row.extend([row[0], date_color])  # [name, is_drink, weight, calories_per_100g, portion_calories, date, name_en, id, color]
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -498,12 +498,12 @@ class MainWindow(
             food_log_header.setSectionResizeMode(food_log_header.count() - 1, food_log_header.ResizeMode.Stretch)
             # Set default column widths for resizable columns
             self.tableView_food_log.setColumnWidth(0, 150)  # Name
-            self.tableView_food_log.setColumnWidth(1, 80)   # Weight
-            self.tableView_food_log.setColumnWidth(2, 140)  # Calories per 100g
-            self.tableView_food_log.setColumnWidth(3, 120)  # Portion Calories
-            self.tableView_food_log.setColumnWidth(4, 120)  # Date
-            self.tableView_food_log.setColumnWidth(5, 100)  # English Name
-            # Is Drink column will stretch automatically
+            self.tableView_food_log.setColumnWidth(1, 80)   # Is Drink
+            self.tableView_food_log.setColumnWidth(2, 80)   # Weight
+            self.tableView_food_log.setColumnWidth(3, 140)  # Calories per 100g
+            self.tableView_food_log.setColumnWidth(4, 120)  # Portion Calories
+            self.tableView_food_log.setColumnWidth(5, 120)  # Date
+            self.tableView_food_log.setColumnWidth(6, 100)  # English Name
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -706,7 +706,7 @@ class MainWindow(
 
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-                id_col_date = 4  # Date column is now at index 4
+                id_col_date = 5  # Date column is now at index 5
                 if col_idx == id_col_date and str(value) == today:  # Date column
                     font = item.font()
                     font.setBold(True)
