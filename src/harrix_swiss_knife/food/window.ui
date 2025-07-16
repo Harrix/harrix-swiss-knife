@@ -73,20 +73,6 @@
              </widget>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_4">
-              <item>
-               <widget class="QLabel" name="label_filter_food_items">
-                <property name="text">
-                 <string>Filter:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="lineEdit_filter_food_items"/>
-              </item>
-             </layout>
-            </item>
-            <item>
              <widget class="QListView" name="listView_food_items">
               <property name="styleSheet">
                <string notr="true">QListView {

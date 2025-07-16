@@ -81,21 +81,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_food_middle.addWidget(self.label_food_items)
 
-        self.horizontalLayout_4 = QHBoxLayout()
-        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.label_filter_food_items = QLabel(self.widget_food_middle)
-        self.label_filter_food_items.setObjectName(u"label_filter_food_items")
-
-        self.horizontalLayout_4.addWidget(self.label_filter_food_items)
-
-        self.lineEdit_filter_food_items = QLineEdit(self.widget_food_middle)
-        self.lineEdit_filter_food_items.setObjectName(u"lineEdit_filter_food_items")
-
-        self.horizontalLayout_4.addWidget(self.lineEdit_filter_food_items)
-
-
-        self.verticalLayout_food_middle.addLayout(self.horizontalLayout_4)
-
         self.listView_food_items = QListView(self.widget_food_middle)
         self.listView_food_items.setObjectName(u"listView_food_items")
         self.listView_food_items.setStyleSheet(u"QListView {\n"
@@ -533,7 +518,6 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Food tracker", None))
         self.label_favorite_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Favorite Items:", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
-        self.label_filter_food_items.setText(QCoreApplication.translate("MainWindow", u"Filter:", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name (optional if selected from list)", None))
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
