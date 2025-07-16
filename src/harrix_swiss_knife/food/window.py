@@ -300,11 +300,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_default_weight.addWidget(self.label_food_default_weight)
 
-        self.doubleSpinBox_food_default_weight = QDoubleSpinBox(self.groupBox_food_items)
-        self.doubleSpinBox_food_default_weight.setObjectName(u"doubleSpinBox_food_default_weight")
-        self.doubleSpinBox_food_default_weight.setMaximum(9999.000000000000000)
+        self.spinBox_food_default_weight = QSpinBox(self.groupBox_food_items)
+        self.spinBox_food_default_weight.setObjectName(u"spinBox_food_default_weight")
+        self.spinBox_food_default_weight.setMaximum(10000.000000000000000)
 
-        self.horizontalLayout_food_default_weight.addWidget(self.doubleSpinBox_food_default_weight)
+        self.horizontalLayout_food_default_weight.addWidget(self.spinBox_food_default_weight)
 
 
         self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_default_weight)
