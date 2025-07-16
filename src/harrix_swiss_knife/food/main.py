@@ -464,7 +464,19 @@ class MainWindow(
                     # Original transformation:
                     # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
                     # [name, is_drink, weight, calories_per_100g, portion_calories, date, name_en]
-                    transformed_row = [row[5], "1" if row[7] == 1 else "", row[2], row[4], row[3], row[1], row[6]]
+
+                    # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+
+                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
+                    if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
+                        calories_per_100g_display = ""
+                    else:
+                        calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
+
+                    transformed_row = [row[5], "1" if row[7] == 1 else "", row[2], calories_per_100g_display, portion_calories, row[1], row[6]]
 
                     # Add color information based on date
                     date_str = row[1]
