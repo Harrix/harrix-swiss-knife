@@ -88,6 +88,7 @@ class MainWindow(
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "food_log": None,
+            "kcal_per_day": None,
         }
 
         # Table configuration mapping
@@ -96,6 +97,11 @@ class MainWindow(
                 self.tableView_food_log,
                 "food_log",
                 ["Name", "Is Drink", "Weight", "Calories per 100g", "Portion Calories", "Date", "English Name"],
+            ),
+            "kcal_per_day": (
+                self.tableView_kcal_per_day,
+                "kcal_per_day",
+                ["Date", "Calories"],
             ),
         }
 
@@ -594,6 +600,9 @@ class MainWindow(
 
         # Connect window resize event for automatic column resizing
         self.resizeEvent = self._on_window_resize
+
+        # Connect tab widget signal for updating stats when switching to food stats tab
+        self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
@@ -1145,6 +1154,135 @@ class MainWindow(
             return False
 
         return True
+
+    def _on_tab_changed(self, index: int) -> None:
+        """Handle tab widget index change.
+
+        Args:
+
+        - `index` (`int`): Index of the newly selected tab.
+
+        """
+        # Get the widget at the current index
+        current_widget = self.tabWidget.widget(index)
+        if current_widget is None:
+            return
+
+        # Check if the current tab is the food stats tab
+        if current_widget.objectName() == "tab_food_stats":
+            self._update_kcal_per_day_table()
+
+    def _update_kcal_per_day_table(self) -> None:
+        """Update the calories per day table with data from database."""
+        if not self._validate_database_connection():
+            print("Database connection not available for updating kcal per day table")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get calories per day data for all days
+            kcal_per_day_data = self.db_manager.get_calories_per_day()
+
+            # Transform data for display
+            transformed_data = []
+            for row in kcal_per_day_data:
+                date_str = str(row[0]) if row[0] is not None else ""
+                calories = row[1] if row[1] is not None else 0.0
+                # Format calories to 1 decimal place
+                calories_str = f"{float(calories):.1f}" if calories else "0.0"
+                transformed_data.append([date_str, calories_str])
+
+            # Create colored table model
+            self.models["kcal_per_day"] = self._create_colored_kcal_per_day_table_model(
+                transformed_data, self.table_config["kcal_per_day"][2]
+            )
+            self.tableView_kcal_per_day.setModel(self.models["kcal_per_day"])
+
+            # Configure table header
+            kcal_per_day_header = self.tableView_kcal_per_day.horizontalHeader()
+            # Set all columns to interactive (resizable)
+            for i in range(kcal_per_day_header.count()):
+                kcal_per_day_header.setSectionResizeMode(i, kcal_per_day_header.ResizeMode.Interactive)
+            # Set proportional column widths
+            self._adjust_kcal_per_day_table_columns()
+
+        except Exception as e:
+            print(f"Error updating kcal per day table: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
+
+    def _adjust_kcal_per_day_table_columns(self) -> None:
+        """Set column widths for kcal per day table."""
+        if not hasattr(self, "tableView_kcal_per_day") or not self.tableView_kcal_per_day.model():
+            return
+
+        # Set first column (Date) to fixed width of 80px
+        self.tableView_kcal_per_day.setColumnWidth(0, 80)
+
+        # Set second column (Calories) to stretch to remaining space
+        self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
+
+    def _create_colored_kcal_per_day_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+    ) -> QSortFilterProxyModel:
+        """Return a proxy model filled with colored kcal per day data.
+
+        Args:
+
+        - `data` (`list[list]`): The table data.
+        - `headers` (`list[str]`): Column header names.
+
+        Returns:
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
+
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            items = []
+            row_color = None
+
+            # Determine row color based on calories (second column)
+            if len(row) > 1:
+                try:
+                    calories = float(row[1]) if row[1] else 0.0
+                    if calories <= 1800:
+                        # Green for low calories
+                        row_color = QColor(144, 238, 144)
+                    elif calories <= 2100:
+                        # Green-yellow for medium-low calories
+                        row_color = QColor(255, 255, 224)
+                    elif calories <= 2500:
+                        # Yellow for medium-high calories
+                        row_color = QColor(255, 228, 196)
+                    else:
+                        # Red for high calories
+                        row_color = QColor(255, 192, 203)
+                except (ValueError, TypeError):
+                    # If calories can't be parsed, use default background
+                    pass
+
+            # Create items for all columns
+            for col_idx, value in enumerate(row):
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Apply row color to all items in the row
+                if row_color:
+                    item.setBackground(QBrush(row_color))
+
+                items.append(item)
+
+            model.appendRow(items)
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
 
 
 if __name__ == "__main__":

@@ -815,6 +815,32 @@ class DatabaseManager:
         except (ValueError, TypeError):
             return 0
 
+    def get_calories_per_day(self) -> list[list[Any]]:
+        """Get calories consumed per day for all days.
+
+        Returns:
+
+        - `list[list[Any]]`: List of [date, total_calories] records.
+
+        """
+        query = """
+            SELECT
+                date,
+                SUM(
+                    CASE
+                        WHEN portion_calories IS NOT NULL AND portion_calories > 0
+                        THEN portion_calories
+                        WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0 AND weight IS NOT NULL AND weight > 0
+                        THEN (calories_per_100g * weight) / 100
+                        ELSE 0
+                    END
+                ) as total_calories
+            FROM food_log
+            GROUP BY date
+            ORDER BY date DESC
+        """
+        return self.get_rows(query)
+
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.
 

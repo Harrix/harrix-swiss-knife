@@ -241,7 +241,7 @@ class Ui_MainWindow(object):
 
         self.spinBox_food_default_weight = QSpinBox(self.groupBox_food_items)
         self.spinBox_food_default_weight.setObjectName(u"spinBox_food_default_weight")
-        self.spinBox_food_default_weight.setMaximum(10000.000000000000000)
+        self.spinBox_food_default_weight.setMaximum(10000)
 
         self.horizontalLayout_food_default_weight.addWidget(self.spinBox_food_default_weight)
 
@@ -412,8 +412,31 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_food, "")
         self.tab_food_stats = QWidget()
         self.tab_food_stats.setObjectName(u"tab_food_stats")
-        self.verticalLayout_food_stats = QVBoxLayout(self.tab_food_stats)
-        self.verticalLayout_food_stats.setObjectName(u"verticalLayout_food_stats")
+        self.horizontalLayout_4 = QHBoxLayout(self.tab_food_stats)
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
+        self.frame = QFrame(self.tab_food_stats)
+        self.frame.setObjectName(u"frame")
+        self.frame.setMinimumSize(QSize(250, 0))
+        self.frame.setMaximumSize(QSize(250, 16777215))
+        self.frame.setFrameShape(QFrame.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_3 = QVBoxLayout(self.frame)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.label = QLabel(self.frame)
+        self.label.setObjectName(u"label")
+
+        self.verticalLayout_3.addWidget(self.label)
+
+        self.tableView_kcal_per_day = QTableView(self.frame)
+        self.tableView_kcal_per_day.setObjectName(u"tableView_kcal_per_day")
+
+        self.verticalLayout_3.addWidget(self.tableView_kcal_per_day)
+
+
+        self.horizontalLayout_4.addWidget(self.frame)
+
+        self.verticalLayout_4 = QVBoxLayout()
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.frame_food_stats_controls = QFrame(self.tab_food_stats)
         self.frame_food_stats_controls.setObjectName(u"frame_food_stats_controls")
         self.frame_food_stats_controls.setMaximumSize(QSize(16777215, 80))
@@ -476,19 +499,22 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_stats_controls.addItem(self.horizontalSpacer_food_stats)
 
 
-        self.verticalLayout_food_stats.addWidget(self.frame_food_stats_controls)
+        self.verticalLayout_4.addWidget(self.frame_food_stats_controls)
 
         self.scrollArea_food_stats = QScrollArea(self.tab_food_stats)
         self.scrollArea_food_stats.setObjectName(u"scrollArea_food_stats")
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName(u"scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1331, 760))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1073, 758))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName(u"verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)
 
-        self.verticalLayout_food_stats.addWidget(self.scrollArea_food_stats)
+        self.verticalLayout_4.addWidget(self.scrollArea_food_stats)
+
+
+        self.horizontalLayout_4.addLayout(self.verticalLayout_4)
 
         self.tabWidget.addTab(self.tab_food_stats, "")
 
@@ -546,6 +572,7 @@ class Ui_MainWindow(object):
         self.label_favorite_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Favorite Items:", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"Kcal per day:", None))
         self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
         self.dateEdit_food_stats_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.label_food_stats_to.setText(QCoreApplication.translate("MainWindow", u"To:", None))
