@@ -135,34 +135,6 @@
                 </layout>
                </item>
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_2">
-                 <item>
-                  <widget class="QCheckBox" name="checkBox_food_is_drink">
-                   <property name="text">
-                    <string>This is a drink</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QRadioButton" name="radioButton_use_weight">
-                   <property name="text">
-                    <string>Calculate by weight</string>
-                   </property>
-                   <property name="checked">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QRadioButton" name="radioButton_use_calories">
-                   <property name="text">
-                    <string>Enter calories directly</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_weight">
                  <item>
                   <widget class="QDoubleSpinBox" name="doubleSpinBox_food_weight">
@@ -222,6 +194,34 @@
                   <widget class="QLabel" name="label_food_calories">
                    <property name="text">
                     <string>kcal</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBox_food_is_drink">
+                   <property name="text">
+                    <string>Drink</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_2">
+                 <item>
+                  <widget class="QRadioButton" name="radioButton_use_weight">
+                   <property name="text">
+                    <string>Calculate by weight</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QRadioButton" name="radioButton_use_calories">
+                   <property name="text">
+                    <string>Enter calories directly</string>
                    </property>
                   </widget>
                  </item>
@@ -423,7 +423,7 @@
               <property name="title">
                <string>Commands</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_food_commands">
+              <layout class="QVBoxLayout" name="verticalLayout_2">
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_commands">
                  <item>
@@ -455,6 +455,30 @@
                   <widget class="QPushButton" name="pushButton_food_items_refresh">
                    <property name="text">
                     <string>Refresh Items</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <item>
+                  <spacer name="horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_show_all_records">
+                   <property name="text">
+                    <string>Show All Records</string>
                    </property>
                   </widget>
                  </item>

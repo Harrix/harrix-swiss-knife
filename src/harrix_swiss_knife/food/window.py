@@ -129,27 +129,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_manual_name)
 
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.checkBox_food_is_drink = QCheckBox(self.groupBox_food_add)
-        self.checkBox_food_is_drink.setObjectName(u"checkBox_food_is_drink")
-
-        self.horizontalLayout_2.addWidget(self.checkBox_food_is_drink)
-
-        self.radioButton_use_weight = QRadioButton(self.groupBox_food_add)
-        self.radioButton_use_weight.setObjectName(u"radioButton_use_weight")
-        self.radioButton_use_weight.setChecked(True)
-
-        self.horizontalLayout_2.addWidget(self.radioButton_use_weight)
-
-        self.radioButton_use_calories = QRadioButton(self.groupBox_food_add)
-        self.radioButton_use_calories.setObjectName(u"radioButton_use_calories")
-
-        self.horizontalLayout_2.addWidget(self.radioButton_use_calories)
-
-
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
-
         self.horizontalLayout_food_weight = QHBoxLayout()
         self.horizontalLayout_food_weight.setObjectName(u"horizontalLayout_food_weight")
         self.doubleSpinBox_food_weight = QDoubleSpinBox(self.groupBox_food_add)
@@ -188,8 +167,29 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_weight.addWidget(self.label_food_calories)
 
+        self.checkBox_food_is_drink = QCheckBox(self.groupBox_food_add)
+        self.checkBox_food_is_drink.setObjectName(u"checkBox_food_is_drink")
+
+        self.horizontalLayout_food_weight.addWidget(self.checkBox_food_is_drink)
+
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_weight)
+
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.radioButton_use_weight = QRadioButton(self.groupBox_food_add)
+        self.radioButton_use_weight.setObjectName(u"radioButton_use_weight")
+        self.radioButton_use_weight.setChecked(True)
+
+        self.horizontalLayout_2.addWidget(self.radioButton_use_weight)
+
+        self.radioButton_use_calories = QRadioButton(self.groupBox_food_add)
+        self.radioButton_use_calories.setObjectName(u"radioButton_use_calories")
+
+        self.horizontalLayout_2.addWidget(self.radioButton_use_calories)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
 
         self.label_food_calories_calc = QLabel(self.groupBox_food_add)
         self.label_food_calories_calc.setObjectName(u"label_food_calories_calc")
@@ -337,8 +337,8 @@ class Ui_MainWindow(object):
 
         self.groupBox_food_commands = QGroupBox(self.frame_food_controls)
         self.groupBox_food_commands.setObjectName(u"groupBox_food_commands")
-        self.verticalLayout_food_commands = QVBoxLayout(self.groupBox_food_commands)
-        self.verticalLayout_food_commands.setObjectName(u"verticalLayout_food_commands")
+        self.verticalLayout_2 = QVBoxLayout(self.groupBox_food_commands)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.horizontalLayout_food_commands = QHBoxLayout()
         self.horizontalLayout_food_commands.setObjectName(u"horizontalLayout_food_commands")
         self.pushButton_food_delete = QPushButton(self.groupBox_food_commands)
@@ -352,7 +352,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_commands.addWidget(self.pushButton_food_refresh)
 
 
-        self.verticalLayout_food_commands.addLayout(self.horizontalLayout_food_commands)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands)
 
         self.horizontalLayout_food_commands2 = QHBoxLayout()
         self.horizontalLayout_food_commands2.setObjectName(u"horizontalLayout_food_commands2")
@@ -367,7 +367,21 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food_commands2.addWidget(self.pushButton_food_items_refresh)
 
 
-        self.verticalLayout_food_commands.addLayout(self.horizontalLayout_food_commands2)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands2)
+
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_3.addItem(self.horizontalSpacer)
+
+        self.pushButton_show_all_records = QPushButton(self.groupBox_food_commands)
+        self.pushButton_show_all_records.setObjectName(u"pushButton_show_all_records")
+
+        self.horizontalLayout_3.addWidget(self.pushButton_show_all_records)
+
+
+        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_commands)
@@ -509,11 +523,11 @@ class Ui_MainWindow(object):
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
         self.label_food_manual_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
         self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name (optional if selected from list)", None))
-        self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"This is a drink", None))
-        self.radioButton_use_weight.setText(QCoreApplication.translate("MainWindow", u"Calculate by weight", None))
-        self.radioButton_use_calories.setText(QCoreApplication.translate("MainWindow", u"Enter calories directly", None))
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal", None))
+        self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"Drink", None))
+        self.radioButton_use_weight.setText(QCoreApplication.translate("MainWindow", u"Calculate by weight", None))
+        self.radioButton_use_calories.setText(QCoreApplication.translate("MainWindow", u"Enter calories directly", None))
         self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_food_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
@@ -531,6 +545,7 @@ class Ui_MainWindow(object):
         self.pushButton_food_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.pushButton_food_items_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Item", None))
         self.pushButton_food_items_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Items", None))
+        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
