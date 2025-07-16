@@ -269,9 +269,6 @@ class AutoSaveOperations:
         try:
             if calories_per_100g_str.strip():
                 calories_per_100g = float(calories_per_100g_str)
-                if calories_per_100g <= 0:
-                    QMessageBox.warning(None, "Validation Error", "Calories per 100g must be a positive number")
-                    return
         except (ValueError, TypeError):
             if calories_per_100g_str.strip():  # Only show error if there's actually a value
                 QMessageBox.warning(None, "Validation Error", f"Invalid calories per 100g value: {calories_per_100g_str}")

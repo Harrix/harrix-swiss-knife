@@ -254,10 +254,6 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Enter food name")
             return
 
-        if calories <= 0:
-            QMessageBox.warning(self, "Error", "Calories must be greater than 0")
-            return
-
         # Validate weight based on radio button selection
         if use_weight and weight <= 0:
             QMessageBox.warning(self, "Error", "Weight is required when using weight mode")
