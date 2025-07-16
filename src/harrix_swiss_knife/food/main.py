@@ -111,8 +111,8 @@ class MainWindow(
         self.update_food_data()
         self._setup_window_size_and_position()
 
-        # Adjust table column widths after UI is fully initialized
-        QTimer.singleShot(200, self._adjust_food_log_table_columns)
+        # Adjust table column widths and show window after UI is fully initialized
+        QTimer.singleShot(200, self._finish_window_initialization)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
@@ -1087,6 +1087,12 @@ class MainWindow(
         # Adjust food log table column widths based on window size
         self._adjust_food_log_table_columns()
 
+    def _finish_window_initialization(self) -> None:
+        """Finish window initialization by showing the window and adjusting columns."""
+        self.show()
+        # Adjust columns after window is shown and has proper dimensions
+        QTimer.singleShot(50, self._adjust_food_log_table_columns)
+
     def _adjust_food_log_table_columns(self) -> None:
         """Adjust food log table column widths proportionally to window size."""
         if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
@@ -1134,5 +1140,5 @@ class MainWindow(
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = MainWindow()
-    win.show()
+    # Window will be shown after initialization in _finish_window_initialization
     sys.exit(app.exec())
