@@ -796,20 +796,6 @@ class DatabaseManager:
             # If conversion fails, return 0.0
             return 0.0
 
-    def get_food_calories_count_today(self) -> int:
-        """Get count of food entries today.
-
-        Returns:
-
-        - `int`: Count of food entries today.
-
-        """
-        today = datetime.now().strftime("%Y-%m-%d")
-        query = "SELECT COUNT(*) FROM food_log WHERE date = :today"
-        params = {"today": today}
-        rows = self.get_rows(query, params)
-        return int(rows[0][0]) if rows else 0
-
     def get_drinks_weight_today(self) -> int:
         """Get total weight of drinks consumed today.
 

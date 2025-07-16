@@ -585,19 +585,18 @@ class MainWindow(
             return
 
         if not self._validate_database_connection():
-            self.label_food_today.setText("0 kcal\n0,0 l")
+            self.label_food_today.setText("0 kcal\n0,0 liters")
             return
 
         try:
             calories = self.db_manager.get_food_calories_today()
-            count = self.db_manager.get_food_calories_count_today()
             drinks_weight = self.db_manager.get_drinks_weight_today()
             drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
-            drinks_liters_str = f"{drinks_liters:.1f}".replace(".", ",")
-            self.label_food_today.setText(f"{calories:.1f} kcal ({count} items)\n{drinks_liters_str} l")
+            drinks_liters_str = f"{drinks_liters:.1f}"
+            self.label_food_today.setText(f"{calories:.1f} kcal \n{drinks_liters_str} liters")
         except Exception as e:
             print(f"Error getting food calories for today: {e}")
-            self.label_food_today.setText("0 kcal\n0,0 l")
+            self.label_food_today.setText("0 kcal\n0,0 liters")
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
