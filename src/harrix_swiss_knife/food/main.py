@@ -1692,6 +1692,7 @@ class MainWindow(
                 "fill_zero_periods": True,
                 "date_from": date_from,
                 "date_to": date_to,
+                "is_calories_chart": True,  # Add this parameter
             }
 
             # Create chart
