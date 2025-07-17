@@ -63,7 +63,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Warning: Error during database cleanup: {e}")
 
-    def add_exercise(self, name: str, unit: str, *, is_type_required: bool) -> bool:
+    def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool:
         """Add a new exercise to the database.
 
         Args:
@@ -71,31 +71,40 @@ class DatabaseManager:
         - `name` (`str`): Exercise name.
         - `unit` (`str`): Unit of measurement.
         - `is_type_required` (`bool`): Whether exercise type is required.
+        - `calories_per_unit` (`float`): Calories burned per unit. Defaults to `0.0`.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "INSERT INTO exercises (name, unit, is_type_required) VALUES (:name, :unit, :is_type_required)"
-        params = {"name": name, "unit": unit, "is_type_required": 1 if is_type_required else 0}
+        query = "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit) VALUES (:name, :unit, :is_type_required, :calories_per_unit)"
+        params = {
+            "name": name,
+            "unit": unit,
+            "is_type_required": 1 if is_type_required else 0,
+            "calories_per_unit": calories_per_unit,
+        }
         return self.execute_simple_query(query, params)
 
-    def add_exercise_type(self, exercise_id: int, type_name: str) -> bool:
+    def add_exercise_type(self, exercise_id: int, type_name: str, calories_modifier: float = 1.0) -> bool:
         """Add a new exercise type.
 
         Args:
 
         - `exercise_id` (`int`): Exercise ID.
         - `type_name` (`str`): Type name.
+        - `calories_modifier` (`float`): Calories modifier for this type. Defaults to `1.0`.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "INSERT INTO types (_id_exercises, type) VALUES (:ex, :tp)"
-        return self.execute_simple_query(query, {"ex": exercise_id, "tp": type_name})
+        query = "INSERT INTO types (_id_exercises, type, calories_modifier) VALUES (:ex, :tp, :calories_modifier)"
+        return self.execute_simple_query(
+            query, {"ex": exercise_id, "tp": type_name, "calories_modifier": calories_modifier}
+        )
 
     def add_process_record(self, exercise_id: int, type_id: int, value: str, date: str) -> bool:
         """Add a new process record.
@@ -409,11 +418,11 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[list[Any]]`: List of type records [_id, exercise_name, type_name].
+        - `list[list[Any]]`: List of type records [_id, exercise_name, type_name, calories_modifier].
 
         """
         return self.get_rows("""
-            SELECT t._id, e.name, t.type
+            SELECT t._id, e.name, t.type, t.calories_modifier
             FROM types t
             JOIN exercises e ON t._id_exercises = e._id
         """)
@@ -423,10 +432,10 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[list[Any]]`: List of exercise records [_id, name, unit, is_type_required].
+        - `list[list[Any]]`: List of exercise records [_id, name, unit, is_type_required, calories_per_unit].
 
         """
-        return self.get_rows("SELECT _id, name, unit, is_type_required FROM exercises")
+        return self.get_rows("SELECT _id, name, unit, is_type_required, calories_per_unit FROM exercises")
 
     def get_all_process_records(self) -> list[list[Any]]:
         """Get all process records with exercise and type names.
@@ -513,6 +522,30 @@ class DatabaseManager:
         """
         rows = self.get_rows("SELECT MIN(date) FROM weight WHERE date IS NOT NULL")
         return rows[0][0] if rows and rows[0][0] else None
+
+    def get_exercise_calories_info(self, exercise_id: int) -> tuple[float, list[tuple[str, float]]]:
+        """Get calories information for an exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `tuple[float, list[tuple[str, float]]]`: Tuple of (calories_per_unit, [(type_name, calories_modifier), ...]).
+
+        """
+        # Get exercise calories_per_unit
+        exercise_rows = self.get_rows("SELECT calories_per_unit FROM exercises WHERE _id = :id", {"id": exercise_id})
+        calories_per_unit = exercise_rows[0][0] if exercise_rows else 0.0
+
+        # Get types with their calories modifiers
+        type_rows = self.get_rows(
+            "SELECT type, calories_modifier FROM types WHERE _id_exercises = :id", {"id": exercise_id}
+        )
+        type_modifiers = [(row[0], row[1]) for row in type_rows]
+
+        return calories_per_unit, type_modifiers
 
     def get_exercise_chart_data(
         self,
@@ -1174,7 +1207,9 @@ class DatabaseManager:
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
 
-    def update_exercise(self, exercise_id: int, name: str, unit: str, *, is_type_required: bool) -> bool:
+    def update_exercise(
+        self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0
+    ) -> bool:
         """Update an existing exercise.
 
         Args:
@@ -1183,22 +1218,26 @@ class DatabaseManager:
         - `name` (`str`): Exercise name.
         - `unit` (`str`): Unit of measurement.
         - `is_type_required` (`bool`): Whether exercise type is required.
+        - `calories_per_unit` (`float`): Calories burned per unit. Defaults to `0.0`.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr WHERE _id = :id"
+        query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr, calories_per_unit = :cpu WHERE _id = :id"
         params = {
             "n": name,
             "u": unit,
             "itr": 1 if is_type_required else 0,
+            "cpu": calories_per_unit,
             "id": exercise_id,
         }
         return self.execute_simple_query(query, params)
 
-    def update_exercise_type(self, type_id: int, exercise_id: int, type_name: str) -> bool:
+    def update_exercise_type(
+        self, type_id: int, exercise_id: int, type_name: str, calories_modifier: float = 1.0
+    ) -> bool:
         """Update an existing exercise type.
 
         Args:
@@ -1206,14 +1245,15 @@ class DatabaseManager:
         - `type_id` (`int`): Type ID.
         - `exercise_id` (`int`): Exercise ID.
         - `type_name` (`str`): Type name.
+        - `calories_modifier` (`float`): Calories modifier for this type. Defaults to `1.0`.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "UPDATE types SET _id_exercises = :ex, type = :tp WHERE _id = :id"
-        params = {"ex": exercise_id, "tp": type_name, "id": type_id}
+        query = "UPDATE types SET _id_exercises = :ex, type = :tp, calories_modifier = :cm WHERE _id = :id"
+        params = {"ex": exercise_id, "tp": type_name, "cm": calories_modifier, "id": type_id}
         return self.execute_simple_query(query, params)
 
     def update_process_record(self, record_id: int, exercise_id: int, type_id: int, value: str, date: str) -> bool:

@@ -103,6 +103,7 @@ class AutoSaveOperations:
         name = model.data(model.index(row, 0)) or ""
         unit = model.data(model.index(row, 1)) or ""
         is_type_required_str = model.data(model.index(row, 2)) or "0"
+        calories_per_unit_str = model.data(model.index(row, 3)) or "0"
 
         # Validate exercise name
         if not name.strip():
@@ -112,9 +113,20 @@ class AutoSaveOperations:
         # Convert is_type_required to boolean
         is_type_required = is_type_required_str == "1"
 
+        # Convert calories_per_unit to float
+        try:
+            calories_per_unit = float(calories_per_unit_str)
+        except (ValueError, TypeError):
+            QMessageBox.warning(None, "Validation Error", f"Invalid calories per unit value: {calories_per_unit_str}")
+            return
+
         # Update database
         if not self.db_manager.update_exercise(
-            int(row_id), name.strip(), unit.strip(), is_type_required=is_type_required
+            int(row_id),
+            name.strip(),
+            unit.strip(),
+            is_type_required=is_type_required,
+            calories_per_unit=calories_per_unit,
         ):
             QMessageBox.warning(None, "Database Error", "Failed to save exercise record")
         else:
@@ -181,6 +193,7 @@ class AutoSaveOperations:
         """
         exercise_name = model.data(model.index(row, 0)) or ""
         type_name = model.data(model.index(row, 1)) or ""
+        calories_modifier_str = model.data(model.index(row, 2)) or "1.0"
 
         # Validate inputs
         if not exercise_name.strip():
@@ -191,6 +204,13 @@ class AutoSaveOperations:
             QMessageBox.warning(None, "Validation Error", "Type name cannot be empty")
             return
 
+        # Convert calories_modifier to float
+        try:
+            calories_modifier = float(calories_modifier_str)
+        except (ValueError, TypeError):
+            QMessageBox.warning(None, "Validation Error", f"Invalid calories modifier value: {calories_modifier_str}")
+            return
+
         # Get exercise ID
         ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
         if ex_id is None:
@@ -198,7 +218,7 @@ class AutoSaveOperations:
             return
 
         # Update database
-        if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip()):
+        if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip(), calories_modifier):
             QMessageBox.warning(None, "Database Error", "Failed to save type record")
         else:
             # Update related UI elements
@@ -302,6 +322,7 @@ def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) 
         name = model.data(model.index(row, 0)) or ""
         unit = model.data(model.index(row, 1)) or ""
         is_type_required_str = model.data(model.index(row, 2)) or "0"
+        calories_per_unit_str = model.data(model.index(row, 3)) or "0"
 
         # Validate exercise name
         if not name.strip():
@@ -311,9 +332,20 @@ def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) 
         # Convert is_type_required to boolean
         is_type_required = is_type_required_str == "1"
 
+        # Convert calories_per_unit to float
+        try:
+            calories_per_unit = float(calories_per_unit_str)
+        except (ValueError, TypeError):
+            QMessageBox.warning(None, "Validation Error", f"Invalid calories per unit value: {calories_per_unit_str}")
+            return
+
         # Update database
         if not self.db_manager.update_exercise(
-            int(row_id), name.strip(), unit.strip(), is_type_required=is_type_required
+            int(row_id),
+            name.strip(),
+            unit.strip(),
+            is_type_required=is_type_required,
+            calories_per_unit=calories_per_unit,
         ):
             QMessageBox.warning(None, "Database Error", "Failed to save exercise record")
         else:
@@ -404,6 +436,7 @@ Args:
 def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         exercise_name = model.data(model.index(row, 0)) or ""
         type_name = model.data(model.index(row, 1)) or ""
+        calories_modifier_str = model.data(model.index(row, 2)) or "1.0"
 
         # Validate inputs
         if not exercise_name.strip():
@@ -414,6 +447,13 @@ def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> N
             QMessageBox.warning(None, "Validation Error", "Type name cannot be empty")
             return
 
+        # Convert calories_modifier to float
+        try:
+            calories_modifier = float(calories_modifier_str)
+        except (ValueError, TypeError):
+            QMessageBox.warning(None, "Validation Error", f"Invalid calories modifier value: {calories_modifier_str}")
+            return
+
         # Get exercise ID
         ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
         if ex_id is None:
@@ -421,7 +461,7 @@ def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> N
             return
 
         # Update database
-        if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip()):
+        if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip(), calories_modifier):
             QMessageBox.warning(None, "Database Error", "Failed to save type record")
         else:
             # Update related UI elements

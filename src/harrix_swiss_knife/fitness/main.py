@@ -129,12 +129,12 @@ class MainWindow(
             "exercises": (
                 self.tableView_exercises,
                 "exercises",
-                ["Exercise", "Unit of Measurement", "Type Required"],
+                ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit"],
             ),
             "types": (
                 self.tableView_exercise_types,
                 "types",
-                ["Exercise", "Exercise Type"],
+                ["Exercise", "Exercise Type", "Calories Modifier"],
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
@@ -379,6 +379,7 @@ class MainWindow(
         """Insert a new exercise using database manager."""
         exercise = self.lineEdit_exercise_name.text().strip()
         unit = self.lineEdit_exercise_unit.text().strip()
+        calories_per_unit = self.doubleSpinBox_calories_per_unit.value()
 
         if not exercise:
             QMessageBox.warning(self, "Error", "Enter exercise name")
@@ -392,7 +393,9 @@ class MainWindow(
         is_type_required = self.check_box_is_type_required.isChecked()
 
         try:
-            if self.db_manager.add_exercise(exercise, unit, is_type_required=is_type_required):
+            if self.db_manager.add_exercise(
+                exercise, unit, is_type_required=is_type_required, calories_per_unit=calories_per_unit
+            ):
                 self.update_all()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add exercise")
@@ -488,7 +491,9 @@ class MainWindow(
                 QMessageBox.warning(self, "Error", "Enter type name")
                 return
 
-            if self.db_manager.add_exercise_type(ex_id, type_name):
+            calories_modifier = self.doubleSpinBox_calories_modifier.value()
+
+            if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier):
                 self.update_all()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add exercise type")
@@ -1129,23 +1134,14 @@ class MainWindow(
         self._update_types_avif()
 
     def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        """Update form fields when exercise selection changes in the table.
-
-        Synchronizes the form fields (name, unit, is_type_required checkbox)
-        with the currently selected exercise in the table.
-
-        Args:
-
-        - `_current` (`QModelIndex`): Currently selected index.
-        - `_previous` (`QModelIndex`): Previously selected index.
-
-        """
+        """Update form fields when exercise selection changes in the table."""
         index = self.tableView_exercises.currentIndex()
         if not index.isValid():
             # Clear the fields if nothing is selected
             self.lineEdit_exercise_name.clear()
             self.lineEdit_exercise_unit.clear()
             self.check_box_is_type_required.setChecked(False)
+            self.doubleSpinBox_calories_per_unit.setValue(0.0)
             return
 
         model = self.models["exercises"]
@@ -1157,10 +1153,16 @@ class MainWindow(
         name = model.data(model.index(row, 0)) or ""
         unit = model.data(model.index(row, 1)) or ""
         is_required = model.data(model.index(row, 2)) or "0"
+        calories_per_unit = model.data(model.index(row, 3)) or "0"
 
         self.lineEdit_exercise_name.setText(name)
         self.lineEdit_exercise_unit.setText(unit)
         self.check_box_is_type_required.setChecked(is_required == "1")
+
+        try:
+            self.doubleSpinBox_calories_per_unit.setValue(float(calories_per_unit))
+        except (ValueError, TypeError):
+            self.doubleSpinBox_calories_per_unit.setValue(0.0)
 
         # Update exercises AVIF
         self._update_exercises_avif()
@@ -1311,6 +1313,28 @@ class MainWindow(
 
             # Unblock signals
             self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+
+    def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
+        """Update form fields when exercise type selection changes in the table."""
+        index = self.tableView_exercise_types.currentIndex()
+        if not index.isValid():
+            # Clear the fields if nothing is selected
+            self.doubleSpinBox_calories_modifier.setValue(1.0)
+            return
+
+        model = self.models["types"]
+        row = index.row()
+
+        # Fill in the fields with data from the selected row
+        if model is None:
+            return
+
+        calories_modifier = model.data(model.index(row, 2)) or "1.0"
+
+        try:
+            self.doubleSpinBox_calories_modifier.setValue(float(calories_modifier))
+        except (ValueError, TypeError):
+            self.doubleSpinBox_calories_modifier.setValue(1.0)
 
     def on_export_csv(self) -> None:
         """Save current `process` view to a CSV file (semicolon-separated).
@@ -2176,8 +2200,8 @@ class MainWindow(
 
             for row in exercises_data:
                 # Transform exercises data:
-                # [id, name, unit, is_type_required] -> [name, unit, is_type_required, id, color]
-                transformed_row = [row[1], row[2], str(row[3]), row[0], light_green]
+                # [id, name, unit, is_type_required, calories_per_unit] -> [name, unit, is_type_required, calories_per_unit, id, color]
+                transformed_row = [row[1], row[2], str(row[3]), f"{row[4]:.1f}", row[0], light_green]
                 exercises_transformed_data.append(transformed_row)
 
             self.models["exercises"] = self._create_colored_table_model(
@@ -2191,8 +2215,8 @@ class MainWindow(
             light_orange = QColor(255, 248, 220)  # Light orange background
 
             for row in types_data:
-                # Transform types data: [id, exercise_name, type_name] -> [exercise_name, type_name, id, color]
-                transformed_row = [row[1], row[2], row[0], light_orange]
+                # Transform types data: [id, exercise_name, type_name, calories_modifier] -> [exercise_name, type_name, calories_modifier, id, color]
+                transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[0], light_orange]
                 types_transformed_data.append(transformed_row)
 
             self.models["types"] = self._create_colored_table_model(
@@ -2278,17 +2302,22 @@ class MainWindow(
             # Set default column widths for resizable columns
             self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
             self.tableView_exercises.setColumnWidth(1, 120)  # Unit
-            # Type Required column will stretch automatically
+            self.tableView_exercises.setColumnWidth(2, 100)  # Type Required
+            # Calories per Unit column will stretch automatically
 
             # Configure exercise types table header - mixed approach: interactive + stretch last
             exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-            # Set first column to interactive (resizable)
-            exercise_types_header.setSectionResizeMode(0, exercise_types_header.ResizeMode.Interactive)
+            # Set first columns to interactive (resizable)
+            for i in range(exercise_types_header.count() - 1):
+                exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
             # Set last column to stretch to fill remaining space
-            exercise_types_header.setSectionResizeMode(1, exercise_types_header.ResizeMode.Stretch)
-            # Set default width for resizable column
+            exercise_types_header.setSectionResizeMode(
+                exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
+            )
+            # Set default column widths for resizable columns
             self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
-            # Exercise Type column will stretch automatically
+            self.tableView_exercise_types.setColumnWidth(1, 150)  # Exercise Type
+            # Calories Modifier column will stretch automatically
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -2311,18 +2340,7 @@ class MainWindow(
         current_exercise: str | None = None,
         current_type: str | None = None,
     ) -> None:
-        """Refresh tables, list view and (optionally) dates.
-
-        Updates all UI elements with the latest data from the database.
-
-        Args:
-
-        - `is_skip_date_update` (`bool`): If `True`, date fields won't be reset to today. Defaults to `False`.
-        - `is_preserve_selections` (`bool`): If `True`, tries to maintain current selections. Defaults to `False`.
-        - `current_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
-        - `current_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
-
-        """
+        """Refresh tables, list view and (optionally) dates."""
         if not self._validate_database_connection():
             print("Database connection not available for update_all")
             return
@@ -2354,6 +2372,11 @@ class MainWindow(
         self.lineEdit_exercise_name.clear()
         self.lineEdit_exercise_unit.clear()
         self.check_box_is_type_required.setChecked(False)
+        self.doubleSpinBox_calories_per_unit.setValue(0.0)
+
+        # Clear the type addition form after updating
+        self.lineEdit_exercise_type.clear()
+        self.doubleSpinBox_calories_modifier.setValue(1.0)
 
         # Load AVIF for the currently selected exercise
         current_exercise_name = self._get_current_selected_exercise()
@@ -2920,6 +2943,9 @@ class MainWindow(
         """Connect selection change signals for all tables."""
         # Connect exercises table selection
         self._connect_table_signals_for_table("exercises", self.on_exercise_selection_changed)
+
+        # Connect exercise types table selection
+        self._connect_table_signals_for_table("types", self.on_exercise_type_selection_changed)
 
         # Connect statistics table selection
         selection_model = self.tableView_statistics.selectionModel()
@@ -3901,6 +3927,17 @@ class MainWindow(
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 3)  # tableView gets more space
+
+        # Initialize calories spinboxes
+        self.doubleSpinBox_calories_per_unit.setDecimals(1)
+        self.doubleSpinBox_calories_per_unit.setMinimum(0.0)
+        self.doubleSpinBox_calories_per_unit.setMaximum(999.9)
+        self.doubleSpinBox_calories_per_unit.setValue(0.0)
+
+        self.doubleSpinBox_calories_modifier.setDecimals(1)
+        self.doubleSpinBox_calories_modifier.setMinimum(0.1)
+        self.doubleSpinBox_calories_modifier.setMaximum(10.0)
+        self.doubleSpinBox_calories_modifier.setValue(1.0)
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
