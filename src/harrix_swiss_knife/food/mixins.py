@@ -400,7 +400,7 @@ class ChartOperations:
             chart_config.get("color", "b"),
             non_zero_count,
             chart_config.get("period"),
-            chart_config.get("is_calories_chart", False)  # Add this parameter
+            chart_config.get("is_calories_chart", False),  # Add this parameter
         )
 
         # Customize plot
@@ -707,12 +707,30 @@ class ChartOperations:
         if is_calories_chart:
             # Draw horizontal lines for critical zones only for Days period
             if period != "Months" and period != "Years":
-                ax.axhline(y=1800, color='green', linestyle='--', linewidth=1, alpha=0.5, zorder=1, label='Low calories limit')
-                ax.axhline(y=2100, color='orange', linestyle='--', linewidth=1, alpha=0.5, zorder=1, label='Medium-low calories limit')
-                ax.axhline(y=2500, color='red', linestyle='--', linewidth=1, alpha=0.5, zorder=1, label='Medium-high calories limit')
+                ax.axhline(
+                    y=1800, color="green", linestyle="--", linewidth=1, alpha=0.5, zorder=1, label="Low calories limit"
+                )
+                ax.axhline(
+                    y=2100,
+                    color="orange",
+                    linestyle="--",
+                    linewidth=1,
+                    alpha=0.5,
+                    zorder=1,
+                    label="Medium-low calories limit",
+                )
+                ax.axhline(
+                    y=2500,
+                    color="red",
+                    linestyle="--",
+                    linewidth=1,
+                    alpha=0.5,
+                    zorder=1,
+                    label="Medium-high calories limit",
+                )
 
             # Draw thin connecting line behind points
-            ax.plot(x_values, y_values, color='gray', linestyle='-', linewidth=1, alpha=0.6, zorder=2)
+            ax.plot(x_values, y_values, color="gray", linestyle="-", linewidth=1, alpha=0.6, zorder=2)
 
             # Get colors for each point based on calories value
             point_colors = []
@@ -735,9 +753,9 @@ class ChartOperations:
                 c=point_colors,
                 s=20,  # Small size
                 alpha=0.8,
-                edgecolors='black',  # Black edge
+                edgecolors="black",  # Black edge
                 linewidth=0.5,  # Thin edge
-                zorder=3  # Ensure points are on top
+                zorder=3,  # Ensure points are on top
             )
 
             # Add value labels only if there are fewer than 50 points
@@ -761,7 +779,7 @@ class ChartOperations:
                             alpha=0.8,
                             # Add white outline for better readability
                             bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-                            zorder=4  # Ensure labels are on top
+                            zorder=4,  # Ensure labels are on top
                         )
 
         else:

@@ -564,36 +564,6 @@ class MainWindow(
         except Exception as e:
             print(f"Error in food log table cell clicked: {e}")
 
-    def on_food_stats_last_month(self) -> None:
-        """Set date range to last month and update chart."""
-        today = QDate.currentDate()
-        month_ago = today.addMonths(-1)
-
-        self.dateEdit_food_stats_from.setDate(month_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self._update_food_calories_chart()
-
-    def on_food_stats_last_week(self) -> None:
-        """Set date range to last week and update chart."""
-        today = QDate.currentDate()
-        week_ago = today.addDays(-7)
-
-        self.dateEdit_food_stats_from.setDate(week_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self._update_food_calories_chart()
-
-    def on_food_stats_last_year(self) -> None:
-        """Set date range to last year and update chart."""
-        today = QDate.currentDate()
-        year_ago = today.addYears(-1)
-
-        self.dateEdit_food_stats_from.setDate(year_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self._update_food_calories_chart()
-
     def on_food_stats_all_time(self) -> None:
         """Set date range to all available data and update chart."""
         if not self.db_manager or not self._validate_database_connection():
@@ -627,6 +597,44 @@ class MainWindow(
             self.dateEdit_food_stats_to.setDate(today)
             self._update_food_calories_chart()
 
+    def on_food_stats_drink(self) -> None:
+        """Show drinks chart."""
+        self._update_drinks_chart()
+
+    def on_food_stats_food_weight(self) -> None:
+        """Show food weight chart."""
+        self._update_food_weight_chart()
+
+    def on_food_stats_last_month(self) -> None:
+        """Set date range to last month and update chart."""
+        today = QDate.currentDate()
+        month_ago = today.addMonths(-1)
+
+        self.dateEdit_food_stats_from.setDate(month_ago)
+        self.dateEdit_food_stats_to.setDate(today)
+
+        self._update_food_calories_chart()
+
+    def on_food_stats_last_week(self) -> None:
+        """Set date range to last week and update chart."""
+        today = QDate.currentDate()
+        week_ago = today.addDays(-7)
+
+        self.dateEdit_food_stats_from.setDate(week_ago)
+        self.dateEdit_food_stats_to.setDate(today)
+
+        self._update_food_calories_chart()
+
+    def on_food_stats_last_year(self) -> None:
+        """Set date range to last year and update chart."""
+        today = QDate.currentDate()
+        year_ago = today.addYears(-1)
+
+        self.dateEdit_food_stats_from.setDate(year_ago)
+        self.dateEdit_food_stats_to.setDate(today)
+
+        self._update_food_calories_chart()
+
     def on_food_stats_period_changed(self) -> None:
         """Handle period selection change and update chart."""
         self._update_food_calories_chart()
@@ -634,14 +642,6 @@ class MainWindow(
     def on_food_stats_update(self) -> None:
         """Update the food calories chart."""
         self._update_food_calories_chart()
-
-    def on_food_stats_food_weight(self) -> None:
-        """Show food weight chart."""
-        self._update_food_weight_chart()
-
-    def on_food_stats_drink(self) -> None:
-        """Show drinks chart."""
-        self._update_drinks_chart()
 
     def on_show_all_records_clicked(self) -> None:
         """Toggle between showing all records and last 5000 records."""
@@ -655,124 +655,6 @@ class MainWindow(
 
         # Refresh the food log table
         self._update_food_log_table()
-
-    def _update_food_log_table(self) -> None:
-        """Update the food log table based on current display state."""
-        if not self._validate_database_connection():
-            print("Database connection not available for updating food log table")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            def transform_food_log_data(rows: list[list]) -> list[list]:
-                """Transform food_log data with coloring.
-
-                Args:
-                    rows (list[list]): Raw food_log data from database.
-
-                Returns:
-                    list[list]: Transformed food_log data.
-                """
-                # Get all unique dates and assign colors
-                unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
-                date_to_color = {}
-
-                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
-                    color_index = idx % len(self.date_colors)
-                    date_to_color[date_str] = self.date_colors[color_index]
-
-                # Transform data and add color information
-                transformed_rows = []
-                for row in rows:
-                    # Original transformation:
-                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
-                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
-
-                    # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
-                    portion_calories = row[3]
-                    calories_per_100g = row[4]
-                    weight = row[2]
-
-                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
-                    # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
-                    if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
-                        calories_per_100g_display = ""
-                    else:
-                        calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
-
-                    # Calculate total calories
-                    calculated_calories = 0.0
-                    if portion_calories and portion_calories > 0:
-                        # Use portion calories directly
-                        calculated_calories = float(portion_calories)
-                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
-                        # Calculate from weight and calories per 100g
-                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
-
-                    transformed_row = [
-                        row[5],
-                        "1" if row[7] == 1 else "",
-                        row[2],
-                        calories_per_100g_display,
-                        portion_calories,
-                        f"{calculated_calories:.1f}",
-                        row[1],
-                        row[6],
-                    ]
-
-                    # Add color information based on date
-                    date_str = row[1]
-                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
-
-                    # Add original ID and color to the row for later use
-                    transformed_row.extend(
-                        [row[0], date_color]
-                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
-                    transformed_rows.append(transformed_row)
-
-                return transformed_rows
-
-            # Get food_log data based on current state
-            if self.show_all_food_records:
-                # Get all records
-                food_log_rows = self.db_manager.get_all_food_log_records()
-            else:
-                # Get recent records (last 5000)
-                food_log_rows = self.db_manager.get_recent_food_log_records(5000)
-
-            transformed_food_log_data = transform_food_log_data(food_log_rows)
-
-            # Create food_log table model with coloring
-            self.models["food_log"] = self._create_colored_food_log_table_model(
-                transformed_food_log_data, self.table_config["food_log"][2]
-            )
-            self.tableView_food_log.setModel(self.models["food_log"])
-
-            # Enable editing for the table
-            self.tableView_food_log.setEditTriggers(
-                QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
-            )
-
-            # Configure food_log table header - interactive mode for all columns
-            food_log_header = self.tableView_food_log.horizontalHeader()
-            # Set all columns to interactive (resizable)
-            for i in range(food_log_header.count()):
-                food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
-            # Set proportional column widths for all columns
-            self._adjust_food_log_table_columns()
-
-            # Connect selection change signals after models are set
-            self._connect_table_selection_signals()
-
-            # Connect auto-save signals after all models are created
-            self._connect_table_auto_save_signals()
-
-        except Exception as e:
-            print(f"Error updating food log table: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to update food log table: {e}")
 
     def set_food_yesterday_date(self) -> None:
         """Set yesterday's date in the food date edit field.
@@ -1534,7 +1416,7 @@ class MainWindow(
                 # No data in database, use month ago as default
                 self.dateEdit_food_stats_from.setDate(month_ago)
 
-                        # Always set end date to today
+                # Always set end date to today
             self.dateEdit_food_stats_to.setDate(today)
 
             # Update the chart with the new date range
@@ -1832,6 +1714,66 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating autocomplete data: {e}")
 
+    def _update_drinks_chart(self) -> None:
+        """Update the drinks chart with data from database."""
+        if not self._validate_database_connection():
+            print("Database connection not available for updating drinks chart")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get date range from UI
+            date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
+            period = self.comboBox_food_stats_period.currentText()
+
+            # Get drinks weight data for the selected period
+            weight_data = self.db_manager.get_drinks_weight_per_day()
+
+            # Filter data by date range
+            filtered_data = []
+            for row in weight_data:
+                date_str = str(row[0]) if row[0] is not None else ""
+                weight_grams = row[1] if row[1] is not None else 0.0
+
+                if date_from <= date_str <= date_to:
+                    # Convert grams to liters (1 liter = 1000 grams)
+                    weight_liters = weight_grams / 1000.0
+                    filtered_data.append((date_str, weight_liters))
+
+            # Group data by period
+            grouped_data = self._group_data_by_period(filtered_data, period, "float")
+
+            # Convert to list of tuples for chart
+            chart_data = [(date, value) for date, value in grouped_data.items()]
+
+            # Create chart configuration
+            chart_config = {
+                "title": f"Drinks Consumed ({period})",
+                "xlabel": "Date",
+                "ylabel": "Volume (liters)",
+                "color": "cyan",
+                "show_stats": True,
+                "stats_unit": "L",
+                "period": period,
+                "fill_zero_periods": True,
+                "date_from": date_from,
+                "date_to": date_to,
+                "is_calories_chart": False,  # Not calories chart
+            }
+
+            # Create chart
+            layout = self.scrollAreaWidgetContents_food_stats.layout()
+            if layout is not None:
+                self._create_chart(layout, chart_data, chart_config)
+
+        except Exception as e:
+            print(f"Error updating drinks chart: {e}")
+            QMessageBox.warning(self, "Chart Error", f"Failed to create drinks chart: {e}")
+
     def _update_favorite_food_items_list(self) -> None:
         """Refresh favorite food items list view with popular items from database."""
         if not self._validate_database_connection():
@@ -1923,6 +1865,160 @@ class MainWindow(
             print(f"Error updating food calories chart: {e}")
             QMessageBox.warning(self, "Chart Error", f"Failed to create calories chart: {e}")
 
+    def _update_food_items_list(self) -> None:
+        """Refresh food items list view with data from database."""
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get food items sorted by name
+            food_items_data = self.db_manager.get_all_food_items()
+
+            # Block signals during model update
+            selection_model = self.listView_food_items.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
+
+            # Update food items list model
+            if self.food_items_list_model is not None:
+                self.food_items_list_model.clear()
+                for food_item_row in food_items_data:
+                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                    food_name = food_item_row[1]  # name is at index 1
+                    item = QStandardItem(food_name)
+                    self.food_items_list_model.appendRow(item)
+
+            # Unblock signals
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
+
+        except Exception as e:
+            print(f"Error updating food items list: {e}")
+
+    def _update_food_log_table(self) -> None:
+        """Update the food log table based on current display state."""
+        if not self._validate_database_connection():
+            print("Database connection not available for updating food log table")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+
+            def transform_food_log_data(rows: list[list]) -> list[list]:
+                """Transform food_log data with coloring.
+
+                Args:
+                    rows (list[list]): Raw food_log data from database.
+
+                Returns:
+                    list[list]: Transformed food_log data.
+                """
+                # Get all unique dates and assign colors
+                unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
+                date_to_color = {}
+
+                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
+                    color_index = idx % len(self.date_colors)
+                    date_to_color[date_str] = self.date_colors[color_index]
+
+                # Transform data and add color information
+                transformed_rows = []
+                for row in rows:
+                    # Original transformation:
+                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
+                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+
+                    # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
+                    if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
+                        calories_per_100g_display = ""
+                    else:
+                        calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
+
+                    # Calculate total calories
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        # Use portion calories directly
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        # Calculate from weight and calories per 100g
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    transformed_row = [
+                        row[5],
+                        "1" if row[7] == 1 else "",
+                        row[2],
+                        calories_per_100g_display,
+                        portion_calories,
+                        f"{calculated_calories:.1f}",
+                        row[1],
+                        row[6],
+                    ]
+
+                    # Add color information based on date
+                    date_str = row[1]
+                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
+
+                    # Add original ID and color to the row for later use
+                    transformed_row.extend(
+                        [row[0], date_color]
+                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_rows.append(transformed_row)
+
+                return transformed_rows
+
+            # Get food_log data based on current state
+            if self.show_all_food_records:
+                # Get all records
+                food_log_rows = self.db_manager.get_all_food_log_records()
+            else:
+                # Get recent records (last 5000)
+                food_log_rows = self.db_manager.get_recent_food_log_records(5000)
+
+            transformed_food_log_data = transform_food_log_data(food_log_rows)
+
+            # Create food_log table model with coloring
+            self.models["food_log"] = self._create_colored_food_log_table_model(
+                transformed_food_log_data, self.table_config["food_log"][2]
+            )
+            self.tableView_food_log.setModel(self.models["food_log"])
+
+            # Enable editing for the table
+            self.tableView_food_log.setEditTriggers(
+                QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
+            )
+
+            # Configure food_log table header - interactive mode for all columns
+            food_log_header = self.tableView_food_log.horizontalHeader()
+            # Set all columns to interactive (resizable)
+            for i in range(food_log_header.count()):
+                food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
+            # Set proportional column widths for all columns
+            self._adjust_food_log_table_columns()
+
+            # Connect selection change signals after models are set
+            self._connect_table_selection_signals()
+
+            # Connect auto-save signals after all models are created
+            self._connect_table_auto_save_signals()
+
+        except Exception as e:
+            print(f"Error updating food log table: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to update food log table: {e}")
+
     def _update_food_weight_chart(self) -> None:
         """Update the food weight chart with data from database."""
         if not self._validate_database_connection():
@@ -1982,101 +2078,6 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating food weight chart: {e}")
             QMessageBox.warning(self, "Chart Error", f"Failed to create food weight chart: {e}")
-
-    def _update_drinks_chart(self) -> None:
-        """Update the drinks chart with data from database."""
-        if not self._validate_database_connection():
-            print("Database connection not available for updating drinks chart")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get date range from UI
-            date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
-            date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
-            period = self.comboBox_food_stats_period.currentText()
-
-            # Get drinks weight data for the selected period
-            weight_data = self.db_manager.get_drinks_weight_per_day()
-
-            # Filter data by date range
-            filtered_data = []
-            for row in weight_data:
-                date_str = str(row[0]) if row[0] is not None else ""
-                weight_grams = row[1] if row[1] is not None else 0.0
-
-                if date_from <= date_str <= date_to:
-                    # Convert grams to liters (1 liter = 1000 grams)
-                    weight_liters = weight_grams / 1000.0
-                    filtered_data.append((date_str, weight_liters))
-
-            # Group data by period
-            grouped_data = self._group_data_by_period(filtered_data, period, "float")
-
-            # Convert to list of tuples for chart
-            chart_data = [(date, value) for date, value in grouped_data.items()]
-
-            # Create chart configuration
-            chart_config = {
-                "title": f"Drinks Consumed ({period})",
-                "xlabel": "Date",
-                "ylabel": "Volume (liters)",
-                "color": "cyan",
-                "show_stats": True,
-                "stats_unit": "L",
-                "period": period,
-                "fill_zero_periods": True,
-                "date_from": date_from,
-                "date_to": date_to,
-                "is_calories_chart": False,  # Not calories chart
-            }
-
-            # Create chart
-            layout = self.scrollAreaWidgetContents_food_stats.layout()
-            if layout is not None:
-                self._create_chart(layout, chart_data, chart_config)
-
-        except Exception as e:
-            print(f"Error updating drinks chart: {e}")
-            QMessageBox.warning(self, "Chart Error", f"Failed to create drinks chart: {e}")
-
-    def _update_food_items_list(self) -> None:
-        """Refresh food items list view with data from database."""
-        if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get food items sorted by name
-            food_items_data = self.db_manager.get_all_food_items()
-
-            # Block signals during model update
-            selection_model = self.listView_food_items.selectionModel()
-            if selection_model:
-                selection_model.blockSignals(True)  # noqa: FBT003
-
-            # Update food items list model
-            if self.food_items_list_model is not None:
-                self.food_items_list_model.clear()
-                for food_item_row in food_items_data:
-                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
-                    food_name = food_item_row[1]  # name is at index 1
-                    item = QStandardItem(food_name)
-                    self.food_items_list_model.appendRow(item)
-
-            # Unblock signals
-            if selection_model:
-                selection_model.blockSignals(False)  # noqa: FBT003
-
-        except Exception as e:
-            print(f"Error updating food items list: {e}")
 
     def _update_kcal_per_day_table(self) -> None:
         """Update the calories per day table with data from database."""
