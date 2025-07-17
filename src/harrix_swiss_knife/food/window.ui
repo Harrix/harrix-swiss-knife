@@ -330,7 +330,7 @@
                  <item>
                   <widget class="QLabel" name="label_food_default_cal">
                    <property name="text">
-                    <string>Default calories:</string>
+                    <string>Default portion calories:</string>
                    </property>
                   </widget>
                  </item>
@@ -372,24 +372,6 @@
                   <widget class="QPushButton" name="pushButton_food_refresh">
                    <property name="text">
                     <string>Refresh</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_food_commands2">
-                 <item>
-                  <widget class="QPushButton" name="pushButton_food_items_delete">
-                   <property name="text">
-                    <string>Delete Item</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_food_items_refresh">
-                   <property name="text">
-                    <string>Refresh Items</string>
                    </property>
                   </widget>
                  </item>
