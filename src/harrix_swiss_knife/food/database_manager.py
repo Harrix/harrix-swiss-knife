@@ -750,6 +750,28 @@ class DatabaseManager:
             LIMIT {limit}
         """)
 
+    def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
+        """Get recent unique food names for autocomplete functionality.
+
+        Args:
+        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `100`.
+
+        Returns:
+        - `list[str]`: List of unique food names from recent records.
+        """
+        query = f"""
+            SELECT DISTINCT name
+            FROM (
+                SELECT name FROM food_log
+                WHERE name IS NOT NULL AND name != ''
+                ORDER BY date DESC, _id DESC
+                LIMIT {limit}
+            ) as recent_foods
+            ORDER BY name ASC
+        """
+        rows = self.get_rows(query)
+        return [row[0] for row in rows if row[0]]
+
     def get_rows(
         self,
         query_text: str,

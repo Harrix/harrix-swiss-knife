@@ -819,7 +819,7 @@ class ChartOperations:
             end_date = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, None)
+                value = data_dict.get(current_date)
                 result.append((current_date, value))
                 count_months = 12
                 if current_date.month == count_months:
@@ -832,7 +832,7 @@ class ChartOperations:
             end_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, None)
+                value = data_dict.get(current_date)
                 result.append((current_date, value))
                 current_date = current_date.replace(year=current_date.year + 1)
 
@@ -841,7 +841,7 @@ class ChartOperations:
             end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, None)
+                value = data_dict.get(current_date)
                 result.append((current_date, value))
                 current_date += timedelta(days=1)
 
@@ -1329,7 +1329,7 @@ def _fill_missing_periods_with_zeros(
             end_date = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, None)
+                value = data_dict.get(current_date)
                 result.append((current_date, value))
                 count_months = 12
                 if current_date.month == count_months:
@@ -1342,7 +1342,7 @@ def _fill_missing_periods_with_zeros(
             end_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, None)
+                value = data_dict.get(current_date)
                 result.append((current_date, value))
                 current_date = current_date.replace(year=current_date.year + 1)
 
@@ -1351,7 +1351,7 @@ def _fill_missing_periods_with_zeros(
             end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
             while current_date <= end_date:
-                value = data_dict.get(current_date, None)
+                value = data_dict.get(current_date)
                 result.append((current_date, value))
                 current_date += timedelta(days=1)
 

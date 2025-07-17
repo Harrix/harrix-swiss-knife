@@ -11,9 +11,9 @@ from functools import partial
 from pathlib import Path
 
 import harrix_pylib as h
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, QStringListModel, Qt, QTimer
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
+from PySide6.QtWidgets import QApplication, QCompleter, QFileDialog, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife.food import database_manager, window
 from harrix_swiss_knife.food.mixins import (
@@ -122,6 +122,7 @@ class MainWindow(
 
         # Initialize application
         self._init_database()
+        self._setup_autocomplete()
         self._connect_signals()
         self._init_food_items_list()
         self._init_favorite_food_items_list()
@@ -258,7 +259,11 @@ class MainWindow(
         # Handle Enter key on various widgets to trigger add button
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             focused_widget = QApplication.focusWidget()
-            if focused_widget == self.doubleSpinBox_food_calories or focused_widget == self.spinBox_food_weight or focused_widget == self.checkBox_food_is_drink:
+            if (
+                focused_widget == self.doubleSpinBox_food_calories
+                or focused_widget == self.spinBox_food_weight
+                or focused_widget == self.checkBox_food_is_drink
+            ):
                 self.pushButton_food_add.click()
                 return
 
@@ -764,6 +769,7 @@ class MainWindow(
         # Update food items list
         self._update_food_items_list()
         self._update_favorite_food_items_list()
+        self._update_autocomplete_data()  # Добавьте эту строку
         self.update_food_calories_today()
         self.show_tables()
 
@@ -1108,6 +1114,15 @@ class MainWindow(
             self.favorite_food_items_list_model.deleteLater()
         self.favorite_food_items_list_model = None
 
+        # Dispose autocomplete completer
+        if hasattr(self, "food_completer"):
+            self.food_completer.deleteLater()
+            self.food_completer = None
+
+        if hasattr(self, "food_completer_model"):
+            self.food_completer_model.deleteLater()
+            self.food_completer_model = None
+
     def _filter_food_items(self, text: str) -> None:
         """Filter food items lists based on input text.
 
@@ -1301,6 +1316,17 @@ class MainWindow(
         except Exception as e:
             print(f"Error getting earliest food log date: {e}")
 
+    def _on_autocomplete_selected(self, text: str) -> None:
+        """Handle autocomplete selection and populate form fields."""
+        if not text:
+            return
+
+        # Set the selected text
+        self.lineEdit_food_manual_name.setText(text)
+
+        # Trigger the food item selection logic
+        self._populate_form_from_food_name(text)
+
     def _on_tab_changed(self, index: int) -> None:
         """Handle tab widget index change.
 
@@ -1367,6 +1393,98 @@ class MainWindow(
 
         # Adjust food log table column widths based on window size
         self._adjust_food_log_table_columns()
+
+    def _populate_form_from_food_name(self, food_name: str) -> None:
+        """Populate form fields based on food name from database."""
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # First try to get food item data from food_items table
+            food_item_data = self.db_manager.get_food_item_by_name(food_name)
+
+            if food_item_data:
+                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                (
+                    food_id,
+                    name,
+                    name_en,
+                    is_drink,
+                    calories_per_100g,
+                    default_portion_weight,
+                    default_portion_calories,
+                ) = food_item_data
+
+                # Populate form fields
+                self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
+                self.checkBox_food_is_drink.setChecked(is_drink == 1)
+
+                # Determine radio button state based on default_portion_calories
+                if default_portion_calories and default_portion_calories > 0:
+                    self.radioButton_use_calories.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(default_portion_calories)
+                else:
+                    self.radioButton_use_weight.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+
+            else:
+                # If not found in food_items, try to get from food_log
+                food_log_data = self.db_manager.get_food_log_item_by_name(food_name)
+
+                if food_log_data:
+                    # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
+                    name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
+
+                    # Populate form fields
+                    self.spinBox_food_weight.setValue(int(weight) if weight else 100)
+                    self.checkBox_food_is_drink.setChecked(is_drink == 1)
+
+                    # Determine radio button state based on portion_calories
+                    if portion_calories and portion_calories > 0:
+                        self.radioButton_use_calories.setChecked(True)
+                        self.doubleSpinBox_food_calories.setValue(portion_calories)
+                    else:
+                        self.radioButton_use_weight.setChecked(True)
+                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                else:
+                    # If not found in either table, set defaults
+                    self.spinBox_food_weight.setValue(100)
+                    self.checkBox_food_is_drink.setChecked(False)
+                    self.radioButton_use_weight.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(0)
+
+            # Update calories calculation
+            self.update_calories_calculation()
+
+        except Exception as e:
+            print(f"Error populating form from food name: {e}")
+
+    def _setup_autocomplete(self) -> None:
+        """Setup autocomplete functionality for food name input."""
+        from PySide6.QtCore import QStringListModel, Qt
+        from PySide6.QtWidgets import QCompleter
+
+        # Create completer
+        self.food_completer = QCompleter(self)
+        self.food_completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.food_completer.setFilterMode(Qt.MatchContains)  # Поиск по содержимому
+        self.food_completer.setCompletionMode(QCompleter.PopupCompletion)
+
+        # Create model for completer
+        self.food_completer_model = QStringListModel(self)
+        self.food_completer.setModel(self.food_completer_model)
+
+        # Set completer to the line edit
+        self.lineEdit_food_manual_name.setCompleter(self.food_completer)
+
+        # Update autocomplete data
+        self._update_autocomplete_data()
+
+        # Connect selection signal
+        self.food_completer.activated.connect(self._on_autocomplete_selected)
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
@@ -1448,6 +1566,24 @@ class MainWindow(
         if self.food_items_list_model:
             for i in range(self.food_items_list_model.rowCount()):
                 self.listView_food_items.setRowHidden(i, False)
+
+    def _update_autocomplete_data(self) -> None:
+        """Update autocomplete data from database."""
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get recent food names for autocomplete
+            recent_names = self.db_manager.get_recent_food_names_for_autocomplete(100)
+
+            # Update completer model
+            self.food_completer_model.setStringList(recent_names)
+
+        except Exception as e:
+            print(f"Error updating autocomplete data: {e}")
 
     def _update_favorite_food_items_list(self) -> None:
         """Refresh favorite food items list view with popular items from database."""
