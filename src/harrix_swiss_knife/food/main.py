@@ -91,6 +91,9 @@ class MainWindow(
             "kcal_per_day": None,
         }
 
+        # Food log display state
+        self.show_all_food_records: bool = False
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "food_log": (
@@ -632,6 +635,137 @@ class MainWindow(
         """Update the food calories chart."""
         self._update_food_calories_chart()
 
+    def on_show_all_records_clicked(self) -> None:
+        """Toggle between showing all records and last 5000 records."""
+        self.show_all_food_records = not self.show_all_food_records
+
+        # Update button text and icon
+        if self.show_all_food_records:
+            self.pushButton_show_all_records.setText("📊 Show Last 5000")
+        else:
+            self.pushButton_show_all_records.setText("📊 Show All Records")
+
+        # Refresh the food log table
+        self._update_food_log_table()
+
+    def _update_food_log_table(self) -> None:
+        """Update the food log table based on current display state."""
+        if not self._validate_database_connection():
+            print("Database connection not available for updating food log table")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            def transform_food_log_data(rows: list[list]) -> list[list]:
+                """Transform food_log data with coloring.
+
+                Args:
+                    rows (list[list]): Raw food_log data from database.
+
+                Returns:
+                    list[list]: Transformed food_log data.
+                """
+                # Get all unique dates and assign colors
+                unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
+                date_to_color = {}
+
+                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
+                    color_index = idx % len(self.date_colors)
+                    date_to_color[date_str] = self.date_colors[color_index]
+
+                # Transform data and add color information
+                transformed_rows = []
+                for row in rows:
+                    # Original transformation:
+                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
+                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+
+                    # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
+                    if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
+                        calories_per_100g_display = ""
+                    else:
+                        calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
+
+                    # Calculate total calories
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        # Use portion calories directly
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        # Calculate from weight and calories per 100g
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    transformed_row = [
+                        row[5],
+                        "1" if row[7] == 1 else "",
+                        row[2],
+                        calories_per_100g_display,
+                        portion_calories,
+                        f"{calculated_calories:.1f}",
+                        row[1],
+                        row[6],
+                    ]
+
+                    # Add color information based on date
+                    date_str = row[1]
+                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
+
+                    # Add original ID and color to the row for later use
+                    transformed_row.extend(
+                        [row[0], date_color]
+                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_rows.append(transformed_row)
+
+                return transformed_rows
+
+            # Get food_log data based on current state
+            if self.show_all_food_records:
+                # Get all records
+                food_log_rows = self.db_manager.get_all_food_log_records()
+            else:
+                # Get recent records (last 5000)
+                food_log_rows = self.db_manager.get_recent_food_log_records(5000)
+
+            transformed_food_log_data = transform_food_log_data(food_log_rows)
+
+            # Create food_log table model with coloring
+            self.models["food_log"] = self._create_colored_food_log_table_model(
+                transformed_food_log_data, self.table_config["food_log"][2]
+            )
+            self.tableView_food_log.setModel(self.models["food_log"])
+
+            # Enable editing for the table
+            self.tableView_food_log.setEditTriggers(
+                QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
+            )
+
+            # Configure food_log table header - interactive mode for all columns
+            food_log_header = self.tableView_food_log.horizontalHeader()
+            # Set all columns to interactive (resizable)
+            for i in range(food_log_header.count()):
+                food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
+            # Set proportional column widths for all columns
+            self._adjust_food_log_table_columns()
+
+            # Connect selection change signals after models are set
+            self._connect_table_selection_signals()
+
+            # Connect auto-save signals after all models are created
+            self._connect_table_auto_save_signals()
+
+        except Exception as e:
+            print(f"Error updating food log table: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to update food log table: {e}")
+
     def set_food_yesterday_date(self) -> None:
         """Set yesterday's date in the food date edit field.
 
@@ -896,6 +1030,7 @@ class MainWindow(
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
+        self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
 
         # Connect radio buttons and spin boxes for calories calculation
         self.radioButton_use_weight.clicked.connect(self.update_calories_calculation)
@@ -1588,6 +1723,7 @@ class MainWindow(
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
+        self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
 
         # Set emoji for food stats buttons
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
