@@ -2218,7 +2218,7 @@ class MainWindow(
 
             # Create chart configuration
             chart_config = {
-                "title": f"Food Weight Consumed ({period})",
+                "title": f"Food Weight Consumed (excluding drinks) ({period})",
                 "xlabel": "Date",
                 "ylabel": "Weight (kg)",
                 "color": "green",
