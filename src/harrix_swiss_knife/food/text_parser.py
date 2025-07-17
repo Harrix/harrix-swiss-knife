@@ -181,11 +181,13 @@ class TextParser:
             return self._parse_name_with_portion(parts, numbers[0][1], food_date, db_manager)
 
         # Strategy 2: Name + two numbers + portion keyword
-        if len(numbers) == 2 and portion_found:
+        count_parts = 2
+        if len(numbers) == count_parts and portion_found:
             return self._parse_name_with_two_numbers_and_portion(parts, numbers, portion_number, food_date, db_manager)
 
         # Strategy 3: Name + two numbers (weight + calories per 100g)
-        if len(numbers) == 2:
+        count_parts = 2
+        if len(numbers) == count_parts:
             return self._parse_name_with_two_numbers(parts, numbers, food_date, db_manager)
 
         # Strategy 4: Name + one number (weight)
@@ -446,10 +448,7 @@ class TextParser:
 
         """
         # Remove numbers to get the name
-        name_parts = []
-        for part in parts:
-            if not self._is_number(part):
-                name_parts.append(part)
+        name_parts = [part for part in parts if not self._is_number(part)]
 
         name = " ".join(name_parts)
         name = self._capitalize_name(name)
@@ -487,10 +486,7 @@ class TextParser:
 
         """
         # Remove numbers and portion keywords to get the name
-        name_parts = []
-        for part in parts:
-            if not self._is_number(part) and part.lower() not in self.portion_keywords:
-                name_parts.append(part)
+        name_parts = [part for part in parts if not self._is_number(part) and part.lower() not in self.portion_keywords]
 
         name = " ".join(name_parts)
         name = self._capitalize_name(name)
@@ -525,10 +521,7 @@ class TextParser:
 
         """
         # Remove numbers to get the name
-        name_parts = []
-        for part in parts:
-            if not self._is_number(part):
-                name_parts.append(part)
+        name_parts = [part for part in parts if not self._is_number(part)]
 
         name = " ".join(name_parts)
         name = self._capitalize_name(name)
@@ -572,12 +565,9 @@ class TextParser:
 
         """
         # Remove numbers and portion keywords to get the name
-        name_parts = []
-        for part in parts:
-            if not self._is_number(part) and part.lower() not in self.portion_keywords:
-                name_parts = [
-                    part for part in parts if not self._is_number(part) and part.lower() not in self.portion_keywords
-                ]
+        name_parts = [
+            part for part in parts if not self._is_number(part) and part.lower() not in self.portion_keywords
+        ]
 
         name = " ".join(name_parts)
         name = self._capitalize_name(name)
