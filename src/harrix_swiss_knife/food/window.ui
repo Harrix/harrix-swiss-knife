@@ -1,235 +1,234 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
-  <class>MainWindow</class>
-  <widget class="QMainWindow" name="MainWindow">
-    <property name="geometry">
-      <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>1375</width>
-        <height>926</height>
-      </rect>
-    </property>
-    <property name="windowTitle">
-      <string>Food tracker</string>
-    </property>
-    <widget class="QWidget" name="centralWidget">
-      <layout class="QHBoxLayout" name="horizontalLayout">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1375</width>
+    <height>926</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Food tracker</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tab_food">
+       <attribute name="title">
+        <string>Food</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_food">
         <item>
-          <widget class="QTabWidget" name="tabWidget">
-            <property name="currentIndex">
-              <number>0</number>
-            </property>
-            <widget class="QWidget" name="tab_food">
-              <attribute name="title">
-                <string>Food</string>
-              </attribute>
-              <layout class="QHBoxLayout" name="horizontalLayout_food">
-                <item>
-                  <widget class="QSplitter" name="splitter_food">
-                    <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="childrenCollapsible">
-                      <bool>false</bool>
-                    </property>
-                    <widget class="QFrame" name="frame_food_controls">
-                      <property name="minimumSize">
-                        <size>
-                          <width>350</width>
-                          <height>0</height>
-                        </size>
-                      </property>
-                      <property name="frameShape">
-                        <enum>QFrame::StyledPanel</enum>
-                      </property>
-                      <property name="frameShadow">
-                        <enum>QFrame::Raised</enum>
-                      </property>
-                      <layout class="QVBoxLayout" name="verticalLayout_food_controls">
-                        <item>
-                          <widget class="QGroupBox" name="groupBox_food_add">
-                            <property name="title">
-                              <string>Add Food Entry</string>
-                            </property>
-                            <layout class="QVBoxLayout" name="verticalLayout">
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_food_manual_name">
-                                  <item>
-                                    <widget class="QLineEdit" name="lineEdit_food_manual_name">
-                                      <property name="font">
-                                        <font>
-                                          <pointsize>12</pointsize>
-                                        </font>
-                                      </property>
-                                      <property name="placeholderText">
-                                        <string>Enter food name (optional if selected from list)</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_food_weight">
-                                  <item>
-                                    <widget class="QSpinBox" name="spinBox_food_weight">
-                                      <property name="font">
-                                        <font>
-                                          <pointsize>12</pointsize>
-                                          <weight>75</weight>
-                                          <bold>true</bold>
-                                        </font>
-                                      </property>
-                                      <property name="styleSheet">
-                                        <string notr="true">QSpinBox {
+         <widget class="QSplitter" name="splitter_food">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="childrenCollapsible">
+           <bool>false</bool>
+          </property>
+          <widget class="QFrame" name="frame_food_controls">
+           <property name="minimumSize">
+            <size>
+             <width>350</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_food_controls">
+            <item>
+             <widget class="QGroupBox" name="groupBox_food_add">
+              <property name="title">
+               <string>Add Food Entry</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout">
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_manual_name">
+                 <item>
+                  <widget class="QLineEdit" name="lineEdit_food_manual_name">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                    </font>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Enter food name (optional if selected from list)</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_weight">
+                 <item>
+                  <widget class="QSpinBox" name="spinBox_food_weight">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <weight>75</weight>
+                     <bold>true</bold>
+                    </font>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QSpinBox {
                                           background-color: #e3f2fd;
                                           }</string>
-                                      </property>
-                                      <property name="alignment">
-                                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                                      </property>
-                                      <property name="maximum">
-                                        <number>10000</number>
-                                      </property>
-                                      <property name="value">
-                                        <number>100</number>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QLabel" name="label_food_weight_unit">
-                                      <property name="text">
-                                        <string>g</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QDoubleSpinBox"
-                                      name="doubleSpinBox_food_calories">
-                                      <property name="font">
-                                        <font>
-                                          <pointsize>12</pointsize>
-                                          <weight>75</weight>
-                                          <bold>true</bold>
-                                        </font>
-                                      </property>
-                                      <property name="styleSheet">
-                                        <string notr="true">QDoubleSpinBox {
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                   </property>
+                   <property name="maximum">
+                    <number>10000</number>
+                   </property>
+                   <property name="value">
+                    <number>100</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_food_weight_unit">
+                   <property name="text">
+                    <string>g</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QDoubleSpinBox" name="doubleSpinBox_food_calories">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <weight>75</weight>
+                     <bold>true</bold>
+                    </font>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QDoubleSpinBox {
                                           background-color: #e3f2fd;
                                           }</string>
-                                      </property>
-                                      <property name="alignment">
-                                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                                      </property>
-                                      <property name="maximum">
-                                        <double>10000.000000000000000</double>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QLabel" name="label_food_calories">
-                                      <property name="text">
-                                        <string>kcal</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QCheckBox" name="checkBox_food_is_drink">
-                                      <property name="text">
-                                        <string>Drink</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_2">
-                                  <item>
-                                    <widget class="QRadioButton" name="radioButton_use_weight">
-                                      <property name="text">
-                                        <string>Calculate by weight</string>
-                                      </property>
-                                      <property name="checked">
-                                        <bool>true</bool>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QRadioButton" name="radioButton_use_calories">
-                                      <property name="text">
-                                        <string>Enter calories directly</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <widget class="QLabel" name="label_food_calories_calc">
-                                  <property name="font">
-                                    <font>
-                                      <pointsize>10</pointsize>
-                                      <weight>75</weight>
-                                      <bold>true</bold>
-                                    </font>
-                                  </property>
-                                  <property name="text">
-                                    <string>Calculated calories: 0</string>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_food_date">
-                                  <item>
-                                    <widget class="QDateEdit" name="dateEdit_food">
-                                      <property name="minimumSize">
-                                        <size>
-                                          <width>191</width>
-                                          <height>0</height>
-                                        </size>
-                                      </property>
-                                      <property name="alignment">
-                                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                                      </property>
-                                      <property name="displayFormat">
-                                        <string>yyyy-MM-dd</string>
-                                      </property>
-                                      <property name="calendarPopup">
-                                        <bool>true</bool>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QPushButton" name="pushButton_food_yesterday">
-                                      <property name="minimumSize">
-                                        <size>
-                                          <width>61</width>
-                                          <height>0</height>
-                                        </size>
-                                      </property>
-                                      <property name="text">
-                                        <string>Yesterday</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <widget class="QPushButton" name="pushButton_food_add">
-                                  <property name="minimumSize">
-                                    <size>
-                                      <width>0</width>
-                                      <height>41</height>
-                                    </size>
-                                  </property>
-                                  <property name="font">
-                                    <font>
-                                      <pointsize>12</pointsize>
-                                      <weight>75</weight>
-                                      <bold>true</bold>
-                                    </font>
-                                  </property>
-                                  <property name="styleSheet">
-                                    <string notr="true">QPushButton {
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                   </property>
+                   <property name="maximum">
+                    <double>10000.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_food_calories">
+                   <property name="text">
+                    <string>kcal</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBox_food_is_drink">
+                   <property name="text">
+                    <string>Drink</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_2">
+                 <item>
+                  <widget class="QRadioButton" name="radioButton_use_weight">
+                   <property name="text">
+                    <string>Calculate by weight</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QRadioButton" name="radioButton_use_calories">
+                   <property name="text">
+                    <string>Enter calories directly</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_food_calories_calc">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Calculated calories: 0</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_date">
+                 <item>
+                  <widget class="QDateEdit" name="dateEdit_food">
+                   <property name="minimumSize">
+                    <size>
+                     <width>191</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                   </property>
+                   <property name="displayFormat">
+                    <string>yyyy-MM-dd</string>
+                   </property>
+                   <property name="calendarPopup">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_yesterday">
+                   <property name="minimumSize">
+                    <size>
+                     <width>61</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Yesterday</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_food_add">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>41</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>12</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton {
                                       background-color: #e3f2fd;
                                       border: 1px solid #2196F3;
                                       border-radius: 4px;
@@ -240,498 +239,503 @@
                                       QPushButton:pressed {
                                       background-color: #90caf9;
                                       }</string>
-                                  </property>
-                                  <property name="text">
-                                    <string>Add Food</string>
-                                  </property>
-                                </widget>
-                              </item>
-                            </layout>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QGroupBox" name="groupBox_food_items">
-                            <property name="title">
-                              <string>Add Food Item</string>
-                            </property>
-                            <layout class="QVBoxLayout" name="verticalLayout_food_items">
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_food_name">
-                                  <item>
-                                    <widget class="QLabel" name="label_food_name">
-                                      <property name="text">
-                                        <string>Name:</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QLineEdit" name="lineEdit_food_name" />
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_food_name_en">
-                                  <item>
-                                    <widget class="QLabel" name="label_food_name_en">
-                                      <property name="text">
-                                        <string>Name EN:</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QLineEdit" name="lineEdit_food_name_en" />
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <widget class="QCheckBox" name="checkBox_is_drink">
-                                  <property name="text">
-                                    <string>Is drink</string>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_food_cal100">
-                                  <item>
-                                    <widget class="QLabel" name="label_food_cal100">
-                                      <property name="text">
-                                        <string>Cal/100g:</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QDoubleSpinBox" name="doubleSpinBox_food_cal100">
-                                      <property name="maximum">
-                                        <double>9999.000000000000000</double>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <layout class="QHBoxLayout"
-                                  name="horizontalLayout_food_default_weight">
-                                  <item>
-                                    <widget class="QLabel" name="label_food_default_weight">
-                                      <property name="text">
-                                        <string>Default weight:</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QSpinBox" name="spinBox_food_default_weight">
-                                      <property name="maximum">
-                                        <number>10000</number>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_food_default_cal">
-                                  <item>
-                                    <widget class="QLabel" name="label_food_default_cal">
-                                      <property name="text">
-                                        <string>Default calories:</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QDoubleSpinBox"
-                                      name="doubleSpinBox_food_default_cal">
-                                      <property name="maximum">
-                                        <double>9999.000000000000000</double>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <widget class="QPushButton" name="pushButton_food_item_add">
-                                  <property name="text">
-                                    <string>Add Item</string>
-                                  </property>
-                                </widget>
-                              </item>
-                            </layout>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QGroupBox" name="groupBox_food_commands">
-                            <property name="title">
-                              <string>Commands</string>
-                            </property>
-                            <layout class="QVBoxLayout" name="verticalLayout_2">
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_food_commands">
-                                  <item>
-                                    <widget class="QPushButton" name="pushButton_food_delete">
-                                      <property name="text">
-                                        <string>Delete selected</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QPushButton" name="pushButton_food_refresh">
-                                      <property name="text">
-                                        <string>Refresh</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_food_commands2">
-                                  <item>
-                                    <widget class="QPushButton" name="pushButton_food_items_delete">
-                                      <property name="text">
-                                        <string>Delete Item</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                  <item>
-                                    <widget class="QPushButton" name="pushButton_food_items_refresh">
-                                      <property name="text">
-                                        <string>Refresh Items</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                              <item>
-                                <layout class="QHBoxLayout" name="horizontalLayout_3">
-                                  <item>
-                                    <spacer name="horizontalSpacer">
-                                      <property name="orientation">
-                                        <enum>Qt::Horizontal</enum>
-                                      </property>
-                                      <property name="sizeHint" stdset="0">
-                                        <size>
-                                          <width>40</width>
-                                          <height>20</height>
-                                        </size>
-                                      </property>
-                                    </spacer>
-                                  </item>
-                                  <item>
-                                    <widget class="QPushButton" name="pushButton_show_all_records">
-                                      <property name="text">
-                                        <string>Show All Records</string>
-                                      </property>
-                                    </widget>
-                                  </item>
-                                </layout>
-                              </item>
-                            </layout>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QGroupBox" name="groupBox_food_today">
-                            <property name="title">
-                              <string>Today</string>
-                            </property>
-                            <layout class="QHBoxLayout" name="horizontalLayout_5">
-                              <item>
-                                <widget class="QLabel" name="label_food_today">
-                                  <property name="font">
-                                    <font>
-                                      <pointsize>30</pointsize>
-                                      <weight>75</weight>
-                                      <bold>true</bold>
-                                    </font>
-                                  </property>
-                                  <property name="text">
-                                    <string>0</string>
-                                  </property>
-                                  <property name="alignment">
-                                    <set>Qt::AlignCenter</set>
-                                  </property>
-                                </widget>
-                              </item>
-                            </layout>
-                          </widget>
-                        </item>
-                        <item>
-                          <spacer name="verticalSpacer_food">
-                            <property name="orientation">
-                              <enum>Qt::Vertical</enum>
-                            </property>
-                            <property name="sizeHint" stdset="0">
-                              <size>
-                                <width>20</width>
-                                <height>40</height>
-                              </size>
-                            </property>
-                          </spacer>
-                        </item>
-                      </layout>
-                    </widget>
-                    <widget class="QWidget" name="widget_food_middle">
-                      <layout class="QVBoxLayout" name="verticalLayout_food_middle">
-                        <item>
-                          <widget class="QLabel" name="label_favorite_food_items">
-                            <property name="text">
-                              <string>Food Favorite Items:</string>
-                            </property>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QListView" name="listView_favorite_food_items">
-                            <property name="styleSheet">
-                              <string notr="true">QListView {
-                                border: 2px solid #2196F3;
-                                border-radius: 4px;
-                                background-color: white;
-                                }
-                                QListView::item {
-                                padding: 4px;
-                                border-bottom: 1px solid #e0e0e0;
-                                }
-                                QListView::item:selected {
-                                background-color: #e3f2fd;
-                                color: black;
-                                }
-                                QListView::item:hover {
-                                background-color: #bbdefb;
-                                }</string>
-                            </property>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QLabel" name="label_food_items">
-                            <property name="text">
-                              <string>Food Items:</string>
-                            </property>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QListView" name="listView_food_items">
-                            <property name="styleSheet">
-                              <string notr="true">QListView {
-                                border: 2px solid #2196F3;
-                                border-radius: 4px;
-                                background-color: white;
-                                }
-                                QListView::item {
-                                padding: 4px;
-                                border-bottom: 1px solid #e0e0e0;
-                                }
-                                QListView::item:selected {
-                                background-color: #e3f2fd;
-                                color: black;
-                                }
-                                QListView::item:hover {
-                                background-color: #bbdefb;
-                                }</string>
-                            </property>
-                          </widget>
-                        </item>
-                      </layout>
-                    </widget>
-                    <widget class="QTableView" name="tableView_food_log" />
-                  </widget>
-                </item>
+                 </property>
+                 <property name="text">
+                  <string>Add Food</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
-            </widget>
-            <widget class="QWidget" name="tab_food_stats">
-              <attribute name="title">
-                <string>Food Statistics</string>
-              </attribute>
-              <layout class="QHBoxLayout" name="horizontalLayout_4">
-                <item>
-                  <widget class="QFrame" name="frame">
-                    <property name="minimumSize">
-                      <size>
-                        <width>250</width>
-                        <height>0</height>
-                      </size>
-                    </property>
-                    <property name="maximumSize">
-                      <size>
-                        <width>250</width>
-                        <height>16777215</height>
-                      </size>
-                    </property>
-                    <property name="frameShape">
-                      <enum>QFrame::StyledPanel</enum>
-                    </property>
-                    <property name="frameShadow">
-                      <enum>QFrame::Raised</enum>
-                    </property>
-                    <layout class="QVBoxLayout" name="verticalLayout_3">
-                      <item>
-                        <widget class="QLabel" name="label">
-                          <property name="text">
-                            <string>Kcal per day:</string>
-                          </property>
-                        </widget>
-                      </item>
-                      <item>
-                        <widget class="QTableView" name="tableView_kcal_per_day" />
-                      </item>
-                    </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_food_items">
+              <property name="title">
+               <string>Add Food Item</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_food_items">
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_name">
+                 <item>
+                  <widget class="QLabel" name="label_food_name">
+                   <property name="text">
+                    <string>Name:</string>
+                   </property>
                   </widget>
-                </item>
-                <item>
-                  <layout class="QVBoxLayout" name="verticalLayout_4">
-                    <item>
-                      <widget class="QFrame" name="frame_food_stats_controls">
-                        <property name="maximumSize">
-                          <size>
-                            <width>16777215</width>
-                            <height>80</height>
-                          </size>
-                        </property>
-                        <property name="frameShape">
-                          <enum>QFrame::StyledPanel</enum>
-                        </property>
-                        <property name="frameShadow">
-                          <enum>QFrame::Raised</enum>
-                        </property>
-                        <layout class="QHBoxLayout" name="horizontalLayout_food_stats_controls">
-                          <item>
-                            <widget class="QLabel" name="label_food_stats_from">
-                              <property name="text">
-                                <string>From:</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QDateEdit" name="dateEdit_food_stats_from">
-                              <property name="displayFormat">
-                                <string>yyyy-MM-dd</string>
-                              </property>
-                              <property name="calendarPopup">
-                                <bool>true</bool>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QLabel" name="label_food_stats_to">
-                              <property name="text">
-                                <string>To:</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QDateEdit" name="dateEdit_food_stats_to">
-                              <property name="displayFormat">
-                                <string>yyyy-MM-dd</string>
-                              </property>
-                              <property name="calendarPopup">
-                                <bool>true</bool>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QPushButton" name="pushButton_food_stats_last_week">
-                              <property name="text">
-                                <string>Last Week</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QPushButton" name="pushButton_food_stats_last_month">
-                              <property name="text">
-                                <string>Last Month</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QPushButton" name="pushButton_food_stats_last_year">
-                              <property name="text">
-                                <string>Last Year</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QPushButton" name="pushButton_food_stats_update">
-                              <property name="text">
-                                <string>Update Chart</string>
-                              </property>
-                            </widget>
-                          </item>
-                          <item>
-                            <widget class="QComboBox" name="comboBox_food_stats_period">
-                              <item>
-                                <property name="text">
-                                  <string>Days</string>
-                                </property>
-                              </item>
-                              <item>
-                                <property name="text">
-                                  <string>Months</string>
-                                </property>
-                              </item>
-                              <item>
-                                <property name="text">
-                                  <string>Years</string>
-                                </property>
-                              </item>
-                            </widget>
-                          </item>
-                          <item>
-                            <spacer name="horizontalSpacer_food_stats">
-                              <property name="orientation">
-                                <enum>Qt::Horizontal</enum>
-                              </property>
-                              <property name="sizeHint" stdset="0">
-                                <size>
-                                  <width>40</width>
-                                  <height>20</height>
-                                </size>
-                              </property>
-                            </spacer>
-                          </item>
-                        </layout>
-                      </widget>
-                    </item>
-                    <item>
-                      <widget class="QScrollArea" name="scrollArea_food_stats">
-                        <property name="widgetResizable">
-                          <bool>true</bool>
-                        </property>
-                        <widget class="QWidget" name="scrollAreaWidgetContents_food_stats">
-                          <property name="geometry">
-                            <rect>
-                              <x>0</x>
-                              <y>0</y>
-                              <width>1073</width>
-                              <height>758</height>
-                            </rect>
-                          </property>
-                          <layout class="QVBoxLayout" name="verticalLayout_food_stats_content" />
-                        </widget>
-                      </widget>
-                    </item>
-                  </layout>
-                </item>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="lineEdit_food_name"/>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_name_en">
+                 <item>
+                  <widget class="QLabel" name="label_food_name_en">
+                   <property name="text">
+                    <string>Name EN:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="lineEdit_food_name_en"/>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkBox_is_drink">
+                 <property name="text">
+                  <string>Is drink</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_cal100">
+                 <item>
+                  <widget class="QLabel" name="label_food_cal100">
+                   <property name="text">
+                    <string>Cal/100g:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QDoubleSpinBox" name="doubleSpinBox_food_cal100">
+                   <property name="maximum">
+                    <double>9999.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_default_weight">
+                 <item>
+                  <widget class="QLabel" name="label_food_default_weight">
+                   <property name="text">
+                    <string>Default weight:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSpinBox" name="spinBox_food_default_weight">
+                   <property name="maximum">
+                    <number>10000</number>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_default_cal">
+                 <item>
+                  <widget class="QLabel" name="label_food_default_cal">
+                   <property name="text">
+                    <string>Default calories:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QDoubleSpinBox" name="doubleSpinBox_food_default_cal">
+                   <property name="maximum">
+                    <double>9999.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_food_item_add">
+                 <property name="text">
+                  <string>Add Item</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
-            </widget>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_food_commands">
+              <property name="title">
+               <string>Commands</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_2">
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_commands">
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_delete">
+                   <property name="text">
+                    <string>Delete selected</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_refresh">
+                   <property name="text">
+                    <string>Refresh</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_food_commands2">
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_items_delete">
+                   <property name="text">
+                    <string>Delete Item</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_items_refresh">
+                   <property name="text">
+                    <string>Refresh Items</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <item>
+                  <spacer name="horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_show_all_records">
+                   <property name="text">
+                    <string>Show All Records</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_food_today">
+              <property name="title">
+               <string>Today</string>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_5">
+               <item>
+                <widget class="QLabel" name="label_food_today">
+                 <property name="font">
+                  <font>
+                   <pointsize>30</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>0</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_food">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
           </widget>
+          <widget class="QWidget" name="widget_food_middle">
+           <layout class="QVBoxLayout" name="verticalLayout_food_middle">
+            <item>
+             <widget class="QLabel" name="label_favorite_food_items">
+              <property name="text">
+               <string>Food Favorite Items:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QListView" name="listView_favorite_food_items">
+              <property name="styleSheet">
+               <string notr="true">QListView {
+                                border: 2px solid #2196F3;
+                                border-radius: 4px;
+                                background-color: white;
+                                }
+                                QListView::item {
+                                padding: 4px;
+                                border-bottom: 1px solid #e0e0e0;
+                                }
+                                QListView::item:selected {
+                                background-color: #e3f2fd;
+                                color: black;
+                                }
+                                QListView::item:hover {
+                                background-color: #bbdefb;
+                                }</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_food_items">
+              <property name="text">
+               <string>Food Items:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QListView" name="listView_food_items">
+              <property name="styleSheet">
+               <string notr="true">QListView {
+                                border: 2px solid #2196F3;
+                                border-radius: 4px;
+                                background-color: white;
+                                }
+                                QListView::item {
+                                padding: 4px;
+                                border-bottom: 1px solid #e0e0e0;
+                                }
+                                QListView::item:selected {
+                                background-color: #e3f2fd;
+                                color: black;
+                                }
+                                QListView::item:hover {
+                                background-color: #bbdefb;
+                                }</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QTableView" name="tableView_food_log"/>
+         </widget>
         </item>
-      </layout>
-    </widget>
-    <widget class="QMenuBar" name="menuBar">
-      <property name="geometry">
-        <rect>
-          <x>0</x>
-          <y>0</y>
-          <width>1375</width>
-          <height>21</height>
-        </rect>
-      </property>
-    </widget>
-    <widget class="QToolBar" name="mainToolBar">
-      <attribute name="toolBarArea">
-        <enum>TopToolBarArea</enum>
-      </attribute>
-      <attribute name="toolBarBreak">
-        <bool>false</bool>
-      </attribute>
-    </widget>
-    <widget class="QStatusBar" name="statusBar" />
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_food_stats">
+       <attribute name="title">
+        <string>Food Statistics</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QFrame" name="frame">
+          <property name="minimumSize">
+           <size>
+            <width>250</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>250</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::StyledPanel</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Kcal per day:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QTableView" name="tableView_kcal_per_day"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_4">
+          <item>
+           <widget class="QFrame" name="frame_food_stats_controls">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>80</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_food_stats_controls">
+             <item>
+              <widget class="QLabel" name="label_food_stats_from">
+               <property name="text">
+                <string>From:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QDateEdit" name="dateEdit_food_stats_from">
+               <property name="displayFormat">
+                <string>yyyy-MM-dd</string>
+               </property>
+               <property name="calendarPopup">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_food_stats_to">
+               <property name="text">
+                <string>To:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QDateEdit" name="dateEdit_food_stats_to">
+               <property name="displayFormat">
+                <string>yyyy-MM-dd</string>
+               </property>
+               <property name="calendarPopup">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_food_stats_last_week">
+               <property name="text">
+                <string>Last Week</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_food_stats_last_month">
+               <property name="text">
+                <string>Last Month</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_food_stats_last_year">
+               <property name="text">
+                <string>Last Year</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_food_stats_all_time">
+               <property name="text">
+                <string>All Time</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_food_stats_update">
+               <property name="text">
+                <string>Update Chart</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="comboBox_food_stats_period">
+               <item>
+                <property name="text">
+                 <string>Days</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Months</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Years</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_food_stats">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QScrollArea" name="scrollArea_food_stats">
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContents_food_stats">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>1073</width>
+               <height>758</height>
+              </rect>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_food_stats_content"/>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
   </widget>
-  <resources />
-  <connections />
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1375</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+ </widget>
+ <resources/>
+ <connections/>
 </ui>

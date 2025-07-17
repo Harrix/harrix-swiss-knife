@@ -591,6 +591,39 @@ class MainWindow(
 
         self._update_food_calories_chart()
 
+    def on_food_stats_all_time(self) -> None:
+        """Set date range to all available data and update chart."""
+        if not self.db_manager or not self._validate_database_connection():
+            return
+
+        try:
+            # Get earliest date from database
+            earliest_date_str = self.db_manager.get_earliest_food_log_date()
+            if earliest_date_str:
+                earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
+                if earliest_date.isValid():
+                    self.dateEdit_food_stats_from.setDate(earliest_date)
+                else:
+                    # Fallback to a reasonable default if date parsing fails
+                    self.dateEdit_food_stats_from.setDate(QDate.currentDate().addYears(-10))
+            else:
+                # No data in database, use a reasonable default
+                self.dateEdit_food_stats_from.setDate(QDate.currentDate().addYears(-10))
+
+            # Set end date to today
+            self.dateEdit_food_stats_to.setDate(QDate.currentDate())
+
+            self._update_food_calories_chart()
+
+        except Exception as e:
+            print(f"Error setting all time date range: {e}")
+            # Fallback to last year if any error occurs
+            today = QDate.currentDate()
+            year_ago = today.addYears(-1)
+            self.dateEdit_food_stats_from.setDate(year_ago)
+            self.dateEdit_food_stats_to.setDate(today)
+            self._update_food_calories_chart()
+
     def on_food_stats_period_changed(self) -> None:
         """Handle period selection change and update chart."""
         self._update_food_calories_chart()
@@ -874,6 +907,7 @@ class MainWindow(
         self.pushButton_food_stats_last_week.clicked.connect(self.on_food_stats_last_week)
         self.pushButton_food_stats_last_month.clicked.connect(self.on_food_stats_last_month)
         self.pushButton_food_stats_last_year.clicked.connect(self.on_food_stats_last_year)
+        self.pushButton_food_stats_all_time.clicked.connect(self.on_food_stats_all_time)
         self.pushButton_food_stats_update.clicked.connect(self.on_food_stats_update)
         self.comboBox_food_stats_period.currentTextChanged.connect(self.on_food_stats_period_changed)
 
@@ -1559,6 +1593,7 @@ class MainWindow(
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
         self.pushButton_food_stats_last_month.setText(f"📅 {self.pushButton_food_stats_last_month.text()}")
         self.pushButton_food_stats_last_year.setText(f"📅 {self.pushButton_food_stats_last_year.text()}")
+        self.pushButton_food_stats_all_time.setText(f"📅 {self.pushButton_food_stats_all_time.text()}")
         self.pushButton_food_stats_update.setText(f"🔄 {self.pushButton_food_stats_update.text()}")
 
         # Set decimal places for calorie spin boxes
