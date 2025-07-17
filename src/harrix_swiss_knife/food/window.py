@@ -100,6 +100,7 @@ class Ui_MainWindow(object):
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_food_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_food_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
+        self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", "Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", "0", None))
@@ -394,9 +395,10 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.pushButton_add_as_text = QPushButton(self.groupBox_food_commands)
+        self.pushButton_add_as_text.setObjectName("pushButton_add_as_text")
 
-        self.horizontalLayout_3.addItem(self.horizontalSpacer)
+        self.horizontalLayout_3.addWidget(self.pushButton_add_as_text)
 
         self.pushButton_show_all_records = QPushButton(self.groupBox_food_commands)
         self.pushButton_show_all_records.setObjectName("pushButton_show_all_records")

@@ -380,17 +380,11 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_3">
                  <item>
-                  <spacer name="horizontalSpacer">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
+                  <widget class="QPushButton" name="pushButton_add_as_text">
+                   <property name="text">
+                    <string>Add As Text</string>
                    </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
+                  </widget>
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButton_show_all_records">
