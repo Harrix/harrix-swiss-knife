@@ -874,6 +874,7 @@ class DatabaseManager:
 
         Returns:
         - `list[str]`: List of unique food names from recent records.
+
         """
         query = f"""
             SELECT DISTINCT name

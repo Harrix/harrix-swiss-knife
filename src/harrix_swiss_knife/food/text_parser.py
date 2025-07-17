@@ -7,10 +7,10 @@ to food log records according to specific rules.
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import date
 from typing import Any, NamedTuple
 
-from PySide6.QtWidgets import QInputDialog, QMessageBox, QWidget
+from PySide6.QtWidgets import QInputDialog, QWidget
 
 
 class ParsedFoodItem(NamedTuple):
@@ -181,19 +181,19 @@ class TextParser:
             return self._parse_name_with_portion(parts, numbers[0][1], food_date, db_manager)
 
         # Strategy 2: Name + two numbers + portion keyword
-        elif len(numbers) == 2 and portion_found:
+        if len(numbers) == 2 and portion_found:
             return self._parse_name_with_two_numbers_and_portion(parts, numbers, portion_number, food_date, db_manager)
 
         # Strategy 3: Name + two numbers (weight + calories per 100g)
-        elif len(numbers) == 2:
+        if len(numbers) == 2:
             return self._parse_name_with_two_numbers(parts, numbers, food_date, db_manager)
 
         # Strategy 4: Name + one number (weight)
-        elif len(numbers) == 1:
+        if len(numbers) == 1:
             return self._parse_name_with_one_number(parts, numbers[0][1], food_date, db_manager)
 
         # Strategy 5: Name only
-        elif len(numbers) == 0:
+        if len(numbers) == 0:
             return self._parse_name_only(parts, food_date, db_manager)
 
         # If no strategy matches, ask user for correction
