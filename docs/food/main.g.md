@@ -19,6 +19,7 @@ lang: en
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `on_add_food_item`](#%EF%B8%8F-method-on_add_food_item)
   - [⚙️ Method `on_add_food_log`](#%EF%B8%8F-method-on_add_food_log)
+  - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
   - [⚙️ Method `on_food_item_selection_changed`](#%EF%B8%8F-method-on_food_item_selection_changed)
   - [⚙️ Method `on_food_log_table_cell_clicked`](#%EF%B8%8F-method-on_food_log_table_cell_clicked)
   - [⚙️ Method `on_food_stats_all_time`](#%EF%B8%8F-method-on_food_stats_all_time)
@@ -149,6 +150,9 @@ class MainWindow(
 
         # Food log display state
         self.show_all_food_records: bool = False
+
+        # Dialog state to prevent multiple dialogs
+        self._food_item_dialog_open: bool = False
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -432,6 +436,80 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add food log record: {e}")
+
+    def on_food_item_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double click on food item in the list view."""
+        # Prevent multiple dialogs from opening
+        if self._food_item_dialog_open:
+            return
+
+        food_item = self._get_current_selected_food_item()
+        if not food_item:
+            return
+
+        # Check if database manager is available and connection is open
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Set dialog open flag
+            self._food_item_dialog_open = True
+
+            # Get food item data from food_items table
+            food_item_data = self.db_manager.get_food_item_by_name(food_item)
+
+            if not food_item_data:
+                QMessageBox.warning(self, "Error", f"Food item '{food_item}' not found in database!")
+                self._food_item_dialog_open = False
+                return
+
+            # Create and show the edit dialog
+            dialog = FoodItemDialog(self, food_item_data)
+            result = dialog.exec()
+
+            # Only process if dialog was accepted (not cancelled)
+            if result == QDialog.DialogCode.Accepted:
+                if hasattr(dialog, "delete_confirmed") and dialog.delete_confirmed:
+                    # Delete the food item
+                    food_id = food_item_data[0]
+                    if self.db_manager.delete_food_item(food_id):
+                        QMessageBox.information(self, "Success", f"Food item '{food_item}' deleted successfully!")
+                        self.update_food_data()
+                    else:
+                        QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
+                else:
+                    # Update the food item
+                    edited_data = dialog.get_edited_data()
+                    food_id = food_item_data[0]
+
+                    if self.db_manager.update_food_item(
+                        food_item_id=food_id,
+                        name=edited_data["name"],
+                        name_en=edited_data["name_en"],
+                        is_drink=edited_data["is_drink"],
+                        calories_per_100g=edited_data["calories_per_100g"],
+                        default_portion_weight=edited_data["default_portion_weight"],
+                        default_portion_calories=edited_data["default_portion_calories"],
+                    ):
+                        QMessageBox.information(
+                            self, "Success", f"Food item '{edited_data['name']}' updated successfully!"
+                        )
+                        self.update_food_data()
+                    else:
+                        QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
+            # If result is Rejected (Cancel), do nothing - just close the dialog
+
+        except Exception as e:
+            print(f"Error in food item double clicked: {e}")
+            QMessageBox.warning(self, "Error", f"Error editing food item: {e}")
+        finally:
+            # Always reset the dialog open flag
+            self._food_item_dialog_open = False
 
     def on_food_item_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle food item selection change in the list view."""
@@ -1022,6 +1100,9 @@ class MainWindow(
         selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model:
             selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+
+        # Connect food items list double click
+        self.listView_food_items.doubleClicked.connect(self.on_food_item_double_clicked)
 
         # Connect food log table cell click
         self.tableView_food_log.clicked.connect(self.on_food_log_table_cell_clicked)
@@ -2234,6 +2315,9 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Food log display state
         self.show_all_food_records: bool = False
 
+        # Dialog state to prevent multiple dialogs
+        self._food_item_dialog_open: bool = False
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "food_log": (
@@ -2589,6 +2673,94 @@ def on_add_food_log(self) -> None:
 
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add food log record: {e}")
+```
+
+</details>
+
+### ⚙️ Method `on_food_item_double_clicked`
+
+```python
+def on_food_item_double_clicked(self, index: QModelIndex) -> None
+```
+
+Handle double click on food item in the list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_food_item_double_clicked(self, index: QModelIndex) -> None:
+        # Prevent multiple dialogs from opening
+        if self._food_item_dialog_open:
+            return
+
+        food_item = self._get_current_selected_food_item()
+        if not food_item:
+            return
+
+        # Check if database manager is available and connection is open
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Set dialog open flag
+            self._food_item_dialog_open = True
+
+            # Get food item data from food_items table
+            food_item_data = self.db_manager.get_food_item_by_name(food_item)
+
+            if not food_item_data:
+                QMessageBox.warning(self, "Error", f"Food item '{food_item}' not found in database!")
+                self._food_item_dialog_open = False
+                return
+
+            # Create and show the edit dialog
+            dialog = FoodItemDialog(self, food_item_data)
+            result = dialog.exec()
+
+            # Only process if dialog was accepted (not cancelled)
+            if result == QDialog.DialogCode.Accepted:
+                if hasattr(dialog, "delete_confirmed") and dialog.delete_confirmed:
+                    # Delete the food item
+                    food_id = food_item_data[0]
+                    if self.db_manager.delete_food_item(food_id):
+                        QMessageBox.information(self, "Success", f"Food item '{food_item}' deleted successfully!")
+                        self.update_food_data()
+                    else:
+                        QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
+                else:
+                    # Update the food item
+                    edited_data = dialog.get_edited_data()
+                    food_id = food_item_data[0]
+
+                    if self.db_manager.update_food_item(
+                        food_item_id=food_id,
+                        name=edited_data["name"],
+                        name_en=edited_data["name_en"],
+                        is_drink=edited_data["is_drink"],
+                        calories_per_100g=edited_data["calories_per_100g"],
+                        default_portion_weight=edited_data["default_portion_weight"],
+                        default_portion_calories=edited_data["default_portion_calories"],
+                    ):
+                        QMessageBox.information(
+                            self, "Success", f"Food item '{edited_data['name']}' updated successfully!"
+                        )
+                        self.update_food_data()
+                    else:
+                        QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
+            # If result is Rejected (Cancel), do nothing - just close the dialog
+
+        except Exception as e:
+            print(f"Error in food item double clicked: {e}")
+            QMessageBox.warning(self, "Error", f"Error editing food item: {e}")
+        finally:
+            # Always reset the dialog open flag
+            self._food_item_dialog_open = False
 ```
 
 </details>
@@ -3483,6 +3655,9 @@ def _connect_table_selection_signals(self) -> None:
         selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model:
             selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+
+        # Connect food items list double click
+        self.listView_food_items.doubleClicked.connect(self.on_food_item_double_clicked)
 
         # Connect food log table cell click
         self.tableView_food_log.clicked.connect(self.on_food_log_table_cell_clicked)

@@ -7,18 +7,18 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QFormLayout,
-    QLineEdit,
     QCheckBox,
-    QSpinBox,
-    QDoubleSpinBox,
-    QPushButton,
-    QLabel,
-    QMessageBox,
+    QDialog,
     QDialogButtonBox,
+    QDoubleSpinBox,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
 )
 
 
@@ -36,6 +36,69 @@ class FoodItemDialog(QDialog):
         self.food_item_data = food_item_data
         self.setup_ui()
         self.setup_data()
+
+    def accept(self):
+        """Handle accept (save) button click."""
+        # Validate required fields
+        name = self.name_edit.text().strip()
+        if not name:
+            QMessageBox.warning(self, "Validation Error", "Name is required!")
+            return
+
+        # Check if at least one of calories fields is filled
+        calories_per_100g = self.calories_per_100g_spinbox.value()
+        default_portion_calories = self.default_portion_calories_spinbox.value()
+
+        if calories_per_100g == 0 and default_portion_calories == 0:
+            QMessageBox.warning(
+                self, "Validation Error", "Please fill either 'Calories per 100g' or 'Default Portion Calories'!"
+            )
+            return
+
+        super().accept()
+
+    def delete_item(self):
+        """Handle delete button click."""
+        if not self.food_item_data:
+            return
+
+        food_name = self.food_item_data[1] if self.food_item_data[1] else "this item"
+
+        reply = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            f"Are you sure you want to delete '{food_name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            self.delete_confirmed = True
+            self.accept()
+        else:
+            self.delete_confirmed = False
+
+    def get_edited_data(self):
+        """Get the edited data as a dictionary."""
+        return {
+            "name": self.name_edit.text().strip(),
+            "name_en": self.name_en_edit.text().strip() or None,
+            "is_drink": self.is_drink_checkbox.isChecked(),
+            "calories_per_100g": self.calories_per_100g_spinbox.value() or None,
+            "default_portion_weight": self.default_portion_weight_spinbox.value() or None,
+            "default_portion_calories": self.default_portion_calories_spinbox.value() or None,
+        }
+
+    def setup_data(self):
+        """Setup initial data from food_item_data."""
+        if self.food_item_data:
+            # food_item_data format: [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+            self.name_edit.setText(self.food_item_data[1] if self.food_item_data[1] else "")
+            self.name_en_edit.setText(self.food_item_data[2] if self.food_item_data[2] else "")
+            self.is_drink_checkbox.setChecked(self.food_item_data[3] == 1)
+            self.calories_per_100g_spinbox.setValue(self.food_item_data[4] if self.food_item_data[4] else 0)
+            self.default_portion_weight_spinbox.setValue(int(self.food_item_data[5]) if self.food_item_data[5] else 0)
+            self.default_portion_calories_spinbox.setValue(self.food_item_data[6] if self.food_item_data[6] else 0)
 
     def setup_ui(self):
         """Setup the user interface."""
@@ -103,68 +166,3 @@ class FoodItemDialog(QDialog):
         button_layout.addWidget(self.button_box)
 
         layout.addLayout(button_layout)
-
-    def setup_data(self):
-        """Setup initial data from food_item_data."""
-        if self.food_item_data:
-            # food_item_data format: [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
-            self.name_edit.setText(self.food_item_data[1] if self.food_item_data[1] else "")
-            self.name_en_edit.setText(self.food_item_data[2] if self.food_item_data[2] else "")
-            self.is_drink_checkbox.setChecked(self.food_item_data[3] == 1)
-            self.calories_per_100g_spinbox.setValue(self.food_item_data[4] if self.food_item_data[4] else 0)
-            self.default_portion_weight_spinbox.setValue(int(self.food_item_data[5]) if self.food_item_data[5] else 0)
-            self.default_portion_calories_spinbox.setValue(self.food_item_data[6] if self.food_item_data[6] else 0)
-
-    def get_edited_data(self):
-        """Get the edited data as a dictionary."""
-        return {
-            "name": self.name_edit.text().strip(),
-            "name_en": self.name_en_edit.text().strip() or None,
-            "is_drink": self.is_drink_checkbox.isChecked(),
-            "calories_per_100g": self.calories_per_100g_spinbox.value() or None,
-            "default_portion_weight": self.default_portion_weight_spinbox.value() or None,
-            "default_portion_calories": self.default_portion_calories_spinbox.value() or None,
-        }
-
-    def delete_item(self):
-        """Handle delete button click."""
-        if not self.food_item_data:
-            return
-
-        food_name = self.food_item_data[1] if self.food_item_data[1] else "this item"
-
-        reply = QMessageBox.question(
-            self,
-            "Confirm Deletion",
-            f"Are you sure you want to delete '{food_name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-
-        if reply == QMessageBox.StandardButton.Yes:
-            self.delete_confirmed = True
-            self.accept()
-        else:
-            self.delete_confirmed = False
-
-    def accept(self):
-        """Handle accept (save) button click."""
-        # Validate required fields
-        name = self.name_edit.text().strip()
-        if not name:
-            QMessageBox.warning(self, "Validation Error", "Name is required!")
-            return
-
-        # Check if at least one of calories fields is filled
-        calories_per_100g = self.calories_per_100g_spinbox.value()
-        default_portion_calories = self.default_portion_calories_spinbox.value()
-
-        if calories_per_100g == 0 and default_portion_calories == 0:
-            QMessageBox.warning(
-                self,
-                "Validation Error",
-                "Please fill either 'Calories per 100g' or 'Default Portion Calories'!"
-            )
-            return
-
-        super().accept()

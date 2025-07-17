@@ -53,13 +53,11 @@ class Ui_MainWindow(object):
         self.checkBox_is_drink.setText(QCoreApplication.translate("MainWindow", "Is drink", None))
         self.label_food_cal100.setText(QCoreApplication.translate("MainWindow", "Cal/100g:", None))
         self.label_food_default_weight.setText(QCoreApplication.translate("MainWindow", "Default weight:", None))
-        self.label_food_default_cal.setText(QCoreApplication.translate("MainWindow", "Default calories:", None))
+        self.label_food_default_cal.setText(QCoreApplication.translate("MainWindow", "Default portion calories:", None))
         self.pushButton_food_item_add.setText(QCoreApplication.translate("MainWindow", "Add Item", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_food_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_food_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
-        self.pushButton_food_items_delete.setText(QCoreApplication.translate("MainWindow", "Delete Item", None))
-        self.pushButton_food_items_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Items", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", "Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", "0", None))
@@ -352,20 +350,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands)
 
-        self.horizontalLayout_food_commands2 = QHBoxLayout()
-        self.horizontalLayout_food_commands2.setObjectName("horizontalLayout_food_commands2")
-        self.pushButton_food_items_delete = QPushButton(self.groupBox_food_commands)
-        self.pushButton_food_items_delete.setObjectName("pushButton_food_items_delete")
-
-        self.horizontalLayout_food_commands2.addWidget(self.pushButton_food_items_delete)
-
-        self.pushButton_food_items_refresh = QPushButton(self.groupBox_food_commands)
-        self.pushButton_food_items_refresh.setObjectName("pushButton_food_items_refresh")
-
-        self.horizontalLayout_food_commands2.addWidget(self.pushButton_food_items_refresh)
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands2)
-
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -647,13 +631,11 @@ def retranslateUi(self, MainWindow):
         self.checkBox_is_drink.setText(QCoreApplication.translate("MainWindow", "Is drink", None))
         self.label_food_cal100.setText(QCoreApplication.translate("MainWindow", "Cal/100g:", None))
         self.label_food_default_weight.setText(QCoreApplication.translate("MainWindow", "Default weight:", None))
-        self.label_food_default_cal.setText(QCoreApplication.translate("MainWindow", "Default calories:", None))
+        self.label_food_default_cal.setText(QCoreApplication.translate("MainWindow", "Default portion calories:", None))
         self.pushButton_food_item_add.setText(QCoreApplication.translate("MainWindow", "Add Item", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_food_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_food_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
-        self.pushButton_food_items_delete.setText(QCoreApplication.translate("MainWindow", "Delete Item", None))
-        self.pushButton_food_items_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Items", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", "Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", "0", None))
@@ -960,20 +942,6 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_food_commands.addWidget(self.pushButton_food_refresh)
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands)
-
-        self.horizontalLayout_food_commands2 = QHBoxLayout()
-        self.horizontalLayout_food_commands2.setObjectName("horizontalLayout_food_commands2")
-        self.pushButton_food_items_delete = QPushButton(self.groupBox_food_commands)
-        self.pushButton_food_items_delete.setObjectName("pushButton_food_items_delete")
-
-        self.horizontalLayout_food_commands2.addWidget(self.pushButton_food_items_delete)
-
-        self.pushButton_food_items_refresh = QPushButton(self.groupBox_food_commands)
-        self.pushButton_food_items_refresh.setObjectName("pushButton_food_items_refresh")
-
-        self.horizontalLayout_food_commands2.addWidget(self.pushButton_food_items_refresh)
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands2)
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
