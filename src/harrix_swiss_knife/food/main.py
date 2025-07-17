@@ -1392,7 +1392,8 @@ class MainWindow(
             if current_index.isValid():
                 item = self.food_items_list_model.itemFromIndex(current_index)
                 if item:
-                    return item.text()
+                    # Extract food name from formatted text (remove calories info)
+                    return self._extract_food_name_from_display(item.text())
 
         # Check favorite food items list if nothing selected in main list
         selection_model = self.listView_favorite_food_items.selectionModel()
@@ -1401,7 +1402,8 @@ class MainWindow(
             if current_index.isValid():
                 item = self.favorite_food_items_list_model.itemFromIndex(current_index)
                 if item:
-                    return item.text()
+                    # Extract food name from formatted text (remove calories info)
+                    return self._extract_food_name_from_display(item.text())
 
         return None
 
@@ -1886,6 +1888,61 @@ class MainWindow(
             for i in range(self.food_items_list_model.rowCount()):
                 self.listView_food_items.setRowHidden(i, False)
 
+    def _format_food_name_with_calories(self, food_name: str, calories_per_100g: float | None, default_portion_calories: float | None) -> str:
+        """Format food name with calories information in parentheses.
+
+        Args:
+
+        - `food_name` (`str`): The food item name.
+        - `calories_per_100g` (`float | None`): Calories per 100g.
+        - `default_portion_calories` (`float | None`): Default portion calories.
+
+        Returns:
+
+        - `str`: Formatted food name with calories info.
+
+        """
+        if not food_name:
+            return food_name
+
+        # Determine which calories to show
+        calories_info = ""
+
+        if default_portion_calories and default_portion_calories > 0:
+            # Show portion calories if available
+            calories_info = f"({default_portion_calories:.0f} kcal/порция)"
+        elif calories_per_100g and calories_per_100g > 0:
+            # Show calories per 100g if no portion calories
+            calories_info = f"({calories_per_100g:.0f} kcal/100g)"
+
+        if calories_info:
+            return f"{food_name} {calories_info}"
+        else:
+            return food_name
+
+    def _extract_food_name_from_display(self, display_text: str) -> str:
+        """Extract food name from display text (remove calories info).
+
+        Args:
+
+        - `display_text` (`str`): Display text that may contain calories info.
+
+        Returns:
+
+        - `str`: Clean food name without calories info.
+
+        """
+        if not display_text:
+            return ""
+
+        # Remove calories info in parentheses at the end
+        # Pattern: " (XXX kcal/порция)" or " (XXX kcal/100g)"
+        import re
+        pattern = r'\s+\(\d+\.?\d*\s+kcal/(?:порция|100g)\)$'
+        clean_name = re.sub(pattern, '', display_text)
+
+        return clean_name.strip()
+
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""
         if not self._validate_database_connection():
@@ -1976,8 +2033,8 @@ class MainWindow(
             return
 
         try:
-            # Get popular food items from recent records (top 22)
-            popular_food_items = self.db_manager.get_popular_food_items(500)[:22]
+            # Get popular food items with calories data (top 22)
+            popular_food_items_data = self.db_manager.get_popular_food_items_with_calories(500)[:22]
 
             # Block signals during model update
             selection_model = self.listView_favorite_food_items.selectionModel()
@@ -1987,8 +2044,15 @@ class MainWindow(
             # Update favorite food items list model
             if self.favorite_food_items_list_model is not None:
                 self.favorite_food_items_list_model.clear()
-                for food_name in popular_food_items:
-                    item = QStandardItem(food_name)
+                for food_item_row in popular_food_items_data:
+                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                    food_name = food_item_row[1]  # name is at index 1
+                    calories_per_100g = food_item_row[4]
+                    default_portion_calories = food_item_row[6]
+
+                    # Format display name with calories info
+                    display_name = self._format_food_name_with_calories(food_name, calories_per_100g, default_portion_calories)
+                    item = QStandardItem(display_name)
                     self.favorite_food_items_list_model.appendRow(item)
 
             # Unblock signals
@@ -2081,7 +2145,12 @@ class MainWindow(
                 for food_item_row in food_items_data:
                     # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                     food_name = food_item_row[1]  # name is at index 1
-                    item = QStandardItem(food_name)
+                    calories_per_100g = food_item_row[4]
+                    default_portion_calories = food_item_row[6]
+
+                    # Format display name with calories info
+                    display_name = self._format_food_name_with_calories(food_name, calories_per_100g, default_portion_calories)
+                    item = QStandardItem(display_name)
                     self.food_items_list_model.appendRow(item)
 
             # Unblock signals

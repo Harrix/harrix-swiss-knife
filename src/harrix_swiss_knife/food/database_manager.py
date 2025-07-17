@@ -769,6 +769,46 @@ class DatabaseManager:
         rows = self.get_rows(query)
         return [row[0] for row in rows if row[0]]
 
+    def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]:
+        """Get popular food items with calories information from recent food_log records.
+
+        Args:
+
+        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `500`.
+
+        Returns:
+
+        - `list[list[Any]]`: List of food item data with calories info.
+
+        """
+        query = f"""
+            SELECT name, COUNT(*) as usage_count
+            FROM (
+                SELECT name FROM food_log
+                WHERE name IS NOT NULL AND name != ''
+                ORDER BY date DESC, _id DESC
+                LIMIT {limit}
+            ) as recent_foods
+            GROUP BY name
+            ORDER BY usage_count DESC, name ASC
+        """
+        popular_names = self.get_rows(query)
+
+        # Get full data for popular items from food_items table
+        result = []
+        for row in popular_names:
+            name = row[0]
+            if name:
+                # Get full food item data
+                food_item_data = self.get_food_item_by_name(name)
+                if food_item_data:
+                    result.append(food_item_data)
+                else:
+                    # If not found in food_items, create minimal data
+                    result.append([None, name, None, 0, None, None, None])
+
+        return result
+
     def get_recent_food_log_records(self, limit: int = 5000) -> list[list[Any]]:
         """Get recent food log records for table display.
 
