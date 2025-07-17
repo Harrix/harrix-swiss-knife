@@ -1184,6 +1184,8 @@ class MainWindow(
         self.show()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_food_log_table_columns)
+        # Update food stats chart after initialization
+        QTimer.singleShot(100, self._update_food_calories_chart)
 
     def _get_current_selected_food_item(self) -> str | None:
         """Get the currently selected food item from either list view.
@@ -1326,18 +1328,49 @@ class MainWindow(
             selection_model.currentChanged.connect(self.on_food_item_selection_changed)
 
     def _init_food_stats_dates(self) -> None:
-        """Initialize food stats date range with earliest date from database."""
+        """Initialize food stats date range with last month as default."""
         if not self.db_manager or not self._validate_database_connection():
             return
 
         try:
+            # Set default date range to last month
+            today = QDate.currentDate()
+            month_ago = today.addMonths(-1)
+
+            # Check if we have data in the database
             earliest_date_str = self.db_manager.get_earliest_food_log_date()
             if earliest_date_str:
                 earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
                 if earliest_date.isValid():
-                    self.dateEdit_food_stats_from.setDate(earliest_date)
+                    # If earliest date is more recent than month ago, use earliest date
+                    if earliest_date > month_ago:
+                        self.dateEdit_food_stats_from.setDate(earliest_date)
+                    else:
+                        # Use month ago as default, but ensure it's not before earliest date
+                        self.dateEdit_food_stats_from.setDate(max(month_ago, earliest_date))
+                else:
+                    # Fallback to month ago if date parsing fails
+                    self.dateEdit_food_stats_from.setDate(month_ago)
+            else:
+                # No data in database, use month ago as default
+                self.dateEdit_food_stats_from.setDate(month_ago)
+
+                        # Always set end date to today
+            self.dateEdit_food_stats_to.setDate(today)
+
+            # Update the chart with the new date range
+            QTimer.singleShot(50, self._update_food_calories_chart)
+
         except Exception as e:
             print(f"Error getting earliest food log date: {e}")
+            # Fallback to last month if any error occurs
+            today = QDate.currentDate()
+            month_ago = today.addMonths(-1)
+            self.dateEdit_food_stats_from.setDate(month_ago)
+            self.dateEdit_food_stats_to.setDate(today)
+
+            # Update the chart with fallback date range
+            QTimer.singleShot(50, self._update_food_calories_chart)
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields."""
@@ -1549,6 +1582,9 @@ class MainWindow(
         month_ago = today.addMonths(-1)
         self.dateEdit_food_stats_from.setDate(month_ago)
         self.dateEdit_food_stats_to.setDate(today)
+
+        # Keep default period as "Days" for food stats
+        # (but date range will be set to last month)
 
         # Set focus to the food name input field for quick data entry
         self.lineEdit_food_manual_name.setFocus()
