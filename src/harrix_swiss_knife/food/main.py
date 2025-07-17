@@ -1697,7 +1697,9 @@ class MainWindow(
 
         # Create parser and parse text
         parser = TextParser()
-        parsed_items = parser.parse_text(text, self, self.db_manager)
+        # Use date from dateEdit_food as default date
+        default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
+        parsed_items = parser.parse_text(text, self, self.db_manager, default_date)
 
         if not parsed_items:
             QMessageBox.information(self, "No Items", "No valid food items found in the text.")
@@ -1710,8 +1712,10 @@ class MainWindow(
 
         for item in parsed_items:
             try:
+                # Use date from dateEdit_food if no date specified in text
+                default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
                 success = self.db_manager.add_food_log_record(
-                    date=item.food_date or date.today().strftime("%Y-%m-%d"),
+                    date=item.food_date or default_date,
                     calories_per_100g=item.calories_per_100g,
                     name=item.name,
                     weight=item.weight,
