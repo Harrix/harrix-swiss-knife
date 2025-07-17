@@ -635,6 +635,14 @@ class MainWindow(
         """Update the food calories chart."""
         self._update_food_calories_chart()
 
+    def on_food_stats_food_weight(self) -> None:
+        """Show food weight chart."""
+        self._update_food_weight_chart()
+
+    def on_food_stats_drink(self) -> None:
+        """Show drinks chart."""
+        self._update_drinks_chart()
+
     def on_show_all_records_clicked(self) -> None:
         """Toggle between showing all records and last 5000 records."""
         self.show_all_food_records = not self.show_all_food_records
@@ -1043,6 +1051,8 @@ class MainWindow(
         self.pushButton_food_stats_last_month.clicked.connect(self.on_food_stats_last_month)
         self.pushButton_food_stats_last_year.clicked.connect(self.on_food_stats_last_year)
         self.pushButton_food_stats_all_time.clicked.connect(self.on_food_stats_all_time)
+        self.pushButton_food_stats_food_weight.clicked.connect(self.on_food_stats_food_weight)
+        self.pushButton_food_stats_drink.clicked.connect(self.on_food_stats_drink)
         self.pushButton_food_stats_update.clicked.connect(self.on_food_stats_update)
         self.comboBox_food_stats_period.currentTextChanged.connect(self.on_food_stats_period_changed)
 
@@ -1730,6 +1740,8 @@ class MainWindow(
         self.pushButton_food_stats_last_month.setText(f"📅 {self.pushButton_food_stats_last_month.text()}")
         self.pushButton_food_stats_last_year.setText(f"📅 {self.pushButton_food_stats_last_year.text()}")
         self.pushButton_food_stats_all_time.setText(f"📅 {self.pushButton_food_stats_all_time.text()}")
+        self.pushButton_food_stats_food_weight.setText(f"⚖️ {self.pushButton_food_stats_food_weight.text()}")
+        self.pushButton_food_stats_drink.setText(f"🥤 {self.pushButton_food_stats_drink.text()}")
         self.pushButton_food_stats_update.setText(f"🔄 {self.pushButton_food_stats_update.text()}")
 
         # Set decimal places for calorie spin boxes
@@ -1910,6 +1922,126 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating food calories chart: {e}")
             QMessageBox.warning(self, "Chart Error", f"Failed to create calories chart: {e}")
+
+    def _update_food_weight_chart(self) -> None:
+        """Update the food weight chart with data from database."""
+        if not self._validate_database_connection():
+            print("Database connection not available for updating food weight chart")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get date range from UI
+            date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
+            period = self.comboBox_food_stats_period.currentText()
+
+            # Get food weight data for the selected period
+            weight_data = self.db_manager.get_food_weight_per_day()
+
+            # Filter data by date range
+            filtered_data = []
+            for row in weight_data:
+                date_str = str(row[0]) if row[0] is not None else ""
+                weight_grams = row[1] if row[1] is not None else 0.0
+
+                if date_from <= date_str <= date_to:
+                    # Convert grams to kilograms
+                    weight_kg = weight_grams / 1000.0
+                    filtered_data.append((date_str, weight_kg))
+
+            # Group data by period
+            grouped_data = self._group_data_by_period(filtered_data, period, "float")
+
+            # Convert to list of tuples for chart
+            chart_data = [(date, value) for date, value in grouped_data.items()]
+
+            # Create chart configuration
+            chart_config = {
+                "title": f"Food Weight Consumed ({period})",
+                "xlabel": "Date",
+                "ylabel": "Weight (kg)",
+                "color": "green",
+                "show_stats": True,
+                "stats_unit": "kg",
+                "period": period,
+                "fill_zero_periods": True,
+                "date_from": date_from,
+                "date_to": date_to,
+                "is_calories_chart": False,  # Not calories chart
+            }
+
+            # Create chart
+            layout = self.scrollAreaWidgetContents_food_stats.layout()
+            if layout is not None:
+                self._create_chart(layout, chart_data, chart_config)
+
+        except Exception as e:
+            print(f"Error updating food weight chart: {e}")
+            QMessageBox.warning(self, "Chart Error", f"Failed to create food weight chart: {e}")
+
+    def _update_drinks_chart(self) -> None:
+        """Update the drinks chart with data from database."""
+        if not self._validate_database_connection():
+            print("Database connection not available for updating drinks chart")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get date range from UI
+            date_from = self.dateEdit_food_stats_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_food_stats_to.date().toString("yyyy-MM-dd")
+            period = self.comboBox_food_stats_period.currentText()
+
+            # Get drinks weight data for the selected period
+            weight_data = self.db_manager.get_drinks_weight_per_day()
+
+            # Filter data by date range
+            filtered_data = []
+            for row in weight_data:
+                date_str = str(row[0]) if row[0] is not None else ""
+                weight_grams = row[1] if row[1] is not None else 0.0
+
+                if date_from <= date_str <= date_to:
+                    # Convert grams to liters (1 liter = 1000 grams)
+                    weight_liters = weight_grams / 1000.0
+                    filtered_data.append((date_str, weight_liters))
+
+            # Group data by period
+            grouped_data = self._group_data_by_period(filtered_data, period, "float")
+
+            # Convert to list of tuples for chart
+            chart_data = [(date, value) for date, value in grouped_data.items()]
+
+            # Create chart configuration
+            chart_config = {
+                "title": f"Drinks Consumed ({period})",
+                "xlabel": "Date",
+                "ylabel": "Volume (liters)",
+                "color": "cyan",
+                "show_stats": True,
+                "stats_unit": "L",
+                "period": period,
+                "fill_zero_periods": True,
+                "date_from": date_from,
+                "date_to": date_to,
+                "is_calories_chart": False,  # Not calories chart
+            }
+
+            # Create chart
+            layout = self.scrollAreaWidgetContents_food_stats.layout()
+            if layout is not None:
+                self._create_chart(layout, chart_data, chart_config)
+
+        except Exception as e:
+            print(f"Error updating drinks chart: {e}")
+            QMessageBox.warning(self, "Chart Error", f"Failed to create drinks chart: {e}")
 
     def _update_food_items_list(self) -> None:
         """Refresh food items list view with data from database."""

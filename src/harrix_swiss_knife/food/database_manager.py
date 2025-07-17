@@ -426,6 +426,44 @@ class DatabaseManager:
         """
         return self.get_rows(query)
 
+    def get_food_weight_per_day(self) -> list[list[Any]]:
+        """Get food weight consumed per day for all days (excluding drinks).
+
+        Returns:
+
+        - `list[list[Any]]`: List of [date, total_weight] records.
+
+        """
+        query = """
+            SELECT
+                date,
+                SUM(weight) as total_weight
+            FROM food_log
+            WHERE is_drink = 0 AND weight IS NOT NULL AND weight > 0
+            GROUP BY date
+            ORDER BY date DESC
+        """
+        return self.get_rows(query)
+
+    def get_drinks_weight_per_day(self) -> list[list[Any]]:
+        """Get drinks weight consumed per day for all days.
+
+        Returns:
+
+        - `list[list[Any]]`: List of [date, total_weight] records.
+
+        """
+        query = """
+            SELECT
+                date,
+                SUM(weight) as total_weight
+            FROM food_log
+            WHERE is_drink = 1 AND weight IS NOT NULL AND weight > 0
+            GROUP BY date
+            ORDER BY date DESC
+        """
+        return self.get_rows(query)
+
     def get_drinks_weight_today(self) -> int:
         """Get total weight of drinks consumed today.
 

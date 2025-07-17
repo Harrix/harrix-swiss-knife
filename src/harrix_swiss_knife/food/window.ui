@@ -675,6 +675,20 @@
               </widget>
              </item>
              <item>
+              <widget class="QPushButton" name="pushButton_food_stats_food_weight">
+               <property name="text">
+                <string>Food Weight Chart</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_food_stats_drink">
+               <property name="text">
+                <string>Drinks Chart</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <spacer name="horizontalSpacer_food_stats">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
