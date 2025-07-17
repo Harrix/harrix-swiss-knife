@@ -41,6 +41,7 @@ class FoodItemDialog(QDialog):
         Args:
             parent: Parent widget
             food_item_data: Food item data as [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+
         """
         super().__init__(parent)
         self.food_item_data = food_item_data

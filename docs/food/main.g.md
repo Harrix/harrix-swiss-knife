@@ -433,7 +433,7 @@ class MainWindow(
             # Determine calories_per_100g and portion_calories based on radio button
             if use_weight:
                 # Weight mode: calories is calories_per_100g
-                calories_per_100g = calories if calories > 0 else 0
+                calories_per_100g = max(0, calories)
                 portion_calories = None
             else:
                 # Portion mode: calories is portion_calories, set calories_per_100g to 0
@@ -1437,8 +1437,7 @@ class MainWindow(
 
         if calories_info:
             return f"{food_name} {calories_info}"
-        else:
-            return food_name
+        return food_name
 
     def _get_current_selected_food_item(self) -> tuple[str | None, str]:
         """Get the currently selected food item from either list view.
@@ -1983,8 +1982,7 @@ class MainWindow(
 
     def _setup_autocomplete(self) -> None:
         """Setup autocomplete functionality for food name input."""
-        from PySide6.QtCore import QStringListModel, Qt
-        from PySide6.QtWidgets import QCompleter
+        from PySide6.QtCore import Qt
 
         # Create completer
         self.food_completer = QCompleter(self)
@@ -2016,7 +2014,7 @@ class MainWindow(
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
-        self.pushButton_food_manual_name_clear.setText(f"🧹")
+        self.pushButton_food_manual_name_clear.setText("🧹")
 
         # Set emoji for food stats buttons
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
@@ -2337,6 +2335,7 @@ class MainWindow(
 
                 Returns:
                     list[list]: Transformed food_log data.
+
                 """
                 # Get all unique dates and assign colors
                 unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
@@ -2458,6 +2457,7 @@ class MainWindow(
 
                 Returns:
                     list[list]: Transformed food_log data.
+
                 """
                 # Get all unique dates and assign colors
                 unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
@@ -3068,7 +3068,7 @@ def on_add_food_log(self) -> None:
             # Determine calories_per_100g and portion_calories based on radio button
             if use_weight:
                 # Weight mode: calories is calories_per_100g
-                calories_per_100g = calories if calories > 0 else 0
+                calories_per_100g = max(0, calories)
                 portion_calories = None
             else:
                 # Portion mode: calories is portion_calories, set calories_per_100g to 0
@@ -4544,8 +4544,7 @@ def _format_food_name_with_calories(
 
         if calories_info:
             return f"{food_name} {calories_info}"
-        else:
-            return food_name
+        return food_name
 ```
 
 </details>
@@ -5273,8 +5272,7 @@ Setup autocomplete functionality for food name input.
 
 ```python
 def _setup_autocomplete(self) -> None:
-        from PySide6.QtCore import QStringListModel, Qt
-        from PySide6.QtWidgets import QCompleter
+        from PySide6.QtCore import Qt
 
         # Create completer
         self.food_completer = QCompleter(self)
@@ -5320,7 +5318,7 @@ def _setup_ui(self) -> None:
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
-        self.pushButton_food_manual_name_clear.setText(f"🧹")
+        self.pushButton_food_manual_name_clear.setText("🧹")
 
         # Set emoji for food stats buttons
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
@@ -5753,6 +5751,7 @@ def _update_food_log_table(self) -> None:
 
                 Returns:
                     list[list]: Transformed food_log data.
+
                 """
                 # Get all unique dates and assign colors
                 unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
@@ -5886,6 +5885,7 @@ def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> No
 
                 Returns:
                     list[list]: Transformed food_log data.
+
                 """
                 # Get all unique dates and assign colors
                 unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date

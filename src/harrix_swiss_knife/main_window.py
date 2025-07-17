@@ -221,16 +221,18 @@ class MainWindow(QMainWindow):
 
         # Determine window size and position based on screen characteristics
         aspect_ratio = screen_width / screen_height
-        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+        standard_aspect_ratio = 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+        is_standard_aspect = aspect_ratio <= standard_aspect_ratio
 
-        if is_standard_aspect and screen_width >= 1920:
+        standard_width = 1920
+        if is_standard_aspect and screen_width >= standard_width:
             # For standard aspect ratios with width >= 1920, maximize window
             self.showMaximized()
         else:
             title_bar_height = 30  # Approximate title bar height
             windows_task_bar_height = 48  # Approximate windows task bar height
             # For other cases, use fixed width and full height minus title bar
-            window_width = 1920
+            window_width = standard_width
             window_height = screen_height - title_bar_height - windows_task_bar_height
             # Position window on screen
             screen_center = screen_geometry.center()
