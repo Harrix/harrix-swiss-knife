@@ -116,7 +116,8 @@ class AutoSaveOperations:
 
         """
         # Get data from model columns
-        # Column order: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+        # Column order:
+        # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
         name = model.data(model.index(row, 0)) or ""
         is_drink_str = model.data(model.index(row, 1)) or ""
         weight_str = model.data(model.index(row, 2)) or ""
