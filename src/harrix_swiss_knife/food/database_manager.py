@@ -810,6 +810,36 @@ class DatabaseManager:
         rows = self.get_rows(query)
         return [row[0] for row in rows if row[0]]
 
+    def get_problematic_food_records(self) -> list[list[Any]]:
+        """Get problematic food records that need attention.
+
+        Returns records with:
+        - NULL or zero weight, OR
+        - Both calories_per_100g and portion_calories are NULL or zero (and not a drink)
+
+        Returns:
+
+        - `list[list[Any]]`: List of problematic food log records.
+
+        """
+        query = """
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+            WHERE (
+                -- Records with NULL or zero weight
+                (weight IS NULL OR weight = 0)
+                OR
+                -- Records where both calories_per_100g and portion_calories are NULL or zero (and not a drink)
+                (
+                    (calories_per_100g IS NULL OR calories_per_100g = 0)
+                    AND (portion_calories IS NULL OR portion_calories = 0)
+                    AND is_drink = 0
+                )
+            )
+            ORDER BY date DESC, _id DESC
+        """
+        return self.get_rows(query)
+
     def get_rows(
         self,
         query_text: str,
