@@ -475,11 +475,17 @@ class MainWindow(
             # Update calories calculation
             self.update_calories_calculation()
 
+            # Move focus to weight spinbox and select all text after selection
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
+
         except Exception as e:
             print(f"Error in food item selection changed: {e}")
-            # In case of error, at least set the name
+            # In case of error, at least set the name and move focus
             self.lineEdit_food_manual_name.setText(food_item)
             self.lineEdit_food_name.setText(food_item)
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
 
     def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
         """Handle food log table cell click and populate form fields with row data."""
@@ -541,6 +547,10 @@ class MainWindow(
 
             # Update calories calculation
             self.update_calories_calculation()
+
+            # Move focus to weight spinbox and select all text
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
 
         except Exception as e:
             print(f"Error in food log table cell clicked: {e}")
@@ -1333,6 +1343,10 @@ class MainWindow(
 
         # Trigger the food item selection logic
         self._populate_form_from_food_name(text)
+
+        # Move focus to weight spinbox and select all text
+        self.spinBox_food_weight.setFocus()
+        self.spinBox_food_weight.selectAll()
 
     def _on_tab_changed(self, index: int) -> None:
         """Handle tab widget index change.
