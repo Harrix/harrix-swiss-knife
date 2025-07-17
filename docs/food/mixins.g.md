@@ -731,6 +731,7 @@ class ChartOperations:
         - period: Period for x-axis formatting (Days/Months/Years)
         - stats_formatter: Optional function to format statistics
         - fill_zero_periods: Whether to fill missing periods with zero values
+        - is_calories_chart: Whether this is a calories chart that needs color coding
 
         """
         # Clear existing chart
@@ -760,7 +761,13 @@ class ChartOperations:
 
         # Plot data
         self._plot_data(
-            ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count, chart_config.get("period")
+            ax,
+            x_values,
+            y_values,
+            chart_config.get("color", "b"),
+            non_zero_count,
+            chart_config.get("period"),
+            chart_config.get("is_calories_chart", False),  # Add this parameter
         )
 
         # Customize plot
@@ -1028,6 +1035,7 @@ class ChartOperations:
         color: str,
         non_zero_count: int | None = None,
         period: str | None = None,
+        is_calories_chart: bool = False,
     ) -> None:
         """Plot data with automatic marker selection based on data points.
 
@@ -1039,6 +1047,7 @@ class ChartOperations:
         - `color` (`str`): Plot color.
         - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
         - `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
+        - `is_calories_chart` (`bool`): Whether this is a calories chart that needs color coding. Defaults to `False`.
 
         """
         # Map color names to matplotlib single-letter codes
@@ -1061,71 +1070,152 @@ class ChartOperations:
         # Use non_zero_count if provided, otherwise use total length
         point_count_for_labels = non_zero_count if non_zero_count is not None else len(y_values)
 
-        if point_count_for_labels <= self.max_count_points_in_charts:
-            ax.plot(
+        # For calories chart, plot colored points with line and critical zones
+        if is_calories_chart:
+            # Draw horizontal lines for critical zones only for Days period
+            if period != "Months" and period != "Years":
+                ax.axhline(
+                    y=1800, color="green", linestyle="--", linewidth=1, alpha=0.5, zorder=1, label="Low calories limit"
+                )
+                ax.axhline(
+                    y=2100,
+                    color="orange",
+                    linestyle="--",
+                    linewidth=1,
+                    alpha=0.5,
+                    zorder=1,
+                    label="Medium-low calories limit",
+                )
+                ax.axhline(
+                    y=2500,
+                    color="red",
+                    linestyle="--",
+                    linewidth=1,
+                    alpha=0.5,
+                    zorder=1,
+                    label="Medium-high calories limit",
+                )
+
+            # Draw thin connecting line behind points
+            ax.plot(x_values, y_values, color="gray", linestyle="-", linewidth=1, alpha=0.6, zorder=2)
+
+            # Get colors for each point based on calories value
+            point_colors = []
+            for y in y_values:
+                if y is None or y == 0:
+                    point_colors.append("lightgray")  # Gray for zero/None values
+                elif y <= 1800:
+                    point_colors.append("#90EE90")  # Light green for low calories
+                elif y <= 2100:
+                    point_colors.append("#FFFFE0")  # Light yellow for medium-low calories
+                elif y <= 2500:
+                    point_colors.append("#FFE4C4")  # Bisque for medium-high calories
+                else:
+                    point_colors.append("#FFC0CB")  # Light pink for high calories
+
+            # Plot points with colors - small size, with edge
+            scatter = ax.scatter(
                 x_values,
                 y_values,
-                color=plot_color,
-                marker="o",
-                linestyle="-",
-                linewidth=2,
+                c=point_colors,
+                s=20,  # Small size
                 alpha=0.8,
-                markersize=6,
-                markerfacecolor=plot_color,
-                markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
+                edgecolors="black",  # Black edge
+                linewidth=0.5,  # Thin edge
+                zorder=3,  # Ensure points are on top
             )
-            # Add value labels only for non-zero and non-None values
-            for x, y in zip(x_values, y_values, strict=False):
-                if y is not None and y != 0:  # Only label non-zero and non-None points
-                    # Format label based on value type - remove unnecessary .0
-                    label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
-                    # Add year in parentheses for Years period
-                    if period == "Years" and hasattr(x, "year"):
-                        label_text += f" ({x.year})"
+            # Add value labels only if there are fewer than 50 points
+            if len(x_values) < 100:
+                for x, y in zip(x_values, y_values, strict=False):
+                    if y is not None and y != 0:  # Only label non-zero and non-None points
+                        # Format label based on value type - remove unnecessary .0
+                        label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
-                    ax.annotate(
-                        label_text,
-                        (x, y),
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        # Add white outline for better readability
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-                    )
+                        # Add year in parentheses for Years period
+                        if period == "Years" and hasattr(x, "year"):
+                            label_text += f" ({x.year})"
+
+                        ax.annotate(
+                            label_text,
+                            (x, y),
+                            textcoords="offset points",
+                            xytext=(0, 10),
+                            ha="center",
+                            fontsize=9,
+                            alpha=0.8,
+                            # Add white outline for better readability
+                            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                            zorder=4,  # Ensure labels are on top
+                        )
+
         else:
-            ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
+            # Original plotting logic for non-calories charts
+            if point_count_for_labels <= self.max_count_points_in_charts:
+                ax.plot(
+                    x_values,
+                    y_values,
+                    color=plot_color,
+                    marker="o",
+                    linestyle="-",
+                    linewidth=2,
+                    alpha=0.8,
+                    markersize=6,
+                    markerfacecolor=plot_color,
+                    markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
+                )
+                # Add value labels only for non-zero and non-None values
+                for x, y in zip(x_values, y_values, strict=False):
+                    if y is not None and y != 0:  # Only label non-zero and non-None points
+                        # Format label based on value type - remove unnecessary .0
+                        label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
-            # Always label the last point, even when there are many points
-            if x_values and y_values:
-                last_x = x_values[-1]
-                last_y = y_values[-1]
+                        # Add year in parentheses for Years period
+                        if period == "Years" and hasattr(x, "year"):
+                            label_text += f" ({x.year})"
 
-                # Only label if the last point is non-zero and non-None
-                if last_y is not None and last_y != 0:
-                    # Format label based on value type - remove unnecessary .0
-                    if isinstance(last_y, int) or last_y == int(last_y):
-                        label_text = str(int(last_y))
-                    else:
-                        label_text = f"{last_y:.1f}"
+                        ax.annotate(
+                            label_text,
+                            (x, y),
+                            textcoords="offset points",
+                            xytext=(0, 10),
+                            ha="center",
+                            fontsize=9,
+                            alpha=0.8,
+                            # Add white outline for better readability
+                            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                        )
+            else:
+                ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
 
-                    # Add year in parentheses for Years period
-                    if period == "Years" and hasattr(last_x, "year"):
-                        label_text += f" ({last_x.year})"
+                # Always label the last point, even when there are many points
+                if x_values and y_values:
+                    last_x = x_values[-1]
+                    last_y = y_values[-1]
 
-                    ax.annotate(
-                        label_text,
-                        (last_x, last_y),
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        # Add white outline for better readability
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-                    )
+                    # Only label if the last point is non-zero and non-None
+                    if last_y is not None and last_y != 0:
+                        # Format label based on value type - remove unnecessary .0
+                        if isinstance(last_y, int) or last_y == int(last_y):
+                            label_text = str(int(last_y))
+                        else:
+                            label_text = f"{last_y:.1f}"
+
+                        # Add year in parentheses for Years period
+                        if period == "Years" and hasattr(last_x, "year"):
+                            label_text += f" ({last_x.year})"
+
+                        ax.annotate(
+                            label_text,
+                            (last_x, last_y),
+                            textcoords="offset points",
+                            xytext=(0, 10),
+                            ha="center",
+                            fontsize=9,
+                            alpha=0.8,
+                            # Add white outline for better readability
+                            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                        )
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a 'no data' label in the layout.
@@ -1223,6 +1313,7 @@ Args:
 - period: Period for x-axis formatting (Days/Months/Years)
 - stats_formatter: Optional function to format statistics
 - fill_zero_periods: Whether to fill missing periods with zero values
+- is_calories_chart: Whether this is a calories chart that needs color coding
 
 <details>
 <summary>Code:</summary>
@@ -1256,7 +1347,13 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
 
         # Plot data
         self._plot_data(
-            ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count, chart_config.get("period")
+            ax,
+            x_values,
+            y_values,
+            chart_config.get("color", "b"),
+            non_zero_count,
+            chart_config.get("period"),
+            chart_config.get("is_calories_chart", False),  # Add this parameter
         )
 
         # Customize plot
@@ -1584,7 +1681,7 @@ def _group_data_by_period_with_max(self, rows: list, period: str, value_type: st
 ### ⚙️ Method `_plot_data`
 
 ```python
-def _plot_data(self, ax: Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None, period: str | None = None) -> None
+def _plot_data(self, ax: Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None, period: str | None = None, is_calories_chart: bool = False) -> None
 ```
 
 Plot data with automatic marker selection based on data points.
@@ -1597,6 +1694,7 @@ Args:
 - `color` (`str`): Plot color.
 - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
 - `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
+- `is_calories_chart` (`bool`): Whether this is a calories chart that needs color coding. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
@@ -1610,6 +1708,7 @@ def _plot_data(
         color: str,
         non_zero_count: int | None = None,
         period: str | None = None,
+        is_calories_chart: bool = False,
     ) -> None:
         # Map color names to matplotlib single-letter codes
         color_map = {
@@ -1631,71 +1730,152 @@ def _plot_data(
         # Use non_zero_count if provided, otherwise use total length
         point_count_for_labels = non_zero_count if non_zero_count is not None else len(y_values)
 
-        if point_count_for_labels <= self.max_count_points_in_charts:
-            ax.plot(
+        # For calories chart, plot colored points with line and critical zones
+        if is_calories_chart:
+            # Draw horizontal lines for critical zones only for Days period
+            if period != "Months" and period != "Years":
+                ax.axhline(
+                    y=1800, color="green", linestyle="--", linewidth=1, alpha=0.5, zorder=1, label="Low calories limit"
+                )
+                ax.axhline(
+                    y=2100,
+                    color="orange",
+                    linestyle="--",
+                    linewidth=1,
+                    alpha=0.5,
+                    zorder=1,
+                    label="Medium-low calories limit",
+                )
+                ax.axhline(
+                    y=2500,
+                    color="red",
+                    linestyle="--",
+                    linewidth=1,
+                    alpha=0.5,
+                    zorder=1,
+                    label="Medium-high calories limit",
+                )
+
+            # Draw thin connecting line behind points
+            ax.plot(x_values, y_values, color="gray", linestyle="-", linewidth=1, alpha=0.6, zorder=2)
+
+            # Get colors for each point based on calories value
+            point_colors = []
+            for y in y_values:
+                if y is None or y == 0:
+                    point_colors.append("lightgray")  # Gray for zero/None values
+                elif y <= 1800:
+                    point_colors.append("#90EE90")  # Light green for low calories
+                elif y <= 2100:
+                    point_colors.append("#FFFFE0")  # Light yellow for medium-low calories
+                elif y <= 2500:
+                    point_colors.append("#FFE4C4")  # Bisque for medium-high calories
+                else:
+                    point_colors.append("#FFC0CB")  # Light pink for high calories
+
+            # Plot points with colors - small size, with edge
+            scatter = ax.scatter(
                 x_values,
                 y_values,
-                color=plot_color,
-                marker="o",
-                linestyle="-",
-                linewidth=2,
+                c=point_colors,
+                s=20,  # Small size
                 alpha=0.8,
-                markersize=6,
-                markerfacecolor=plot_color,
-                markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
+                edgecolors="black",  # Black edge
+                linewidth=0.5,  # Thin edge
+                zorder=3,  # Ensure points are on top
             )
-            # Add value labels only for non-zero and non-None values
-            for x, y in zip(x_values, y_values, strict=False):
-                if y is not None and y != 0:  # Only label non-zero and non-None points
-                    # Format label based on value type - remove unnecessary .0
-                    label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
-                    # Add year in parentheses for Years period
-                    if period == "Years" and hasattr(x, "year"):
-                        label_text += f" ({x.year})"
+            # Add value labels only if there are fewer than 50 points
+            if len(x_values) < 100:
+                for x, y in zip(x_values, y_values, strict=False):
+                    if y is not None and y != 0:  # Only label non-zero and non-None points
+                        # Format label based on value type - remove unnecessary .0
+                        label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
-                    ax.annotate(
-                        label_text,
-                        (x, y),
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        # Add white outline for better readability
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-                    )
+                        # Add year in parentheses for Years period
+                        if period == "Years" and hasattr(x, "year"):
+                            label_text += f" ({x.year})"
+
+                        ax.annotate(
+                            label_text,
+                            (x, y),
+                            textcoords="offset points",
+                            xytext=(0, 10),
+                            ha="center",
+                            fontsize=9,
+                            alpha=0.8,
+                            # Add white outline for better readability
+                            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                            zorder=4,  # Ensure labels are on top
+                        )
+
         else:
-            ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
+            # Original plotting logic for non-calories charts
+            if point_count_for_labels <= self.max_count_points_in_charts:
+                ax.plot(
+                    x_values,
+                    y_values,
+                    color=plot_color,
+                    marker="o",
+                    linestyle="-",
+                    linewidth=2,
+                    alpha=0.8,
+                    markersize=6,
+                    markerfacecolor=plot_color,
+                    markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
+                )
+                # Add value labels only for non-zero and non-None values
+                for x, y in zip(x_values, y_values, strict=False):
+                    if y is not None and y != 0:  # Only label non-zero and non-None points
+                        # Format label based on value type - remove unnecessary .0
+                        label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
-            # Always label the last point, even when there are many points
-            if x_values and y_values:
-                last_x = x_values[-1]
-                last_y = y_values[-1]
+                        # Add year in parentheses for Years period
+                        if period == "Years" and hasattr(x, "year"):
+                            label_text += f" ({x.year})"
 
-                # Only label if the last point is non-zero and non-None
-                if last_y is not None and last_y != 0:
-                    # Format label based on value type - remove unnecessary .0
-                    if isinstance(last_y, int) or last_y == int(last_y):
-                        label_text = str(int(last_y))
-                    else:
-                        label_text = f"{last_y:.1f}"
+                        ax.annotate(
+                            label_text,
+                            (x, y),
+                            textcoords="offset points",
+                            xytext=(0, 10),
+                            ha="center",
+                            fontsize=9,
+                            alpha=0.8,
+                            # Add white outline for better readability
+                            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                        )
+            else:
+                ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
 
-                    # Add year in parentheses for Years period
-                    if period == "Years" and hasattr(last_x, "year"):
-                        label_text += f" ({last_x.year})"
+                # Always label the last point, even when there are many points
+                if x_values and y_values:
+                    last_x = x_values[-1]
+                    last_y = y_values[-1]
 
-                    ax.annotate(
-                        label_text,
-                        (last_x, last_y),
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        # Add white outline for better readability
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-                    )
+                    # Only label if the last point is non-zero and non-None
+                    if last_y is not None and last_y != 0:
+                        # Format label based on value type - remove unnecessary .0
+                        if isinstance(last_y, int) or last_y == int(last_y):
+                            label_text = str(int(last_y))
+                        else:
+                            label_text = f"{last_y:.1f}"
+
+                        # Add year in parentheses for Years period
+                        if period == "Years" and hasattr(last_x, "year"):
+                            label_text += f" ({last_x.year})"
+
+                        ax.annotate(
+                            label_text,
+                            (last_x, last_y),
+                            textcoords="offset points",
+                            xytext=(0, 10),
+                            ha="center",
+                            fontsize=9,
+                            alpha=0.8,
+                            # Add white outline for better readability
+                            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                        )
 ```
 
 </details>

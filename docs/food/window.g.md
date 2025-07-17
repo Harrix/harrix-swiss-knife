@@ -76,11 +76,16 @@ class Ui_MainWindow(object):
         self.pushButton_food_stats_last_week.setText(QCoreApplication.translate("MainWindow", "Last Week", None))
         self.pushButton_food_stats_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
         self.pushButton_food_stats_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
+        self.pushButton_food_stats_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.pushButton_food_stats_update.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
         self.comboBox_food_stats_period.setItemText(0, QCoreApplication.translate("MainWindow", "Days", None))
         self.comboBox_food_stats_period.setItemText(1, QCoreApplication.translate("MainWindow", "Months", None))
         self.comboBox_food_stats_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
+        self.pushButton_food_stats_food_weight.setText(
+            QCoreApplication.translate("MainWindow", "Food Weight Chart", None)
+        )
+        self.pushButton_food_stats_drink.setText(QCoreApplication.translate("MainWindow", "Drinks Chart", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_food_stats),
             QCoreApplication.translate("MainWindow", "Food Statistics", None),
@@ -536,6 +541,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_last_year)
 
+        self.pushButton_food_stats_all_time = QPushButton(self.frame_food_stats_controls)
+        self.pushButton_food_stats_all_time.setObjectName("pushButton_food_stats_all_time")
+
+        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_all_time)
+
         self.pushButton_food_stats_update = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_update.setObjectName("pushButton_food_stats_update")
 
@@ -548,6 +558,16 @@ class Ui_MainWindow(object):
         self.comboBox_food_stats_period.setObjectName("comboBox_food_stats_period")
 
         self.horizontalLayout_food_stats_controls.addWidget(self.comboBox_food_stats_period)
+
+        self.pushButton_food_stats_food_weight = QPushButton(self.frame_food_stats_controls)
+        self.pushButton_food_stats_food_weight.setObjectName("pushButton_food_stats_food_weight")
+
+        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_food_weight)
+
+        self.pushButton_food_stats_drink = QPushButton(self.frame_food_stats_controls)
+        self.pushButton_food_stats_drink.setObjectName("pushButton_food_stats_drink")
+
+        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_drink)
 
         self.horizontalSpacer_food_stats = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -650,11 +670,16 @@ def retranslateUi(self, MainWindow):
         self.pushButton_food_stats_last_week.setText(QCoreApplication.translate("MainWindow", "Last Week", None))
         self.pushButton_food_stats_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
         self.pushButton_food_stats_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
+        self.pushButton_food_stats_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.pushButton_food_stats_update.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
         self.comboBox_food_stats_period.setItemText(0, QCoreApplication.translate("MainWindow", "Days", None))
         self.comboBox_food_stats_period.setItemText(1, QCoreApplication.translate("MainWindow", "Months", None))
         self.comboBox_food_stats_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
+        self.pushButton_food_stats_food_weight.setText(
+            QCoreApplication.translate("MainWindow", "Food Weight Chart", None)
+        )
+        self.pushButton_food_stats_drink.setText(QCoreApplication.translate("MainWindow", "Drinks Chart", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_food_stats),
             QCoreApplication.translate("MainWindow", "Food Statistics", None),
@@ -1125,6 +1150,11 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_last_year)
 
+        self.pushButton_food_stats_all_time = QPushButton(self.frame_food_stats_controls)
+        self.pushButton_food_stats_all_time.setObjectName("pushButton_food_stats_all_time")
+
+        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_all_time)
+
         self.pushButton_food_stats_update = QPushButton(self.frame_food_stats_controls)
         self.pushButton_food_stats_update.setObjectName("pushButton_food_stats_update")
 
@@ -1137,6 +1167,16 @@ def setupUi(self, MainWindow):
         self.comboBox_food_stats_period.setObjectName("comboBox_food_stats_period")
 
         self.horizontalLayout_food_stats_controls.addWidget(self.comboBox_food_stats_period)
+
+        self.pushButton_food_stats_food_weight = QPushButton(self.frame_food_stats_controls)
+        self.pushButton_food_stats_food_weight.setObjectName("pushButton_food_stats_food_weight")
+
+        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_food_weight)
+
+        self.pushButton_food_stats_drink = QPushButton(self.frame_food_stats_controls)
+        self.pushButton_food_stats_drink.setObjectName("pushButton_food_stats_drink")
+
+        self.horizontalLayout_food_stats_controls.addWidget(self.pushButton_food_stats_drink)
 
         self.horizontalSpacer_food_stats = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 

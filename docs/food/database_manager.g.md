@@ -26,6 +26,7 @@ lang: en
   - [⚙️ Method `get_all_food_items`](#%EF%B8%8F-method-get_all_food_items)
   - [⚙️ Method `get_all_food_log_records`](#%EF%B8%8F-method-get_all_food_log_records)
   - [⚙️ Method `get_calories_per_day`](#%EF%B8%8F-method-get_calories_per_day)
+  - [⚙️ Method `get_drinks_weight_per_day`](#%EF%B8%8F-method-get_drinks_weight_per_day)
   - [⚙️ Method `get_drinks_weight_today`](#%EF%B8%8F-method-get_drinks_weight_today)
   - [⚙️ Method `get_earliest_food_log_date`](#%EF%B8%8F-method-get_earliest_food_log_date)
   - [⚙️ Method `get_food_calories_today`](#%EF%B8%8F-method-get_food_calories_today)
@@ -33,6 +34,7 @@ lang: en
   - [⚙️ Method `get_food_items_by_name`](#%EF%B8%8F-method-get_food_items_by_name)
   - [⚙️ Method `get_food_log_chart_data`](#%EF%B8%8F-method-get_food_log_chart_data)
   - [⚙️ Method `get_food_log_item_by_name`](#%EF%B8%8F-method-get_food_log_item_by_name)
+  - [⚙️ Method `get_food_weight_per_day`](#%EF%B8%8F-method-get_food_weight_per_day)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
   - [⚙️ Method `get_kcal_chart_data`](#%EF%B8%8F-method-get_kcal_chart_data)
@@ -471,6 +473,25 @@ class DatabaseManager:
         """
         return self.get_rows(query)
 
+    def get_drinks_weight_per_day(self) -> list[list[Any]]:
+        """Get drinks weight consumed per day for all days.
+
+        Returns:
+
+        - `list[list[Any]]`: List of [date, total_weight] records.
+
+        """
+        query = """
+            SELECT
+                date,
+                SUM(weight) as total_weight
+            FROM food_log
+            WHERE is_drink = 1 AND weight IS NOT NULL AND weight > 0
+            GROUP BY date
+            ORDER BY date DESC
+        """
+        return self.get_rows(query)
+
     def get_drinks_weight_today(self) -> int:
         """Get total weight of drinks consumed today.
 
@@ -636,6 +657,25 @@ class DatabaseManager:
         params = {"name": name}
         rows = self.get_rows(query, params)
         return rows[0] if rows else None
+
+    def get_food_weight_per_day(self) -> list[list[Any]]:
+        """Get food weight consumed per day for all days (excluding drinks).
+
+        Returns:
+
+        - `list[list[Any]]`: List of [date, total_weight] records.
+
+        """
+        query = """
+            SELECT
+                date,
+                SUM(weight) as total_weight
+            FROM food_log
+            WHERE is_drink = 0 AND weight IS NOT NULL AND weight > 0
+            GROUP BY date
+            ORDER BY date DESC
+        """
+        return self.get_rows(query)
 
     def get_id(
         self,
@@ -1620,6 +1660,37 @@ def get_calories_per_day(self) -> list[list[Any]]:
 
 </details>
 
+### ⚙️ Method `get_drinks_weight_per_day`
+
+```python
+def get_drinks_weight_per_day(self) -> list[list[Any]]
+```
+
+Get drinks weight consumed per day for all days.
+
+Returns:
+
+- `list[list[Any]]`: List of [date, total_weight] records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_drinks_weight_per_day(self) -> list[list[Any]]:
+        query = """
+            SELECT
+                date,
+                SUM(weight) as total_weight
+            FROM food_log
+            WHERE is_drink = 1 AND weight IS NOT NULL AND weight > 0
+            GROUP BY date
+            ORDER BY date DESC
+        """
+        return self.get_rows(query)
+```
+
+</details>
+
 ### ⚙️ Method `get_drinks_weight_today`
 
 ```python
@@ -1866,6 +1937,37 @@ def get_food_log_item_by_name(self, name: str) -> list[Any] | None:
         params = {"name": name}
         rows = self.get_rows(query, params)
         return rows[0] if rows else None
+```
+
+</details>
+
+### ⚙️ Method `get_food_weight_per_day`
+
+```python
+def get_food_weight_per_day(self) -> list[list[Any]]
+```
+
+Get food weight consumed per day for all days (excluding drinks).
+
+Returns:
+
+- `list[list[Any]]`: List of [date, total_weight] records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_food_weight_per_day(self) -> list[list[Any]]:
+        query = """
+            SELECT
+                date,
+                SUM(weight) as total_weight
+            FROM food_log
+            WHERE is_drink = 0 AND weight IS NOT NULL AND weight > 0
+            GROUP BY date
+            ORDER BY date DESC
+        """
+        return self.get_rows(query)
 ```
 
 </details>
