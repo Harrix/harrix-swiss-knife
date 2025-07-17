@@ -565,9 +565,7 @@ class TextParser:
 
         """
         # Remove numbers and portion keywords to get the name
-        name_parts = [
-            part for part in parts if not self._is_number(part) and part.lower() not in self.portion_keywords
-        ]
+        name_parts = [part for part in parts if not self._is_number(part) and part.lower() not in self.portion_keywords]
 
         name = " ".join(name_parts)
         name = self._capitalize_name(name)

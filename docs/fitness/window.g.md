@@ -65,6 +65,7 @@ class Ui_MainWindow(object):
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement:", None))
+        self.label_calories_per_unit.setText(QCoreApplication.translate("MainWindow", "Calories per unit:", None))
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", "Type required", None))
         self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
@@ -72,6 +73,7 @@ class Ui_MainWindow(object):
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
+        self.label_calories_modifier.setText(QCoreApplication.translate("MainWindow", "Calories modifier:", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
@@ -500,6 +502,25 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_10.addLayout(self.horizontalLayout_18)
 
+        self.horizontalLayout_calories_per_unit = QHBoxLayout()
+        self.horizontalLayout_calories_per_unit.setObjectName("horizontalLayout_calories_per_unit")
+        self.label_calories_per_unit = QLabel(self.groupBox_2)
+        self.label_calories_per_unit.setObjectName("label_calories_per_unit")
+        self.label_calories_per_unit.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_calories_per_unit.addWidget(self.label_calories_per_unit)
+
+        self.doubleSpinBox_calories_per_unit = QDoubleSpinBox(self.groupBox_2)
+        self.doubleSpinBox_calories_per_unit.setObjectName("doubleSpinBox_calories_per_unit")
+        self.doubleSpinBox_calories_per_unit.setMinimumSize(QSize(70, 0))
+        self.doubleSpinBox_calories_per_unit.setDecimals(2)
+        self.doubleSpinBox_calories_per_unit.setMaximum(999.990000000000009)
+        self.doubleSpinBox_calories_per_unit.setValue(0.000000000000000)
+
+        self.horizontalLayout_calories_per_unit.addWidget(self.doubleSpinBox_calories_per_unit)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_calories_per_unit)
+
         self.check_box_is_type_required = QCheckBox(self.groupBox_2)
         self.check_box_is_type_required.setObjectName("check_box_is_type_required")
 
@@ -587,6 +608,25 @@ class Ui_MainWindow(object):
         self.lineEdit_exercise_type.setObjectName("lineEdit_exercise_type")
 
         self.verticalLayout_14.addWidget(self.lineEdit_exercise_type)
+
+        self.horizontalLayout_calories_modifier = QHBoxLayout()
+        self.horizontalLayout_calories_modifier.setObjectName("horizontalLayout_calories_modifier")
+        self.label_calories_modifier = QLabel(self.groupBox_3)
+        self.label_calories_modifier.setObjectName("label_calories_modifier")
+
+        self.horizontalLayout_calories_modifier.addWidget(self.label_calories_modifier)
+
+        self.doubleSpinBox_calories_modifier = QDoubleSpinBox(self.groupBox_3)
+        self.doubleSpinBox_calories_modifier.setObjectName("doubleSpinBox_calories_modifier")
+        self.doubleSpinBox_calories_modifier.setDecimals(2)
+        self.doubleSpinBox_calories_modifier.setMinimum(0.010000000000000)
+        self.doubleSpinBox_calories_modifier.setMaximum(10.000000000000000)
+        self.doubleSpinBox_calories_modifier.setSingleStep(0.100000000000000)
+        self.doubleSpinBox_calories_modifier.setValue(1.000000000000000)
+
+        self.horizontalLayout_calories_modifier.addWidget(self.doubleSpinBox_calories_modifier)
+
+        self.verticalLayout_14.addLayout(self.horizontalLayout_calories_modifier)
 
         self.horizontalLayout_22 = QHBoxLayout()
         self.horizontalLayout_22.setObjectName("horizontalLayout_22")
@@ -1090,6 +1130,7 @@ def retranslateUi(self, MainWindow):
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement:", None))
+        self.label_calories_per_unit.setText(QCoreApplication.translate("MainWindow", "Calories per unit:", None))
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", "Type required", None))
         self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
@@ -1097,6 +1138,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
         self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise Type", None))
+        self.label_calories_modifier.setText(QCoreApplication.translate("MainWindow", "Calories modifier:", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", "Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
@@ -1540,6 +1582,25 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_10.addLayout(self.horizontalLayout_18)
 
+        self.horizontalLayout_calories_per_unit = QHBoxLayout()
+        self.horizontalLayout_calories_per_unit.setObjectName("horizontalLayout_calories_per_unit")
+        self.label_calories_per_unit = QLabel(self.groupBox_2)
+        self.label_calories_per_unit.setObjectName("label_calories_per_unit")
+        self.label_calories_per_unit.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_calories_per_unit.addWidget(self.label_calories_per_unit)
+
+        self.doubleSpinBox_calories_per_unit = QDoubleSpinBox(self.groupBox_2)
+        self.doubleSpinBox_calories_per_unit.setObjectName("doubleSpinBox_calories_per_unit")
+        self.doubleSpinBox_calories_per_unit.setMinimumSize(QSize(70, 0))
+        self.doubleSpinBox_calories_per_unit.setDecimals(2)
+        self.doubleSpinBox_calories_per_unit.setMaximum(999.990000000000009)
+        self.doubleSpinBox_calories_per_unit.setValue(0.000000000000000)
+
+        self.horizontalLayout_calories_per_unit.addWidget(self.doubleSpinBox_calories_per_unit)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_calories_per_unit)
+
         self.check_box_is_type_required = QCheckBox(self.groupBox_2)
         self.check_box_is_type_required.setObjectName("check_box_is_type_required")
 
@@ -1627,6 +1688,25 @@ def setupUi(self, MainWindow):
         self.lineEdit_exercise_type.setObjectName("lineEdit_exercise_type")
 
         self.verticalLayout_14.addWidget(self.lineEdit_exercise_type)
+
+        self.horizontalLayout_calories_modifier = QHBoxLayout()
+        self.horizontalLayout_calories_modifier.setObjectName("horizontalLayout_calories_modifier")
+        self.label_calories_modifier = QLabel(self.groupBox_3)
+        self.label_calories_modifier.setObjectName("label_calories_modifier")
+
+        self.horizontalLayout_calories_modifier.addWidget(self.label_calories_modifier)
+
+        self.doubleSpinBox_calories_modifier = QDoubleSpinBox(self.groupBox_3)
+        self.doubleSpinBox_calories_modifier.setObjectName("doubleSpinBox_calories_modifier")
+        self.doubleSpinBox_calories_modifier.setDecimals(2)
+        self.doubleSpinBox_calories_modifier.setMinimum(0.010000000000000)
+        self.doubleSpinBox_calories_modifier.setMaximum(10.000000000000000)
+        self.doubleSpinBox_calories_modifier.setSingleStep(0.100000000000000)
+        self.doubleSpinBox_calories_modifier.setValue(1.000000000000000)
+
+        self.horizontalLayout_calories_modifier.addWidget(self.doubleSpinBox_calories_modifier)
+
+        self.verticalLayout_14.addLayout(self.horizontalLayout_calories_modifier)
 
         self.horizontalLayout_22 = QHBoxLayout()
         self.horizontalLayout_22.setObjectName("horizontalLayout_22")

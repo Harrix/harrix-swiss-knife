@@ -2324,9 +2324,7 @@ class MainWindow(
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend(
-                        [row[0], date_color]
-                    )
+                    transformed_row.extend([row[0], date_color])
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -2447,9 +2445,7 @@ class MainWindow(
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend(
-                        [row[0], date_color]
-                    )
+                    transformed_row.extend([row[0], date_color])
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows

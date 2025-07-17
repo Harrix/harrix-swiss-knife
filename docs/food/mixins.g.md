@@ -136,7 +136,8 @@ class AutoSaveOperations:
 
         """
         # Get data from model columns
-        # Column order: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+        # Column order:
+        # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
         name = model.data(model.index(row, 0)) or ""
         is_drink_str = model.data(model.index(row, 1)) or ""
         weight_str = model.data(model.index(row, 2)) or ""
@@ -434,7 +435,8 @@ Args:
 ```python
 def _save_food_log_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         # Get data from model columns
-        # Column order: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+        # Column order:
+        # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
         name = model.data(model.index(row, 0)) or ""
         is_drink_str = model.data(model.index(row, 1)) or ""
         weight_str = model.data(model.index(row, 2)) or ""
@@ -1101,32 +1103,24 @@ class ChartOperations:
 
             # Get colors for each point based on calories value
             point_colors = []
+            level_low_calories = 1800
+            level_medium_low_calories = 2100
+            level_medium_high_calories = 2500
             for y in y_values:
                 if y is None or y == 0:
                     point_colors.append("lightgray")  # Gray for zero/None values
-                elif y <= 1800:
+                elif y <= level_low_calories:
                     point_colors.append("#90EE90")  # Light green for low calories
-                elif y <= 2100:
+                elif y <= level_medium_low_calories:
                     point_colors.append("#FFFFE0")  # Light yellow for medium-low calories
-                elif y <= 2500:
+                elif y <= level_medium_high_calories:
                     point_colors.append("#FFE4C4")  # Bisque for medium-high calories
                 else:
                     point_colors.append("#FFC0CB")  # Light pink for high calories
 
-            # Plot points with colors - small size, with edge
-            scatter = ax.scatter(
-                x_values,
-                y_values,
-                c=point_colors,
-                s=20,  # Small size
-                alpha=0.8,
-                edgecolors="black",  # Black edge
-                linewidth=0.5,  # Thin edge
-                zorder=3,  # Ensure points are on top
-            )
-
-            # Add value labels only if there are fewer than 50 points
-            if len(x_values) < 100:
+            # Add value labels only if there are fewer than
+            maximum_count_points_for_labels = 100
+            if len(x_values) < maximum_count_points_for_labels:
                 for x, y in zip(x_values, y_values, strict=False):
                     if y is not None and y != 0:  # Only label non-zero and non-None points
                         # Format label based on value type - remove unnecessary .0
@@ -1760,32 +1754,24 @@ def _plot_data(
 
             # Get colors for each point based on calories value
             point_colors = []
+            level_low_calories = 1800
+            level_medium_low_calories = 2100
+            level_medium_high_calories = 2500
             for y in y_values:
                 if y is None or y == 0:
                     point_colors.append("lightgray")  # Gray for zero/None values
-                elif y <= 1800:
+                elif y <= level_low_calories:
                     point_colors.append("#90EE90")  # Light green for low calories
-                elif y <= 2100:
+                elif y <= level_medium_low_calories:
                     point_colors.append("#FFFFE0")  # Light yellow for medium-low calories
-                elif y <= 2500:
+                elif y <= level_medium_high_calories:
                     point_colors.append("#FFE4C4")  # Bisque for medium-high calories
                 else:
                     point_colors.append("#FFC0CB")  # Light pink for high calories
 
-            # Plot points with colors - small size, with edge
-            scatter = ax.scatter(
-                x_values,
-                y_values,
-                c=point_colors,
-                s=20,  # Small size
-                alpha=0.8,
-                edgecolors="black",  # Black edge
-                linewidth=0.5,  # Thin edge
-                zorder=3,  # Ensure points are on top
-            )
-
-            # Add value labels only if there are fewer than 50 points
-            if len(x_values) < 100:
+            # Add value labels only if there are fewer than
+            maximum_count_points_for_labels = 100
+            if len(x_values) < maximum_count_points_for_labels:
                 for x, y in zip(x_values, y_values, strict=False):
                     if y is not None and y != 0:  # Only label non-zero and non-None points
                         # Format label based on value type - remove unnecessary .0

@@ -2007,7 +2007,7 @@ class MainWindow(
         """Set up additional UI elements after basic initialization."""
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"🍽️ {self.pushButton_food_add.text()}")
-        self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")
+        self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")  # noqa: RUF001
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
@@ -2061,16 +2061,18 @@ class MainWindow(
 
         # Determine window size and position based on screen characteristics
         aspect_ratio = screen_width / screen_height
-        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+        standard_aspect_ratio = 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+        is_standard_aspect = aspect_ratio <= standard_aspect_ratio
 
-        if is_standard_aspect and screen_width >= 1920:
+        standard_width = 1920
+        if is_standard_aspect and screen_width >= standard_width:
             # For standard aspect ratios with width >= 1920, maximize window
             self.showMaximized()
         else:
             title_bar_height = 30  # Approximate title bar height
             windows_task_bar_height = 48  # Approximate windows task bar height
             # For other cases, use fixed width and full height minus title bar
-            window_width = 1920
+            window_width = standard_width
             window_height = screen_height - title_bar_height - windows_task_bar_height
             # Position window on screen
             screen_center = screen_geometry.center()
@@ -2196,7 +2198,6 @@ class MainWindow(
             if self.favorite_food_items_list_model is not None:
                 self.favorite_food_items_list_model.clear()
                 for food_item_row in popular_food_items_data:
-                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                     food_name = food_item_row[1]  # name is at index 1
                     calories_per_100g = food_item_row[4]
                     default_portion_calories = food_item_row[6]
@@ -2296,7 +2297,6 @@ class MainWindow(
             if self.food_items_list_model is not None:
                 self.food_items_list_model.clear()
                 for food_item_row in food_items_data:
-                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                     food_name = food_item_row[1]  # name is at index 1
                     calories_per_100g = food_item_row[4]
                     default_portion_calories = food_item_row[6]
@@ -2348,16 +2348,13 @@ class MainWindow(
                 # Transform data and add color information
                 transformed_rows = []
                 for row in rows:
-                    # Original transformation:
-                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
-                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
-
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
                     calories_per_100g = row[4]
                     weight = row[2]
 
-                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # If portion_calories is non-zero and calories_per_100g is 0,
+                    # show empty string for calories_per_100g
                     # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
                     if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
                         calories_per_100g_display = ""
@@ -2389,9 +2386,7 @@ class MainWindow(
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend(
-                        [row[0], date_color]
-                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_row.extend([row[0], date_color])
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -2479,7 +2474,8 @@ class MainWindow(
                     calories_per_100g = row[4]
                     weight = row[2]
 
-                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # If portion_calories is non-zero and calories_per_100g is 0,
+                    # show empty string for calories_per_100g
                     # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
                     if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
                         calories_per_100g_display = ""
@@ -2511,9 +2507,7 @@ class MainWindow(
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend(
-                        [row[0], date_color]
-                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_row.extend([row[0], date_color])
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -5311,7 +5305,7 @@ Set up additional UI elements after basic initialization.
 def _setup_ui(self) -> None:
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"🍽️ {self.pushButton_food_add.text()}")
-        self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")
+        self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")  # noqa: RUF001
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
@@ -5379,16 +5373,18 @@ def _setup_window_size_and_position(self) -> None:
 
         # Determine window size and position based on screen characteristics
         aspect_ratio = screen_width / screen_height
-        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+        standard_aspect_ratio = 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+        is_standard_aspect = aspect_ratio <= standard_aspect_ratio
 
-        if is_standard_aspect and screen_width >= 1920:
+        standard_width = 1920
+        if is_standard_aspect and screen_width >= standard_width:
             # For standard aspect ratios with width >= 1920, maximize window
             self.showMaximized()
         else:
             title_bar_height = 30  # Approximate title bar height
             windows_task_bar_height = 48  # Approximate windows task bar height
             # For other cases, use fixed width and full height minus title bar
-            window_width = 1920
+            window_width = standard_width
             window_height = screen_height - title_bar_height - windows_task_bar_height
             # Position window on screen
             screen_center = screen_geometry.center()
@@ -5570,7 +5566,6 @@ def _update_favorite_food_items_list(self) -> None:
             if self.favorite_food_items_list_model is not None:
                 self.favorite_food_items_list_model.clear()
                 for food_item_row in popular_food_items_data:
-                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                     food_name = food_item_row[1]  # name is at index 1
                     calories_per_100g = food_item_row[4]
                     default_portion_calories = food_item_row[6]
@@ -5698,7 +5693,6 @@ def _update_food_items_list(self) -> None:
             if self.food_items_list_model is not None:
                 self.food_items_list_model.clear()
                 for food_item_row in food_items_data:
-                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                     food_name = food_item_row[1]  # name is at index 1
                     calories_per_100g = food_item_row[4]
                     default_portion_calories = food_item_row[6]
@@ -5764,16 +5758,13 @@ def _update_food_log_table(self) -> None:
                 # Transform data and add color information
                 transformed_rows = []
                 for row in rows:
-                    # Original transformation:
-                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
-                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
-
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
                     calories_per_100g = row[4]
                     weight = row[2]
 
-                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # If portion_calories is non-zero and calories_per_100g is 0,
+                    # show empty string for calories_per_100g
                     # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
                     if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
                         calories_per_100g_display = ""
@@ -5805,9 +5796,7 @@ def _update_food_log_table(self) -> None:
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend(
-                        [row[0], date_color]
-                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_row.extend([row[0], date_color])
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -5907,7 +5896,8 @@ def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> No
                     calories_per_100g = row[4]
                     weight = row[2]
 
-                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # If portion_calories is non-zero and calories_per_100g is 0,
+                    # show empty string for calories_per_100g
                     # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
                     if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
                         calories_per_100g_display = ""
@@ -5939,9 +5929,7 @@ def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> No
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend(
-                        [row[0], date_color]
-                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_row.extend([row[0], date_color])
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
