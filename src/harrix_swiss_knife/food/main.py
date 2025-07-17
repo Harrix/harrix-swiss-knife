@@ -344,8 +344,14 @@ class MainWindow(
 
         try:
             # Determine calories_per_100g and portion_calories based on radio button
-            calories_per_100g = calories if use_weight else None
-            portion_calories = calories if not use_weight else None
+            if use_weight:
+                # Weight mode: calories is calories_per_100g
+                calories_per_100g = calories if calories > 0 else 0
+                portion_calories = None
+            else:
+                # Portion mode: calories is portion_calories, set calories_per_100g to 0
+                calories_per_100g = 0  # Required by database schema (NOT NULL)
+                portion_calories = calories if calories > 0 else None
 
             # Use database manager method
             if self.db_manager.add_food_log_record(
@@ -1132,11 +1138,11 @@ class MainWindow(
         self.favorite_food_items_list_model = None
 
         # Dispose autocomplete completer
-        if hasattr(self, "food_completer"):
+        if hasattr(self, "food_completer") and self.food_completer is not None:
             self.food_completer.deleteLater()
             self.food_completer = None
 
-        if hasattr(self, "food_completer_model"):
+        if hasattr(self, "food_completer_model") and self.food_completer_model is not None:
             self.food_completer_model.deleteLater()
             self.food_completer_model = None
 
@@ -1490,9 +1496,9 @@ class MainWindow(
 
         # Create completer
         self.food_completer = QCompleter(self)
-        self.food_completer.setCaseSensitivity(Qt.CaseInsensitive)
-        self.food_completer.setFilterMode(Qt.MatchContains)  # Поиск по содержимому
-        self.food_completer.setCompletionMode(QCompleter.PopupCompletion)
+        self.food_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.food_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Поиск по содержимому
+        self.food_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
         # Create model for completer
         self.food_completer_model = QStringListModel(self)
@@ -1601,7 +1607,8 @@ class MainWindow(
             recent_names = self.db_manager.get_recent_food_names_for_autocomplete(100)
 
             # Update completer model
-            self.food_completer_model.setStringList(recent_names)
+            if self.food_completer_model is not None:
+                self.food_completer_model.setStringList(recent_names)
 
         except Exception as e:
             print(f"Error updating autocomplete data: {e}")
