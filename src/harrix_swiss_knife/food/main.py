@@ -787,21 +787,28 @@ class MainWindow(
         # Ensure minimum table width for better appearance
         table_width = max(table_width, 800)
 
-        # Define proportional distribution of total width
+        # Reserve space for vertical headers, scrollbar, and borders
+        vertical_header_width = self.tableView_food_log.verticalHeader().width()
+        scrollbar_width = 20  # Approximate scrollbar width
+        borders_and_margins = 10  # Space for borders and margins
+
+        available_width = table_width - vertical_header_width - scrollbar_width - borders_and_margins
+
+        # Define proportional distribution of available width
         # Total: 100% = 20% + 6% + 6% + 12% + 10% + 10% + 12% + 24%
         proportions = [
-            0.20,
-            0.06,
-            0.06,
-            0.12,
-            0.10,
-            0.10,
-            0.12,
-            0.24,
-        ]  # Name, Is Drink, Weight, Calories per 100g, Portion Calories, Calculated Calories, Date, English Name
+            0.20,  # Name
+            0.06,  # Is Drink
+            0.06,  # Weight
+            0.12,  # Calories per 100g
+            0.10,  # Portion Calories
+            0.10,  # Calculated Calories
+            0.12,  # Date
+            0.24,  # English Name
+        ]
 
-        # Calculate widths based on proportions
-        column_widths = [int(table_width * prop) for prop in proportions]
+        # Calculate widths based on proportions of available width
+        column_widths = [int(available_width * prop) for prop in proportions]
 
         # Apply widths to all columns
         for i, width in enumerate(column_widths):
