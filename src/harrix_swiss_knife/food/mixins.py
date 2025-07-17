@@ -705,10 +705,11 @@ class ChartOperations:
 
         # For calories chart, plot colored points with line and critical zones
         if is_calories_chart:
-            # Draw horizontal lines for critical zones first (behind everything)
-            ax.axhline(y=1800, color='green', linestyle='--', linewidth=1, alpha=0.5, zorder=1, label='Low calories limit')
-            ax.axhline(y=2100, color='orange', linestyle='--', linewidth=1, alpha=0.5, zorder=1, label='Medium-low calories limit')
-            ax.axhline(y=2500, color='red', linestyle='--', linewidth=1, alpha=0.5, zorder=1, label='Medium-high calories limit')
+            # Draw horizontal lines for critical zones only for Days period
+            if period != "Months" and period != "Years":
+                ax.axhline(y=1800, color='green', linestyle='--', linewidth=1, alpha=0.5, zorder=1, label='Low calories limit')
+                ax.axhline(y=2100, color='orange', linestyle='--', linewidth=1, alpha=0.5, zorder=1, label='Medium-low calories limit')
+                ax.axhline(y=2500, color='red', linestyle='--', linewidth=1, alpha=0.5, zorder=1, label='Medium-high calories limit')
 
             # Draw thin connecting line behind points
             ax.plot(x_values, y_values, color='gray', linestyle='-', linewidth=1, alpha=0.6, zorder=2)
