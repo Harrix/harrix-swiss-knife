@@ -39,6 +39,8 @@ lang: en
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
   - [⚙️ Method `get_kcal_chart_data`](#%EF%B8%8F-method-get_kcal_chart_data)
   - [⚙️ Method `get_popular_food_items`](#%EF%B8%8F-method-get_popular_food_items)
+  - [⚙️ Method `get_popular_food_items_with_calories`](#%EF%B8%8F-method-get_popular_food_items_with_calories)
+  - [⚙️ Method `get_problematic_food_records`](#%EF%B8%8F-method-get_problematic_food_records)
   - [⚙️ Method `get_recent_food_log_records`](#%EF%B8%8F-method-get_recent_food_log_records)
   - [⚙️ Method `get_recent_food_names_for_autocomplete`](#%EF%B8%8F-method-get_recent_food_names_for_autocomplete)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
@@ -815,6 +817,84 @@ class DatabaseManager:
         """
         rows = self.get_rows(query)
         return [row[0] for row in rows if row[0]]
+
+    def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]:
+        """Get popular food items with calories information from recent food_log records.
+
+        Args:
+
+        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `500`.
+
+        Returns:
+
+        - `list[list[Any]]`: List of food item data with calories info.
+
+        """
+        query = f"""
+            SELECT name, COUNT(*) as usage_count
+            FROM (
+                SELECT name FROM food_log
+                WHERE name IS NOT NULL AND name != ''
+                ORDER BY date DESC, _id DESC
+                LIMIT {limit}
+            ) as recent_foods
+            GROUP BY name
+            ORDER BY usage_count DESC, name ASC
+        """
+        popular_names = self.get_rows(query)
+
+        # Get full data for popular items from food_items table
+        result = []
+        for row in popular_names:
+            name = row[0]
+            if name:
+                # First try to get data from food_items table
+                food_item_data = self.get_food_item_by_name(name)
+                if food_item_data:
+                    result.append(food_item_data)
+                else:
+                    # If not found in food_items, get data from food_log
+                    food_log_data = self.get_food_log_item_by_name(name)
+                    if food_log_data:
+                        # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
+                        # Convert to food_items format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                        name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
+                        result.append([None, name, name_en, is_drink, calories_per_100g, weight, portion_calories])
+                    else:
+                        # If not found anywhere, create minimal data
+                        result.append([None, name, None, 0, None, None, None])
+
+        return result
+
+    def get_problematic_food_records(self) -> list[list[Any]]:
+        """Get problematic food records that need attention.
+
+        Returns records with:
+        - NULL or zero weight, OR
+        - Both calories_per_100g and portion_calories are NULL or zero (and not a drink)
+
+        Returns:
+
+        - `list[list[Any]]`: List of problematic food log records.
+
+        """
+        query = """
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+            WHERE (
+                -- Records with NULL or zero weight
+                (weight IS NULL OR weight = 0)
+                OR
+                -- Records where both calories_per_100g and portion_calories are NULL or zero (and not a drink)
+                (
+                    (calories_per_100g IS NULL OR calories_per_100g = 0)
+                    AND (portion_calories IS NULL OR portion_calories = 0)
+                    AND is_drink = 0
+                )
+            )
+            ORDER BY date DESC, _id DESC
+        """
+        return self.get_rows(query)
 
     def get_recent_food_log_records(self, limit: int = 5000) -> list[list[Any]]:
         """Get recent food log records for table display.
@@ -2155,6 +2235,109 @@ def get_popular_food_items(self, limit: int = 500) -> list[str]:
         """
         rows = self.get_rows(query)
         return [row[0] for row in rows if row[0]]
+```
+
+</details>
+
+### ⚙️ Method `get_popular_food_items_with_calories`
+
+```python
+def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]
+```
+
+Get popular food items with calories information from recent food_log records.
+
+Args:
+
+- `limit` (`int`): Maximum number of recent records to analyze. Defaults to `500`.
+
+Returns:
+
+- `list[list[Any]]`: List of food item data with calories info.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]:
+        query = f"""
+            SELECT name, COUNT(*) as usage_count
+            FROM (
+                SELECT name FROM food_log
+                WHERE name IS NOT NULL AND name != ''
+                ORDER BY date DESC, _id DESC
+                LIMIT {limit}
+            ) as recent_foods
+            GROUP BY name
+            ORDER BY usage_count DESC, name ASC
+        """
+        popular_names = self.get_rows(query)
+
+        # Get full data for popular items from food_items table
+        result = []
+        for row in popular_names:
+            name = row[0]
+            if name:
+                # First try to get data from food_items table
+                food_item_data = self.get_food_item_by_name(name)
+                if food_item_data:
+                    result.append(food_item_data)
+                else:
+                    # If not found in food_items, get data from food_log
+                    food_log_data = self.get_food_log_item_by_name(name)
+                    if food_log_data:
+                        # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
+                        # Convert to food_items format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                        name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
+                        result.append([None, name, name_en, is_drink, calories_per_100g, weight, portion_calories])
+                    else:
+                        # If not found anywhere, create minimal data
+                        result.append([None, name, None, 0, None, None, None])
+
+        return result
+```
+
+</details>
+
+### ⚙️ Method `get_problematic_food_records`
+
+```python
+def get_problematic_food_records(self) -> list[list[Any]]
+```
+
+Get problematic food records that need attention.
+
+Returns records with:
+
+- NULL or zero weight, OR
+- Both calories_per_100g and portion_calories are NULL or zero (and not a drink)
+
+Returns:
+
+- `list[list[Any]]`: List of problematic food log records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_problematic_food_records(self) -> list[list[Any]]:
+        query = """
+            SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
+            FROM food_log
+            WHERE (
+                -- Records with NULL or zero weight
+                (weight IS NULL OR weight = 0)
+                OR
+                -- Records where both calories_per_100g and portion_calories are NULL or zero (and not a drink)
+                (
+                    (calories_per_100g IS NULL OR calories_per_100g = 0)
+                    AND (portion_calories IS NULL OR portion_calories = 0)
+                    AND is_drink = 0
+                )
+            )
+            ORDER BY date DESC, _id DESC
+        """
+        return self.get_rows(query)
 ```
 
 </details>

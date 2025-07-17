@@ -296,33 +296,6 @@ class MainWindow(
             if text:
                 self._process_text_input(text)
 
-    def on_check_problematic_records(self) -> None:
-        """Filter food log table to show only problematic records."""
-        if not self._validate_database_connection():
-            QMessageBox.warning(self, "Error", "Database connection not available")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get problematic records from database
-            problematic_records = self.db_manager.get_problematic_food_records()
-
-            if not problematic_records:
-                QMessageBox.information(self, "No Issues", "No problematic records found!")
-                return
-
-            # Update the food log table with only problematic records
-            self._update_food_log_table_with_data(problematic_records)
-
-            # Show count of problematic records
-            QMessageBox.information(self, "Problematic Records", f"Found {len(problematic_records)} problematic records.")
-
-        except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to check problematic records: {e}")
-
     @requires_database()
     def on_add_food_item(self) -> None:
         """Insert a new food item using database manager."""
@@ -426,6 +399,60 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add food log record: {e}")
+
+    def on_check_problematic_records(self) -> None:
+        """Filter food log table to show only problematic records."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Error", "Database connection not available")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get problematic records from database
+            problematic_records = self.db_manager.get_problematic_food_records()
+
+            if not problematic_records:
+                QMessageBox.information(self, "No Issues", "No problematic records found!")
+                return
+
+            # Update the food log table with only problematic records
+            self._update_food_log_table_with_data(problematic_records)
+
+            # Show count of problematic records
+            QMessageBox.information(
+                self, "Problematic Records", f"Found {len(problematic_records)} problematic records."
+            )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to check problematic records: {e}")
+
+    def on_clear_food_manual_name(self) -> None:
+        """Clear the food manual name input field."""
+        self.lineEdit_food_manual_name.clear()
+        # Move focus back to the cleared field
+        self.lineEdit_food_manual_name.setFocus()
+
+    def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle favorite food item selection change in the list view."""
+        if not current.isValid():
+            return
+
+        # Clear selection in main food items list to avoid conflicts
+        main_selection_model = self.listView_food_items.selectionModel()
+        if main_selection_model:
+            main_selection_model.blockSignals(True)
+            main_selection_model.clearSelection()
+            main_selection_model.blockSignals(False)
+
+        # Get food item from favorite list
+        if self.favorite_food_items_list_model:
+            item = self.favorite_food_items_list_model.itemFromIndex(current)
+            if item:
+                food_name = self._extract_food_name_from_display(item.text())
+                self._process_food_item_selection(food_name)
 
     def on_food_item_double_clicked(self, index: QModelIndex) -> None:
         """Handle double click on food item in the list view."""
@@ -647,6 +674,25 @@ class MainWindow(
     def on_food_stats_update(self) -> None:
         """Update the food calories chart."""
         self._update_food_calories_chart()
+
+    def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle main food item selection change in the list view."""
+        if not current.isValid():
+            return
+
+        # Clear selection in favorite food items list to avoid conflicts
+        favorite_selection_model = self.listView_favorite_food_items.selectionModel()
+        if favorite_selection_model:
+            favorite_selection_model.blockSignals(True)
+            favorite_selection_model.clearSelection()
+            favorite_selection_model.blockSignals(False)
+
+        # Get food item from main list
+        if self.food_items_list_model:
+            item = self.food_items_list_model.itemFromIndex(current)
+            if item:
+                food_name = self._extract_food_name_from_display(item.text())
+                self._process_food_item_selection(food_name)
 
     def on_show_all_records_clicked(self) -> None:
         """Toggle between showing all records and last 5000 records."""
@@ -1221,6 +1267,30 @@ class MainWindow(
             self.food_completer_model.deleteLater()
             self.food_completer_model = None
 
+    def _extract_food_name_from_display(self, display_text: str) -> str:
+        """Extract food name from display text (remove calories info).
+
+        Args:
+
+        - `display_text` (`str`): Display text that may contain calories info.
+
+        Returns:
+
+        - `str`: Clean food name without calories info.
+
+        """
+        if not display_text:
+            return ""
+
+        # Remove calories info in parentheses at the end
+        # Pattern: " (XXX kcal/порция)" or " (XXX kcal/100g)"
+        import re
+
+        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:порция|100g)\)$"
+        clean_name = re.sub(pattern, "", display_text)
+
+        return clean_name.strip()
+
     def _filter_food_items(self, text: str) -> None:
         """Filter food items lists based on input text.
 
@@ -1261,6 +1331,53 @@ class MainWindow(
         QTimer.singleShot(50, self._adjust_food_log_table_columns)
         # Update food stats chart after initialization
         QTimer.singleShot(100, self._update_food_calories_chart)
+
+    def _format_food_name_with_calories(
+        self, food_name: str, calories_per_100g: float | None, default_portion_calories: float | None
+    ) -> str:
+        """Format food name with calories information in parentheses.
+
+        Args:
+
+        - `food_name` (`str`): The food item name.
+        - `calories_per_100g` (`float | None`): Calories per 100g.
+        - `default_portion_calories` (`float | None`): Default portion calories.
+
+        Returns:
+
+        - `str`: Formatted food name with calories info.
+
+        """
+        if not food_name:
+            return food_name
+
+        # Helper function to safely convert to float
+        def safe_float(value) -> float | None:
+            if value is None:
+                return None
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return None
+
+        # Convert values to float safely
+        cal_100g = safe_float(calories_per_100g)
+        portion_cal = safe_float(default_portion_calories)
+
+        # Determine which calories to show
+        calories_info = ""
+
+        if portion_cal is not None:
+            # Show portion calories if available (including zero)
+            calories_info = f"({portion_cal:.0f} kcal/порция)"
+        elif cal_100g is not None:
+            # Show calories per 100g if no portion calories (including zero)
+            calories_info = f"({cal_100g:.0f} kcal/100g)"
+
+        if calories_info:
+            return f"{food_name} {calories_info}"
+        else:
+            return food_name
 
     def _get_current_selected_food_item(self) -> tuple[str | None, str]:
         """Get the currently selected food item from either list view.
@@ -1625,6 +1742,124 @@ class MainWindow(
         except Exception as e:
             print(f"Error populating form from food name: {e}")
 
+    def _process_food_item_selection(self, food_name: str) -> None:
+        """Process food item selection and populate form fields."""
+        if not food_name:
+            return
+
+        # Check if database manager is available and connection is open
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # First try to get food item data from food_items table
+            food_item_data = self.db_manager.get_food_item_by_name(food_name)
+
+            if food_item_data:
+                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                (
+                    food_id,
+                    name,
+                    name_en,
+                    is_drink,
+                    calories_per_100g,
+                    default_portion_weight,
+                    default_portion_calories,
+                ) = food_item_data
+
+                # Populate groupBox_food_add fields (food log record form)
+                self.lineEdit_food_manual_name.setText(name)
+                self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
+                self.checkBox_food_is_drink.setChecked(is_drink == 1)
+
+                # Determine radio button state based on default_portion_calories
+                if default_portion_calories and default_portion_calories > 0:
+                    # Use portion calories mode
+                    self.radioButton_use_calories.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(default_portion_calories)
+                else:
+                    # Use weight mode
+                    self.radioButton_use_weight.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+
+                # Populate groupBox_food_items fields (food item form)
+                self.lineEdit_food_name.setText(name)
+                self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                self.checkBox_is_drink.setChecked(is_drink == 1)
+                self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                self.spinBox_food_default_weight.setValue(
+                    int(default_portion_weight) if default_portion_weight else 100
+                )
+                self.doubleSpinBox_food_default_cal.setValue(
+                    default_portion_calories if default_portion_calories else 0
+                )
+
+            else:
+                # If not found in food_items, try to get from food_log (for popular items)
+                food_log_data = self.db_manager.get_food_log_item_by_name(food_name)
+
+                if food_log_data:
+                    # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
+                    name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
+
+                    # Populate groupBox_food_add fields (food log record form)
+                    self.lineEdit_food_manual_name.setText(name)
+                    self.spinBox_food_weight.setValue(int(weight) if weight else 100)
+                    self.checkBox_food_is_drink.setChecked(is_drink == 1)
+
+                    # Determine radio button state based on portion_calories
+                    if portion_calories and portion_calories > 0:
+                        # Use portion calories mode
+                        self.radioButton_use_calories.setChecked(True)
+                        self.doubleSpinBox_food_calories.setValue(portion_calories)
+                    else:
+                        # Use weight mode
+                        self.radioButton_use_weight.setChecked(True)
+                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+
+                    # Populate groupBox_food_items fields (food item form)
+                    self.lineEdit_food_name.setText(name)
+                    self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                    self.checkBox_is_drink.setChecked(is_drink == 1)
+                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                    self.spinBox_food_default_weight.setValue(int(weight) if weight else 100)
+                    self.doubleSpinBox_food_default_cal.setValue(portion_calories if portion_calories else 0)
+
+                else:
+                    # If not found in either table, just set the name
+                    self.lineEdit_food_manual_name.setText(food_name)
+                    self.lineEdit_food_name.setText(food_name)
+                    # Reset other fields to defaults
+                    self.spinBox_food_weight.setValue(100)
+                    self.checkBox_food_is_drink.setChecked(False)
+                    self.radioButton_use_weight.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(0)
+                    self.lineEdit_food_name_en.setText("")
+                    self.checkBox_is_drink.setChecked(False)
+                    self.doubleSpinBox_food_cal100.setValue(0)
+                    self.spinBox_food_default_weight.setValue(100)
+                    self.doubleSpinBox_food_default_cal.setValue(0)
+
+            # Update calories calculation
+            self.update_calories_calculation()
+
+            # Move focus to weight spinbox and select all text after selection
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
+
+        except Exception as e:
+            print(f"Error in food item selection: {e}")
+            # In case of error, at least set the name and move focus
+            self.lineEdit_food_manual_name.setText(food_name)
+            self.lineEdit_food_name.setText(food_name)
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
+
     def _process_text_input(self, text: str) -> None:
         """Process text input and add food items to database.
 
@@ -1800,74 +2035,6 @@ class MainWindow(
             for i in range(self.food_items_list_model.rowCount()):
                 self.listView_food_items.setRowHidden(i, False)
 
-    def _format_food_name_with_calories(self, food_name: str, calories_per_100g: float | None, default_portion_calories: float | None) -> str:
-        """Format food name with calories information in parentheses.
-
-        Args:
-
-        - `food_name` (`str`): The food item name.
-        - `calories_per_100g` (`float | None`): Calories per 100g.
-        - `default_portion_calories` (`float | None`): Default portion calories.
-
-        Returns:
-
-        - `str`: Formatted food name with calories info.
-
-        """
-        if not food_name:
-            return food_name
-
-        # Helper function to safely convert to float
-        def safe_float(value) -> float | None:
-            if value is None:
-                return None
-            try:
-                return float(value)
-            except (ValueError, TypeError):
-                return None
-
-        # Convert values to float safely
-        cal_100g = safe_float(calories_per_100g)
-        portion_cal = safe_float(default_portion_calories)
-
-        # Determine which calories to show
-        calories_info = ""
-
-        if portion_cal is not None:
-            # Show portion calories if available (including zero)
-            calories_info = f"({portion_cal:.0f} kcal/порция)"
-        elif cal_100g is not None:
-            # Show calories per 100g if no portion calories (including zero)
-            calories_info = f"({cal_100g:.0f} kcal/100g)"
-
-        if calories_info:
-            return f"{food_name} {calories_info}"
-        else:
-            return food_name
-
-    def _extract_food_name_from_display(self, display_text: str) -> str:
-        """Extract food name from display text (remove calories info).
-
-        Args:
-
-        - `display_text` (`str`): Display text that may contain calories info.
-
-        Returns:
-
-        - `str`: Clean food name without calories info.
-
-        """
-        if not display_text:
-            return ""
-
-        # Remove calories info in parentheses at the end
-        # Pattern: " (XXX kcal/порция)" or " (XXX kcal/100g)"
-        import re
-        pattern = r'\s+\(\d+\.?\d*\s+kcal/(?:порция|100g)\)$'
-        clean_name = re.sub(pattern, '', display_text)
-
-        return clean_name.strip()
-
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""
         if not self._validate_database_connection():
@@ -1976,7 +2143,9 @@ class MainWindow(
                     default_portion_calories = food_item_row[6]
 
                     # Format display name with calories info
-                    display_name = self._format_food_name_with_calories(food_name, calories_per_100g, default_portion_calories)
+                    display_name = self._format_food_name_with_calories(
+                        food_name, calories_per_100g, default_portion_calories
+                    )
                     item = QStandardItem(display_name)
                     self.favorite_food_items_list_model.appendRow(item)
 
@@ -2074,7 +2243,9 @@ class MainWindow(
                     default_portion_calories = food_item_row[6]
 
                     # Format display name with calories info
-                    display_name = self._format_food_name_with_calories(food_name, calories_per_100g, default_portion_calories)
+                    display_name = self._format_food_name_with_calories(
+                        food_name, calories_per_100g, default_portion_calories
+                    )
                     item = QStandardItem(display_name)
                     self.food_items_list_model.appendRow(item)
 
@@ -2435,169 +2606,6 @@ class MainWindow(
             return False
 
         return True
-
-
-    def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
-        """Handle favorite food item selection change in the list view."""
-        if not current.isValid():
-            return
-
-        # Clear selection in main food items list to avoid conflicts
-        main_selection_model = self.listView_food_items.selectionModel()
-        if main_selection_model:
-            main_selection_model.blockSignals(True)
-            main_selection_model.clearSelection()
-            main_selection_model.blockSignals(False)
-
-        # Get food item from favorite list
-        if self.favorite_food_items_list_model:
-            item = self.favorite_food_items_list_model.itemFromIndex(current)
-            if item:
-                food_name = self._extract_food_name_from_display(item.text())
-                self._process_food_item_selection(food_name)
-
-    def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
-        """Handle main food item selection change in the list view."""
-        if not current.isValid():
-            return
-
-        # Clear selection in favorite food items list to avoid conflicts
-        favorite_selection_model = self.listView_favorite_food_items.selectionModel()
-        if favorite_selection_model:
-            favorite_selection_model.blockSignals(True)
-            favorite_selection_model.clearSelection()
-            favorite_selection_model.blockSignals(False)
-
-        # Get food item from main list
-        if self.food_items_list_model:
-            item = self.food_items_list_model.itemFromIndex(current)
-            if item:
-                food_name = self._extract_food_name_from_display(item.text())
-                self._process_food_item_selection(food_name)
-
-    def _process_food_item_selection(self, food_name: str) -> None:
-        """Process food item selection and populate form fields."""
-        if not food_name:
-            return
-
-        # Check if database manager is available and connection is open
-        if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # First try to get food item data from food_items table
-            food_item_data = self.db_manager.get_food_item_by_name(food_name)
-
-            if food_item_data:
-                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
-                (
-                    food_id,
-                    name,
-                    name_en,
-                    is_drink,
-                    calories_per_100g,
-                    default_portion_weight,
-                    default_portion_calories,
-                ) = food_item_data
-
-                # Populate groupBox_food_add fields (food log record form)
-                self.lineEdit_food_manual_name.setText(name)
-                self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
-                self.checkBox_food_is_drink.setChecked(is_drink == 1)
-
-                # Determine radio button state based on default_portion_calories
-                if default_portion_calories and default_portion_calories > 0:
-                    # Use portion calories mode
-                    self.radioButton_use_calories.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                else:
-                    # Use weight mode
-                    self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-
-                # Populate groupBox_food_items fields (food item form)
-                self.lineEdit_food_name.setText(name)
-                self.lineEdit_food_name_en.setText(name_en if name_en else "")
-                self.checkBox_is_drink.setChecked(is_drink == 1)
-                self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
-                self.spinBox_food_default_weight.setValue(
-                    int(default_portion_weight) if default_portion_weight else 100
-                )
-                self.doubleSpinBox_food_default_cal.setValue(
-                    default_portion_calories if default_portion_calories else 0
-                )
-
-            else:
-                # If not found in food_items, try to get from food_log (for popular items)
-                food_log_data = self.db_manager.get_food_log_item_by_name(food_name)
-
-                if food_log_data:
-                    # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
-                    name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
-
-                    # Populate groupBox_food_add fields (food log record form)
-                    self.lineEdit_food_manual_name.setText(name)
-                    self.spinBox_food_weight.setValue(int(weight) if weight else 100)
-                    self.checkBox_food_is_drink.setChecked(is_drink == 1)
-
-                    # Determine radio button state based on portion_calories
-                    if portion_calories and portion_calories > 0:
-                        # Use portion calories mode
-                        self.radioButton_use_calories.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(portion_calories)
-                    else:
-                        # Use weight mode
-                        self.radioButton_use_weight.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-
-                    # Populate groupBox_food_items fields (food item form)
-                    self.lineEdit_food_name.setText(name)
-                    self.lineEdit_food_name_en.setText(name_en if name_en else "")
-                    self.checkBox_is_drink.setChecked(is_drink == 1)
-                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
-                    self.spinBox_food_default_weight.setValue(int(weight) if weight else 100)
-                    self.doubleSpinBox_food_default_cal.setValue(portion_calories if portion_calories else 0)
-
-                else:
-                    # If not found in either table, just set the name
-                    self.lineEdit_food_manual_name.setText(food_name)
-                    self.lineEdit_food_name.setText(food_name)
-                    # Reset other fields to defaults
-                    self.spinBox_food_weight.setValue(100)
-                    self.checkBox_food_is_drink.setChecked(False)
-                    self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(0)
-                    self.lineEdit_food_name_en.setText("")
-                    self.checkBox_is_drink.setChecked(False)
-                    self.doubleSpinBox_food_cal100.setValue(0)
-                    self.spinBox_food_default_weight.setValue(100)
-                    self.doubleSpinBox_food_default_cal.setValue(0)
-
-            # Update calories calculation
-            self.update_calories_calculation()
-
-            # Move focus to weight spinbox and select all text after selection
-            self.spinBox_food_weight.setFocus()
-            self.spinBox_food_weight.selectAll()
-
-        except Exception as e:
-            print(f"Error in food item selection: {e}")
-            # In case of error, at least set the name and move focus
-            self.lineEdit_food_manual_name.setText(food_name)
-            self.lineEdit_food_name.setText(food_name)
-            self.spinBox_food_weight.setFocus()
-            self.spinBox_food_weight.selectAll()
-
-    def on_clear_food_manual_name(self) -> None:
-        """Clear the food manual name input field."""
-        self.lineEdit_food_manual_name.clear()
-        # Move focus back to the cleared field
-        self.lineEdit_food_manual_name.setFocus()
 
 
 if __name__ == "__main__":

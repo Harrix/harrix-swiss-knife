@@ -38,6 +38,7 @@ class Ui_MainWindow(object):
         self.lineEdit_food_manual_name.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "Enter food name (optional if selected from list)", None)
         )
+        self.pushButton_food_manual_name_clear.setText("")
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", "g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", "kcal", None))
         self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", "Drink", None))
@@ -60,6 +61,7 @@ class Ui_MainWindow(object):
         self.pushButton_food_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
+        self.pushButton_check.setText(QCoreApplication.translate("MainWindow", "Check", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", "Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", "0", None))
         self.label_favorite_food_items.setText(QCoreApplication.translate("MainWindow", "Food Favorite Items:", None))
@@ -128,6 +130,12 @@ class Ui_MainWindow(object):
         self.lineEdit_food_manual_name.setFont(font)
 
         self.horizontalLayout_food_manual_name.addWidget(self.lineEdit_food_manual_name)
+
+        self.pushButton_food_manual_name_clear = QPushButton(self.groupBox_food_add)
+        self.pushButton_food_manual_name_clear.setObjectName("pushButton_food_manual_name_clear")
+        self.pushButton_food_manual_name_clear.setMaximumSize(QSize(32, 16777215))
+
+        self.horizontalLayout_food_manual_name.addWidget(self.pushButton_food_manual_name_clear)
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_manual_name)
 
@@ -362,6 +370,11 @@ class Ui_MainWindow(object):
         self.pushButton_show_all_records.setObjectName("pushButton_show_all_records")
 
         self.horizontalLayout_3.addWidget(self.pushButton_show_all_records)
+
+        self.pushButton_check = QPushButton(self.groupBox_food_commands)
+        self.pushButton_check.setObjectName("pushButton_check")
+
+        self.horizontalLayout_3.addWidget(self.pushButton_check)
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 
@@ -618,6 +631,7 @@ def retranslateUi(self, MainWindow):
         self.lineEdit_food_manual_name.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "Enter food name (optional if selected from list)", None)
         )
+        self.pushButton_food_manual_name_clear.setText("")
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", "g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", "kcal", None))
         self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", "Drink", None))
@@ -640,6 +654,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_food_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
+        self.pushButton_check.setText(QCoreApplication.translate("MainWindow", "Check", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", "Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", "0", None))
         self.label_favorite_food_items.setText(QCoreApplication.translate("MainWindow", "Food Favorite Items:", None))
@@ -723,6 +738,12 @@ def setupUi(self, MainWindow):
         self.lineEdit_food_manual_name.setFont(font)
 
         self.horizontalLayout_food_manual_name.addWidget(self.lineEdit_food_manual_name)
+
+        self.pushButton_food_manual_name_clear = QPushButton(self.groupBox_food_add)
+        self.pushButton_food_manual_name_clear.setObjectName("pushButton_food_manual_name_clear")
+        self.pushButton_food_manual_name_clear.setMaximumSize(QSize(32, 16777215))
+
+        self.horizontalLayout_food_manual_name.addWidget(self.pushButton_food_manual_name_clear)
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_manual_name)
 
@@ -957,6 +978,11 @@ def setupUi(self, MainWindow):
         self.pushButton_show_all_records.setObjectName("pushButton_show_all_records")
 
         self.horizontalLayout_3.addWidget(self.pushButton_show_all_records)
+
+        self.pushButton_check = QPushButton(self.groupBox_food_commands)
+        self.pushButton_check.setObjectName("pushButton_check")
+
+        self.horizontalLayout_3.addWidget(self.pushButton_check)
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 

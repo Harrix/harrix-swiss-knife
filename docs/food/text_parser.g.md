@@ -92,7 +92,11 @@ class TextParser:
         self.date_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 
     def parse_text(
-        self, text: str, parent_widget: QWidget | None = None, db_manager: Any | None = None
+        self,
+        text: str,
+        parent_widget: QWidget | None = None,
+        db_manager: Any | None = None,
+        default_date: str | None = None,
     ) -> list[ParsedFoodItem]:
         """Parse text input and convert to food items.
 
@@ -101,6 +105,7 @@ class TextParser:
         - `text` (`str`): Text input to parse.
         - `parent_widget` (`QWidget | None`): Parent widget for dialogs. Defaults to `None`.
         - `db_manager` (`Any | None`): Database manager for looking up existing items. Defaults to `None`.
+        - `default_date` (`str | None`): Default date to use if no date is found in text. Defaults to `None`.
 
         Returns:
 
@@ -109,7 +114,8 @@ class TextParser:
         """
         lines = text.strip().split("\n")
         parsed_items = []
-        today = date.today().strftime("%Y-%m-%d")
+        # Use provided default_date or today's date
+        today = default_date or date.today().strftime("%Y-%m-%d")
 
         for line_num, line in enumerate(lines, 1):
             line = line.strip()
@@ -657,7 +663,7 @@ def __init__(self) -> None:
 ### ⚙️ Method `parse_text`
 
 ```python
-def parse_text(self, text: str, parent_widget: QWidget | None = None, db_manager: Any | None = None) -> list[ParsedFoodItem]
+def parse_text(self, text: str, parent_widget: QWidget | None = None, db_manager: Any | None = None, default_date: str | None = None) -> list[ParsedFoodItem]
 ```
 
 Parse text input and convert to food items.
@@ -667,6 +673,7 @@ Args:
 - `text` (`str`): Text input to parse.
 - `parent_widget` (`QWidget | None`): Parent widget for dialogs. Defaults to `None`.
 - `db_manager` (`Any | None`): Database manager for looking up existing items. Defaults to `None`.
+- `default_date` (`str | None`): Default date to use if no date is found in text. Defaults to `None`.
 
 Returns:
 
@@ -677,11 +684,16 @@ Returns:
 
 ```python
 def parse_text(
-        self, text: str, parent_widget: QWidget | None = None, db_manager: Any | None = None
+        self,
+        text: str,
+        parent_widget: QWidget | None = None,
+        db_manager: Any | None = None,
+        default_date: str | None = None,
     ) -> list[ParsedFoodItem]:
         lines = text.strip().split("\n")
         parsed_items = []
-        today = date.today().strftime("%Y-%m-%d")
+        # Use provided default_date or today's date
+        today = default_date or date.today().strftime("%Y-%m-%d")
 
         for line_num, line in enumerate(lines, 1):
             line = line.strip()

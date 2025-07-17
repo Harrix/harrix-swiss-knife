@@ -20,8 +20,10 @@ lang: en
   - [⚙️ Method `on_add_as_text`](#%EF%B8%8F-method-on_add_as_text)
   - [⚙️ Method `on_add_food_item`](#%EF%B8%8F-method-on_add_food_item)
   - [⚙️ Method `on_add_food_log`](#%EF%B8%8F-method-on_add_food_log)
+  - [⚙️ Method `on_check_problematic_records`](#%EF%B8%8F-method-on_check_problematic_records)
+  - [⚙️ Method `on_clear_food_manual_name`](#%EF%B8%8F-method-on_clear_food_manual_name)
+  - [⚙️ Method `on_favorite_food_item_selection_changed`](#%EF%B8%8F-method-on_favorite_food_item_selection_changed)
   - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
-  - [⚙️ Method `on_food_item_selection_changed`](#%EF%B8%8F-method-on_food_item_selection_changed)
   - [⚙️ Method `on_food_log_table_cell_clicked`](#%EF%B8%8F-method-on_food_log_table_cell_clicked)
   - [⚙️ Method `on_food_stats_all_time`](#%EF%B8%8F-method-on_food_stats_all_time)
   - [⚙️ Method `on_food_stats_drink`](#%EF%B8%8F-method-on_food_stats_drink)
@@ -31,6 +33,7 @@ lang: en
   - [⚙️ Method `on_food_stats_last_year`](#%EF%B8%8F-method-on_food_stats_last_year)
   - [⚙️ Method `on_food_stats_period_changed`](#%EF%B8%8F-method-on_food_stats_period_changed)
   - [⚙️ Method `on_food_stats_update`](#%EF%B8%8F-method-on_food_stats_update)
+  - [⚙️ Method `on_main_food_item_selection_changed`](#%EF%B8%8F-method-on_main_food_item_selection_changed)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
   - [⚙️ Method `set_food_yesterday_date`](#%EF%B8%8F-method-set_food_yesterday_date)
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
@@ -48,8 +51,10 @@ lang: en
   - [⚙️ Method `_create_colored_kcal_per_day_table_model`](#%EF%B8%8F-method-_create_colored_kcal_per_day_table_model)
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
+  - [⚙️ Method `_extract_food_name_from_display`](#%EF%B8%8F-method-_extract_food_name_from_display)
   - [⚙️ Method `_filter_food_items`](#%EF%B8%8F-method-_filter_food_items)
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
+  - [⚙️ Method `_format_food_name_with_calories`](#%EF%B8%8F-method-_format_food_name_with_calories)
   - [⚙️ Method `_get_current_selected_food_item`](#%EF%B8%8F-method-_get_current_selected_food_item)
   - [⚙️ Method `_get_selected_row_id`](#%EF%B8%8F-method-_get_selected_row_id)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
@@ -61,6 +66,7 @@ lang: en
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_on_window_resize`](#%EF%B8%8F-method-_on_window_resize)
   - [⚙️ Method `_populate_form_from_food_name`](#%EF%B8%8F-method-_populate_form_from_food_name)
+  - [⚙️ Method `_process_food_item_selection`](#%EF%B8%8F-method-_process_food_item_selection)
   - [⚙️ Method `_process_text_input`](#%EF%B8%8F-method-_process_text_input)
   - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
@@ -72,6 +78,7 @@ lang: en
   - [⚙️ Method `_update_food_calories_chart`](#%EF%B8%8F-method-_update_food_calories_chart)
   - [⚙️ Method `_update_food_items_list`](#%EF%B8%8F-method-_update_food_items_list)
   - [⚙️ Method `_update_food_log_table`](#%EF%B8%8F-method-_update_food_log_table)
+  - [⚙️ Method `_update_food_log_table_with_data`](#%EF%B8%8F-method-_update_food_log_table_with_data)
   - [⚙️ Method `_update_food_weight_chart`](#%EF%B8%8F-method-_update_food_weight_chart)
   - [⚙️ Method `_update_kcal_per_day_table`](#%EF%B8%8F-method-_update_kcal_per_day_table)
   - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
@@ -454,13 +461,67 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add food log record: {e}")
 
+    def on_check_problematic_records(self) -> None:
+        """Filter food log table to show only problematic records."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Error", "Database connection not available")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get problematic records from database
+            problematic_records = self.db_manager.get_problematic_food_records()
+
+            if not problematic_records:
+                QMessageBox.information(self, "No Issues", "No problematic records found!")
+                return
+
+            # Update the food log table with only problematic records
+            self._update_food_log_table_with_data(problematic_records)
+
+            # Show count of problematic records
+            QMessageBox.information(
+                self, "Problematic Records", f"Found {len(problematic_records)} problematic records."
+            )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to check problematic records: {e}")
+
+    def on_clear_food_manual_name(self) -> None:
+        """Clear the food manual name input field."""
+        self.lineEdit_food_manual_name.clear()
+        # Move focus back to the cleared field
+        self.lineEdit_food_manual_name.setFocus()
+
+    def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle favorite food item selection change in the list view."""
+        if not current.isValid():
+            return
+
+        # Clear selection in main food items list to avoid conflicts
+        main_selection_model = self.listView_food_items.selectionModel()
+        if main_selection_model:
+            main_selection_model.blockSignals(True)
+            main_selection_model.clearSelection()
+            main_selection_model.blockSignals(False)
+
+        # Get food item from favorite list
+        if self.favorite_food_items_list_model:
+            item = self.favorite_food_items_list_model.itemFromIndex(current)
+            if item:
+                food_name = self._extract_food_name_from_display(item.text())
+                self._process_food_item_selection(food_name)
+
     def on_food_item_double_clicked(self, index: QModelIndex) -> None:
         """Handle double click on food item in the list view."""
         # Prevent multiple dialogs from opening
         if self._food_item_dialog_open:
             return
 
-        food_item = self._get_current_selected_food_item()
+        food_item, source_list = self._get_current_selected_food_item()
         if not food_item:
             return
 
@@ -527,125 +588,6 @@ class MainWindow(
         finally:
             # Always reset the dialog open flag
             self._food_item_dialog_open = False
-
-    def on_food_item_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        """Handle food item selection change in the list view."""
-        food_item = self._get_current_selected_food_item()
-        if not food_item:
-            return
-
-        # Check if database manager is available and connection is open
-        if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # First try to get food item data from food_items table
-            food_item_data = self.db_manager.get_food_item_by_name(food_item)
-
-            if food_item_data:
-                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
-                (
-                    food_id,
-                    name,
-                    name_en,
-                    is_drink,
-                    calories_per_100g,
-                    default_portion_weight,
-                    default_portion_calories,
-                ) = food_item_data
-
-                # Populate groupBox_food_add fields (food log record form)
-                self.lineEdit_food_manual_name.setText(name)
-                self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
-                self.checkBox_food_is_drink.setChecked(is_drink == 1)
-
-                # Determine radio button state based on default_portion_calories
-                if default_portion_calories and default_portion_calories > 0:
-                    # Use portion calories mode
-                    self.radioButton_use_calories.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                else:
-                    # Use weight mode
-                    self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-
-                # Populate groupBox_food_items fields (food item form)
-                self.lineEdit_food_name.setText(name)
-                self.lineEdit_food_name_en.setText(name_en if name_en else "")
-                self.checkBox_is_drink.setChecked(is_drink == 1)
-                self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
-                self.spinBox_food_default_weight.setValue(
-                    int(default_portion_weight) if default_portion_weight else 100
-                )
-                self.doubleSpinBox_food_default_cal.setValue(
-                    default_portion_calories if default_portion_calories else 0
-                )
-
-            else:
-                # If not found in food_items, try to get from food_log (for popular items)
-                food_log_data = self.db_manager.get_food_log_item_by_name(food_item)
-
-                if food_log_data:
-                    # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
-                    name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
-
-                    # Populate groupBox_food_add fields (food log record form)
-                    self.lineEdit_food_manual_name.setText(name)
-                    self.spinBox_food_weight.setValue(int(weight) if weight else 100)
-                    self.checkBox_food_is_drink.setChecked(is_drink == 1)
-
-                    # Determine radio button state based on portion_calories
-                    if portion_calories and portion_calories > 0:
-                        # Use portion calories mode
-                        self.radioButton_use_calories.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(portion_calories)
-                    else:
-                        # Use weight mode
-                        self.radioButton_use_weight.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-
-                    # Populate groupBox_food_items fields (food item form)
-                    self.lineEdit_food_name.setText(name)
-                    self.lineEdit_food_name_en.setText(name_en if name_en else "")
-                    self.checkBox_is_drink.setChecked(is_drink == 1)
-                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
-                    self.spinBox_food_default_weight.setValue(int(weight) if weight else 100)
-                    self.doubleSpinBox_food_default_cal.setValue(portion_calories if portion_calories else 0)
-
-                else:
-                    # If not found in either table, just set the name
-                    self.lineEdit_food_manual_name.setText(food_item)
-                    self.lineEdit_food_name.setText(food_item)
-                    # Reset other fields to defaults
-                    self.spinBox_food_weight.setValue(100)
-                    self.checkBox_food_is_drink.setChecked(False)
-                    self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(0)
-                    self.lineEdit_food_name_en.setText("")
-                    self.checkBox_is_drink.setChecked(False)
-                    self.doubleSpinBox_food_cal100.setValue(0)
-                    self.spinBox_food_default_weight.setValue(100)
-                    self.doubleSpinBox_food_default_cal.setValue(0)
-
-            # Update calories calculation
-            self.update_calories_calculation()
-
-            # Move focus to weight spinbox and select all text after selection
-            self.spinBox_food_weight.setFocus()
-            self.spinBox_food_weight.selectAll()
-
-        except Exception as e:
-            print(f"Error in food item selection changed: {e}")
-            # In case of error, at least set the name and move focus
-            self.lineEdit_food_manual_name.setText(food_item)
-            self.lineEdit_food_name.setText(food_item)
-            self.spinBox_food_weight.setFocus()
-            self.spinBox_food_weight.selectAll()
 
     def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
         """Handle food log table cell click and populate form fields with row data."""
@@ -793,6 +735,25 @@ class MainWindow(
     def on_food_stats_update(self) -> None:
         """Update the food calories chart."""
         self._update_food_calories_chart()
+
+    def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle main food item selection change in the list view."""
+        if not current.isValid():
+            return
+
+        # Clear selection in favorite food items list to avoid conflicts
+        favorite_selection_model = self.listView_favorite_food_items.selectionModel()
+        if favorite_selection_model:
+            favorite_selection_model.blockSignals(True)
+            favorite_selection_model.clearSelection()
+            favorite_selection_model.blockSignals(False)
+
+        # Get food item from main list
+        if self.food_items_list_model:
+            item = self.food_items_list_model.itemFromIndex(current)
+            if item:
+                food_name = self._extract_food_name_from_display(item.text())
+                self._process_food_item_selection(food_name)
 
     def on_show_all_records_clicked(self) -> None:
         """Toggle between showing all records and last 5000 records."""
@@ -1073,6 +1034,8 @@ class MainWindow(
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
         self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
         self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
+        self.pushButton_check.clicked.connect(self.on_check_problematic_records)
+        self.pushButton_food_manual_name_clear.clicked.connect(self.on_clear_food_manual_name)
 
         # Connect radio buttons and spin boxes for calories calculation
         self.radioButton_use_weight.clicked.connect(self.update_calories_calculation)
@@ -1109,18 +1072,21 @@ class MainWindow(
 
     def _connect_table_selection_signals(self) -> None:
         """Connect selection change signals for all tables."""
-        # Connect food items list selection
+        # Connect food items list selection with separate handlers
         selection_model = self.listView_food_items.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+            selection_model.currentChanged.connect(self.on_main_food_item_selection_changed)
 
-        # Connect favorite food items list selection
+        # Connect favorite food items list selection with separate handler
         selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+            selection_model.currentChanged.connect(self.on_favorite_food_item_selection_changed)
 
         # Connect food items list double click
         self.listView_food_items.doubleClicked.connect(self.on_food_item_double_clicked)
+
+        # Connect favorite food items list double click
+        self.listView_favorite_food_items.doubleClicked.connect(self.on_food_item_double_clicked)
 
         # Connect food log table cell click
         self.tableView_food_log.clicked.connect(self.on_food_log_table_cell_clicked)
@@ -1362,6 +1328,30 @@ class MainWindow(
             self.food_completer_model.deleteLater()
             self.food_completer_model = None
 
+    def _extract_food_name_from_display(self, display_text: str) -> str:
+        """Extract food name from display text (remove calories info).
+
+        Args:
+
+        - `display_text` (`str`): Display text that may contain calories info.
+
+        Returns:
+
+        - `str`: Clean food name without calories info.
+
+        """
+        if not display_text:
+            return ""
+
+        # Remove calories info in parentheses at the end
+        # Pattern: " (XXX kcal/порция)" or " (XXX kcal/100g)"
+        import re
+
+        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:порция|100g)\)$"
+        clean_name = re.sub(pattern, "", display_text)
+
+        return clean_name.strip()
+
     def _filter_food_items(self, text: str) -> None:
         """Filter food items lists based on input text.
 
@@ -1403,33 +1393,108 @@ class MainWindow(
         # Update food stats chart after initialization
         QTimer.singleShot(100, self._update_food_calories_chart)
 
-    def _get_current_selected_food_item(self) -> str | None:
+    def _format_food_name_with_calories(
+        self, food_name: str, calories_per_100g: float | None, default_portion_calories: float | None
+    ) -> str:
+        """Format food name with calories information in parentheses.
+
+        Args:
+
+        - `food_name` (`str`): The food item name.
+        - `calories_per_100g` (`float | None`): Calories per 100g.
+        - `default_portion_calories` (`float | None`): Default portion calories.
+
+        Returns:
+
+        - `str`: Formatted food name with calories info.
+
+        """
+        if not food_name:
+            return food_name
+
+        # Helper function to safely convert to float
+        def safe_float(value) -> float | None:
+            if value is None:
+                return None
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return None
+
+        # Convert values to float safely
+        cal_100g = safe_float(calories_per_100g)
+        portion_cal = safe_float(default_portion_calories)
+
+        # Determine which calories to show
+        calories_info = ""
+
+        if portion_cal is not None:
+            # Show portion calories if available (including zero)
+            calories_info = f"({portion_cal:.0f} kcal/порция)"
+        elif cal_100g is not None:
+            # Show calories per 100g if no portion calories (including zero)
+            calories_info = f"({cal_100g:.0f} kcal/100g)"
+
+        if calories_info:
+            return f"{food_name} {calories_info}"
+        else:
+            return food_name
+
+    def _get_current_selected_food_item(self) -> tuple[str | None, str]:
         """Get the currently selected food item from either list view.
 
         Returns:
 
-        - `str | None`: The name of the selected food item, or None if nothing is selected.
+        - `tuple[str | None, str]`: Tuple of (food_name, source_list) where source_list is either "main" or "favorite".
 
         """
-        # Check main food items list first
-        selection_model = self.listView_food_items.selectionModel()
-        if selection_model and self.food_items_list_model:
-            current_index = selection_model.currentIndex()
-            if current_index.isValid():
-                item = self.food_items_list_model.itemFromIndex(current_index)
-                if item:
-                    return item.text()
+        # Check which widget currently has focus or was last clicked
+        focused_widget = QApplication.focusWidget()
 
-        # Check favorite food items list if nothing selected in main list
+        # Check favorite food items list first if it has focus
+        if focused_widget == self.listView_favorite_food_items:
+            selection_model = self.listView_favorite_food_items.selectionModel()
+            if selection_model and self.favorite_food_items_list_model:
+                current_index = selection_model.currentIndex()
+                if current_index.isValid():
+                    item = self.favorite_food_items_list_model.itemFromIndex(current_index)
+                    if item:
+                        food_name = self._extract_food_name_from_display(item.text())
+                        return food_name, "favorite"
+
+        # Check main food items list if it has focus
+        elif focused_widget == self.listView_food_items:
+            selection_model = self.listView_food_items.selectionModel()
+            if selection_model and self.food_items_list_model:
+                current_index = selection_model.currentIndex()
+                if current_index.isValid():
+                    item = self.food_items_list_model.itemFromIndex(current_index)
+                    if item:
+                        food_name = self._extract_food_name_from_display(item.text())
+                        return food_name, "main"
+
+        # Fallback: check both lists for current selection
+        # Check favorite food items list first
         selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model and self.favorite_food_items_list_model:
             current_index = selection_model.currentIndex()
             if current_index.isValid():
                 item = self.favorite_food_items_list_model.itemFromIndex(current_index)
                 if item:
-                    return item.text()
+                    food_name = self._extract_food_name_from_display(item.text())
+                    return food_name, "favorite"
 
-        return None
+        # Check main food items list if nothing selected in favorite list
+        selection_model = self.listView_food_items.selectionModel()
+        if selection_model and self.food_items_list_model:
+            current_index = selection_model.currentIndex()
+            if current_index.isValid():
+                item = self.food_items_list_model.itemFromIndex(current_index)
+                if item:
+                    food_name = self._extract_food_name_from_display(item.text())
+                    return food_name, "main"
+
+        return None, ""
 
     def _get_selected_row_id(self, table_name: str) -> int | None:
         """Get the database ID of the currently selected row.
@@ -1531,7 +1596,7 @@ class MainWindow(
         # Connect selection change signal after model is set
         selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+            selection_model.currentChanged.connect(self.on_favorite_food_item_selection_changed)
 
     def _init_food_items_list(self) -> None:
         """Initialize the food items list view with a model and connect signals."""
@@ -1541,7 +1606,7 @@ class MainWindow(
         # Connect selection change signal after model is set
         selection_model = self.listView_food_items.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+            selection_model.currentChanged.connect(self.on_main_food_item_selection_changed)
 
     def _init_food_stats_dates(self) -> None:
         """Initialize food stats date range with last month as default."""
@@ -1738,6 +1803,124 @@ class MainWindow(
         except Exception as e:
             print(f"Error populating form from food name: {e}")
 
+    def _process_food_item_selection(self, food_name: str) -> None:
+        """Process food item selection and populate form fields."""
+        if not food_name:
+            return
+
+        # Check if database manager is available and connection is open
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # First try to get food item data from food_items table
+            food_item_data = self.db_manager.get_food_item_by_name(food_name)
+
+            if food_item_data:
+                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                (
+                    food_id,
+                    name,
+                    name_en,
+                    is_drink,
+                    calories_per_100g,
+                    default_portion_weight,
+                    default_portion_calories,
+                ) = food_item_data
+
+                # Populate groupBox_food_add fields (food log record form)
+                self.lineEdit_food_manual_name.setText(name)
+                self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
+                self.checkBox_food_is_drink.setChecked(is_drink == 1)
+
+                # Determine radio button state based on default_portion_calories
+                if default_portion_calories and default_portion_calories > 0:
+                    # Use portion calories mode
+                    self.radioButton_use_calories.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(default_portion_calories)
+                else:
+                    # Use weight mode
+                    self.radioButton_use_weight.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+
+                # Populate groupBox_food_items fields (food item form)
+                self.lineEdit_food_name.setText(name)
+                self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                self.checkBox_is_drink.setChecked(is_drink == 1)
+                self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                self.spinBox_food_default_weight.setValue(
+                    int(default_portion_weight) if default_portion_weight else 100
+                )
+                self.doubleSpinBox_food_default_cal.setValue(
+                    default_portion_calories if default_portion_calories else 0
+                )
+
+            else:
+                # If not found in food_items, try to get from food_log (for popular items)
+                food_log_data = self.db_manager.get_food_log_item_by_name(food_name)
+
+                if food_log_data:
+                    # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
+                    name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
+
+                    # Populate groupBox_food_add fields (food log record form)
+                    self.lineEdit_food_manual_name.setText(name)
+                    self.spinBox_food_weight.setValue(int(weight) if weight else 100)
+                    self.checkBox_food_is_drink.setChecked(is_drink == 1)
+
+                    # Determine radio button state based on portion_calories
+                    if portion_calories and portion_calories > 0:
+                        # Use portion calories mode
+                        self.radioButton_use_calories.setChecked(True)
+                        self.doubleSpinBox_food_calories.setValue(portion_calories)
+                    else:
+                        # Use weight mode
+                        self.radioButton_use_weight.setChecked(True)
+                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+
+                    # Populate groupBox_food_items fields (food item form)
+                    self.lineEdit_food_name.setText(name)
+                    self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                    self.checkBox_is_drink.setChecked(is_drink == 1)
+                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                    self.spinBox_food_default_weight.setValue(int(weight) if weight else 100)
+                    self.doubleSpinBox_food_default_cal.setValue(portion_calories if portion_calories else 0)
+
+                else:
+                    # If not found in either table, just set the name
+                    self.lineEdit_food_manual_name.setText(food_name)
+                    self.lineEdit_food_name.setText(food_name)
+                    # Reset other fields to defaults
+                    self.spinBox_food_weight.setValue(100)
+                    self.checkBox_food_is_drink.setChecked(False)
+                    self.radioButton_use_weight.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(0)
+                    self.lineEdit_food_name_en.setText("")
+                    self.checkBox_is_drink.setChecked(False)
+                    self.doubleSpinBox_food_cal100.setValue(0)
+                    self.spinBox_food_default_weight.setValue(100)
+                    self.doubleSpinBox_food_default_cal.setValue(0)
+
+            # Update calories calculation
+            self.update_calories_calculation()
+
+            # Move focus to weight spinbox and select all text after selection
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
+
+        except Exception as e:
+            print(f"Error in food item selection: {e}")
+            # In case of error, at least set the name and move focus
+            self.lineEdit_food_manual_name.setText(food_name)
+            self.lineEdit_food_name.setText(food_name)
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
+
     def _process_text_input(self, text: str) -> None:
         """Process text input and add food items to database.
 
@@ -1752,7 +1935,9 @@ class MainWindow(
 
         # Create parser and parse text
         parser = TextParser()
-        parsed_items = parser.parse_text(text, self, self.db_manager)
+        # Use date from dateEdit_food as default date
+        default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
+        parsed_items = parser.parse_text(text, self, self.db_manager, default_date)
 
         if not parsed_items:
             QMessageBox.information(self, "No Items", "No valid food items found in the text.")
@@ -1765,8 +1950,10 @@ class MainWindow(
 
         for item in parsed_items:
             try:
+                # Use date from dateEdit_food if no date specified in text
+                default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
                 success = self.db_manager.add_food_log_record(
-                    date=item.food_date or date.today().strftime("%Y-%m-%d"),
+                    date=item.food_date or default_date,
                     calories_per_100g=item.calories_per_100g,
                     name=item.name,
                     weight=item.weight,
@@ -1828,6 +2015,8 @@ class MainWindow(
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
+        self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
+        self.pushButton_food_manual_name_clear.setText(f"🧹")
 
         # Set emoji for food stats buttons
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
@@ -1997,8 +2186,8 @@ class MainWindow(
             return
 
         try:
-            # Get popular food items from recent records (top 22)
-            popular_food_items = self.db_manager.get_popular_food_items(500)[:22]
+            # Get popular food items with calories data (top 22)
+            popular_food_items_data = self.db_manager.get_popular_food_items_with_calories(500)[:22]
 
             # Block signals during model update
             selection_model = self.listView_favorite_food_items.selectionModel()
@@ -2008,8 +2197,17 @@ class MainWindow(
             # Update favorite food items list model
             if self.favorite_food_items_list_model is not None:
                 self.favorite_food_items_list_model.clear()
-                for food_name in popular_food_items:
-                    item = QStandardItem(food_name)
+                for food_item_row in popular_food_items_data:
+                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                    food_name = food_item_row[1]  # name is at index 1
+                    calories_per_100g = food_item_row[4]
+                    default_portion_calories = food_item_row[6]
+
+                    # Format display name with calories info
+                    display_name = self._format_food_name_with_calories(
+                        food_name, calories_per_100g, default_portion_calories
+                    )
+                    item = QStandardItem(display_name)
                     self.favorite_food_items_list_model.appendRow(item)
 
             # Unblock signals
@@ -2102,7 +2300,14 @@ class MainWindow(
                 for food_item_row in food_items_data:
                     # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                     food_name = food_item_row[1]  # name is at index 1
-                    item = QStandardItem(food_name)
+                    calories_per_100g = food_item_row[4]
+                    default_portion_calories = food_item_row[6]
+
+                    # Format display name with calories info
+                    display_name = self._format_food_name_with_calories(
+                        food_name, calories_per_100g, default_portion_calories
+                    )
+                    item = QStandardItem(display_name)
                     self.food_items_list_model.appendRow(item)
 
             # Unblock signals
@@ -2231,6 +2436,119 @@ class MainWindow(
             print(f"Error updating food log table: {e}")
             QMessageBox.warning(self, "Database Error", f"Failed to update food log table: {e}")
 
+    def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> None:
+        """Update the food log table with specific data.
+
+        Args:
+
+        - `food_log_rows` (`list[list[Any]]`): Raw food log data to display.
+
+        """
+        if not self._validate_database_connection():
+            print("Database connection not available for updating food log table")
+            return
+
+        try:
+
+            def transform_food_log_data(rows: list[list]) -> list[list]:
+                """Transform food_log data with coloring.
+
+                Args:
+                    rows (list[list]): Raw food_log data from database.
+
+                Returns:
+                    list[list]: Transformed food_log data.
+                """
+                # Get all unique dates and assign colors
+                unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
+                date_to_color = {}
+
+                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
+                    color_index = idx % len(self.date_colors)
+                    date_to_color[date_str] = self.date_colors[color_index]
+
+                # Transform data and add color information
+                transformed_rows = []
+                for row in rows:
+                    # Original transformation:
+                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
+                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+
+                    # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
+                    if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
+                        calories_per_100g_display = ""
+                    else:
+                        calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
+
+                    # Calculate total calories
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        # Use portion calories directly
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        # Calculate from weight and calories per 100g
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    transformed_row = [
+                        row[5],
+                        "1" if row[7] == 1 else "",
+                        row[2],
+                        calories_per_100g_display,
+                        portion_calories,
+                        f"{calculated_calories:.1f}",
+                        row[1],
+                        row[6],
+                    ]
+
+                    # Add color information based on date
+                    date_str = row[1]
+                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
+
+                    # Add original ID and color to the row for later use
+                    transformed_row.extend(
+                        [row[0], date_color]
+                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_rows.append(transformed_row)
+
+                return transformed_rows
+
+            transformed_food_log_data = transform_food_log_data(food_log_rows)
+
+            # Create food_log table model with coloring
+            self.models["food_log"] = self._create_colored_food_log_table_model(
+                transformed_food_log_data, self.table_config["food_log"][2]
+            )
+            self.tableView_food_log.setModel(self.models["food_log"])
+
+            # Enable editing for the table
+            self.tableView_food_log.setEditTriggers(
+                QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
+            )
+
+            # Configure food_log table header - interactive mode for all columns
+            food_log_header = self.tableView_food_log.horizontalHeader()
+            # Set all columns to interactive (resizable)
+            for i in range(food_log_header.count()):
+                food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
+            # Set proportional column widths for all columns
+            self._adjust_food_log_table_columns()
+
+            # Connect selection change signals after models are set
+            self._connect_table_selection_signals()
+
+            # Connect auto-save signals after all models are created
+            self._connect_table_auto_save_signals()
+
+        except Exception as e:
+            print(f"Error updating food log table: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to update food log table: {e}")
+
     def _update_food_weight_chart(self) -> None:
         """Update the food weight chart with data from database."""
         if not self._validate_database_connection():
@@ -2269,7 +2587,7 @@ class MainWindow(
 
             # Create chart configuration
             chart_config = {
-                "title": f"Food Weight Consumed ({period})",
+                "title": f"Food Weight Consumed (excluding drinks) ({period})",
                 "xlabel": "Date",
                 "ylabel": "Weight (kg)",
                 "color": "green",
@@ -2781,6 +3099,102 @@ def on_add_food_log(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_check_problematic_records`
+
+```python
+def on_check_problematic_records(self) -> None
+```
+
+Filter food log table to show only problematic records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_check_problematic_records(self) -> None:
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Error", "Database connection not available")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get problematic records from database
+            problematic_records = self.db_manager.get_problematic_food_records()
+
+            if not problematic_records:
+                QMessageBox.information(self, "No Issues", "No problematic records found!")
+                return
+
+            # Update the food log table with only problematic records
+            self._update_food_log_table_with_data(problematic_records)
+
+            # Show count of problematic records
+            QMessageBox.information(
+                self, "Problematic Records", f"Found {len(problematic_records)} problematic records."
+            )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to check problematic records: {e}")
+```
+
+</details>
+
+### ⚙️ Method `on_clear_food_manual_name`
+
+```python
+def on_clear_food_manual_name(self) -> None
+```
+
+Clear the food manual name input field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_clear_food_manual_name(self) -> None:
+        self.lineEdit_food_manual_name.clear()
+        # Move focus back to the cleared field
+        self.lineEdit_food_manual_name.setFocus()
+```
+
+</details>
+
+### ⚙️ Method `on_favorite_food_item_selection_changed`
+
+```python
+def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None
+```
+
+Handle favorite food item selection change in the list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        if not current.isValid():
+            return
+
+        # Clear selection in main food items list to avoid conflicts
+        main_selection_model = self.listView_food_items.selectionModel()
+        if main_selection_model:
+            main_selection_model.blockSignals(True)
+            main_selection_model.clearSelection()
+            main_selection_model.blockSignals(False)
+
+        # Get food item from favorite list
+        if self.favorite_food_items_list_model:
+            item = self.favorite_food_items_list_model.itemFromIndex(current)
+            if item:
+                food_name = self._extract_food_name_from_display(item.text())
+                self._process_food_item_selection(food_name)
+```
+
+</details>
+
 ### ⚙️ Method `on_food_item_double_clicked`
 
 ```python
@@ -2798,7 +3212,7 @@ def on_food_item_double_clicked(self, index: QModelIndex) -> None:
         if self._food_item_dialog_open:
             return
 
-        food_item = self._get_current_selected_food_item()
+        food_item, source_list = self._get_current_selected_food_item()
         if not food_item:
             return
 
@@ -2865,139 +3279,6 @@ def on_food_item_double_clicked(self, index: QModelIndex) -> None:
         finally:
             # Always reset the dialog open flag
             self._food_item_dialog_open = False
-```
-
-</details>
-
-### ⚙️ Method `on_food_item_selection_changed`
-
-```python
-def on_food_item_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
-```
-
-Handle food item selection change in the list view.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_food_item_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        food_item = self._get_current_selected_food_item()
-        if not food_item:
-            return
-
-        # Check if database manager is available and connection is open
-        if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # First try to get food item data from food_items table
-            food_item_data = self.db_manager.get_food_item_by_name(food_item)
-
-            if food_item_data:
-                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
-                (
-                    food_id,
-                    name,
-                    name_en,
-                    is_drink,
-                    calories_per_100g,
-                    default_portion_weight,
-                    default_portion_calories,
-                ) = food_item_data
-
-                # Populate groupBox_food_add fields (food log record form)
-                self.lineEdit_food_manual_name.setText(name)
-                self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
-                self.checkBox_food_is_drink.setChecked(is_drink == 1)
-
-                # Determine radio button state based on default_portion_calories
-                if default_portion_calories and default_portion_calories > 0:
-                    # Use portion calories mode
-                    self.radioButton_use_calories.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                else:
-                    # Use weight mode
-                    self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-
-                # Populate groupBox_food_items fields (food item form)
-                self.lineEdit_food_name.setText(name)
-                self.lineEdit_food_name_en.setText(name_en if name_en else "")
-                self.checkBox_is_drink.setChecked(is_drink == 1)
-                self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
-                self.spinBox_food_default_weight.setValue(
-                    int(default_portion_weight) if default_portion_weight else 100
-                )
-                self.doubleSpinBox_food_default_cal.setValue(
-                    default_portion_calories if default_portion_calories else 0
-                )
-
-            else:
-                # If not found in food_items, try to get from food_log (for popular items)
-                food_log_data = self.db_manager.get_food_log_item_by_name(food_item)
-
-                if food_log_data:
-                    # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
-                    name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
-
-                    # Populate groupBox_food_add fields (food log record form)
-                    self.lineEdit_food_manual_name.setText(name)
-                    self.spinBox_food_weight.setValue(int(weight) if weight else 100)
-                    self.checkBox_food_is_drink.setChecked(is_drink == 1)
-
-                    # Determine radio button state based on portion_calories
-                    if portion_calories and portion_calories > 0:
-                        # Use portion calories mode
-                        self.radioButton_use_calories.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(portion_calories)
-                    else:
-                        # Use weight mode
-                        self.radioButton_use_weight.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-
-                    # Populate groupBox_food_items fields (food item form)
-                    self.lineEdit_food_name.setText(name)
-                    self.lineEdit_food_name_en.setText(name_en if name_en else "")
-                    self.checkBox_is_drink.setChecked(is_drink == 1)
-                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
-                    self.spinBox_food_default_weight.setValue(int(weight) if weight else 100)
-                    self.doubleSpinBox_food_default_cal.setValue(portion_calories if portion_calories else 0)
-
-                else:
-                    # If not found in either table, just set the name
-                    self.lineEdit_food_manual_name.setText(food_item)
-                    self.lineEdit_food_name.setText(food_item)
-                    # Reset other fields to defaults
-                    self.spinBox_food_weight.setValue(100)
-                    self.checkBox_food_is_drink.setChecked(False)
-                    self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(0)
-                    self.lineEdit_food_name_en.setText("")
-                    self.checkBox_is_drink.setChecked(False)
-                    self.doubleSpinBox_food_cal100.setValue(0)
-                    self.spinBox_food_default_weight.setValue(100)
-                    self.doubleSpinBox_food_default_cal.setValue(0)
-
-            # Update calories calculation
-            self.update_calories_calculation()
-
-            # Move focus to weight spinbox and select all text after selection
-            self.spinBox_food_weight.setFocus()
-            self.spinBox_food_weight.selectAll()
-
-        except Exception as e:
-            print(f"Error in food item selection changed: {e}")
-            # In case of error, at least set the name and move focus
-            self.lineEdit_food_manual_name.setText(food_item)
-            self.lineEdit_food_name.setText(food_item)
-            self.spinBox_food_weight.setFocus()
-            self.spinBox_food_weight.selectAll()
 ```
 
 </details>
@@ -3271,6 +3552,39 @@ Update the food calories chart.
 ```python
 def on_food_stats_update(self) -> None:
         self._update_food_calories_chart()
+```
+
+</details>
+
+### ⚙️ Method `on_main_food_item_selection_changed`
+
+```python
+def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None
+```
+
+Handle main food item selection change in the list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        if not current.isValid():
+            return
+
+        # Clear selection in favorite food items list to avoid conflicts
+        favorite_selection_model = self.listView_favorite_food_items.selectionModel()
+        if favorite_selection_model:
+            favorite_selection_model.blockSignals(True)
+            favorite_selection_model.clearSelection()
+            favorite_selection_model.blockSignals(False)
+
+        # Get food item from main list
+        if self.food_items_list_model:
+            item = self.food_items_list_model.itemFromIndex(current)
+            if item:
+                food_name = self._extract_food_name_from_display(item.text())
+                self._process_food_item_selection(food_name)
 ```
 
 </details>
@@ -3688,6 +4002,8 @@ def _connect_signals(self) -> None:
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
         self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
         self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
+        self.pushButton_check.clicked.connect(self.on_check_problematic_records)
+        self.pushButton_food_manual_name_clear.clicked.connect(self.on_clear_food_manual_name)
 
         # Connect radio buttons and spin boxes for calories calculation
         self.radioButton_use_weight.clicked.connect(self.update_calories_calculation)
@@ -3751,18 +4067,21 @@ Connect selection change signals for all tables.
 
 ```python
 def _connect_table_selection_signals(self) -> None:
-        # Connect food items list selection
+        # Connect food items list selection with separate handlers
         selection_model = self.listView_food_items.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+            selection_model.currentChanged.connect(self.on_main_food_item_selection_changed)
 
-        # Connect favorite food items list selection
+        # Connect favorite food items list selection with separate handler
         selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+            selection_model.currentChanged.connect(self.on_favorite_food_item_selection_changed)
 
         # Connect food items list double click
         self.listView_food_items.doubleClicked.connect(self.on_food_item_double_clicked)
+
+        # Connect favorite food items list double click
+        self.listView_favorite_food_items.doubleClicked.connect(self.on_food_item_double_clicked)
 
         # Connect food log table cell click
         self.tableView_food_log.clicked.connect(self.on_food_log_table_cell_clicked)
@@ -4069,6 +4388,42 @@ def _dispose_models(self) -> None:
 
 </details>
 
+### ⚙️ Method `_extract_food_name_from_display`
+
+```python
+def _extract_food_name_from_display(self, display_text: str) -> str
+```
+
+Extract food name from display text (remove calories info).
+
+Args:
+
+- `display_text` (`str`): Display text that may contain calories info.
+
+Returns:
+
+- `str`: Clean food name without calories info.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _extract_food_name_from_display(self, display_text: str) -> str:
+        if not display_text:
+            return ""
+
+        # Remove calories info in parentheses at the end
+        # Pattern: " (XXX kcal/порция)" or " (XXX kcal/100g)"
+        import re
+
+        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:порция|100g)\)$"
+        clean_name = re.sub(pattern, "", display_text)
+
+        return clean_name.strip()
+```
+
+</details>
+
 ### ⚙️ Method `_filter_food_items`
 
 ```python
@@ -4136,42 +4491,129 @@ def _finish_window_initialization(self) -> None:
 
 </details>
 
+### ⚙️ Method `_format_food_name_with_calories`
+
+```python
+def _format_food_name_with_calories(self, food_name: str, calories_per_100g: float | None, default_portion_calories: float | None) -> str
+```
+
+Format food name with calories information in parentheses.
+
+Args:
+
+- `food_name` (`str`): The food item name.
+- `calories_per_100g` (`float | None`): Calories per 100g.
+- `default_portion_calories` (`float | None`): Default portion calories.
+
+Returns:
+
+- `str`: Formatted food name with calories info.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_food_name_with_calories(
+        self, food_name: str, calories_per_100g: float | None, default_portion_calories: float | None
+    ) -> str:
+        if not food_name:
+            return food_name
+
+        # Helper function to safely convert to float
+        def safe_float(value) -> float | None:
+            if value is None:
+                return None
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return None
+
+        # Convert values to float safely
+        cal_100g = safe_float(calories_per_100g)
+        portion_cal = safe_float(default_portion_calories)
+
+        # Determine which calories to show
+        calories_info = ""
+
+        if portion_cal is not None:
+            # Show portion calories if available (including zero)
+            calories_info = f"({portion_cal:.0f} kcal/порция)"
+        elif cal_100g is not None:
+            # Show calories per 100g if no portion calories (including zero)
+            calories_info = f"({cal_100g:.0f} kcal/100g)"
+
+        if calories_info:
+            return f"{food_name} {calories_info}"
+        else:
+            return food_name
+```
+
+</details>
+
 ### ⚙️ Method `_get_current_selected_food_item`
 
 ```python
-def _get_current_selected_food_item(self) -> str | None
+def _get_current_selected_food_item(self) -> tuple[str | None, str]
 ```
 
 Get the currently selected food item from either list view.
 
 Returns:
 
-- `str | None`: The name of the selected food item, or None if nothing is selected.
+- `tuple[str | None, str]`: Tuple of (food_name, source_list) where source_list is either "main" or "favorite".
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _get_current_selected_food_item(self) -> str | None:
-        # Check main food items list first
-        selection_model = self.listView_food_items.selectionModel()
-        if selection_model and self.food_items_list_model:
-            current_index = selection_model.currentIndex()
-            if current_index.isValid():
-                item = self.food_items_list_model.itemFromIndex(current_index)
-                if item:
-                    return item.text()
+def _get_current_selected_food_item(self) -> tuple[str | None, str]:
+        # Check which widget currently has focus or was last clicked
+        focused_widget = QApplication.focusWidget()
 
-        # Check favorite food items list if nothing selected in main list
+        # Check favorite food items list first if it has focus
+        if focused_widget == self.listView_favorite_food_items:
+            selection_model = self.listView_favorite_food_items.selectionModel()
+            if selection_model and self.favorite_food_items_list_model:
+                current_index = selection_model.currentIndex()
+                if current_index.isValid():
+                    item = self.favorite_food_items_list_model.itemFromIndex(current_index)
+                    if item:
+                        food_name = self._extract_food_name_from_display(item.text())
+                        return food_name, "favorite"
+
+        # Check main food items list if it has focus
+        elif focused_widget == self.listView_food_items:
+            selection_model = self.listView_food_items.selectionModel()
+            if selection_model and self.food_items_list_model:
+                current_index = selection_model.currentIndex()
+                if current_index.isValid():
+                    item = self.food_items_list_model.itemFromIndex(current_index)
+                    if item:
+                        food_name = self._extract_food_name_from_display(item.text())
+                        return food_name, "main"
+
+        # Fallback: check both lists for current selection
+        # Check favorite food items list first
         selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model and self.favorite_food_items_list_model:
             current_index = selection_model.currentIndex()
             if current_index.isValid():
                 item = self.favorite_food_items_list_model.itemFromIndex(current_index)
                 if item:
-                    return item.text()
+                    food_name = self._extract_food_name_from_display(item.text())
+                    return food_name, "favorite"
 
-        return None
+        # Check main food items list if nothing selected in favorite list
+        selection_model = self.listView_food_items.selectionModel()
+        if selection_model and self.food_items_list_model:
+            current_index = selection_model.currentIndex()
+            if current_index.isValid():
+                item = self.food_items_list_model.itemFromIndex(current_index)
+                if item:
+                    food_name = self._extract_food_name_from_display(item.text())
+                    return food_name, "main"
+
+        return None, ""
 ```
 
 </details>
@@ -4312,7 +4754,7 @@ def _init_favorite_food_items_list(self) -> None:
         # Connect selection change signal after model is set
         selection_model = self.listView_favorite_food_items.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+            selection_model.currentChanged.connect(self.on_favorite_food_item_selection_changed)
 ```
 
 </details>
@@ -4336,7 +4778,7 @@ def _init_food_items_list(self) -> None:
         # Connect selection change signal after model is set
         selection_model = self.listView_food_items.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_food_item_selection_changed)
+            selection_model.currentChanged.connect(self.on_main_food_item_selection_changed)
 ```
 
 </details>
@@ -4614,6 +5056,138 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
 
 </details>
 
+### ⚙️ Method `_process_food_item_selection`
+
+```python
+def _process_food_item_selection(self, food_name: str) -> None
+```
+
+Process food item selection and populate form fields.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _process_food_item_selection(self, food_name: str) -> None:
+        if not food_name:
+            return
+
+        # Check if database manager is available and connection is open
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # First try to get food item data from food_items table
+            food_item_data = self.db_manager.get_food_item_by_name(food_name)
+
+            if food_item_data:
+                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                (
+                    food_id,
+                    name,
+                    name_en,
+                    is_drink,
+                    calories_per_100g,
+                    default_portion_weight,
+                    default_portion_calories,
+                ) = food_item_data
+
+                # Populate groupBox_food_add fields (food log record form)
+                self.lineEdit_food_manual_name.setText(name)
+                self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
+                self.checkBox_food_is_drink.setChecked(is_drink == 1)
+
+                # Determine radio button state based on default_portion_calories
+                if default_portion_calories and default_portion_calories > 0:
+                    # Use portion calories mode
+                    self.radioButton_use_calories.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(default_portion_calories)
+                else:
+                    # Use weight mode
+                    self.radioButton_use_weight.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+
+                # Populate groupBox_food_items fields (food item form)
+                self.lineEdit_food_name.setText(name)
+                self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                self.checkBox_is_drink.setChecked(is_drink == 1)
+                self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                self.spinBox_food_default_weight.setValue(
+                    int(default_portion_weight) if default_portion_weight else 100
+                )
+                self.doubleSpinBox_food_default_cal.setValue(
+                    default_portion_calories if default_portion_calories else 0
+                )
+
+            else:
+                # If not found in food_items, try to get from food_log (for popular items)
+                food_log_data = self.db_manager.get_food_log_item_by_name(food_name)
+
+                if food_log_data:
+                    # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
+                    name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
+
+                    # Populate groupBox_food_add fields (food log record form)
+                    self.lineEdit_food_manual_name.setText(name)
+                    self.spinBox_food_weight.setValue(int(weight) if weight else 100)
+                    self.checkBox_food_is_drink.setChecked(is_drink == 1)
+
+                    # Determine radio button state based on portion_calories
+                    if portion_calories and portion_calories > 0:
+                        # Use portion calories mode
+                        self.radioButton_use_calories.setChecked(True)
+                        self.doubleSpinBox_food_calories.setValue(portion_calories)
+                    else:
+                        # Use weight mode
+                        self.radioButton_use_weight.setChecked(True)
+                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+
+                    # Populate groupBox_food_items fields (food item form)
+                    self.lineEdit_food_name.setText(name)
+                    self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                    self.checkBox_is_drink.setChecked(is_drink == 1)
+                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                    self.spinBox_food_default_weight.setValue(int(weight) if weight else 100)
+                    self.doubleSpinBox_food_default_cal.setValue(portion_calories if portion_calories else 0)
+
+                else:
+                    # If not found in either table, just set the name
+                    self.lineEdit_food_manual_name.setText(food_name)
+                    self.lineEdit_food_name.setText(food_name)
+                    # Reset other fields to defaults
+                    self.spinBox_food_weight.setValue(100)
+                    self.checkBox_food_is_drink.setChecked(False)
+                    self.radioButton_use_weight.setChecked(True)
+                    self.doubleSpinBox_food_calories.setValue(0)
+                    self.lineEdit_food_name_en.setText("")
+                    self.checkBox_is_drink.setChecked(False)
+                    self.doubleSpinBox_food_cal100.setValue(0)
+                    self.spinBox_food_default_weight.setValue(100)
+                    self.doubleSpinBox_food_default_cal.setValue(0)
+
+            # Update calories calculation
+            self.update_calories_calculation()
+
+            # Move focus to weight spinbox and select all text after selection
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
+
+        except Exception as e:
+            print(f"Error in food item selection: {e}")
+            # In case of error, at least set the name and move focus
+            self.lineEdit_food_manual_name.setText(food_name)
+            self.lineEdit_food_name.setText(food_name)
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
+```
+
+</details>
+
 ### ⚙️ Method `_process_text_input`
 
 ```python
@@ -4637,7 +5211,9 @@ def _process_text_input(self, text: str) -> None:
 
         # Create parser and parse text
         parser = TextParser()
-        parsed_items = parser.parse_text(text, self, self.db_manager)
+        # Use date from dateEdit_food as default date
+        default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
+        parsed_items = parser.parse_text(text, self, self.db_manager, default_date)
 
         if not parsed_items:
             QMessageBox.information(self, "No Items", "No valid food items found in the text.")
@@ -4650,8 +5226,10 @@ def _process_text_input(self, text: str) -> None:
 
         for item in parsed_items:
             try:
+                # Use date from dateEdit_food if no date specified in text
+                default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
                 success = self.db_manager.add_food_log_record(
-                    date=item.food_date or date.today().strftime("%Y-%m-%d"),
+                    date=item.food_date or default_date,
                     calories_per_100g=item.calories_per_100g,
                     name=item.name,
                     weight=item.weight,
@@ -4741,6 +5319,8 @@ def _setup_ui(self) -> None:
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
+        self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
+        self.pushButton_food_manual_name_clear.setText(f"🧹")
 
         # Set emoji for food stats buttons
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
@@ -4980,8 +5560,8 @@ def _update_favorite_food_items_list(self) -> None:
             return
 
         try:
-            # Get popular food items from recent records (top 22)
-            popular_food_items = self.db_manager.get_popular_food_items(500)[:22]
+            # Get popular food items with calories data (top 22)
+            popular_food_items_data = self.db_manager.get_popular_food_items_with_calories(500)[:22]
 
             # Block signals during model update
             selection_model = self.listView_favorite_food_items.selectionModel()
@@ -4991,8 +5571,17 @@ def _update_favorite_food_items_list(self) -> None:
             # Update favorite food items list model
             if self.favorite_food_items_list_model is not None:
                 self.favorite_food_items_list_model.clear()
-                for food_name in popular_food_items:
-                    item = QStandardItem(food_name)
+                for food_item_row in popular_food_items_data:
+                    # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                    food_name = food_item_row[1]  # name is at index 1
+                    calories_per_100g = food_item_row[4]
+                    default_portion_calories = food_item_row[6]
+
+                    # Format display name with calories info
+                    display_name = self._format_food_name_with_calories(
+                        food_name, calories_per_100g, default_portion_calories
+                    )
+                    item = QStandardItem(display_name)
                     self.favorite_food_items_list_model.appendRow(item)
 
             # Unblock signals
@@ -5113,7 +5702,14 @@ def _update_food_items_list(self) -> None:
                 for food_item_row in food_items_data:
                     # food_item_row format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                     food_name = food_item_row[1]  # name is at index 1
-                    item = QStandardItem(food_name)
+                    calories_per_100g = food_item_row[4]
+                    default_portion_calories = food_item_row[6]
+
+                    # Format display name with calories info
+                    display_name = self._format_food_name_with_calories(
+                        food_name, calories_per_100g, default_portion_calories
+                    )
+                    item = QStandardItem(display_name)
                     self.food_items_list_model.appendRow(item)
 
             # Unblock signals
@@ -5259,6 +5855,131 @@ def _update_food_log_table(self) -> None:
 
 </details>
 
+### ⚙️ Method `_update_food_log_table_with_data`
+
+```python
+def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> None
+```
+
+Update the food log table with specific data.
+
+Args:
+
+- `food_log_rows` (`list[list[Any]]`): Raw food log data to display.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> None:
+        if not self._validate_database_connection():
+            print("Database connection not available for updating food log table")
+            return
+
+        try:
+
+            def transform_food_log_data(rows: list[list]) -> list[list]:
+                """Transform food_log data with coloring.
+
+                Args:
+                    rows (list[list]): Raw food_log data from database.
+
+                Returns:
+                    list[list]: Transformed food_log data.
+                """
+                # Get all unique dates and assign colors
+                unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
+                date_to_color = {}
+
+                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
+                    color_index = idx % len(self.date_colors)
+                    date_to_color[date_str] = self.date_colors[color_index]
+
+                # Transform data and add color information
+                transformed_rows = []
+                for row in rows:
+                    # Original transformation:
+                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
+                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+
+                    # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
+                    if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
+                        calories_per_100g_display = ""
+                    else:
+                        calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
+
+                    # Calculate total calories
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        # Use portion calories directly
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        # Calculate from weight and calories per 100g
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    transformed_row = [
+                        row[5],
+                        "1" if row[7] == 1 else "",
+                        row[2],
+                        calories_per_100g_display,
+                        portion_calories,
+                        f"{calculated_calories:.1f}",
+                        row[1],
+                        row[6],
+                    ]
+
+                    # Add color information based on date
+                    date_str = row[1]
+                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
+
+                    # Add original ID and color to the row for later use
+                    transformed_row.extend(
+                        [row[0], date_color]
+                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_rows.append(transformed_row)
+
+                return transformed_rows
+
+            transformed_food_log_data = transform_food_log_data(food_log_rows)
+
+            # Create food_log table model with coloring
+            self.models["food_log"] = self._create_colored_food_log_table_model(
+                transformed_food_log_data, self.table_config["food_log"][2]
+            )
+            self.tableView_food_log.setModel(self.models["food_log"])
+
+            # Enable editing for the table
+            self.tableView_food_log.setEditTriggers(
+                QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
+            )
+
+            # Configure food_log table header - interactive mode for all columns
+            food_log_header = self.tableView_food_log.horizontalHeader()
+            # Set all columns to interactive (resizable)
+            for i in range(food_log_header.count()):
+                food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
+            # Set proportional column widths for all columns
+            self._adjust_food_log_table_columns()
+
+            # Connect selection change signals after models are set
+            self._connect_table_selection_signals()
+
+            # Connect auto-save signals after all models are created
+            self._connect_table_auto_save_signals()
+
+        except Exception as e:
+            print(f"Error updating food log table: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to update food log table: {e}")
+```
+
+</details>
+
 ### ⚙️ Method `_update_food_weight_chart`
 
 ```python
@@ -5308,7 +6029,7 @@ def _update_food_weight_chart(self) -> None:
 
             # Create chart configuration
             chart_config = {
-                "title": f"Food Weight Consumed ({period})",
+                "title": f"Food Weight Consumed (excluding drinks) ({period})",
                 "xlabel": "Date",
                 "ylabel": "Weight (kg)",
                 "color": "green",
