@@ -7,6 +7,7 @@ SQLite database with food items and food log records.
 from __future__ import annotations
 
 import sys
+from datetime import date
 from functools import partial
 from pathlib import Path
 
@@ -25,6 +26,8 @@ from harrix_swiss_knife.food.mixins import (
     ValidationOperations,
     requires_database,
 )
+from harrix_swiss_knife.food.text_input_dialog import TextInputDialog
+from harrix_swiss_knife.food.text_parser import TextParser
 
 config = h.dev.load_config("config/config.json")
 
@@ -276,6 +279,21 @@ class MainWindow(
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
+
+    def on_add_as_text(self) -> None:
+        """Open text input dialog and process entered food items."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Error", "Database connection not available")
+            return
+
+        # Create and show the text input dialog
+        dialog = TextInputDialog(self)
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            text = dialog.get_text()
+            if text:
+                self._process_text_input(text)
 
     @requires_database()
     def on_add_food_item(self) -> None:
@@ -999,6 +1017,7 @@ class MainWindow(
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
         self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
+        self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
 
         # Connect radio buttons and spin boxes for calories calculation
         self.radioButton_use_weight.clicked.connect(self.update_calories_calculation)
@@ -1664,6 +1683,62 @@ class MainWindow(
         except Exception as e:
             print(f"Error populating form from food name: {e}")
 
+    def _process_text_input(self, text: str) -> None:
+        """Process text input and add food items to database.
+
+        Args:
+
+        - `text` (`str`): Text input to process.
+
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Create parser and parse text
+        parser = TextParser()
+        parsed_items = parser.parse_text(text, self, self.db_manager)
+
+        if not parsed_items:
+            QMessageBox.information(self, "No Items", "No valid food items found in the text.")
+            return
+
+        # Add items to database
+        success_count = 0
+        error_count = 0
+        error_messages = []
+
+        for item in parsed_items:
+            try:
+                success = self.db_manager.add_food_log_record(
+                    date=item.food_date or date.today().strftime("%Y-%m-%d"),
+                    calories_per_100g=item.calories_per_100g,
+                    name=item.name,
+                    weight=item.weight,
+                    portion_calories=item.portion_calories,
+                    is_drink=item.is_drink,
+                )
+                if success:
+                    success_count += 1
+                else:
+                    error_count += 1
+                    error_messages.append(f"Failed to add: {item.name}")
+            except Exception as e:
+                error_count += 1
+                error_messages.append(f"Error adding {item.name}: {e}")
+
+        # Show results
+        if success_count > 0:
+            self.update_food_data()
+
+        if error_count > 0:
+            error_text = f"Added {success_count} items successfully.\n\nErrors:\n" + "\n".join(error_messages[:10])
+            if len(error_messages) > 10:
+                error_text += f"\n... and {len(error_messages) - 10} more errors"
+            QMessageBox.warning(self, "Results", error_text)
+        else:
+            QMessageBox.information(self, "Success", f"Successfully added {success_count} food items.")
+
     def _setup_autocomplete(self) -> None:
         """Setup autocomplete functionality for food name input."""
         from PySide6.QtCore import QStringListModel, Qt
@@ -1697,6 +1772,7 @@ class MainWindow(
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
+        self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
 
         # Set emoji for food stats buttons
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
