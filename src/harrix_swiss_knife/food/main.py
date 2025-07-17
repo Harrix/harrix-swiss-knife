@@ -928,6 +928,7 @@ class MainWindow(
         self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
         self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
         self.pushButton_check.clicked.connect(self.on_check_problematic_records)
+        self.pushButton_food_manual_name_clear.clicked.connect(self.on_clear_food_manual_name)
 
         # Connect radio buttons and spin boxes for calories calculation
         self.radioButton_use_weight.clicked.connect(self.update_calories_calculation)
@@ -1719,6 +1720,7 @@ class MainWindow(
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
+        self.pushButton_food_manual_name_clear.setText(f"🧹")
 
         # Set emoji for food stats buttons
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
@@ -2590,6 +2592,12 @@ class MainWindow(
             self.lineEdit_food_name.setText(food_name)
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
+
+    def on_clear_food_manual_name(self) -> None:
+        """Clear the food manual name input field."""
+        self.lineEdit_food_manual_name.clear()
+        # Move focus back to the cleared field
+        self.lineEdit_food_manual_name.setFocus()
 
 
 if __name__ == "__main__":

@@ -63,6 +63,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_manual_name.addWidget(self.lineEdit_food_manual_name)
 
+        self.pushButton_food_manual_name_clear = QPushButton(self.groupBox_food_add)
+        self.pushButton_food_manual_name_clear.setObjectName(u"pushButton_food_manual_name_clear")
+        self.pushButton_food_manual_name_clear.setMaximumSize(QSize(32, 16777215))
+
+        self.horizontalLayout_food_manual_name.addWidget(self.pushButton_food_manual_name_clear)
+
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_manual_name)
 
@@ -550,6 +556,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Food tracker", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name (optional if selected from list)", None))
+        self.pushButton_food_manual_name_clear.setText("")
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal", None))
         self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"Drink", None))
