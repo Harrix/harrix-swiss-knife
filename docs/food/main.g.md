@@ -1534,49 +1534,67 @@ class MainWindow(
         Attempts to open the database file specified in the configuration.
         If the file doesn't exist, tries to create it from recover.sql file located
         in the application directory.
+        If the file exists but doesn't contain the required table (food_log),
+        creates the missing table from recover.sql.
         If creation fails or no database is available, prompts the user to select a database file.
         If no database is selected or an error occurs, the application exits.
         """
         filename = Path(config["sqlite_fitness"])
 
-        if not filename.exists():
-            # Try to create database from recover.sql in application directory
-            app_dir = Path(__file__).parent  # Directory where this script is located
-            recover_sql_path = app_dir / "recover.sql"
+        # Try to open existing database first
+        if filename.exists():
+            try:
+                temp_db_manager = database_manager.DatabaseManager(str(filename))
 
-            if recover_sql_path.exists():
-                print(f"Database not found at {filename}")
-                print(f"Attempting to create database from {recover_sql_path}")
-
-                if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
-                    print("Database created successfully from recover.sql")
+                # Check if food_log table exists
+                if temp_db_manager.table_exists("food_log"):
+                    print(f"Database opened successfully: {filename}")
+                    self.db_manager = temp_db_manager
+                    return
                 else:
-                    QMessageBox.warning(
-                        self,
-                        "Database Creation Failed",
-                        f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
-                    )
-            else:
-                QMessageBox.information(
-                    self,
-                    "Database Not Found",
-                    f"Database file not found: {filename}\n"
-                    f"recover.sql file not found: {recover_sql_path}\n"
-                    "Please select an existing database file.",
-                )
+                    print(f"Database exists but food_log table is missing at {filename}")
+                    temp_db_manager.close()
+            except Exception as e:
+                print(f"Failed to open existing database: {e}")
+                # Continue to create new database
 
-            # If database still doesn't exist, ask user to select one
-            if not filename.exists():
-                filename_str, _ = QFileDialog.getOpenFileName(
+        # Database doesn't exist or is missing required table - create from recover.sql
+        app_dir = Path(__file__).parent  # Directory where this script is located
+        recover_sql_path = app_dir / "recover.sql"
+
+        if recover_sql_path.exists():
+            print(f"Database not found or missing food_log table at {filename}")
+            print(f"Attempting to create database from {recover_sql_path}")
+
+            if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
+                print("Database created successfully from recover.sql")
+            else:
+                QMessageBox.warning(
                     self,
-                    "Open Database",
-                    str(filename.parent),
-                    "SQLite Database (*.db)",
+                    "Database Creation Failed",
+                    f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
                 )
-                if not filename_str:
-                    QMessageBox.critical(self, "Error", "No database selected")
-                    sys.exit(1)
-                filename = Path(filename_str)
+        else:
+            QMessageBox.information(
+                self,
+                "Database Not Found",
+                f"Database file not found: {filename}\n"
+                f"recover.sql file not found: {recover_sql_path}\n"
+                "Please select an existing database file.",
+            )
+
+        # If database still doesn't exist, ask user to select one
+        if not filename.exists():
+            filename_str, _ = QFileDialog.getOpenFileName(
+                self,
+                "Open Database",
+                str(filename.parent),
+                "SQLite Database (*.db)",
+            )
+            if not filename_str:
+                QMessageBox.critical(self, "Error", "No database selected")
+                sys.exit(1)
+            filename = Path(filename_str)
 
         try:
             self.db_manager = database_manager.DatabaseManager(
@@ -2052,6 +2070,23 @@ class MainWindow(
 
         # Set focus to the food name input field for quick data entry
         self.lineEdit_food_manual_name.setFocus()
+
+        # Set tab order for groupBox_food_add so that pushButton_food_manual_name_clear is last
+        # Current order: lineEdit_food_manual_name -> pushButton_food_manual_name_clear -> spinBox_food_weight -> ...
+        # Desired order: lineEdit_food_manual_name -> spinBox_food_weight -> ... -> pushButton_food_manual_name_clear
+
+        # Set tab order to make pushButton_food_manual_name_clear the last element
+        from PySide6.QtWidgets import QWidget
+
+        QWidget.setTabOrder(self.lineEdit_food_manual_name, self.spinBox_food_weight)
+        QWidget.setTabOrder(self.spinBox_food_weight, self.doubleSpinBox_food_calories)
+        QWidget.setTabOrder(self.doubleSpinBox_food_calories, self.checkBox_food_is_drink)
+        QWidget.setTabOrder(self.checkBox_food_is_drink, self.radioButton_use_weight)
+        QWidget.setTabOrder(self.radioButton_use_weight, self.radioButton_use_calories)
+        QWidget.setTabOrder(self.radioButton_use_calories, self.dateEdit_food)
+        QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_yesterday)
+        QWidget.setTabOrder(self.pushButton_food_yesterday, self.pushButton_food_add)
+        QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
@@ -4667,6 +4702,8 @@ Open the SQLite file from `config` (create from recover.sql if missing).
 Attempts to open the database file specified in the configuration.
 If the file doesn't exist, tries to create it from recover.sql file located
 in the application directory.
+If the file exists but doesn't contain the required table (food_log),
+creates the missing table from recover.sql.
 If creation fails or no database is available, prompts the user to select a database file.
 If no database is selected or an error occurs, the application exits.
 
@@ -4677,44 +4714,60 @@ If no database is selected or an error occurs, the application exits.
 def _init_database(self) -> None:
         filename = Path(config["sqlite_fitness"])
 
-        if not filename.exists():
-            # Try to create database from recover.sql in application directory
-            app_dir = Path(__file__).parent  # Directory where this script is located
-            recover_sql_path = app_dir / "recover.sql"
+        # Try to open existing database first
+        if filename.exists():
+            try:
+                temp_db_manager = database_manager.DatabaseManager(str(filename))
 
-            if recover_sql_path.exists():
-                print(f"Database not found at {filename}")
-                print(f"Attempting to create database from {recover_sql_path}")
-
-                if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
-                    print("Database created successfully from recover.sql")
+                # Check if food_log table exists
+                if temp_db_manager.table_exists("food_log"):
+                    print(f"Database opened successfully: {filename}")
+                    self.db_manager = temp_db_manager
+                    return
                 else:
-                    QMessageBox.warning(
-                        self,
-                        "Database Creation Failed",
-                        f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
-                    )
-            else:
-                QMessageBox.information(
-                    self,
-                    "Database Not Found",
-                    f"Database file not found: {filename}\n"
-                    f"recover.sql file not found: {recover_sql_path}\n"
-                    "Please select an existing database file.",
-                )
+                    print(f"Database exists but food_log table is missing at {filename}")
+                    temp_db_manager.close()
+            except Exception as e:
+                print(f"Failed to open existing database: {e}")
+                # Continue to create new database
 
-            # If database still doesn't exist, ask user to select one
-            if not filename.exists():
-                filename_str, _ = QFileDialog.getOpenFileName(
+        # Database doesn't exist or is missing required table - create from recover.sql
+        app_dir = Path(__file__).parent  # Directory where this script is located
+        recover_sql_path = app_dir / "recover.sql"
+
+        if recover_sql_path.exists():
+            print(f"Database not found or missing food_log table at {filename}")
+            print(f"Attempting to create database from {recover_sql_path}")
+
+            if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
+                print("Database created successfully from recover.sql")
+            else:
+                QMessageBox.warning(
                     self,
-                    "Open Database",
-                    str(filename.parent),
-                    "SQLite Database (*.db)",
+                    "Database Creation Failed",
+                    f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
                 )
-                if not filename_str:
-                    QMessageBox.critical(self, "Error", "No database selected")
-                    sys.exit(1)
-                filename = Path(filename_str)
+        else:
+            QMessageBox.information(
+                self,
+                "Database Not Found",
+                f"Database file not found: {filename}\n"
+                f"recover.sql file not found: {recover_sql_path}\n"
+                "Please select an existing database file.",
+            )
+
+        # If database still doesn't exist, ask user to select one
+        if not filename.exists():
+            filename_str, _ = QFileDialog.getOpenFileName(
+                self,
+                "Open Database",
+                str(filename.parent),
+                "SQLite Database (*.db)",
+            )
+            if not filename_str:
+                QMessageBox.critical(self, "Error", "No database selected")
+                sys.exit(1)
+            filename = Path(filename_str)
 
         try:
             self.db_manager = database_manager.DatabaseManager(
@@ -5350,6 +5403,23 @@ def _setup_ui(self) -> None:
 
         # Set focus to the food name input field for quick data entry
         self.lineEdit_food_manual_name.setFocus()
+
+        # Set tab order for groupBox_food_add so that pushButton_food_manual_name_clear is last
+        # Current order: lineEdit_food_manual_name -> pushButton_food_manual_name_clear -> spinBox_food_weight -> ...
+        # Desired order: lineEdit_food_manual_name -> spinBox_food_weight -> ... -> pushButton_food_manual_name_clear
+
+        # Set tab order to make pushButton_food_manual_name_clear the last element
+        from PySide6.QtWidgets import QWidget
+
+        QWidget.setTabOrder(self.lineEdit_food_manual_name, self.spinBox_food_weight)
+        QWidget.setTabOrder(self.spinBox_food_weight, self.doubleSpinBox_food_calories)
+        QWidget.setTabOrder(self.doubleSpinBox_food_calories, self.checkBox_food_is_drink)
+        QWidget.setTabOrder(self.checkBox_food_is_drink, self.radioButton_use_weight)
+        QWidget.setTabOrder(self.radioButton_use_weight, self.radioButton_use_calories)
+        QWidget.setTabOrder(self.radioButton_use_calories, self.dateEdit_food)
+        QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_yesterday)
+        QWidget.setTabOrder(self.pushButton_food_yesterday, self.pushButton_food_add)
+        QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
 ```
 
 </details>

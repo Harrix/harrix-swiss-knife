@@ -45,6 +45,7 @@ lang: en
   - [⚙️ Method `get_recent_food_names_for_autocomplete`](#%EF%B8%8F-method-get_recent_food_names_for_autocomplete)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
+  - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `update_food_item`](#%EF%B8%8F-method-update_food_item)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
@@ -973,6 +974,29 @@ class DatabaseManager:
 
         """
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
+
+    def table_exists(self, table_name: str) -> bool:
+        """Check if a table exists in the database.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table to check.
+
+        Returns:
+
+        - `bool`: True if table exists, False otherwise.
+
+        """
+        if not self.is_database_open():
+            return False
+
+        query = self.execute_query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
+        )
+
+        if query and query.next():
+            return True
+        return False
 
     def update_food_item(
         self,
@@ -2467,6 +2491,41 @@ Returns:
 ```python
 def is_database_open(self) -> bool:
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
+```
+
+</details>
+
+### ⚙️ Method `table_exists`
+
+```python
+def table_exists(self, table_name: str) -> bool
+```
+
+Check if a table exists in the database.
+
+Args:
+
+- `table_name` (`str`): Name of the table to check.
+
+Returns:
+
+- `bool`: True if table exists, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def table_exists(self, table_name: str) -> bool:
+        if not self.is_database_open():
+            return False
+
+        query = self.execute_query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
+        )
+
+        if query and query.next():
+            return True
+        return False
 ```
 
 </details>

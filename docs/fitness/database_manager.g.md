@@ -59,6 +59,7 @@ lang: en
   - [⚙️ Method `get_weight_chart_data`](#%EF%B8%8F-method-get_weight_chart_data)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
   - [⚙️ Method `is_exercise_type_required`](#%EF%B8%8F-method-is_exercise_type_required)
+  - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `update_exercise`](#%EF%B8%8F-method-update_exercise)
   - [⚙️ Method `update_exercise_type`](#%EF%B8%8F-method-update_exercise_type)
   - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
@@ -1270,6 +1271,29 @@ class DatabaseManager:
         """
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
+
+    def table_exists(self, table_name: str) -> bool:
+        """Check if a table exists in the database.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table to check.
+
+        Returns:
+
+        - `bool`: True if table exists, False otherwise.
+
+        """
+        if not self.is_database_open():
+            return False
+
+        query = self.execute_query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
+        )
+
+        if query and query.next():
+            return True
+        return False
 
     def update_exercise(
         self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0
@@ -3218,6 +3242,41 @@ Returns:
 def is_exercise_type_required(self, exercise_id: int) -> bool:
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
+```
+
+</details>
+
+### ⚙️ Method `table_exists`
+
+```python
+def table_exists(self, table_name: str) -> bool
+```
+
+Check if a table exists in the database.
+
+Args:
+
+- `table_name` (`str`): Name of the table to check.
+
+Returns:
+
+- `bool`: True if table exists, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def table_exists(self, table_name: str) -> bool:
+        if not self.is_database_open():
+            return False
+
+        query = self.execute_query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
+        )
+
+        if query and query.next():
+            return True
+        return False
 ```
 
 </details>

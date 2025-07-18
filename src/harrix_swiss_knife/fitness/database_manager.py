@@ -1207,6 +1207,29 @@ class DatabaseManager:
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
 
+    def table_exists(self, table_name: str) -> bool:
+        """Check if a table exists in the database.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table to check.
+
+        Returns:
+
+        - `bool`: True if table exists, False otherwise.
+
+        """
+        if not self.is_database_open():
+            return False
+
+        query = self.execute_query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
+        )
+
+        if query and query.next():
+            return True
+        return False
+
     def update_exercise(
         self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0
     ) -> bool:

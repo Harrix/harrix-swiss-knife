@@ -925,6 +925,29 @@ class DatabaseManager:
         """
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
 
+    def table_exists(self, table_name: str) -> bool:
+        """Check if a table exists in the database.
+
+        Args:
+
+        - `table_name` (`str`): Name of the table to check.
+
+        Returns:
+
+        - `bool`: True if table exists, False otherwise.
+
+        """
+        if not self.is_database_open():
+            return False
+
+        query = self.execute_query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
+        )
+
+        if query and query.next():
+            return True
+        return False
+
     def update_food_item(
         self,
         food_item_id: int,
