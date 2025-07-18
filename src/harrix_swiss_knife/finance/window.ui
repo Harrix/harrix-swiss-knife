@@ -33,46 +33,6 @@
                     <property name="childrenCollapsible">
                       <bool>false</bool>
                     </property>
-                    <widget class="QTableView" name="tableView_transactions" />
-                    <widget class="QWidget" name="widget_middle">
-                      <layout class="QVBoxLayout" name="verticalLayout">
-                        <item>
-                          <widget class="QLabel" name="label_categories">
-                            <property name="text">
-                              <string>Categories:</string>
-                            </property>
-                          </widget>
-                        </item>
-                        <item>
-                          <widget class="QListView" name="listView_categories">
-                            <property name="maximumSize">
-                              <size>
-                                <width>16777215</width>
-                                <height>16777215</height>
-                              </size>
-                            </property>
-                            <property name="styleSheet">
-                              <string notr="true">QListView {
-                                border: 2px solid #4CAF50;
-                                border-radius: 4px;
-                                background-color: white;
-                                }
-                                QListView::item {
-                                padding: 4px;
-                                border-bottom: 1px solid #e0e0e0;
-                                }
-                                QListView::item:selected {
-                                background-color: #e8f5e8;
-                                color: black;
-                                }
-                                QListView::item:hover {
-                                background-color: #f0f8f0;
-                                }</string>
-                            </property>
-                          </widget>
-                        </item>
-                      </layout>
-                    </widget>
                     <widget class="QFrame" name="frame">
                       <property name="minimumSize">
                         <size>
@@ -550,6 +510,46 @@
                         </item>
                       </layout>
                     </widget>
+                    <widget class="QWidget" name="widget_middle">
+                      <layout class="QVBoxLayout" name="verticalLayout">
+                        <item>
+                          <widget class="QLabel" name="label_categories">
+                            <property name="text">
+                              <string>Categories:</string>
+                            </property>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QListView" name="listView_categories">
+                            <property name="maximumSize">
+                              <size>
+                                <width>16777215</width>
+                                <height>16777215</height>
+                              </size>
+                            </property>
+                            <property name="styleSheet">
+                              <string notr="true">QListView {
+                                border: 2px solid #4CAF50;
+                                border-radius: 4px;
+                                background-color: white;
+                                }
+                                QListView::item {
+                                padding: 4px;
+                                border-bottom: 1px solid #e0e0e0;
+                                }
+                                QListView::item:selected {
+                                background-color: #e8f5e8;
+                                color: black;
+                                }
+                                QListView::item:hover {
+                                background-color: #f0f8f0;
+                                }</string>
+                            </property>
+                          </widget>
+                        </item>
+                      </layout>
+                    </widget>
+                    <widget class="QTableView" name="tableView_transactions" />
                   </widget>
                 </item>
               </layout>
