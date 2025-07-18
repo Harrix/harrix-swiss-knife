@@ -46,7 +46,6 @@ CREATE TABLE "transactions" (
     "_id_currencies" INTEGER NOT NULL,
     "_id_accounts" INTEGER, -- может быть NULL для некоторых типов транзакций
     "date" TEXT NOT NULL,
-    "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY("_id_categories") REFERENCES "categories"("_id"),
     FOREIGN KEY("_id_currencies") REFERENCES "currencies"("_id"),
     FOREIGN KEY("_id_accounts") REFERENCES "accounts"("_id")
