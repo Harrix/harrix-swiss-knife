@@ -1991,6 +1991,22 @@ class MainWindow(
         # Set focus to the food name input field for quick data entry
         self.lineEdit_food_manual_name.setFocus()
 
+        # Set tab order for groupBox_food_add so that pushButton_food_manual_name_clear is last
+        # Current order: lineEdit_food_manual_name -> pushButton_food_manual_name_clear -> spinBox_food_weight -> ...
+        # Desired order: lineEdit_food_manual_name -> spinBox_food_weight -> ... -> pushButton_food_manual_name_clear
+
+        # Set tab order to make pushButton_food_manual_name_clear the last element
+        from PySide6.QtWidgets import QWidget
+        QWidget.setTabOrder(self.lineEdit_food_manual_name, self.spinBox_food_weight)
+        QWidget.setTabOrder(self.spinBox_food_weight, self.doubleSpinBox_food_calories)
+        QWidget.setTabOrder(self.doubleSpinBox_food_calories, self.checkBox_food_is_drink)
+        QWidget.setTabOrder(self.checkBox_food_is_drink, self.radioButton_use_weight)
+        QWidget.setTabOrder(self.radioButton_use_weight, self.radioButton_use_calories)
+        QWidget.setTabOrder(self.radioButton_use_calories, self.dateEdit_food)
+        QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_yesterday)
+        QWidget.setTabOrder(self.pushButton_food_yesterday, self.pushButton_food_add)
+        QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
+
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
         screen_geometry = QApplication.primaryScreen().geometry()
