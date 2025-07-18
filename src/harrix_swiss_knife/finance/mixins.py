@@ -223,7 +223,7 @@ class AutoSaveOperations:
 
         # Update database
         if not self.db_manager.update_transaction(
-            int(row_id), transaction_type, amount, currency_id, category_id, account_id, description, date
+            int(row_id), transaction_type, amount, currency_id, category_id, description, date
         ):
             QMessageBox.warning(None, "Database Error", "Failed to save transaction record")
         else:

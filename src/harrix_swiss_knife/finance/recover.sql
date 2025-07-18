@@ -44,11 +44,9 @@ CREATE TABLE "transactions" (
     "description" TEXT NOT NULL,
     "_id_categories" INTEGER NOT NULL,
     "_id_currencies" INTEGER NOT NULL,
-    "_id_accounts" INTEGER, -- может быть NULL для некоторых типов транзакций
     "date" TEXT NOT NULL,
     FOREIGN KEY("_id_categories") REFERENCES "categories"("_id"),
-    FOREIGN KEY("_id_currencies") REFERENCES "currencies"("_id"),
-    FOREIGN KEY("_id_accounts") REFERENCES "accounts"("_id")
+    FOREIGN KEY("_id_currencies") REFERENCES "currencies"("_id")
 );
 
 CREATE TABLE "currency_exchanges" (

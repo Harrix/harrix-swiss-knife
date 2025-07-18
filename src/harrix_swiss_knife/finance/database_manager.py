@@ -125,16 +125,8 @@ class DatabaseManager:
         params = {"code": code, "name": name, "symbol": symbol}
         return self.execute_simple_query(query, params)
 
-    def add_transaction(
-        self,
-        transaction_type: str,
-        amount: float,
-        currency_id: int,
-        category_id: int,
-        account_id: int | None,
-        description: str,
-        date: str,
-    ) -> bool:
+    def add_transaction(self, transaction_type: str, amount: float, currency_id: int, category_id: int,
+                       description: str, date: str) -> bool:
         """Add a new transaction to the database.
 
         Args:
@@ -143,7 +135,6 @@ class DatabaseManager:
         - `amount` (`float`): Transaction amount.
         - `currency_id` (`int`): Currency ID.
         - `category_id` (`int`): Category ID.
-        - `account_id` (`int | None`): Account ID (optional).
         - `description` (`str`): Transaction description.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
@@ -152,14 +143,13 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, _id_accounts, date)
-                   VALUES (:amount, :description, :category_id, :currency_id, :account_id, :date)"""
+        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date)
+                   VALUES (:amount, :description, :category_id, :currency_id, :date)"""
         params = {
             "amount": amount,
             "description": description,
             "category_id": category_id,
             "currency_id": currency_id,
-            "account_id": account_id,
             "date": date,
         }
         return self.execute_simple_query(query, params)
@@ -794,17 +784,8 @@ class DatabaseManager:
         params = {"code": code, "name": name, "symbol": symbol, "id": currency_id}
         return self.execute_simple_query(query, params)
 
-    def update_transaction(
-        self,
-        transaction_id: int,
-        transaction_type: str,
-        amount: float,
-        currency_id: int,
-        category_id: int,
-        account_id: int | None,
-        description: str,
-        date: str,
-    ) -> bool:
+    def update_transaction(self, transaction_id: int, transaction_type: str, amount: float, currency_id: int,
+                          category_id: int, description: str, date: str) -> bool:
         """Update an existing transaction.
 
         Args:
@@ -814,7 +795,6 @@ class DatabaseManager:
         - `amount` (`float`): Transaction amount.
         - `currency_id` (`int`): Currency ID.
         - `category_id` (`int`): Category ID.
-        - `account_id` (`int | None`): Account ID (optional).
         - `description` (`str`): Transaction description.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
@@ -825,14 +805,13 @@ class DatabaseManager:
         """
         query = """UPDATE transactions
                    SET amount = :amount, _id_currencies = :currency_id,
-                       _id_categories = :category_id, _id_accounts = :account_id,
+                       _id_categories = :category_id,
                        description = :description, date = :date
                    WHERE _id = :id"""
         params = {
             "amount": amount,
             "currency_id": currency_id,
             "category_id": category_id,
-            "account_id": account_id,
             "description": description,
             "date": date,
             "id": transaction_id,

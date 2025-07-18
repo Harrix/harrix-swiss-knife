@@ -415,12 +415,6 @@ class MainWindow(
                 QMessageBox.warning(self, "Error", f"Category '{category_name}' not found")
                 return
 
-            # Get account (optional)
-            account_name = self.comboBox_account.currentText()
-            account_id = None
-            if account_name:
-                account_id = self.db_manager.get_id("accounts", "name", account_name)
-
             # Get description
             description = self.lineEdit_description.text().strip()
 
@@ -429,7 +423,7 @@ class MainWindow(
 
             # Use database manager method
             if self.db_manager.add_transaction(
-                transaction_type, amount, currency_id, category_id, account_id, description, date_str
+                transaction_type, amount, currency_id, category_id, description, date_str
             ):
                 # Apply date increment logic
                 self._increment_date_widget(self.dateEdit)
