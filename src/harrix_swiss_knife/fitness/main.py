@@ -595,7 +595,7 @@ class MainWindow(
 
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
-            yesterday = datetime.now(tz=timezone.utc).date() - timedelta(days=1)
+            yesterday = datetime.now().date() - timedelta(days=1)  # Use local time instead of UTC
 
             try:
                 first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
@@ -738,7 +738,7 @@ class MainWindow(
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
         # Calculate date ranges for each month
-        today = datetime.now(tz=timezone.utc)
+        today = datetime.now()  # Use local time instead of UTC
 
         # Get data for each month
         monthly_data = []
@@ -933,7 +933,7 @@ class MainWindow(
         selected_month_index = self.comboBox_compare_same_months.currentIndex()
         selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
 
-        today = datetime.now(tz=timezone.utc)
+        today = datetime.now()  # Use local time instead of UTC
         selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
@@ -1476,7 +1476,7 @@ class MainWindow(
                 return
 
             # Calculate date one year ago
-            one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
+            one_year_ago = datetime.now() - timedelta(days=365)  # Use local time instead of UTC
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Group data by exercise and type combination
@@ -1768,7 +1768,7 @@ class MainWindow(
                 return
 
             # Calculate days ago for each exercise
-            today = datetime.now(tz=timezone.utc).date()
+            today = datetime.now().date()  # Use local time instead of UTC
             table_data = []
 
             for exercise_name, last_date_str in exercise_dates:
@@ -2063,7 +2063,7 @@ class MainWindow(
 
         # For calories chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -2145,7 +2145,7 @@ class MainWindow(
 
         # For sets chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -2502,7 +2502,7 @@ class MainWindow(
             exercise_name=exercise, exercise_type=exercise_type if exercise_type != "All types" else None
         )
 
-        today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
 
         # Use the later of: earliest exercise date or selected from date
         chart_date_from = max(earliest_exercise_date, date_from) if earliest_exercise_date else date_from
@@ -2817,7 +2817,7 @@ class MainWindow(
 
         try:
             # Calculate date one year ago
-            one_year_ago = datetime.now(tz=timezone.utc) - timedelta(days=365)
+            one_year_ago = datetime.now() - timedelta(days=365)  # Use local time instead of UTC
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Use database manager method
