@@ -182,6 +182,7 @@ CLI commands after installation:
 - `ruff check --fix` — lint and fix the project's Python files.
 - `pyside6-uic src/harrix_swiss_knife/fitness/window.ui -o src/harrix_swiss_knife/fitness/window.py` — convert Fitness UI file to PY class.
 - `pyside6-uic src/harrix_swiss_knife/food/window.ui -o src/harrix_swiss_knife/food/window.py` — convert Food UI file to PY class.
+- `pyside6-uic src/harrix_swiss_knife/finance/window.ui -o src/harrix_swiss_knife/finance/window.py` — convert Finance UI file to PY class.
 - `isort .` — sort imports.
 - `ruff format` — format the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
