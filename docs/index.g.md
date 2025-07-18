@@ -112,6 +112,7 @@ _Figure 1: Screenshot_
   - ⬆️ Update uv dependencies
   - 🌟 isort, ruff format, sort in PY files
   - 🌟 ★ isort, ruff format, sort, make docs in PY files
+- 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍎 Food tracker
 - 🚀 Optimize image from clipboard

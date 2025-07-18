@@ -11,12 +11,98 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnFitness`](#%EF%B8%8F-class-onfitness)
+- [🏛️ Class `OnFinance`](#%EF%B8%8F-class-onfinance)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-- [🏛️ Class `OnFood`](#%EF%B8%8F-class-onfood)
+- [🏛️ Class `OnFitness`](#%EF%B8%8F-class-onfitness)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
+- [🏛️ Class `OnFood`](#%EF%B8%8F-class-onfood)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
+
+</details>
+
+## 🏛️ Class `OnFinance`
+
+```python
+class OnFinance(ActionBase)
+```
+
+Launch the finance tracking application.
+
+This action opens the finance tracker application in a new window or brings
+the existing window to the foreground if it's already open. The finance tracker
+allows users to record, monitor, and analyze their finance.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnFinance(ActionBase):
+
+    icon = "💰"
+    title = "Finance tracker"
+
+    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+        """Initialize the OnFinance action."""
+        super().__init__()
+        self.parent = kwargs.get("parent")
+        self.main_window = None
+
+    @ActionBase.handle_exceptions("launching finance tracker")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        if self.main_window is None or not isValid(self.main_window):
+            self.main_window = finance_main.MainWindow()
+
+        self.main_window.show()
+        self.main_window.raise_()
+        self.main_window.activateWindow()
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, **kwargs) -> None
+```
+
+Initialize the OnFinance action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, **kwargs) -> None:  # noqa: ANN003
+        super().__init__()
+        self.parent = kwargs.get("parent")
+        self.main_window = None
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        if self.main_window is None or not isValid(self.main_window):
+            self.main_window = finance_main.MainWindow()
+
+        self.main_window.show()
+        self.main_window.raise_()
+        self.main_window.activateWindow()
+```
 
 </details>
 

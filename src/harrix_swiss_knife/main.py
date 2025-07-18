@@ -141,6 +141,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 self.menu_python,
             ],
             items=[
+                hsk.apps.OnFinance,
                 hsk.apps.OnFitness,
                 hsk.apps.OnFood,
                 "-",

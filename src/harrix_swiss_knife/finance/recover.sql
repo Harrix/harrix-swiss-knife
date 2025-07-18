@@ -64,3 +64,18 @@ CREATE TABLE "currency_exchanges" (
     FOREIGN KEY("_id_currency_from") REFERENCES "currencies"("_id"),
     FOREIGN KEY("_id_currency_to") REFERENCES "currencies"("_id")
 );
+
+
+INSERT INTO currencies (code, name, symbol) VALUES ('RUB', 'Russian Ruble', '₽');
+INSERT INTO currencies (code, name, symbol) VALUES ('USD', 'US Dollar', '$');
+INSERT INTO currencies (code, name, symbol) VALUES ('EUR', 'Euro', '€');
+
+INSERT INTO categories (name, type) VALUES ('Salary', 1);
+INSERT INTO categories (name, type) VALUES ('Food', 0);
+INSERT INTO categories (name, type) VALUES ('Transport', 0);
+INSERT INTO categories (name, type) VALUES ('Transfer', 2);
+
+INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Cash', 1, 0.0, 1, 1);
+INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Bank Account', 1, 0.0, 1, 0);
+
+INSERT INTO settings (key, value) VALUES ('default_currency', 'RUB');
