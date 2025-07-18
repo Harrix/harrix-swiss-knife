@@ -75,6 +75,7 @@ exclude = [
     "src/harrix_swiss_knife/resources_rc.py",
     "src/harrix_swiss_knife/fitness/window.py",
     "src/harrix_swiss_knife/food/window.py",
+    "src/harrix_swiss_knife/finance/window.py",
 ]
 
 # Disable specific checks in test files:
