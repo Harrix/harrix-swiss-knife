@@ -3390,9 +3390,8 @@ class MainWindow(
                     print(f"Database opened successfully: {filename}")
                     self.db_manager = temp_db_manager
                     return
-                else:
-                    print(f"Database exists but process table is missing at {filename}")
-                    temp_db_manager.close()
+                print(f"Database exists but process table is missing at {filename}")
+                temp_db_manager.close()
             except Exception as e:
                 print(f"Failed to open existing database: {e}")
                 # Continue to create new database
