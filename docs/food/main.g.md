@@ -1551,9 +1551,8 @@ class MainWindow(
                     print(f"Database opened successfully: {filename}")
                     self.db_manager = temp_db_manager
                     return
-                else:
-                    print(f"Database exists but food_log table is missing at {filename}")
-                    temp_db_manager.close()
+                print(f"Database exists but food_log table is missing at {filename}")
+                temp_db_manager.close()
             except Exception as e:
                 print(f"Failed to open existing database: {e}")
                 # Continue to create new database
@@ -2076,8 +2075,6 @@ class MainWindow(
         # Desired order: lineEdit_food_manual_name -> spinBox_food_weight -> ... -> pushButton_food_manual_name_clear
 
         # Set tab order to make pushButton_food_manual_name_clear the last element
-        from PySide6.QtWidgets import QWidget
-
         QWidget.setTabOrder(self.lineEdit_food_manual_name, self.spinBox_food_weight)
         QWidget.setTabOrder(self.spinBox_food_weight, self.doubleSpinBox_food_calories)
         QWidget.setTabOrder(self.doubleSpinBox_food_calories, self.checkBox_food_is_drink)
@@ -2500,10 +2497,6 @@ class MainWindow(
                 # Transform data and add color information
                 transformed_rows = []
                 for row in rows:
-                    # Original transformation:
-                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
-                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
-
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
                     calories_per_100g = row[4]
@@ -4724,9 +4717,8 @@ def _init_database(self) -> None:
                     print(f"Database opened successfully: {filename}")
                     self.db_manager = temp_db_manager
                     return
-                else:
-                    print(f"Database exists but food_log table is missing at {filename}")
-                    temp_db_manager.close()
+                print(f"Database exists but food_log table is missing at {filename}")
+                temp_db_manager.close()
             except Exception as e:
                 print(f"Failed to open existing database: {e}")
                 # Continue to create new database
@@ -5409,8 +5401,6 @@ def _setup_ui(self) -> None:
         # Desired order: lineEdit_food_manual_name -> spinBox_food_weight -> ... -> pushButton_food_manual_name_clear
 
         # Set tab order to make pushButton_food_manual_name_clear the last element
-        from PySide6.QtWidgets import QWidget
-
         QWidget.setTabOrder(self.lineEdit_food_manual_name, self.spinBox_food_weight)
         QWidget.setTabOrder(self.spinBox_food_weight, self.doubleSpinBox_food_calories)
         QWidget.setTabOrder(self.doubleSpinBox_food_calories, self.checkBox_food_is_drink)
@@ -5957,10 +5947,6 @@ def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> No
                 # Transform data and add color information
                 transformed_rows = []
                 for row in rows:
-                    # Original transformation:
-                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
-                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
-
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
                     calories_per_100g = row[4]

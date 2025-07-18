@@ -80,33 +80,35 @@ class TextParser:
         today = default_date or date.today().strftime("%Y-%m-%d")
 
         for line_num, line in enumerate(lines, 1):
-            line = line.strip()
-            if not line:
+            line_new = line.strip()
+            if not line_new:
                 continue
 
             try:
-                parsed_item = self._parse_line(line, today, parent_widget, db_manager)
+                parsed_item = self._parse_line(line_new, today, parent_widget, db_manager)
                 if parsed_item:
                     parsed_items.append(parsed_item)
             except Exception as e:
                 # Instead of just showing an error, try to handle it gracefully
-                error_msg = f"Error parsing line {line_num}: {line}\nError: {e}"
+                error_msg = f"Error parsing line {line_num}: {line_new}\nError: {e}"
                 if parent_widget:
                     # Try to parse the line as a simple name-only entry
                     try:
-                        simple_item = self._parse_name_only([line], today, db_manager)
+                        simple_item = self._parse_name_only([line_new], today, db_manager)
                         if simple_item:
                             parsed_items.append(simple_item)
                             continue
-                    except:
+                    except (ValueError, TypeError, AttributeError) as e:
                         pass
+                    except Exception as e:
+                        print(f"⚠️ Unexpected error in simple parsing: {e}")
 
                     # If that fails, ask user to correct the line
                     corrected_line, ok = QInputDialog.getText(
                         parent_widget,
                         "Correct Line",
-                        f"Unable to parse line: '{line}'\nPlease correct it or leave empty to skip:",
-                        text=line,
+                        f"Unable to parse line: '{line_new}'\nPlease correct it or leave empty to skip:",
+                        text=line_new,
                     )
 
                     if ok and corrected_line.strip():

@@ -116,8 +116,6 @@ class AutoSaveOperations:
 
         """
         # Get data from model columns
-        # Column order:
-        # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
         name = model.data(model.index(row, 0)) or ""
         is_drink_str = model.data(model.index(row, 1)) or ""
         weight_str = model.data(model.index(row, 2)) or ""
@@ -707,7 +705,7 @@ class ChartOperations:
         # For calories chart, plot colored points with line and critical zones
         if is_calories_chart:
             # Draw horizontal lines for critical zones only for Days period
-            if period != "Months" and period != "Years":
+            if period not in {"Months", "Years"}:
                 ax.axhline(
                     y=1800, color="green", linestyle="--", linewidth=1, alpha=0.5, zorder=1, label="Low calories limit"
                 )
