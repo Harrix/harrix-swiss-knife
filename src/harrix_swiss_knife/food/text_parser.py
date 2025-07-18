@@ -351,9 +351,10 @@ class TextParser:
         """
         try:
             float(text)
-            return True
         except ValueError:
             return False
+        else:
+            return True
 
     def _parse_line(
         self, line: str, default_date: str, parent_widget: QWidget | None, db_manager: Any | None
