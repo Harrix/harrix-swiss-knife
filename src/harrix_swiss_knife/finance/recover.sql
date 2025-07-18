@@ -1,0 +1,67 @@
+CREATE TABLE "currencies" (
+    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "code" TEXT NOT NULL UNIQUE,
+    "name" TEXT NOT NULL,
+    "symbol" TEXT NOT NULL
+);
+
+CREATE TABLE "settings" (
+    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "key" TEXT NOT NULL UNIQUE,
+    "value" TEXT NOT NULL
+);
+
+CREATE TABLE "exchange_rates" (
+    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "_id_currency_from" INTEGER NOT NULL,
+    "_id_currency_to" INTEGER NOT NULL,
+    "rate" INTEGER NOT NULL,
+    "date" TEXT NOT NULL,
+    FOREIGN KEY("_id_currency_from") REFERENCES "currencies"("_id"),
+    FOREIGN KEY("_id_currency_to") REFERENCES "currencies"("_id")
+);
+
+CREATE TABLE "categories" (
+    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "name" TEXT NOT NULL UNIQUE,
+    "type" INTEGER NOT NULL, -- 0 = expense, 1 = income, 2 = transfer
+    "icon" TEXT
+);
+
+CREATE TABLE "accounts" (
+    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "name" TEXT NOT NULL UNIQUE,
+    "balance" INTEGER NOT NULL DEFAULT 0,
+    "_id_currencies" INTEGER NOT NULL,
+    "is_liquid" INTEGER NOT NULL DEFAULT 1,
+    "is_cash" INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY("_id_currencies") REFERENCES "currencies"("_id")
+);
+
+CREATE TABLE "transactions" (
+    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "amount" INTEGER NOT NULL,
+    "description" TEXT NOT NULL,
+    "_id_categories" INTEGER NOT NULL,
+    "_id_currencies" INTEGER NOT NULL,
+    "_id_accounts" INTEGER, -- может быть NULL для некоторых типов транзакций
+    "date" TEXT NOT NULL,
+    "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY("_id_categories") REFERENCES "categories"("_id"),
+    FOREIGN KEY("_id_currencies") REFERENCES "currencies"("_id"),
+    FOREIGN KEY("_id_accounts") REFERENCES "accounts"("_id")
+);
+
+CREATE TABLE "currency_exchanges" (
+    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "_id_currency_from" INTEGER NOT NULL,
+    "_id_currency_to" INTEGER NOT NULL,
+    "amount_from" INTEGER NOT NULL,
+    "amount_to" INTEGER NOT NULL,
+    "exchange_rate" INTEGER NOT NULL,
+    "fee" INTEGER DEFAULT 0,
+    "date" TEXT NOT NULL,
+    "description" TEXT,
+    FOREIGN KEY("_id_currency_from") REFERENCES "currencies"("_id"),
+    FOREIGN KEY("_id_currency_to") REFERENCES "currencies"("_id")
+);
