@@ -11,11 +11,11 @@ import sys
 from datetime import datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import harrix_pylib as h
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
@@ -29,10 +29,6 @@ from harrix_swiss_knife.finance.mixins import (
     ValidationOperations,
     requires_database,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
 
 config = h.dev.load_config("config/config.json")
 
@@ -1796,7 +1792,7 @@ class MainWindow(
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
-        self.pushButton_description_clear.setText(f"🧹")
+        self.pushButton_description_clear.setText("🧹")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
