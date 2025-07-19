@@ -1918,9 +1918,21 @@ class MainWindow(
             all_categories = expense_categories + income_categories
 
             model = QStandardItemModel()
-            for category_name, icon in all_categories:
+
+            # Add expense categories first
+            for category_name, icon in expense_categories:
                 # Create display text with icon
                 display_text = f"{icon} {category_name}" if icon else category_name
+                item = QStandardItem(display_text)
+                # Store the original category name as data for selection handling
+                item.setData(category_name, Qt.ItemDataRole.UserRole)
+                model.appendRow(item)
+
+            # Add income categories with special marking
+            for category_name, icon in income_categories:
+                # Create display text with icon and income marker
+                base_text = f"{icon} {category_name}" if icon else category_name
+                display_text = f"💰 {base_text}"  # Add income emoji marker
                 item = QStandardItem(display_text)
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
