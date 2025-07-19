@@ -48,28 +48,42 @@ class Ui_MainWindow(object):
         self.frame.setMaximumSize(QSize(16777215, 16777215))
         self.frame.setFrameShape(QFrame.StyledPanel)
         self.frame.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_3 = QVBoxLayout(self.frame)
-        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.verticalLayout_5 = QVBoxLayout(self.frame)
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.groupBox_transaction = QGroupBox(self.frame)
         self.groupBox_transaction.setObjectName(u"groupBox_transaction")
-        self.groupBox_transaction.setMinimumSize(QSize(0, 350))
-        self.verticalLayout_5 = QVBoxLayout(self.groupBox_transaction)
-        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
+        self.groupBox_transaction.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_3 = QVBoxLayout(self.groupBox_transaction)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.lineEdit_description = QLineEdit(self.groupBox_transaction)
         self.lineEdit_description.setObjectName(u"lineEdit_description")
+        font = QFont()
+        font.setPointSize(12)
+        self.lineEdit_description.setFont(font)
 
-        self.verticalLayout_5.addWidget(self.lineEdit_description)
+        self.horizontalLayout_2.addWidget(self.lineEdit_description)
+
+        self.pushButton_description_clear = QPushButton(self.groupBox_transaction)
+        self.pushButton_description_clear.setObjectName(u"pushButton_description_clear")
+        self.pushButton_description_clear.setMaximumSize(QSize(32, 16777215))
+
+        self.horizontalLayout_2.addWidget(self.pushButton_description_clear)
+
+
+        self.verticalLayout_3.addLayout(self.horizontalLayout_2)
 
         self.horizontalLayout_amount = QHBoxLayout()
         self.horizontalLayout_amount.setObjectName(u"horizontalLayout_amount")
         self.doubleSpinBox_amount = QDoubleSpinBox(self.groupBox_transaction)
         self.doubleSpinBox_amount.setObjectName(u"doubleSpinBox_amount")
-        font = QFont()
-        font.setPointSize(12)
-        font.setBold(True)
-        self.doubleSpinBox_amount.setFont(font)
+        font1 = QFont()
+        font1.setPointSize(12)
+        font1.setBold(True)
+        self.doubleSpinBox_amount.setFont(font1)
         self.doubleSpinBox_amount.setStyleSheet(u"QDoubleSpinBox {\n"
-"                                          background-color: lightblue;\n"
+"                                          background-color: #C1ECDD;\n"
 "                                          }")
         self.doubleSpinBox_amount.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
         self.doubleSpinBox_amount.setMaximum(999999.989999999990687)
@@ -84,45 +98,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_amount.addWidget(self.comboBox_currency)
 
 
-        self.verticalLayout_5.addLayout(self.horizontalLayout_amount)
-
-        self.comboBox_category = QComboBox(self.groupBox_transaction)
-        self.comboBox_category.setObjectName(u"comboBox_category")
-
-        self.verticalLayout_5.addWidget(self.comboBox_category)
-
-        self.horizontalLayout_type = QHBoxLayout()
-        self.horizontalLayout_type.setObjectName(u"horizontalLayout_type")
-        self.radioButton_income = QRadioButton(self.groupBox_transaction)
-        self.radioButton_income.setObjectName(u"radioButton_income")
-        self.radioButton_income.setStyleSheet(u"QRadioButton {\n"
-"                                          color: green;\n"
-"                                          font-weight: bold;\n"
-"                                          }")
-
-        self.horizontalLayout_type.addWidget(self.radioButton_income)
-
-        self.radioButton_expense = QRadioButton(self.groupBox_transaction)
-        self.radioButton_expense.setObjectName(u"radioButton_expense")
-        self.radioButton_expense.setStyleSheet(u"QRadioButton {\n"
-"                                          color: red;\n"
-"                                          font-weight: bold;\n"
-"                                          }")
-        self.radioButton_expense.setChecked(True)
-
-        self.horizontalLayout_type.addWidget(self.radioButton_expense)
-
-        self.radioButton_transfer = QRadioButton(self.groupBox_transaction)
-        self.radioButton_transfer.setObjectName(u"radioButton_transfer")
-        self.radioButton_transfer.setStyleSheet(u"QRadioButton {\n"
-"                                          color: blue;\n"
-"                                          font-weight: bold;\n"
-"                                          }")
-
-        self.horizontalLayout_type.addWidget(self.radioButton_transfer)
-
-
-        self.verticalLayout_5.addLayout(self.horizontalLayout_type)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_amount)
 
         self.horizontalLayout_date = QHBoxLayout()
         self.horizontalLayout_date.setObjectName(u"horizontalLayout_date")
@@ -141,28 +117,43 @@ class Ui_MainWindow(object):
         self.horizontalLayout_date.addWidget(self.pushButton_yesterday)
 
 
-        self.verticalLayout_5.addLayout(self.horizontalLayout_date)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_date)
+
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.label_tag = QLabel(self.groupBox_transaction)
+        self.label_tag.setObjectName(u"label_tag")
+
+        self.horizontalLayout_3.addWidget(self.label_tag)
+
+        self.lineEdit_tag = QLineEdit(self.groupBox_transaction)
+        self.lineEdit_tag.setObjectName(u"lineEdit_tag")
+
+        self.horizontalLayout_3.addWidget(self.lineEdit_tag)
+
+
+        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
 
         self.pushButton_add = QPushButton(self.groupBox_transaction)
         self.pushButton_add.setObjectName(u"pushButton_add")
         self.pushButton_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_add.setFont(font)
+        self.pushButton_add.setFont(font1)
         self.pushButton_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: lightgreen;\n"
-"                                      border: 1px solid #4CAF50;\n"
+"                                      background-color: #C1ECDD;\n"
+"                                      border: 1px solid #7DB68A;\n"
 "                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
-"                                      background-color: #90EE90;\n"
+"                                      background-color: #D1F5E8;\n"
 "                                      }\n"
 "                                      QPushButton:pressed {\n"
-"                                      background-color: #7FDD7F;\n"
+"                                      background-color: #A8E0C7;\n"
 "                                      }")
 
-        self.verticalLayout_5.addWidget(self.pushButton_add)
+        self.verticalLayout_3.addWidget(self.pushButton_add)
 
 
-        self.verticalLayout_3.addWidget(self.groupBox_transaction)
+        self.verticalLayout_5.addWidget(self.groupBox_transaction)
 
         self.groupBox_commands = QGroupBox(self.frame)
         self.groupBox_commands.setObjectName(u"groupBox_commands")
@@ -177,6 +168,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_8.addWidget(self.pushButton_delete)
 
+        self.pushButton_show_all_records = QPushButton(self.groupBox_commands)
+        self.pushButton_show_all_records.setObjectName(u"pushButton_show_all_records")
+
+        self.horizontalLayout_8.addWidget(self.pushButton_show_all_records)
+
         self.pushButton_refresh = QPushButton(self.groupBox_commands)
         self.pushButton_refresh.setObjectName(u"pushButton_refresh")
         self.pushButton_refresh.setMinimumSize(QSize(80, 0))
@@ -187,13 +183,34 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addLayout(self.horizontalLayout_8)
 
 
-        self.verticalLayout_3.addWidget(self.groupBox_commands)
+        self.verticalLayout_5.addWidget(self.groupBox_commands)
 
         self.groupBox_filter = QGroupBox(self.frame)
         self.groupBox_filter.setObjectName(u"groupBox_filter")
-        self.groupBox_filter.setMinimumSize(QSize(0, 250))
+        self.groupBox_filter.setMinimumSize(QSize(0, 0))
         self.verticalLayout_4 = QVBoxLayout(self.groupBox_filter)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.horizontalLayout_5 = QHBoxLayout()
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
+        self.radioButton = QRadioButton(self.groupBox_filter)
+        self.radioButton.setObjectName(u"radioButton")
+        self.radioButton.setChecked(True)
+
+        self.horizontalLayout_5.addWidget(self.radioButton)
+
+        self.radioButton_2 = QRadioButton(self.groupBox_filter)
+        self.radioButton_2.setObjectName(u"radioButton_2")
+
+        self.horizontalLayout_5.addWidget(self.radioButton_2)
+
+        self.radioButton_3 = QRadioButton(self.groupBox_filter)
+        self.radioButton_3.setObjectName(u"radioButton_3")
+
+        self.horizontalLayout_5.addWidget(self.radioButton_3)
+
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_5)
+
         self.horizontalLayout_9 = QHBoxLayout()
         self.horizontalLayout_9.setObjectName(u"horizontalLayout_9")
         self.label_filter_category = QLabel(self.groupBox_filter)
@@ -210,23 +227,6 @@ class Ui_MainWindow(object):
 
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_9)
-
-        self.horizontalLayout_10 = QHBoxLayout()
-        self.horizontalLayout_10.setObjectName(u"horizontalLayout_10")
-        self.label_filter_type = QLabel(self.groupBox_filter)
-        self.label_filter_type.setObjectName(u"label_filter_type")
-        self.label_filter_type.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_10.addWidget(self.label_filter_type)
-
-        self.comboBox_filter_type = QComboBox(self.groupBox_filter)
-        self.comboBox_filter_type.setObjectName(u"comboBox_filter_type")
-        self.comboBox_filter_type.setMinimumSize(QSize(191, 0))
-
-        self.horizontalLayout_10.addWidget(self.comboBox_filter_type)
-
-
-        self.verticalLayout_4.addLayout(self.horizontalLayout_10)
 
         self.horizontalLayout_currency_filter = QHBoxLayout()
         self.horizontalLayout_currency_filter.setObjectName(u"horizontalLayout_currency_filter")
@@ -293,11 +293,13 @@ class Ui_MainWindow(object):
         self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
         self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
         self.pushButton_clear_filter.setObjectName(u"pushButton_clear_filter")
+        self.pushButton_clear_filter.setMinimumSize(QSize(0, 23))
 
         self.horizontalLayout_7.addWidget(self.pushButton_clear_filter)
 
         self.pushButton_apply_filter = QPushButton(self.groupBox_filter)
         self.pushButton_apply_filter.setObjectName(u"pushButton_apply_filter")
+        self.pushButton_apply_filter.setMinimumSize(QSize(0, 23))
 
         self.horizontalLayout_7.addWidget(self.pushButton_apply_filter)
 
@@ -305,29 +307,11 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addLayout(self.horizontalLayout_7)
 
 
-        self.verticalLayout_3.addWidget(self.groupBox_filter)
-
-        self.groupBox_daily_balance = QGroupBox(self.frame)
-        self.groupBox_daily_balance.setObjectName(u"groupBox_daily_balance")
-        self.groupBox_daily_balance.setMinimumSize(QSize(0, 100))
-        self.verticalLayout_17 = QVBoxLayout(self.groupBox_daily_balance)
-        self.verticalLayout_17.setObjectName(u"verticalLayout_17")
-        self.label_daily_balance = QLabel(self.groupBox_daily_balance)
-        self.label_daily_balance.setObjectName(u"label_daily_balance")
-        font1 = QFont()
-        font1.setPointSize(20)
-        font1.setBold(True)
-        self.label_daily_balance.setFont(font1)
-        self.label_daily_balance.setAlignment(Qt.AlignCenter)
-
-        self.verticalLayout_17.addWidget(self.label_daily_balance)
-
-
-        self.verticalLayout_3.addWidget(self.groupBox_daily_balance)
+        self.verticalLayout_5.addWidget(self.groupBox_filter)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_3.addItem(self.verticalSpacer)
+        self.verticalLayout_5.addItem(self.verticalSpacer)
 
         self.splitter.addWidget(self.frame)
         self.widget_middle = QWidget(self.splitter)
@@ -344,7 +328,7 @@ class Ui_MainWindow(object):
         self.listView_categories.setObjectName(u"listView_categories")
         self.listView_categories.setMaximumSize(QSize(16777215, 16777215))
         self.listView_categories.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #4CAF50;\n"
+"                                border: 2px solid #7DB68A;\n"
 "                                border-radius: 4px;\n"
 "                                background-color: white;\n"
 "                                }\n"
@@ -353,11 +337,11 @@ class Ui_MainWindow(object):
 "                                border-bottom: 1px solid #e0e0e0;\n"
 "                                }\n"
 "                                QListView::item:selected {\n"
-"                                background-color: #e8f5e8;\n"
+"                                background-color: #E8F5E8;\n"
 "                                color: black;\n"
 "                                }\n"
 "                                QListView::item:hover {\n"
-"                                background-color: #f0f8f0;\n"
+"                                background-color: #F0FAF0;\n"
 "                                }")
 
         self.verticalLayout.addWidget(self.listView_categories)
@@ -417,7 +401,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_18.addWidget(self.label_6)
 
         self.comboBox_category_type = QComboBox(self.groupBox_2)
-        self.comboBox_category_type.addItem("")
         self.comboBox_category_type.addItem("")
         self.comboBox_category_type.addItem("")
         self.comboBox_category_type.setObjectName(u"comboBox_category_type")
@@ -896,7 +879,7 @@ class Ui_MainWindow(object):
 
         self.dateEdit_exchange = QDateEdit(self.groupBox_exchange_operation)
         self.dateEdit_exchange.setObjectName(u"dateEdit_exchange")
-        self.dateEdit_exchange.setMinimumSize(QSize(191, 0))
+        self.dateEdit_exchange.setMinimumSize(QSize(151, 0))
         self.dateEdit_exchange.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
         self.dateEdit_exchange.setCalendarPopup(True)
 
@@ -914,17 +897,17 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_add = QPushButton(self.groupBox_exchange_operation)
         self.pushButton_exchange_add.setObjectName(u"pushButton_exchange_add")
         self.pushButton_exchange_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_exchange_add.setFont(font)
+        self.pushButton_exchange_add.setFont(font1)
         self.pushButton_exchange_add.setStyleSheet(u"QPushButton {\n"
-"                                    background-color: lightblue;\n"
-"                                    border: 1px solid #2196F3;\n"
+"                                    background-color: #C1ECDD;\n"
+"                                    border: 1px solid #7DB68A;\n"
 "                                    border-radius: 4px;\n"
 "                                    }\n"
 "                                    QPushButton:hover {\n"
-"                                    background-color: #87CEEB;\n"
+"                                    background-color: #D1F5E8;\n"
 "                                    }\n"
 "                                    QPushButton:pressed {\n"
-"                                    background-color: #6BB6FF;\n"
+"                                    background-color: #A8E0C7;\n"
 "                                    }")
 
         self.verticalLayout_exchange_operation.addWidget(self.pushButton_exchange_add)
@@ -977,8 +960,26 @@ class Ui_MainWindow(object):
         self.frame_rates.setMaximumSize(QSize(300, 16777215))
         self.frame_rates.setFrameShape(QFrame.StyledPanel)
         self.frame_rates.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_rates = QVBoxLayout(self.frame_rates)
-        self.verticalLayout_rates.setObjectName(u"verticalLayout_rates")
+        self.verticalLayout_6 = QVBoxLayout(self.frame_rates)
+        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
+        self.pushButton_exchange_update = QPushButton(self.frame_rates)
+        self.pushButton_exchange_update.setObjectName(u"pushButton_exchange_update")
+        self.pushButton_exchange_update.setMinimumSize(QSize(0, 41))
+        self.pushButton_exchange_update.setFont(font1)
+        self.pushButton_exchange_update.setStyleSheet(u"QPushButton {\n"
+"                                    background-color: #C1ECDD;\n"
+"                                    border: 1px solid #7DB68A;\n"
+"                                    border-radius: 4px;\n"
+"                                    }\n"
+"                                    QPushButton:hover {\n"
+"                                    background-color: #D1F5E8;\n"
+"                                    }\n"
+"                                    QPushButton:pressed {\n"
+"                                    background-color: #A8E0C7;\n"
+"                                    }")
+
+        self.verticalLayout_6.addWidget(self.pushButton_exchange_update)
+
         self.groupBox_add_rate = QGroupBox(self.frame_rates)
         self.groupBox_add_rate.setObjectName(u"groupBox_add_rate")
         self.verticalLayout_add_rate = QVBoxLayout(self.groupBox_add_rate)
@@ -1070,7 +1071,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_add_rate.addLayout(self.horizontalLayout_rate_add)
 
 
-        self.verticalLayout_rates.addWidget(self.groupBox_add_rate)
+        self.verticalLayout_6.addWidget(self.groupBox_add_rate)
 
         self.groupBox_rate_commands = QGroupBox(self.frame_rates)
         self.groupBox_rate_commands.setObjectName(u"groupBox_rate_commands")
@@ -1092,11 +1093,11 @@ class Ui_MainWindow(object):
         self.verticalLayout_rate_commands.addLayout(self.horizontalLayout_rate_commands)
 
 
-        self.verticalLayout_rates.addWidget(self.groupBox_rate_commands)
+        self.verticalLayout_6.addWidget(self.groupBox_rate_commands)
 
         self.verticalSpacer_rates = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_rates.addItem(self.verticalSpacer_rates)
+        self.verticalLayout_6.addItem(self.verticalSpacer_rates)
 
 
         self.horizontalLayout_rates.addWidget(self.frame_rates)
@@ -1132,7 +1133,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_charts_controls_1.addWidget(self.label_chart_type)
 
         self.comboBox_chart_type = QComboBox(self.frame_charts_controls)
-        self.comboBox_chart_type.addItem("")
         self.comboBox_chart_type.addItem("")
         self.comboBox_chart_type.addItem("")
         self.comboBox_chart_type.addItem("")
@@ -1230,7 +1230,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName(u"scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 63, 18))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 751))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName(u"verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1253,8 +1253,8 @@ class Ui_MainWindow(object):
         self.frame_5.setMaximumSize(QSize(300, 16777215))
         self.frame_5.setFrameShape(QFrame.StyledPanel)
         self.frame_5.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_16 = QVBoxLayout(self.frame_5)
-        self.verticalLayout_16.setObjectName(u"verticalLayout_16")
+        self.verticalLayout_7 = QVBoxLayout(self.frame_5)
+        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
         self.groupBox_10 = QGroupBox(self.frame_5)
         self.groupBox_10.setObjectName(u"groupBox_10")
         self.groupBox_10.setMinimumSize(QSize(0, 0))
@@ -1276,7 +1276,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_19.addWidget(self.pushButton_generate_report)
 
 
-        self.verticalLayout_16.addWidget(self.groupBox_10)
+        self.verticalLayout_7.addWidget(self.groupBox_10)
 
         self.groupBox_summary = QGroupBox(self.frame_5)
         self.groupBox_summary.setObjectName(u"groupBox_summary")
@@ -1284,7 +1284,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_summary.setObjectName(u"verticalLayout_summary")
         self.label_total_income = QLabel(self.groupBox_summary)
         self.label_total_income.setObjectName(u"label_total_income")
-        self.label_total_income.setStyleSheet(u"color: green; font-weight: bold;")
+        self.label_total_income.setStyleSheet(u"color: #4CAF50; font-weight: bold;")
 
         self.verticalLayout_summary.addWidget(self.label_total_income)
 
@@ -1294,24 +1294,30 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_summary.addWidget(self.label_total_expenses)
 
-        self.label_net_balance = QLabel(self.groupBox_summary)
-        self.label_net_balance.setObjectName(u"label_net_balance")
-        self.label_net_balance.setStyleSheet(u"font-weight: bold; font-size: 14px;")
 
-        self.verticalLayout_summary.addWidget(self.label_net_balance)
+        self.verticalLayout_7.addWidget(self.groupBox_summary)
 
-        self.label_total_accounts = QLabel(self.groupBox_summary)
-        self.label_total_accounts.setObjectName(u"label_total_accounts")
-        self.label_total_accounts.setStyleSheet(u"color: blue; font-weight: bold;")
+        self.groupBox_daily_balance = QGroupBox(self.frame_5)
+        self.groupBox_daily_balance.setObjectName(u"groupBox_daily_balance")
+        self.groupBox_daily_balance.setMinimumSize(QSize(0, 100))
+        self.verticalLayout_17 = QVBoxLayout(self.groupBox_daily_balance)
+        self.verticalLayout_17.setObjectName(u"verticalLayout_17")
+        self.label_daily_balance = QLabel(self.groupBox_daily_balance)
+        self.label_daily_balance.setObjectName(u"label_daily_balance")
+        font2 = QFont()
+        font2.setPointSize(20)
+        font2.setBold(True)
+        self.label_daily_balance.setFont(font2)
+        self.label_daily_balance.setAlignment(Qt.AlignCenter)
 
-        self.verticalLayout_summary.addWidget(self.label_total_accounts)
+        self.verticalLayout_17.addWidget(self.label_daily_balance)
 
 
-        self.verticalLayout_16.addWidget(self.groupBox_summary)
+        self.verticalLayout_7.addWidget(self.groupBox_daily_balance)
 
         self.verticalSpacer_4 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_16.addItem(self.verticalSpacer_4)
+        self.verticalLayout_7.addItem(self.verticalSpacer_4)
 
 
         self.horizontalLayout_6.addWidget(self.frame_5)
@@ -1343,19 +1349,22 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Finance Tracker", None))
         self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"Transaction Details", None))
-        self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Description (optional)", None))
-        self.radioButton_income.setText(QCoreApplication.translate("MainWindow", u"Income", None))
-        self.radioButton_expense.setText(QCoreApplication.translate("MainWindow", u"Expense", None))
-        self.radioButton_transfer.setText(QCoreApplication.translate("MainWindow", u"Transfer", None))
+        self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Description", None))
+        self.pushButton_description_clear.setText("")
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
+        self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
+        self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Optional", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add Transaction", None))
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
+        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", u"Filter", None))
+        self.radioButton.setText(QCoreApplication.translate("MainWindow", u"All", None))
+        self.radioButton_2.setText(QCoreApplication.translate("MainWindow", u"Expense", None))
+        self.radioButton_3.setText(QCoreApplication.translate("MainWindow", u"Income", None))
         self.label_filter_category.setText(QCoreApplication.translate("MainWindow", u"Category:", None))
-        self.label_filter_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
         self.label_filter_currency.setText(QCoreApplication.translate("MainWindow", u"Currency:", None))
         self.label_filter_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_filter_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
@@ -1364,16 +1373,14 @@ class Ui_MainWindow(object):
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", u"Use date filter", None))
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"Clear Filter", None))
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", u"Apply Filter", None))
-        self.groupBox_daily_balance.setTitle(QCoreApplication.translate("MainWindow", u"Today's Balance", None))
-        self.label_daily_balance.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
         self.label_categories.setText(QCoreApplication.translate("MainWindow", u"Categories:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_transactions), QCoreApplication.translate("MainWindow", u"Transactions", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Category", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
+        self.lineEdit_category_name.setPlaceholderText("")
         self.label_6.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
         self.comboBox_category_type.setItemText(0, QCoreApplication.translate("MainWindow", u"Expense", None))
         self.comboBox_category_type.setItemText(1, QCoreApplication.translate("MainWindow", u"Income", None))
-        self.comboBox_category_type.setItemText(2, QCoreApplication.translate("MainWindow", u"Transfer", None))
 
         self.pushButton_category_add.setText(QCoreApplication.translate("MainWindow", u"Add Category", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -1421,6 +1428,7 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
         self.pushButton_exchange_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_exchange), QCoreApplication.translate("MainWindow", u"Currency Exchange", None))
+        self.pushButton_exchange_update.setText(QCoreApplication.translate("MainWindow", u"Update", None))
         self.groupBox_add_rate.setTitle(QCoreApplication.translate("MainWindow", u"Add Exchange Rate", None))
         self.label_rate_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
         self.label_rate_to.setText(QCoreApplication.translate("MainWindow", u"To:", None))
@@ -1437,7 +1445,6 @@ class Ui_MainWindow(object):
         self.comboBox_chart_type.setItemText(0, QCoreApplication.translate("MainWindow", u"All", None))
         self.comboBox_chart_type.setItemText(1, QCoreApplication.translate("MainWindow", u"Income", None))
         self.comboBox_chart_type.setItemText(2, QCoreApplication.translate("MainWindow", u"Expense", None))
-        self.comboBox_chart_type.setItemText(3, QCoreApplication.translate("MainWindow", u"Transfer", None))
 
         self.label_chart_period.setText(QCoreApplication.translate("MainWindow", u"Period:", None))
         self.comboBox_chart_period.setItemText(0, QCoreApplication.translate("MainWindow", u"Days", None))
@@ -1466,8 +1473,8 @@ class Ui_MainWindow(object):
         self.groupBox_summary.setTitle(QCoreApplication.translate("MainWindow", u"Quick Summary", None))
         self.label_total_income.setText(QCoreApplication.translate("MainWindow", u"Total Income: 0.00\u20bd", None))
         self.label_total_expenses.setText(QCoreApplication.translate("MainWindow", u"Total Expenses: 0.00\u20bd", None))
-        self.label_net_balance.setText(QCoreApplication.translate("MainWindow", u"Net Balance: 0.00\u20bd", None))
-        self.label_total_accounts.setText(QCoreApplication.translate("MainWindow", u"Total in Accounts: 0.00\u20bd", None))
+        self.groupBox_daily_balance.setTitle(QCoreApplication.translate("MainWindow", u"Today's Balance", None))
+        self.label_daily_balance.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_reports), QCoreApplication.translate("MainWindow", u"Reports", None))
     # retranslateUi
 
