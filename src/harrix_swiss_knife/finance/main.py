@@ -98,7 +98,7 @@ class MainWindow(
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["Amount", "Description", "Category", "Currency", "Date", "Tag"],
+                ["Description", "Amount", "Category", "Currency", "Date", "Tag"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -1874,10 +1874,10 @@ class MainWindow(
 
             color = self.date_colors[date_to_color_index[date]]
 
-            # Transform to display format: [amount, description, category, currency, date, tag, id, color]
+            # Transform to display format: [description, amount, category, currency, date, tag, id, color]
             transformed_row = [
-                f"{amount:.2f}",
                 description,
+                f"{amount:.2f}",
                 category_name,
                 currency_code,
                 date,
