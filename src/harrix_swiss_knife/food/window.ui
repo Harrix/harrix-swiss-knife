@@ -63,7 +63,7 @@
                     </font>
                    </property>
                    <property name="placeholderText">
-                    <string>Enter food name (optional if selected from list)</string>
+                    <string>Enter food name</string>
                    </property>
                   </widget>
                  </item>
