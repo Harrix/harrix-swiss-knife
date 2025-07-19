@@ -22,10 +22,11 @@ CREATE TABLE "exchange_rates" (
 );
 
 CREATE TABLE "categories" (
-    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
-    "name" TEXT NOT NULL UNIQUE,
-    "type" INTEGER NOT NULL, -- 0 = expense, 1 = income, 2 = transfer
-    "icon" TEXT
+	"_id"	INTEGER,
+	"name"	TEXT NOT NULL,
+	"type"	INTEGER NOT NULL,
+	"icon"	TEXT,
+	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 
 CREATE TABLE "accounts" (
@@ -39,14 +40,16 @@ CREATE TABLE "accounts" (
 );
 
 CREATE TABLE "transactions" (
-    "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
-    "amount" INTEGER NOT NULL,
-    "description" TEXT NOT NULL,
-    "_id_categories" INTEGER NOT NULL,
-    "_id_currencies" INTEGER NOT NULL,
-    "date" TEXT NOT NULL,
-    FOREIGN KEY("_id_categories") REFERENCES "categories"("_id"),
-    FOREIGN KEY("_id_currencies") REFERENCES "currencies"("_id")
+	"_id"	INTEGER,
+	"amount"	INTEGER NOT NULL,
+	"description"	TEXT NOT NULL,
+	"_id_categories"	INTEGER NOT NULL,
+	"_id_currencies"	INTEGER NOT NULL,
+	"date"	TEXT NOT NULL,
+	"tag"	TEXT,
+	PRIMARY KEY("_id" AUTOINCREMENT),
+	FOREIGN KEY("_id_categories") REFERENCES "categories"("_id"),
+	FOREIGN KEY("_id_currencies") REFERENCES "currencies"("_id")
 );
 
 CREATE TABLE "currency_exchanges" (
@@ -68,12 +71,11 @@ INSERT INTO currencies (code, name, symbol) VALUES ('RUB', 'Russian Ruble', '₽
 INSERT INTO currencies (code, name, symbol) VALUES ('USD', 'US Dollar', '$');
 INSERT INTO currencies (code, name, symbol) VALUES ('EUR', 'Euro', '€');
 
-INSERT INTO categories (name, type) VALUES ('Salary', 1);
-INSERT INTO categories (name, type) VALUES ('Food', 0);
-INSERT INTO categories (name, type) VALUES ('Transport', 0);
-INSERT INTO categories (name, type) VALUES ('Transfer', 2);
+INSERT INTO categories (name, type, icon) VALUES ('Salary', 1, "💰");
+INSERT INTO categories (name, type, icon) VALUES ('Food', 0, "🍔");
+INSERT INTO categories (name, type, icon) VALUES ('Transport', 0, "🚗");
 
-INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Cash', 1, 0.0, 1, 1);
-INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Bank Account', 1, 0.0, 1, 0);
+INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Cash', 1, 0, 1, 1);
+INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Bank Account', 1, 0, 1, 0);
 
 INSERT INTO settings (key, value) VALUES ('default_currency', 'RUB');
