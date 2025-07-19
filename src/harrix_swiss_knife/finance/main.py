@@ -181,6 +181,12 @@ class MainWindow(
         self.tableView_transactions.setModel(self.models["transactions"])
         self.tableView_transactions.resizeColumnsToContents()
 
+        # Make last column wider for filtered results too
+        header = self.tableView_transactions.horizontalHeader()
+        if header.count() > 0:
+            last_column = header.count() - 1
+            self.tableView_transactions.setColumnWidth(last_column, 200)
+
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
         self.radioButton.setChecked(True)  # All
@@ -956,6 +962,13 @@ class MainWindow(
             for table_name in self.table_config:
                 view = self.table_config[table_name][0]
                 view.resizeColumnsToContents()
+
+            # Special handling for transactions table - make last column wider
+            header = self.tableView_transactions.horizontalHeader()
+            if header.count() > 0:
+                # Set last column (Tag) to be wider
+                last_column = header.count() - 1
+                self.tableView_transactions.setColumnWidth(last_column, 200)  # Set width to 200 pixels
 
             # Connect auto-save signals
             self._connect_table_auto_save_signals()
