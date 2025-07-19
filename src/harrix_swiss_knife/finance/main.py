@@ -1228,6 +1228,11 @@ class MainWindow(
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
+        # Auto-filter signals for radio buttons
+        self.radioButton.clicked.connect(self.apply_filter)
+        self.radioButton_2.clicked.connect(self.apply_filter)
+        self.radioButton_3.clicked.connect(self.apply_filter)
+
         # Chart signals
         self.pushButton_update_chart.clicked.connect(self.update_charts)
         self.pushButton_pie_chart.clicked.connect(self.show_pie_chart)
