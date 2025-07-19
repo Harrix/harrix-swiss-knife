@@ -648,6 +648,21 @@ class DatabaseManager:
         rows = self.get_rows("SELECT name FROM categories WHERE type = :type ORDER BY name", {"type": category_type})
         return [row[0] for row in rows]
 
+    def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str]]:
+        """Get category names and icons by type.
+
+        Args:
+
+        - `category_type` (`int`): Category type (0 = expense, 1 = income).
+
+        Returns:
+
+        - `list[tuple[str, str]]`: List of (name, icon) tuples.
+
+        """
+        rows = self.get_rows("SELECT name, icon FROM categories WHERE type = :type ORDER BY name", {"type": category_type})
+        return [(row[0], row[1]) for row in rows]
+
     def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:
         """Get currency information by code.
 

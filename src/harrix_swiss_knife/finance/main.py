@@ -529,7 +529,7 @@ class MainWindow(
         amount = self.doubleSpinBox_amount.value()
         description = self.lineEdit_description.text().strip()
         category_name = (
-            self.listView_categories.currentIndex().data()
+            self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
             if self.listView_categories.currentIndex().isValid()
             else None
         )
@@ -1912,12 +1912,18 @@ class MainWindow(
                 combo.clear()
                 combo.addItems(currencies)
 
-            # Update categories list view
-            categories = self.db_manager.get_categories_by_type(0) + self.db_manager.get_categories_by_type(1)
+            # Update categories list view with icons
+            expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
+            income_categories = self.db_manager.get_categories_with_icons_by_type(1)
+            all_categories = expense_categories + income_categories
 
             model = QStandardItemModel()
-            for category in categories:
-                item = QStandardItem(category)
+            for category_name, icon in all_categories:
+                # Create display text with icon
+                display_text = f"{icon} {category_name}" if icon else category_name
+                item = QStandardItem(display_text)
+                # Store the original category name as data for selection handling
+                item.setData(category_name, Qt.ItemDataRole.UserRole)
                 model.appendRow(item)
 
             self.listView_categories.setModel(model)
