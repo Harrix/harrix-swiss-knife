@@ -1970,7 +1970,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         # Set emoji for buttons
-        self.pushButton_food_add.setText(f"🍽️ {self.pushButton_food_add.text()}")
+        self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")  # noqa: RUF001
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
