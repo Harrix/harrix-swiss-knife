@@ -208,7 +208,7 @@ allows users to record, monitor, and analyze their food intake and nutrition.
 ```python
 class OnFood(ActionBase):
 
-    icon = "🍎"
+    icon = "🍔"
     title = "Food tracker"
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003

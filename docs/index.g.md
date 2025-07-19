@@ -114,7 +114,7 @@ _Figure 1: Screenshot_
   - 🌟 ★ isort, ruff format, sort, make docs in PY files
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
-- 🍎 Food tracker
+- 🍔 Food tracker
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit

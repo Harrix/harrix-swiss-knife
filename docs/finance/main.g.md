@@ -2017,7 +2017,7 @@ class MainWindow(
             for category_name, icon in income_categories:
                 # Create display text with icon and income marker
                 base_text = f"{icon} {category_name}" if icon else category_name
-                display_text = f"💰 {base_text}"  # Add income emoji marker
+                display_text = f"{base_text} (Income)"  # Add income marker in parentheses
                 item = QStandardItem(display_text)
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
@@ -4775,7 +4775,7 @@ def _update_comboboxes(self) -> None:
             for category_name, icon in income_categories:
                 # Create display text with icon and income marker
                 base_text = f"{icon} {category_name}" if icon else category_name
-                display_text = f"💰 {base_text}"  # Add income emoji marker
+                display_text = f"{base_text} (Income)"  # Add income marker in parentheses
                 item = QStandardItem(display_text)
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
