@@ -140,37 +140,6 @@ class MainWindow(
         # Show window after initialization
         QTimer.singleShot(200, self._finish_window_initialization)
 
-    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
-        """Generate pastel colors using mathematical distribution.
-
-        Args:
-
-        - `count` (`int`): Number of colors to generate. Defaults to `100`.
-
-        Returns:
-
-        - `list[QColor]`: List of pastel QColor objects.
-
-        """
-        colors = []
-
-        for i in range(count):
-            # Use golden ratio for even hue distribution
-            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
-
-            # Lower saturation and higher lightness for very light pastel effect
-            saturation = 0.6  # Very low saturation
-            lightness = 0.95  # Very high lightness
-
-            # Convert HSL to RGB
-            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
-
-            # Convert to 0-255 range and create QColor
-            color = QColor(int(r * 255), int(g * 255), int(b * 255))
-            colors.append(color)
-
-        return colors
-
     @requires_database()
     def apply_filter(self) -> None:
         """Apply combo-box/date filters to the transactions table."""
@@ -293,6 +262,37 @@ class MainWindow(
             self.update_summary_labels()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+
+    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
+        """Generate pastel colors using mathematical distribution.
+
+        Args:
+
+        - `count` (`int`): Number of colors to generate. Defaults to `100`.
+
+        Returns:
+
+        - `list[QColor]`: List of pastel QColor objects.
+
+        """
+        colors = []
+
+        for i in range(count):
+            # Use golden ratio for even hue distribution
+            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
+
+            # Lower saturation and higher lightness for very light pastel effect
+            saturation = 0.6  # Very low saturation
+            lightness = 0.95  # Very high lightness
+
+            # Convert HSL to RGB
+            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
+
+            # Convert to 0-255 range and create QColor
+            color = QColor(int(r * 255), int(g * 255), int(b * 255))
+            colors.append(color)
+
+        return colors
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.

@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
+  - [⚙️ Method `generate_pastel_colors_mathematical`](#%EF%B8%8F-method-generate_pastel_colors_mathematical)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `on_add_account`](#%EF%B8%8F-method-on_add_account)
   - [⚙️ Method `on_add_category`](#%EF%B8%8F-method-on_add_category)
@@ -141,6 +142,9 @@ class MainWindow(
 
         # Chart configuration
         self.max_count_points_in_charts = 40
+
+        # Generate pastel colors for date-based coloring
+        self.date_colors = self.generate_pastel_colors_mathematical(50)
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -311,6 +315,37 @@ class MainWindow(
             self.update_summary_labels()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+
+    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
+        """Generate pastel colors using mathematical distribution.
+
+        Args:
+
+        - `count` (`int`): Number of colors to generate. Defaults to `100`.
+
+        Returns:
+
+        - `list[QColor]`: List of pastel QColor objects.
+
+        """
+        colors = []
+
+        for i in range(count):
+            # Use golden ratio for even hue distribution
+            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
+
+            # Lower saturation and higher lightness for very light pastel effect
+            saturation = 0.6  # Very low saturation
+            lightness = 0.95  # Very high lightness
+
+            # Convert HSL to RGB
+            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
+
+            # Convert to 0-255 range and create QColor
+            color = QColor(int(r * 255), int(g * 255), int(b * 255))
+            colors.append(color)
+
+        return colors
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.
@@ -1377,7 +1412,8 @@ class MainWindow(
         sizes = list(data.values())
 
         # Create pie chart
-        wedges, texts, autotexts = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
+        pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
+        wedges, texts, autotexts = pie_result if len(pie_result) == 3 else (pie_result[0], pie_result[1], [])
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
@@ -1809,6 +1845,12 @@ class MainWindow(
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
+        self.pushButton_description_clear.setText("🧹")
+
+        # Configure splitter proportions
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setStretchFactor(2, 3)
 
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)
@@ -1818,20 +1860,33 @@ class MainWindow(
         self.doubleSpinBox_rate_value.setValue(73.5)
 
     def _setup_window_size_and_position(self) -> None:
-        """Set window size and position."""
+        """Set window size and position based on screen resolution and characteristics."""
         screen_geometry = QApplication.primaryScreen().geometry()
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
 
-        # Set window size to 90% of screen size
-        window_width = int(screen_width * 0.9)
-        window_height = int(screen_height * 0.9)
+        # Determine window size and position based on screen characteristics
+        aspect_ratio = screen_width / screen_height
+        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
 
-        # Center the window
-        x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
-
-        self.setGeometry(x, y, window_width, window_height)
+        if is_standard_aspect and screen_width >= 1920:
+            # For standard aspect ratios with width >= 1920, maximize window
+            self.showMaximized()
+        else:
+            title_bar_height = 30  # Approximate title bar height
+            windows_task_bar_height = 48  # Approximate windows task bar height
+            # For other cases, use fixed width and full height minus title bar
+            window_width = 1920
+            window_height = screen_height - title_bar_height - windows_task_bar_height
+            # Position window on screen
+            screen_center = screen_geometry.center()
+            # Center horizontally, position at top vertically with title bar offset
+            self.setGeometry(
+                screen_center.x() - window_width // 2,
+                title_bar_height,  # Position below title bar
+                window_width,
+                window_height,
+            )
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors.
@@ -1847,6 +1902,10 @@ class MainWindow(
         """
         transformed_data = []
 
+        # Create a mapping of dates to color indices
+        date_to_color_index = {}
+        color_index = 0
+
         for row in rows:
             # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
             transaction_id = row[0]
@@ -1861,11 +1920,12 @@ class MainWindow(
             # Convert amount from cents to display format
             amount = float(amount_cents) / 100
 
-            # Determine color based on category type
-            if category_type == 0:  # Expense
-                color = QColor(255, 200, 200)  # Light red
-            else:  # Income
-                color = QColor(200, 255, 200)  # Light green
+            # Determine color based on date
+            if date not in date_to_color_index:
+                date_to_color_index[date] = color_index % len(self.date_colors)
+                color_index += 1
+
+            color = self.date_colors[date_to_color_index[date]]
 
             # Transform to display format: [amount, description, category, currency, date, tag, id, color]
             transformed_row = [
@@ -1980,6 +2040,9 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Chart configuration
         self.max_count_points_in_charts = 40
+
+        # Generate pastel colors for date-based coloring
+        self.date_colors = self.generate_pastel_colors_mathematical(50)
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -2200,6 +2263,49 @@ def delete_record(self, table_name: str) -> None:
             self.update_summary_labels()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+```
+
+</details>
+
+### ⚙️ Method `generate_pastel_colors_mathematical`
+
+```python
+def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]
+```
+
+Generate pastel colors using mathematical distribution.
+
+Args:
+
+- `count` (`int`): Number of colors to generate. Defaults to `100`.
+
+Returns:
+
+- `list[QColor]`: List of pastel QColor objects.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
+        colors = []
+
+        for i in range(count):
+            # Use golden ratio for even hue distribution
+            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
+
+            # Lower saturation and higher lightness for very light pastel effect
+            saturation = 0.6  # Very low saturation
+            lightness = 0.95  # Very high lightness
+
+            # Convert HSL to RGB
+            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
+
+            # Convert to 0-255 range and create QColor
+            color = QColor(int(r * 255), int(g * 255), int(b * 255))
+            colors.append(color)
+
+        return colors
 ```
 
 </details>
@@ -3788,7 +3894,8 @@ def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
         sizes = list(data.values())
 
         # Create pie chart
-        wedges, texts, autotexts = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
+        pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
+        wedges, texts, autotexts = pie_result if len(pie_result) == 3 else (pie_result[0], pie_result[1], [])
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
@@ -4390,6 +4497,12 @@ def _setup_ui(self) -> None:
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
+        self.pushButton_description_clear.setText("🧹")
+
+        # Configure splitter proportions
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setStretchFactor(2, 3)
 
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)
@@ -4407,7 +4520,7 @@ def _setup_ui(self) -> None:
 def _setup_window_size_and_position(self) -> None
 ```
 
-Set window size and position.
+Set window size and position based on screen resolution and characteristics.
 
 <details>
 <summary>Code:</summary>
@@ -4418,15 +4531,28 @@ def _setup_window_size_and_position(self) -> None:
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
 
-        # Set window size to 90% of screen size
-        window_width = int(screen_width * 0.9)
-        window_height = int(screen_height * 0.9)
+        # Determine window size and position based on screen characteristics
+        aspect_ratio = screen_width / screen_height
+        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
 
-        # Center the window
-        x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
-
-        self.setGeometry(x, y, window_width, window_height)
+        if is_standard_aspect and screen_width >= 1920:
+            # For standard aspect ratios with width >= 1920, maximize window
+            self.showMaximized()
+        else:
+            title_bar_height = 30  # Approximate title bar height
+            windows_task_bar_height = 48  # Approximate windows task bar height
+            # For other cases, use fixed width and full height minus title bar
+            window_width = 1920
+            window_height = screen_height - title_bar_height - windows_task_bar_height
+            # Position window on screen
+            screen_center = screen_geometry.center()
+            # Center horizontally, position at top vertically with title bar offset
+            self.setGeometry(
+                screen_center.x() - window_width // 2,
+                title_bar_height,  # Position below title bar
+                window_width,
+                window_height,
+            )
 ```
 
 </details>
@@ -4454,6 +4580,10 @@ Returns:
 def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         transformed_data = []
 
+        # Create a mapping of dates to color indices
+        date_to_color_index = {}
+        color_index = 0
+
         for row in rows:
             # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
             transaction_id = row[0]
@@ -4468,11 +4598,12 @@ def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
             # Convert amount from cents to display format
             amount = float(amount_cents) / 100
 
-            # Determine color based on category type
-            if category_type == 0:  # Expense
-                color = QColor(255, 200, 200)  # Light red
-            else:  # Income
-                color = QColor(200, 255, 200)  # Light green
+            # Determine color based on date
+            if date not in date_to_color_index:
+                date_to_color_index[date] = color_index % len(self.date_colors)
+                color_index += 1
+
+            color = self.date_colors[date_to_color_index[date]]
 
             # Transform to display format: [amount, description, category, currency, date, tag, id, color]
             transformed_row = [
