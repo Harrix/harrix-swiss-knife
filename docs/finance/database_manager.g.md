@@ -17,28 +17,39 @@ lang: en
   - [⚙️ Method `add_account`](#%EF%B8%8F-method-add_account)
   - [⚙️ Method `add_category`](#%EF%B8%8F-method-add_category)
   - [⚙️ Method `add_currency`](#%EF%B8%8F-method-add_currency)
+  - [⚙️ Method `add_currency_exchange`](#%EF%B8%8F-method-add_currency_exchange)
+  - [⚙️ Method `add_exchange_rate`](#%EF%B8%8F-method-add_exchange_rate)
   - [⚙️ Method `add_transaction`](#%EF%B8%8F-method-add_transaction)
   - [⚙️ Method `close`](#%EF%B8%8F-method-close)
   - [⚙️ Method `create_database_from_sql`](#%EF%B8%8F-method-create_database_from_sql)
   - [⚙️ Method `delete_account`](#%EF%B8%8F-method-delete_account)
   - [⚙️ Method `delete_category`](#%EF%B8%8F-method-delete_category)
   - [⚙️ Method `delete_currency`](#%EF%B8%8F-method-delete_currency)
+  - [⚙️ Method `delete_currency_exchange`](#%EF%B8%8F-method-delete_currency_exchange)
+  - [⚙️ Method `delete_exchange_rate`](#%EF%B8%8F-method-delete_exchange_rate)
   - [⚙️ Method `delete_transaction`](#%EF%B8%8F-method-delete_transaction)
   - [⚙️ Method `execute_query`](#%EF%B8%8F-method-execute_query)
   - [⚙️ Method `execute_simple_query`](#%EF%B8%8F-method-execute_simple_query)
-  - [⚙️ Method `get_accounts_list`](#%EF%B8%8F-method-get_accounts_list)
+  - [⚙️ Method `get_account_balances_in_currency`](#%EF%B8%8F-method-get_account_balances_in_currency)
   - [⚙️ Method `get_all_accounts`](#%EF%B8%8F-method-get_all_accounts)
   - [⚙️ Method `get_all_categories`](#%EF%B8%8F-method-get_all_categories)
   - [⚙️ Method `get_all_currencies`](#%EF%B8%8F-method-get_all_currencies)
+  - [⚙️ Method `get_all_currency_exchanges`](#%EF%B8%8F-method-get_all_currency_exchanges)
+  - [⚙️ Method `get_all_exchange_rates`](#%EF%B8%8F-method-get_all_exchange_rates)
   - [⚙️ Method `get_all_transactions`](#%EF%B8%8F-method-get_all_transactions)
   - [⚙️ Method `get_categories_by_type`](#%EF%B8%8F-method-get_categories_by_type)
-  - [⚙️ Method `get_currencies_list`](#%EF%B8%8F-method-get_currencies_list)
-  - [⚙️ Method `get_daily_balance`](#%EF%B8%8F-method-get_daily_balance)
+  - [⚙️ Method `get_currency_by_code`](#%EF%B8%8F-method-get_currency_by_code)
+  - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
+  - [⚙️ Method `get_default_currency_id`](#%EF%B8%8F-method-get_default_currency_id)
+  - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate)
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
-  - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
+  - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
+  - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
+  - [⚙️ Method `get_transactions_chart_data`](#%EF%B8%8F-method-get_transactions_chart_data)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
+  - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `update_account`](#%EF%B8%8F-method-update_account)
   - [⚙️ Method `update_category`](#%EF%B8%8F-method-update_category)
@@ -108,48 +119,55 @@ class DatabaseManager:
         except Exception as e:
             print(f"Warning: Error during database cleanup: {e}")
 
-    def add_account(self, name: str, currency_id: int, balance: float, is_liquid: bool, is_cash: bool) -> bool:
+    def add_account(
+        self, name: str, balance: float, currency_id: int, *, is_liquid: bool = True, is_cash: bool = False
+    ) -> bool:
         """Add a new account to the database.
 
         Args:
 
         - `name` (`str`): Account name.
-        - `currency_id` (`int`): Currency ID.
         - `balance` (`float`): Initial balance.
-        - `is_liquid` (`bool`): Whether account is liquid.
-        - `is_cash` (`bool`): Whether account is cash.
+        - `currency_id` (`int`): Currency ID.
+        - `is_liquid` (`bool`): Whether account is liquid. Defaults to `True`.
+        - `is_cash` (`bool`): Whether account is cash. Defaults to `False`.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = """INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash)
-                   VALUES (:name, :currency_id, :balance, :is_liquid, :is_cash)"""
+        query = """INSERT INTO accounts (name, balance, _id_currencies, is_liquid, is_cash)
+                   VALUES (:name, :balance, :currency_id, :is_liquid, :is_cash)"""
         params = {
             "name": name,
+            "balance": int(balance * 100),  # Convert to cents
             "currency_id": currency_id,
-            "balance": balance,
             "is_liquid": 1 if is_liquid else 0,
             "is_cash": 1 if is_cash else 0,
         }
         return self.execute_simple_query(query, params)
 
-    def add_category(self, name: str, category_type: str) -> bool:
+    def add_category(self, name: str, category_type: int, icon: str = "") -> bool:
         """Add a new category to the database.
 
         Args:
 
         - `name` (`str`): Category name.
-        - `category_type` (`str`): Category type (expense/income/transfer).
+        - `category_type` (`int`): Category type (0 = expense, 1 = income).
+        - `icon` (`str`): Category icon. Defaults to `""`.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "INSERT INTO categories (name, type) VALUES (:name, :type)"
-        params = {"name": name, "type": category_type}
+        query = "INSERT INTO categories (name, type, icon) VALUES (:name, :type, :icon)"
+        params = {
+            "name": name,
+            "type": category_type,
+            "icon": icon,
+        }
         return self.execute_simple_query(query, params)
 
     def add_currency(self, code: str, name: str, symbol: str) -> bool:
@@ -157,7 +175,7 @@ class DatabaseManager:
 
         Args:
 
-        - `code` (`str`): Currency code (USD, EUR, etc.).
+        - `code` (`str`): Currency code (e.g., USD, EUR).
         - `name` (`str`): Currency name.
         - `symbol` (`str`): Currency symbol.
 
@@ -167,21 +185,67 @@ class DatabaseManager:
 
         """
         query = "INSERT INTO currencies (code, name, symbol) VALUES (:code, :name, :symbol)"
-        params = {"code": code, "name": name, "symbol": symbol}
+        params = {
+            "code": code,
+            "name": name,
+            "symbol": symbol,
+        }
         return self.execute_simple_query(query, params)
 
-    def add_transaction(
-        self, transaction_type: str, amount: float, currency_id: int, category_id: int, description: str, date: str
+    def add_currency_exchange(
+        self,
+        currency_from_id: int,
+        currency_to_id: int,
+        amount_from: float,
+        amount_to: float,
+        exchange_rate: float,
+        fee: float,
+        date: str,
+        description: str = "",
     ) -> bool:
-        """Add a new transaction to the database.
+        """Add a new currency exchange record.
 
         Args:
 
-        - `transaction_type` (`str`): Type of transaction (income/expense/transfer).
-        - `amount` (`float`): Transaction amount.
-        - `currency_id` (`int`): Currency ID.
-        - `category_id` (`int`): Category ID.
-        - `description` (`str`): Transaction description.
+        - `currency_from_id` (`int`): Source currency ID.
+        - `currency_to_id` (`int`): Target currency ID.
+        - `amount_from` (`float`): Amount in source currency.
+        - `amount_to` (`float`): Amount in target currency.
+        - `exchange_rate` (`float`): Exchange rate.
+        - `fee` (`float`): Exchange fee.
+        - `date` (`str`): Date in YYYY-MM-DD format.
+        - `description` (`str`): Exchange description. Defaults to `""`.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = """INSERT INTO currency_exchanges
+                   (_id_currency_from, _id_currency_to, amount_from, amount_to,
+                    exchange_rate, fee, date, description)
+                   VALUES (:from_id, :to_id, :amount_from, :amount_to,
+                           :exchange_rate, :fee, :date, :description)"""
+        params = {
+            "from_id": currency_from_id,
+            "to_id": currency_to_id,
+            "amount_from": int(amount_from * 100),  # Convert to cents
+            "amount_to": int(amount_to * 100),  # Convert to cents
+            "exchange_rate": int(exchange_rate * 100),  # Convert to cents
+            "fee": int(fee * 100),  # Convert to cents
+            "date": date,
+            "description": description,
+        }
+        return self.execute_simple_query(query, params)
+
+    def add_exchange_rate(self, currency_from_id: int, currency_to_id: int, rate: float, date: str) -> bool:
+        """Add a new exchange rate.
+
+        Args:
+
+        - `currency_from_id` (`int`): Source currency ID.
+        - `currency_to_id` (`int`): Target currency ID.
+        - `rate` (`float`): Exchange rate.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
         Returns:
@@ -189,14 +253,50 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date)
-                   VALUES (:amount, :description, :category_id, :currency_id, :date)"""
+        query = """INSERT INTO exchange_rates (_id_currency_from, _id_currency_to, rate, date)
+                   VALUES (:from_id, :to_id, :rate, :date)"""
         params = {
-            "amount": amount,
+            "from_id": currency_from_id,
+            "to_id": currency_to_id,
+            "rate": int(rate * 100),  # Convert to cents
+            "date": date,
+        }
+        return self.execute_simple_query(query, params)
+
+    def add_transaction(
+        self,
+        amount: float,
+        description: str,
+        category_id: int,
+        currency_id: int,
+        date: str,
+        tag: str = "",
+    ) -> bool:
+        """Add a new transaction.
+
+        Args:
+
+        - `amount` (`float`): Transaction amount.
+        - `description` (`str`): Transaction description.
+        - `category_id` (`int`): Category ID.
+        - `currency_id` (`int`): Currency ID.
+        - `date` (`str`): Date in YYYY-MM-DD format.
+        - `tag` (`str`): Transaction tag. Defaults to `""`.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date, tag)
+                   VALUES (:amount, :description, :category_id, :currency_id, :date, :tag)"""
+        params = {
+            "amount": int(amount * 100),  # Convert to cents
             "description": description,
             "category_id": category_id,
             "currency_id": currency_id,
             "date": date,
+            "tag": tag,
         }
         return self.execute_simple_query(query, params)
 
@@ -322,8 +422,38 @@ class DatabaseManager:
         query = "DELETE FROM currencies WHERE _id = :id"
         return self.execute_simple_query(query, {"id": currency_id})
 
+    def delete_currency_exchange(self, exchange_id: int) -> bool:
+        """Delete a currency exchange record.
+
+        Args:
+
+        - `exchange_id` (`int`): Exchange ID to delete.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = "DELETE FROM currency_exchanges WHERE _id = :id"
+        return self.execute_simple_query(query, {"id": exchange_id})
+
+    def delete_exchange_rate(self, rate_id: int) -> bool:
+        """Delete an exchange rate.
+
+        Args:
+
+        - `rate_id` (`int`): Rate ID to delete.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = "DELETE FROM exchange_rates WHERE _id = :id"
+        return self.execute_simple_query(query, {"id": rate_id})
+
     def delete_transaction(self, transaction_id: int) -> bool:
-        """Delete a transaction from the database.
+        """Delete a transaction.
 
         Args:
 
@@ -443,26 +573,48 @@ class DatabaseManager:
             query.clear()
             return True
 
-    def get_accounts_list(self) -> list[str]:
-        """Get list of account names.
+    def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]:
+        """Get all account balances converted to specified currency.
+
+        Args:
+
+        - `currency_id` (`int`): Target currency ID.
 
         Returns:
 
-        - `list[str]`: List of account names.
+        - `list[tuple[str, float]]`: List of (account_name, balance) tuples in target currency.
 
         """
-        return self.get_items("accounts", "name", order_by="name")
+        query = """
+            SELECT a.name,
+                   CASE
+                       WHEN a._id_currencies = :currency_id THEN a.balance
+                       ELSE COALESCE(er.rate * a.balance / 100, a.balance)
+                   END as converted_balance
+            FROM accounts a
+            LEFT JOIN exchange_rates er ON er._id_currency_from = a._id_currencies
+                                        AND er._id_currency_to = :currency_id
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency_from = a._id_currencies
+                                              AND er2._id_currency_to = :currency_id
+                                        )
+            ORDER BY a.name
+        """
+        rows = self.get_rows(query, {"currency_id": currency_id})
+        return [(row[0], float(row[1]) / 100) for row in rows]
 
     def get_all_accounts(self) -> list[list[Any]]:
         """Get all accounts with currency information.
 
         Returns:
 
-        - `list[list[Any]]`: List of account records.
+        - `list[list[Any]]`: List of account records [_id, name, balance, currency_code, is_liquid, is_cash].
 
         """
         return self.get_rows("""
-            SELECT a._id, a.name, c.code, a.balance, a.is_liquid, a.is_cash
+            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash
             FROM accounts a
             JOIN currencies c ON a._id_currencies = c._id
             ORDER BY a.name
@@ -473,20 +625,53 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[list[Any]]`: List of category records.
+        - `list[list[Any]]`: List of category records [_id, name, type, icon].
 
         """
-        return self.get_rows("SELECT _id, name, type FROM categories ORDER BY name")
+        return self.get_rows("SELECT _id, name, type, icon FROM categories ORDER BY type, name")
 
     def get_all_currencies(self) -> list[list[Any]]:
         """Get all currencies.
 
         Returns:
 
-        - `list[list[Any]]`: List of currency records.
+        - `list[list[Any]]`: List of currency records [_id, code, name, symbol].
 
         """
         return self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code")
+
+    def get_all_currency_exchanges(self) -> list[list[Any]]:
+        """Get all currency exchange records with currency information.
+
+        Returns:
+
+        - `list[list[Any]]`: List of exchange records.
+
+        """
+        return self.get_rows("""
+            SELECT ce._id, cf.code, ct.code, ce.amount_from, ce.amount_to,
+                   ce.exchange_rate, ce.fee, ce.date, ce.description
+            FROM currency_exchanges ce
+            JOIN currencies cf ON ce._id_currency_from = cf._id
+            JOIN currencies ct ON ce._id_currency_to = ct._id
+            ORDER BY ce.date DESC, ce._id DESC
+        """)
+
+    def get_all_exchange_rates(self) -> list[list[Any]]:
+        """Get all exchange rates with currency information.
+
+        Returns:
+
+        - `list[list[Any]]`: List of exchange rate records.
+
+        """
+        return self.get_rows("""
+            SELECT er._id, cf.code, ct.code, er.rate, er.date
+            FROM exchange_rates er
+            JOIN currencies cf ON er._id_currency_from = cf._id
+            JOIN currencies ct ON er._id_currency_to = ct._id
+            ORDER BY er.date DESC, er._id DESC
+        """)
 
     def get_all_transactions(self) -> list[list[Any]]:
         """Get all transactions with category and currency information.
@@ -497,68 +682,133 @@ class DatabaseManager:
 
         """
         return self.get_rows("""
-            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, t.description, t.date
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol
             FROM transactions t
-            JOIN currencies c ON t._id_currencies = c._id
             JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
             ORDER BY t.date DESC, t._id DESC
         """)
 
-    def get_categories_by_type(self, category_type: str) -> list[str]:
+    def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
 
         Args:
 
-        - `category_type` (`str`): Category type to filter by.
+        - `category_type` (`int`): Category type (0 = expense, 1 = income).
 
         Returns:
 
         - `list[str]`: List of category names.
 
         """
-        return self.get_items("categories", "name", condition=f"type = '{category_type}'", order_by="name")
+        rows = self.get_rows("SELECT name FROM categories WHERE type = :type ORDER BY name", {"type": category_type})
+        return [row[0] for row in rows]
 
-    def get_currencies_list(self) -> list[str]:
-        """Get list of currency codes.
-
-        Returns:
-
-        - `list[str]`: List of currency codes.
-
-        """
-        return self.get_items("currencies", "code", order_by="code")
-
-    def get_daily_balance(self, date: str) -> float:
-        """Get daily balance for a specific date.
+    def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:
+        """Get currency information by code.
 
         Args:
 
-        - `date` (`str`): Date in YYYY-MM-DD format.
+        - `code` (`str`): Currency code.
 
         Returns:
 
-        - `float`: Daily balance.
+        - `tuple[int, str, str] | None`: Tuple of (id, name, symbol) or None if not found.
 
         """
-        rows = self.get_rows(
-            """
-            SELECT
-                COALESCE(SUM(CASE WHEN cat.type = 1 THEN t.amount ELSE 0 END), 0) -
-                COALESCE(SUM(CASE WHEN cat.type = 0 THEN t.amount ELSE 0 END), 0)
-            FROM transactions t
-            JOIN categories cat ON t._id_categories = cat._id
-            WHERE t.date = :date
-        """,
-            {"date": date},
-        )
+        rows = self.get_rows("SELECT _id, name, symbol FROM currencies WHERE code = :code", {"code": code})
+        return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
 
-        return float(rows[0][0]) if rows and rows[0][0] is not None else 0.0
+    def get_default_currency(self) -> str:
+        """Get the default currency code.
+
+        Returns:
+
+        - `str`: Default currency code or 'RUB' if not set.
+
+        """
+        rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
+        return rows[0][0] if rows else "RUB"
+
+    def get_default_currency_id(self) -> int:
+        """Get the default currency ID.
+
+        Returns:
+
+        - `int`: Default currency ID or 1 if not found.
+
+        """
+        default_code = self.get_default_currency()
+        currency_info = self.get_currency_by_code(default_code)
+        return currency_info[0] if currency_info else 1
+
+    def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
+        """Get exchange rate between currencies.
+
+        Args:
+
+        - `from_currency_id` (`int`): Source currency ID.
+        - `to_currency_id` (`int`): Target currency ID.
+        - `date` (`str | None`): Date for rate lookup. Uses latest if None. Defaults to `None`.
+
+        Returns:
+
+        - `float`: Exchange rate or 1.0 if not found/same currency.
+
+        """
+        if from_currency_id == to_currency_id:
+            return 1.0
+
+        if date:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id
+                  AND date <= :date
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"from_id": from_currency_id, "to_id": to_currency_id, "date": date}
+        else:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"from_id": from_currency_id, "to_id": to_currency_id}
+
+        rows = self.get_rows(query, params)
+        if rows:
+            return float(rows[0][0]) / 100  # Convert from cents
+
+        # Try inverse rate
+        if date:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency_from = :to_id AND _id_currency_to = :from_id
+                  AND date <= :date
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"from_id": to_currency_id, "to_id": from_currency_id, "date": date}
+        else:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency_from = :to_id AND _id_currency_to = :from_id
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"from_id": to_currency_id, "to_id": from_currency_id}
+
+        rows = self.get_rows(query, params)
+        if rows:
+            rate = float(rows[0][0]) / 100
+            return 1.0 / rate if rate != 0 else 1.0
+
+        return 1.0
 
     def get_filtered_transactions(
         self,
-        category: str | None = None,
-        transaction_type: str | None = None,
-        currency: str | None = None,
+        category_type: int | None = None,
+        category_name: str | None = None,
+        currency_code: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> list[list[Any]]:
@@ -566,11 +816,11 @@ class DatabaseManager:
 
         Args:
 
-        - `category` (`str | None`): Filter by category name.
-        - `transaction_type` (`str | None`): Filter by transaction type.
-        - `currency` (`str | None`): Filter by currency code.
-        - `date_from` (`str | None`): Filter from date.
-        - `date_to` (`str | None`): Filter to date.
+        - `category_type` (`int | None`): Filter by category type. Defaults to `None`.
+        - `category_name` (`str | None`): Filter by category name. Defaults to `None`.
+        - `currency_code` (`str | None`): Filter by currency code. Defaults to `None`.
+        - `date_from` (`str | None`): Filter from date. Defaults to `None`.
+        - `date_to` (`str | None`): Filter to date. Defaults to `None`.
 
         Returns:
 
@@ -578,22 +828,19 @@ class DatabaseManager:
 
         """
         conditions: list[str] = []
-        params: dict[str, str] = {}
+        params: dict[str, str | int] = {}
 
-        if category:
-            conditions.append("cat.name = :category")
-            params["category"] = category
+        if category_type is not None:
+            conditions.append("cat.type = :category_type")
+            params["category_type"] = category_type
 
-        if transaction_type and transaction_type != "All":
-            # Map transaction type strings to category type integers
-            type_mapping = {"income": 1, "expense": 0, "transfer": 2}
-            if transaction_type.lower() in type_mapping:
-                conditions.append("cat.type = :type")
-                params["type"] = str(type_mapping[transaction_type.lower()])
+        if category_name:
+            conditions.append("cat.name = :category_name")
+            params["category_name"] = category_name
 
-        if currency:
-            conditions.append("c.code = :currency")
-            params["currency"] = currency
+        if currency_code:
+            conditions.append("c.code = :currency_code")
+            params["currency_code"] = currency_code
 
         if date_from and date_to:
             conditions.append("t.date BETWEEN :date_from AND :date_to")
@@ -601,10 +848,11 @@ class DatabaseManager:
             params["date_to"] = date_to
 
         query_text = """
-            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, t.description, t.date
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol
             FROM transactions t
-            JOIN currencies c ON t._id_currencies = c._id
             JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
         """
 
         if conditions:
@@ -629,7 +877,7 @@ class DatabaseManager:
         - `table` (`str`): Target table name.
         - `name_column` (`str`): Column that stores the searched value.
         - `name_value` (`str`): Searched value itself.
-        - `id_column` (`str`): Column that stores the ID. Defaults to `"id"`.
+        - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
         - `condition` (`str | None`): Extra SQL that will be appended to the
           `WHERE` clause. Defaults to `None`.
 
@@ -656,48 +904,83 @@ class DatabaseManager:
             return result
         return None
 
-    def get_items(
-        self,
-        table: str,
-        column: str,
-        condition: str | None = None,
-        order_by: str | None = None,
-    ) -> list[Any]:
-        """Return all values stored in `column` from `table`.
+    def get_income_vs_expenses_in_currency(
+        self, currency_id: int, date_from: str | None = None, date_to: str | None = None
+    ) -> tuple[float, float]:
+        """Get total income and expenses in specified currency.
 
         Args:
 
-        - `table` (`str`): Table that will be queried.
-        - `column` (`str`): The column to extract.
-        - `condition` (`str | None`): Optional `WHERE` clause. Defaults to
-          `None`.
-        - `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to
-          `None`.
+        - `currency_id` (`int`): Target currency ID.
+        - `date_from` (`str | None`): From date. Defaults to `None`.
+        - `date_to` (`str | None`): To date. Defaults to `None`.
 
         Returns:
 
-        - `list[Any]`: The resulting data as a flat Python list.
+        - `tuple[float, float]`: Tuple of (total_income, total_expenses) in target currency.
 
         """
-        table = _safe_identifier(table)
-        column = _safe_identifier(column)
+        conditions = []
+        params = {"currency_id": currency_id}
 
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {column} FROM {table}"
-        if condition:
-            query_text += f" WHERE {condition}"
-        if order_by:
-            # The order_by expression may legitimately contain ASC/DESC or
-            # multiple columns; validation is left to the caller.
-            query_text += f" ORDER BY {order_by}"
+        if date_from and date_to:
+            conditions.append("t.date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
 
-        result = []
-        query = self.execute_query(query_text)
-        if query:
-            while query.next():
-                result.append(query.value(0))
-            query.clear()  # Clear the query to release resources
-        return result
+        where_clause = " AND " + " AND ".join(conditions) if conditions else ""
+
+        # Get income (category type = 1)
+        income_query = f"""
+            SELECT SUM(
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
+                END
+            ) as total_income
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
+                                        AND er._id_currency_to = :currency_id
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency_from = t._id_currencies
+                                              AND er2._id_currency_to = :currency_id
+                                              AND er2.date <= t.date
+                                        )
+            WHERE cat.type = 1{where_clause}
+        """
+
+        # Get expenses (category type = 0)
+        expenses_query = f"""
+            SELECT SUM(
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
+                END
+            ) as total_expenses
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
+                                        AND er._id_currency_to = :currency_id
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency_from = t._id_currencies
+                                              AND er2._id_currency_to = :currency_id
+                                              AND er2.date <= t.date
+                                        )
+            WHERE cat.type = 0{where_clause}
+        """
+
+        income_rows = self.get_rows(income_query, params)
+        expenses_rows = self.get_rows(expenses_query, params)
+
+        total_income = float(income_rows[0][0] or 0) / 100 if income_rows and income_rows[0][0] else 0.0
+        total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
+
+        return total_income, total_expenses
 
     def get_rows(
         self,
@@ -725,6 +1008,83 @@ class DatabaseManager:
             return result
         return []
 
+    def get_today_balance_in_currency(self, currency_id: int) -> float:
+        """Get today's balance (income - expenses) in specified currency.
+
+        Args:
+
+        - `currency_id` (`int`): Target currency ID.
+
+        Returns:
+
+        - `float`: Today's balance in target currency.
+
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
+        return total_income - total_expenses
+
+    def get_transactions_chart_data(
+        self,
+        currency_id: int,
+        category_type: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[tuple[str, float]]:
+        """Get transaction data for charting in specified currency.
+
+        Args:
+
+        - `currency_id` (`int`): Target currency ID.
+        - `category_type` (`int | None`): Category type filter. Defaults to `None`.
+        - `date_from` (`str | None`): From date. Defaults to `None`.
+        - `date_to` (`str | None`): To date. Defaults to `None`.
+
+        Returns:
+
+        - `list[tuple[str, float]]`: List of (date, amount) tuples in target currency.
+
+        """
+        conditions = []
+        params = {"currency_id": currency_id}
+
+        if category_type is not None:
+            conditions.append("cat.type = :category_type")
+            params["category_type"] = category_type
+
+        if date_from and date_to:
+            conditions.append("t.date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        where_clause = " AND " + " AND ".join(conditions) if conditions else ""
+
+        query = f"""
+            SELECT t.date, SUM(
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
+                END
+            ) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
+                                        AND er._id_currency_to = :currency_id
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency_from = t._id_currencies
+                                              AND er2._id_currency_to = :currency_id
+                                              AND er2.date <= t.date
+                                        )
+            WHERE 1=1{where_clause}
+            GROUP BY t.date
+            ORDER BY t.date ASC
+        """
+
+        rows = self.get_rows(query, params)
+        return [(row[0], float(row[1]) / 100) for row in rows]
+
     def is_database_open(self) -> bool:
         """Check if the database connection is open.
 
@@ -734,6 +1094,31 @@ class DatabaseManager:
 
         """
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
+
+    def set_default_currency(self, currency_code: str) -> bool:
+        """Set the default currency.
+
+        Args:
+
+        - `currency_code` (`str`): Currency code to set as default.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        # First try to update existing setting
+        update_query = "UPDATE settings SET value = :code WHERE key = 'default_currency'"
+        if self.execute_simple_query(update_query, {"code": currency_code}):
+            # Check if any rows were affected by checking if the setting exists
+            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'default_currency'"
+            rows = self.get_rows(check_query)
+            if rows and rows[0][0] > 0:
+                return True
+
+        # If update didn't affect any rows, insert new setting
+        insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
+        return self.execute_simple_query(insert_query, {"code": currency_code})
 
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
@@ -759,7 +1144,14 @@ class DatabaseManager:
         return False
 
     def update_account(
-        self, account_id: int, name: str, currency_id: int, balance: float, is_liquid: bool, is_cash: bool
+        self,
+        account_id: int,
+        name: str,
+        balance: float,
+        currency_id: int,
+        *,
+        is_liquid: bool = True,
+        is_cash: bool = False,
     ) -> bool:
         """Update an existing account.
 
@@ -767,46 +1159,50 @@ class DatabaseManager:
 
         - `account_id` (`int`): Account ID.
         - `name` (`str`): Account name.
-        - `currency_id` (`int`): Currency ID.
         - `balance` (`float`): Account balance.
-        - `is_liquid` (`bool`): Whether account is liquid.
-        - `is_cash` (`bool`): Whether account is cash.
+        - `currency_id` (`int`): Currency ID.
+        - `is_liquid` (`bool`): Whether account is liquid. Defaults to `True`.
+        - `is_cash` (`bool`): Whether account is cash. Defaults to `False`.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = """UPDATE accounts
-                   SET name = :name, _id_currencies = :currency_id, balance = :balance,
-                       is_liquid = :is_liquid, is_cash = :is_cash
-                   WHERE _id = :id"""
+        query = """UPDATE accounts SET name = :name, balance = :balance, _id_currencies = :currency_id,
+                   is_liquid = :is_liquid, is_cash = :is_cash WHERE _id = :id"""
         params = {
             "name": name,
+            "balance": int(balance * 100),  # Convert to cents
             "currency_id": currency_id,
-            "balance": balance,
             "is_liquid": 1 if is_liquid else 0,
             "is_cash": 1 if is_cash else 0,
             "id": account_id,
         }
         return self.execute_simple_query(query, params)
 
-    def update_category(self, category_id: int, name: str, category_type: str) -> bool:
+    def update_category(self, category_id: int, name: str, category_type: int, icon: str = "") -> bool:
         """Update an existing category.
 
         Args:
 
         - `category_id` (`int`): Category ID.
         - `name` (`str`): Category name.
-        - `category_type` (`str`): Category type.
+        - `category_type` (`int`): Category type.
+        - `icon` (`str`): Category icon. Defaults to `""`.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "UPDATE categories SET name = :name, type = :type WHERE _id = :id"
-        params = {"name": name, "type": category_type, "id": category_id}
+        query = "UPDATE categories SET name = :name, type = :type, icon = :icon WHERE _id = :id"
+        params = {
+            "name": name,
+            "type": category_type,
+            "icon": icon,
+            "id": category_id,
+        }
         return self.execute_simple_query(query, params)
 
     def update_currency(self, currency_id: int, code: str, name: str, symbol: str) -> bool:
@@ -825,47 +1221,51 @@ class DatabaseManager:
 
         """
         query = "UPDATE currencies SET code = :code, name = :name, symbol = :symbol WHERE _id = :id"
-        params = {"code": code, "name": name, "symbol": symbol, "id": currency_id}
+        params = {
+            "code": code,
+            "name": name,
+            "symbol": symbol,
+            "id": currency_id,
+        }
         return self.execute_simple_query(query, params)
 
     def update_transaction(
         self,
         transaction_id: int,
-        transaction_type: str,
         amount: float,
-        currency_id: int,
-        category_id: int,
         description: str,
+        category_id: int,
+        currency_id: int,
         date: str,
+        tag: str = "",
     ) -> bool:
         """Update an existing transaction.
 
         Args:
 
         - `transaction_id` (`int`): Transaction ID.
-        - `transaction_type` (`str`): Type of transaction.
         - `amount` (`float`): Transaction amount.
-        - `currency_id` (`int`): Currency ID.
-        - `category_id` (`int`): Category ID.
         - `description` (`str`): Transaction description.
+        - `category_id` (`int`): Category ID.
+        - `currency_id` (`int`): Currency ID.
         - `date` (`str`): Date in YYYY-MM-DD format.
+        - `tag` (`str`): Transaction tag. Defaults to `""`.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = """UPDATE transactions
-                   SET amount = :amount, _id_currencies = :currency_id,
-                       _id_categories = :category_id,
-                       description = :description, date = :date
-                   WHERE _id = :id"""
+        query = """UPDATE transactions SET amount = :amount, description = :description,
+                   _id_categories = :category_id, _id_currencies = :currency_id,
+                   date = :date, tag = :tag WHERE _id = :id"""
         params = {
-            "amount": amount,
-            "currency_id": currency_id,
-            "category_id": category_id,
+            "amount": int(amount * 100),  # Convert to cents
             "description": description,
+            "category_id": category_id,
+            "currency_id": currency_id,
             "date": date,
+            "tag": tag,
             "id": transaction_id,
         }
         return self.execute_simple_query(query, params)
@@ -1039,7 +1439,7 @@ def __del__(self) -> None:
 ### ⚙️ Method `add_account`
 
 ```python
-def add_account(self, name: str, currency_id: int, balance: float, is_liquid: bool, is_cash: bool) -> bool
+def add_account(self, name: str, balance: float, currency_id: int) -> bool
 ```
 
 Add a new account to the database.
@@ -1047,10 +1447,10 @@ Add a new account to the database.
 Args:
 
 - `name` (`str`): Account name.
-- `currency_id` (`int`): Currency ID.
 - `balance` (`float`): Initial balance.
-- `is_liquid` (`bool`): Whether account is liquid.
-- `is_cash` (`bool`): Whether account is cash.
+- `currency_id` (`int`): Currency ID.
+- `is_liquid` (`bool`): Whether account is liquid. Defaults to `True`.
+- `is_cash` (`bool`): Whether account is cash. Defaults to `False`.
 
 Returns:
 
@@ -1060,13 +1460,15 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_account(self, name: str, currency_id: int, balance: float, is_liquid: bool, is_cash: bool) -> bool:
-        query = """INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash)
-                   VALUES (:name, :currency_id, :balance, :is_liquid, :is_cash)"""
+def add_account(
+        self, name: str, balance: float, currency_id: int, *, is_liquid: bool = True, is_cash: bool = False
+    ) -> bool:
+        query = """INSERT INTO accounts (name, balance, _id_currencies, is_liquid, is_cash)
+                   VALUES (:name, :balance, :currency_id, :is_liquid, :is_cash)"""
         params = {
             "name": name,
+            "balance": int(balance * 100),  # Convert to cents
             "currency_id": currency_id,
-            "balance": balance,
             "is_liquid": 1 if is_liquid else 0,
             "is_cash": 1 if is_cash else 0,
         }
@@ -1078,7 +1480,7 @@ def add_account(self, name: str, currency_id: int, balance: float, is_liquid: bo
 ### ⚙️ Method `add_category`
 
 ```python
-def add_category(self, name: str, category_type: str) -> bool
+def add_category(self, name: str, category_type: int, icon: str = "") -> bool
 ```
 
 Add a new category to the database.
@@ -1086,7 +1488,8 @@ Add a new category to the database.
 Args:
 
 - `name` (`str`): Category name.
-- `category_type` (`str`): Category type (expense/income/transfer).
+- `category_type` (`int`): Category type (0 = expense, 1 = income).
+- `icon` (`str`): Category icon. Defaults to `""`.
 
 Returns:
 
@@ -1096,9 +1499,13 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_category(self, name: str, category_type: str) -> bool:
-        query = "INSERT INTO categories (name, type) VALUES (:name, :type)"
-        params = {"name": name, "type": category_type}
+def add_category(self, name: str, category_type: int, icon: str = "") -> bool:
+        query = "INSERT INTO categories (name, type, icon) VALUES (:name, :type, :icon)"
+        params = {
+            "name": name,
+            "type": category_type,
+            "icon": icon,
+        }
         return self.execute_simple_query(query, params)
 ```
 
@@ -1114,7 +1521,7 @@ Add a new currency to the database.
 
 Args:
 
-- `code` (`str`): Currency code (USD, EUR, etc.).
+- `code` (`str`): Currency code (e.g., USD, EUR).
 - `name` (`str`): Currency name.
 - `symbol` (`str`): Currency symbol.
 
@@ -1128,27 +1535,87 @@ Returns:
 ```python
 def add_currency(self, code: str, name: str, symbol: str) -> bool:
         query = "INSERT INTO currencies (code, name, symbol) VALUES (:code, :name, :symbol)"
-        params = {"code": code, "name": name, "symbol": symbol}
+        params = {
+            "code": code,
+            "name": name,
+            "symbol": symbol,
+        }
         return self.execute_simple_query(query, params)
 ```
 
 </details>
 
-### ⚙️ Method `add_transaction`
+### ⚙️ Method `add_currency_exchange`
 
 ```python
-def add_transaction(self, transaction_type: str, amount: float, currency_id: int, category_id: int, description: str, date: str) -> bool
+def add_currency_exchange(self, currency_from_id: int, currency_to_id: int, amount_from: float, amount_to: float, exchange_rate: float, fee: float, date: str, description: str = "") -> bool
 ```
 
-Add a new transaction to the database.
+Add a new currency exchange record.
 
 Args:
 
-- `transaction_type` (`str`): Type of transaction (income/expense/transfer).
-- `amount` (`float`): Transaction amount.
-- `currency_id` (`int`): Currency ID.
-- `category_id` (`int`): Category ID.
-- `description` (`str`): Transaction description.
+- `currency_from_id` (`int`): Source currency ID.
+- `currency_to_id` (`int`): Target currency ID.
+- `amount_from` (`float`): Amount in source currency.
+- `amount_to` (`float`): Amount in target currency.
+- `exchange_rate` (`float`): Exchange rate.
+- `fee` (`float`): Exchange fee.
+- `date` (`str`): Date in YYYY-MM-DD format.
+- `description` (`str`): Exchange description. Defaults to `""`.
+
+Returns:
+
+- `bool`: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_currency_exchange(
+        self,
+        currency_from_id: int,
+        currency_to_id: int,
+        amount_from: float,
+        amount_to: float,
+        exchange_rate: float,
+        fee: float,
+        date: str,
+        description: str = "",
+    ) -> bool:
+        query = """INSERT INTO currency_exchanges
+                   (_id_currency_from, _id_currency_to, amount_from, amount_to,
+                    exchange_rate, fee, date, description)
+                   VALUES (:from_id, :to_id, :amount_from, :amount_to,
+                           :exchange_rate, :fee, :date, :description)"""
+        params = {
+            "from_id": currency_from_id,
+            "to_id": currency_to_id,
+            "amount_from": int(amount_from * 100),  # Convert to cents
+            "amount_to": int(amount_to * 100),  # Convert to cents
+            "exchange_rate": int(exchange_rate * 100),  # Convert to cents
+            "fee": int(fee * 100),  # Convert to cents
+            "date": date,
+            "description": description,
+        }
+        return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `add_exchange_rate`
+
+```python
+def add_exchange_rate(self, currency_from_id: int, currency_to_id: int, rate: float, date: str) -> bool
+```
+
+Add a new exchange rate.
+
+Args:
+
+- `currency_from_id` (`int`): Source currency ID.
+- `currency_to_id` (`int`): Target currency ID.
+- `rate` (`float`): Exchange rate.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
 Returns:
@@ -1159,17 +1626,63 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_transaction(
-        self, transaction_type: str, amount: float, currency_id: int, category_id: int, description: str, date: str
-    ) -> bool:
-        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date)
-                   VALUES (:amount, :description, :category_id, :currency_id, :date)"""
+def add_exchange_rate(self, currency_from_id: int, currency_to_id: int, rate: float, date: str) -> bool:
+        query = """INSERT INTO exchange_rates (_id_currency_from, _id_currency_to, rate, date)
+                   VALUES (:from_id, :to_id, :rate, :date)"""
         params = {
-            "amount": amount,
+            "from_id": currency_from_id,
+            "to_id": currency_to_id,
+            "rate": int(rate * 100),  # Convert to cents
+            "date": date,
+        }
+        return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `add_transaction`
+
+```python
+def add_transaction(self, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "") -> bool
+```
+
+Add a new transaction.
+
+Args:
+
+- `amount` (`float`): Transaction amount.
+- `description` (`str`): Transaction description.
+- `category_id` (`int`): Category ID.
+- `currency_id` (`int`): Currency ID.
+- `date` (`str`): Date in YYYY-MM-DD format.
+- `tag` (`str`): Transaction tag. Defaults to `""`.
+
+Returns:
+
+- `bool`: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_transaction(
+        self,
+        amount: float,
+        description: str,
+        category_id: int,
+        currency_id: int,
+        date: str,
+        tag: str = "",
+    ) -> bool:
+        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date, tag)
+                   VALUES (:amount, :description, :category_id, :currency_id, :date, :tag)"""
+        params = {
+            "amount": int(amount * 100),  # Convert to cents
             "description": description,
             "category_id": category_id,
             "currency_id": currency_id,
             "date": date,
+            "tag": tag,
         }
         return self.execute_simple_query(query, params)
 ```
@@ -1359,13 +1872,67 @@ def delete_currency(self, currency_id: int) -> bool:
 
 </details>
 
+### ⚙️ Method `delete_currency_exchange`
+
+```python
+def delete_currency_exchange(self, exchange_id: int) -> bool
+```
+
+Delete a currency exchange record.
+
+Args:
+
+- `exchange_id` (`int`): Exchange ID to delete.
+
+Returns:
+
+- `bool`: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_currency_exchange(self, exchange_id: int) -> bool:
+        query = "DELETE FROM currency_exchanges WHERE _id = :id"
+        return self.execute_simple_query(query, {"id": exchange_id})
+```
+
+</details>
+
+### ⚙️ Method `delete_exchange_rate`
+
+```python
+def delete_exchange_rate(self, rate_id: int) -> bool
+```
+
+Delete an exchange rate.
+
+Args:
+
+- `rate_id` (`int`): Rate ID to delete.
+
+Returns:
+
+- `bool`: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_exchange_rate(self, rate_id: int) -> bool:
+        query = "DELETE FROM exchange_rates WHERE _id = :id"
+        return self.execute_simple_query(query, {"id": rate_id})
+```
+
+</details>
+
 ### ⚙️ Method `delete_transaction`
 
 ```python
 def delete_transaction(self, transaction_id: int) -> bool
 ```
 
-Delete a transaction from the database.
+Delete a transaction.
 
 Args:
 
@@ -1516,24 +2083,46 @@ def execute_simple_query(
 
 </details>
 
-### ⚙️ Method `get_accounts_list`
+### ⚙️ Method `get_account_balances_in_currency`
 
 ```python
-def get_accounts_list(self) -> list[str]
+def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]
 ```
 
-Get list of account names.
+Get all account balances converted to specified currency.
+
+Args:
+
+- `currency_id` (`int`): Target currency ID.
 
 Returns:
 
-- `list[str]`: List of account names.
+- `list[tuple[str, float]]`: List of (account_name, balance) tuples in target currency.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_accounts_list(self) -> list[str]:
-        return self.get_items("accounts", "name", order_by="name")
+def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]:
+        query = """
+            SELECT a.name,
+                   CASE
+                       WHEN a._id_currencies = :currency_id THEN a.balance
+                       ELSE COALESCE(er.rate * a.balance / 100, a.balance)
+                   END as converted_balance
+            FROM accounts a
+            LEFT JOIN exchange_rates er ON er._id_currency_from = a._id_currencies
+                                        AND er._id_currency_to = :currency_id
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency_from = a._id_currencies
+                                              AND er2._id_currency_to = :currency_id
+                                        )
+            ORDER BY a.name
+        """
+        rows = self.get_rows(query, {"currency_id": currency_id})
+        return [(row[0], float(row[1]) / 100) for row in rows]
 ```
 
 </details>
@@ -1548,7 +2137,7 @@ Get all accounts with currency information.
 
 Returns:
 
-- `list[list[Any]]`: List of account records.
+- `list[list[Any]]`: List of account records [_id, name, balance, currency_code, is_liquid, is_cash].
 
 <details>
 <summary>Code:</summary>
@@ -1556,7 +2145,7 @@ Returns:
 ```python
 def get_all_accounts(self) -> list[list[Any]]:
         return self.get_rows("""
-            SELECT a._id, a.name, c.code, a.balance, a.is_liquid, a.is_cash
+            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash
             FROM accounts a
             JOIN currencies c ON a._id_currencies = c._id
             ORDER BY a.name
@@ -1575,14 +2164,14 @@ Get all categories.
 
 Returns:
 
-- `list[list[Any]]`: List of category records.
+- `list[list[Any]]`: List of category records [_id, name, type, icon].
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def get_all_categories(self) -> list[list[Any]]:
-        return self.get_rows("SELECT _id, name, type FROM categories ORDER BY name")
+        return self.get_rows("SELECT _id, name, type, icon FROM categories ORDER BY type, name")
 ```
 
 </details>
@@ -1597,7 +2186,7 @@ Get all currencies.
 
 Returns:
 
-- `list[list[Any]]`: List of currency records.
+- `list[list[Any]]`: List of currency records [_id, code, name, symbol].
 
 <details>
 <summary>Code:</summary>
@@ -1605,6 +2194,63 @@ Returns:
 ```python
 def get_all_currencies(self) -> list[list[Any]]:
         return self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code")
+```
+
+</details>
+
+### ⚙️ Method `get_all_currency_exchanges`
+
+```python
+def get_all_currency_exchanges(self) -> list[list[Any]]
+```
+
+Get all currency exchange records with currency information.
+
+Returns:
+
+- `list[list[Any]]`: List of exchange records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_all_currency_exchanges(self) -> list[list[Any]]:
+        return self.get_rows("""
+            SELECT ce._id, cf.code, ct.code, ce.amount_from, ce.amount_to,
+                   ce.exchange_rate, ce.fee, ce.date, ce.description
+            FROM currency_exchanges ce
+            JOIN currencies cf ON ce._id_currency_from = cf._id
+            JOIN currencies ct ON ce._id_currency_to = ct._id
+            ORDER BY ce.date DESC, ce._id DESC
+        """)
+```
+
+</details>
+
+### ⚙️ Method `get_all_exchange_rates`
+
+```python
+def get_all_exchange_rates(self) -> list[list[Any]]
+```
+
+Get all exchange rates with currency information.
+
+Returns:
+
+- `list[list[Any]]`: List of exchange rate records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_all_exchange_rates(self) -> list[list[Any]]:
+        return self.get_rows("""
+            SELECT er._id, cf.code, ct.code, er.rate, er.date
+            FROM exchange_rates er
+            JOIN currencies cf ON er._id_currency_from = cf._id
+            JOIN currencies ct ON er._id_currency_to = ct._id
+            ORDER BY er.date DESC, er._id DESC
+        """)
 ```
 
 </details>
@@ -1627,10 +2273,11 @@ Returns:
 ```python
 def get_all_transactions(self) -> list[list[Any]]:
         return self.get_rows("""
-            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, t.description, t.date
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol
             FROM transactions t
-            JOIN currencies c ON t._id_currencies = c._id
             JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
             ORDER BY t.date DESC, t._id DESC
         """)
 ```
@@ -1640,14 +2287,14 @@ def get_all_transactions(self) -> list[list[Any]]:
 ### ⚙️ Method `get_categories_by_type`
 
 ```python
-def get_categories_by_type(self, category_type: str) -> list[str]
+def get_categories_by_type(self, category_type: int) -> list[str]
 ```
 
 Get category names by type.
 
 Args:
 
-- `category_type` (`str`): Category type to filter by.
+- `category_type` (`int`): Category type (0 = expense, 1 = income).
 
 Returns:
 
@@ -1657,68 +2304,156 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_categories_by_type(self, category_type: str) -> list[str]:
-        return self.get_items("categories", "name", condition=f"type = '{category_type}'", order_by="name")
+def get_categories_by_type(self, category_type: int) -> list[str]:
+        rows = self.get_rows("SELECT name FROM categories WHERE type = :type ORDER BY name", {"type": category_type})
+        return [row[0] for row in rows]
 ```
 
 </details>
 
-### ⚙️ Method `get_currencies_list`
+### ⚙️ Method `get_currency_by_code`
 
 ```python
-def get_currencies_list(self) -> list[str]
+def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None
 ```
 
-Get list of currency codes.
-
-Returns:
-
-- `list[str]`: List of currency codes.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_currencies_list(self) -> list[str]:
-        return self.get_items("currencies", "code", order_by="code")
-```
-
-</details>
-
-### ⚙️ Method `get_daily_balance`
-
-```python
-def get_daily_balance(self, date: str) -> float
-```
-
-Get daily balance for a specific date.
+Get currency information by code.
 
 Args:
 
-- `date` (`str`): Date in YYYY-MM-DD format.
+- `code` (`str`): Currency code.
 
 Returns:
 
-- `float`: Daily balance.
+- `tuple[int, str, str] | None`: Tuple of (id, name, symbol) or None if not found.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_daily_balance(self, date: str) -> float:
-        rows = self.get_rows(
-            """
-            SELECT
-                COALESCE(SUM(CASE WHEN cat.type = 1 THEN t.amount ELSE 0 END), 0) -
-                COALESCE(SUM(CASE WHEN cat.type = 0 THEN t.amount ELSE 0 END), 0)
-            FROM transactions t
-            JOIN categories cat ON t._id_categories = cat._id
-            WHERE t.date = :date
-        """,
-            {"date": date},
-        )
+def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:
+        rows = self.get_rows("SELECT _id, name, symbol FROM currencies WHERE code = :code", {"code": code})
+        return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
+```
 
-        return float(rows[0][0]) if rows and rows[0][0] is not None else 0.0
+</details>
+
+### ⚙️ Method `get_default_currency`
+
+```python
+def get_default_currency(self) -> str
+```
+
+Get the default currency code.
+
+Returns:
+
+- `str`: Default currency code or 'RUB' if not set.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_default_currency(self) -> str:
+        rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
+        return rows[0][0] if rows else "RUB"
+```
+
+</details>
+
+### ⚙️ Method `get_default_currency_id`
+
+```python
+def get_default_currency_id(self) -> int
+```
+
+Get the default currency ID.
+
+Returns:
+
+- `int`: Default currency ID or 1 if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_default_currency_id(self) -> int:
+        default_code = self.get_default_currency()
+        currency_info = self.get_currency_by_code(default_code)
+        return currency_info[0] if currency_info else 1
+```
+
+</details>
+
+### ⚙️ Method `get_exchange_rate`
+
+```python
+def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float
+```
+
+Get exchange rate between currencies.
+
+Args:
+
+- `from_currency_id` (`int`): Source currency ID.
+- `to_currency_id` (`int`): Target currency ID.
+- `date` (`str | None`): Date for rate lookup. Uses latest if None. Defaults to `None`.
+
+Returns:
+
+- `float`: Exchange rate or 1.0 if not found/same currency.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
+        if from_currency_id == to_currency_id:
+            return 1.0
+
+        if date:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id
+                  AND date <= :date
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"from_id": from_currency_id, "to_id": to_currency_id, "date": date}
+        else:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"from_id": from_currency_id, "to_id": to_currency_id}
+
+        rows = self.get_rows(query, params)
+        if rows:
+            return float(rows[0][0]) / 100  # Convert from cents
+
+        # Try inverse rate
+        if date:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency_from = :to_id AND _id_currency_to = :from_id
+                  AND date <= :date
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"from_id": to_currency_id, "to_id": from_currency_id, "date": date}
+        else:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency_from = :to_id AND _id_currency_to = :from_id
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"from_id": to_currency_id, "to_id": from_currency_id}
+
+        rows = self.get_rows(query, params)
+        if rows:
+            rate = float(rows[0][0]) / 100
+            return 1.0 / rate if rate != 0 else 1.0
+
+        return 1.0
 ```
 
 </details>
@@ -1726,18 +2461,18 @@ def get_daily_balance(self, date: str) -> float:
 ### ⚙️ Method `get_filtered_transactions`
 
 ```python
-def get_filtered_transactions(self, category: str | None = None, transaction_type: str | None = None, currency: str | None = None, date_from: str | None = None, date_to: str | None = None) -> list[list[Any]]
+def get_filtered_transactions(self, category_type: int | None = None, category_name: str | None = None, currency_code: str | None = None, date_from: str | None = None, date_to: str | None = None) -> list[list[Any]]
 ```
 
 Get filtered transactions.
 
 Args:
 
-- `category` (`str | None`): Filter by category name.
-- `transaction_type` (`str | None`): Filter by transaction type.
-- `currency` (`str | None`): Filter by currency code.
-- `date_from` (`str | None`): Filter from date.
-- `date_to` (`str | None`): Filter to date.
+- `category_type` (`int | None`): Filter by category type. Defaults to `None`.
+- `category_name` (`str | None`): Filter by category name. Defaults to `None`.
+- `currency_code` (`str | None`): Filter by currency code. Defaults to `None`.
+- `date_from` (`str | None`): Filter from date. Defaults to `None`.
+- `date_to` (`str | None`): Filter to date. Defaults to `None`.
 
 Returns:
 
@@ -1749,29 +2484,26 @@ Returns:
 ```python
 def get_filtered_transactions(
         self,
-        category: str | None = None,
-        transaction_type: str | None = None,
-        currency: str | None = None,
+        category_type: int | None = None,
+        category_name: str | None = None,
+        currency_code: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> list[list[Any]]:
         conditions: list[str] = []
-        params: dict[str, str] = {}
+        params: dict[str, str | int] = {}
 
-        if category:
-            conditions.append("cat.name = :category")
-            params["category"] = category
+        if category_type is not None:
+            conditions.append("cat.type = :category_type")
+            params["category_type"] = category_type
 
-        if transaction_type and transaction_type != "All":
-            # Map transaction type strings to category type integers
-            type_mapping = {"income": 1, "expense": 0, "transfer": 2}
-            if transaction_type.lower() in type_mapping:
-                conditions.append("cat.type = :type")
-                params["type"] = str(type_mapping[transaction_type.lower()])
+        if category_name:
+            conditions.append("cat.name = :category_name")
+            params["category_name"] = category_name
 
-        if currency:
-            conditions.append("c.code = :currency")
-            params["currency"] = currency
+        if currency_code:
+            conditions.append("c.code = :currency_code")
+            params["currency_code"] = currency_code
 
         if date_from and date_to:
             conditions.append("t.date BETWEEN :date_from AND :date_to")
@@ -1779,10 +2511,11 @@ def get_filtered_transactions(
             params["date_to"] = date_to
 
         query_text = """
-            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, t.description, t.date
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol
             FROM transactions t
-            JOIN currencies c ON t._id_currencies = c._id
             JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
         """
 
         if conditions:
@@ -1808,7 +2541,7 @@ Args:
 - `table` (`str`): Target table name.
 - `name_column` (`str`): Column that stores the searched value.
 - `name_value` (`str`): Searched value itself.
-- `id_column` (`str`): Column that stores the ID. Defaults to `"id"`.
+- `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
 - `condition` (`str | None`): Extra SQL that will be appended to the
   `WHERE` clause. Defaults to `None`.
 
@@ -1849,57 +2582,92 @@ def get_id(
 
 </details>
 
-### ⚙️ Method `get_items`
+### ⚙️ Method `get_income_vs_expenses_in_currency`
 
 ```python
-def get_items(self, table: str, column: str, condition: str | None = None, order_by: str | None = None) -> list[Any]
+def get_income_vs_expenses_in_currency(self, currency_id: int, date_from: str | None = None, date_to: str | None = None) -> tuple[float, float]
 ```
 
-Return all values stored in `column` from `table`.
+Get total income and expenses in specified currency.
 
 Args:
 
-- `table` (`str`): Table that will be queried.
-- `column` (`str`): The column to extract.
-- `condition` (`str | None`): Optional `WHERE` clause. Defaults to
-  `None`.
-- `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to
-  `None`.
+- `currency_id` (`int`): Target currency ID.
+- `date_from` (`str | None`): From date. Defaults to `None`.
+- `date_to` (`str | None`): To date. Defaults to `None`.
 
 Returns:
 
-- `list[Any]`: The resulting data as a flat Python list.
+- `tuple[float, float]`: Tuple of (total_income, total_expenses) in target currency.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_items(
-        self,
-        table: str,
-        column: str,
-        condition: str | None = None,
-        order_by: str | None = None,
-    ) -> list[Any]:
-        table = _safe_identifier(table)
-        column = _safe_identifier(column)
+def get_income_vs_expenses_in_currency(
+        self, currency_id: int, date_from: str | None = None, date_to: str | None = None
+    ) -> tuple[float, float]:
+        conditions = []
+        params = {"currency_id": currency_id}
 
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {column} FROM {table}"
-        if condition:
-            query_text += f" WHERE {condition}"
-        if order_by:
-            # The order_by expression may legitimately contain ASC/DESC or
-            # multiple columns; validation is left to the caller.
-            query_text += f" ORDER BY {order_by}"
+        if date_from and date_to:
+            conditions.append("t.date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
 
-        result = []
-        query = self.execute_query(query_text)
-        if query:
-            while query.next():
-                result.append(query.value(0))
-            query.clear()  # Clear the query to release resources
-        return result
+        where_clause = " AND " + " AND ".join(conditions) if conditions else ""
+
+        # Get income (category type = 1)
+        income_query = f"""
+            SELECT SUM(
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
+                END
+            ) as total_income
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
+                                        AND er._id_currency_to = :currency_id
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency_from = t._id_currencies
+                                              AND er2._id_currency_to = :currency_id
+                                              AND er2.date <= t.date
+                                        )
+            WHERE cat.type = 1{where_clause}
+        """
+
+        # Get expenses (category type = 0)
+        expenses_query = f"""
+            SELECT SUM(
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
+                END
+            ) as total_expenses
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
+                                        AND er._id_currency_to = :currency_id
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency_from = t._id_currencies
+                                              AND er2._id_currency_to = :currency_id
+                                              AND er2.date <= t.date
+                                        )
+            WHERE cat.type = 0{where_clause}
+        """
+
+        income_rows = self.get_rows(income_query, params)
+        expenses_rows = self.get_rows(expenses_query, params)
+
+        total_income = float(income_rows[0][0] or 0) / 100 if income_rows and income_rows[0][0] else 0.0
+        total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
+
+        return total_income, total_expenses
 ```
 
 </details>
@@ -1942,6 +2710,107 @@ def get_rows(
 
 </details>
 
+### ⚙️ Method `get_today_balance_in_currency`
+
+```python
+def get_today_balance_in_currency(self, currency_id: int) -> float
+```
+
+Get today's balance (income - expenses) in specified currency.
+
+Args:
+
+- `currency_id` (`int`): Target currency ID.
+
+Returns:
+
+- `float`: Today's balance in target currency.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_today_balance_in_currency(self, currency_id: int) -> float:
+        today = datetime.now().strftime("%Y-%m-%d")
+        total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
+        return total_income - total_expenses
+```
+
+</details>
+
+### ⚙️ Method `get_transactions_chart_data`
+
+```python
+def get_transactions_chart_data(self, currency_id: int, category_type: int | None = None, date_from: str | None = None, date_to: str | None = None) -> list[tuple[str, float]]
+```
+
+Get transaction data for charting in specified currency.
+
+Args:
+
+- `currency_id` (`int`): Target currency ID.
+- `category_type` (`int | None`): Category type filter. Defaults to `None`.
+- `date_from` (`str | None`): From date. Defaults to `None`.
+- `date_to` (`str | None`): To date. Defaults to `None`.
+
+Returns:
+
+- `list[tuple[str, float]]`: List of (date, amount) tuples in target currency.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_transactions_chart_data(
+        self,
+        currency_id: int,
+        category_type: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[tuple[str, float]]:
+        conditions = []
+        params = {"currency_id": currency_id}
+
+        if category_type is not None:
+            conditions.append("cat.type = :category_type")
+            params["category_type"] = category_type
+
+        if date_from and date_to:
+            conditions.append("t.date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        where_clause = " AND " + " AND ".join(conditions) if conditions else ""
+
+        query = f"""
+            SELECT t.date, SUM(
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
+                END
+            ) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
+                                        AND er._id_currency_to = :currency_id
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency_from = t._id_currencies
+                                              AND er2._id_currency_to = :currency_id
+                                              AND er2.date <= t.date
+                                        )
+            WHERE 1=1{where_clause}
+            GROUP BY t.date
+            ORDER BY t.date ASC
+        """
+
+        rows = self.get_rows(query, params)
+        return [(row[0], float(row[1]) / 100) for row in rows]
+```
+
+</details>
+
 ### ⚙️ Method `is_database_open`
 
 ```python
@@ -1960,6 +2829,43 @@ Returns:
 ```python
 def is_database_open(self) -> bool:
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
+```
+
+</details>
+
+### ⚙️ Method `set_default_currency`
+
+```python
+def set_default_currency(self, currency_code: str) -> bool
+```
+
+Set the default currency.
+
+Args:
+
+- `currency_code` (`str`): Currency code to set as default.
+
+Returns:
+
+- `bool`: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_default_currency(self, currency_code: str) -> bool:
+        # First try to update existing setting
+        update_query = "UPDATE settings SET value = :code WHERE key = 'default_currency'"
+        if self.execute_simple_query(update_query, {"code": currency_code}):
+            # Check if any rows were affected by checking if the setting exists
+            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'default_currency'"
+            rows = self.get_rows(check_query)
+            if rows and rows[0][0] > 0:
+                return True
+
+        # If update didn't affect any rows, insert new setting
+        insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
+        return self.execute_simple_query(insert_query, {"code": currency_code})
 ```
 
 </details>
@@ -2002,7 +2908,7 @@ def table_exists(self, table_name: str) -> bool:
 ### ⚙️ Method `update_account`
 
 ```python
-def update_account(self, account_id: int, name: str, currency_id: int, balance: float, is_liquid: bool, is_cash: bool) -> bool
+def update_account(self, account_id: int, name: str, balance: float, currency_id: int) -> bool
 ```
 
 Update an existing account.
@@ -2011,10 +2917,10 @@ Args:
 
 - `account_id` (`int`): Account ID.
 - `name` (`str`): Account name.
-- `currency_id` (`int`): Currency ID.
 - `balance` (`float`): Account balance.
-- `is_liquid` (`bool`): Whether account is liquid.
-- `is_cash` (`bool`): Whether account is cash.
+- `currency_id` (`int`): Currency ID.
+- `is_liquid` (`bool`): Whether account is liquid. Defaults to `True`.
+- `is_cash` (`bool`): Whether account is cash. Defaults to `False`.
 
 Returns:
 
@@ -2025,16 +2931,21 @@ Returns:
 
 ```python
 def update_account(
-        self, account_id: int, name: str, currency_id: int, balance: float, is_liquid: bool, is_cash: bool
+        self,
+        account_id: int,
+        name: str,
+        balance: float,
+        currency_id: int,
+        *,
+        is_liquid: bool = True,
+        is_cash: bool = False,
     ) -> bool:
-        query = """UPDATE accounts
-                   SET name = :name, _id_currencies = :currency_id, balance = :balance,
-                       is_liquid = :is_liquid, is_cash = :is_cash
-                   WHERE _id = :id"""
+        query = """UPDATE accounts SET name = :name, balance = :balance, _id_currencies = :currency_id,
+                   is_liquid = :is_liquid, is_cash = :is_cash WHERE _id = :id"""
         params = {
             "name": name,
+            "balance": int(balance * 100),  # Convert to cents
             "currency_id": currency_id,
-            "balance": balance,
             "is_liquid": 1 if is_liquid else 0,
             "is_cash": 1 if is_cash else 0,
             "id": account_id,
@@ -2047,7 +2958,7 @@ def update_account(
 ### ⚙️ Method `update_category`
 
 ```python
-def update_category(self, category_id: int, name: str, category_type: str) -> bool
+def update_category(self, category_id: int, name: str, category_type: int, icon: str = "") -> bool
 ```
 
 Update an existing category.
@@ -2056,7 +2967,8 @@ Args:
 
 - `category_id` (`int`): Category ID.
 - `name` (`str`): Category name.
-- `category_type` (`str`): Category type.
+- `category_type` (`int`): Category type.
+- `icon` (`str`): Category icon. Defaults to `""`.
 
 Returns:
 
@@ -2066,9 +2978,14 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def update_category(self, category_id: int, name: str, category_type: str) -> bool:
-        query = "UPDATE categories SET name = :name, type = :type WHERE _id = :id"
-        params = {"name": name, "type": category_type, "id": category_id}
+def update_category(self, category_id: int, name: str, category_type: int, icon: str = "") -> bool:
+        query = "UPDATE categories SET name = :name, type = :type, icon = :icon WHERE _id = :id"
+        params = {
+            "name": name,
+            "type": category_type,
+            "icon": icon,
+            "id": category_id,
+        }
         return self.execute_simple_query(query, params)
 ```
 
@@ -2099,7 +3016,12 @@ Returns:
 ```python
 def update_currency(self, currency_id: int, code: str, name: str, symbol: str) -> bool:
         query = "UPDATE currencies SET code = :code, name = :name, symbol = :symbol WHERE _id = :id"
-        params = {"code": code, "name": name, "symbol": symbol, "id": currency_id}
+        params = {
+            "code": code,
+            "name": name,
+            "symbol": symbol,
+            "id": currency_id,
+        }
         return self.execute_simple_query(query, params)
 ```
 
@@ -2108,7 +3030,7 @@ def update_currency(self, currency_id: int, code: str, name: str, symbol: str) -
 ### ⚙️ Method `update_transaction`
 
 ```python
-def update_transaction(self, transaction_id: int, transaction_type: str, amount: float, currency_id: int, category_id: int, description: str, date: str) -> bool
+def update_transaction(self, transaction_id: int, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "") -> bool
 ```
 
 Update an existing transaction.
@@ -2116,12 +3038,12 @@ Update an existing transaction.
 Args:
 
 - `transaction_id` (`int`): Transaction ID.
-- `transaction_type` (`str`): Type of transaction.
 - `amount` (`float`): Transaction amount.
-- `currency_id` (`int`): Currency ID.
-- `category_id` (`int`): Category ID.
 - `description` (`str`): Transaction description.
+- `category_id` (`int`): Category ID.
+- `currency_id` (`int`): Currency ID.
 - `date` (`str`): Date in YYYY-MM-DD format.
+- `tag` (`str`): Transaction tag. Defaults to `""`.
 
 Returns:
 
@@ -2134,24 +3056,23 @@ Returns:
 def update_transaction(
         self,
         transaction_id: int,
-        transaction_type: str,
         amount: float,
-        currency_id: int,
-        category_id: int,
         description: str,
+        category_id: int,
+        currency_id: int,
         date: str,
+        tag: str = "",
     ) -> bool:
-        query = """UPDATE transactions
-                   SET amount = :amount, _id_currencies = :currency_id,
-                       _id_categories = :category_id,
-                       description = :description, date = :date
-                   WHERE _id = :id"""
+        query = """UPDATE transactions SET amount = :amount, description = :description,
+                   _id_categories = :category_id, _id_currencies = :currency_id,
+                   date = :date, tag = :tag WHERE _id = :id"""
         params = {
-            "amount": amount,
-            "currency_id": currency_id,
-            "category_id": category_id,
+            "amount": int(amount * 100),  # Convert to cents
             "description": description,
+            "category_id": category_id,
+            "currency_id": currency_id,
             "date": date,
+            "tag": tag,
             "id": transaction_id,
         }
         return self.execute_simple_query(query, params)

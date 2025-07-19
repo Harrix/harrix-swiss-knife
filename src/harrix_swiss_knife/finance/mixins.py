@@ -16,7 +16,6 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QDateEdit, QLabel, QMessageBox
@@ -62,6 +61,8 @@ class AutoSaveOperations:
             "categories": self._save_category_data,
             "accounts": self._save_account_data,
             "currencies": self._save_currency_data,
+            "currency_exchanges": self._save_exchange_data,
+            "exchange_rates": self._save_rate_data,
         }
 
         handler = save_handlers.get(table_name)
@@ -81,11 +82,11 @@ class AutoSaveOperations:
         - `row_id` (`str`): Database ID of the row.
 
         """
-        name = model.data(model.index(row, 1)) or ""
+        name = model.data(model.index(row, 0)) or ""
+        balance_str = model.data(model.index(row, 1)) or "0"
         currency_code = model.data(model.index(row, 2)) or ""
-        balance_str = model.data(model.index(row, 3)) or "0"
-        is_liquid_str = model.data(model.index(row, 4)) or "0"
-        is_cash_str = model.data(model.index(row, 5)) or "0"
+        is_liquid_str = model.data(model.index(row, 3)) or "1"
+        is_cash_str = model.data(model.index(row, 4)) or "0"
 
         # Validate account name
         if not name.strip():
@@ -100,22 +101,24 @@ class AutoSaveOperations:
             return
 
         # Get currency ID
-        currency_id = self.db_manager.get_id("currencies", "code", currency_code)
-        if currency_id is None:
+        currency_info = self.db_manager.get_currency_by_code(currency_code)
+        if not currency_info:
             QMessageBox.warning(None, "Validation Error", f"Currency '{currency_code}' not found")
             return
+        currency_id = currency_info[0]
 
-        # Convert flags to boolean
+        # Convert boolean flags
         is_liquid = is_liquid_str == "1"
         is_cash = is_cash_str == "1"
 
         # Update database
-        if not self.db_manager.update_account(int(row_id), name.strip(), currency_id, balance, is_liquid, is_cash):
+        if not self.db_manager.update_account(
+            int(row_id), name.strip(), balance, currency_id, is_liquid=is_liquid, is_cash=is_cash
+        ):
             QMessageBox.warning(None, "Database Error", "Failed to save account record")
         else:
             # Update related UI elements
             self._update_comboboxes()
-            self.update_filter_comboboxes()
 
     def _save_category_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save category data.
@@ -127,16 +130,26 @@ class AutoSaveOperations:
         - `row_id` (`str`): Database ID of the row.
 
         """
-        name = model.data(model.index(row, 1)) or ""
-        category_type = model.data(model.index(row, 2)) or ""
+        name = model.data(model.index(row, 0)) or ""
+        type_str = model.data(model.index(row, 1)) or "0"
+        icon = model.data(model.index(row, 2)) or ""
 
         # Validate category name
         if not name.strip():
             QMessageBox.warning(None, "Validation Error", "Category name cannot be empty")
             return
 
+        # Convert type to int
+        try:
+            category_type = int(type_str)
+            if category_type not in (0, 1):
+                raise ValueError("Type must be 0 or 1")
+        except (ValueError, TypeError):
+            QMessageBox.warning(None, "Validation Error", f"Invalid category type: {type_str}")
+            return
+
         # Update database
-        if not self.db_manager.update_category(int(row_id), name.strip(), category_type):
+        if not self.db_manager.update_category(int(row_id), name.strip(), category_type, icon.strip()):
             QMessageBox.warning(None, "Database Error", "Failed to save category record")
         else:
             # Update related UI elements
@@ -153,9 +166,9 @@ class AutoSaveOperations:
         - `row_id` (`str`): Database ID of the row.
 
         """
-        code = model.data(model.index(row, 1)) or ""
-        name = model.data(model.index(row, 2)) or ""
-        symbol = model.data(model.index(row, 3)) or ""
+        code = model.data(model.index(row, 0)) or ""
+        name = model.data(model.index(row, 1)) or ""
+        symbol = model.data(model.index(row, 2)) or ""
 
         # Validate inputs
         if not code.strip():
@@ -166,13 +179,42 @@ class AutoSaveOperations:
             QMessageBox.warning(None, "Validation Error", "Currency name cannot be empty")
             return
 
+        if not symbol.strip():
+            QMessageBox.warning(None, "Validation Error", "Currency symbol cannot be empty")
+            return
+
         # Update database
         if not self.db_manager.update_currency(int(row_id), code.strip(), name.strip(), symbol.strip()):
             QMessageBox.warning(None, "Database Error", "Failed to save currency record")
         else:
             # Update related UI elements
             self._update_comboboxes()
-            self.update_filter_comboboxes()
+
+    def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        """Save currency exchange data.
+
+        Args:
+
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
+
+        """
+        # Currency exchanges are complex to update, so we'll skip auto-save for now
+        QMessageBox.information(None, "Info", "Currency exchange auto-save not implemented yet")
+
+    def _save_rate_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        """Save exchange rate data.
+
+        Args:
+
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
+
+        """
+        # Exchange rates are complex to update, so we'll skip auto-save for now
+        QMessageBox.information(None, "Info", "Exchange rate auto-save not implemented yet")
 
     def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save transaction data.
@@ -184,52 +226,41 @@ class AutoSaveOperations:
         - `row_id` (`str`): Database ID of the row.
 
         """
-        transaction_type = model.data(model.index(row, 1)) or ""
-        amount_str = model.data(model.index(row, 2)) or "0"
-        currency_symbol = model.data(model.index(row, 3)) or ""
-        category_name = model.data(model.index(row, 4)) or ""
-        account_name = model.data(model.index(row, 5)) or ""
-        description = model.data(model.index(row, 6)) or ""
-        date = model.data(model.index(row, 7)) or ""
+        amount_str = model.data(model.index(row, 0)) or "0"
+        description = model.data(model.index(row, 1)) or ""
+        category_name = model.data(model.index(row, 2)) or ""
+        currency_code = model.data(model.index(row, 3)) or ""
+        date = model.data(model.index(row, 4)) or ""
+        tag = model.data(model.index(row, 5)) or ""
 
         # Validate date format
         if not self._is_valid_date(date):
             QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
-        # Validate amount
+        # Validate numeric amount
         try:
             amount = float(amount_str)
         except (ValueError, TypeError):
             QMessageBox.warning(None, "Validation Error", f"Invalid amount value: {amount_str}")
             return
 
-        # Get currency ID
-        currency_id = self.db_manager.get_id("currencies", "symbol", currency_symbol)
-        if currency_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Currency '{currency_symbol}' not found")
-            return
-
         # Get category ID
-        category_id = self.db_manager.get_id("categories", "name", category_name)
-        if category_id is None:
+        cat_id = self.db_manager.get_id("categories", "name", category_name)
+        if cat_id is None:
             QMessageBox.warning(None, "Validation Error", f"Category '{category_name}' not found")
             return
 
-        # Get account ID (optional)
-        account_id = None
-        if account_name:
-            account_id = self.db_manager.get_id("accounts", "name", account_name)
+        # Get currency ID
+        currency_info = self.db_manager.get_currency_by_code(currency_code)
+        if not currency_info:
+            QMessageBox.warning(None, "Validation Error", f"Currency '{currency_code}' not found")
+            return
+        currency_id = currency_info[0]
 
         # Update database
-        if not self.db_manager.update_transaction(
-            int(row_id), transaction_type, amount, currency_id, category_id, description, date
-        ):
+        if not self.db_manager.update_transaction(int(row_id), amount, description, cat_id, currency_id, date, tag):
             QMessageBox.warning(None, "Database Error", "Failed to save transaction record")
-        else:
-            # Update related UI elements
-            self._update_comboboxes()
-            self.update_filter_comboboxes()
 
 
 class ChartOperations:
@@ -289,6 +320,12 @@ class ChartOperations:
             self._show_no_data_label(layout, "No data found for the selected period")
             return
 
+        # Fill missing periods with zeros if requested
+        if chart_config.get("fill_zero_periods", False):
+            data = self._fill_missing_periods_with_zeros(
+                data, chart_config.get("period", "Days"), chart_config.get("date_from"), chart_config.get("date_to")
+            )
+
         # Create matplotlib figure
         fig = Figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
@@ -298,8 +335,13 @@ class ChartOperations:
         x_values = [item[0] for item in data]
         y_values = [item[1] for item in data]
 
+        # Count non-zero values for label display decision
+        non_zero_count = sum(1 for y in y_values if y != 0)
+
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"))
+        self._plot_data(
+            ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count, chart_config.get("period")
+        )
 
         # Customize plot
         ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
@@ -309,38 +351,128 @@ class ChartOperations:
 
         # Format x-axis if dates
         if x_values and isinstance(x_values[0], datetime):
-            self._format_chart_x_axis(ax, x_values)
+            self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
         # Add statistics if requested
         if chart_config.get("show_stats", True) and len(y_values) > 1:
-            stats_text = self._format_default_stats(y_values, chart_config.get("stats_unit", ""))
-            self._add_stats_box(ax, stats_text)
+            stats_formatter = chart_config.get("stats_formatter")
+            if stats_formatter:
+                # Filter out zero values for statistics
+                non_zero_values = [y for y in y_values if y != 0]
+                if non_zero_values:
+                    stats_text = stats_formatter(non_zero_values)
+                    self._add_stats_box(ax, stats_text)
+            else:
+                non_zero_values = [y for y in y_values if y != 0]
+                if non_zero_values:
+                    stats_text = self._format_default_stats(non_zero_values, chart_config.get("stats_unit", ""))
+                    self._add_stats_box(ax, stats_text)
 
         fig.tight_layout()
         layout.addWidget(canvas)
         canvas.draw()
 
-    def _format_chart_x_axis(self, ax: Axes, dates: list) -> None:
-        """Format x-axis for charts based on date range.
+    def _fill_missing_periods_with_zeros(
+        self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None
+    ) -> list[tuple]:
+        """Fill missing periods with zero values.
+
+        Args:
+
+        - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
+        - `period` (`str`): Period type (Days, Months, Years).
+        - `date_from` (`str | None`): Start date string (YYYY-MM-DD).
+        - `date_to` (`str | None`): End date string (YYYY-MM-DD).
+
+        Returns:
+
+        - `list[tuple]`: Data with missing periods filled with zeros.
+
+        """
+        if not data:
+            return data
+
+        # Convert existing data to dict for quick lookup
+        data_dict = {item[0]: item[1] for item in data}
+
+        # Determine date range
+        if date_from and date_to:
+            try:
+                start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                return data
+        else:
+            # Use data range if no explicit dates provided
+            start_date = min(item[0] for item in data)
+            end_date = max(item[0] for item in data)
+
+        # Generate all periods in the range
+        result = []
+        current_date = start_date
+
+        if period == "Months":
+            current_date = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            while current_date <= end_date:
+                value = data_dict.get(current_date, 0)
+                result.append((current_date, value))
+
+                # Move to next month
+                count_months = 12
+                if current_date.month == count_months:
+                    current_date = current_date.replace(year=current_date.year + 1, month=1)
+                else:
+                    current_date = current_date.replace(month=current_date.month + 1)
+
+        elif period == "Years":
+            current_date = start_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            while current_date <= end_date:
+                value = data_dict.get(current_date, 0)
+                result.append((current_date, value))
+                current_date = current_date.replace(year=current_date.year + 1)
+
+        else:  # "Days" period
+            current_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            while current_date <= end_date:
+                value = data_dict.get(current_date, 0)
+                result.append((current_date, value))
+                current_date += timedelta(days=1)
+
+        return result
+
+    def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
+        """Format x-axis for charts based on period and data range.
 
         Args:
 
         - `ax` (`plt.Axes`): Matplotlib axes object.
         - `dates` (`list`): List of datetime objects.
+        - `period` (`str`): Time period for formatting.
 
         """
         if not dates:
             return
 
-        # Limit to max 10-15 ticks
-        ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
+        days_in_month = 31
+        days_in_year = 365
 
-        date_range = (max(dates) - min(dates)).days
-        if date_range <= 31:
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-        elif date_range <= 365:
+        if period == "Days":
+            date_range = (max(dates) - min(dates)).days
+            if date_range <= days_in_month or date_range <= days_in_year:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+            else:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+
+        elif period == "Months":
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-        else:
+
+        elif period == "Years":
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
 
         # Rotate date labels for better readability
@@ -362,16 +494,69 @@ class ChartOperations:
         min_val = min(values)
         max_val = max(values)
         avg_val = sum(values) / len(values)
-        total_val = sum(values)
 
         unit_suffix = f" {unit}" if unit else ""
 
-        return (
-            f"Min: {min_val:.2f}{unit_suffix} | Max: {max_val:.2f}{unit_suffix} | "
-            f"Avg: {avg_val:.2f}{unit_suffix} | Total: {total_val:.2f}{unit_suffix}"
-        )
+        return f"Min: {min_val:.2f}{unit_suffix} | Max: {max_val:.2f}{unit_suffix} | Avg: {avg_val:.2f}{unit_suffix}"
 
-    def _plot_data(self, ax: Axes, x_values: list, y_values: list, color: str) -> None:
+    def _group_data_by_period(self, rows: list, period: str, value_type: str = "float") -> dict:
+        """Group data by the specified period (Days, Months, Years).
+
+        Args:
+
+        - `rows` (`list`): List of (date_str, value_str) tuples.
+        - `period` (`str`): Grouping period (Days, Months, Years).
+        - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
+
+        Returns:
+
+        - `dict`: Dictionary with datetime keys and aggregated values.
+
+        """
+        grouped = defaultdict(float if value_type == "float" else int)
+
+        # Regex pattern for YYYY-MM-DD format
+        date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+        for date_str, value_str in rows:
+            # Quick validation without exceptions
+            if not date_pattern.match(date_str):
+                continue
+
+            try:
+                value = float(value_str) if value_type == "float" else int(value_str)
+            except (ValueError, TypeError):
+                continue
+
+            # Safe date parsing with proper error handling
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
+                continue
+
+            if period == "Days":
+                key = date_obj
+            elif period == "Months":
+                key = date_obj.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            elif period == "Years":
+                key = date_obj.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            else:
+                key = date_obj
+
+            grouped[key] += value
+
+        return dict(sorted(grouped.items()))
+
+    def _plot_data(
+        self,
+        ax: Axes,
+        x_values: list,
+        y_values: list,
+        color: str,
+        non_zero_count: int | None = None,
+        period: str | None = None,
+    ) -> None:
         """Plot data with automatic marker selection based on data points.
 
         Args:
@@ -380,6 +565,8 @@ class ChartOperations:
         - `x_values` (`list`): X-axis values.
         - `y_values` (`list`): Y-axis values.
         - `color` (`str`): Plot color.
+        - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
+        - `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
 
         """
         # Map color names to matplotlib single-letter codes
@@ -399,7 +586,10 @@ class ChartOperations:
         # Use mapped color or original if not in map
         plot_color = color_map.get(color, color)
 
-        if len(y_values) <= self.max_count_points_in_charts:
+        # Use non_zero_count if provided, otherwise use total length
+        point_count_for_labels = non_zero_count if non_zero_count is not None else len(y_values)
+
+        if point_count_for_labels <= self.max_count_points_in_charts:
             ax.plot(
                 x_values,
                 y_values,
@@ -409,18 +599,29 @@ class ChartOperations:
                 linewidth=2,
                 alpha=0.8,
                 markersize=6,
+                markerfacecolor=plot_color,
+                markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
             )
-            # Add value labels
+            # Add value labels only for non-zero values
             for x, y in zip(x_values, y_values, strict=False):
-                ax.annotate(
-                    f"{y:.2f}",
-                    (x, y),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
-                    alpha=0.8,
-                )
+                if y != 0:  # Only label non-zero points
+                    # Format label based on value type
+                    label_text = f"{y:.2f}" if isinstance(y, float) else str(y)
+
+                    # Add year in parentheses for Years period
+                    if period == "Years" and hasattr(x, "year"):
+                        label_text += f" ({x.year})"
+
+                    ax.annotate(
+                        label_text,
+                        (x, y),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    )
         else:
             ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
 
@@ -486,9 +687,14 @@ class DateOperations:
         current_date = QDate.currentDate()
         to_widget.setDate(current_date)
 
-        if is_all_time:
-            # Set to one year ago as default for all time
-            from_widget.setDate(current_date.addYears(-1))
+        if is_all_time and self._validate_database_connection():
+            # Get earliest transaction date
+            earliest_query = "SELECT MIN(date) FROM transactions WHERE date IS NOT NULL"
+            rows = self.db_manager.get_rows(earliest_query)
+            if rows and rows[0][0]:
+                from_widget.setDate(QDate.fromString(rows[0][0], "yyyy-MM-dd"))
+            else:
+                from_widget.setDate(current_date.addYears(-1))
         elif years:
             from_widget.setDate(current_date.addYears(-years))
         elif months:
