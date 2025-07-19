@@ -1928,7 +1928,6 @@ class MainWindow(
             # Update categories list view with icons
             expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
             income_categories = self.db_manager.get_categories_with_icons_by_type(1)
-            all_categories = expense_categories + income_categories
 
             model = QStandardItemModel()
 
