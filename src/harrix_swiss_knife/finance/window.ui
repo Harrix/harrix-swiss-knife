@@ -80,7 +80,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QPushButton" name="pushButton">
+                  <widget class="QPushButton" name="pushButton_description_clear">
                    <property name="maximumSize">
                     <size>
                      <width>32</width>
@@ -172,14 +172,14 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_3">
                  <item>
-                  <widget class="QLabel" name="label">
+                  <widget class="QLabel" name="label_tag">
                    <property name="text">
                     <string>Tag:</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLineEdit" name="lineEdit">
+                  <widget class="QLineEdit" name="lineEdit_tag">
                    <property name="placeholderText">
                     <string>Optional</string>
                    </property>
@@ -251,6 +251,13 @@
                   </widget>
                  </item>
                  <item>
+                  <widget class="QPushButton" name="pushButton_show_all_records">
+                   <property name="text">
+                    <string>Show All Records</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QPushButton" name="pushButton_refresh">
                    <property name="minimumSize">
                     <size>
@@ -286,6 +293,9 @@
                   <widget class="QRadioButton" name="radioButton">
                    <property name="text">
                     <string>All</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
                    </property>
                   </widget>
                  </item>
@@ -475,38 +485,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QGroupBox" name="groupBox_daily_balance">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>100</height>
-               </size>
-              </property>
-              <property name="title">
-               <string>Today's Balance</string>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_17">
-               <item>
-                <widget class="QLabel" name="label_daily_balance">
-                 <property name="font">
-                  <font>
-                   <pointsize>20</pointsize>
-                   <weight>75</weight>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>0.00₽</string>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
              <spacer name="verticalSpacer">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
@@ -623,6 +601,9 @@
                     <height>0</height>
                    </size>
                   </property>
+                  <property name="placeholderText">
+                   <string/>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -658,11 +639,6 @@
                   <item>
                    <property name="text">
                     <string>Income</string>
-                   </property>
-                  </item>
-                  <item>
-                   <property name="text">
-                    <string>Transfer</string>
                    </property>
                   </item>
                  </widget>
@@ -1432,7 +1408,7 @@
                  <widget class="QDateEdit" name="dateEdit_exchange">
                   <property name="minimumSize">
                    <size>
-                    <width>191</width>
+                    <width>151</width>
                     <height>0</height>
                    </size>
                   </property>
@@ -1571,7 +1547,40 @@
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout_rates">
+          <layout class="QVBoxLayout" name="verticalLayout_6">
+           <item>
+            <widget class="QPushButton" name="pushButton_exchange_update">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>41</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QPushButton {
+                                    background-color: #C1ECDD;
+                                    border: 1px solid #7DB68A;
+                                    border-radius: 4px;
+                                    }
+                                    QPushButton:hover {
+                                    background-color: #D1F5E8;
+                                    }
+                                    QPushButton:pressed {
+                                    background-color: #A8E0C7;
+                                    }</string>
+             </property>
+             <property name="text">
+              <string>Update</string>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QGroupBox" name="groupBox_add_rate">
              <property name="title">
@@ -1842,11 +1851,6 @@
                  <string>Expense</string>
                 </property>
                </item>
-               <item>
-                <property name="text">
-                 <string>Transfer</string>
-                </property>
-               </item>
               </widget>
              </item>
              <item>
@@ -2034,7 +2038,7 @@
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout_16">
+          <layout class="QVBoxLayout" name="verticalLayout_7">
            <item>
             <widget class="QGroupBox" name="groupBox_10">
              <property name="minimumSize">
@@ -2112,23 +2116,35 @@
                 </property>
                </widget>
               </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_daily_balance">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>100</height>
+              </size>
+             </property>
+             <property name="title">
+              <string>Today's Balance</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_17">
               <item>
-               <widget class="QLabel" name="label_net_balance">
-                <property name="styleSheet">
-                 <string notr="true">font-weight: bold; font-size: 14px;</string>
+               <widget class="QLabel" name="label_daily_balance">
+                <property name="font">
+                 <font>
+                  <pointsize>20</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
                 </property>
                 <property name="text">
-                 <string>Net Balance: 0.00₽</string>
+                 <string>0.00₽</string>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_total_accounts">
-                <property name="styleSheet">
-                 <string notr="true">color: #7DB68A; font-weight: bold;</string>
-                </property>
-                <property name="text">
-                 <string>Total in Accounts: 0.00₽</string>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
                 </property>
                </widget>
               </item>
