@@ -75,7 +75,7 @@ class OnFood(ActionBase):
     allows users to record, monitor, and analyze their food intake and nutrition.
     """
 
-    icon = "🍎"
+    icon = "🍔"
     title = "Food tracker"
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
