@@ -26,6 +26,7 @@ lang: en
   - [⚙️ Method `on_add_rate`](#%EF%B8%8F-method-on_add_rate)
   - [⚙️ Method `on_add_transaction`](#%EF%B8%8F-method-on_add_transaction)
   - [⚙️ Method `on_calculate_exchange`](#%EF%B8%8F-method-on_calculate_exchange)
+  - [⚙️ Method `on_category_selection_changed`](#%EF%B8%8F-method-on_category_selection_changed)
   - [⚙️ Method `on_clear_description`](#%EF%B8%8F-method-on_clear_description)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_generate_report`](#%EF%B8%8F-method-on_generate_report)
@@ -151,7 +152,7 @@ class MainWindow(
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["Amount", "Description", "Category", "Currency", "Date", "Tag"],
+                ["Description", "Amount", "Category", "Currency", "Date", "Tag"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -233,6 +234,12 @@ class MainWindow(
         )
         self.tableView_transactions.setModel(self.models["transactions"])
         self.tableView_transactions.resizeColumnsToContents()
+
+        # Make last column wider for filtered results too
+        header = self.tableView_transactions.horizontalHeader()
+        if header.count() > 0:
+            last_column = header.count() - 1
+            self.tableView_transactions.setColumnWidth(last_column, 200)
 
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
@@ -582,7 +589,7 @@ class MainWindow(
         amount = self.doubleSpinBox_amount.value()
         description = self.lineEdit_description.text().strip()
         category_name = (
-            self.listView_categories.currentIndex().data()
+            self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
             if self.listView_categories.currentIndex().isValid()
             else None
         )
@@ -651,6 +658,25 @@ class MainWindow(
         if rate > 0:
             amount_to = amount_from * rate
             self.doubleSpinBox_exchange_to.setValue(amount_to)
+
+    def on_category_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle category selection change in listView_categories.
+
+        Args:
+
+        - `current` (`QModelIndex`): Current selected index.
+        - `previous` (`QModelIndex`): Previously selected index.
+
+        """
+        if current.isValid():
+            # Get the display text (with icon and income marker if applicable)
+            display_text = current.data(Qt.ItemDataRole.DisplayRole)
+            if display_text:
+                self.label_category_now.setText(display_text)
+            else:
+                self.label_category_now.setText("No category selected")
+        else:
+            self.label_category_now.setText("No category selected")
 
     def on_clear_description(self) -> None:
         """Clear the description field."""
@@ -1009,6 +1035,13 @@ class MainWindow(
             for table_name in self.table_config:
                 view = self.table_config[table_name][0]
                 view.resizeColumnsToContents()
+
+            # Special handling for transactions table - make last column wider
+            header = self.tableView_transactions.horizontalHeader()
+            if header.count() > 0:
+                # Set last column (Tag) to be wider
+                last_column = header.count() - 1
+                self.tableView_transactions.setColumnWidth(last_column, 200)  # Set width to 200 pixels
 
             # Connect auto-save signals
             self._connect_table_auto_save_signals()
@@ -1927,10 +1960,10 @@ class MainWindow(
 
             color = self.date_colors[date_to_color_index[date]]
 
-            # Transform to display format: [amount, description, category, currency, date, tag, id, color]
+            # Transform to display format: [description, amount, category, currency, date, tag, id, color]
             transformed_row = [
-                f"{amount:.2f}",
                 description,
+                f"{amount:.2f}",
                 category_name,
                 currency_code,
                 date,
@@ -1965,15 +1998,38 @@ class MainWindow(
                 combo.clear()
                 combo.addItems(currencies)
 
-            # Update categories list view
-            categories = self.db_manager.get_categories_by_type(0) + self.db_manager.get_categories_by_type(1)
+            # Update categories list view with icons
+            expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
+            income_categories = self.db_manager.get_categories_with_icons_by_type(1)
 
             model = QStandardItemModel()
-            for category in categories:
-                item = QStandardItem(category)
+
+            # Add expense categories first
+            for category_name, icon in expense_categories:
+                # Create display text with icon
+                display_text = f"{icon} {category_name}" if icon else category_name
+                item = QStandardItem(display_text)
+                # Store the original category name as data for selection handling
+                item.setData(category_name, Qt.ItemDataRole.UserRole)
+                model.appendRow(item)
+
+            # Add income categories with special marking
+            for category_name, icon in income_categories:
+                # Create display text with icon and income marker
+                base_text = f"{icon} {category_name}" if icon else category_name
+                display_text = f"💰 {base_text}"  # Add income emoji marker
+                item = QStandardItem(display_text)
+                # Store the original category name as data for selection handling
+                item.setData(category_name, Qt.ItemDataRole.UserRole)
                 model.appendRow(item)
 
             self.listView_categories.setModel(model)
+
+            # Connect category selection signal after model is set
+            self.listView_categories.selectionModel().currentChanged.connect(self.on_category_selection_changed)
+
+            # Reset category selection label
+            self.label_category_now.setText("No category selected")
 
             # Set default currency selection
             default_currency = self.db_manager.get_default_currency()
@@ -2049,7 +2105,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["Amount", "Description", "Category", "Currency", "Date", "Tag"],
+                ["Description", "Amount", "Category", "Currency", "Date", "Tag"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -2144,6 +2200,12 @@ def apply_filter(self) -> None:
         )
         self.tableView_transactions.setModel(self.models["transactions"])
         self.tableView_transactions.resizeColumnsToContents()
+
+        # Make last column wider for filtered results too
+        header = self.tableView_transactions.horizontalHeader()
+        if header.count() > 0:
+            last_column = header.count() - 1
+            self.tableView_transactions.setColumnWidth(last_column, 200)
 ```
 
 </details>
@@ -2632,7 +2694,7 @@ def on_add_transaction(self) -> None:
         amount = self.doubleSpinBox_amount.value()
         description = self.lineEdit_description.text().strip()
         category_name = (
-            self.listView_categories.currentIndex().data()
+            self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
             if self.listView_categories.currentIndex().isValid()
             else None
         )
@@ -2714,6 +2776,37 @@ def on_calculate_exchange(self) -> None:
         if rate > 0:
             amount_to = amount_from * rate
             self.doubleSpinBox_exchange_to.setValue(amount_to)
+```
+
+</details>
+
+### ⚙️ Method `on_category_selection_changed`
+
+```python
+def on_category_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None
+```
+
+Handle category selection change in listView_categories.
+
+Args:
+
+- `current` (`QModelIndex`): Current selected index.
+- `previous` (`QModelIndex`): Previously selected index.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_category_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        if current.isValid():
+            # Get the display text (with icon and income marker if applicable)
+            display_text = current.data(Qt.ItemDataRole.DisplayRole)
+            if display_text:
+                self.label_category_now.setText(display_text)
+            else:
+                self.label_category_now.setText("No category selected")
+        else:
+            self.label_category_now.setText("No category selected")
 ```
 
 </details>
@@ -3277,6 +3370,13 @@ def show_tables(self) -> None:
             for table_name in self.table_config:
                 view = self.table_config[table_name][0]
                 view.resizeColumnsToContents()
+
+            # Special handling for transactions table - make last column wider
+            header = self.tableView_transactions.horizontalHeader()
+            if header.count() > 0:
+                # Set last column (Tag) to be wider
+                last_column = header.count() - 1
+                self.tableView_transactions.setColumnWidth(last_column, 200)  # Set width to 200 pixels
 
             # Connect auto-save signals
             self._connect_table_auto_save_signals()
@@ -4605,10 +4705,10 @@ def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
 
             color = self.date_colors[date_to_color_index[date]]
 
-            # Transform to display format: [amount, description, category, currency, date, tag, id, color]
+            # Transform to display format: [description, amount, category, currency, date, tag, id, color]
             transformed_row = [
-                f"{amount:.2f}",
                 description,
+                f"{amount:.2f}",
                 category_name,
                 currency_code,
                 date,
@@ -4656,15 +4756,38 @@ def _update_comboboxes(self) -> None:
                 combo.clear()
                 combo.addItems(currencies)
 
-            # Update categories list view
-            categories = self.db_manager.get_categories_by_type(0) + self.db_manager.get_categories_by_type(1)
+            # Update categories list view with icons
+            expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
+            income_categories = self.db_manager.get_categories_with_icons_by_type(1)
 
             model = QStandardItemModel()
-            for category in categories:
-                item = QStandardItem(category)
+
+            # Add expense categories first
+            for category_name, icon in expense_categories:
+                # Create display text with icon
+                display_text = f"{icon} {category_name}" if icon else category_name
+                item = QStandardItem(display_text)
+                # Store the original category name as data for selection handling
+                item.setData(category_name, Qt.ItemDataRole.UserRole)
+                model.appendRow(item)
+
+            # Add income categories with special marking
+            for category_name, icon in income_categories:
+                # Create display text with icon and income marker
+                base_text = f"{icon} {category_name}" if icon else category_name
+                display_text = f"💰 {base_text}"  # Add income emoji marker
+                item = QStandardItem(display_text)
+                # Store the original category name as data for selection handling
+                item.setData(category_name, Qt.ItemDataRole.UserRole)
                 model.appendRow(item)
 
             self.listView_categories.setModel(model)
+
+            # Connect category selection signal after model is set
+            self.listView_categories.selectionModel().currentChanged.connect(self.on_category_selection_changed)
+
+            # Reset category selection label
+            self.label_category_now.setText("No category selected")
 
             # Set default currency selection
             default_currency = self.db_manager.get_default_currency()

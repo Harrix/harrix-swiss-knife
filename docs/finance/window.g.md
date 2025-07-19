@@ -35,6 +35,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Finance Tracker", None))
         self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", "Transaction Details", None))
+        self.label_category_now.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", "Description", None))
         self.pushButton_description_clear.setText("")
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
@@ -217,13 +218,22 @@ class Ui_MainWindow(object):
         self.groupBox_transaction.setMinimumSize(QSize(0, 0))
         self.verticalLayout_3 = QVBoxLayout(self.groupBox_transaction)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.label_category_now = QLabel(self.groupBox_transaction)
+        self.label_category_now.setObjectName("label_category_now")
+        font = QFont()
+        font.setPointSize(12)
+        font.setBold(True)
+        self.label_category_now.setFont(font)
+
+        self.verticalLayout_3.addWidget(self.label_category_now)
+
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.lineEdit_description = QLineEdit(self.groupBox_transaction)
         self.lineEdit_description.setObjectName("lineEdit_description")
-        font = QFont()
-        font.setPointSize(12)
-        self.lineEdit_description.setFont(font)
+        font1 = QFont()
+        font1.setPointSize(12)
+        self.lineEdit_description.setFont(font1)
 
         self.horizontalLayout_2.addWidget(self.lineEdit_description)
 
@@ -239,10 +249,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_amount.setObjectName("horizontalLayout_amount")
         self.doubleSpinBox_amount = QDoubleSpinBox(self.groupBox_transaction)
         self.doubleSpinBox_amount.setObjectName("doubleSpinBox_amount")
-        font1 = QFont()
-        font1.setPointSize(12)
-        font1.setBold(True)
-        self.doubleSpinBox_amount.setFont(font1)
+        self.doubleSpinBox_amount.setFont(font)
         self.doubleSpinBox_amount.setStyleSheet(
             "QDoubleSpinBox {\n"
             "                                          background-color: #C1ECDD;\n"
@@ -297,7 +304,7 @@ class Ui_MainWindow(object):
         self.pushButton_add = QPushButton(self.groupBox_transaction)
         self.pushButton_add.setObjectName("pushButton_add")
         self.pushButton_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_add.setFont(font1)
+        self.pushButton_add.setFont(font)
         self.pushButton_add.setStyleSheet(
             "QPushButton {\n"
             "                                      background-color: #C1ECDD;\n"
@@ -1019,7 +1026,7 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_add = QPushButton(self.groupBox_exchange_operation)
         self.pushButton_exchange_add.setObjectName("pushButton_exchange_add")
         self.pushButton_exchange_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_exchange_add.setFont(font1)
+        self.pushButton_exchange_add.setFont(font)
         self.pushButton_exchange_add.setStyleSheet(
             "QPushButton {\n"
             "                                    background-color: #C1ECDD;\n"
@@ -1085,7 +1092,7 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update = QPushButton(self.frame_rates)
         self.pushButton_exchange_update.setObjectName("pushButton_exchange_update")
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 41))
-        self.pushButton_exchange_update.setFont(font1)
+        self.pushButton_exchange_update.setFont(font)
         self.pushButton_exchange_update.setStyleSheet(
             "QPushButton {\n"
             "                                    background-color: #C1ECDD;\n"
@@ -1468,6 +1475,7 @@ _No docstring provided._
 def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Finance Tracker", None))
         self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", "Transaction Details", None))
+        self.label_category_now.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", "Description", None))
         self.pushButton_description_clear.setText("")
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
@@ -1665,13 +1673,22 @@ def setupUi(self, MainWindow):
         self.groupBox_transaction.setMinimumSize(QSize(0, 0))
         self.verticalLayout_3 = QVBoxLayout(self.groupBox_transaction)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.label_category_now = QLabel(self.groupBox_transaction)
+        self.label_category_now.setObjectName("label_category_now")
+        font = QFont()
+        font.setPointSize(12)
+        font.setBold(True)
+        self.label_category_now.setFont(font)
+
+        self.verticalLayout_3.addWidget(self.label_category_now)
+
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.lineEdit_description = QLineEdit(self.groupBox_transaction)
         self.lineEdit_description.setObjectName("lineEdit_description")
-        font = QFont()
-        font.setPointSize(12)
-        self.lineEdit_description.setFont(font)
+        font1 = QFont()
+        font1.setPointSize(12)
+        self.lineEdit_description.setFont(font1)
 
         self.horizontalLayout_2.addWidget(self.lineEdit_description)
 
@@ -1687,10 +1704,7 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_amount.setObjectName("horizontalLayout_amount")
         self.doubleSpinBox_amount = QDoubleSpinBox(self.groupBox_transaction)
         self.doubleSpinBox_amount.setObjectName("doubleSpinBox_amount")
-        font1 = QFont()
-        font1.setPointSize(12)
-        font1.setBold(True)
-        self.doubleSpinBox_amount.setFont(font1)
+        self.doubleSpinBox_amount.setFont(font)
         self.doubleSpinBox_amount.setStyleSheet(
             "QDoubleSpinBox {\n"
             "                                          background-color: #C1ECDD;\n"
@@ -1745,7 +1759,7 @@ def setupUi(self, MainWindow):
         self.pushButton_add = QPushButton(self.groupBox_transaction)
         self.pushButton_add.setObjectName("pushButton_add")
         self.pushButton_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_add.setFont(font1)
+        self.pushButton_add.setFont(font)
         self.pushButton_add.setStyleSheet(
             "QPushButton {\n"
             "                                      background-color: #C1ECDD;\n"
@@ -2467,7 +2481,7 @@ def setupUi(self, MainWindow):
         self.pushButton_exchange_add = QPushButton(self.groupBox_exchange_operation)
         self.pushButton_exchange_add.setObjectName("pushButton_exchange_add")
         self.pushButton_exchange_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_exchange_add.setFont(font1)
+        self.pushButton_exchange_add.setFont(font)
         self.pushButton_exchange_add.setStyleSheet(
             "QPushButton {\n"
             "                                    background-color: #C1ECDD;\n"
@@ -2533,7 +2547,7 @@ def setupUi(self, MainWindow):
         self.pushButton_exchange_update = QPushButton(self.frame_rates)
         self.pushButton_exchange_update.setObjectName("pushButton_exchange_update")
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 41))
-        self.pushButton_exchange_update.setFont(font1)
+        self.pushButton_exchange_update.setFont(font)
         self.pushButton_exchange_update.setStyleSheet(
             "QPushButton {\n"
             "                                    background-color: #C1ECDD;\n"

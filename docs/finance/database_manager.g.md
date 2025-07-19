@@ -38,6 +38,7 @@ lang: en
   - [⚙️ Method `get_all_exchange_rates`](#%EF%B8%8F-method-get_all_exchange_rates)
   - [⚙️ Method `get_all_transactions`](#%EF%B8%8F-method-get_all_transactions)
   - [⚙️ Method `get_categories_by_type`](#%EF%B8%8F-method-get_categories_by_type)
+  - [⚙️ Method `get_categories_with_icons_by_type`](#%EF%B8%8F-method-get_categories_with_icons_by_type)
   - [⚙️ Method `get_currency_by_code`](#%EF%B8%8F-method-get_currency_by_code)
   - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
   - [⚙️ Method `get_default_currency_id`](#%EF%B8%8F-method-get_default_currency_id)
@@ -704,6 +705,23 @@ class DatabaseManager:
         """
         rows = self.get_rows("SELECT name FROM categories WHERE type = :type ORDER BY name", {"type": category_type})
         return [row[0] for row in rows]
+
+    def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str]]:
+        """Get category names and icons by type.
+
+        Args:
+
+        - `category_type` (`int`): Category type (0 = expense, 1 = income).
+
+        Returns:
+
+        - `list[tuple[str, str]]`: List of (name, icon) tuples.
+
+        """
+        rows = self.get_rows(
+            "SELECT name, icon FROM categories WHERE type = :type ORDER BY name", {"type": category_type}
+        )
+        return [(row[0], row[1]) for row in rows]
 
     def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:
         """Get currency information by code.
@@ -2307,6 +2325,35 @@ Returns:
 def get_categories_by_type(self, category_type: int) -> list[str]:
         rows = self.get_rows("SELECT name FROM categories WHERE type = :type ORDER BY name", {"type": category_type})
         return [row[0] for row in rows]
+```
+
+</details>
+
+### ⚙️ Method `get_categories_with_icons_by_type`
+
+```python
+def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str]]
+```
+
+Get category names and icons by type.
+
+Args:
+
+- `category_type` (`int`): Category type (0 = expense, 1 = income).
+
+Returns:
+
+- `list[tuple[str, str]]`: List of (name, icon) tuples.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str]]:
+        rows = self.get_rows(
+            "SELECT name, icon FROM categories WHERE type = :type ORDER BY name", {"type": category_type}
+        )
+        return [(row[0], row[1]) for row in rows]
 ```
 
 </details>

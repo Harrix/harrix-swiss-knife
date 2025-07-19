@@ -660,7 +660,9 @@ class DatabaseManager:
         - `list[tuple[str, str]]`: List of (name, icon) tuples.
 
         """
-        rows = self.get_rows("SELECT name, icon FROM categories WHERE type = :type ORDER BY name", {"type": category_type})
+        rows = self.get_rows(
+            "SELECT name, icon FROM categories WHERE type = :type ORDER BY name", {"type": category_type}
+        )
         return [(row[0], row[1]) for row in rows]
 
     def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:

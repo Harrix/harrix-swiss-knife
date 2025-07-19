@@ -605,6 +605,25 @@ class MainWindow(
             amount_to = amount_from * rate
             self.doubleSpinBox_exchange_to.setValue(amount_to)
 
+    def on_category_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle category selection change in listView_categories.
+
+        Args:
+
+        - `current` (`QModelIndex`): Current selected index.
+        - `previous` (`QModelIndex`): Previously selected index.
+
+        """
+        if current.isValid():
+            # Get the display text (with icon and income marker if applicable)
+            display_text = current.data(Qt.ItemDataRole.DisplayRole)
+            if display_text:
+                self.label_category_now.setText(display_text)
+            else:
+                self.label_category_now.setText("No category selected")
+        else:
+            self.label_category_now.setText("No category selected")
+
     def on_clear_description(self) -> None:
         """Clear the description field."""
         self.lineEdit_description.clear()
@@ -1951,6 +1970,12 @@ class MainWindow(
                 model.appendRow(item)
 
             self.listView_categories.setModel(model)
+
+            # Connect category selection signal after model is set
+            self.listView_categories.selectionModel().currentChanged.connect(self.on_category_selection_changed)
+
+            # Reset category selection label
+            self.label_category_now.setText("No category selected")
 
             # Set default currency selection
             default_currency = self.db_manager.get_default_currency()
