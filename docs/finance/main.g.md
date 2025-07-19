@@ -141,7 +141,7 @@ class MainWindow(
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["ID", "Type", "Amount", "Currency", "Category", "Account", "Description", "Date"],
+                ["ID", "Type", "Amount", "Currency", "Category", "Description", "Date"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -456,12 +456,6 @@ class MainWindow(
                 QMessageBox.warning(self, "Error", f"Category '{category_name}' not found")
                 return
 
-            # Get account (optional)
-            account_name = self.comboBox_account.currentText()
-            account_id = None
-            if account_name:
-                account_id = self.db_manager.get_id("accounts", "name", account_name)
-
             # Get description
             description = self.lineEdit_description.text().strip()
 
@@ -470,7 +464,7 @@ class MainWindow(
 
             # Use database manager method
             if self.db_manager.add_transaction(
-                transaction_type, amount, currency_id, category_id, account_id, description, date_str
+                transaction_type, amount, currency_id, category_id, description, date_str
             ):
                 # Apply date increment logic
                 self._increment_date_widget(self.dateEdit)
@@ -1599,11 +1593,6 @@ class MainWindow(
             self.comboBox_currency.clear()
             self.comboBox_currency.addItems(currencies)
 
-            accounts = self.db_manager.get_accounts_list()
-            self.comboBox_account.clear()
-            self.comboBox_account.addItem("")  # Optional account
-            self.comboBox_account.addItems(accounts)
-
             # Update account form currency combobox
             self.comboBox_account_currency.clear()
             self.comboBox_account_currency.addItems(currencies)
@@ -1679,7 +1668,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["ID", "Type", "Amount", "Currency", "Category", "Account", "Description", "Date"],
+                ["ID", "Type", "Amount", "Currency", "Category", "Description", "Date"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -2108,12 +2097,6 @@ def on_add_transaction(self) -> None:
                 QMessageBox.warning(self, "Error", f"Category '{category_name}' not found")
                 return
 
-            # Get account (optional)
-            account_name = self.comboBox_account.currentText()
-            account_id = None
-            if account_name:
-                account_id = self.db_manager.get_id("accounts", "name", account_name)
-
             # Get description
             description = self.lineEdit_description.text().strip()
 
@@ -2122,7 +2105,7 @@ def on_add_transaction(self) -> None:
 
             # Use database manager method
             if self.db_manager.add_transaction(
-                transaction_type, amount, currency_id, category_id, account_id, description, date_str
+                transaction_type, amount, currency_id, category_id, description, date_str
             ):
                 # Apply date increment logic
                 self._increment_date_widget(self.dateEdit)
@@ -3793,11 +3776,6 @@ def _update_comboboxes(self) -> None:
             currencies = self.db_manager.get_currencies_list()
             self.comboBox_currency.clear()
             self.comboBox_currency.addItems(currencies)
-
-            accounts = self.db_manager.get_accounts_list()
-            self.comboBox_account.clear()
-            self.comboBox_account.addItem("")  # Optional account
-            self.comboBox_account.addItems(accounts)
 
             # Update account form currency combobox
             self.comboBox_account_currency.clear()

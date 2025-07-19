@@ -36,7 +36,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Food tracker", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", "Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(
-            QCoreApplication.translate("MainWindow", "Enter food name (optional if selected from list)", None)
+            QCoreApplication.translate("MainWindow", "Enter food name", None)
         )
         self.pushButton_food_manual_name_clear.setText("")
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", "g", None))
@@ -629,7 +629,7 @@ def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Food tracker", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", "Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(
-            QCoreApplication.translate("MainWindow", "Enter food name (optional if selected from list)", None)
+            QCoreApplication.translate("MainWindow", "Enter food name", None)
         )
         self.pushButton_food_manual_name_clear.setText("")
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", "g", None))

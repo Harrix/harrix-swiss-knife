@@ -171,14 +171,7 @@ class DatabaseManager:
         return self.execute_simple_query(query, params)
 
     def add_transaction(
-        self,
-        transaction_type: str,
-        amount: float,
-        currency_id: int,
-        category_id: int,
-        account_id: int | None,
-        description: str,
-        date: str,
+        self, transaction_type: str, amount: float, currency_id: int, category_id: int, description: str, date: str
     ) -> bool:
         """Add a new transaction to the database.
 
@@ -188,7 +181,6 @@ class DatabaseManager:
         - `amount` (`float`): Transaction amount.
         - `currency_id` (`int`): Currency ID.
         - `category_id` (`int`): Category ID.
-        - `account_id` (`int | None`): Account ID (optional).
         - `description` (`str`): Transaction description.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
@@ -197,14 +189,13 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, _id_accounts, date)
-                   VALUES (:amount, :description, :category_id, :currency_id, :account_id, :date)"""
+        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date)
+                   VALUES (:amount, :description, :category_id, :currency_id, :date)"""
         params = {
             "amount": amount,
             "description": description,
             "category_id": category_id,
             "currency_id": currency_id,
-            "account_id": account_id,
             "date": date,
         }
         return self.execute_simple_query(query, params)
@@ -506,11 +497,10 @@ class DatabaseManager:
 
         """
         return self.get_rows("""
-            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, a.name, t.description, t.date
+            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, t.description, t.date
             FROM transactions t
             JOIN currencies c ON t._id_currencies = c._id
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN accounts a ON t._id_accounts = a._id
             ORDER BY t.date DESC, t._id DESC
         """)
 
@@ -611,11 +601,10 @@ class DatabaseManager:
             params["date_to"] = date_to
 
         query_text = """
-            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, a.name, t.description, t.date
+            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, t.description, t.date
             FROM transactions t
             JOIN currencies c ON t._id_currencies = c._id
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN accounts a ON t._id_accounts = a._id
         """
 
         if conditions:
@@ -846,7 +835,6 @@ class DatabaseManager:
         amount: float,
         currency_id: int,
         category_id: int,
-        account_id: int | None,
         description: str,
         date: str,
     ) -> bool:
@@ -859,7 +847,6 @@ class DatabaseManager:
         - `amount` (`float`): Transaction amount.
         - `currency_id` (`int`): Currency ID.
         - `category_id` (`int`): Category ID.
-        - `account_id` (`int | None`): Account ID (optional).
         - `description` (`str`): Transaction description.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
@@ -870,14 +857,13 @@ class DatabaseManager:
         """
         query = """UPDATE transactions
                    SET amount = :amount, _id_currencies = :currency_id,
-                       _id_categories = :category_id, _id_accounts = :account_id,
+                       _id_categories = :category_id,
                        description = :description, date = :date
                    WHERE _id = :id"""
         params = {
             "amount": amount,
             "currency_id": currency_id,
             "category_id": category_id,
-            "account_id": account_id,
             "description": description,
             "date": date,
             "id": transaction_id,
@@ -1151,7 +1137,7 @@ def add_currency(self, code: str, name: str, symbol: str) -> bool:
 ### ⚙️ Method `add_transaction`
 
 ```python
-def add_transaction(self, transaction_type: str, amount: float, currency_id: int, category_id: int, account_id: int | None, description: str, date: str) -> bool
+def add_transaction(self, transaction_type: str, amount: float, currency_id: int, category_id: int, description: str, date: str) -> bool
 ```
 
 Add a new transaction to the database.
@@ -1162,7 +1148,6 @@ Args:
 - `amount` (`float`): Transaction amount.
 - `currency_id` (`int`): Currency ID.
 - `category_id` (`int`): Category ID.
-- `account_id` (`int | None`): Account ID (optional).
 - `description` (`str`): Transaction description.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
@@ -1175,23 +1160,15 @@ Returns:
 
 ```python
 def add_transaction(
-        self,
-        transaction_type: str,
-        amount: float,
-        currency_id: int,
-        category_id: int,
-        account_id: int | None,
-        description: str,
-        date: str,
+        self, transaction_type: str, amount: float, currency_id: int, category_id: int, description: str, date: str
     ) -> bool:
-        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, _id_accounts, date)
-                   VALUES (:amount, :description, :category_id, :currency_id, :account_id, :date)"""
+        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date)
+                   VALUES (:amount, :description, :category_id, :currency_id, :date)"""
         params = {
             "amount": amount,
             "description": description,
             "category_id": category_id,
             "currency_id": currency_id,
-            "account_id": account_id,
             "date": date,
         }
         return self.execute_simple_query(query, params)
@@ -1650,11 +1627,10 @@ Returns:
 ```python
 def get_all_transactions(self) -> list[list[Any]]:
         return self.get_rows("""
-            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, a.name, t.description, t.date
+            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, t.description, t.date
             FROM transactions t
             JOIN currencies c ON t._id_currencies = c._id
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN accounts a ON t._id_accounts = a._id
             ORDER BY t.date DESC, t._id DESC
         """)
 ```
@@ -1803,11 +1779,10 @@ def get_filtered_transactions(
             params["date_to"] = date_to
 
         query_text = """
-            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, a.name, t.description, t.date
+            SELECT t._id, cat.type, t.amount, c.symbol, cat.name, t.description, t.date
             FROM transactions t
             JOIN currencies c ON t._id_currencies = c._id
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN accounts a ON t._id_accounts = a._id
         """
 
         if conditions:
@@ -2133,7 +2108,7 @@ def update_currency(self, currency_id: int, code: str, name: str, symbol: str) -
 ### ⚙️ Method `update_transaction`
 
 ```python
-def update_transaction(self, transaction_id: int, transaction_type: str, amount: float, currency_id: int, category_id: int, account_id: int | None, description: str, date: str) -> bool
+def update_transaction(self, transaction_id: int, transaction_type: str, amount: float, currency_id: int, category_id: int, description: str, date: str) -> bool
 ```
 
 Update an existing transaction.
@@ -2145,7 +2120,6 @@ Args:
 - `amount` (`float`): Transaction amount.
 - `currency_id` (`int`): Currency ID.
 - `category_id` (`int`): Category ID.
-- `account_id` (`int | None`): Account ID (optional).
 - `description` (`str`): Transaction description.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
@@ -2164,20 +2138,18 @@ def update_transaction(
         amount: float,
         currency_id: int,
         category_id: int,
-        account_id: int | None,
         description: str,
         date: str,
     ) -> bool:
         query = """UPDATE transactions
                    SET amount = :amount, _id_currencies = :currency_id,
-                       _id_categories = :category_id, _id_accounts = :account_id,
+                       _id_categories = :category_id,
                        description = :description, date = :date
                    WHERE _id = :id"""
         params = {
             "amount": amount,
             "currency_id": currency_id,
             "category_id": category_id,
-            "account_id": account_id,
             "description": description,
             "date": date,
             "id": transaction_id,

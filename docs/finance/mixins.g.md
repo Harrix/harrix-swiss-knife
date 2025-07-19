@@ -204,9 +204,8 @@ class AutoSaveOperations:
         amount_str = model.data(model.index(row, 2)) or "0"
         currency_symbol = model.data(model.index(row, 3)) or ""
         category_name = model.data(model.index(row, 4)) or ""
-        account_name = model.data(model.index(row, 5)) or ""
-        description = model.data(model.index(row, 6)) or ""
-        date = model.data(model.index(row, 7)) or ""
+        description = model.data(model.index(row, 5)) or ""
+        date = model.data(model.index(row, 6)) or ""
 
         # Validate date format
         if not self._is_valid_date(date):
@@ -232,14 +231,9 @@ class AutoSaveOperations:
             QMessageBox.warning(None, "Validation Error", f"Category '{category_name}' not found")
             return
 
-        # Get account ID (optional)
-        account_id = None
-        if account_name:
-            account_id = self.db_manager.get_id("accounts", "name", account_name)
-
         # Update database
         if not self.db_manager.update_transaction(
-            int(row_id), transaction_type, amount, currency_id, category_id, account_id, description, date
+            int(row_id), transaction_type, amount, currency_id, category_id, description, date
         ):
             QMessageBox.warning(None, "Database Error", "Failed to save transaction record")
         else:
@@ -452,9 +446,8 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
         amount_str = model.data(model.index(row, 2)) or "0"
         currency_symbol = model.data(model.index(row, 3)) or ""
         category_name = model.data(model.index(row, 4)) or ""
-        account_name = model.data(model.index(row, 5)) or ""
-        description = model.data(model.index(row, 6)) or ""
-        date = model.data(model.index(row, 7)) or ""
+        description = model.data(model.index(row, 5)) or ""
+        date = model.data(model.index(row, 6)) or ""
 
         # Validate date format
         if not self._is_valid_date(date):
@@ -480,14 +473,9 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
             QMessageBox.warning(None, "Validation Error", f"Category '{category_name}' not found")
             return
 
-        # Get account ID (optional)
-        account_id = None
-        if account_name:
-            account_id = self.db_manager.get_id("accounts", "name", account_name)
-
         # Update database
         if not self.db_manager.update_transaction(
-            int(row_id), transaction_type, amount, currency_id, category_id, account_id, description, date
+            int(row_id), transaction_type, amount, currency_id, category_id, description, date
         ):
             QMessageBox.warning(None, "Database Error", "Failed to save transaction record")
         else:
