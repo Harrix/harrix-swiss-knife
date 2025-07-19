@@ -1759,6 +1759,11 @@ class MainWindow(
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
 
+        # Configure splitter proportions
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setStretchFactor(2, 3)
+
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)
         self.doubleSpinBox_exchange_from.setValue(100.0)
@@ -1767,20 +1772,33 @@ class MainWindow(
         self.doubleSpinBox_rate_value.setValue(73.5)
 
     def _setup_window_size_and_position(self) -> None:
-        """Set window size and position."""
+        """Set window size and position based on screen resolution and characteristics."""
         screen_geometry = QApplication.primaryScreen().geometry()
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
 
-        # Set window size to 90% of screen size
-        window_width = int(screen_width * 0.9)
-        window_height = int(screen_height * 0.9)
+        # Determine window size and position based on screen characteristics
+        aspect_ratio = screen_width / screen_height
+        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
 
-        # Center the window
-        x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
-
-        self.setGeometry(x, y, window_width, window_height)
+        if is_standard_aspect and screen_width >= 1920:
+            # For standard aspect ratios with width >= 1920, maximize window
+            self.showMaximized()
+        else:
+            title_bar_height = 30  # Approximate title bar height
+            windows_task_bar_height = 48  # Approximate windows task bar height
+            # For other cases, use fixed width and full height minus title bar
+            window_width = 1920
+            window_height = screen_height - title_bar_height - windows_task_bar_height
+            # Position window on screen
+            screen_center = screen_geometry.center()
+            # Center horizontally, position at top vertically with title bar offset
+            self.setGeometry(
+                screen_center.x() - window_width // 2,
+                title_bar_height,  # Position below title bar
+                window_width,
+                window_height,
+            )
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors.
