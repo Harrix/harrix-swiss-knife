@@ -6,6 +6,7 @@ SQLite database with transactions, categories, accounts, currencies and exchange
 
 from __future__ import annotations
 
+import colorsys
 import sys
 from datetime import datetime, timedelta
 from functools import partial
@@ -13,6 +14,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import harrix_pylib as h
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
@@ -91,6 +94,9 @@ class MainWindow(
         # Chart configuration
         self.max_count_points_in_charts = 40
 
+        # Generate pastel colors for date-based coloring
+        self.date_colors = self.generate_pastel_colors_mathematical(50)
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "transactions": (
@@ -137,6 +143,37 @@ class MainWindow(
 
         # Show window after initialization
         QTimer.singleShot(200, self._finish_window_initialization)
+
+    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
+        """Generate pastel colors using mathematical distribution.
+
+        Args:
+
+        - `count` (`int`): Number of colors to generate. Defaults to `100`.
+
+        Returns:
+
+        - `list[QColor]`: List of pastel QColor objects.
+
+        """
+        colors = []
+
+        for i in range(count):
+            # Use golden ratio for even hue distribution
+            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
+
+            # Lower saturation and higher lightness for very light pastel effect
+            saturation = 0.6  # Very low saturation
+            lightness = 0.95  # Very high lightness
+
+            # Convert HSL to RGB
+            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
+
+            # Convert to 0-255 range and create QColor
+            color = QColor(int(r * 255), int(g * 255), int(b * 255))
+            colors.append(color)
+
+        return colors
 
     @requires_database()
     def apply_filter(self) -> None:
@@ -1326,7 +1363,8 @@ class MainWindow(
         sizes = list(data.values())
 
         # Create pie chart
-        wedges, texts, autotexts = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
+        pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
+        wedges, texts, autotexts = pie_result if len(pie_result) == 3 else (pie_result[0], pie_result[1], [])
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
@@ -1815,6 +1853,10 @@ class MainWindow(
         """
         transformed_data = []
 
+        # Create a mapping of dates to color indices
+        date_to_color_index = {}
+        color_index = 0
+
         for row in rows:
             # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
             transaction_id = row[0]
@@ -1829,11 +1871,12 @@ class MainWindow(
             # Convert amount from cents to display format
             amount = float(amount_cents) / 100
 
-            # Determine color based on category type
-            if category_type == 0:  # Expense
-                color = QColor(255, 200, 200)  # Light red
-            else:  # Income
-                color = QColor(200, 255, 200)  # Light green
+            # Determine color based on date
+            if date not in date_to_color_index:
+                date_to_color_index[date] = color_index % len(self.date_colors)
+                color_index += 1
+
+            color = self.date_colors[date_to_color_index[date]]
 
             # Transform to display format: [amount, description, category, currency, date, tag, id, color]
             transformed_row = [
