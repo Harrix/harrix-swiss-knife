@@ -179,13 +179,66 @@ class MainWindow(
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Настройка растягивания столбцов (как в show_tables)
         self.tableView_transactions.resizeColumnsToContents()
 
-        # Make last column wider for filtered results too
+        # Настройка поведения заголовка таблицы для растягивания столбцов
         header = self.tableView_transactions.horizontalHeader()
         if header.count() > 0:
+            # Установить режим растягивания для всех столбцов кроме последнего
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+
+            # Для последнего столбца установить фиксированную ширину
             last_column = header.count() - 1
+            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
             self.tableView_transactions.setColumnWidth(last_column, 200)
+
+            """Apply combo-box/date filters to the transactions table."""
+            if self.db_manager is None:
+                print("❌ Database manager is not initialized")
+                return
+
+            # Get filter values
+            transaction_type = None
+            if self.radioButton_2.isChecked():  # Expense
+                transaction_type = 0
+            elif self.radioButton_3.isChecked():  # Income
+                transaction_type = 1
+            # If radioButton (All) is checked, transaction_type remains None
+
+            category = self.comboBox_filter_category.currentText() if self.comboBox_filter_category.currentText() else None
+            currency = self.comboBox_filter_currency.currentText() if self.comboBox_filter_currency.currentText() else None
+
+            use_date_filter = self.checkBox_use_date_filter.isChecked()
+            date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
+            date_to = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None
+
+            # Use database manager method
+            rows = self.db_manager.get_filtered_transactions(
+                category_type=transaction_type,
+                category_name=category,
+                currency_code=currency,
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+            # Transform data for display
+            transformed_data = self._transform_transaction_data(rows)
+
+            # Create model and set to table
+            self.models["transactions"] = self._create_colored_table_model(
+                transformed_data, self.table_config["transactions"][2]
+            )
+            self.tableView_transactions.setModel(self.models["transactions"])
+            self.tableView_transactions.resizeColumnsToContents()
+
+            # Make last column wider for filtered results too
+            header = self.tableView_transactions.horizontalHeader()
+            if header.count() > 0:
+                last_column = header.count() - 1
+                self.tableView_transactions.setColumnWidth(last_column, 200)
 
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
@@ -982,12 +1035,17 @@ class MainWindow(
                 view = self.table_config[table_name][0]
                 view.resizeColumnsToContents()
 
-            # Special handling for transactions table - make last column wider
+            # Special handling for transactions table - настройка растягивания столбцов
             header = self.tableView_transactions.horizontalHeader()
             if header.count() > 0:
-                # Set last column (Tag) to be wider
+                # Установить режим растягивания для всех столбцов кроме последнего
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+
+                # Для последнего столбца установить фиксированную ширину
                 last_column = header.count() - 1
-                self.tableView_transactions.setColumnWidth(last_column, 200)  # Set width to 200 pixels
+                header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
+                self.tableView_transactions.setColumnWidth(last_column, 200)
 
             # Connect auto-save signals
             self._connect_table_auto_save_signals()
