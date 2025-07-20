@@ -335,6 +335,7 @@ class MainWindow(
                 focused_widget == self.doubleSpinBox_food_calories
                 or focused_widget == self.spinBox_food_weight
                 or focused_widget == self.checkBox_food_is_drink
+                or focused_widget == self.pushButton_food_add
             ):
                 self.pushButton_food_add.click()
                 return
@@ -2952,6 +2953,7 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
                 focused_widget == self.doubleSpinBox_food_calories
                 or focused_widget == self.spinBox_food_weight
                 or focused_widget == self.checkBox_food_is_drink
+                or focused_widget == self.pushButton_food_add
             ):
                 self.pushButton_food_add.click()
                 return

@@ -421,6 +421,13 @@ class MainWindow(
         - `event` (`QKeyEvent`): The key press event.
 
         """
+        # Handle Enter key when pushButton_add is focused
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            focused_widget = QApplication.focusWidget()
+            if focused_widget == self.pushButton_add:
+                self.pushButton_add.click()
+                return
+
         # Handle Ctrl+C for copying table selections
         if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             # Determine which table is currently focused
@@ -4671,6 +4678,13 @@ Args:
 
 ```python
 def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        # Handle Enter key when pushButton_add is focused
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            focused_widget = QApplication.focusWidget()
+            if focused_widget == self.pushButton_add:
+                self.pushButton_add.click()
+                return
+
         # Handle Ctrl+C for copying table selections
         if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             # Determine which table is currently focused
