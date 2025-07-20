@@ -284,6 +284,29 @@ class MainWindow(
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
+    def eventFilter(self, obj, event) -> bool:
+        """Event filter for handling Enter key in doubleSpinBox_amount.
+
+        Args:
+
+        - `obj`: The object that generated the event.
+        - `event`: The event that occurred.
+
+        Returns:
+
+        - `bool`: True if event was handled, False otherwise.
+
+        """
+        from PySide6.QtCore import QEvent
+        from PySide6.QtGui import QKeyEvent
+
+        if obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress:
+            key_event = QKeyEvent(event)
+            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
+                self.on_add_transaction()
+                return True
+        return super().eventFilter(obj, event)
+
     def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
         """Generate pastel colors using mathematical distribution.
 
@@ -1937,6 +1960,47 @@ class MainWindow(
         except Exception as e:
             print(f"Error populating form from description: {e}")
 
+    def _select_category_by_id(self, category_id: int) -> None:
+        """Select category in listView_categories by database ID.
+
+        Args:
+
+        - `category_id` (`int`): Database ID of the category to select.
+
+        """
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get category name by ID using get_id method
+            query = "SELECT name FROM categories WHERE _id = :category_id"
+            rows = self.db_manager.get_rows(query, {"category_id": category_id})
+            if not rows:
+                print(f"Category with ID {category_id} not found")
+                return
+
+            category_name = rows[0][0]
+
+            # Find the category in the list view
+            model = self.listView_categories.model()
+            if model:
+                for row in range(model.rowCount()):
+                    index = model.index(row, 0)
+                    item_data = model.data(index, Qt.ItemDataRole.UserRole)
+                    if item_data == category_name:
+                        self.listView_categories.setCurrentIndex(index)
+                        # Update the category label
+                        display_text = model.data(index, Qt.ItemDataRole.DisplayRole)
+                        if display_text:
+                            self.label_category_now.setText(display_text)
+                        break
+
+        except Exception as e:
+            print(f"Error selecting category by ID: {e}")
+
     def _setup_autocomplete(self) -> None:
         """Setup autocomplete functionality for description input."""
         # Create completer
@@ -2186,70 +2250,6 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
-
-    def eventFilter(self, obj, event) -> bool:
-        """Event filter for handling Enter key in doubleSpinBox_amount.
-
-        Args:
-
-        - `obj`: The object that generated the event.
-        - `event`: The event that occurred.
-
-        Returns:
-
-        - `bool`: True if event was handled, False otherwise.
-
-        """
-        from PySide6.QtCore import QEvent
-        from PySide6.QtGui import QKeyEvent
-
-        if obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        return super().eventFilter(obj, event)
-
-    def _select_category_by_id(self, category_id: int) -> None:
-        """Select category in listView_categories by database ID.
-
-        Args:
-
-        - `category_id` (`int`): Database ID of the category to select.
-
-        """
-        if not self._validate_database_connection():
-            return
-
-        if self.db_manager is None:
-            return
-
-        try:
-            # Get category name by ID using get_id method
-            query = "SELECT name FROM categories WHERE _id = :category_id"
-            rows = self.db_manager.get_rows(query, {"category_id": category_id})
-            if not rows:
-                print(f"Category with ID {category_id} not found")
-                return
-
-            category_name = rows[0][0]
-
-            # Find the category in the list view
-            model = self.listView_categories.model()
-            if model:
-                for row in range(model.rowCount()):
-                    index = model.index(row, 0)
-                    item_data = model.data(index, Qt.ItemDataRole.UserRole)
-                    if item_data == category_name:
-                        self.listView_categories.setCurrentIndex(index)
-                        # Update the category label
-                        display_text = model.data(index, Qt.ItemDataRole.DisplayRole)
-                        if display_text:
-                            self.label_category_now.setText(display_text)
-                        break
-
-        except Exception as e:
-            print(f"Error selecting category by ID: {e}")
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.
