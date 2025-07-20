@@ -1515,6 +1515,9 @@ class MainWindow(
         # Set focus to description field
         self.lineEdit_description.setFocus()
 
+        # Select category with _id = 1
+        self._select_category_by_id(1)
+
     def _generate_account_balances_report(self, currency_id: int) -> None:
         """Generate account balances report.
 
@@ -2206,6 +2209,47 @@ class MainWindow(
                 self.on_add_transaction()
                 return True
         return super().eventFilter(obj, event)
+
+    def _select_category_by_id(self, category_id: int) -> None:
+        """Select category in listView_categories by database ID.
+
+        Args:
+
+        - `category_id` (`int`): Database ID of the category to select.
+
+        """
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get category name by ID using get_id method
+            query = "SELECT name FROM categories WHERE _id = :category_id"
+            rows = self.db_manager.get_rows(query, {"category_id": category_id})
+            if not rows:
+                print(f"Category with ID {category_id} not found")
+                return
+
+            category_name = rows[0][0]
+
+            # Find the category in the list view
+            model = self.listView_categories.model()
+            if model:
+                for row in range(model.rowCount()):
+                    index = model.index(row, 0)
+                    item_data = model.data(index, Qt.ItemDataRole.UserRole)
+                    if item_data == category_name:
+                        self.listView_categories.setCurrentIndex(index)
+                        # Update the category label
+                        display_text = model.data(index, Qt.ItemDataRole.DisplayRole)
+                        if display_text:
+                            self.label_category_now.setText(display_text)
+                        break
+
+        except Exception as e:
+            print(f"Error selecting category by ID: {e}")
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.
