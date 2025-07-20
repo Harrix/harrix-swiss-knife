@@ -1306,6 +1306,9 @@ class MainWindow(
         # Tab change signal
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
 
+        # Enter key handling for doubleSpinBox_amount
+        self.doubleSpinBox_amount.installEventFilter(self)
+
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality."""
         # Connect auto-save signals for each table
@@ -2177,6 +2180,29 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
+
+    def eventFilter(self, obj, event) -> bool:
+        """Event filter for handling Enter key in doubleSpinBox_amount.
+
+        Args:
+
+        - `obj`: The object that generated the event.
+        - `event`: The event that occurred.
+
+        Returns:
+
+        - `bool`: True if event was handled, False otherwise.
+
+        """
+        from PySide6.QtCore import QEvent
+        from PySide6.QtGui import QKeyEvent
+
+        if obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress:
+            key_event = QKeyEvent(event)
+            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
+                self.on_add_transaction()
+                return True
+        return super().eventFilter(obj, event)
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.
