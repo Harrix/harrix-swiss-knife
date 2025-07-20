@@ -1892,6 +1892,7 @@ class MainWindow(
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
         self.pushButton_description_clear.setText("🧹")
+        self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
