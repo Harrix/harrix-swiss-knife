@@ -226,12 +226,14 @@ class AutoSaveOperations:
         - `row_id` (`str`): Database ID of the row.
 
         """
-        amount_str = model.data(model.index(row, 0)) or "0"
-        description = model.data(model.index(row, 1)) or ""
-        category_name = model.data(model.index(row, 2)) or ""
-        currency_code = model.data(model.index(row, 3)) or ""
-        date = model.data(model.index(row, 4)) or ""
-        tag = model.data(model.index(row, 5)) or ""
+        # Правильный порядок столбцов в tableView_transactions:
+        # [Description, Amount, Category, Currency, Date, Tag]
+        description = model.data(model.index(row, 0)) or ""  # Description
+        amount_str = model.data(model.index(row, 1)) or "0"  # Amount
+        category_name = model.data(model.index(row, 2)) or ""  # Category
+        currency_code = model.data(model.index(row, 3)) or ""  # Currency
+        date = model.data(model.index(row, 4)) or ""  # Date
+        tag = model.data(model.index(row, 5)) or ""  # Tag
 
         # Validate date format
         if not self._is_valid_date(date):
@@ -243,6 +245,11 @@ class AutoSaveOperations:
             amount = float(amount_str)
         except (ValueError, TypeError):
             QMessageBox.warning(None, "Validation Error", f"Invalid amount value: {amount_str}")
+            return
+
+        # Validate description
+        if not description.strip():
+            QMessageBox.warning(None, "Validation Error", "Description cannot be empty")
             return
 
         # Get category ID
