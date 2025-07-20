@@ -93,6 +93,9 @@ class MainWindow(
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
+        # Toggle for showing all records vs last 5000
+        self.show_all_transactions = False
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "transactions": (
@@ -194,51 +197,6 @@ class MainWindow(
             last_column = header.count() - 1
             header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
             self.tableView_transactions.setColumnWidth(last_column, 200)
-
-            """Apply combo-box/date filters to the transactions table."""
-            if self.db_manager is None:
-                print("❌ Database manager is not initialized")
-                return
-
-            # Get filter values
-            transaction_type = None
-            if self.radioButton_2.isChecked():  # Expense
-                transaction_type = 0
-            elif self.radioButton_3.isChecked():  # Income
-                transaction_type = 1
-            # If radioButton (All) is checked, transaction_type remains None
-
-            category = self.comboBox_filter_category.currentText() if self.comboBox_filter_category.currentText() else None
-            currency = self.comboBox_filter_currency.currentText() if self.comboBox_filter_currency.currentText() else None
-
-            use_date_filter = self.checkBox_use_date_filter.isChecked()
-            date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
-            date_to = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None
-
-            # Use database manager method
-            rows = self.db_manager.get_filtered_transactions(
-                category_type=transaction_type,
-                category_name=category,
-                currency_code=currency,
-                date_from=date_from,
-                date_to=date_to,
-            )
-
-            # Transform data for display
-            transformed_data = self._transform_transaction_data(rows)
-
-            # Create model and set to table
-            self.models["transactions"] = self._create_colored_table_model(
-                transformed_data, self.table_config["transactions"][2]
-            )
-            self.tableView_transactions.setModel(self.models["transactions"])
-            self.tableView_transactions.resizeColumnsToContents()
-
-            # Make last column wider for filtered results too
-            header = self.tableView_transactions.horizontalHeader()
-            if header.count() > 0:
-                last_column = header.count() - 1
-                self.tableView_transactions.setColumnWidth(last_column, 200)
 
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
@@ -709,6 +667,19 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
+    def on_show_all_records_clicked(self) -> None:
+        """Toggle between showing all records and last 5000 records."""
+        self.show_all_transactions = not self.show_all_transactions
+
+        # Update button text and icon
+        if self.show_all_transactions:
+            self.pushButton_show_all_records.setText("📊 Show Last 5000")
+        else:
+            self.pushButton_show_all_records.setText("📊 Show All Records")
+
+        # Refresh the transactions table
+        self.show_tables()
+
     @requires_database()
     def on_generate_report(self) -> None:
         """Generate selected report."""
@@ -933,7 +904,9 @@ class MainWindow(
 
         try:
             # Refresh transactions table
-            transactions_data = self.db_manager.get_all_transactions()
+            # Show last 5000 records by default, or all records if toggle is on
+            limit = None if self.show_all_transactions else 5000
+            transactions_data = self.db_manager.get_all_transactions(limit=limit)
             transactions_transformed_data = self._transform_transaction_data(transactions_data)
             self.models["transactions"] = self._create_colored_table_model(
                 transactions_transformed_data, self.table_config["transactions"][2]
@@ -1292,8 +1265,8 @@ class MainWindow(
         self.radioButton_3.clicked.connect(self.apply_filter)
 
         # Auto-filter signals for combo boxes
-        self.comboBox_filter_category.currentTextChanged.connect(lambda: self.apply_filter())
-        self.comboBox_filter_currency.currentTextChanged.connect(lambda: self.apply_filter())
+        self.comboBox_filter_category.currentTextChanged.connect(self.apply_filter)
+        self.comboBox_filter_currency.currentTextChanged.connect(self.apply_filter)
 
         # Chart signals
         self.pushButton_update_chart.clicked.connect(self.update_charts)
@@ -1317,7 +1290,11 @@ class MainWindow(
         self.pushButton_generate_report.clicked.connect(self.on_generate_report)
 
         # Export signal
-        self.pushButton_show_all_records.clicked.connect(self.on_export_csv)
+        self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
+
+        # Add context menu for transactions table
+        self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
 
         # Tab change signal
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
@@ -1892,7 +1869,7 @@ class MainWindow(
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
         self.pushButton_description_clear.setText("🧹")
-        self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
+        self.pushButton_show_all_records.setText("📊 Show All Records")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
@@ -2054,6 +2031,24 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
+
+    def _show_transactions_context_menu(self, position) -> None:
+        """Show context menu for transactions table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("Export to CSV")
+
+        action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
+
+        if action == export_action:
+            self.on_export_csv()
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.

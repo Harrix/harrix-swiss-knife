@@ -616,22 +616,31 @@ class DatabaseManager:
             ORDER BY er.date DESC, er._id DESC
         """)
 
-    def get_all_transactions(self) -> list[list[Any]]:
+    def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
         """Get all transactions with category and currency information.
+
+        Args:
+
+        - `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
 
         Returns:
 
         - `list[list[Any]]`: List of transaction records.
 
         """
-        return self.get_rows("""
+        query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
                    cat.type, cat.icon, c.symbol
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
             ORDER BY t.date DESC, t._id DESC
-        """)
+        """
+
+        if limit is not None:
+            query += f" LIMIT {limit}"
+
+        return self.get_rows(query)
 
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
