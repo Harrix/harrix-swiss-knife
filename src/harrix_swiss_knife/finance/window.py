@@ -61,6 +61,7 @@ class Ui_MainWindow(object):
         font.setPointSize(12)
         font.setBold(True)
         self.label_category_now.setFont(font)
+        self.label_category_now.setFocusPolicy(Qt.NoFocus)
 
         self.verticalLayout_3.addWidget(self.label_category_now)
 
@@ -147,6 +148,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.label_tag = QLabel(self.groupBox_transaction)
         self.label_tag.setObjectName(u"label_tag")
+        self.label_tag.setFocusPolicy(Qt.NoFocus)
 
         self.horizontalLayout_3.addWidget(self.label_tag)
 
@@ -973,16 +975,16 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 41))
         self.pushButton_exchange_update.setFont(font)
         self.pushButton_exchange_update.setStyleSheet(u"QPushButton {\n"
-"                                    background-color: #C1ECDD;\n"
-"                                    border: 1px solid #7DB68A;\n"
-"                                    border-radius: 4px;\n"
-"                                    }\n"
-"                                    QPushButton:hover {\n"
-"                                    background-color: #D1F5E8;\n"
-"                                    }\n"
-"                                    QPushButton:pressed {\n"
-"                                    background-color: #A8E0C7;\n"
-"                                    }")
+"                              background-color: #C1ECDD;\n"
+"                              border: 1px solid #7DB68A;\n"
+"                              border-radius: 4px;\n"
+"                              }\n"
+"                              QPushButton:hover {\n"
+"                              background-color: #D1F5E8;\n"
+"                              }\n"
+"                              QPushButton:pressed {\n"
+"                              background-color: #A8E0C7;\n"
+"                              }")
 
         self.verticalLayout_6.addWidget(self.pushButton_exchange_update)
 

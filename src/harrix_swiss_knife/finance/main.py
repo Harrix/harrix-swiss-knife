@@ -141,6 +141,9 @@ class MainWindow(
         # Set window size and position
         self._setup_window_size_and_position()
 
+        # Setup tab order
+        self._setup_tab_order()
+
         # Show window after initialization
         QTimer.singleShot(200, self._finish_window_initialization)
 
@@ -2154,6 +2157,26 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating autocomplete data: {e}")
+
+    def _setup_tab_order(self) -> None:
+        """Setup tab order for widgets in groupBox_transaction."""
+        from PySide6.QtWidgets import QWidget
+
+        # Set tab order for widgets in groupBox_transaction
+        # Make pushButton_description_clear the last in tab order
+        QWidget.setTabOrder(self.lineEdit_description, self.doubleSpinBox_amount)
+        QWidget.setTabOrder(self.doubleSpinBox_amount, self.comboBox_currency)
+        QWidget.setTabOrder(self.comboBox_currency, self.dateEdit)
+        QWidget.setTabOrder(self.dateEdit, self.pushButton_yesterday)
+        QWidget.setTabOrder(self.pushButton_yesterday, self.pushButton_add)
+        QWidget.setTabOrder(self.pushButton_add, self.lineEdit_tag)
+        QWidget.setTabOrder(self.lineEdit_tag, self.listView_categories)
+        QWidget.setTabOrder(self.listView_categories, self.pushButton_delete)
+        QWidget.setTabOrder(self.pushButton_delete, self.pushButton_show_all_records)
+        QWidget.setTabOrder(self.pushButton_show_all_records, self.pushButton_refresh)
+        QWidget.setTabOrder(self.pushButton_refresh, self.pushButton_clear_filter)
+        QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_apply_filter)
+        QWidget.setTabOrder(self.pushButton_apply_filter, self.pushButton_description_clear)
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.
