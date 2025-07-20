@@ -14,7 +14,7 @@ CREATE TABLE "food_log" (
 	"date"	TEXT,
 	"weight"	INTEGER DEFAULT NULL,
 	"portion_calories"	REAL DEFAULT NULL,
-	"calories_per_100g"	REAL NOT NULL,
+	"calories_per_100g"	REAL DEFAULT NULL,
 	"name"	TEXT DEFAULT NULL,
 	"name_en"	TEXT DEFAULT NULL,
 	"is_drink"	INTEGER NOT NULL DEFAULT 0,
