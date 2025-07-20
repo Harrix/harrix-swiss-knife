@@ -40,9 +40,9 @@ class Ui_MainWindow(object):
         self.pushButton_description_clear.setText("")
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", "Yesterday", None))
+        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add Transaction", None))
         self.label_tag.setText(QCoreApplication.translate("MainWindow", "Tag:", None))
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", "Optional", None))
-        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add Transaction", None))
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
@@ -224,6 +224,7 @@ class Ui_MainWindow(object):
         font.setPointSize(12)
         font.setBold(True)
         self.label_category_now.setFont(font)
+        self.label_category_now.setFocusPolicy(Qt.NoFocus)
 
         self.verticalLayout_3.addWidget(self.label_category_now)
 
@@ -287,20 +288,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_date)
 
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.label_tag = QLabel(self.groupBox_transaction)
-        self.label_tag.setObjectName("label_tag")
-
-        self.horizontalLayout_3.addWidget(self.label_tag)
-
-        self.lineEdit_tag = QLineEdit(self.groupBox_transaction)
-        self.lineEdit_tag.setObjectName("lineEdit_tag")
-
-        self.horizontalLayout_3.addWidget(self.lineEdit_tag)
-
-        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
-
         self.pushButton_add = QPushButton(self.groupBox_transaction)
         self.pushButton_add.setObjectName("pushButton_add")
         self.pushButton_add.setMinimumSize(QSize(0, 41))
@@ -320,6 +307,21 @@ class Ui_MainWindow(object):
         )
 
         self.verticalLayout_3.addWidget(self.pushButton_add)
+
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.label_tag = QLabel(self.groupBox_transaction)
+        self.label_tag.setObjectName("label_tag")
+        self.label_tag.setFocusPolicy(Qt.NoFocus)
+
+        self.horizontalLayout_3.addWidget(self.label_tag)
+
+        self.lineEdit_tag = QLineEdit(self.groupBox_transaction)
+        self.lineEdit_tag.setObjectName("lineEdit_tag")
+
+        self.horizontalLayout_3.addWidget(self.lineEdit_tag)
+
+        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
 
         self.verticalLayout_5.addWidget(self.groupBox_transaction)
 
@@ -1095,16 +1097,16 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update.setFont(font)
         self.pushButton_exchange_update.setStyleSheet(
             "QPushButton {\n"
-            "                                    background-color: #C1ECDD;\n"
-            "                                    border: 1px solid #7DB68A;\n"
-            "                                    border-radius: 4px;\n"
-            "                                    }\n"
-            "                                    QPushButton:hover {\n"
-            "                                    background-color: #D1F5E8;\n"
-            "                                    }\n"
-            "                                    QPushButton:pressed {\n"
-            "                                    background-color: #A8E0C7;\n"
-            "                                    }"
+            "                              background-color: #C1ECDD;\n"
+            "                              border: 1px solid #7DB68A;\n"
+            "                              border-radius: 4px;\n"
+            "                              }\n"
+            "                              QPushButton:hover {\n"
+            "                              background-color: #D1F5E8;\n"
+            "                              }\n"
+            "                              QPushButton:pressed {\n"
+            "                              background-color: #A8E0C7;\n"
+            "                              }"
         )
 
         self.verticalLayout_6.addWidget(self.pushButton_exchange_update)
@@ -1480,9 +1482,9 @@ def retranslateUi(self, MainWindow):
         self.pushButton_description_clear.setText("")
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", "Yesterday", None))
+        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add Transaction", None))
         self.label_tag.setText(QCoreApplication.translate("MainWindow", "Tag:", None))
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", "Optional", None))
-        self.pushButton_add.setText(QCoreApplication.translate("MainWindow", "Add Transaction", None))
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
@@ -1679,6 +1681,7 @@ def setupUi(self, MainWindow):
         font.setPointSize(12)
         font.setBold(True)
         self.label_category_now.setFont(font)
+        self.label_category_now.setFocusPolicy(Qt.NoFocus)
 
         self.verticalLayout_3.addWidget(self.label_category_now)
 
@@ -1742,20 +1745,6 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_date)
 
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.label_tag = QLabel(self.groupBox_transaction)
-        self.label_tag.setObjectName("label_tag")
-
-        self.horizontalLayout_3.addWidget(self.label_tag)
-
-        self.lineEdit_tag = QLineEdit(self.groupBox_transaction)
-        self.lineEdit_tag.setObjectName("lineEdit_tag")
-
-        self.horizontalLayout_3.addWidget(self.lineEdit_tag)
-
-        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
-
         self.pushButton_add = QPushButton(self.groupBox_transaction)
         self.pushButton_add.setObjectName("pushButton_add")
         self.pushButton_add.setMinimumSize(QSize(0, 41))
@@ -1775,6 +1764,21 @@ def setupUi(self, MainWindow):
         )
 
         self.verticalLayout_3.addWidget(self.pushButton_add)
+
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.label_tag = QLabel(self.groupBox_transaction)
+        self.label_tag.setObjectName("label_tag")
+        self.label_tag.setFocusPolicy(Qt.NoFocus)
+
+        self.horizontalLayout_3.addWidget(self.label_tag)
+
+        self.lineEdit_tag = QLineEdit(self.groupBox_transaction)
+        self.lineEdit_tag.setObjectName("lineEdit_tag")
+
+        self.horizontalLayout_3.addWidget(self.lineEdit_tag)
+
+        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
 
         self.verticalLayout_5.addWidget(self.groupBox_transaction)
 
@@ -2550,16 +2554,16 @@ def setupUi(self, MainWindow):
         self.pushButton_exchange_update.setFont(font)
         self.pushButton_exchange_update.setStyleSheet(
             "QPushButton {\n"
-            "                                    background-color: #C1ECDD;\n"
-            "                                    border: 1px solid #7DB68A;\n"
-            "                                    border-radius: 4px;\n"
-            "                                    }\n"
-            "                                    QPushButton:hover {\n"
-            "                                    background-color: #D1F5E8;\n"
-            "                                    }\n"
-            "                                    QPushButton:pressed {\n"
-            "                                    background-color: #A8E0C7;\n"
-            "                                    }"
+            "                              background-color: #C1ECDD;\n"
+            "                              border: 1px solid #7DB68A;\n"
+            "                              border-radius: 4px;\n"
+            "                              }\n"
+            "                              QPushButton:hover {\n"
+            "                              background-color: #D1F5E8;\n"
+            "                              }\n"
+            "                              QPushButton:pressed {\n"
+            "                              background-color: #A8E0C7;\n"
+            "                              }"
         )
 
         self.verticalLayout_6.addWidget(self.pushButton_exchange_update)

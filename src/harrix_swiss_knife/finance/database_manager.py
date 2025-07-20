@@ -642,31 +642,6 @@ class DatabaseManager:
 
         return self.get_rows(query)
 
-    def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
-        """Get recent unique transaction descriptions for autocomplete.
-
-        Args:
-
-        - `limit` (`int`): Number of recent transactions to analyze. Defaults to `1000`.
-
-        Returns:
-
-        - `list[str]`: List of unique transaction descriptions.
-
-        """
-        # Get descriptions ordered by frequency (most used first) and then by recency
-        query = """
-            SELECT t.description, COUNT(*) as usage_count, MAX(t.date) as last_used
-            FROM transactions t
-            WHERE t.description IS NOT NULL AND t.description != ''
-            GROUP BY t.description
-            ORDER BY usage_count DESC, last_used DESC
-            LIMIT :limit
-        """
-
-        rows = self.get_rows(query, {"limit": limit})
-        return [row[0] for row in rows if row[0]]
-
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
 
@@ -975,6 +950,31 @@ class DatabaseManager:
         total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
         return total_income, total_expenses
+
+    def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
+        """Get recent unique transaction descriptions for autocomplete.
+
+        Args:
+
+        - `limit` (`int`): Number of recent transactions to analyze. Defaults to `1000`.
+
+        Returns:
+
+        - `list[str]`: List of unique transaction descriptions.
+
+        """
+        # Get descriptions ordered by frequency (most used first) and then by recency
+        query = """
+            SELECT t.description, COUNT(*) as usage_count, MAX(t.date) as last_used
+            FROM transactions t
+            WHERE t.description IS NOT NULL AND t.description != ''
+            GROUP BY t.description
+            ORDER BY usage_count DESC, last_used DESC
+            LIMIT :limit
+        """
+
+        rows = self.get_rows(query, {"limit": limit})
+        return [row[0] for row in rows if row[0]]
 
     def get_rows(
         self,

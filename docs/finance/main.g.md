@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_generate_report`](#%EF%B8%8F-method-on_generate_report)
   - [⚙️ Method `on_set_default_currency`](#%EF%B8%8F-method-on_set_default_currency)
+  - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
   - [⚙️ Method `on_update_exchange_rates`](#%EF%B8%8F-method-on_update_exchange_rates)
   - [⚙️ Method `on_yesterday`](#%EF%B8%8F-method-on_yesterday)
@@ -69,10 +70,16 @@ lang: en
   - [⚙️ Method `_init_chart_controls`](#%EF%B8%8F-method-_init_chart_controls)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
+  - [⚙️ Method `_on_autocomplete_selected`](#%EF%B8%8F-method-_on_autocomplete_selected)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
+  - [⚙️ Method `_populate_form_from_description`](#%EF%B8%8F-method-_populate_form_from_description)
+  - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
+  - [⚙️ Method `_setup_tab_order`](#%EF%B8%8F-method-_setup_tab_order)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
+  - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
   - [⚙️ Method `_transform_transaction_data`](#%EF%B8%8F-method-_transform_transaction_data)
+  - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
 
@@ -147,6 +154,9 @@ class MainWindow(
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
+        # Toggle for showing all records vs last 5000
+        self.show_all_transactions = False
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "transactions": (
@@ -186,10 +196,14 @@ class MainWindow(
         self._connect_signals()
         self._init_filter_controls()
         self._init_chart_controls()
+        self._setup_autocomplete()
         self.update_all()
 
         # Set window size and position
         self._setup_window_size_and_position()
+
+        # Setup tab order
+        self._setup_tab_order()
 
         # Show window after initialization
         QTimer.singleShot(200, self._finish_window_initialization)
@@ -233,12 +247,20 @@ class MainWindow(
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Настройка растягивания столбцов (как в show_tables)
         self.tableView_transactions.resizeColumnsToContents()
 
-        # Make last column wider for filtered results too
+        # Настройка поведения заголовка таблицы для растягивания столбцов
         header = self.tableView_transactions.horizontalHeader()
         if header.count() > 0:
+            # Установить режим растягивания для всех столбцов кроме последнего
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+
+            # Для последнего столбца установить фиксированную ширину
             last_column = header.count() - 1
+            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
             self.tableView_transactions.setColumnWidth(last_column, 200)
 
     def clear_filter(self) -> None:
@@ -640,6 +662,9 @@ class MainWindow(
                 self.update_all()
                 self.update_summary_labels()
 
+                # Update autocomplete data with new transaction
+                self._update_autocomplete_data()
+
                 # Clear form except date
                 self.doubleSpinBox_amount.setValue(100.0)
                 self.lineEdit_description.clear()
@@ -757,6 +782,19 @@ class MainWindow(
                 QMessageBox.warning(self, "Error", "Failed to set default currency")
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to set default currency: {e}")
+
+    def on_show_all_records_clicked(self) -> None:
+        """Toggle between showing all records and last 5000 records."""
+        self.show_all_transactions = not self.show_all_transactions
+
+        # Update button text and icon
+        if self.show_all_transactions:
+            self.pushButton_show_all_records.setText("📊 Show Last 5000")
+        else:
+            self.pushButton_show_all_records.setText("📊 Show All Records")
+
+        # Refresh the transactions table
+        self.show_tables()
 
     def on_tab_changed(self, index: int) -> None:
         """React to tab change.
@@ -934,7 +972,9 @@ class MainWindow(
 
         try:
             # Refresh transactions table
-            transactions_data = self.db_manager.get_all_transactions()
+            # Show last 5000 records by default, or all records if toggle is on
+            limit = None if self.show_all_transactions else 5000
+            transactions_data = self.db_manager.get_all_transactions(limit=limit)
             transactions_transformed_data = self._transform_transaction_data(transactions_data)
             self.models["transactions"] = self._create_colored_table_model(
                 transactions_transformed_data, self.table_config["transactions"][2]
@@ -1036,12 +1076,17 @@ class MainWindow(
                 view = self.table_config[table_name][0]
                 view.resizeColumnsToContents()
 
-            # Special handling for transactions table - make last column wider
+            # Special handling for transactions table - настройка растягивания столбцов
             header = self.tableView_transactions.horizontalHeader()
             if header.count() > 0:
-                # Set last column (Tag) to be wider
+                # Установить режим растягивания для всех столбцов кроме последнего
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+
+                # Для последнего столбца установить фиксированную ширину
                 last_column = header.count() - 1
-                self.tableView_transactions.setColumnWidth(last_column, 200)  # Set width to 200 pixels
+                header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
+                self.tableView_transactions.setColumnWidth(last_column, 200)
 
             # Connect auto-save signals
             self._connect_table_auto_save_signals()
@@ -1282,6 +1327,15 @@ class MainWindow(
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
+        # Auto-filter signals for radio buttons
+        self.radioButton.clicked.connect(self.apply_filter)
+        self.radioButton_2.clicked.connect(self.apply_filter)
+        self.radioButton_3.clicked.connect(self.apply_filter)
+
+        # Auto-filter signals for combo boxes
+        self.comboBox_filter_category.currentTextChanged.connect(self.apply_filter)
+        self.comboBox_filter_currency.currentTextChanged.connect(self.apply_filter)
+
         # Chart signals
         self.pushButton_update_chart.clicked.connect(self.update_charts)
         self.pushButton_pie_chart.clicked.connect(self.show_pie_chart)
@@ -1304,7 +1358,11 @@ class MainWindow(
         self.pushButton_generate_report.clicked.connect(self.on_generate_report)
 
         # Export signal
-        self.pushButton_show_all_records.clicked.connect(self.on_export_csv)
+        self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
+
+        # Add context menu for transactions table
+        self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
 
         # Tab change signal
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
@@ -1832,6 +1890,17 @@ class MainWindow(
         self.dateEdit_filter_to.setDate(current_date)
         self.checkBox_use_date_filter.setChecked(False)
 
+    def _on_autocomplete_selected(self, text: str) -> None:
+        """Handle autocomplete selection and populate form fields."""
+        if not text:
+            return
+
+        # Set the selected text
+        self.lineEdit_description.setText(text)
+
+        # Try to populate other fields based on the selected description
+        self._populate_form_from_description(text)
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -1869,6 +1938,98 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
+    def _populate_form_from_description(self, description: str) -> None:
+        """Populate form fields based on description from database."""
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get the most recent transaction with this description
+            query = """
+                SELECT t.amount, cat.name, c.code, t.tag
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                JOIN currencies c ON t._id_currencies = c._id
+                WHERE t.description = :description
+                ORDER BY t.date DESC, t._id DESC
+                LIMIT 1
+            """
+
+            rows = self.db_manager.get_rows(query, {"description": description})
+
+            if rows:
+                amount_cents, category_name, currency_code, tag = rows[0]
+
+                # Populate form fields
+                amount = float(amount_cents) / 100  # Convert from cents
+                self.doubleSpinBox_amount.setValue(amount)
+                self.lineEdit_tag.setText(tag or "")
+
+                # Set category if found
+                if category_name:
+                    # Find the category in the list view
+                    model = self.listView_categories.model()
+                    if model:
+                        for row in range(model.rowCount()):
+                            index = model.index(row, 0)
+                            item_data = model.data(index, Qt.ItemDataRole.UserRole)
+                            if item_data == category_name:
+                                self.listView_categories.setCurrentIndex(index)
+                                break
+
+                # Set currency if found
+                if currency_code:
+                    index = self.comboBox_currency.findText(currency_code)
+                    if index >= 0:
+                        self.comboBox_currency.setCurrentIndex(index)
+
+        except Exception as e:
+            print(f"Error populating form from description: {e}")
+
+    def _setup_autocomplete(self) -> None:
+        """Setup autocomplete functionality for description input."""
+        # Create completer
+        self.description_completer = QCompleter(self)
+        self.description_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Поиск по содержимому
+        self.description_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+
+        # Create model for completer
+        self.description_completer_model = QStringListModel(self)
+        self.description_completer.setModel(self.description_completer_model)
+
+        # Set completer to the line edit
+        self.lineEdit_description.setCompleter(self.description_completer)
+
+        # Update autocomplete data
+        self._update_autocomplete_data()
+
+        # Connect selection signal
+        self.description_completer.activated.connect(self._on_autocomplete_selected)
+
+    def _setup_tab_order(self) -> None:
+        """Setup tab order for widgets in groupBox_transaction."""
+        from PySide6.QtWidgets import QWidget
+
+        # Set tab order for widgets in groupBox_transaction
+        # Make pushButton_description_clear the last in tab order
+        QWidget.setTabOrder(self.lineEdit_description, self.doubleSpinBox_amount)
+        QWidget.setTabOrder(self.doubleSpinBox_amount, self.comboBox_currency)
+        QWidget.setTabOrder(self.comboBox_currency, self.dateEdit)
+        QWidget.setTabOrder(self.dateEdit, self.pushButton_yesterday)
+        QWidget.setTabOrder(self.pushButton_yesterday, self.pushButton_add)
+        QWidget.setTabOrder(self.pushButton_add, self.lineEdit_tag)
+        QWidget.setTabOrder(self.lineEdit_tag, self.listView_categories)
+        QWidget.setTabOrder(self.listView_categories, self.pushButton_delete)
+        QWidget.setTabOrder(self.pushButton_delete, self.pushButton_show_all_records)
+        QWidget.setTabOrder(self.pushButton_show_all_records, self.pushButton_refresh)
+        QWidget.setTabOrder(self.pushButton_refresh, self.pushButton_clear_filter)
+        QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_apply_filter)
+        QWidget.setTabOrder(self.pushButton_apply_filter, self.pushButton_description_clear)
+
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
         # Set emoji for buttons
@@ -1879,6 +2040,7 @@ class MainWindow(
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
         self.pushButton_description_clear.setText("🧹")
+        self.pushButton_show_all_records.setText("📊 Show All Records")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
@@ -1920,6 +2082,24 @@ class MainWindow(
                 window_width,
                 window_height,
             )
+
+    def _show_transactions_context_menu(self, position) -> None:
+        """Show context menu for transactions table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("Export to CSV")
+
+        action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
+
+        if action == export_action:
+            self.on_export_csv()
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors.
@@ -1974,6 +2154,24 @@ class MainWindow(
             transformed_data.append(transformed_row)
 
         return transformed_data
+
+    def _update_autocomplete_data(self) -> None:
+        """Update autocomplete data from database."""
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get recent transaction descriptions for autocomplete
+            recent_descriptions = self.db_manager.get_recent_transaction_descriptions_for_autocomplete(1000)
+
+            # Update completer model
+            self.description_completer_model.setStringList(recent_descriptions)
+
+        except Exception as e:
+            print(f"Error updating autocomplete data: {e}")
 
     @requires_database()
     def _update_comboboxes(self) -> None:
@@ -2100,6 +2298,9 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
+        # Toggle for showing all records vs last 5000
+        self.show_all_transactions = False
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "transactions": (
@@ -2139,10 +2340,14 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self._connect_signals()
         self._init_filter_controls()
         self._init_chart_controls()
+        self._setup_autocomplete()
         self.update_all()
 
         # Set window size and position
         self._setup_window_size_and_position()
+
+        # Setup tab order
+        self._setup_tab_order()
 
         # Show window after initialization
         QTimer.singleShot(200, self._finish_window_initialization)
@@ -2199,12 +2404,20 @@ def apply_filter(self) -> None:
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Настройка растягивания столбцов (как в show_tables)
         self.tableView_transactions.resizeColumnsToContents()
 
-        # Make last column wider for filtered results too
+        # Настройка поведения заголовка таблицы для растягивания столбцов
         header = self.tableView_transactions.horizontalHeader()
         if header.count() > 0:
+            # Установить режим растягивания для всех столбцов кроме последнего
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+
+            # Для последнего столбца установить фиксированную ширину
             last_column = header.count() - 1
+            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
             self.tableView_transactions.setColumnWidth(last_column, 200)
 ```
 
@@ -2745,6 +2958,9 @@ def on_add_transaction(self) -> None:
                 self.update_all()
                 self.update_summary_labels()
 
+                # Update autocomplete data with new transaction
+                self._update_autocomplete_data()
+
                 # Clear form except date
                 self.doubleSpinBox_amount.setValue(100.0)
                 self.lineEdit_description.clear()
@@ -2941,6 +3157,33 @@ def on_set_default_currency(self) -> None:
                 QMessageBox.warning(self, "Error", "Failed to set default currency")
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to set default currency: {e}")
+```
+
+</details>
+
+### ⚙️ Method `on_show_all_records_clicked`
+
+```python
+def on_show_all_records_clicked(self) -> None
+```
+
+Toggle between showing all records and last 5000 records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_show_all_records_clicked(self) -> None:
+        self.show_all_transactions = not self.show_all_transactions
+
+        # Update button text and icon
+        if self.show_all_transactions:
+            self.pushButton_show_all_records.setText("📊 Show Last 5000")
+        else:
+            self.pushButton_show_all_records.setText("📊 Show All Records")
+
+        # Refresh the transactions table
+        self.show_tables()
 ```
 
 </details>
@@ -3269,7 +3512,9 @@ def show_tables(self) -> None:
 
         try:
             # Refresh transactions table
-            transactions_data = self.db_manager.get_all_transactions()
+            # Show last 5000 records by default, or all records if toggle is on
+            limit = None if self.show_all_transactions else 5000
+            transactions_data = self.db_manager.get_all_transactions(limit=limit)
             transactions_transformed_data = self._transform_transaction_data(transactions_data)
             self.models["transactions"] = self._create_colored_table_model(
                 transactions_transformed_data, self.table_config["transactions"][2]
@@ -3371,12 +3616,17 @@ def show_tables(self) -> None:
                 view = self.table_config[table_name][0]
                 view.resizeColumnsToContents()
 
-            # Special handling for transactions table - make last column wider
+            # Special handling for transactions table - настройка растягивания столбцов
             header = self.tableView_transactions.horizontalHeader()
             if header.count() > 0:
-                # Set last column (Tag) to be wider
+                # Установить режим растягивания для всех столбцов кроме последнего
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+
+                # Для последнего столбца установить фиксированную ширину
                 last_column = header.count() - 1
-                self.tableView_transactions.setColumnWidth(last_column, 200)  # Set width to 200 pixels
+                header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
+                self.tableView_transactions.setColumnWidth(last_column, 200)
 
             # Connect auto-save signals
             self._connect_table_auto_save_signals()
@@ -3781,6 +4031,15 @@ def _connect_signals(self) -> None:
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
+        # Auto-filter signals for radio buttons
+        self.radioButton.clicked.connect(self.apply_filter)
+        self.radioButton_2.clicked.connect(self.apply_filter)
+        self.radioButton_3.clicked.connect(self.apply_filter)
+
+        # Auto-filter signals for combo boxes
+        self.comboBox_filter_category.currentTextChanged.connect(self.apply_filter)
+        self.comboBox_filter_currency.currentTextChanged.connect(self.apply_filter)
+
         # Chart signals
         self.pushButton_update_chart.clicked.connect(self.update_charts)
         self.pushButton_pie_chart.clicked.connect(self.show_pie_chart)
@@ -3803,7 +4062,11 @@ def _connect_signals(self) -> None:
         self.pushButton_generate_report.clicked.connect(self.on_generate_report)
 
         # Export signal
-        self.pushButton_show_all_records.clicked.connect(self.on_export_csv)
+        self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
+
+        # Add context menu for transactions table
+        self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
 
         # Tab change signal
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
@@ -4528,6 +4791,31 @@ def _init_filter_controls(self) -> None:
 
 </details>
 
+### ⚙️ Method `_on_autocomplete_selected`
+
+```python
+def _on_autocomplete_selected(self, text: str) -> None
+```
+
+Handle autocomplete selection and populate form fields.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_autocomplete_selected(self, text: str) -> None:
+        if not text:
+            return
+
+        # Set the selected text
+        self.lineEdit_description.setText(text)
+
+        # Try to populate other fields based on the selected description
+        self._populate_form_from_description(text)
+```
+
+</details>
+
 ### ⚙️ Method `_on_table_data_changed`
 
 ```python
@@ -4577,6 +4865,140 @@ def _on_table_data_changed(
 
 </details>
 
+### ⚙️ Method `_populate_form_from_description`
+
+```python
+def _populate_form_from_description(self, description: str) -> None
+```
+
+Populate form fields based on description from database.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _populate_form_from_description(self, description: str) -> None:
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get the most recent transaction with this description
+            query = """
+                SELECT t.amount, cat.name, c.code, t.tag
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                JOIN currencies c ON t._id_currencies = c._id
+                WHERE t.description = :description
+                ORDER BY t.date DESC, t._id DESC
+                LIMIT 1
+            """
+
+            rows = self.db_manager.get_rows(query, {"description": description})
+
+            if rows:
+                amount_cents, category_name, currency_code, tag = rows[0]
+
+                # Populate form fields
+                amount = float(amount_cents) / 100  # Convert from cents
+                self.doubleSpinBox_amount.setValue(amount)
+                self.lineEdit_tag.setText(tag or "")
+
+                # Set category if found
+                if category_name:
+                    # Find the category in the list view
+                    model = self.listView_categories.model()
+                    if model:
+                        for row in range(model.rowCount()):
+                            index = model.index(row, 0)
+                            item_data = model.data(index, Qt.ItemDataRole.UserRole)
+                            if item_data == category_name:
+                                self.listView_categories.setCurrentIndex(index)
+                                break
+
+                # Set currency if found
+                if currency_code:
+                    index = self.comboBox_currency.findText(currency_code)
+                    if index >= 0:
+                        self.comboBox_currency.setCurrentIndex(index)
+
+        except Exception as e:
+            print(f"Error populating form from description: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_setup_autocomplete`
+
+```python
+def _setup_autocomplete(self) -> None
+```
+
+Setup autocomplete functionality for description input.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_autocomplete(self) -> None:
+        # Create completer
+        self.description_completer = QCompleter(self)
+        self.description_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Поиск по содержимому
+        self.description_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+
+        # Create model for completer
+        self.description_completer_model = QStringListModel(self)
+        self.description_completer.setModel(self.description_completer_model)
+
+        # Set completer to the line edit
+        self.lineEdit_description.setCompleter(self.description_completer)
+
+        # Update autocomplete data
+        self._update_autocomplete_data()
+
+        # Connect selection signal
+        self.description_completer.activated.connect(self._on_autocomplete_selected)
+```
+
+</details>
+
+### ⚙️ Method `_setup_tab_order`
+
+```python
+def _setup_tab_order(self) -> None
+```
+
+Setup tab order for widgets in groupBox_transaction.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_tab_order(self) -> None:
+        from PySide6.QtWidgets import QWidget
+
+        # Set tab order for widgets in groupBox_transaction
+        # Make pushButton_description_clear the last in tab order
+        QWidget.setTabOrder(self.lineEdit_description, self.doubleSpinBox_amount)
+        QWidget.setTabOrder(self.doubleSpinBox_amount, self.comboBox_currency)
+        QWidget.setTabOrder(self.comboBox_currency, self.dateEdit)
+        QWidget.setTabOrder(self.dateEdit, self.pushButton_yesterday)
+        QWidget.setTabOrder(self.pushButton_yesterday, self.pushButton_add)
+        QWidget.setTabOrder(self.pushButton_add, self.lineEdit_tag)
+        QWidget.setTabOrder(self.lineEdit_tag, self.listView_categories)
+        QWidget.setTabOrder(self.listView_categories, self.pushButton_delete)
+        QWidget.setTabOrder(self.pushButton_delete, self.pushButton_show_all_records)
+        QWidget.setTabOrder(self.pushButton_show_all_records, self.pushButton_refresh)
+        QWidget.setTabOrder(self.pushButton_refresh, self.pushButton_clear_filter)
+        QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_apply_filter)
+        QWidget.setTabOrder(self.pushButton_apply_filter, self.pushButton_description_clear)
+```
+
+</details>
+
 ### ⚙️ Method `_setup_ui`
 
 ```python
@@ -4598,6 +5020,7 @@ def _setup_ui(self) -> None:
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
         self.pushButton_description_clear.setText("🧹")
+        self.pushButton_show_all_records.setText("📊 Show All Records")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
@@ -4653,6 +5076,36 @@ def _setup_window_size_and_position(self) -> None:
                 window_width,
                 window_height,
             )
+```
+
+</details>
+
+### ⚙️ Method `_show_transactions_context_menu`
+
+```python
+def _show_transactions_context_menu(self, position) -> None
+```
+
+Show context menu for transactions table.
+
+Args:
+
+- `position`: Position where context menu should appear.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_transactions_context_menu(self, position) -> None:
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("Export to CSV")
+
+        action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
+
+        if action == export_action:
+            self.on_export_csv()
 ```
 
 </details>
@@ -4719,6 +5172,38 @@ def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
             transformed_data.append(transformed_row)
 
         return transformed_data
+```
+
+</details>
+
+### ⚙️ Method `_update_autocomplete_data`
+
+```python
+def _update_autocomplete_data(self) -> None
+```
+
+Update autocomplete data from database.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_autocomplete_data(self) -> None:
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get recent transaction descriptions for autocomplete
+            recent_descriptions = self.db_manager.get_recent_transaction_descriptions_for_autocomplete(1000)
+
+            # Update completer model
+            self.description_completer_model.setStringList(recent_descriptions)
+
+        except Exception as e:
+            print(f"Error updating autocomplete data: {e}")
 ```
 
 </details>

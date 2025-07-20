@@ -16,9 +16,9 @@ from typing import Any
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer, QStringListModel
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, QStringListModel, Qt, QTimer
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView, QCompleter
+from PySide6.QtWidgets import QApplication, QCompleter, QFileDialog, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife.finance import database_manager, window
 from harrix_swiss_knife.finance.mixins import (
@@ -674,19 +674,6 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
-    def on_show_all_records_clicked(self) -> None:
-        """Toggle between showing all records and last 5000 records."""
-        self.show_all_transactions = not self.show_all_transactions
-
-        # Update button text and icon
-        if self.show_all_transactions:
-            self.pushButton_show_all_records.setText("📊 Show Last 5000")
-        else:
-            self.pushButton_show_all_records.setText("📊 Show All Records")
-
-        # Refresh the transactions table
-        self.show_tables()
-
     @requires_database()
     def on_generate_report(self) -> None:
         """Generate selected report."""
@@ -734,6 +721,19 @@ class MainWindow(
                 QMessageBox.warning(self, "Error", "Failed to set default currency")
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to set default currency: {e}")
+
+    def on_show_all_records_clicked(self) -> None:
+        """Toggle between showing all records and last 5000 records."""
+        self.show_all_transactions = not self.show_all_transactions
+
+        # Update button text and icon
+        if self.show_all_transactions:
+            self.pushButton_show_all_records.setText("📊 Show Last 5000")
+        else:
+            self.pushButton_show_all_records.setText("📊 Show All Records")
+
+        # Refresh the transactions table
+        self.show_tables()
 
     def on_tab_changed(self, index: int) -> None:
         """React to tab change.
@@ -1829,6 +1829,17 @@ class MainWindow(
         self.dateEdit_filter_to.setDate(current_date)
         self.checkBox_use_date_filter.setChecked(False)
 
+    def _on_autocomplete_selected(self, text: str) -> None:
+        """Handle autocomplete selection and populate form fields."""
+        if not text:
+            return
+
+        # Set the selected text
+        self.lineEdit_description.setText(text)
+
+        # Try to populate other fields based on the selected description
+        self._populate_form_from_description(text)
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -1865,208 +1876,6 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
-
-    def _setup_ui(self) -> None:
-        """Set up additional UI elements."""
-        # Set emoji for buttons
-        self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
-        self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")
-        self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
-        self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
-        self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
-        self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
-        self.pushButton_description_clear.setText("🧹")
-        self.pushButton_show_all_records.setText("📊 Show All Records")
-
-        # Configure splitter proportions
-        self.splitter.setStretchFactor(0, 0)
-        self.splitter.setStretchFactor(1, 1)
-        self.splitter.setStretchFactor(2, 3)
-
-        # Set default values
-        self.doubleSpinBox_amount.setValue(100.0)
-        self.doubleSpinBox_exchange_from.setValue(100.0)
-        self.doubleSpinBox_exchange_to.setValue(73.5)
-        self.doubleSpinBox_exchange_rate.setValue(73.5)
-        self.doubleSpinBox_rate_value.setValue(73.5)
-
-    def _setup_window_size_and_position(self) -> None:
-        """Set window size and position based on screen resolution and characteristics."""
-        screen_geometry = QApplication.primaryScreen().geometry()
-        screen_width = screen_geometry.width()
-        screen_height = screen_geometry.height()
-
-        # Determine window size and position based on screen characteristics
-        aspect_ratio = screen_width / screen_height
-        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
-
-        if is_standard_aspect and screen_width >= 1920:
-            # For standard aspect ratios with width >= 1920, maximize window
-            self.showMaximized()
-        else:
-            title_bar_height = 30  # Approximate title bar height
-            windows_task_bar_height = 48  # Approximate windows task bar height
-            # For other cases, use fixed width and full height minus title bar
-            window_width = 1920
-            window_height = screen_height - title_bar_height - windows_task_bar_height
-            # Position window on screen
-            screen_center = screen_geometry.center()
-            # Center horizontally, position at top vertically with title bar offset
-            self.setGeometry(
-                screen_center.x() - window_width // 2,
-                title_bar_height,  # Position below title bar
-                window_width,
-                window_height,
-            )
-
-    def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
-        """Transform transaction data for display with colors.
-
-        Args:
-
-        - `rows` (`list[list[Any]]`): Raw transaction data.
-
-        Returns:
-
-        - `list[list[Any]]`: Transformed data with colors.
-
-        """
-        transformed_data = []
-
-        # Create a mapping of dates to color indices
-        date_to_color_index = {}
-        color_index = 0
-
-        for row in rows:
-            # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
-            transaction_id = row[0]
-            amount_cents = row[1]
-            description = row[2]
-            category_name = row[3]
-            currency_code = row[4]
-            date = row[5]
-            tag = row[6]
-            category_type = row[7]
-
-            # Convert amount from cents to display format
-            amount = float(amount_cents) / 100
-
-            # Determine color based on date
-            if date not in date_to_color_index:
-                date_to_color_index[date] = color_index % len(self.date_colors)
-                color_index += 1
-
-            color = self.date_colors[date_to_color_index[date]]
-
-            # Transform to display format: [description, amount, category, currency, date, tag, id, color]
-            transformed_row = [
-                description,
-                f"{amount:.2f}",
-                category_name,
-                currency_code,
-                date,
-                tag,
-                transaction_id,
-                color,
-            ]
-            transformed_data.append(transformed_row)
-
-        return transformed_data
-
-    @requires_database()
-    def _update_comboboxes(self) -> None:
-        """Update all comboboxes with current data."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Update currency comboboxes
-            currencies = [row[1] for row in self.db_manager.get_all_currencies()]  # Get codes
-
-            for combo in [
-                self.comboBox_currency,
-                self.comboBox_account_currency,
-                self.comboBox_exchange_from,
-                self.comboBox_exchange_to,
-                self.comboBox_rate_from,
-                self.comboBox_rate_to,
-                self.comboBox_default_currency,
-            ]:
-                combo.clear()
-                combo.addItems(currencies)
-
-            # Update categories list view with icons
-            expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
-            income_categories = self.db_manager.get_categories_with_icons_by_type(1)
-
-            model = QStandardItemModel()
-
-            # Add expense categories first
-            for category_name, icon in expense_categories:
-                # Create display text with icon
-                display_text = f"{icon} {category_name}" if icon else category_name
-                item = QStandardItem(display_text)
-                # Store the original category name as data for selection handling
-                item.setData(category_name, Qt.ItemDataRole.UserRole)
-                model.appendRow(item)
-
-            # Add income categories with special marking
-            for category_name, icon in income_categories:
-                # Create display text with icon and income marker
-                base_text = f"{icon} {category_name}" if icon else category_name
-                display_text = f"{base_text} (Income)"  # Add income marker in parentheses
-                item = QStandardItem(display_text)
-                # Store the original category name as data for selection handling
-                item.setData(category_name, Qt.ItemDataRole.UserRole)
-                model.appendRow(item)
-
-            self.listView_categories.setModel(model)
-
-            # Connect category selection signal after model is set
-            self.listView_categories.selectionModel().currentChanged.connect(self.on_category_selection_changed)
-
-            # Reset category selection label
-            self.label_category_now.setText("No category selected")
-
-            # Set default currency selection
-            default_currency = self.db_manager.get_default_currency()
-            for combo in [self.comboBox_currency, self.comboBox_default_currency]:
-                index = combo.findText(default_currency)
-                if index >= 0:
-                    combo.setCurrentIndex(index)
-
-        except Exception as e:
-            print(f"Error updating comboboxes: {e}")
-
-    def _show_transactions_context_menu(self, position) -> None:
-        """Show context menu for transactions table.
-
-        Args:
-
-        - `position`: Position where context menu should appear.
-
-        """
-        from PySide6.QtWidgets import QMenu
-
-        context_menu = QMenu(self)
-        export_action = context_menu.addAction("Export to CSV")
-
-        action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
-
-        if action == export_action:
-            self.on_export_csv()
-
-    def _on_autocomplete_selected(self, text: str) -> None:
-        """Handle autocomplete selection and populate form fields."""
-        if not text:
-            return
-
-        # Set the selected text
-        self.lineEdit_description.setText(text)
-
-        # Try to populate other fields based on the selected description
-        self._populate_form_from_description(text)
 
     def _populate_form_from_description(self, description: str) -> None:
         """Populate form fields based on description from database."""
@@ -2140,24 +1949,6 @@ class MainWindow(
         # Connect selection signal
         self.description_completer.activated.connect(self._on_autocomplete_selected)
 
-    def _update_autocomplete_data(self) -> None:
-        """Update autocomplete data from database."""
-        if not self._validate_database_connection():
-            return
-
-        if self.db_manager is None:
-            return
-
-        try:
-            # Get recent transaction descriptions for autocomplete
-            recent_descriptions = self.db_manager.get_recent_transaction_descriptions_for_autocomplete(1000)
-
-            # Update completer model
-            self.description_completer_model.setStringList(recent_descriptions)
-
-        except Exception as e:
-            print(f"Error updating autocomplete data: {e}")
-
     def _setup_tab_order(self) -> None:
         """Setup tab order for widgets in groupBox_transaction."""
         from PySide6.QtWidgets import QWidget
@@ -2177,6 +1968,215 @@ class MainWindow(
         QWidget.setTabOrder(self.pushButton_refresh, self.pushButton_clear_filter)
         QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_apply_filter)
         QWidget.setTabOrder(self.pushButton_apply_filter, self.pushButton_description_clear)
+
+    def _setup_ui(self) -> None:
+        """Set up additional UI elements."""
+        # Set emoji for buttons
+        self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
+        self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")
+        self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
+        self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
+        self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
+        self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
+        self.pushButton_description_clear.setText("🧹")
+        self.pushButton_show_all_records.setText("📊 Show All Records")
+
+        # Configure splitter proportions
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setStretchFactor(2, 3)
+
+        # Set default values
+        self.doubleSpinBox_amount.setValue(100.0)
+        self.doubleSpinBox_exchange_from.setValue(100.0)
+        self.doubleSpinBox_exchange_to.setValue(73.5)
+        self.doubleSpinBox_exchange_rate.setValue(73.5)
+        self.doubleSpinBox_rate_value.setValue(73.5)
+
+    def _setup_window_size_and_position(self) -> None:
+        """Set window size and position based on screen resolution and characteristics."""
+        screen_geometry = QApplication.primaryScreen().geometry()
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+
+        # Determine window size and position based on screen characteristics
+        aspect_ratio = screen_width / screen_height
+        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+
+        if is_standard_aspect and screen_width >= 1920:
+            # For standard aspect ratios with width >= 1920, maximize window
+            self.showMaximized()
+        else:
+            title_bar_height = 30  # Approximate title bar height
+            windows_task_bar_height = 48  # Approximate windows task bar height
+            # For other cases, use fixed width and full height minus title bar
+            window_width = 1920
+            window_height = screen_height - title_bar_height - windows_task_bar_height
+            # Position window on screen
+            screen_center = screen_geometry.center()
+            # Center horizontally, position at top vertically with title bar offset
+            self.setGeometry(
+                screen_center.x() - window_width // 2,
+                title_bar_height,  # Position below title bar
+                window_width,
+                window_height,
+            )
+
+    def _show_transactions_context_menu(self, position) -> None:
+        """Show context menu for transactions table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("Export to CSV")
+
+        action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
+
+        if action == export_action:
+            self.on_export_csv()
+
+    def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
+        """Transform transaction data for display with colors.
+
+        Args:
+
+        - `rows` (`list[list[Any]]`): Raw transaction data.
+
+        Returns:
+
+        - `list[list[Any]]`: Transformed data with colors.
+
+        """
+        transformed_data = []
+
+        # Create a mapping of dates to color indices
+        date_to_color_index = {}
+        color_index = 0
+
+        for row in rows:
+            # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
+            transaction_id = row[0]
+            amount_cents = row[1]
+            description = row[2]
+            category_name = row[3]
+            currency_code = row[4]
+            date = row[5]
+            tag = row[6]
+            category_type = row[7]
+
+            # Convert amount from cents to display format
+            amount = float(amount_cents) / 100
+
+            # Determine color based on date
+            if date not in date_to_color_index:
+                date_to_color_index[date] = color_index % len(self.date_colors)
+                color_index += 1
+
+            color = self.date_colors[date_to_color_index[date]]
+
+            # Transform to display format: [description, amount, category, currency, date, tag, id, color]
+            transformed_row = [
+                description,
+                f"{amount:.2f}",
+                category_name,
+                currency_code,
+                date,
+                tag,
+                transaction_id,
+                color,
+            ]
+            transformed_data.append(transformed_row)
+
+        return transformed_data
+
+    def _update_autocomplete_data(self) -> None:
+        """Update autocomplete data from database."""
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get recent transaction descriptions for autocomplete
+            recent_descriptions = self.db_manager.get_recent_transaction_descriptions_for_autocomplete(1000)
+
+            # Update completer model
+            self.description_completer_model.setStringList(recent_descriptions)
+
+        except Exception as e:
+            print(f"Error updating autocomplete data: {e}")
+
+    @requires_database()
+    def _update_comboboxes(self) -> None:
+        """Update all comboboxes with current data."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Update currency comboboxes
+            currencies = [row[1] for row in self.db_manager.get_all_currencies()]  # Get codes
+
+            for combo in [
+                self.comboBox_currency,
+                self.comboBox_account_currency,
+                self.comboBox_exchange_from,
+                self.comboBox_exchange_to,
+                self.comboBox_rate_from,
+                self.comboBox_rate_to,
+                self.comboBox_default_currency,
+            ]:
+                combo.clear()
+                combo.addItems(currencies)
+
+            # Update categories list view with icons
+            expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
+            income_categories = self.db_manager.get_categories_with_icons_by_type(1)
+
+            model = QStandardItemModel()
+
+            # Add expense categories first
+            for category_name, icon in expense_categories:
+                # Create display text with icon
+                display_text = f"{icon} {category_name}" if icon else category_name
+                item = QStandardItem(display_text)
+                # Store the original category name as data for selection handling
+                item.setData(category_name, Qt.ItemDataRole.UserRole)
+                model.appendRow(item)
+
+            # Add income categories with special marking
+            for category_name, icon in income_categories:
+                # Create display text with icon and income marker
+                base_text = f"{icon} {category_name}" if icon else category_name
+                display_text = f"{base_text} (Income)"  # Add income marker in parentheses
+                item = QStandardItem(display_text)
+                # Store the original category name as data for selection handling
+                item.setData(category_name, Qt.ItemDataRole.UserRole)
+                model.appendRow(item)
+
+            self.listView_categories.setModel(model)
+
+            # Connect category selection signal after model is set
+            self.listView_categories.selectionModel().currentChanged.connect(self.on_category_selection_changed)
+
+            # Reset category selection label
+            self.label_category_now.setText("No category selected")
+
+            # Set default currency selection
+            default_currency = self.db_manager.get_default_currency()
+            for combo in [self.comboBox_currency, self.comboBox_default_currency]:
+                index = combo.findText(default_currency)
+                if index >= 0:
+                    combo.setCurrentIndex(index)
+
+        except Exception as e:
+            print(f"Error updating comboboxes: {e}")
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.

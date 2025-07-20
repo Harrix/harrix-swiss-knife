@@ -6,10 +6,10 @@ including the menu structure and application initialization.
 
 import sys
 
+import harrix_pylib as h
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
-import harrix_pylib as h
 import harrix_swiss_knife as hsk
 from harrix_swiss_knife import main_window, resources_rc  # noqa: F401
 

@@ -46,6 +46,7 @@ lang: en
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
+  - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
   - [⚙️ Method `get_transactions_chart_data`](#%EF%B8%8F-method-get_transactions_chart_data)
@@ -674,22 +675,31 @@ class DatabaseManager:
             ORDER BY er.date DESC, er._id DESC
         """)
 
-    def get_all_transactions(self) -> list[list[Any]]:
+    def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
         """Get all transactions with category and currency information.
+
+        Args:
+
+        - `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
 
         Returns:
 
         - `list[list[Any]]`: List of transaction records.
 
         """
-        return self.get_rows("""
+        query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
                    cat.type, cat.icon, c.symbol
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
             ORDER BY t.date DESC, t._id DESC
-        """)
+        """
+
+        if limit is not None:
+            query += f" LIMIT {limit}"
+
+        return self.get_rows(query)
 
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
@@ -999,6 +1009,31 @@ class DatabaseManager:
         total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
         return total_income, total_expenses
+
+    def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
+        """Get recent unique transaction descriptions for autocomplete.
+
+        Args:
+
+        - `limit` (`int`): Number of recent transactions to analyze. Defaults to `1000`.
+
+        Returns:
+
+        - `list[str]`: List of unique transaction descriptions.
+
+        """
+        # Get descriptions ordered by frequency (most used first) and then by recency
+        query = """
+            SELECT t.description, COUNT(*) as usage_count, MAX(t.date) as last_used
+            FROM transactions t
+            WHERE t.description IS NOT NULL AND t.description != ''
+            GROUP BY t.description
+            ORDER BY usage_count DESC, last_used DESC
+            LIMIT :limit
+        """
+
+        rows = self.get_rows(query, {"limit": limit})
+        return [row[0] for row in rows if row[0]]
 
     def get_rows(
         self,
@@ -2276,10 +2311,14 @@ def get_all_exchange_rates(self) -> list[list[Any]]:
 ### ⚙️ Method `get_all_transactions`
 
 ```python
-def get_all_transactions(self) -> list[list[Any]]
+def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]
 ```
 
 Get all transactions with category and currency information.
+
+Args:
+
+- `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
 
 Returns:
 
@@ -2289,15 +2328,20 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_all_transactions(self) -> list[list[Any]]:
-        return self.get_rows("""
+def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
+        query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
                    cat.type, cat.icon, c.symbol
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
             ORDER BY t.date DESC, t._id DESC
-        """)
+        """
+
+        if limit is not None:
+            query += f" LIMIT {limit}"
+
+        return self.get_rows(query)
 ```
 
 </details>
@@ -2715,6 +2759,43 @@ def get_income_vs_expenses_in_currency(
         total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
         return total_income, total_expenses
+```
+
+</details>
+
+### ⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`
+
+```python
+def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]
+```
+
+Get recent unique transaction descriptions for autocomplete.
+
+Args:
+
+- `limit` (`int`): Number of recent transactions to analyze. Defaults to `1000`.
+
+Returns:
+
+- `list[str]`: List of unique transaction descriptions.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
+        # Get descriptions ordered by frequency (most used first) and then by recency
+        query = """
+            SELECT t.description, COUNT(*) as usage_count, MAX(t.date) as last_used
+            FROM transactions t
+            WHERE t.description IS NOT NULL AND t.description != ''
+            GROUP BY t.description
+            ORDER BY usage_count DESC, last_used DESC
+            LIMIT :limit
+        """
+
+        rows = self.get_rows(query, {"limit": limit})
+        return [row[0] for row in rows if row[0]]
 ```
 
 </details>
