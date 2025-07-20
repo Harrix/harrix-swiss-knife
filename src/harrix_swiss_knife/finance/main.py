@@ -1512,6 +1512,9 @@ class MainWindow(
         """Finish window initialization by showing the window."""
         self.show()
 
+        # Set focus to description field
+        self.lineEdit_description.setFocus()
+
     def _generate_account_balances_report(self, currency_id: int) -> None:
         """Generate account balances report.
 
