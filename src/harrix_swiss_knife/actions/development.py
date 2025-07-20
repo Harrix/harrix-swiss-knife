@@ -177,34 +177,3 @@ class OnUvUpdate(ActionBase):
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
-
-
-class OnToggleMainWindowStartup(ActionBase):
-    """Toggle the main window startup setting.
-
-    This action toggles the 'show_main_window_on_startup' setting in config.json,
-    allowing users to control whether the main window appears when the application starts.
-    """
-
-    icon = "🪟"
-    title = "Toggle main window on startup"
-
-    @ActionBase.handle_exceptions("main window startup toggle")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        # Load current config
-        config = h.dev.load_config(self.config_path)
-        current_setting = config.get("show_main_window_on_startup", True)
-
-        # Toggle the setting
-        new_setting = not current_setting
-        config["show_main_window_on_startup"] = new_setting
-
-        # Save the updated config
-        h.dev.save_config(config, self.config_path)
-
-        # Show result
-        status = "enabled" if new_setting else "disabled"
-        self.add_line(f"✅ Main window on startup: {status}")
-        self.show_toast(f"Main window on startup: {status}")
-        self.show_result()

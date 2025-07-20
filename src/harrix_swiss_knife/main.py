@@ -36,7 +36,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.dev.OnAboutDialog,
                 hsk.dev.OnNpmManagePackages,
                 hsk.dev.OnOpenConfigJson,
-                hsk.dev.OnToggleMainWindowStartup,
                 hsk.dev.OnUvUpdate,
             ],
         )
