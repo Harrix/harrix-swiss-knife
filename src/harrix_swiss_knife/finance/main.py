@@ -315,6 +315,11 @@ class MainWindow(
             if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
                 self.on_add_transaction()
                 return True
+        elif obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress:
+            key_event = QKeyEvent(event)
+            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
+                self.on_add_transaction()
+                return True
         return super().eventFilter(obj, event)
 
     def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
@@ -1347,6 +1352,9 @@ class MainWindow(
 
         # Enter key handling for lineEdit_tag
         self.lineEdit_tag.installEventFilter(self)
+
+        # Enter key handling for pushButton_add
+        self.pushButton_add.installEventFilter(self)
 
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality."""
