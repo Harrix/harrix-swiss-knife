@@ -16,9 +16,9 @@ from typing import Any
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer, QStringListModel
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView
+from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QTableView, QCompleter
 
 from harrix_swiss_knife.finance import database_manager, window
 from harrix_swiss_knife.finance.mixins import (
@@ -135,6 +135,7 @@ class MainWindow(
         self._connect_signals()
         self._init_filter_controls()
         self._init_chart_controls()
+        self._setup_autocomplete()
         self.update_all()
 
         # Set window size and position
@@ -596,6 +597,9 @@ class MainWindow(
                 # Update UI
                 self.update_all()
                 self.update_summary_labels()
+
+                # Update autocomplete data with new transaction
+                self._update_autocomplete_data()
 
                 # Clear form except date
                 self.doubleSpinBox_amount.setValue(100.0)
@@ -2049,6 +2053,107 @@ class MainWindow(
 
         if action == export_action:
             self.on_export_csv()
+
+    def _on_autocomplete_selected(self, text: str) -> None:
+        """Handle autocomplete selection and populate form fields."""
+        if not text:
+            return
+
+        # Set the selected text
+        self.lineEdit_description.setText(text)
+
+        # Try to populate other fields based on the selected description
+        self._populate_form_from_description(text)
+
+    def _populate_form_from_description(self, description: str) -> None:
+        """Populate form fields based on description from database."""
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get the most recent transaction with this description
+            query = """
+                SELECT t.amount, cat.name, c.code, t.tag
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                JOIN currencies c ON t._id_currencies = c._id
+                WHERE t.description = :description
+                ORDER BY t.date DESC, t._id DESC
+                LIMIT 1
+            """
+
+            rows = self.db_manager.get_rows(query, {"description": description})
+
+            if rows:
+                amount_cents, category_name, currency_code, tag = rows[0]
+
+                # Populate form fields
+                amount = float(amount_cents) / 100  # Convert from cents
+                self.doubleSpinBox_amount.setValue(amount)
+                self.lineEdit_tag.setText(tag or "")
+
+                # Set category if found
+                if category_name:
+                    # Find the category in the list view
+                    model = self.listView_categories.model()
+                    if model:
+                        for row in range(model.rowCount()):
+                            index = model.index(row, 0)
+                            item_data = model.data(index, Qt.ItemDataRole.UserRole)
+                            if item_data == category_name:
+                                self.listView_categories.setCurrentIndex(index)
+                                break
+
+                # Set currency if found
+                if currency_code:
+                    index = self.comboBox_currency.findText(currency_code)
+                    if index >= 0:
+                        self.comboBox_currency.setCurrentIndex(index)
+
+        except Exception as e:
+            print(f"Error populating form from description: {e}")
+
+    def _setup_autocomplete(self) -> None:
+        """Setup autocomplete functionality for description input."""
+        # Create completer
+        self.description_completer = QCompleter(self)
+        self.description_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Поиск по содержимому
+        self.description_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+
+        # Create model for completer
+        self.description_completer_model = QStringListModel(self)
+        self.description_completer.setModel(self.description_completer_model)
+
+        # Set completer to the line edit
+        self.lineEdit_description.setCompleter(self.description_completer)
+
+        # Update autocomplete data
+        self._update_autocomplete_data()
+
+        # Connect selection signal
+        self.description_completer.activated.connect(self._on_autocomplete_selected)
+
+    def _update_autocomplete_data(self) -> None:
+        """Update autocomplete data from database."""
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get recent transaction descriptions for autocomplete
+            recent_descriptions = self.db_manager.get_recent_transaction_descriptions_for_autocomplete(1000)
+
+            # Update completer model
+            self.description_completer_model.setStringList(recent_descriptions)
+
+        except Exception as e:
+            print(f"Error updating autocomplete data: {e}")
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.
