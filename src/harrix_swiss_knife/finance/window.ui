@@ -184,24 +184,6 @@
                 </layout>
                </item>
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_3">
-                 <item>
-                  <widget class="QLabel" name="label_tag">
-                   <property name="text">
-                    <string>Tag:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="lineEdit_tag">
-                   <property name="placeholderText">
-                    <string>Optional</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
                 <widget class="QPushButton" name="pushButton_add">
                  <property name="minimumSize">
                   <size>
@@ -233,6 +215,24 @@
                   <string>Add Transaction</string>
                  </property>
                 </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <item>
+                  <widget class="QLabel" name="label_tag">
+                   <property name="text">
+                    <string>Tag:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="lineEdit_tag">
+                   <property name="placeholderText">
+                    <string>Optional</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </widget>
