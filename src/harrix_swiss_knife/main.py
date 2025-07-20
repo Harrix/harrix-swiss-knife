@@ -9,6 +9,7 @@ import sys
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
+import harrix_pylib as h
 import harrix_swiss_knife as hsk
 from harrix_swiss_knife import main_window, resources_rc  # noqa: F401
 
@@ -35,6 +36,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.dev.OnAboutDialog,
                 hsk.dev.OnNpmManagePackages,
                 hsk.dev.OnOpenConfigJson,
+                hsk.dev.OnToggleMainWindowStartup,
                 hsk.dev.OnUvUpdate,
             ],
         )
@@ -164,9 +166,16 @@ if __name__ == "__main__":
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()
 
-    # Create and show main window at startup
+    # Load configuration
+    config = h.dev.load_config("config/config.json")
+    show_main_window = config.get("show_main_window_on_startup", True)
+
+    # Create main window
     main_window_instance = main_window.MainWindow(main_menu.menu)
     tray_icon.main_window = main_window_instance
-    main_window_instance.show()
+
+    # Show main window only if configured to do so
+    if show_main_window:
+        main_window_instance.show()
 
     sys.exit(app.exec())
