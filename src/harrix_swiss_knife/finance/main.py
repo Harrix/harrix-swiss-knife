@@ -677,6 +677,9 @@ class MainWindow(
                 self.label_category_now.setText(display_text)
             else:
                 self.label_category_now.setText("No category selected")
+
+            # Move focus to description field and select all text
+            QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
             self.label_category_now.setText("No category selected")
 
