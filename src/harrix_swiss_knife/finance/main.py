@@ -2405,7 +2405,7 @@ class MainWindow(
 
             # Set default currency selection
             default_currency = self.db_manager.get_default_currency()
-            for combo in [self.comboBox_currency, self.comboBox_default_currency]:
+            for combo in [self.comboBox_currency, self.comboBox_account_currency, self.comboBox_default_currency]:
                 index = combo.findText(default_currency)
                 if index >= 0:
                     combo.setCurrentIndex(index)
