@@ -1018,8 +1018,8 @@ class MainWindow(
                 for row in account_groups[group_key]:
                     # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash] -> [name, balance, currency, liquid, cash, id, color]
                     balance = float(row[2]) / 100  # Convert from cents
-                    liquid_str = "Yes" if row[4] == 1 else "No "
-                    cash_str = "Cash" if row[5] == 1 else ""
+                    liquid_str = "👍" if row[4] == 1 else "👎"
+                    cash_str = "💵" if row[5] == 1 else "💳"
                     transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
                     accounts_transformed_data.append(transformed_row)
 
