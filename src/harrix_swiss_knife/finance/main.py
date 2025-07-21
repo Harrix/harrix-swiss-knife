@@ -1094,6 +1094,12 @@ class MainWindow(
             )
             self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
+            # Configure column stretching for exchange table
+            exchange_header = self.tableView_exchange.horizontalHeader()
+            if exchange_header.count() > 0:
+                for i in range(exchange_header.count()):
+                    exchange_header.setSectionResizeMode(i, exchange_header.ResizeMode.Stretch)
+
             # Refresh exchange rates table
             rates_data = self.db_manager.get_all_exchange_rates()
             rates_transformed_data = []
