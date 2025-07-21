@@ -2186,11 +2186,16 @@ class MainWindow(
 
             color = self.date_colors[date_to_color_index[date]]
 
+            # Add "(Income)" suffix for income categories
+            display_category_name = category_name
+            if category_type == 1:  # Income category
+                display_category_name = f"{category_name} (Income)"
+
             # Transform to display format: [description, amount, category, currency, date, tag, id, color]
             transformed_row = [
                 description,
                 f"{amount:.2f}",
-                category_name,
+                display_category_name,
                 currency_code,
                 date,
                 tag,

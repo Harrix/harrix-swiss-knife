@@ -252,10 +252,13 @@ class AutoSaveOperations:
             QMessageBox.warning(None, "Validation Error", "Description cannot be empty")
             return
 
+        # Remove "(Income)" suffix if present for database lookup
+        clean_category_name = category_name.replace(" (Income)", "")
+
         # Get category ID
-        cat_id = self.db_manager.get_id("categories", "name", category_name)
+        cat_id = self.db_manager.get_id("categories", "name", clean_category_name)
         if cat_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Category '{category_name}' not found")
+            QMessageBox.warning(None, "Validation Error", f"Category '{clean_category_name}' not found")
             return
 
         # Get currency ID
