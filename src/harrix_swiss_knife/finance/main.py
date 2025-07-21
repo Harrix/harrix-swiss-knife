@@ -982,6 +982,12 @@ class MainWindow(
             )
             self.tableView_categories.setModel(self.models["categories"])
 
+            # Configure column stretching for categories table
+            categories_header = self.tableView_categories.horizontalHeader()
+            if categories_header.count() > 0:
+                for i in range(categories_header.count()):
+                    categories_header.setSectionResizeMode(i, categories_header.ResizeMode.Stretch)
+
             # Refresh accounts table with sorting and color coding
             accounts_data = self.db_manager.get_all_accounts()
 
