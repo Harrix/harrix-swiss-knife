@@ -240,9 +240,13 @@ class AutoSaveOperations:
             QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
-        # Validate numeric amount
+        # Validate numeric amount (always store positive values in database)
         try:
-            amount = float(amount_str)
+            # Remove minus sign for validation - always store positive values
+            clean_amount_str = amount_str.replace("-", "")
+            amount = float(clean_amount_str)
+            # Ensure amount is positive (absolute value)
+            amount = abs(amount)
         except (ValueError, TypeError):
             QMessageBox.warning(None, "Validation Error", f"Invalid amount value: {amount_str}")
             return

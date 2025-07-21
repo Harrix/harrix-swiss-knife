@@ -1506,6 +1506,12 @@ class MainWindow(
                 # Set background color for the item
                 item.setBackground(QBrush(row_color))
 
+                # For amount column (index 1), store original value without minus sign for editing
+                if col_idx == 1:  # Amount column
+                    # Remove minus sign for editing, keep only the numeric value
+                    original_value = str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
+                    item.setData(original_value, Qt.ItemDataRole.UserRole)
+
                 # Make the "Total per day" column (last column) non-editable
                 if col_idx == len(display_data) - 1:  # Last column
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -2258,10 +2264,13 @@ class MainWindow(
             daily_total = daily_expenses.get(date, 0.0)
             total_display = f"-{daily_total:.2f}" if is_first_of_day and daily_total > 0 else ""
 
+            # Format amount with minus sign for expenses
+            amount_display = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
+
             # Transform to display format: [description, amount, category, currency, date, tag, total_per_day, id, color]
             transformed_row = [
                 description,
-                f"{amount:.2f}",
+                amount_display,
                 display_category_name,
                 currency_code,
                 date,
