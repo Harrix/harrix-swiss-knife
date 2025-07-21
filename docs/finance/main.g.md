@@ -49,6 +49,7 @@ lang: en
   - [⚙️ Method `update_charts`](#%EF%B8%8F-method-update_charts)
   - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
   - [⚙️ Method `update_summary_labels`](#%EF%B8%8F-method-update_summary_labels)
+  - [⚙️ Method `_calculate_daily_expenses`](#%EF%B8%8F-method-_calculate_daily_expenses)
   - [⚙️ Method `_clear_account_form`](#%EF%B8%8F-method-_clear_account_form)
   - [⚙️ Method `_clear_all_forms`](#%EF%B8%8F-method-_clear_all_forms)
   - [⚙️ Method `_clear_category_form`](#%EF%B8%8F-method-_clear_category_form)
@@ -61,8 +62,11 @@ lang: en
   - [⚙️ Method `_create_colored_table_model`](#%EF%B8%8F-method-_create_colored_table_model)
   - [⚙️ Method `_create_pie_chart`](#%EF%B8%8F-method-_create_pie_chart)
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
+  - [⚙️ Method `_create_transactions_table_model`](#%EF%B8%8F-method-_create_transactions_table_model)
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
+  - [⚙️ Method `_focus_amount_and_select_text`](#%EF%B8%8F-method-_focus_amount_and_select_text)
+  - [⚙️ Method `_focus_description_and_select_text`](#%EF%B8%8F-method-_focus_description_and_select_text)
   - [⚙️ Method `_generate_account_balances_report`](#%EF%B8%8F-method-_generate_account_balances_report)
   - [⚙️ Method `_generate_category_analysis_report`](#%EF%B8%8F-method-_generate_category_analysis_report)
   - [⚙️ Method `_generate_currency_analysis_report`](#%EF%B8%8F-method-_generate_currency_analysis_report)
@@ -164,7 +168,7 @@ class MainWindow(
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["Description", "Amount", "Category", "Currency", "Date", "Tag"],
+                ["Description", "Amount", "Category", "Currency", "Date", "Tag", "Total per day"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -245,7 +249,7 @@ class MainWindow(
         transformed_data = self._transform_transaction_data(rows)
 
         # Create model and set to table
-        self.models["transactions"] = self._create_colored_table_model(
+        self.models["transactions"] = self._create_transactions_table_model(
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
@@ -256,14 +260,19 @@ class MainWindow(
         # Настройка поведения заголовка таблицы для растягивания столбцов
         header = self.tableView_transactions.horizontalHeader()
         if header.count() > 0:
-            # Установить режим растягивания для всех столбцов кроме последнего
-            for i in range(header.count() - 1):
+            # Установить режим растягивания для всех столбцов кроме двух последних
+            for i in range(header.count() - 2):
                 header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-            # Для последнего столбца установить фиксированную ширину
+            # Для предпоследнего столбца (Tag) установить фиксированную ширину
+            second_last_column = header.count() - 2
+            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
+            self.tableView_transactions.setColumnWidth(second_last_column, 100)
+
+            # Для последнего столбца (Total per day) установить фиксированную ширину
             last_column = header.count() - 1
             header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(last_column, 200)
+            self.tableView_transactions.setColumnWidth(last_column, 120)
 
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
@@ -363,22 +372,12 @@ class MainWindow(
         from PySide6.QtCore import QEvent
         from PySide6.QtGui import QKeyEvent
 
-        if obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        elif obj == self.dateEdit and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        elif obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        elif obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress:
+        if (
+            (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
+        ):
             key_event = QKeyEvent(event)
             if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
                 self.on_add_transaction()
@@ -695,8 +694,8 @@ class MainWindow(
 
         try:
             if self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag):
-                # Apply date increment logic
-                self._increment_date_widget(self.dateEdit)
+                # Save current date before updating UI
+                current_date = self.dateEdit.date()
 
                 # Update UI
                 self.update_all()
@@ -709,6 +708,16 @@ class MainWindow(
                 self.doubleSpinBox_amount.setValue(100.0)
                 self.lineEdit_description.clear()
                 self.lineEdit_tag.clear()
+
+                # Restore the original date
+                self.dateEdit.setDate(current_date)
+
+                # Set focus to description field and select all text after a short delay
+                # This ensures UI updates are complete before focusing
+                QTimer.singleShot(100, self._focus_description_and_select_text)
+
+                # Select the category of the just added transaction
+                self._select_category_by_id(cat_id)
             else:
                 QMessageBox.warning(self, "Error", "Failed to add transaction")
         except Exception as e:
@@ -740,6 +749,9 @@ class MainWindow(
                 self.label_category_now.setText(display_text)
             else:
                 self.label_category_now.setText("No category selected")
+
+            # Move focus to description field and select all text
+            QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
             self.label_category_now.setText("No category selected")
 
@@ -1016,7 +1028,7 @@ class MainWindow(
             limit = None if self.show_all_transactions else 5000
             transactions_data = self.db_manager.get_all_transactions(limit=limit)
             transactions_transformed_data = self._transform_transaction_data(transactions_data)
-            self.models["transactions"] = self._create_colored_table_model(
+            self.models["transactions"] = self._create_transactions_table_model(
                 transactions_transformed_data, self.table_config["transactions"][2]
             )
             self.tableView_transactions.setModel(self.models["transactions"])
@@ -1119,14 +1131,19 @@ class MainWindow(
             # Special handling for transactions table - настройка растягивания столбцов
             header = self.tableView_transactions.horizontalHeader()
             if header.count() > 0:
-                # Установить режим растягивания для всех столбцов кроме последнего
-                for i in range(header.count() - 1):
+                # Установить режим растягивания для всех столбцов кроме двух последних
+                for i in range(header.count() - 2):
                     header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-                # Для последнего столбца установить фиксированную ширину
+                # Для предпоследнего столбца (Tag) установить фиксированную ширину
+                second_last_column = header.count() - 2
+                header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
+                self.tableView_transactions.setColumnWidth(second_last_column, 100)
+
+                # Для последнего столбца (Total per day) установить фиксированную ширину
                 last_column = header.count() - 1
                 header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-                self.tableView_transactions.setColumnWidth(last_column, 200)
+                self.tableView_transactions.setColumnWidth(last_column, 120)
 
             # Connect auto-save signals
             self._connect_table_auto_save_signals()
@@ -1281,6 +1298,34 @@ class MainWindow(
             self.label_total_expenses.setText("Total Expenses: 0.00₽")
             self.label_daily_balance.setText("0.00₽")
 
+    def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
+        """Calculate daily expenses from transaction data.
+
+        Args:
+            rows: Raw transaction data from database.
+
+        Returns:
+            Dictionary mapping dates to total expenses for that day.
+
+        """
+        daily_expenses = {}
+
+        for row in rows:
+            # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
+            amount_cents = row[1]
+            date = row[5]
+            category_type = row[7]
+
+            # Only count expenses (category_type == 0)
+            if category_type == 0:
+                amount = float(amount_cents) / 100
+                if date in daily_expenses:
+                    daily_expenses[date] += amount
+                else:
+                    daily_expenses[date] = amount
+
+        return daily_expenses
+
     def _clear_account_form(self) -> None:
         """Clear the account addition form."""
         self.lineEdit_account_name.clear()
@@ -1373,8 +1418,8 @@ class MainWindow(
         self.radioButton_3.clicked.connect(self.apply_filter)
 
         # Auto-filter signals for combo boxes
-        self.comboBox_filter_category.currentTextChanged.connect(self.apply_filter)
-        self.comboBox_filter_currency.currentTextChanged.connect(self.apply_filter)
+        self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
+        self.comboBox_filter_currency.currentTextChanged.connect(lambda _: self.apply_filter())
 
         # Chart signals
         self.pushButton_update_chart.clicked.connect(self.update_charts)
@@ -1608,6 +1653,65 @@ class MainWindow(
         proxy.setSourceModel(model)
         return proxy
 
+    def _create_transactions_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        id_column: int = -2,
+    ) -> QSortFilterProxyModel:
+        """Create a special model for transactions table with non-editable total column.
+
+        Args:
+            data: The table data with color information.
+            headers: Column header names.
+            id_column: Index of the ID column. Defaults to -2 (second-to-last).
+
+        Returns:
+            A filterable and sortable model with colored data and non-editable total column.
+
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID (second-to-last element)
+            row_color = row[-1]  # Color is at the last position
+            row_id = row[id_column]  # ID is at second-to-last position
+
+            # Create items for display columns only (exclude ID and color)
+            items = []
+            display_data = row[:-2]  # Exclude last two elements (ID and color)
+
+            for col_idx, value in enumerate(display_data):
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
+
+                # For amount column (index 1), store original value without minus sign for editing
+                if col_idx == 1:  # Amount column
+                    # Remove minus sign for editing, keep only the numeric value
+                    original_value = str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
+                    item.setData(original_value, Qt.ItemDataRole.UserRole)
+
+                # Make the "Total per day" column (last column) non-editable
+                if col_idx == len(display_data) - 1:  # Last column
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
         for key, model in self.models.items():
@@ -1627,6 +1731,16 @@ class MainWindow(
 
         # Select category with _id = 1
         self._select_category_by_id(1)
+
+    def _focus_amount_and_select_text(self) -> None:
+        """Set focus to amount field and select all text."""
+        self.doubleSpinBox_amount.setFocus()
+        self.doubleSpinBox_amount.selectAll()
+
+    def _focus_description_and_select_text(self) -> None:
+        """Set focus to description field and select all text."""
+        self.lineEdit_description.setFocus()
+        self.lineEdit_description.selectAll()
 
     def _generate_account_balances_report(self, currency_id: int) -> None:
         """Generate account balances report.
@@ -1959,6 +2073,10 @@ class MainWindow(
         # Try to populate other fields based on the selected description
         self._populate_form_from_description(text)
 
+        # Set focus to amount field and select all text after a short delay
+        # This ensures form population is complete before focusing
+        QTimer.singleShot(100, self._focus_amount_and_select_text)
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -2201,7 +2319,7 @@ class MainWindow(
             self.on_export_csv()
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
-        """Transform transaction data for display with colors.
+        """Transform transaction data for display with colors and daily totals.
 
         Args:
 
@@ -2209,14 +2327,20 @@ class MainWindow(
 
         Returns:
 
-        - `list[list[Any]]`: Transformed data with colors.
+        - `list[list[Any]]`: Transformed data with colors and daily totals.
 
         """
         transformed_data = []
 
+        # Calculate daily expenses
+        daily_expenses = self._calculate_daily_expenses(rows)
+
         # Create a mapping of dates to color indices
         date_to_color_index = {}
         color_index = 0
+
+        # Track which dates we've already shown totals for
+        dates_with_totals = set()
 
         for row in rows:
             # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
@@ -2239,14 +2363,32 @@ class MainWindow(
 
             color = self.date_colors[date_to_color_index[date]]
 
-            # Transform to display format: [description, amount, category, currency, date, tag, id, color]
+            # Add "(Income)" suffix for income categories
+            display_category_name = category_name
+            if category_type == 1:  # Income category
+                display_category_name = f"{category_name} (Income)"
+
+            # Determine if this is the first transaction for this date
+            is_first_of_day = date not in dates_with_totals
+            if is_first_of_day:
+                dates_with_totals.add(date)
+
+            # Get daily total for this date
+            daily_total = daily_expenses.get(date, 0.0)
+            total_display = f"-{daily_total:.2f}" if is_first_of_day and daily_total > 0 else ""
+
+            # Format amount with minus sign for expenses
+            amount_display = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
+
+            # Transform to display format: [description, amount, category, currency, date, tag, total_per_day, id, color]
             transformed_row = [
                 description,
-                f"{amount:.2f}",
-                category_name,
+                amount_display,
+                display_category_name,
                 currency_code,
                 date,
                 tag,
+                total_display,
                 transaction_id,
                 color,
             ]
@@ -2405,7 +2547,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["Description", "Amount", "Category", "Currency", "Date", "Tag"],
+                ["Description", "Amount", "Category", "Currency", "Date", "Tag", "Total per day"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -2499,7 +2641,7 @@ def apply_filter(self) -> None:
         transformed_data = self._transform_transaction_data(rows)
 
         # Create model and set to table
-        self.models["transactions"] = self._create_colored_table_model(
+        self.models["transactions"] = self._create_transactions_table_model(
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
@@ -2510,14 +2652,19 @@ def apply_filter(self) -> None:
         # Настройка поведения заголовка таблицы для растягивания столбцов
         header = self.tableView_transactions.horizontalHeader()
         if header.count() > 0:
-            # Установить режим растягивания для всех столбцов кроме последнего
-            for i in range(header.count() - 1):
+            # Установить режим растягивания для всех столбцов кроме двух последних
+            for i in range(header.count() - 2):
                 header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-            # Для последнего столбца установить фиксированную ширину
+            # Для предпоследнего столбца (Tag) установить фиксированную ширину
+            second_last_column = header.count() - 2
+            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
+            self.tableView_transactions.setColumnWidth(second_last_column, 100)
+
+            # Для последнего столбца (Total per day) установить фиксированную ширину
             last_column = header.count() - 1
             header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(last_column, 200)
+            self.tableView_transactions.setColumnWidth(last_column, 120)
 ```
 
 </details>
@@ -2666,22 +2813,12 @@ def eventFilter(self, obj, event) -> bool:
         from PySide6.QtCore import QEvent
         from PySide6.QtGui import QKeyEvent
 
-        if obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        elif obj == self.dateEdit and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        elif obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        elif obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress:
+        if (
+            (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
+        ):
             key_event = QKeyEvent(event)
             if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
                 self.on_add_transaction()
@@ -3100,8 +3237,8 @@ def on_add_transaction(self) -> None:
 
         try:
             if self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag):
-                # Apply date increment logic
-                self._increment_date_widget(self.dateEdit)
+                # Save current date before updating UI
+                current_date = self.dateEdit.date()
 
                 # Update UI
                 self.update_all()
@@ -3114,6 +3251,16 @@ def on_add_transaction(self) -> None:
                 self.doubleSpinBox_amount.setValue(100.0)
                 self.lineEdit_description.clear()
                 self.lineEdit_tag.clear()
+
+                # Restore the original date
+                self.dateEdit.setDate(current_date)
+
+                # Set focus to description field and select all text after a short delay
+                # This ensures UI updates are complete before focusing
+                QTimer.singleShot(100, self._focus_description_and_select_text)
+
+                # Select the category of the just added transaction
+                self._select_category_by_id(cat_id)
             else:
                 QMessageBox.warning(self, "Error", "Failed to add transaction")
         except Exception as e:
@@ -3170,6 +3317,9 @@ def on_category_selection_changed(self, current: QModelIndex, previous: QModelIn
                 self.label_category_now.setText(display_text)
             else:
                 self.label_category_now.setText("No category selected")
+
+            # Move focus to description field and select all text
+            QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
             self.label_category_now.setText("No category selected")
 ```
@@ -3665,7 +3815,7 @@ def show_tables(self) -> None:
             limit = None if self.show_all_transactions else 5000
             transactions_data = self.db_manager.get_all_transactions(limit=limit)
             transactions_transformed_data = self._transform_transaction_data(transactions_data)
-            self.models["transactions"] = self._create_colored_table_model(
+            self.models["transactions"] = self._create_transactions_table_model(
                 transactions_transformed_data, self.table_config["transactions"][2]
             )
             self.tableView_transactions.setModel(self.models["transactions"])
@@ -3768,14 +3918,19 @@ def show_tables(self) -> None:
             # Special handling for transactions table - настройка растягивания столбцов
             header = self.tableView_transactions.horizontalHeader()
             if header.count() > 0:
-                # Установить режим растягивания для всех столбцов кроме последнего
-                for i in range(header.count() - 1):
+                # Установить режим растягивания для всех столбцов кроме двух последних
+                for i in range(header.count() - 2):
                     header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-                # Для последнего столбца установить фиксированную ширину
+                # Для предпоследнего столбца (Tag) установить фиксированную ширину
+                second_last_column = header.count() - 2
+                header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
+                self.tableView_transactions.setColumnWidth(second_last_column, 100)
+
+                # Для последнего столбца (Total per day) установить фиксированную ширину
                 last_column = header.count() - 1
                 header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-                self.tableView_transactions.setColumnWidth(last_column, 200)
+                self.tableView_transactions.setColumnWidth(last_column, 120)
 
             # Connect auto-save signals
             self._connect_table_auto_save_signals()
@@ -3999,6 +4154,46 @@ def update_summary_labels(self) -> None:
 
 </details>
 
+### ⚙️ Method `_calculate_daily_expenses`
+
+```python
+def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]
+```
+
+Calculate daily expenses from transaction data.
+
+Args:
+rows: Raw transaction data from database.
+
+Returns:
+Dictionary mapping dates to total expenses for that day.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
+        daily_expenses = {}
+
+        for row in rows:
+            # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
+            amount_cents = row[1]
+            date = row[5]
+            category_type = row[7]
+
+            # Only count expenses (category_type == 0)
+            if category_type == 0:
+                amount = float(amount_cents) / 100
+                if date in daily_expenses:
+                    daily_expenses[date] += amount
+                else:
+                    daily_expenses[date] = amount
+
+        return daily_expenses
+```
+
+</details>
+
 ### ⚙️ Method `_clear_account_form`
 
 ```python
@@ -4186,8 +4381,8 @@ def _connect_signals(self) -> None:
         self.radioButton_3.clicked.connect(self.apply_filter)
 
         # Auto-filter signals for combo boxes
-        self.comboBox_filter_category.currentTextChanged.connect(self.apply_filter)
-        self.comboBox_filter_currency.currentTextChanged.connect(self.apply_filter)
+        self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
+        self.comboBox_filter_currency.currentTextChanged.connect(lambda _: self.apply_filter())
 
         # Chart signals
         self.pushButton_update_chart.clicked.connect(self.update_charts)
@@ -4486,6 +4681,77 @@ def _create_table_model(
 
 </details>
 
+### ⚙️ Method `_create_transactions_table_model`
+
+```python
+def _create_transactions_table_model(self, data: list[list], headers: list[str], id_column: int = -2) -> QSortFilterProxyModel
+```
+
+Create a special model for transactions table with non-editable total column.
+
+Args:
+data: The table data with color information.
+headers: Column header names.
+id_column: Index of the ID column. Defaults to -2 (second-to-last).
+
+Returns:
+A filterable and sortable model with colored data and non-editable total column.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _create_transactions_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        id_column: int = -2,
+    ) -> QSortFilterProxyModel:
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID (second-to-last element)
+            row_color = row[-1]  # Color is at the last position
+            row_id = row[id_column]  # ID is at second-to-last position
+
+            # Create items for display columns only (exclude ID and color)
+            items = []
+            display_data = row[:-2]  # Exclude last two elements (ID and color)
+
+            for col_idx, value in enumerate(display_data):
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
+
+                # For amount column (index 1), store original value without minus sign for editing
+                if col_idx == 1:  # Amount column
+                    # Remove minus sign for editing, keep only the numeric value
+                    original_value = str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
+                    item.setData(original_value, Qt.ItemDataRole.UserRole)
+
+                # Make the "Total per day" column (last column) non-editable
+                if col_idx == len(display_data) - 1:  # Last column
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+```
+
+</details>
+
 ### ⚙️ Method `_dispose_models`
 
 ```python
@@ -4530,6 +4796,44 @@ def _finish_window_initialization(self) -> None:
 
         # Select category with _id = 1
         self._select_category_by_id(1)
+```
+
+</details>
+
+### ⚙️ Method `_focus_amount_and_select_text`
+
+```python
+def _focus_amount_and_select_text(self) -> None
+```
+
+Set focus to amount field and select all text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _focus_amount_and_select_text(self) -> None:
+        self.doubleSpinBox_amount.setFocus()
+        self.doubleSpinBox_amount.selectAll()
+```
+
+</details>
+
+### ⚙️ Method `_focus_description_and_select_text`
+
+```python
+def _focus_description_and_select_text(self) -> None
+```
+
+Set focus to description field and select all text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _focus_description_and_select_text(self) -> None:
+        self.lineEdit_description.setFocus()
+        self.lineEdit_description.selectAll()
 ```
 
 </details>
@@ -4979,6 +5283,10 @@ def _on_autocomplete_selected(self, text: str) -> None:
 
         # Try to populate other fields based on the selected description
         self._populate_form_from_description(text)
+
+        # Set focus to amount field and select all text after a short delay
+        # This ensures form population is complete before focusing
+        QTimer.singleShot(100, self._focus_amount_and_select_text)
 ```
 
 </details>
@@ -5336,7 +5644,7 @@ def _show_transactions_context_menu(self, position) -> None:
 def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]
 ```
 
-Transform transaction data for display with colors.
+Transform transaction data for display with colors and daily totals.
 
 Args:
 
@@ -5344,7 +5652,7 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: Transformed data with colors.
+- `list[list[Any]]`: Transformed data with colors and daily totals.
 
 <details>
 <summary>Code:</summary>
@@ -5353,9 +5661,15 @@ Returns:
 def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         transformed_data = []
 
+        # Calculate daily expenses
+        daily_expenses = self._calculate_daily_expenses(rows)
+
         # Create a mapping of dates to color indices
         date_to_color_index = {}
         color_index = 0
+
+        # Track which dates we've already shown totals for
+        dates_with_totals = set()
 
         for row in rows:
             # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
@@ -5378,14 +5692,32 @@ def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
 
             color = self.date_colors[date_to_color_index[date]]
 
-            # Transform to display format: [description, amount, category, currency, date, tag, id, color]
+            # Add "(Income)" suffix for income categories
+            display_category_name = category_name
+            if category_type == 1:  # Income category
+                display_category_name = f"{category_name} (Income)"
+
+            # Determine if this is the first transaction for this date
+            is_first_of_day = date not in dates_with_totals
+            if is_first_of_day:
+                dates_with_totals.add(date)
+
+            # Get daily total for this date
+            daily_total = daily_expenses.get(date, 0.0)
+            total_display = f"-{daily_total:.2f}" if is_first_of_day and daily_total > 0 else ""
+
+            # Format amount with minus sign for expenses
+            amount_display = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
+
+            # Transform to display format: [description, amount, category, currency, date, tag, total_per_day, id, color]
             transformed_row = [
                 description,
-                f"{amount:.2f}",
-                category_name,
+                amount_display,
+                display_category_name,
                 currency_code,
                 date,
                 tag,
+                total_display,
                 transaction_id,
                 color,
             ]

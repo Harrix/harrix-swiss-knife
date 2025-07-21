@@ -305,7 +305,12 @@ class MainWindow(
         from PySide6.QtCore import QEvent
         from PySide6.QtGui import QKeyEvent
 
-        if (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress) or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress) or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress) or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress):
+        if (
+            (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
+        ):
             key_event = QKeyEvent(event)
             if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
                 self.on_add_transaction()
@@ -1226,6 +1231,34 @@ class MainWindow(
             self.label_total_expenses.setText("Total Expenses: 0.00₽")
             self.label_daily_balance.setText("0.00₽")
 
+    def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
+        """Calculate daily expenses from transaction data.
+
+        Args:
+            rows: Raw transaction data from database.
+
+        Returns:
+            Dictionary mapping dates to total expenses for that day.
+
+        """
+        daily_expenses = {}
+
+        for row in rows:
+            # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
+            amount_cents = row[1]
+            date = row[5]
+            category_type = row[7]
+
+            # Only count expenses (category_type == 0)
+            if category_type == 0:
+                amount = float(amount_cents) / 100
+                if date in daily_expenses:
+                    daily_expenses[date] += amount
+                else:
+                    daily_expenses[date] = amount
+
+        return daily_expenses
+
     def _clear_account_form(self) -> None:
         """Clear the account addition form."""
         self.lineEdit_account_name.clear()
@@ -1474,65 +1507,6 @@ class MainWindow(
         proxy.setSourceModel(model)
         return proxy
 
-    def _create_transactions_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-        id_column: int = -2,
-    ) -> QSortFilterProxyModel:
-        """Create a special model for transactions table with non-editable total column.
-
-        Args:
-            data: The table data with color information.
-            headers: Column header names.
-            id_column: Index of the ID column. Defaults to -2 (second-to-last).
-
-        Returns:
-            A filterable and sortable model with colored data and non-editable total column.
-
-        """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            # Extract color information (last element) and ID (second-to-last element)
-            row_color = row[-1]  # Color is at the last position
-            row_id = row[id_column]  # ID is at second-to-last position
-
-            # Create items for display columns only (exclude ID and color)
-            items = []
-            display_data = row[:-2]  # Exclude last two elements (ID and color)
-
-            for col_idx, value in enumerate(display_data):
-                item = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
-
-                # For amount column (index 1), store original value without minus sign for editing
-                if col_idx == 1:  # Amount column
-                    # Remove minus sign for editing, keep only the numeric value
-                    original_value = str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
-                    item.setData(original_value, Qt.ItemDataRole.UserRole)
-
-                # Make the "Total per day" column (last column) non-editable
-                if col_idx == len(display_data) - 1:  # Last column
-                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-
-                items.append(item)
-
-            model.appendRow(items)
-
-            # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
-
     def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
         """Create a pie chart with the given data.
 
@@ -1612,6 +1586,65 @@ class MainWindow(
         proxy.setSourceModel(model)
         return proxy
 
+    def _create_transactions_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        id_column: int = -2,
+    ) -> QSortFilterProxyModel:
+        """Create a special model for transactions table with non-editable total column.
+
+        Args:
+            data: The table data with color information.
+            headers: Column header names.
+            id_column: Index of the ID column. Defaults to -2 (second-to-last).
+
+        Returns:
+            A filterable and sortable model with colored data and non-editable total column.
+
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID (second-to-last element)
+            row_color = row[-1]  # Color is at the last position
+            row_id = row[id_column]  # ID is at second-to-last position
+
+            # Create items for display columns only (exclude ID and color)
+            items = []
+            display_data = row[:-2]  # Exclude last two elements (ID and color)
+
+            for col_idx, value in enumerate(display_data):
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
+
+                # For amount column (index 1), store original value without minus sign for editing
+                if col_idx == 1:  # Amount column
+                    # Remove minus sign for editing, keep only the numeric value
+                    original_value = str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
+                    item.setData(original_value, Qt.ItemDataRole.UserRole)
+
+                # Make the "Total per day" column (last column) non-editable
+                if col_idx == len(display_data) - 1:  # Last column
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
         for key, model in self.models.items():
@@ -1631,6 +1664,16 @@ class MainWindow(
 
         # Select category with _id = 1
         self._select_category_by_id(1)
+
+    def _focus_amount_and_select_text(self) -> None:
+        """Set focus to amount field and select all text."""
+        self.doubleSpinBox_amount.setFocus()
+        self.doubleSpinBox_amount.selectAll()
+
+    def _focus_description_and_select_text(self) -> None:
+        """Set focus to description field and select all text."""
+        self.lineEdit_description.setFocus()
+        self.lineEdit_description.selectAll()
 
     def _generate_account_balances_report(self, currency_id: int) -> None:
         """Generate account balances report.
@@ -2369,44 +2412,6 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
-
-    def _focus_description_and_select_text(self) -> None:
-        """Set focus to description field and select all text."""
-        self.lineEdit_description.setFocus()
-        self.lineEdit_description.selectAll()
-
-    def _focus_amount_and_select_text(self) -> None:
-        """Set focus to amount field and select all text."""
-        self.doubleSpinBox_amount.setFocus()
-        self.doubleSpinBox_amount.selectAll()
-
-    def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
-        """Calculate daily expenses from transaction data.
-
-        Args:
-            rows: Raw transaction data from database.
-
-        Returns:
-            Dictionary mapping dates to total expenses for that day.
-
-        """
-        daily_expenses = {}
-
-        for row in rows:
-            # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
-            amount_cents = row[1]
-            date = row[5]
-            category_type = row[7]
-
-            # Only count expenses (category_type == 0)
-            if category_type == 0:
-                amount = float(amount_cents) / 100
-                if date in daily_expenses:
-                    daily_expenses[date] += amount
-                else:
-                    daily_expenses[date] = amount
-
-        return daily_expenses
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.

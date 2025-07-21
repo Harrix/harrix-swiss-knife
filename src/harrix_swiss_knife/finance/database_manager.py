@@ -963,7 +963,7 @@ class DatabaseManager:
         - `list[str]`: List of unique transaction descriptions.
 
         """
-                                        # Get descriptions ordered by frequency (most used first) and then by recency
+        # Get descriptions ordered by frequency (most used first) and then by recency
         # Also include recent unique descriptions that might not be frequent
         query = """
             WITH frequent_descriptions AS (

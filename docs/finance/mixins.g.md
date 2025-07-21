@@ -261,9 +261,13 @@ class AutoSaveOperations:
             QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
-        # Validate numeric amount
+        # Validate numeric amount (always store positive values in database)
         try:
-            amount = float(amount_str)
+            # Remove minus sign for validation - always store positive values
+            clean_amount_str = amount_str.replace("-", "")
+            amount = float(clean_amount_str)
+            # Ensure amount is positive (absolute value)
+            amount = abs(amount)
         except (ValueError, TypeError):
             QMessageBox.warning(None, "Validation Error", f"Invalid amount value: {amount_str}")
             return
@@ -273,10 +277,13 @@ class AutoSaveOperations:
             QMessageBox.warning(None, "Validation Error", "Description cannot be empty")
             return
 
+        # Remove "(Income)" suffix if present for database lookup
+        clean_category_name = category_name.replace(" (Income)", "")
+
         # Get category ID
-        cat_id = self.db_manager.get_id("categories", "name", category_name)
+        cat_id = self.db_manager.get_id("categories", "name", clean_category_name)
         if cat_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Category '{category_name}' not found")
+            QMessageBox.warning(None, "Validation Error", f"Category '{clean_category_name}' not found")
             return
 
         # Get currency ID
@@ -572,9 +579,13 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
             QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
-        # Validate numeric amount
+        # Validate numeric amount (always store positive values in database)
         try:
-            amount = float(amount_str)
+            # Remove minus sign for validation - always store positive values
+            clean_amount_str = amount_str.replace("-", "")
+            amount = float(clean_amount_str)
+            # Ensure amount is positive (absolute value)
+            amount = abs(amount)
         except (ValueError, TypeError):
             QMessageBox.warning(None, "Validation Error", f"Invalid amount value: {amount_str}")
             return
@@ -584,10 +595,13 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
             QMessageBox.warning(None, "Validation Error", "Description cannot be empty")
             return
 
+        # Remove "(Income)" suffix if present for database lookup
+        clean_category_name = category_name.replace(" (Income)", "")
+
         # Get category ID
-        cat_id = self.db_manager.get_id("categories", "name", category_name)
+        cat_id = self.db_manager.get_id("categories", "name", clean_category_name)
         if cat_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Category '{category_name}' not found")
+            QMessageBox.warning(None, "Validation Error", f"Category '{clean_category_name}' not found")
             return
 
         # Get currency ID
