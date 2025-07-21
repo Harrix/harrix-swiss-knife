@@ -103,6 +103,10 @@ class AccountEditDialog(QDialog):
             self.is_liquid_check.setChecked(self.account_data.get('is_liquid', True))
             self.is_cash_check.setChecked(self.account_data.get('is_cash', False))
 
+            # Set focus to balance field and select all text
+            self.balance_spin.setFocus()
+            self.balance_spin.selectAll()
+
     def _on_save(self):
         """Handle save button click."""
         name = self.name_edit.text().strip()
