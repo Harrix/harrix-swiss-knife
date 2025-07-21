@@ -101,7 +101,7 @@ class MainWindow(
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["Description", "Amount", "Category", "Currency", "Date", "Tag"],
+                ["Description", "Amount", "Category", "Currency", "Date", "Tag", "Total per day"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -182,7 +182,7 @@ class MainWindow(
         transformed_data = self._transform_transaction_data(rows)
 
         # Create model and set to table
-        self.models["transactions"] = self._create_colored_table_model(
+        self.models["transactions"] = self._create_transactions_table_model(
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
@@ -193,14 +193,19 @@ class MainWindow(
         # Настройка поведения заголовка таблицы для растягивания столбцов
         header = self.tableView_transactions.horizontalHeader()
         if header.count() > 0:
-            # Установить режим растягивания для всех столбцов кроме последнего
-            for i in range(header.count() - 1):
+            # Установить режим растягивания для всех столбцов кроме двух последних
+            for i in range(header.count() - 2):
                 header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-            # Для последнего столбца установить фиксированную ширину
+            # Для предпоследнего столбца (Tag) установить фиксированную ширину
+            second_last_column = header.count() - 2
+            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
+            self.tableView_transactions.setColumnWidth(second_last_column, 100)
+
+            # Для последнего столбца (Total per day) установить фиксированную ширину
             last_column = header.count() - 1
             header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(last_column, 200)
+            self.tableView_transactions.setColumnWidth(last_column, 120)
 
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
@@ -963,7 +968,7 @@ class MainWindow(
             limit = None if self.show_all_transactions else 5000
             transactions_data = self.db_manager.get_all_transactions(limit=limit)
             transactions_transformed_data = self._transform_transaction_data(transactions_data)
-            self.models["transactions"] = self._create_colored_table_model(
+            self.models["transactions"] = self._create_transactions_table_model(
                 transactions_transformed_data, self.table_config["transactions"][2]
             )
             self.tableView_transactions.setModel(self.models["transactions"])
@@ -1066,14 +1071,19 @@ class MainWindow(
             # Special handling for transactions table - настройка растягивания столбцов
             header = self.tableView_transactions.horizontalHeader()
             if header.count() > 0:
-                # Установить режим растягивания для всех столбцов кроме последнего
-                for i in range(header.count() - 1):
+                # Установить режим растягивания для всех столбцов кроме двух последних
+                for i in range(header.count() - 2):
                     header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-                # Для последнего столбца установить фиксированную ширину
+                # Для предпоследнего столбца (Tag) установить фиксированную ширину
+                second_last_column = header.count() - 2
+                header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
+                self.tableView_transactions.setColumnWidth(second_last_column, 100)
+
+                # Для последнего столбца (Total per day) установить фиксированную ширину
                 last_column = header.count() - 1
                 header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-                self.tableView_transactions.setColumnWidth(last_column, 200)
+                self.tableView_transactions.setColumnWidth(last_column, 120)
 
             # Connect auto-save signals
             self._connect_table_auto_save_signals()
@@ -1461,6 +1471,58 @@ class MainWindow(
 
                 # Set background color for the item
                 item.setBackground(QBrush(row_color))
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+
+    def _create_transactions_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        id_column: int = -2,
+    ) -> QSortFilterProxyModel:
+        """Create a special model for transactions table with non-editable total column.
+
+        Args:
+            data: The table data with color information.
+            headers: Column header names.
+            id_column: Index of the ID column. Defaults to -2 (second-to-last).
+
+        Returns:
+            A filterable and sortable model with colored data and non-editable total column.
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        for row_idx, row in enumerate(data):
+            # Extract color information (last element) and ID (second-to-last element)
+            row_color = row[-1]  # Color is at the last position
+            row_id = row[id_column]  # ID is at second-to-last position
+
+            # Create items for display columns only (exclude ID and color)
+            items = []
+            display_data = row[:-2]  # Exclude last two elements (ID and color)
+
+            for col_idx, value in enumerate(display_data):
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
+
+                # Make the "Total per day" column (last column) non-editable
+                if col_idx == len(display_data) - 1:  # Last column
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
                 items.append(item)
 
@@ -2152,7 +2214,7 @@ class MainWindow(
             self.on_export_csv()
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
-        """Transform transaction data for display with colors.
+        """Transform transaction data for display with colors and daily totals.
 
         Args:
 
@@ -2160,14 +2222,20 @@ class MainWindow(
 
         Returns:
 
-        - `list[list[Any]]`: Transformed data with colors.
+        - `list[list[Any]]`: Transformed data with colors and daily totals.
 
         """
         transformed_data = []
 
+        # Calculate daily expenses
+        daily_expenses = self._calculate_daily_expenses(rows)
+
         # Create a mapping of dates to color indices
         date_to_color_index = {}
         color_index = 0
+
+        # Track which dates we've already shown totals for
+        dates_with_totals = set()
 
         for row in rows:
             # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
@@ -2195,7 +2263,16 @@ class MainWindow(
             if category_type == 1:  # Income category
                 display_category_name = f"{category_name} (Income)"
 
-            # Transform to display format: [description, amount, category, currency, date, tag, id, color]
+            # Determine if this is the first transaction for this date
+            is_first_of_day = date not in dates_with_totals
+            if is_first_of_day:
+                dates_with_totals.add(date)
+
+            # Get daily total for this date
+            daily_total = daily_expenses.get(date, 0.0)
+            total_display = f"{daily_total:.2f}" if is_first_of_day and daily_total > 0 else ""
+
+            # Transform to display format: [description, amount, category, currency, date, tag, total_per_day, id, color]
             transformed_row = [
                 description,
                 f"{amount:.2f}",
@@ -2203,6 +2280,7 @@ class MainWindow(
                 currency_code,
                 date,
                 tag,
+                total_display,
                 transaction_id,
                 color,
             ]
@@ -2303,6 +2381,33 @@ class MainWindow(
         """Set focus to amount field and select all text."""
         self.doubleSpinBox_amount.setFocus()
         self.doubleSpinBox_amount.selectAll()
+
+    def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
+        """Calculate daily expenses from transaction data.
+
+        Args:
+            rows: Raw transaction data from database.
+
+        Returns:
+            Dictionary mapping dates to total expenses for that day.
+        """
+        daily_expenses = {}
+
+        for row in rows:
+            # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
+            amount_cents = row[1]
+            date = row[5]
+            category_type = row[7]
+
+            # Only count expenses (category_type == 0)
+            if category_type == 0:
+                amount = float(amount_cents) / 100
+                if date in daily_expenses:
+                    daily_expenses[date] += amount
+                else:
+                    daily_expenses[date] = amount
+
+        return daily_expenses
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.
