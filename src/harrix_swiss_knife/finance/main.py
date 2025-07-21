@@ -1318,8 +1318,8 @@ class MainWindow(
         self.radioButton_3.clicked.connect(self.apply_filter)
 
         # Auto-filter signals for combo boxes
-        self.comboBox_filter_category.currentTextChanged.connect(self.apply_filter)
-        self.comboBox_filter_currency.currentTextChanged.connect(self.apply_filter)
+        self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
+        self.comboBox_filter_currency.currentTextChanged.connect(lambda _: self.apply_filter())
 
         # Chart signals
         self.pushButton_update_chart.clicked.connect(self.update_charts)
