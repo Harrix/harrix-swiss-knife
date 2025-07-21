@@ -6,7 +6,18 @@ This module contains a dialog for editing account information.
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QDoubleSpinBox, QComboBox, QCheckBox, QPushButton, QMessageBox
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+)
 
 
 class AccountEditDialog(QDialog):
@@ -32,6 +43,63 @@ class AccountEditDialog(QDialog):
 
         self._setup_ui()
         self._populate_data()
+
+    def get_result(self):
+        """Get the dialog result.
+
+        Returns:
+            Dictionary with action and data.
+        """
+        return self.result_data
+
+    def _on_delete(self):
+        """Handle delete button click."""
+        reply = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete account '{self.account_data.get('name', '')}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            self.result_data = {"action": "delete", "id": self.account_data.get("id")}
+            self.accept()
+
+    def _on_save(self):
+        """Handle save button click."""
+        name = self.name_edit.text().strip()
+        if not name:
+            QMessageBox.warning(self, "Error", "Account name cannot be empty")
+            return
+
+        self.result_data = {
+            "action": "save",
+            "name": name,
+            "balance": self.balance_spin.value(),
+            "currency_code": self.currency_combo.currentText(),
+            "is_liquid": self.is_liquid_check.isChecked(),
+            "is_cash": self.is_cash_check.isChecked(),
+        }
+
+        self.accept()
+
+    def _populate_data(self):
+        """Populate the dialog with account data."""
+        if self.account_data:
+            self.name_edit.setText(self.account_data.get("name", ""))
+            self.balance_spin.setValue(self.account_data.get("balance", 0.0))
+
+            currency_code = self.account_data.get("currency_code", "")
+            if currency_code in self.currencies:
+                index = self.currencies.index(currency_code)
+                self.currency_combo.setCurrentIndex(index)
+
+            self.is_liquid_check.setChecked(self.account_data.get("is_liquid", True))
+            self.is_cash_check.setChecked(self.account_data.get("is_cash", False))
+
+            # Set focus to balance field and select all text
+            self.balance_spin.setFocus()
+            self.balance_spin.selectAll()
 
     def _setup_ui(self):
         """Setup the user interface."""
@@ -88,63 +156,3 @@ class AccountEditDialog(QDialog):
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
-
-    def _populate_data(self):
-        """Populate the dialog with account data."""
-        if self.account_data:
-            self.name_edit.setText(self.account_data.get('name', ''))
-            self.balance_spin.setValue(self.account_data.get('balance', 0.0))
-
-            currency_code = self.account_data.get('currency_code', '')
-            if currency_code in self.currencies:
-                index = self.currencies.index(currency_code)
-                self.currency_combo.setCurrentIndex(index)
-
-            self.is_liquid_check.setChecked(self.account_data.get('is_liquid', True))
-            self.is_cash_check.setChecked(self.account_data.get('is_cash', False))
-
-            # Set focus to balance field and select all text
-            self.balance_spin.setFocus()
-            self.balance_spin.selectAll()
-
-    def _on_save(self):
-        """Handle save button click."""
-        name = self.name_edit.text().strip()
-        if not name:
-            QMessageBox.warning(self, "Error", "Account name cannot be empty")
-            return
-
-        self.result_data = {
-            'action': 'save',
-            'name': name,
-            'balance': self.balance_spin.value(),
-            'currency_code': self.currency_combo.currentText(),
-            'is_liquid': self.is_liquid_check.isChecked(),
-            'is_cash': self.is_cash_check.isChecked()
-        }
-
-        self.accept()
-
-    def _on_delete(self):
-        """Handle delete button click."""
-        reply = QMessageBox.question(
-            self,
-            "Confirm Delete",
-            f"Are you sure you want to delete account '{self.account_data.get('name', '')}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-
-        if reply == QMessageBox.StandardButton.Yes:
-            self.result_data = {
-                'action': 'delete',
-                'id': self.account_data.get('id')
-            }
-            self.accept()
-
-    def get_result(self):
-        """Get the dialog result.
-
-        Returns:
-            Dictionary with action and data.
-        """
-        return self.result_data

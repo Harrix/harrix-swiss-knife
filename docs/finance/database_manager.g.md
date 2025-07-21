@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `execute_query`](#%EF%B8%8F-method-execute_query)
   - [⚙️ Method `execute_simple_query`](#%EF%B8%8F-method-execute_simple_query)
   - [⚙️ Method `get_account_balances_in_currency`](#%EF%B8%8F-method-get_account_balances_in_currency)
+  - [⚙️ Method `get_account_by_id`](#%EF%B8%8F-method-get_account_by_id)
   - [⚙️ Method `get_all_accounts`](#%EF%B8%8F-method-get_all_accounts)
   - [⚙️ Method `get_all_categories`](#%EF%B8%8F-method-get_all_categories)
   - [⚙️ Method `get_all_currencies`](#%EF%B8%8F-method-get_all_currencies)
@@ -611,6 +612,27 @@ class DatabaseManager:
         """
         rows = self.get_rows(query, {"currency_id": currency_id})
         return [(row[0], float(row[1]) / 100) for row in rows]
+
+    def get_account_by_id(self, account_id: int) -> list[Any] | None:
+        """Get account data by ID.
+
+        Args:
+
+        - `account_id` (`int`): Account ID.
+
+        Returns:
+
+        - `list[Any] | None`: Account data or None if not found.
+
+        """
+        query = """
+            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash
+            FROM accounts a
+            JOIN currencies c ON a._id_currencies = c._id
+            WHERE a._id = :account_id
+        """
+        rows = self.get_rows(query, {"account_id": account_id})
+        return rows[0] if rows else None
 
     def get_all_accounts(self) -> list[list[Any]]:
         """Get all accounts with currency information.
@@ -2233,6 +2255,39 @@ def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, 
         """
         rows = self.get_rows(query, {"currency_id": currency_id})
         return [(row[0], float(row[1]) / 100) for row in rows]
+```
+
+</details>
+
+### ⚙️ Method `get_account_by_id`
+
+```python
+def get_account_by_id(self, account_id: int) -> list[Any] | None
+```
+
+Get account data by ID.
+
+Args:
+
+- `account_id` (`int`): Account ID.
+
+Returns:
+
+- `list[Any] | None`: Account data or None if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_account_by_id(self, account_id: int) -> list[Any] | None:
+        query = """
+            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash
+            FROM accounts a
+            JOIN currencies c ON a._id_currencies = c._id
+            WHERE a._id = :account_id
+        """
+        rows = self.get_rows(query, {"account_id": account_id})
+        return rows[0] if rows else None
 ```
 
 </details>

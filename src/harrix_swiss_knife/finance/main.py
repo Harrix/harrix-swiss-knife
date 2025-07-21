@@ -2035,6 +2035,96 @@ class MainWindow(
         self.dateEdit_filter_to.setDate(current_date)
         self.checkBox_use_date_filter.setChecked(False)
 
+    def _on_account_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double-click on accounts table.
+
+        Args:
+
+        - `index` (`QModelIndex`): The clicked index.
+
+        """
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get the row ID from vertical header
+            proxy_model = self.models["accounts"]
+            if proxy_model is None:
+                return
+
+            source_model = proxy_model.sourceModel()
+            if source_model is None:
+                return
+
+            row_id_item = source_model.verticalHeaderItem(index.row())
+            if row_id_item is None:
+                return
+
+            account_id = int(row_id_item.text())
+
+            # Get account data
+            account_data = self.db_manager.get_account_by_id(account_id)
+            if not account_data:
+                QMessageBox.warning(self, "Error", "Account not found")
+                return
+
+            # Prepare account data for dialog
+            account_dict = {
+                "id": account_data[0],
+                "name": account_data[1],
+                "balance": float(account_data[2]) / 100,  # Convert from cents
+                "currency_code": account_data[3],
+                "is_liquid": account_data[4] == 1,
+                "is_cash": account_data[5] == 1,
+            }
+
+            # Get currency codes for dialog
+            currencies = [row[1] for row in self.db_manager.get_all_currencies()]
+
+            # Show edit dialog
+            dialog = AccountEditDialog(self, account_dict, currencies)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                result = dialog.get_result()
+
+                if result["action"] == "save":
+                    # Update account
+                    currency_info = self.db_manager.get_currency_by_code(result["currency_code"])
+                    if not currency_info:
+                        QMessageBox.warning(self, "Error", "Currency not found")
+                        return
+
+                    currency_id = currency_info[0]
+
+                    success = self.db_manager.update_account(
+                        account_id,
+                        result["name"],
+                        result["balance"],
+                        currency_id,
+                        is_liquid=result["is_liquid"],
+                        is_cash=result["is_cash"],
+                    )
+
+                    if success:
+                        self.update_all()
+                        QMessageBox.information(self, "Success", "Account updated successfully")
+                    else:
+                        QMessageBox.warning(self, "Error", "Failed to update account")
+
+                elif result["action"] == "delete":
+                    # Delete account
+                    success = self.db_manager.delete_account(account_id)
+                    if success:
+                        self.update_all()
+                        QMessageBox.information(self, "Success", "Account deleted successfully")
+                    else:
+                        QMessageBox.warning(self, "Error", "Failed to delete account")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
+
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields."""
         if not text:
@@ -2452,96 +2542,6 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
-
-    def _on_account_double_clicked(self, index: QModelIndex) -> None:
-        """Handle double-click on accounts table.
-
-        Args:
-
-        - `index` (`QModelIndex`): The clicked index.
-
-        """
-        if not self._validate_database_connection():
-            return
-
-        if self.db_manager is None:
-            return
-
-        try:
-            # Get the row ID from vertical header
-            proxy_model = self.models["accounts"]
-            if proxy_model is None:
-                return
-
-            source_model = proxy_model.sourceModel()
-            if source_model is None:
-                return
-
-            row_id_item = source_model.verticalHeaderItem(index.row())
-            if row_id_item is None:
-                return
-
-            account_id = int(row_id_item.text())
-
-            # Get account data
-            account_data = self.db_manager.get_account_by_id(account_id)
-            if not account_data:
-                QMessageBox.warning(self, "Error", "Account not found")
-                return
-
-            # Prepare account data for dialog
-            account_dict = {
-                'id': account_data[0],
-                'name': account_data[1],
-                'balance': float(account_data[2]) / 100,  # Convert from cents
-                'currency_code': account_data[3],
-                'is_liquid': account_data[4] == 1,
-                'is_cash': account_data[5] == 1
-            }
-
-            # Get currency codes for dialog
-            currencies = [row[1] for row in self.db_manager.get_all_currencies()]
-
-            # Show edit dialog
-            dialog = AccountEditDialog(self, account_dict, currencies)
-            if dialog.exec() == QDialog.DialogCode.Accepted:
-                result = dialog.get_result()
-
-                if result['action'] == 'save':
-                    # Update account
-                    currency_info = self.db_manager.get_currency_by_code(result['currency_code'])
-                    if not currency_info:
-                        QMessageBox.warning(self, "Error", "Currency not found")
-                        return
-
-                    currency_id = currency_info[0]
-
-                    success = self.db_manager.update_account(
-                        account_id,
-                        result['name'],
-                        result['balance'],
-                        currency_id,
-                        is_liquid=result['is_liquid'],
-                        is_cash=result['is_cash']
-                    )
-
-                    if success:
-                        self.update_all()
-                        QMessageBox.information(self, "Success", "Account updated successfully")
-                    else:
-                        QMessageBox.warning(self, "Error", "Failed to update account")
-
-                elif result['action'] == 'delete':
-                    # Delete account
-                    success = self.db_manager.delete_account(account_id)
-                    if success:
-                        self.update_all()
-                        QMessageBox.information(self, "Success", "Account deleted successfully")
-                    else:
-                        QMessageBox.warning(self, "Error", "Failed to delete account")
-
-        except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.

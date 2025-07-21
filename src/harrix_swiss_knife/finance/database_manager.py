@@ -551,6 +551,27 @@ class DatabaseManager:
         rows = self.get_rows(query, {"currency_id": currency_id})
         return [(row[0], float(row[1]) / 100) for row in rows]
 
+    def get_account_by_id(self, account_id: int) -> list[Any] | None:
+        """Get account data by ID.
+
+        Args:
+
+        - `account_id` (`int`): Account ID.
+
+        Returns:
+
+        - `list[Any] | None`: Account data or None if not found.
+
+        """
+        query = """
+            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash
+            FROM accounts a
+            JOIN currencies c ON a._id_currencies = c._id
+            WHERE a._id = :account_id
+        """
+        rows = self.get_rows(query, {"account_id": account_id})
+        return rows[0] if rows else None
+
     def get_all_accounts(self) -> list[list[Any]]:
         """Get all accounts with currency information.
 
@@ -1214,27 +1235,6 @@ class DatabaseManager:
             "id": account_id,
         }
         return self.execute_simple_query(query, params)
-
-    def get_account_by_id(self, account_id: int) -> list[Any] | None:
-        """Get account data by ID.
-
-        Args:
-
-        - `account_id` (`int`): Account ID.
-
-        Returns:
-
-        - `list[Any] | None`: Account data or None if not found.
-
-        """
-        query = """
-            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash
-            FROM accounts a
-            JOIN currencies c ON a._id_currencies = c._id
-            WHERE a._id = :account_id
-        """
-        rows = self.get_rows(query, {"account_id": account_id})
-        return rows[0] if rows else None
 
     def update_category(self, category_id: int, name: str, category_type: int, icon: str = "") -> bool:
         """Update an existing category.
