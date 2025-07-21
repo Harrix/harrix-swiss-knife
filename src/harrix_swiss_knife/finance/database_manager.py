@@ -963,17 +963,38 @@ class DatabaseManager:
         - `list[str]`: List of unique transaction descriptions.
 
         """
-        # Get descriptions ordered by frequency (most used first) and then by recency
+                                        # Get descriptions ordered by frequency (most used first) and then by recency
+        # Also include recent unique descriptions that might not be frequent
         query = """
-            SELECT t.description, COUNT(*) as usage_count, MAX(t.date) as last_used
-            FROM transactions t
-            WHERE t.description IS NOT NULL AND t.description != ''
-            GROUP BY t.description
-            ORDER BY usage_count DESC, last_used DESC
-            LIMIT :limit
+            WITH frequent_descriptions AS (
+                SELECT t.description, COUNT(*) as usage_count, MAX(t.date) as last_used
+                FROM transactions t
+                WHERE t.description IS NOT NULL AND t.description != ''
+                GROUP BY t.description
+                ORDER BY usage_count DESC, last_used DESC
+                LIMIT :limit_frequent
+            ),
+            recent_descriptions AS (
+                SELECT DISTINCT t.description
+                FROM transactions t
+                WHERE t.description IS NOT NULL AND t.description != ''
+                ORDER BY t._id DESC
+                LIMIT :limit_recent
+            )
+            SELECT DISTINCT description
+            FROM (
+                SELECT description FROM frequent_descriptions
+                UNION
+                SELECT description FROM recent_descriptions
+            )
+            ORDER BY description
         """
 
-        rows = self.get_rows(query, {"limit": limit})
+        # Use 70% for frequent, 30% for recent
+        limit_frequent = int(limit * 0.7)
+        limit_recent = limit - limit_frequent
+
+        rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
         return [row[0] for row in rows if row[0]]
 
     def get_rows(
