@@ -981,17 +981,47 @@ class MainWindow(
             )
             self.tableView_categories.setModel(self.models["categories"])
 
-            # Refresh accounts table
+            # Refresh accounts table with sorting and color coding
             accounts_data = self.db_manager.get_all_accounts()
-            accounts_transformed_data = []
+
+            # Define colors for different account groups
+            account_colors = {
+                (0, 1): QColor(220, 255, 220),  # is_cash=0, is_liquid=1 - Light green
+                (1, 1): QColor(255, 255, 200),  # is_cash=1, is_liquid=1 - Light yellow
+                (0, 0): QColor(255, 220, 220),  # is_cash=0, is_liquid=0 - Light red
+                (1, 0): QColor(255, 200, 255),  # is_cash=1, is_liquid=0 - Light purple
+            }
+
+            # Group accounts by (is_cash, is_liquid) and sort within groups
+            account_groups = {
+                (0, 1): [],  # is_cash=0, is_liquid=1
+                (1, 1): [],  # is_cash=1, is_liquid=1
+                (0, 0): [],  # is_cash=0, is_liquid=0
+                (1, 0): [],  # is_cash=1, is_liquid=0
+            }
+
             for row in accounts_data:
-                # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash] -> [name, balance, currency, liquid, cash, id, color]
-                balance = float(row[2]) / 100  # Convert from cents
-                liquid_str = "Yes" if row[4] == 1 else "No"
-                cash_str = "Yes" if row[5] == 1 else "No"
-                color = QColor(220, 255, 220)
-                transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
-                accounts_transformed_data.append(transformed_row)
+                # Raw data: [id, name, balance_cents, currency_code, is_liquid, is_cash]
+                is_liquid = row[4]
+                is_cash = row[5]
+                group_key = (is_cash, is_liquid)
+                account_groups[group_key].append(row)
+
+            # Sort each group alphabetically by name
+            for group in account_groups.values():
+                group.sort(key=lambda x: x[1].lower())  # Sort by name (case-insensitive)
+
+            # Combine groups in the specified order
+            accounts_transformed_data = []
+            for group_key in [(0, 1), (1, 1), (0, 0), (1, 0)]:
+                color = account_colors[group_key]
+                for row in account_groups[group_key]:
+                    # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash] -> [name, balance, currency, liquid, cash, id, color]
+                    balance = float(row[2]) / 100  # Convert from cents
+                    liquid_str = "Yes" if row[4] == 1 else "No"
+                    cash_str = "Yes" if row[5] == 1 else "No"
+                    transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
+                    accounts_transformed_data.append(transformed_row)
 
             self.models["accounts"] = self._create_colored_table_model(
                 accounts_transformed_data, self.table_config["accounts"][2]
