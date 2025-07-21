@@ -1348,6 +1348,18 @@ class DatabaseManager:
 
         return True
 
+    def _init_default_settings(self) -> None:
+        """Initialize default settings if they don't exist."""
+        try:
+            # Check if default_currency setting exists
+            rows = self.get_rows("SELECT COUNT(*) FROM settings WHERE key = 'default_currency'")
+            if rows and rows[0][0] == 0:
+                # Insert default currency setting
+                self.execute_simple_query("INSERT INTO settings (key, value) VALUES ('default_currency', 'RUB')")
+                print("✅ Initialized default currency setting")
+        except Exception as e:
+            print(f"Warning: Could not initialize default settings: {e}")
+
     def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
         """Yield every record in `query` one by one.
 
@@ -1386,20 +1398,6 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
             error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
-
-    def _init_default_settings(self) -> None:
-        """Initialize default settings if they don't exist."""
-        try:
-            # Check if default_currency setting exists
-            rows = self.get_rows("SELECT COUNT(*) FROM settings WHERE key = 'default_currency'")
-            if rows and rows[0][0] == 0:
-                # Insert default currency setting
-                self.execute_simple_query(
-                    "INSERT INTO settings (key, value) VALUES ('default_currency', 'RUB')"
-                )
-                print("✅ Initialized default currency setting")
-        except Exception as e:
-            print(f"Warning: Could not initialize default settings: {e}")
 
     def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
         """Convert the full result set in `query` into a list of rows.

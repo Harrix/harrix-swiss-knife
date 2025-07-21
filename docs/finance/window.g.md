@@ -60,10 +60,25 @@ class Ui_MainWindow(object):
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
+        self.groupBox_today_expense.setTitle(QCoreApplication.translate("MainWindow", "Today's Expenses", None))
+        self.label_today_expense.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.label_categories.setText(QCoreApplication.translate("MainWindow", "Categories:", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_transactions),
             QCoreApplication.translate("MainWindow", "Transactions", None),
+        )
+        self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", "Add New Account", None))
+        self.label_account_name.setText(QCoreApplication.translate("MainWindow", "Name:", None))
+        self.label_account_currency.setText(QCoreApplication.translate("MainWindow", "Currency:", None))
+        self.label_account_balance.setText(QCoreApplication.translate("MainWindow", "Balance:", None))
+        self.checkBox_is_liquid.setText(QCoreApplication.translate("MainWindow", "Liquid", None))
+        self.checkBox_is_cash.setText(QCoreApplication.translate("MainWindow", "Cash", None))
+        self.pushButton_account_add.setText(QCoreApplication.translate("MainWindow", "Add Account", None))
+        self.groupBox_account_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
+        self.pushButton_accounts_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
+        self.pushButton_accounts_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Category", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
@@ -78,19 +93,6 @@ class Ui_MainWindow(object):
         self.pushButton_categories_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_categories), QCoreApplication.translate("MainWindow", "Categories", None)
-        )
-        self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", "Add New Account", None))
-        self.label_account_name.setText(QCoreApplication.translate("MainWindow", "Name:", None))
-        self.label_account_currency.setText(QCoreApplication.translate("MainWindow", "Currency:", None))
-        self.label_account_balance.setText(QCoreApplication.translate("MainWindow", "Balance:", None))
-        self.checkBox_is_liquid.setText(QCoreApplication.translate("MainWindow", "Liquid", None))
-        self.checkBox_is_cash.setText(QCoreApplication.translate("MainWindow", "Cash", None))
-        self.pushButton_account_add.setText(QCoreApplication.translate("MainWindow", "Add Account", None))
-        self.groupBox_account_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.pushButton_accounts_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_accounts_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
         self.groupBox_add_currency.setTitle(QCoreApplication.translate("MainWindow", "Add New Currency", None))
         self.label_currency_code.setText(QCoreApplication.translate("MainWindow", "Code:", None))
@@ -470,6 +472,23 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_5.addWidget(self.groupBox_filter)
 
+        self.groupBox_today_expense = QGroupBox(self.frame)
+        self.groupBox_today_expense.setObjectName("groupBox_today_expense")
+        self.groupBox_today_expense.setMinimumSize(QSize(0, 100))
+        self.verticalLayout_20 = QVBoxLayout(self.groupBox_today_expense)
+        self.verticalLayout_20.setObjectName("verticalLayout_20")
+        self.label_today_expense = QLabel(self.groupBox_today_expense)
+        self.label_today_expense.setObjectName("label_today_expense")
+        font2 = QFont()
+        font2.setPointSize(20)
+        font2.setBold(True)
+        self.label_today_expense.setFont(font2)
+        self.label_today_expense.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_20.addWidget(self.label_today_expense)
+
+        self.verticalLayout_5.addWidget(self.groupBox_today_expense)
+
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_5.addItem(self.verticalSpacer)
@@ -517,103 +536,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_main.addWidget(self.splitter)
 
         self.tabWidget.addTab(self.tab_transactions, "")
-        self.tab_categories = QWidget()
-        self.tab_categories.setObjectName("tab_categories")
-        self.horizontalLayout_4 = QHBoxLayout(self.tab_categories)
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.tableView_categories = QTableView(self.tab_categories)
-        self.tableView_categories.setObjectName("tableView_categories")
-
-        self.horizontalLayout_4.addWidget(self.tableView_categories)
-
-        self.frame_2 = QFrame(self.tab_categories)
-        self.frame_2.setObjectName("frame_2")
-        self.frame_2.setMinimumSize(QSize(300, 0))
-        self.frame_2.setMaximumSize(QSize(300, 16777215))
-        self.frame_2.setFrameShape(QFrame.StyledPanel)
-        self.frame_2.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_15 = QVBoxLayout(self.frame_2)
-        self.verticalLayout_15.setObjectName("verticalLayout_15")
-        self.groupBox_2 = QGroupBox(self.frame_2)
-        self.groupBox_2.setObjectName("groupBox_2")
-        self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
-        self.verticalLayout_10.setObjectName("verticalLayout_10")
-        self.horizontalLayout_17 = QHBoxLayout()
-        self.horizontalLayout_17.setObjectName("horizontalLayout_17")
-        self.label_5 = QLabel(self.groupBox_2)
-        self.label_5.setObjectName("label_5")
-        self.label_5.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_17.addWidget(self.label_5)
-
-        self.lineEdit_category_name = QLineEdit(self.groupBox_2)
-        self.lineEdit_category_name.setObjectName("lineEdit_category_name")
-        self.lineEdit_category_name.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_17.addWidget(self.lineEdit_category_name)
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_17)
-
-        self.horizontalLayout_18 = QHBoxLayout()
-        self.horizontalLayout_18.setObjectName("horizontalLayout_18")
-        self.label_6 = QLabel(self.groupBox_2)
-        self.label_6.setObjectName("label_6")
-        self.label_6.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_18.addWidget(self.label_6)
-
-        self.comboBox_category_type = QComboBox(self.groupBox_2)
-        self.comboBox_category_type.addItem("")
-        self.comboBox_category_type.addItem("")
-        self.comboBox_category_type.setObjectName("comboBox_category_type")
-        self.comboBox_category_type.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_18.addWidget(self.comboBox_category_type)
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_18)
-
-        self.horizontalLayout_19 = QHBoxLayout()
-        self.horizontalLayout_19.setObjectName("horizontalLayout_19")
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_19.addItem(self.horizontalSpacer_4)
-
-        self.pushButton_category_add = QPushButton(self.groupBox_2)
-        self.pushButton_category_add.setObjectName("pushButton_category_add")
-
-        self.horizontalLayout_19.addWidget(self.pushButton_category_add)
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_19)
-
-        self.verticalLayout_15.addWidget(self.groupBox_2)
-
-        self.groupBox_7 = QGroupBox(self.frame_2)
-        self.groupBox_7.setObjectName("groupBox_7")
-        self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
-        self.verticalLayout_11.setObjectName("verticalLayout_11")
-        self.horizontalLayout_20 = QHBoxLayout()
-        self.horizontalLayout_20.setObjectName("horizontalLayout_20")
-        self.pushButton_categories_delete = QPushButton(self.groupBox_7)
-        self.pushButton_categories_delete.setObjectName("pushButton_categories_delete")
-
-        self.horizontalLayout_20.addWidget(self.pushButton_categories_delete)
-
-        self.pushButton_categories_refresh = QPushButton(self.groupBox_7)
-        self.pushButton_categories_refresh.setObjectName("pushButton_categories_refresh")
-
-        self.horizontalLayout_20.addWidget(self.pushButton_categories_refresh)
-
-        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
-
-        self.verticalLayout_15.addWidget(self.groupBox_7)
-
-        self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_15.addItem(self.verticalSpacer_2)
-
-        self.horizontalLayout_4.addWidget(self.frame_2)
-
-        self.tabWidget.addTab(self.tab_categories, "")
         self.tab_accounts = QWidget()
         self.tab_accounts.setObjectName("tab_accounts")
         self.horizontalLayout_accounts = QHBoxLayout(self.tab_accounts)
@@ -742,6 +664,103 @@ class Ui_MainWindow(object):
         self.horizontalLayout_accounts.addWidget(self.frame_accounts)
 
         self.tabWidget.addTab(self.tab_accounts, "")
+        self.tab_categories = QWidget()
+        self.tab_categories.setObjectName("tab_categories")
+        self.horizontalLayout_4 = QHBoxLayout(self.tab_categories)
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.tableView_categories = QTableView(self.tab_categories)
+        self.tableView_categories.setObjectName("tableView_categories")
+
+        self.horizontalLayout_4.addWidget(self.tableView_categories)
+
+        self.frame_2 = QFrame(self.tab_categories)
+        self.frame_2.setObjectName("frame_2")
+        self.frame_2.setMinimumSize(QSize(300, 0))
+        self.frame_2.setMaximumSize(QSize(300, 16777215))
+        self.frame_2.setFrameShape(QFrame.StyledPanel)
+        self.frame_2.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_15 = QVBoxLayout(self.frame_2)
+        self.verticalLayout_15.setObjectName("verticalLayout_15")
+        self.groupBox_2 = QGroupBox(self.frame_2)
+        self.groupBox_2.setObjectName("groupBox_2")
+        self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
+        self.verticalLayout_10.setObjectName("verticalLayout_10")
+        self.horizontalLayout_17 = QHBoxLayout()
+        self.horizontalLayout_17.setObjectName("horizontalLayout_17")
+        self.label_5 = QLabel(self.groupBox_2)
+        self.label_5.setObjectName("label_5")
+        self.label_5.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_17.addWidget(self.label_5)
+
+        self.lineEdit_category_name = QLineEdit(self.groupBox_2)
+        self.lineEdit_category_name.setObjectName("lineEdit_category_name")
+        self.lineEdit_category_name.setMinimumSize(QSize(170, 0))
+
+        self.horizontalLayout_17.addWidget(self.lineEdit_category_name)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_17)
+
+        self.horizontalLayout_18 = QHBoxLayout()
+        self.horizontalLayout_18.setObjectName("horizontalLayout_18")
+        self.label_6 = QLabel(self.groupBox_2)
+        self.label_6.setObjectName("label_6")
+        self.label_6.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_18.addWidget(self.label_6)
+
+        self.comboBox_category_type = QComboBox(self.groupBox_2)
+        self.comboBox_category_type.addItem("")
+        self.comboBox_category_type.addItem("")
+        self.comboBox_category_type.setObjectName("comboBox_category_type")
+        self.comboBox_category_type.setMinimumSize(QSize(170, 0))
+
+        self.horizontalLayout_18.addWidget(self.comboBox_category_type)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_18)
+
+        self.horizontalLayout_19 = QHBoxLayout()
+        self.horizontalLayout_19.setObjectName("horizontalLayout_19")
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_19.addItem(self.horizontalSpacer_4)
+
+        self.pushButton_category_add = QPushButton(self.groupBox_2)
+        self.pushButton_category_add.setObjectName("pushButton_category_add")
+
+        self.horizontalLayout_19.addWidget(self.pushButton_category_add)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_19)
+
+        self.verticalLayout_15.addWidget(self.groupBox_2)
+
+        self.groupBox_7 = QGroupBox(self.frame_2)
+        self.groupBox_7.setObjectName("groupBox_7")
+        self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
+        self.verticalLayout_11.setObjectName("verticalLayout_11")
+        self.horizontalLayout_20 = QHBoxLayout()
+        self.horizontalLayout_20.setObjectName("horizontalLayout_20")
+        self.pushButton_categories_delete = QPushButton(self.groupBox_7)
+        self.pushButton_categories_delete.setObjectName("pushButton_categories_delete")
+
+        self.horizontalLayout_20.addWidget(self.pushButton_categories_delete)
+
+        self.pushButton_categories_refresh = QPushButton(self.groupBox_7)
+        self.pushButton_categories_refresh.setObjectName("pushButton_categories_refresh")
+
+        self.horizontalLayout_20.addWidget(self.pushButton_categories_refresh)
+
+        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
+
+        self.verticalLayout_15.addWidget(self.groupBox_7)
+
+        self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_15.addItem(self.verticalSpacer_2)
+
+        self.horizontalLayout_4.addWidget(self.frame_2)
+
+        self.tabWidget.addTab(self.tab_categories, "")
         self.tab_currencies = QWidget()
         self.tab_currencies.setObjectName("tab_currencies")
         self.horizontalLayout_currencies = QHBoxLayout(self.tab_currencies)
@@ -1421,9 +1440,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_17.setObjectName("verticalLayout_17")
         self.label_daily_balance = QLabel(self.groupBox_daily_balance)
         self.label_daily_balance.setObjectName("label_daily_balance")
-        font2 = QFont()
-        font2.setPointSize(20)
-        font2.setBold(True)
         self.label_daily_balance.setFont(font2)
         self.label_daily_balance.setAlignment(Qt.AlignCenter)
 
@@ -1502,10 +1518,25 @@ def retranslateUi(self, MainWindow):
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", "Use date filter", None))
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
+        self.groupBox_today_expense.setTitle(QCoreApplication.translate("MainWindow", "Today's Expenses", None))
+        self.label_today_expense.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.label_categories.setText(QCoreApplication.translate("MainWindow", "Categories:", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_transactions),
             QCoreApplication.translate("MainWindow", "Transactions", None),
+        )
+        self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", "Add New Account", None))
+        self.label_account_name.setText(QCoreApplication.translate("MainWindow", "Name:", None))
+        self.label_account_currency.setText(QCoreApplication.translate("MainWindow", "Currency:", None))
+        self.label_account_balance.setText(QCoreApplication.translate("MainWindow", "Balance:", None))
+        self.checkBox_is_liquid.setText(QCoreApplication.translate("MainWindow", "Liquid", None))
+        self.checkBox_is_cash.setText(QCoreApplication.translate("MainWindow", "Cash", None))
+        self.pushButton_account_add.setText(QCoreApplication.translate("MainWindow", "Add Account", None))
+        self.groupBox_account_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
+        self.pushButton_accounts_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
+        self.pushButton_accounts_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Category", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
@@ -1520,19 +1551,6 @@ def retranslateUi(self, MainWindow):
         self.pushButton_categories_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_categories), QCoreApplication.translate("MainWindow", "Categories", None)
-        )
-        self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", "Add New Account", None))
-        self.label_account_name.setText(QCoreApplication.translate("MainWindow", "Name:", None))
-        self.label_account_currency.setText(QCoreApplication.translate("MainWindow", "Currency:", None))
-        self.label_account_balance.setText(QCoreApplication.translate("MainWindow", "Balance:", None))
-        self.checkBox_is_liquid.setText(QCoreApplication.translate("MainWindow", "Liquid", None))
-        self.checkBox_is_cash.setText(QCoreApplication.translate("MainWindow", "Cash", None))
-        self.pushButton_account_add.setText(QCoreApplication.translate("MainWindow", "Add Account", None))
-        self.groupBox_account_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
-        self.pushButton_accounts_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
-        self.pushButton_accounts_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
         self.groupBox_add_currency.setTitle(QCoreApplication.translate("MainWindow", "Add New Currency", None))
         self.label_currency_code.setText(QCoreApplication.translate("MainWindow", "Code:", None))
@@ -1927,6 +1945,23 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_5.addWidget(self.groupBox_filter)
 
+        self.groupBox_today_expense = QGroupBox(self.frame)
+        self.groupBox_today_expense.setObjectName("groupBox_today_expense")
+        self.groupBox_today_expense.setMinimumSize(QSize(0, 100))
+        self.verticalLayout_20 = QVBoxLayout(self.groupBox_today_expense)
+        self.verticalLayout_20.setObjectName("verticalLayout_20")
+        self.label_today_expense = QLabel(self.groupBox_today_expense)
+        self.label_today_expense.setObjectName("label_today_expense")
+        font2 = QFont()
+        font2.setPointSize(20)
+        font2.setBold(True)
+        self.label_today_expense.setFont(font2)
+        self.label_today_expense.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_20.addWidget(self.label_today_expense)
+
+        self.verticalLayout_5.addWidget(self.groupBox_today_expense)
+
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_5.addItem(self.verticalSpacer)
@@ -1974,103 +2009,6 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_main.addWidget(self.splitter)
 
         self.tabWidget.addTab(self.tab_transactions, "")
-        self.tab_categories = QWidget()
-        self.tab_categories.setObjectName("tab_categories")
-        self.horizontalLayout_4 = QHBoxLayout(self.tab_categories)
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.tableView_categories = QTableView(self.tab_categories)
-        self.tableView_categories.setObjectName("tableView_categories")
-
-        self.horizontalLayout_4.addWidget(self.tableView_categories)
-
-        self.frame_2 = QFrame(self.tab_categories)
-        self.frame_2.setObjectName("frame_2")
-        self.frame_2.setMinimumSize(QSize(300, 0))
-        self.frame_2.setMaximumSize(QSize(300, 16777215))
-        self.frame_2.setFrameShape(QFrame.StyledPanel)
-        self.frame_2.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_15 = QVBoxLayout(self.frame_2)
-        self.verticalLayout_15.setObjectName("verticalLayout_15")
-        self.groupBox_2 = QGroupBox(self.frame_2)
-        self.groupBox_2.setObjectName("groupBox_2")
-        self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
-        self.verticalLayout_10.setObjectName("verticalLayout_10")
-        self.horizontalLayout_17 = QHBoxLayout()
-        self.horizontalLayout_17.setObjectName("horizontalLayout_17")
-        self.label_5 = QLabel(self.groupBox_2)
-        self.label_5.setObjectName("label_5")
-        self.label_5.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_17.addWidget(self.label_5)
-
-        self.lineEdit_category_name = QLineEdit(self.groupBox_2)
-        self.lineEdit_category_name.setObjectName("lineEdit_category_name")
-        self.lineEdit_category_name.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_17.addWidget(self.lineEdit_category_name)
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_17)
-
-        self.horizontalLayout_18 = QHBoxLayout()
-        self.horizontalLayout_18.setObjectName("horizontalLayout_18")
-        self.label_6 = QLabel(self.groupBox_2)
-        self.label_6.setObjectName("label_6")
-        self.label_6.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_18.addWidget(self.label_6)
-
-        self.comboBox_category_type = QComboBox(self.groupBox_2)
-        self.comboBox_category_type.addItem("")
-        self.comboBox_category_type.addItem("")
-        self.comboBox_category_type.setObjectName("comboBox_category_type")
-        self.comboBox_category_type.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_18.addWidget(self.comboBox_category_type)
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_18)
-
-        self.horizontalLayout_19 = QHBoxLayout()
-        self.horizontalLayout_19.setObjectName("horizontalLayout_19")
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_19.addItem(self.horizontalSpacer_4)
-
-        self.pushButton_category_add = QPushButton(self.groupBox_2)
-        self.pushButton_category_add.setObjectName("pushButton_category_add")
-
-        self.horizontalLayout_19.addWidget(self.pushButton_category_add)
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_19)
-
-        self.verticalLayout_15.addWidget(self.groupBox_2)
-
-        self.groupBox_7 = QGroupBox(self.frame_2)
-        self.groupBox_7.setObjectName("groupBox_7")
-        self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
-        self.verticalLayout_11.setObjectName("verticalLayout_11")
-        self.horizontalLayout_20 = QHBoxLayout()
-        self.horizontalLayout_20.setObjectName("horizontalLayout_20")
-        self.pushButton_categories_delete = QPushButton(self.groupBox_7)
-        self.pushButton_categories_delete.setObjectName("pushButton_categories_delete")
-
-        self.horizontalLayout_20.addWidget(self.pushButton_categories_delete)
-
-        self.pushButton_categories_refresh = QPushButton(self.groupBox_7)
-        self.pushButton_categories_refresh.setObjectName("pushButton_categories_refresh")
-
-        self.horizontalLayout_20.addWidget(self.pushButton_categories_refresh)
-
-        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
-
-        self.verticalLayout_15.addWidget(self.groupBox_7)
-
-        self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_15.addItem(self.verticalSpacer_2)
-
-        self.horizontalLayout_4.addWidget(self.frame_2)
-
-        self.tabWidget.addTab(self.tab_categories, "")
         self.tab_accounts = QWidget()
         self.tab_accounts.setObjectName("tab_accounts")
         self.horizontalLayout_accounts = QHBoxLayout(self.tab_accounts)
@@ -2199,6 +2137,103 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_accounts.addWidget(self.frame_accounts)
 
         self.tabWidget.addTab(self.tab_accounts, "")
+        self.tab_categories = QWidget()
+        self.tab_categories.setObjectName("tab_categories")
+        self.horizontalLayout_4 = QHBoxLayout(self.tab_categories)
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.tableView_categories = QTableView(self.tab_categories)
+        self.tableView_categories.setObjectName("tableView_categories")
+
+        self.horizontalLayout_4.addWidget(self.tableView_categories)
+
+        self.frame_2 = QFrame(self.tab_categories)
+        self.frame_2.setObjectName("frame_2")
+        self.frame_2.setMinimumSize(QSize(300, 0))
+        self.frame_2.setMaximumSize(QSize(300, 16777215))
+        self.frame_2.setFrameShape(QFrame.StyledPanel)
+        self.frame_2.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_15 = QVBoxLayout(self.frame_2)
+        self.verticalLayout_15.setObjectName("verticalLayout_15")
+        self.groupBox_2 = QGroupBox(self.frame_2)
+        self.groupBox_2.setObjectName("groupBox_2")
+        self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
+        self.verticalLayout_10.setObjectName("verticalLayout_10")
+        self.horizontalLayout_17 = QHBoxLayout()
+        self.horizontalLayout_17.setObjectName("horizontalLayout_17")
+        self.label_5 = QLabel(self.groupBox_2)
+        self.label_5.setObjectName("label_5")
+        self.label_5.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_17.addWidget(self.label_5)
+
+        self.lineEdit_category_name = QLineEdit(self.groupBox_2)
+        self.lineEdit_category_name.setObjectName("lineEdit_category_name")
+        self.lineEdit_category_name.setMinimumSize(QSize(170, 0))
+
+        self.horizontalLayout_17.addWidget(self.lineEdit_category_name)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_17)
+
+        self.horizontalLayout_18 = QHBoxLayout()
+        self.horizontalLayout_18.setObjectName("horizontalLayout_18")
+        self.label_6 = QLabel(self.groupBox_2)
+        self.label_6.setObjectName("label_6")
+        self.label_6.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_18.addWidget(self.label_6)
+
+        self.comboBox_category_type = QComboBox(self.groupBox_2)
+        self.comboBox_category_type.addItem("")
+        self.comboBox_category_type.addItem("")
+        self.comboBox_category_type.setObjectName("comboBox_category_type")
+        self.comboBox_category_type.setMinimumSize(QSize(170, 0))
+
+        self.horizontalLayout_18.addWidget(self.comboBox_category_type)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_18)
+
+        self.horizontalLayout_19 = QHBoxLayout()
+        self.horizontalLayout_19.setObjectName("horizontalLayout_19")
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_19.addItem(self.horizontalSpacer_4)
+
+        self.pushButton_category_add = QPushButton(self.groupBox_2)
+        self.pushButton_category_add.setObjectName("pushButton_category_add")
+
+        self.horizontalLayout_19.addWidget(self.pushButton_category_add)
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_19)
+
+        self.verticalLayout_15.addWidget(self.groupBox_2)
+
+        self.groupBox_7 = QGroupBox(self.frame_2)
+        self.groupBox_7.setObjectName("groupBox_7")
+        self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
+        self.verticalLayout_11.setObjectName("verticalLayout_11")
+        self.horizontalLayout_20 = QHBoxLayout()
+        self.horizontalLayout_20.setObjectName("horizontalLayout_20")
+        self.pushButton_categories_delete = QPushButton(self.groupBox_7)
+        self.pushButton_categories_delete.setObjectName("pushButton_categories_delete")
+
+        self.horizontalLayout_20.addWidget(self.pushButton_categories_delete)
+
+        self.pushButton_categories_refresh = QPushButton(self.groupBox_7)
+        self.pushButton_categories_refresh.setObjectName("pushButton_categories_refresh")
+
+        self.horizontalLayout_20.addWidget(self.pushButton_categories_refresh)
+
+        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
+
+        self.verticalLayout_15.addWidget(self.groupBox_7)
+
+        self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_15.addItem(self.verticalSpacer_2)
+
+        self.horizontalLayout_4.addWidget(self.frame_2)
+
+        self.tabWidget.addTab(self.tab_categories, "")
         self.tab_currencies = QWidget()
         self.tab_currencies.setObjectName("tab_currencies")
         self.horizontalLayout_currencies = QHBoxLayout(self.tab_currencies)
@@ -2878,9 +2913,6 @@ def setupUi(self, MainWindow):
         self.verticalLayout_17.setObjectName("verticalLayout_17")
         self.label_daily_balance = QLabel(self.groupBox_daily_balance)
         self.label_daily_balance.setObjectName("label_daily_balance")
-        font2 = QFont()
-        font2.setPointSize(20)
-        font2.setBold(True)
         self.label_daily_balance.setFont(font2)
         self.label_daily_balance.setAlignment(Qt.AlignCenter)
 

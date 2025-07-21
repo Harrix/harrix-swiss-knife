@@ -49,6 +49,7 @@ lang: en
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
+  - [⚙️ Method `get_today_expenses_in_currency`](#%EF%B8%8F-method-get_today_expenses_in_currency)
   - [⚙️ Method `get_transactions_chart_data`](#%EF%B8%8F-method-get_transactions_chart_data)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
@@ -59,6 +60,7 @@ lang: en
   - [⚙️ Method `update_transaction`](#%EF%B8%8F-method-update_transaction)
   - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
   - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
+  - [⚙️ Method `_init_default_settings`](#%EF%B8%8F-method-_init_default_settings)
   - [⚙️ Method `_iter_query`](#%EF%B8%8F-method-_iter_query)
   - [⚙️ Method `_reconnect`](#%EF%B8%8F-method-_reconnect)
   - [⚙️ Method `_rows_from_query`](#%EF%B8%8F-method-_rows_from_query)
@@ -113,6 +115,9 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown database error"
             msg = f"❌ Failed to open the database: {error_msg}"
             raise ConnectionError(msg)
+
+        # Initialize default settings if they don't exist
+        self._init_default_settings()
 
     def __del__(self) -> None:
         """Clean up database connection when object is destroyed."""
@@ -1098,6 +1103,22 @@ class DatabaseManager:
         total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return total_income - total_expenses
 
+    def get_today_expenses_in_currency(self, currency_id: int) -> float:
+        """Get today's expenses in specified currency.
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID for conversion.
+
+        Returns:
+
+        - `float`: Today's expenses in the specified currency.
+
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
+        return expenses
+
     def get_transactions_chart_data(
         self,
         currency_id: int,
@@ -1388,6 +1409,18 @@ class DatabaseManager:
 
         return True
 
+    def _init_default_settings(self) -> None:
+        """Initialize default settings if they don't exist."""
+        try:
+            # Check if default_currency setting exists
+            rows = self.get_rows("SELECT COUNT(*) FROM settings WHERE key = 'default_currency'")
+            if rows and rows[0][0] == 0:
+                # Insert default currency setting
+                self.execute_simple_query("INSERT INTO settings (key, value) VALUES ('default_currency', 'RUB')")
+                print("✅ Initialized default currency setting")
+        except Exception as e:
+            print(f"Warning: Could not initialize default settings: {e}")
+
     def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
         """Yield every record in `query` one by one.
 
@@ -1485,6 +1518,9 @@ def __init__(self, db_filename: str) -> None:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown database error"
             msg = f"❌ Failed to open the database: {error_msg}"
             raise ConnectionError(msg)
+
+        # Initialize default settings if they don't exist
+        self._init_default_settings()
 ```
 
 </details>
@@ -2908,6 +2944,34 @@ def get_today_balance_in_currency(self, currency_id: int) -> float:
 
 </details>
 
+### ⚙️ Method `get_today_expenses_in_currency`
+
+```python
+def get_today_expenses_in_currency(self, currency_id: int) -> float
+```
+
+Get today's expenses in specified currency.
+
+Args:
+
+- `currency_id` (`int`): Currency ID for conversion.
+
+Returns:
+
+- `float`: Today's expenses in the specified currency.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_today_expenses_in_currency(self, currency_id: int) -> float:
+        today = datetime.now().strftime("%Y-%m-%d")
+        _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
+        return expenses
+```
+
+</details>
+
 ### ⚙️ Method `get_transactions_chart_data`
 
 ```python
@@ -3314,6 +3378,32 @@ def _ensure_connection(self) -> bool:
                     return False
 
         return True
+```
+
+</details>
+
+### ⚙️ Method `_init_default_settings`
+
+```python
+def _init_default_settings(self) -> None
+```
+
+Initialize default settings if they don't exist.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_default_settings(self) -> None:
+        try:
+            # Check if default_currency setting exists
+            rows = self.get_rows("SELECT COUNT(*) FROM settings WHERE key = 'default_currency'")
+            if rows and rows[0][0] == 0:
+                # Insert default currency setting
+                self.execute_simple_query("INSERT INTO settings (key, value) VALUES ('default_currency', 'RUB')")
+                print("✅ Initialized default currency setting")
+        except Exception as e:
+            print(f"Warning: Could not initialize default settings: {e}")
 ```
 
 </details>
