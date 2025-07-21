@@ -1906,6 +1906,10 @@ class MainWindow(
         # Try to populate other fields based on the selected description
         self._populate_form_from_description(text)
 
+        # Set focus to amount field and select all text after a short delay
+        # This ensures form population is complete before focusing
+        QTimer.singleShot(100, self._focus_amount_and_select_text)
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -2294,6 +2298,11 @@ class MainWindow(
         """Set focus to description field and select all text."""
         self.lineEdit_description.setFocus()
         self.lineEdit_description.selectAll()
+
+    def _focus_amount_and_select_text(self) -> None:
+        """Set focus to amount field and select all text."""
+        self.doubleSpinBox_amount.setFocus()
+        self.doubleSpinBox_amount.selectAll()
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.
