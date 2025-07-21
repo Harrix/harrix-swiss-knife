@@ -317,6 +317,24 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_5.addWidget(self.groupBox_filter)
 
+        self.groupBox_today_expense = QGroupBox(self.frame)
+        self.groupBox_today_expense.setObjectName(u"groupBox_today_expense")
+        self.groupBox_today_expense.setMinimumSize(QSize(0, 100))
+        self.verticalLayout_20 = QVBoxLayout(self.groupBox_today_expense)
+        self.verticalLayout_20.setObjectName(u"verticalLayout_20")
+        self.label_today_expense = QLabel(self.groupBox_today_expense)
+        self.label_today_expense.setObjectName(u"label_today_expense")
+        font2 = QFont()
+        font2.setPointSize(20)
+        font2.setBold(True)
+        self.label_today_expense.setFont(font2)
+        self.label_today_expense.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_20.addWidget(self.label_today_expense)
+
+
+        self.verticalLayout_5.addWidget(self.groupBox_today_expense)
+
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_5.addItem(self.verticalSpacer)
@@ -1312,9 +1330,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_17.setObjectName(u"verticalLayout_17")
         self.label_daily_balance = QLabel(self.groupBox_daily_balance)
         self.label_daily_balance.setObjectName(u"label_daily_balance")
-        font2 = QFont()
-        font2.setPointSize(20)
-        font2.setBold(True)
         self.label_daily_balance.setFont(font2)
         self.label_daily_balance.setAlignment(Qt.AlignCenter)
 
@@ -1382,6 +1397,8 @@ class Ui_MainWindow(object):
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", u"Use date filter", None))
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"Clear Filter", None))
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", u"Apply Filter", None))
+        self.groupBox_today_expense.setTitle(QCoreApplication.translate("MainWindow", u"Today's Expenses", None))
+        self.label_today_expense.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
         self.label_categories.setText(QCoreApplication.translate("MainWindow", u"Categories:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_transactions), QCoreApplication.translate("MainWindow", u"Transactions", None))
         self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", u"Add New Account", None))

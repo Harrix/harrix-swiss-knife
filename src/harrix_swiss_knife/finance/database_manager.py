@@ -1042,6 +1042,22 @@ class DatabaseManager:
         total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return total_income - total_expenses
 
+    def get_today_expenses_in_currency(self, currency_id: int) -> float:
+        """Get today's expenses in specified currency.
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID for conversion.
+
+        Returns:
+
+        - `float`: Today's expenses in the specified currency.
+
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
+        return expenses
+
     def get_transactions_chart_data(
         self,
         currency_id: int,

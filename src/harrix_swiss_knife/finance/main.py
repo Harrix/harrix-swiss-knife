@@ -1254,12 +1254,17 @@ class MainWindow(
             today_balance = self.db_manager.get_today_balance_in_currency(default_currency_id)
             self.label_daily_balance.setText(f"{today_balance:.2f}{currency_symbol}")
 
+            # Get today's expenses
+            today_expenses = self.db_manager.get_today_expenses_in_currency(default_currency_id)
+            self.label_today_expense.setText(f"{today_expenses:.2f}{currency_symbol}")
+
         except Exception as e:
             print(f"Error updating summary labels: {e}")
             # Set default values on error
             self.label_total_income.setText("Total Income: 0.00₽")
             self.label_total_expenses.setText("Total Expenses: 0.00₽")
             self.label_daily_balance.setText("0.00₽")
+            self.label_today_expense.setText("0.00₽")
 
     def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
         """Calculate daily expenses from transaction data.
