@@ -632,6 +632,9 @@ class MainWindow(
 
         try:
             if self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag):
+                # Save current date before updating UI
+                current_date = self.dateEdit.date()
+
                 # Update UI
                 self.update_all()
                 self.update_summary_labels()
@@ -643,6 +646,9 @@ class MainWindow(
                 self.doubleSpinBox_amount.setValue(100.0)
                 self.lineEdit_description.clear()
                 self.lineEdit_tag.clear()
+
+                # Restore the original date
+                self.dateEdit.setDate(current_date)
 
                 # Set focus to description field and select all text after a short delay
                 # This ensures UI updates are complete before focusing
