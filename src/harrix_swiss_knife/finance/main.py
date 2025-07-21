@@ -1059,6 +1059,12 @@ class MainWindow(
             )
             self.tableView_currencies.setModel(self.models["currencies"])
 
+            # Configure column stretching for currencies table
+            currencies_header = self.tableView_currencies.horizontalHeader()
+            if currencies_header.count() > 0:
+                for i in range(currencies_header.count()):
+                    currencies_header.setSectionResizeMode(i, currencies_header.ResizeMode.Stretch)
+
             # Refresh currency exchanges table
             exchanges_data = self.db_manager.get_all_currency_exchanges()
             exchanges_transformed_data = []
