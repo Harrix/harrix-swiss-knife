@@ -1033,6 +1033,12 @@ class MainWindow(
             self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
             self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
 
+            # Configure column stretching for accounts table
+            accounts_header = self.tableView_accounts.horizontalHeader()
+            if accounts_header.count() > 0:
+                for i in range(accounts_header.count()):
+                    accounts_header.setSectionResizeMode(i, accounts_header.ResizeMode.Stretch)
+
             # Refresh currencies table
             currencies_data = self.db_manager.get_all_currencies()
             currencies_transformed_data = []
