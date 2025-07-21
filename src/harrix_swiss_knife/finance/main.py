@@ -632,9 +632,6 @@ class MainWindow(
 
         try:
             if self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag):
-                # Apply date increment logic
-                self._increment_date_widget(self.dateEdit)
-
                 # Update UI
                 self.update_all()
                 self.update_summary_labels()
