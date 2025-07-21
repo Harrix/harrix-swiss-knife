@@ -1115,6 +1115,12 @@ class MainWindow(
             )
             self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
 
+            # Configure column stretching for exchange rates table
+            rates_header = self.tableView_exchange_rates.horizontalHeader()
+            if rates_header.count() > 0:
+                for i in range(rates_header.count()):
+                    rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
+
             # Resize columns to content
             for table_name in self.table_config:
                 view = self.table_config[table_name][0]
