@@ -646,6 +646,13 @@ class MainWindow(
                 self.doubleSpinBox_amount.setValue(100.0)
                 self.lineEdit_description.clear()
                 self.lineEdit_tag.clear()
+
+                # Set focus to description field and select all text after a short delay
+                # This ensures UI updates are complete before focusing
+                QTimer.singleShot(100, self._focus_description_and_select_text)
+
+                # Select the category of the just added transaction
+                self._select_category_by_id(cat_id)
             else:
                 QMessageBox.warning(self, "Error", "Failed to add transaction")
         except Exception as e:
@@ -2274,6 +2281,11 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
+
+    def _focus_description_and_select_text(self) -> None:
+        """Set focus to description field and select all text."""
+        self.lineEdit_description.setFocus()
+        self.lineEdit_description.selectAll()
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.
