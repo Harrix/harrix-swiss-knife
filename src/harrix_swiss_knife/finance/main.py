@@ -305,22 +305,7 @@ class MainWindow(
         from PySide6.QtCore import QEvent
         from PySide6.QtGui import QKeyEvent
 
-        if obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        elif obj == self.dateEdit and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        elif obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
-                self.on_add_transaction()
-                return True
-        elif obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress:
+        if (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress) or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress) or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress) or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress):
             key_event = QKeyEvent(event)
             if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
                 self.on_add_transaction()
@@ -1501,6 +1486,7 @@ class MainWindow(
 
         Returns:
             A filterable and sortable model with colored data and non-editable total column.
+
         """
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
@@ -2270,7 +2256,7 @@ class MainWindow(
 
             # Get daily total for this date
             daily_total = daily_expenses.get(date, 0.0)
-            total_display = f"{daily_total:.2f}" if is_first_of_day and daily_total > 0 else ""
+            total_display = f"-{daily_total:.2f}" if is_first_of_day and daily_total > 0 else ""
 
             # Transform to display format: [description, amount, category, currency, date, tag, total_per_day, id, color]
             transformed_row = [
@@ -2390,6 +2376,7 @@ class MainWindow(
 
         Returns:
             Dictionary mapping dates to total expenses for that day.
+
         """
         daily_expenses = {}
 
