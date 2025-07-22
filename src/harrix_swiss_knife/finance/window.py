@@ -521,11 +521,6 @@ class Ui_MainWindow(object):
         self.tab_categories.setObjectName(u"tab_categories")
         self.horizontalLayout_4 = QHBoxLayout(self.tab_categories)
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.tableView_categories = QTableView(self.tab_categories)
-        self.tableView_categories.setObjectName(u"tableView_categories")
-
-        self.horizontalLayout_4.addWidget(self.tableView_categories)
-
         self.frame_2 = QFrame(self.tab_categories)
         self.frame_2.setObjectName(u"frame_2")
         self.frame_2.setMinimumSize(QSize(300, 0))
@@ -619,6 +614,11 @@ class Ui_MainWindow(object):
 
 
         self.horizontalLayout_4.addWidget(self.frame_2)
+
+        self.tableView_categories = QTableView(self.tab_categories)
+        self.tableView_categories.setObjectName(u"tableView_categories")
+
+        self.horizontalLayout_4.addWidget(self.tableView_categories)
 
         self.tabWidget.addTab(self.tab_categories, "")
         self.tab_currencies = QWidget()
@@ -1256,7 +1256,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName(u"scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 80, 18))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 719))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName(u"verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1363,7 +1363,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(2)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
