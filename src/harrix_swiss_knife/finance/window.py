@@ -625,11 +625,6 @@ class Ui_MainWindow(object):
         self.tab_currencies.setObjectName(u"tab_currencies")
         self.horizontalLayout_currencies = QHBoxLayout(self.tab_currencies)
         self.horizontalLayout_currencies.setObjectName(u"horizontalLayout_currencies")
-        self.tableView_currencies = QTableView(self.tab_currencies)
-        self.tableView_currencies.setObjectName(u"tableView_currencies")
-
-        self.horizontalLayout_currencies.addWidget(self.tableView_currencies)
-
         self.frame_currencies = QFrame(self.tab_currencies)
         self.frame_currencies.setObjectName(u"frame_currencies")
         self.frame_currencies.setMinimumSize(QSize(300, 0))
@@ -761,6 +756,11 @@ class Ui_MainWindow(object):
 
 
         self.horizontalLayout_currencies.addWidget(self.frame_currencies)
+
+        self.tableView_currencies = QTableView(self.tab_currencies)
+        self.tableView_currencies.setObjectName(u"tableView_currencies")
+
+        self.horizontalLayout_currencies.addWidget(self.tableView_currencies)
 
         self.tabWidget.addTab(self.tab_currencies, "")
         self.tab_exchange = QWidget()
@@ -1363,7 +1363,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(3)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
