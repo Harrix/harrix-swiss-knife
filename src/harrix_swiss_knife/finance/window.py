@@ -975,11 +975,6 @@ class Ui_MainWindow(object):
         self.tab_exchange_rates.setObjectName(u"tab_exchange_rates")
         self.horizontalLayout_rates = QHBoxLayout(self.tab_exchange_rates)
         self.horizontalLayout_rates.setObjectName(u"horizontalLayout_rates")
-        self.tableView_exchange_rates = QTableView(self.tab_exchange_rates)
-        self.tableView_exchange_rates.setObjectName(u"tableView_exchange_rates")
-
-        self.horizontalLayout_rates.addWidget(self.tableView_exchange_rates)
-
         self.frame_rates = QFrame(self.tab_exchange_rates)
         self.frame_rates.setObjectName(u"frame_rates")
         self.frame_rates.setMinimumSize(QSize(300, 0))
@@ -1127,6 +1122,11 @@ class Ui_MainWindow(object):
 
 
         self.horizontalLayout_rates.addWidget(self.frame_rates)
+
+        self.tableView_exchange_rates = QTableView(self.tab_exchange_rates)
+        self.tableView_exchange_rates.setObjectName(u"tableView_exchange_rates")
+
+        self.horizontalLayout_rates.addWidget(self.tableView_exchange_rates)
 
         self.tabWidget.addTab(self.tab_exchange_rates, "")
         self.tab_charts = QWidget()
@@ -1363,7 +1363,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(4)
+        self.tabWidget.setCurrentIndex(5)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
