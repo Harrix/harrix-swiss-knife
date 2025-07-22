@@ -1783,7 +1783,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _generate_category_analysis_report(self, currency_id: int) -> None:
         """Generate category analysis report.
@@ -1850,7 +1855,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _generate_currency_analysis_report(self) -> None:
         """Generate currency analysis report."""
@@ -1883,7 +1893,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
         """Generate income vs expenses report.
@@ -1951,7 +1966,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _generate_monthly_summary_report(self, currency_id: int) -> None:
         """Generate monthly summary report.
@@ -2011,7 +2031,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
