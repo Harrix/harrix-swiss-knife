@@ -1295,6 +1295,10 @@ class MainWindow(
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
 
+        # Move focus to spinBox_count and select all text
+        if exercise:  # Only if exercise was successfully selected
+            QTimer.singleShot(0, self._focus_and_select_spinbox_count)
+
     def on_exercise_type_changed(self, _index: int = -1) -> None:
         """Handle exercise type combobox selection change and sync with statistics.
 
@@ -4230,6 +4234,21 @@ class MainWindow(
         exercise_name = self.comboBox_exercise_name.currentText()
         if exercise_name:
             self._load_exercise_avif(exercise_name, "types")
+
+    def _focus_and_select_spinbox_count(self) -> None:
+        """Move focus to spinBox_count and select all text.
+
+        This method is called after exercise selection to provide better UX
+        by automatically focusing the count input field and selecting its content.
+        """
+        try:
+            # Set focus to spinBox_count
+            self.spinBox_count.setFocus()
+
+            # Select all text in the spinbox
+            self.spinBox_count.selectAll()
+        except Exception as e:
+            print(f"Error focusing spinBox_count: {e}")
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
