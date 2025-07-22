@@ -540,11 +540,6 @@ class Ui_MainWindow(object):
         self.tab_accounts.setObjectName("tab_accounts")
         self.horizontalLayout_accounts = QHBoxLayout(self.tab_accounts)
         self.horizontalLayout_accounts.setObjectName("horizontalLayout_accounts")
-        self.tableView_accounts = QTableView(self.tab_accounts)
-        self.tableView_accounts.setObjectName("tableView_accounts")
-
-        self.horizontalLayout_accounts.addWidget(self.tableView_accounts)
-
         self.frame_accounts = QFrame(self.tab_accounts)
         self.frame_accounts.setObjectName("frame_accounts")
         self.frame_accounts.setMinimumSize(QSize(300, 0))
@@ -663,16 +658,16 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_accounts.addWidget(self.frame_accounts)
 
+        self.tableView_accounts = QTableView(self.tab_accounts)
+        self.tableView_accounts.setObjectName("tableView_accounts")
+
+        self.horizontalLayout_accounts.addWidget(self.tableView_accounts)
+
         self.tabWidget.addTab(self.tab_accounts, "")
         self.tab_categories = QWidget()
         self.tab_categories.setObjectName("tab_categories")
         self.horizontalLayout_4 = QHBoxLayout(self.tab_categories)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.tableView_categories = QTableView(self.tab_categories)
-        self.tableView_categories.setObjectName("tableView_categories")
-
-        self.horizontalLayout_4.addWidget(self.tableView_categories)
-
         self.frame_2 = QFrame(self.tab_categories)
         self.frame_2.setObjectName("frame_2")
         self.frame_2.setMinimumSize(QSize(300, 0))
@@ -760,16 +755,16 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_4.addWidget(self.frame_2)
 
+        self.tableView_categories = QTableView(self.tab_categories)
+        self.tableView_categories.setObjectName("tableView_categories")
+
+        self.horizontalLayout_4.addWidget(self.tableView_categories)
+
         self.tabWidget.addTab(self.tab_categories, "")
         self.tab_currencies = QWidget()
         self.tab_currencies.setObjectName("tab_currencies")
         self.horizontalLayout_currencies = QHBoxLayout(self.tab_currencies)
         self.horizontalLayout_currencies.setObjectName("horizontalLayout_currencies")
-        self.tableView_currencies = QTableView(self.tab_currencies)
-        self.tableView_currencies.setObjectName("tableView_currencies")
-
-        self.horizontalLayout_currencies.addWidget(self.tableView_currencies)
-
         self.frame_currencies = QFrame(self.tab_currencies)
         self.frame_currencies.setObjectName("frame_currencies")
         self.frame_currencies.setMinimumSize(QSize(300, 0))
@@ -892,16 +887,16 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_currencies.addWidget(self.frame_currencies)
 
+        self.tableView_currencies = QTableView(self.tab_currencies)
+        self.tableView_currencies.setObjectName("tableView_currencies")
+
+        self.horizontalLayout_currencies.addWidget(self.tableView_currencies)
+
         self.tabWidget.addTab(self.tab_currencies, "")
         self.tab_exchange = QWidget()
         self.tab_exchange.setObjectName("tab_exchange")
         self.horizontalLayout_exchange = QHBoxLayout(self.tab_exchange)
         self.horizontalLayout_exchange.setObjectName("horizontalLayout_exchange")
-        self.tableView_exchange = QTableView(self.tab_exchange)
-        self.tableView_exchange.setObjectName("tableView_exchange")
-
-        self.horizontalLayout_exchange.addWidget(self.tableView_exchange)
-
         self.frame_exchange = QFrame(self.tab_exchange)
         self.frame_exchange.setObjectName("frame_exchange")
         self.frame_exchange.setMinimumSize(QSize(350, 0))
@@ -1092,16 +1087,16 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_exchange.addWidget(self.frame_exchange)
 
+        self.tableView_exchange = QTableView(self.tab_exchange)
+        self.tableView_exchange.setObjectName("tableView_exchange")
+
+        self.horizontalLayout_exchange.addWidget(self.tableView_exchange)
+
         self.tabWidget.addTab(self.tab_exchange, "")
         self.tab_exchange_rates = QWidget()
         self.tab_exchange_rates.setObjectName("tab_exchange_rates")
         self.horizontalLayout_rates = QHBoxLayout(self.tab_exchange_rates)
         self.horizontalLayout_rates.setObjectName("horizontalLayout_rates")
-        self.tableView_exchange_rates = QTableView(self.tab_exchange_rates)
-        self.tableView_exchange_rates.setObjectName("tableView_exchange_rates")
-
-        self.horizontalLayout_rates.addWidget(self.tableView_exchange_rates)
-
         self.frame_rates = QFrame(self.tab_exchange_rates)
         self.frame_rates.setObjectName("frame_rates")
         self.frame_rates.setMinimumSize(QSize(300, 0))
@@ -1243,6 +1238,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_rates.addWidget(self.frame_rates)
 
+        self.tableView_exchange_rates = QTableView(self.tab_exchange_rates)
+        self.tableView_exchange_rates.setObjectName("tableView_exchange_rates")
+
+        self.horizontalLayout_rates.addWidget(self.tableView_exchange_rates)
+
         self.tabWidget.addTab(self.tab_exchange_rates, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName("tab_charts")
@@ -1368,7 +1368,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 751))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 719))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1380,11 +1380,6 @@ class Ui_MainWindow(object):
         self.tab_reports.setObjectName("tab_reports")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_reports)
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.tableView_reports = QTableView(self.tab_reports)
-        self.tableView_reports.setObjectName("tableView_reports")
-
-        self.horizontalLayout_6.addWidget(self.tableView_reports)
-
         self.frame_5 = QFrame(self.tab_reports)
         self.frame_5.setObjectName("frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
@@ -1453,6 +1448,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_6.addWidget(self.frame_5)
 
+        self.tableView_reports = QTableView(self.tab_reports)
+        self.tableView_reports.setObjectName("tableView_reports")
+
+        self.horizontalLayout_6.addWidget(self.tableView_reports)
+
         self.tabWidget.addTab(self.tab_reports, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
@@ -1471,7 +1471,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(7)
 
         QMetaObject.connectSlotsByName(MainWindow)
 ```
@@ -2013,11 +2013,6 @@ def setupUi(self, MainWindow):
         self.tab_accounts.setObjectName("tab_accounts")
         self.horizontalLayout_accounts = QHBoxLayout(self.tab_accounts)
         self.horizontalLayout_accounts.setObjectName("horizontalLayout_accounts")
-        self.tableView_accounts = QTableView(self.tab_accounts)
-        self.tableView_accounts.setObjectName("tableView_accounts")
-
-        self.horizontalLayout_accounts.addWidget(self.tableView_accounts)
-
         self.frame_accounts = QFrame(self.tab_accounts)
         self.frame_accounts.setObjectName("frame_accounts")
         self.frame_accounts.setMinimumSize(QSize(300, 0))
@@ -2136,16 +2131,16 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_accounts.addWidget(self.frame_accounts)
 
+        self.tableView_accounts = QTableView(self.tab_accounts)
+        self.tableView_accounts.setObjectName("tableView_accounts")
+
+        self.horizontalLayout_accounts.addWidget(self.tableView_accounts)
+
         self.tabWidget.addTab(self.tab_accounts, "")
         self.tab_categories = QWidget()
         self.tab_categories.setObjectName("tab_categories")
         self.horizontalLayout_4 = QHBoxLayout(self.tab_categories)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.tableView_categories = QTableView(self.tab_categories)
-        self.tableView_categories.setObjectName("tableView_categories")
-
-        self.horizontalLayout_4.addWidget(self.tableView_categories)
-
         self.frame_2 = QFrame(self.tab_categories)
         self.frame_2.setObjectName("frame_2")
         self.frame_2.setMinimumSize(QSize(300, 0))
@@ -2233,16 +2228,16 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_4.addWidget(self.frame_2)
 
+        self.tableView_categories = QTableView(self.tab_categories)
+        self.tableView_categories.setObjectName("tableView_categories")
+
+        self.horizontalLayout_4.addWidget(self.tableView_categories)
+
         self.tabWidget.addTab(self.tab_categories, "")
         self.tab_currencies = QWidget()
         self.tab_currencies.setObjectName("tab_currencies")
         self.horizontalLayout_currencies = QHBoxLayout(self.tab_currencies)
         self.horizontalLayout_currencies.setObjectName("horizontalLayout_currencies")
-        self.tableView_currencies = QTableView(self.tab_currencies)
-        self.tableView_currencies.setObjectName("tableView_currencies")
-
-        self.horizontalLayout_currencies.addWidget(self.tableView_currencies)
-
         self.frame_currencies = QFrame(self.tab_currencies)
         self.frame_currencies.setObjectName("frame_currencies")
         self.frame_currencies.setMinimumSize(QSize(300, 0))
@@ -2365,16 +2360,16 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_currencies.addWidget(self.frame_currencies)
 
+        self.tableView_currencies = QTableView(self.tab_currencies)
+        self.tableView_currencies.setObjectName("tableView_currencies")
+
+        self.horizontalLayout_currencies.addWidget(self.tableView_currencies)
+
         self.tabWidget.addTab(self.tab_currencies, "")
         self.tab_exchange = QWidget()
         self.tab_exchange.setObjectName("tab_exchange")
         self.horizontalLayout_exchange = QHBoxLayout(self.tab_exchange)
         self.horizontalLayout_exchange.setObjectName("horizontalLayout_exchange")
-        self.tableView_exchange = QTableView(self.tab_exchange)
-        self.tableView_exchange.setObjectName("tableView_exchange")
-
-        self.horizontalLayout_exchange.addWidget(self.tableView_exchange)
-
         self.frame_exchange = QFrame(self.tab_exchange)
         self.frame_exchange.setObjectName("frame_exchange")
         self.frame_exchange.setMinimumSize(QSize(350, 0))
@@ -2565,16 +2560,16 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_exchange.addWidget(self.frame_exchange)
 
+        self.tableView_exchange = QTableView(self.tab_exchange)
+        self.tableView_exchange.setObjectName("tableView_exchange")
+
+        self.horizontalLayout_exchange.addWidget(self.tableView_exchange)
+
         self.tabWidget.addTab(self.tab_exchange, "")
         self.tab_exchange_rates = QWidget()
         self.tab_exchange_rates.setObjectName("tab_exchange_rates")
         self.horizontalLayout_rates = QHBoxLayout(self.tab_exchange_rates)
         self.horizontalLayout_rates.setObjectName("horizontalLayout_rates")
-        self.tableView_exchange_rates = QTableView(self.tab_exchange_rates)
-        self.tableView_exchange_rates.setObjectName("tableView_exchange_rates")
-
-        self.horizontalLayout_rates.addWidget(self.tableView_exchange_rates)
-
         self.frame_rates = QFrame(self.tab_exchange_rates)
         self.frame_rates.setObjectName("frame_rates")
         self.frame_rates.setMinimumSize(QSize(300, 0))
@@ -2716,6 +2711,11 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_rates.addWidget(self.frame_rates)
 
+        self.tableView_exchange_rates = QTableView(self.tab_exchange_rates)
+        self.tableView_exchange_rates.setObjectName("tableView_exchange_rates")
+
+        self.horizontalLayout_rates.addWidget(self.tableView_exchange_rates)
+
         self.tabWidget.addTab(self.tab_exchange_rates, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName("tab_charts")
@@ -2841,7 +2841,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 751))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 719))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -2853,11 +2853,6 @@ def setupUi(self, MainWindow):
         self.tab_reports.setObjectName("tab_reports")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_reports)
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.tableView_reports = QTableView(self.tab_reports)
-        self.tableView_reports.setObjectName("tableView_reports")
-
-        self.horizontalLayout_6.addWidget(self.tableView_reports)
-
         self.frame_5 = QFrame(self.tab_reports)
         self.frame_5.setObjectName("frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
@@ -2926,6 +2921,11 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_6.addWidget(self.frame_5)
 
+        self.tableView_reports = QTableView(self.tab_reports)
+        self.tableView_reports.setObjectName("tableView_reports")
+
+        self.horizontalLayout_6.addWidget(self.tableView_reports)
+
         self.tabWidget.addTab(self.tab_reports, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
@@ -2944,7 +2944,7 @@ def setupUi(self, MainWindow):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(7)
 
         QMetaObject.connectSlotsByName(MainWindow)
 ```
