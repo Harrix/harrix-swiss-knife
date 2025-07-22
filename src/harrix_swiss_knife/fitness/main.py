@@ -3201,6 +3201,21 @@ class MainWindow(
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
 
+    def _focus_and_select_spinbox_count(self) -> None:
+        """Move focus to spinBox_count and select all text.
+
+        This method is called after exercise selection to provide better UX
+        by automatically focusing the count input field and selecting its content.
+        """
+        try:
+            # Set focus to spinBox_count
+            self.spinBox_count.setFocus()
+
+            # Select all text in the spinbox
+            self.spinBox_count.selectAll()
+        except Exception as e:
+            print(f"Error focusing spinBox_count: {e}")
+
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
 
@@ -4234,21 +4249,6 @@ class MainWindow(
         exercise_name = self.comboBox_exercise_name.currentText()
         if exercise_name:
             self._load_exercise_avif(exercise_name, "types")
-
-    def _focus_and_select_spinbox_count(self) -> None:
-        """Move focus to spinBox_count and select all text.
-
-        This method is called after exercise selection to provide better UX
-        by automatically focusing the count input field and selecting its content.
-        """
-        try:
-            # Set focus to spinBox_count
-            self.spinBox_count.setFocus()
-
-            # Select all text in the spinbox
-            self.spinBox_count.selectAll()
-        except Exception as e:
-            print(f"Error focusing spinBox_count: {e}")
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.

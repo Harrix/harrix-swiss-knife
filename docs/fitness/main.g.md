@@ -71,6 +71,7 @@ lang: en
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
+  - [⚙️ Method `_focus_and_select_spinbox_count`](#%EF%B8%8F-method-_focus_and_select_spinbox_count)
   - [⚙️ Method `_get_current_selected_exercise`](#%EF%B8%8F-method-_get_current_selected_exercise)
   - [⚙️ Method `_get_exercise_avif_path`](#%EF%B8%8F-method-_get_exercise_avif_path)
   - [⚙️ Method `_get_exercise_name_by_id`](#%EF%B8%8F-method-_get_exercise_name_by_id)
@@ -1369,6 +1370,10 @@ class MainWindow(
             self.comboBox_type.setEnabled(False)
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
+
+        # Move focus to spinBox_count and select all text
+        if exercise:  # Only if exercise was successfully selected
+            QTimer.singleShot(0, self._focus_and_select_spinbox_count)
 
     def on_exercise_type_changed(self, _index: int = -1) -> None:
         """Handle exercise type combobox selection change and sync with statistics.
@@ -3271,6 +3276,21 @@ class MainWindow(
         self.show()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
+
+    def _focus_and_select_spinbox_count(self) -> None:
+        """Move focus to spinBox_count and select all text.
+
+        This method is called after exercise selection to provide better UX
+        by automatically focusing the count input field and selecting its content.
+        """
+        try:
+            # Set focus to spinBox_count
+            self.spinBox_count.setFocus()
+
+            # Select all text in the spinbox
+            self.spinBox_count.selectAll()
+        except Exception as e:
+            print(f"Error focusing spinBox_count: {e}")
 
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
@@ -5766,6 +5786,10 @@ def on_exercise_selection_changed_list(self) -> None:
             self.comboBox_type.setEnabled(False)
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
+
+        # Move focus to spinBox_count and select all text
+        if exercise:  # Only if exercise was successfully selected
+            QTimer.singleShot(0, self._focus_and_select_spinbox_count)
 ```
 
 </details>
@@ -8196,6 +8220,34 @@ def _finish_window_initialization(self) -> None:
         self.show()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
+```
+
+</details>
+
+### ⚙️ Method `_focus_and_select_spinbox_count`
+
+```python
+def _focus_and_select_spinbox_count(self) -> None
+```
+
+Move focus to spinBox_count and select all text.
+
+This method is called after exercise selection to provide better UX
+by automatically focusing the count input field and selecting its content.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _focus_and_select_spinbox_count(self) -> None:
+        try:
+            # Set focus to spinBox_count
+            self.spinBox_count.setFocus()
+
+            # Select all text in the spinbox
+            self.spinBox_count.selectAll()
+        except Exception as e:
+            print(f"Error focusing spinBox_count: {e}")
 ```
 
 </details>

@@ -1049,6 +1049,12 @@ class MainWindow(
             )
             self.tableView_categories.setModel(self.models["categories"])
 
+            # Configure column stretching for categories table
+            categories_header = self.tableView_categories.horizontalHeader()
+            if categories_header.count() > 0:
+                for i in range(categories_header.count()):
+                    categories_header.setSectionResizeMode(i, categories_header.ResizeMode.Stretch)
+
             # Refresh accounts table with sorting and color coding
             accounts_data = self.db_manager.get_all_accounts()
 
@@ -1100,6 +1106,12 @@ class MainWindow(
             self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
             self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
 
+            # Configure column stretching for accounts table
+            accounts_header = self.tableView_accounts.horizontalHeader()
+            if accounts_header.count() > 0:
+                for i in range(accounts_header.count()):
+                    accounts_header.setSectionResizeMode(i, accounts_header.ResizeMode.Stretch)
+
             # Refresh currencies table
             currencies_data = self.db_manager.get_all_currencies()
             currencies_transformed_data = []
@@ -1113,6 +1125,12 @@ class MainWindow(
                 currencies_transformed_data, self.table_config["currencies"][2]
             )
             self.tableView_currencies.setModel(self.models["currencies"])
+
+            # Configure column stretching for currencies table
+            currencies_header = self.tableView_currencies.horizontalHeader()
+            if currencies_header.count() > 0:
+                for i in range(currencies_header.count()):
+                    currencies_header.setSectionResizeMode(i, currencies_header.ResizeMode.Stretch)
 
             # Refresh currency exchanges table
             exchanges_data = self.db_manager.get_all_currency_exchanges()
@@ -1143,6 +1161,12 @@ class MainWindow(
             )
             self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
+            # Configure column stretching for exchange table
+            exchange_header = self.tableView_exchange.horizontalHeader()
+            if exchange_header.count() > 0:
+                for i in range(exchange_header.count()):
+                    exchange_header.setSectionResizeMode(i, exchange_header.ResizeMode.Stretch)
+
             # Refresh exchange rates table
             rates_data = self.db_manager.get_all_exchange_rates()
             rates_transformed_data = []
@@ -1157,6 +1181,12 @@ class MainWindow(
                 rates_transformed_data, self.table_config["exchange_rates"][2]
             )
             self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+
+            # Configure column stretching for exchange rates table
+            rates_header = self.tableView_exchange_rates.horizontalHeader()
+            if rates_header.count() > 0:
+                for i in range(rates_header.count()):
+                    rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
 
             # Resize columns to content
             for table_name in self.table_config:
@@ -1820,7 +1850,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _generate_category_analysis_report(self, currency_id: int) -> None:
         """Generate category analysis report.
@@ -1887,7 +1922,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _generate_currency_analysis_report(self) -> None:
         """Generate currency analysis report."""
@@ -1920,7 +1960,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
         """Generate income vs expenses report.
@@ -1988,7 +2033,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _generate_monthly_summary_report(self, currency_id: int) -> None:
         """Generate monthly summary report.
@@ -2048,7 +2098,12 @@ class MainWindow(
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
@@ -3965,6 +4020,12 @@ def show_tables(self) -> None:
             )
             self.tableView_categories.setModel(self.models["categories"])
 
+            # Configure column stretching for categories table
+            categories_header = self.tableView_categories.horizontalHeader()
+            if categories_header.count() > 0:
+                for i in range(categories_header.count()):
+                    categories_header.setSectionResizeMode(i, categories_header.ResizeMode.Stretch)
+
             # Refresh accounts table with sorting and color coding
             accounts_data = self.db_manager.get_all_accounts()
 
@@ -4016,6 +4077,12 @@ def show_tables(self) -> None:
             self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
             self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
 
+            # Configure column stretching for accounts table
+            accounts_header = self.tableView_accounts.horizontalHeader()
+            if accounts_header.count() > 0:
+                for i in range(accounts_header.count()):
+                    accounts_header.setSectionResizeMode(i, accounts_header.ResizeMode.Stretch)
+
             # Refresh currencies table
             currencies_data = self.db_manager.get_all_currencies()
             currencies_transformed_data = []
@@ -4029,6 +4096,12 @@ def show_tables(self) -> None:
                 currencies_transformed_data, self.table_config["currencies"][2]
             )
             self.tableView_currencies.setModel(self.models["currencies"])
+
+            # Configure column stretching for currencies table
+            currencies_header = self.tableView_currencies.horizontalHeader()
+            if currencies_header.count() > 0:
+                for i in range(currencies_header.count()):
+                    currencies_header.setSectionResizeMode(i, currencies_header.ResizeMode.Stretch)
 
             # Refresh currency exchanges table
             exchanges_data = self.db_manager.get_all_currency_exchanges()
@@ -4059,6 +4132,12 @@ def show_tables(self) -> None:
             )
             self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
+            # Configure column stretching for exchange table
+            exchange_header = self.tableView_exchange.horizontalHeader()
+            if exchange_header.count() > 0:
+                for i in range(exchange_header.count()):
+                    exchange_header.setSectionResizeMode(i, exchange_header.ResizeMode.Stretch)
+
             # Refresh exchange rates table
             rates_data = self.db_manager.get_all_exchange_rates()
             rates_transformed_data = []
@@ -4073,6 +4152,12 @@ def show_tables(self) -> None:
                 rates_transformed_data, self.table_config["exchange_rates"][2]
             )
             self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+
+            # Configure column stretching for exchange rates table
+            rates_header = self.tableView_exchange_rates.horizontalHeader()
+            if rates_header.count() > 0:
+                for i in range(rates_header.count()):
+                    rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
 
             # Resize columns to content
             for table_name in self.table_config:
@@ -5054,7 +5139,12 @@ def _generate_account_balances_report(self, currency_id: int) -> None:
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 ```
 
 </details>
@@ -5133,7 +5223,12 @@ def _generate_category_analysis_report(self, currency_id: int) -> None:
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 ```
 
 </details>
@@ -5180,7 +5275,12 @@ def _generate_currency_analysis_report(self) -> None:
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 ```
 
 </details>
@@ -5260,7 +5360,12 @@ def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 ```
 
 </details>
@@ -5332,7 +5437,12 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
             model.appendRow(items)
 
         self.tableView_reports.setModel(model)
-        self.tableView_reports.resizeColumnsToContents()
+
+        # Configure column stretching for reports table
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 ```
 
 </details>
