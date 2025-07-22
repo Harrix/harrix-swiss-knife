@@ -1268,11 +1268,6 @@ class Ui_MainWindow(object):
         self.tab_reports.setObjectName(u"tab_reports")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_reports)
         self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
-        self.tableView_reports = QTableView(self.tab_reports)
-        self.tableView_reports.setObjectName(u"tableView_reports")
-
-        self.horizontalLayout_6.addWidget(self.tableView_reports)
-
         self.frame_5 = QFrame(self.tab_reports)
         self.frame_5.setObjectName(u"frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
@@ -1345,6 +1340,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_6.addWidget(self.frame_5)
 
+        self.tableView_reports = QTableView(self.tab_reports)
+        self.tableView_reports.setObjectName(u"tableView_reports")
+
+        self.horizontalLayout_6.addWidget(self.tableView_reports)
+
         self.tabWidget.addTab(self.tab_reports, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
@@ -1363,7 +1363,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(5)
+        self.tabWidget.setCurrentIndex(7)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
