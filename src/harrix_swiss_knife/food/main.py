@@ -506,6 +506,7 @@ class MainWindow(
                     if self.db_manager.delete_food_item(food_id):
                         QMessageBox.information(self, "Success", f"Food item '{food_item}' deleted successfully!")
                         self.update_food_data()
+                        return  # Exit the method to prevent reopening the dialog
                     else:
                         QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
                 else:
@@ -526,6 +527,7 @@ class MainWindow(
                             self, "Success", f"Food item '{edited_data['name']}' updated successfully!"
                         )
                         self.update_food_data()
+                        return  # Exit the method to prevent reopening the dialog
                     else:
                         QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
             # If result is Rejected (Cancel), do nothing - just close the dialog

@@ -2174,6 +2174,7 @@ class MainWindow(
                         self._restore_table_column_widths(self.tableView_accounts, column_widths)
 
                         QMessageBox.information(self, "Success", "Account updated successfully")
+                        return  # Exit the method to prevent reopening the dialog
                     else:
                         QMessageBox.warning(self, "Error", "Failed to update account")
 
@@ -2190,6 +2191,7 @@ class MainWindow(
                         self._restore_table_column_widths(self.tableView_accounts, column_widths)
 
                         QMessageBox.information(self, "Success", "Account deleted successfully")
+                        return  # Exit the method to prevent reopening the dialog
                     else:
                         QMessageBox.warning(self, "Error", "Failed to delete account")
 
