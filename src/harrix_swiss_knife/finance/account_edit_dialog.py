@@ -5,7 +5,6 @@ This module contains a dialog for editing account information.
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -49,6 +48,7 @@ class AccountEditDialog(QDialog):
 
         Returns:
             Dictionary with action and data.
+
         """
         return self.result_data
 

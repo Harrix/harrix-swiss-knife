@@ -511,8 +511,7 @@ class MainWindow(
                         QMessageBox.information(self, "Success", f"Food item '{food_item}' deleted successfully!")
                         self.update_food_data()
                         return  # Exit the method to prevent reopening the dialog
-                    else:
-                        QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
+                    QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
                 else:
                     # Update the food item
                     edited_data = dialog.get_edited_data()
@@ -532,8 +531,7 @@ class MainWindow(
                         )
                         self.update_food_data()
                         return  # Exit the method to prevent reopening the dialog
-                    else:
-                        QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
+                    QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
             # If result is Rejected (Cancel), do nothing - just close the dialog
 
         except Exception as e:
