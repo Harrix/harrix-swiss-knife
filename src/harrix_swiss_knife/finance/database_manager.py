@@ -713,6 +713,21 @@ class DatabaseManager:
         rows = self.get_rows("SELECT _id, name, symbol FROM currencies WHERE code = :code", {"code": code})
         return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
 
+    def get_currency_by_id(self, currency_id: int) -> tuple[str, str, str] | None:
+        """Get currency information by ID.
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID.
+
+        Returns:
+
+        - `tuple[str, str, str] | None`: Tuple of (code, name, symbol) or None if not found.
+
+        """
+        rows = self.get_rows("SELECT code, name, symbol FROM currencies WHERE _id = :id", {"id": currency_id})
+        return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
+
     def get_default_currency(self) -> str:
         """Get the default currency code.
 

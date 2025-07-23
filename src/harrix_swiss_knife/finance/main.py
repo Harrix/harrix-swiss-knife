@@ -2590,10 +2590,31 @@ class MainWindow(
 
             # Set default currency selection
             default_currency = self.db_manager.get_default_currency()
-            for combo in [self.comboBox_currency, self.comboBox_account_currency, self.comboBox_default_currency]:
+            for combo in [
+                self.comboBox_currency,
+                self.comboBox_account_currency,
+                self.comboBox_exchange_from,
+                self.comboBox_default_currency,
+            ]:
                 index = combo.findText(default_currency)
                 if index >= 0:
                     combo.setCurrentIndex(index)
+
+            # Set exchange_to currency based on logic
+            # If current currency is not USD, set USD as exchange_to, otherwise set currency with _id = 1
+            if default_currency != "USD":
+                # Set USD as exchange_to
+                usd_index = self.comboBox_exchange_to.findText("USD")
+                if usd_index >= 0:
+                    self.comboBox_exchange_to.setCurrentIndex(usd_index)
+            else:
+                # Current currency is USD, set currency with _id = 1 as exchange_to
+                currency_info = self.db_manager.get_currency_by_id(1)
+                if currency_info:
+                    currency_code = currency_info[0]  # Get code from (code, name, symbol)
+                    currency_index = self.comboBox_exchange_to.findText(currency_code)
+                    if currency_index >= 0:
+                        self.comboBox_exchange_to.setCurrentIndex(currency_index)
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
