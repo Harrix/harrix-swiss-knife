@@ -13,7 +13,7 @@ from typing import Any
 
 import harrix_pylib as h
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, QStringListModel, Qt, QTimer
-from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QApplication,
     QCompleter,
@@ -2643,6 +2643,7 @@ class MainWindow(
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(":/assets/logo.svg"))
     win = MainWindow()
     # Window will be shown after initialization in _finish_window_initialization
     sys.exit(app.exec())

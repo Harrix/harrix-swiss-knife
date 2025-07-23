@@ -22,7 +22,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
-from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QMovie, QPixmap, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QMovie, QPixmap, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QFileDialog, QListView, QMainWindow, QMessageBox, QTableView
 
 from harrix_swiss_knife.fitness import database_manager, window
@@ -4271,6 +4271,7 @@ class MainWindow(
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(":/assets/logo.svg"))
     win = MainWindow()
     win.tabWidget.setCurrentIndex(0)
     # Window will be shown after initialization in _finish_window_initialization
