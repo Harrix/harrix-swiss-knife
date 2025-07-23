@@ -150,9 +150,6 @@ class Ui_MainWindow(object):
         self.groupBox_currency_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_currencies_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_currencies_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_currencies), QCoreApplication.translate("MainWindow", "Currencies", None)
-        )
         self.groupBox_exchange_operation.setTitle(QCoreApplication.translate("MainWindow", "Currency Exchange", None))
         self.label_exchange_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.label_exchange_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
@@ -171,8 +168,7 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_exchange_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_exchange),
-            QCoreApplication.translate("MainWindow", "Currency Exchange", None),
+            self.tabWidget.indexOf(self.tab_currencies), QCoreApplication.translate("MainWindow", "Currencies", None)
         )
         self.pushButton_exchange_update.setText(QCoreApplication.translate("MainWindow", "Update", None))
         self.groupBox_add_rate.setTitle(QCoreApplication.translate("MainWindow", "Add Exchange Rate", None))
@@ -804,8 +800,8 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_categories, "")
         self.tab_currencies = QWidget()
         self.tab_currencies.setObjectName("tab_currencies")
-        self.horizontalLayout_currencies = QHBoxLayout(self.tab_currencies)
-        self.horizontalLayout_currencies.setObjectName("horizontalLayout_currencies")
+        self.horizontalLayout_10 = QHBoxLayout(self.tab_currencies)
+        self.horizontalLayout_10.setObjectName("horizontalLayout_10")
         self.frame_currencies = QFrame(self.tab_currencies)
         self.frame_currencies.setObjectName("frame_currencies")
         self.frame_currencies.setMinimumSize(QSize(300, 0))
@@ -926,19 +922,14 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_currencies.addItem(self.verticalSpacer_currencies)
 
-        self.horizontalLayout_currencies.addWidget(self.frame_currencies)
+        self.horizontalLayout_10.addWidget(self.frame_currencies)
 
         self.tableView_currencies = QTableView(self.tab_currencies)
         self.tableView_currencies.setObjectName("tableView_currencies")
 
-        self.horizontalLayout_currencies.addWidget(self.tableView_currencies)
+        self.horizontalLayout_10.addWidget(self.tableView_currencies)
 
-        self.tabWidget.addTab(self.tab_currencies, "")
-        self.tab_exchange = QWidget()
-        self.tab_exchange.setObjectName("tab_exchange")
-        self.horizontalLayout_exchange = QHBoxLayout(self.tab_exchange)
-        self.horizontalLayout_exchange.setObjectName("horizontalLayout_exchange")
-        self.frame_exchange = QFrame(self.tab_exchange)
+        self.frame_exchange = QFrame(self.tab_currencies)
         self.frame_exchange.setObjectName("frame_exchange")
         self.frame_exchange.setMinimumSize(QSize(350, 0))
         self.frame_exchange.setMaximumSize(QSize(350, 16777215))
@@ -1126,14 +1117,14 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_exchange.addItem(self.verticalSpacer_exchange)
 
-        self.horizontalLayout_exchange.addWidget(self.frame_exchange)
+        self.horizontalLayout_10.addWidget(self.frame_exchange)
 
-        self.tableView_exchange = QTableView(self.tab_exchange)
+        self.tableView_exchange = QTableView(self.tab_currencies)
         self.tableView_exchange.setObjectName("tableView_exchange")
 
-        self.horizontalLayout_exchange.addWidget(self.tableView_exchange)
+        self.horizontalLayout_10.addWidget(self.tableView_exchange)
 
-        self.tabWidget.addTab(self.tab_exchange, "")
+        self.tabWidget.addTab(self.tab_currencies, "")
         self.tab_exchange_rates = QWidget()
         self.tab_exchange_rates.setObjectName("tab_exchange_rates")
         self.horizontalLayout_rates = QHBoxLayout(self.tab_exchange_rates)
@@ -1409,7 +1400,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 719))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 751))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1512,6 +1503,6 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(7)
+        self.tabWidget.setCurrentIndex(4)
 
         QMetaObject.connectSlotsByName(MainWindow)
