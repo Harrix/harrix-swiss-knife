@@ -79,6 +79,8 @@ lang: en
   - [⚙️ Method `_on_autocomplete_selected`](#%EF%B8%8F-method-_on_autocomplete_selected)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_populate_form_from_description`](#%EF%B8%8F-method-_populate_form_from_description)
+  - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
+  - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
   - [⚙️ Method `_select_category_by_id`](#%EF%B8%8F-method-_select_category_by_id)
   - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
   - [⚙️ Method `_setup_tab_order`](#%EF%B8%8F-method-_setup_tab_order)
@@ -1111,6 +1113,8 @@ class MainWindow(
             if accounts_header.count() > 0:
                 for i in range(accounts_header.count()):
                     accounts_header.setSectionResizeMode(i, accounts_header.ResizeMode.Stretch)
+                # Ensure stretch settings are applied
+                accounts_header.setStretchLastSection(False)
 
             # Refresh currencies table
             currencies_data = self.db_manager.get_all_currencies()
@@ -2230,16 +2234,30 @@ class MainWindow(
                     )
 
                     if success:
+                        # Save current column widths before update
+                        column_widths = self._save_table_column_widths(self.tableView_accounts)
+
                         self.update_all()
+
+                        # Restore column widths after update
+                        self._restore_table_column_widths(self.tableView_accounts, column_widths)
+
                         QMessageBox.information(self, "Success", "Account updated successfully")
                     else:
                         QMessageBox.warning(self, "Error", "Failed to update account")
 
                 elif result["action"] == "delete":
+                    # Save current column widths before update
+                    column_widths = self._save_table_column_widths(self.tableView_accounts)
+
                     # Delete account
                     success = self.db_manager.delete_account(account_id)
                     if success:
                         self.update_all()
+
+                        # Restore column widths after update
+                        self._restore_table_column_widths(self.tableView_accounts, column_widths)
+
                         QMessageBox.information(self, "Success", "Account deleted successfully")
                     else:
                         QMessageBox.warning(self, "Error", "Failed to delete account")
@@ -2349,6 +2367,33 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error populating form from description: {e}")
+
+    def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
+        """Restore column widths for a table view.
+
+        Args:
+            table_view: The table view to restore column widths for.
+            column_widths: List of column widths to restore.
+        """
+        header = table_view.horizontalHeader()
+        if column_widths and header.count() == len(column_widths):
+            for i, width in enumerate(column_widths):
+                table_view.setColumnWidth(i, width)
+
+    def _save_table_column_widths(self, table_view: QTableView) -> list[int]:
+        """Save column widths for a table view.
+
+        Args:
+            table_view: The table view to save column widths for.
+
+        Returns:
+            List of column widths.
+        """
+        header = table_view.horizontalHeader()
+        column_widths = []
+        for i in range(header.count()):
+            column_widths.append(table_view.columnWidth(i))
+        return column_widths
 
     def _select_category_by_id(self, category_id: int) -> None:
         """Select category in listView_categories by database ID.
@@ -2666,6 +2711,22 @@ class MainWindow(
                 index = combo.findText(default_currency)
                 if index >= 0:
                     combo.setCurrentIndex(index)
+
+            # Set exchange_to currency based on logic
+            # If current currency is not USD, set USD as exchange_to, otherwise set currency with _id = 1
+            if default_currency != "USD":
+                # Set USD as exchange_to
+                usd_index = self.comboBox_exchange_to.findText("USD")
+                if usd_index >= 0:
+                    self.comboBox_exchange_to.setCurrentIndex(usd_index)
+            else:
+                # Current currency is USD, set currency with _id = 1 as exchange_to
+                currency_info = self.db_manager.get_currency_by_id(1)
+                if currency_info:
+                    currency_code = currency_info[0]  # Get code from (code, name, symbol)
+                    currency_index = self.comboBox_exchange_to.findText(currency_code)
+                    if currency_index >= 0:
+                        self.comboBox_exchange_to.setCurrentIndex(currency_index)
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
@@ -4087,6 +4148,8 @@ def show_tables(self) -> None:
             if accounts_header.count() > 0:
                 for i in range(accounts_header.count()):
                     accounts_header.setSectionResizeMode(i, accounts_header.ResizeMode.Stretch)
+                # Ensure stretch settings are applied
+                accounts_header.setStretchLastSection(False)
 
             # Refresh currencies table
             currencies_data = self.db_manager.get_all_currencies()
@@ -5628,16 +5691,30 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
                     )
 
                     if success:
+                        # Save current column widths before update
+                        column_widths = self._save_table_column_widths(self.tableView_accounts)
+
                         self.update_all()
+
+                        # Restore column widths after update
+                        self._restore_table_column_widths(self.tableView_accounts, column_widths)
+
                         QMessageBox.information(self, "Success", "Account updated successfully")
                     else:
                         QMessageBox.warning(self, "Error", "Failed to update account")
 
                 elif result["action"] == "delete":
+                    # Save current column widths before update
+                    column_widths = self._save_table_column_widths(self.tableView_accounts)
+
                     # Delete account
                     success = self.db_manager.delete_account(account_id)
                     if success:
                         self.update_all()
+
+                        # Restore column widths after update
+                        self._restore_table_column_widths(self.tableView_accounts, column_widths)
+
                         QMessageBox.information(self, "Success", "Account deleted successfully")
                     else:
                         QMessageBox.warning(self, "Error", "Failed to delete account")
@@ -5787,6 +5864,59 @@ def _populate_form_from_description(self, description: str) -> None:
 
         except Exception as e:
             print(f"Error populating form from description: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_restore_table_column_widths`
+
+```python
+def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None
+```
+
+Restore column widths for a table view.
+
+Args:
+table_view: The table view to restore column widths for.
+column_widths: List of column widths to restore.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
+        header = table_view.horizontalHeader()
+        if column_widths and header.count() == len(column_widths):
+            for i, width in enumerate(column_widths):
+                table_view.setColumnWidth(i, width)
+```
+
+</details>
+
+### ⚙️ Method `_save_table_column_widths`
+
+```python
+def _save_table_column_widths(self, table_view: QTableView) -> list[int]
+```
+
+Save column widths for a table view.
+
+Args:
+table_view: The table view to save column widths for.
+
+Returns:
+List of column widths.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _save_table_column_widths(self, table_view: QTableView) -> list[int]:
+        header = table_view.horizontalHeader()
+        column_widths = []
+        for i in range(header.count()):
+            column_widths.append(table_view.columnWidth(i))
+        return column_widths
 ```
 
 </details>
@@ -6223,6 +6353,22 @@ def _update_comboboxes(self) -> None:
                 index = combo.findText(default_currency)
                 if index >= 0:
                     combo.setCurrentIndex(index)
+
+            # Set exchange_to currency based on logic
+            # If current currency is not USD, set USD as exchange_to, otherwise set currency with _id = 1
+            if default_currency != "USD":
+                # Set USD as exchange_to
+                usd_index = self.comboBox_exchange_to.findText("USD")
+                if usd_index >= 0:
+                    self.comboBox_exchange_to.setCurrentIndex(usd_index)
+            else:
+                # Current currency is USD, set currency with _id = 1 as exchange_to
+                currency_info = self.db_manager.get_currency_by_id(1)
+                if currency_info:
+                    currency_code = currency_info[0]  # Get code from (code, name, symbol)
+                    currency_index = self.comboBox_exchange_to.findText(currency_code)
+                    if currency_index >= 0:
+                        self.comboBox_exchange_to.setCurrentIndex(currency_index)
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")

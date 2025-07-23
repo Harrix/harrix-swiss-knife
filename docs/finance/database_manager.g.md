@@ -41,6 +41,7 @@ lang: en
   - [⚙️ Method `get_categories_by_type`](#%EF%B8%8F-method-get_categories_by_type)
   - [⚙️ Method `get_categories_with_icons_by_type`](#%EF%B8%8F-method-get_categories_with_icons_by_type)
   - [⚙️ Method `get_currency_by_code`](#%EF%B8%8F-method-get_currency_by_code)
+  - [⚙️ Method `get_currency_by_id`](#%EF%B8%8F-method-get_currency_by_id)
   - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
   - [⚙️ Method `get_default_currency_id`](#%EF%B8%8F-method-get_default_currency_id)
   - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate)
@@ -773,6 +774,21 @@ class DatabaseManager:
 
         """
         rows = self.get_rows("SELECT _id, name, symbol FROM currencies WHERE code = :code", {"code": code})
+        return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
+
+    def get_currency_by_id(self, currency_id: int) -> tuple[str, str, str] | None:
+        """Get currency information by ID.
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID.
+
+        Returns:
+
+        - `tuple[str, str, str] | None`: Tuple of (code, name, symbol) or None if not found.
+
+        """
+        rows = self.get_rows("SELECT code, name, symbol FROM currencies WHERE _id = :id", {"id": currency_id})
         return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
 
     def get_default_currency(self) -> str:
@@ -2536,6 +2552,33 @@ Returns:
 ```python
 def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:
         rows = self.get_rows("SELECT _id, name, symbol FROM currencies WHERE code = :code", {"code": code})
+        return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
+```
+
+</details>
+
+### ⚙️ Method `get_currency_by_id`
+
+```python
+def get_currency_by_id(self, currency_id: int) -> tuple[str, str, str] | None
+```
+
+Get currency information by ID.
+
+Args:
+
+- `currency_id` (`int`): Currency ID.
+
+Returns:
+
+- `tuple[str, str, str] | None`: Tuple of (code, name, symbol) or None if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_currency_by_id(self, currency_id: int) -> tuple[str, str, str] | None:
+        rows = self.get_rows("SELECT code, name, symbol FROM currencies WHERE _id = :id", {"id": currency_id})
         return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
 ```
 

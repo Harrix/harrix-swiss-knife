@@ -2299,6 +2299,33 @@ class MainWindow(
         except Exception as e:
             print(f"Error populating form from description: {e}")
 
+    def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
+        """Restore column widths for a table view.
+
+        Args:
+            table_view: The table view to restore column widths for.
+            column_widths: List of column widths to restore.
+        """
+        header = table_view.horizontalHeader()
+        if column_widths and header.count() == len(column_widths):
+            for i, width in enumerate(column_widths):
+                table_view.setColumnWidth(i, width)
+
+    def _save_table_column_widths(self, table_view: QTableView) -> list[int]:
+        """Save column widths for a table view.
+
+        Args:
+            table_view: The table view to save column widths for.
+
+        Returns:
+            List of column widths.
+        """
+        header = table_view.horizontalHeader()
+        column_widths = []
+        for i in range(header.count()):
+            column_widths.append(table_view.columnWidth(i))
+        return column_widths
+
     def _select_category_by_id(self, category_id: int) -> None:
         """Select category in listView_categories by database ID.
 
@@ -2634,33 +2661,6 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
-
-    def _save_table_column_widths(self, table_view: QTableView) -> list[int]:
-        """Save column widths for a table view.
-
-        Args:
-            table_view: The table view to save column widths for.
-
-        Returns:
-            List of column widths.
-        """
-        header = table_view.horizontalHeader()
-        column_widths = []
-        for i in range(header.count()):
-            column_widths.append(table_view.columnWidth(i))
-        return column_widths
-
-    def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
-        """Restore column widths for a table view.
-
-        Args:
-            table_view: The table view to restore column widths for.
-            column_widths: List of column widths to restore.
-        """
-        header = table_view.horizontalHeader()
-        if column_widths and header.count() == len(column_widths):
-            for i, width in enumerate(column_widths):
-                table_view.setColumnWidth(i, width)
 
     def _validate_database_connection(self) -> bool:
         """Validate database connection.
