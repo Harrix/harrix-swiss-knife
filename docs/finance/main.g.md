@@ -354,7 +354,17 @@ class MainWindow(
             return
 
         if success:
+            # Save current column widths before update for exchange table
+            column_widths = None
+            if table_name == "currency_exchanges":
+                column_widths = self._save_table_column_widths(self.tableView_exchange)
+
             self.update_all()
+
+            # Restore column widths after update for exchange table
+            if table_name == "currency_exchanges" and column_widths:
+                self._restore_table_column_widths(self.tableView_exchange, column_widths)
+
             self.update_summary_labels()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
@@ -596,7 +606,14 @@ class MainWindow(
             if self.db_manager.add_currency_exchange(
                 from_currency_id, to_currency_id, amount_from, amount_to, exchange_rate, fee, date, description
             ):
+                # Save current column widths before update
+                column_widths = self._save_table_column_widths(self.tableView_exchange)
+
                 self.update_all()
+
+                # Restore column widths after update
+                self._restore_table_column_widths(self.tableView_exchange, column_widths)
+
                 self._clear_exchange_form()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add currency exchange")
@@ -640,7 +657,14 @@ class MainWindow(
 
         try:
             if self.db_manager.add_exchange_rate(from_currency_id, to_currency_id, rate, date):
+                # Save current column widths before update
+                column_widths = self._save_table_column_widths(self.tableView_exchange)
+
                 self.update_all()
+
+                # Restore column widths after update
+                self._restore_table_column_widths(self.tableView_exchange, column_widths)
+
                 self._clear_rate_form()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add exchange rate")
@@ -1170,6 +1194,8 @@ class MainWindow(
             if exchange_header.count() > 0:
                 for i in range(exchange_header.count()):
                     exchange_header.setSectionResizeMode(i, exchange_header.ResizeMode.Stretch)
+                # Ensure stretch settings are applied
+                exchange_header.setStretchLastSection(False)
 
             # Refresh exchange rates table
             rates_data = self.db_manager.get_all_exchange_rates()
@@ -1192,10 +1218,11 @@ class MainWindow(
                 for i in range(rates_header.count()):
                     rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
 
-            # Resize columns to content
+            # Resize columns to content (excluding exchange table to preserve stretch settings)
             for table_name in self.table_config:
-                view = self.table_config[table_name][0]
-                view.resizeColumnsToContents()
+                if table_name != "currency_exchanges":  # Skip exchange table to preserve stretch settings
+                    view = self.table_config[table_name][0]
+                    view.resizeColumnsToContents()
 
             # Special handling for transactions table - настройка растягивания столбцов
             header = self.tableView_transactions.horizontalHeader()
@@ -3033,7 +3060,17 @@ def delete_record(self, table_name: str) -> None:
             return
 
         if success:
+            # Save current column widths before update for exchange table
+            column_widths = None
+            if table_name == "currency_exchanges":
+                column_widths = self._save_table_column_widths(self.tableView_exchange)
+
             self.update_all()
+
+            # Restore column widths after update for exchange table
+            if table_name == "currency_exchanges" and column_widths:
+                self._restore_table_column_widths(self.tableView_exchange, column_widths)
+
             self.update_summary_labels()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
@@ -3363,7 +3400,14 @@ def on_add_exchange(self) -> None:
             if self.db_manager.add_currency_exchange(
                 from_currency_id, to_currency_id, amount_from, amount_to, exchange_rate, fee, date, description
             ):
+                # Save current column widths before update
+                column_widths = self._save_table_column_widths(self.tableView_exchange)
+
                 self.update_all()
+
+                # Restore column widths after update
+                self._restore_table_column_widths(self.tableView_exchange, column_widths)
+
                 self._clear_exchange_form()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add currency exchange")
@@ -3420,7 +3464,14 @@ def on_add_rate(self) -> None:
 
         try:
             if self.db_manager.add_exchange_rate(from_currency_id, to_currency_id, rate, date):
+                # Save current column widths before update
+                column_widths = self._save_table_column_widths(self.tableView_exchange)
+
                 self.update_all()
+
+                # Restore column widths after update
+                self._restore_table_column_widths(self.tableView_exchange, column_widths)
+
                 self._clear_rate_form()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add exchange rate")
@@ -4207,6 +4258,8 @@ def show_tables(self) -> None:
             if exchange_header.count() > 0:
                 for i in range(exchange_header.count()):
                     exchange_header.setSectionResizeMode(i, exchange_header.ResizeMode.Stretch)
+                # Ensure stretch settings are applied
+                exchange_header.setStretchLastSection(False)
 
             # Refresh exchange rates table
             rates_data = self.db_manager.get_all_exchange_rates()
@@ -4229,10 +4282,11 @@ def show_tables(self) -> None:
                 for i in range(rates_header.count()):
                     rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
 
-            # Resize columns to content
+            # Resize columns to content (excluding exchange table to preserve stretch settings)
             for table_name in self.table_config:
-                view = self.table_config[table_name][0]
-                view.resizeColumnsToContents()
+                if table_name != "currency_exchanges":  # Skip exchange table to preserve stretch settings
+                    view = self.table_config[table_name][0]
+                    view.resizeColumnsToContents()
 
             # Special handling for transactions table - настройка растягивания столбцов
             header = self.tableView_transactions.horizontalHeader()
