@@ -30,6 +30,7 @@ from harrix_swiss_knife.finance.mixins import (
     ValidationOperations,
     requires_database,
 )
+from harrix_swiss_knife import resources_rc  # noqa: F401
 
 config = h.dev.load_config("config/config.json")
 
@@ -72,6 +73,9 @@ class MainWindow(
         super().__init__()
         self.setupUi(self)
         self._setup_ui()
+
+        # Set window icon
+        self.setWindowIcon(QIcon(":/assets/logo.svg"))
 
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
