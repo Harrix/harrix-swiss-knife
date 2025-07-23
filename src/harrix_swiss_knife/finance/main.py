@@ -20,6 +20,7 @@ from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel,
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QCompleter, QDialog, QFileDialog, QMainWindow, QMessageBox, QTableView
 
+from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.finance import database_manager, window
 from harrix_swiss_knife.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.finance.mixins import (
@@ -30,7 +31,6 @@ from harrix_swiss_knife.finance.mixins import (
     ValidationOperations,
     requires_database,
 )
-from harrix_swiss_knife import resources_rc  # noqa: F401
 
 config = h.dev.load_config("config/config.json")
 

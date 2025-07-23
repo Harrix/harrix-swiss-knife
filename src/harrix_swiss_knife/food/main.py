@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.food import database_manager, window
 from harrix_swiss_knife.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.food.mixins import (
@@ -37,7 +38,6 @@ from harrix_swiss_knife.food.mixins import (
 )
 from harrix_swiss_knife.food.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.food.text_parser import TextParser
-from harrix_swiss_knife import resources_rc  # noqa: F401
 
 config = h.dev.load_config("config/config.json")
 

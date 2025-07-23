@@ -22,9 +22,20 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
-from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QMovie, QPixmap, QStandardItem, QStandardItemModel
+from PySide6.QtGui import (
+    QBrush,
+    QCloseEvent,
+    QColor,
+    QIcon,
+    QKeyEvent,
+    QMovie,
+    QPixmap,
+    QStandardItem,
+    QStandardItemModel,
+)
 from PySide6.QtWidgets import QApplication, QFileDialog, QListView, QMainWindow, QMessageBox, QTableView
 
+from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.fitness import database_manager, window
 from harrix_swiss_knife.fitness.mixins import (
     AutoSaveOperations,
@@ -34,7 +45,6 @@ from harrix_swiss_knife.fitness.mixins import (
     ValidationOperations,
     requires_database,
 )
-from harrix_swiss_knife import resources_rc  # noqa: F401
 
 if TYPE_CHECKING:
     from collections.abc import Callable

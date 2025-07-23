@@ -140,6 +140,9 @@ class MainWindow(
         self.setupUi(self)
         self._setup_ui()
 
+        # Set window icon
+        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize core attributes
@@ -2712,6 +2715,9 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
         self.setupUi(self)
         self._setup_ui()
+
+        # Set window icon
+        self.setWindowIcon(QIcon(":/assets/logo.svg"))
 
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
