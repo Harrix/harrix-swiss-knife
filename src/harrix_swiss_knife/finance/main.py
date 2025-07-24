@@ -843,7 +843,9 @@ class MainWindow(
             # Get the earliest date from currency_exchanges
             earliest_date = self.db_manager.get_earliest_currency_exchange_date()
             if not earliest_date:
-                QMessageBox.warning(self, "No Data", "No currency exchanges found. Please add some currency exchanges first.")
+                QMessageBox.warning(
+                    self, "No Data", "No currency exchanges found. Please add some currency exchanges first."
+                )
                 return
 
             # Get all currencies except USD (base currency)
@@ -880,7 +882,11 @@ class MainWindow(
             try:
                 import yfinance as yf
             except ImportError:
-                QMessageBox.critical(self, "Import Error", "yfinance library is not installed. Please install it with: pip install yfinance")
+                QMessageBox.critical(
+                    self,
+                    "Import Error",
+                    "yfinance library is not installed. Please install it with: pip install yfinance",
+                )
                 return
 
             # Process each currency
@@ -907,11 +913,13 @@ class MainWindow(
                         # Check if exchange rate already exists
                         if not self.db_manager.check_exchange_rate_exists(currency_id, usd_currency_id, date_str):
                             # Get the close price (exchange rate)
-                            close_price = row['Close']
+                            close_price = row["Close"]
 
                             if not pd.isna(close_price) and close_price > 0:
                                 # Add exchange rate to database
-                                if self.db_manager.add_exchange_rate(currency_id, usd_currency_id, close_price, date_str):
+                                if self.db_manager.add_exchange_rate(
+                                    currency_id, usd_currency_id, close_price, date_str
+                                ):
                                     total_updates += 1
                                     print(f"✅ Added {currency_code}/USD rate: {close_price:.4f} for {date_str}")
                                 else:
@@ -932,7 +940,7 @@ class MainWindow(
                     "Update Complete",
                     f"Successfully updated {total_updates} exchange rates.\n\n"
                     f"Date range: {start_date} to {end_date}\n"
-                    f"Currencies processed: {len(currencies)}"
+                    f"Currencies processed: {len(currencies)}",
                 )
 
                 # Refresh the exchange rates table
@@ -943,7 +951,7 @@ class MainWindow(
                     "Update Complete",
                     "No new exchange rates were added.\n\n"
                     f"Date range: {start_date} to {end_date}\n"
-                    f"Currencies processed: {len(currencies)}"
+                    f"Currencies processed: {len(currencies)}",
                 )
 
         except Exception as e:

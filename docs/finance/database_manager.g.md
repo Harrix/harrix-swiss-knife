@@ -20,6 +20,7 @@ lang: en
   - [⚙️ Method `add_currency_exchange`](#%EF%B8%8F-method-add_currency_exchange)
   - [⚙️ Method `add_exchange_rate`](#%EF%B8%8F-method-add_exchange_rate)
   - [⚙️ Method `add_transaction`](#%EF%B8%8F-method-add_transaction)
+  - [⚙️ Method `check_exchange_rate_exists`](#%EF%B8%8F-method-check_exchange_rate_exists)
   - [⚙️ Method `close`](#%EF%B8%8F-method-close)
   - [⚙️ Method `create_database_from_sql`](#%EF%B8%8F-method-create_database_from_sql)
   - [⚙️ Method `delete_account`](#%EF%B8%8F-method-delete_account)
@@ -40,10 +41,12 @@ lang: en
   - [⚙️ Method `get_all_transactions`](#%EF%B8%8F-method-get_all_transactions)
   - [⚙️ Method `get_categories_by_type`](#%EF%B8%8F-method-get_categories_by_type)
   - [⚙️ Method `get_categories_with_icons_by_type`](#%EF%B8%8F-method-get_categories_with_icons_by_type)
+  - [⚙️ Method `get_currencies_except_usd`](#%EF%B8%8F-method-get_currencies_except_usd)
   - [⚙️ Method `get_currency_by_code`](#%EF%B8%8F-method-get_currency_by_code)
   - [⚙️ Method `get_currency_by_id`](#%EF%B8%8F-method-get_currency_by_id)
   - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
   - [⚙️ Method `get_default_currency_id`](#%EF%B8%8F-method-get_default_currency_id)
+  - [⚙️ Method `get_earliest_currency_exchange_date`](#%EF%B8%8F-method-get_earliest_currency_exchange_date)
   - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate)
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
@@ -308,6 +311,26 @@ class DatabaseManager:
             "tag": tag,
         }
         return self.execute_simple_query(query, params)
+
+    def check_exchange_rate_exists(self, currency_from_id: int, currency_to_id: int, date: str) -> bool:
+        """Check if exchange rate exists for given currencies and date.
+
+        Args:
+
+        - `currency_from_id` (`int`): Source currency ID.
+        - `currency_to_id` (`int`): Target currency ID.
+        - `date` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `bool`: True if exchange rate exists, False otherwise.
+
+        """
+        rows = self.get_rows(
+            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id AND date = :date",
+            {"from_id": currency_from_id, "to_id": currency_to_id, "date": date},
+        )
+        return rows[0][0] > 0 if rows else False
 
     def close(self) -> None:
         """Close the database connection."""
@@ -761,6 +784,16 @@ class DatabaseManager:
         )
         return [(row[0], row[1]) for row in rows]
 
+    def get_currencies_except_usd(self) -> list[list[Any]]:
+        """Get all currencies except USD (which is the base currency).
+
+        Returns:
+
+        - `list[list[Any]]`: List of currency records [_id, code, name, symbol] excluding USD.
+
+        """
+        return self.get_rows("SELECT _id, code, name, symbol FROM currencies WHERE code != 'USD' ORDER BY code")
+
     def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:
         """Get currency information by code.
 
@@ -813,6 +846,17 @@ class DatabaseManager:
         default_code = self.get_default_currency()
         currency_info = self.get_currency_by_code(default_code)
         return currency_info[0] if currency_info else 1
+
+    def get_earliest_currency_exchange_date(self) -> str | None:
+        """Get the earliest date from currency_exchanges table.
+
+        Returns:
+
+        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+
+        """
+        rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
+        return rows[0][0] if rows and rows[0][0] else None
 
     def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
         """Get exchange rate between currencies.
@@ -1837,6 +1881,38 @@ def add_transaction(
 
 </details>
 
+### ⚙️ Method `check_exchange_rate_exists`
+
+```python
+def check_exchange_rate_exists(self, currency_from_id: int, currency_to_id: int, date: str) -> bool
+```
+
+Check if exchange rate exists for given currencies and date.
+
+Args:
+
+- `currency_from_id` (`int`): Source currency ID.
+- `currency_to_id` (`int`): Target currency ID.
+- `date` (`str`): Date in YYYY-MM-DD format.
+
+Returns:
+
+- `bool`: True if exchange rate exists, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def check_exchange_rate_exists(self, currency_from_id: int, currency_to_id: int, date: str) -> bool:
+        rows = self.get_rows(
+            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id AND date = :date",
+            {"from_id": currency_from_id, "to_id": currency_to_id, "date": date},
+        )
+        return rows[0][0] > 0 if rows else False
+```
+
+</details>
+
 ### ⚙️ Method `close`
 
 ```python
@@ -2530,6 +2606,28 @@ def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[st
 
 </details>
 
+### ⚙️ Method `get_currencies_except_usd`
+
+```python
+def get_currencies_except_usd(self) -> list[list[Any]]
+```
+
+Get all currencies except USD (which is the base currency).
+
+Returns:
+
+- `list[list[Any]]`: List of currency records [_id, code, name, symbol] excluding USD.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_currencies_except_usd(self) -> list[list[Any]]:
+        return self.get_rows("SELECT _id, code, name, symbol FROM currencies WHERE code != 'USD' ORDER BY code")
+```
+
+</details>
+
 ### ⚙️ Method `get_currency_by_code`
 
 ```python
@@ -2627,6 +2725,29 @@ def get_default_currency_id(self) -> int:
         default_code = self.get_default_currency()
         currency_info = self.get_currency_by_code(default_code)
         return currency_info[0] if currency_info else 1
+```
+
+</details>
+
+### ⚙️ Method `get_earliest_currency_exchange_date`
+
+```python
+def get_earliest_currency_exchange_date(self) -> str | None
+```
+
+Get the earliest date from currency_exchanges table.
+
+Returns:
+
+- `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_earliest_currency_exchange_date(self) -> str | None:
+        rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
+        return rows[0][0] if rows and rows[0][0] else None
 ```
 
 </details>

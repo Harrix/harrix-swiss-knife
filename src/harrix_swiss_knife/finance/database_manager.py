@@ -246,6 +246,26 @@ class DatabaseManager:
         }
         return self.execute_simple_query(query, params)
 
+    def check_exchange_rate_exists(self, currency_from_id: int, currency_to_id: int, date: str) -> bool:
+        """Check if exchange rate exists for given currencies and date.
+
+        Args:
+
+        - `currency_from_id` (`int`): Source currency ID.
+        - `currency_to_id` (`int`): Target currency ID.
+        - `date` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `bool`: True if exchange rate exists, False otherwise.
+
+        """
+        rows = self.get_rows(
+            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id AND date = :date",
+            {"from_id": currency_from_id, "to_id": currency_to_id, "date": date},
+        )
+        return rows[0][0] > 0 if rows else False
+
     def close(self) -> None:
         """Close the database connection."""
         db = getattr(self, "db", None)
@@ -607,47 +627,6 @@ class DatabaseManager:
         """
         return self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code")
 
-    def get_currencies_except_usd(self) -> list[list[Any]]:
-        """Get all currencies except USD (which is the base currency).
-
-        Returns:
-
-        - `list[list[Any]]`: List of currency records [_id, code, name, symbol] excluding USD.
-
-        """
-        return self.get_rows("SELECT _id, code, name, symbol FROM currencies WHERE code != 'USD' ORDER BY code")
-
-    def get_earliest_currency_exchange_date(self) -> str | None:
-        """Get the earliest date from currency_exchanges table.
-
-        Returns:
-
-        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
-
-        """
-        rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
-        return rows[0][0] if rows and rows[0][0] else None
-
-    def check_exchange_rate_exists(self, currency_from_id: int, currency_to_id: int, date: str) -> bool:
-        """Check if exchange rate exists for given currencies and date.
-
-        Args:
-
-        - `currency_from_id` (`int`): Source currency ID.
-        - `currency_to_id` (`int`): Target currency ID.
-        - `date` (`str`): Date in YYYY-MM-DD format.
-
-        Returns:
-
-        - `bool`: True if exchange rate exists, False otherwise.
-
-        """
-        rows = self.get_rows(
-            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id AND date = :date",
-            {"from_id": currency_from_id, "to_id": currency_to_id, "date": date}
-        )
-        return rows[0][0] > 0 if rows else False
-
     def get_all_currency_exchanges(self) -> list[list[Any]]:
         """Get all currency exchange records with currency information.
 
@@ -739,6 +718,16 @@ class DatabaseManager:
         )
         return [(row[0], row[1]) for row in rows]
 
+    def get_currencies_except_usd(self) -> list[list[Any]]:
+        """Get all currencies except USD (which is the base currency).
+
+        Returns:
+
+        - `list[list[Any]]`: List of currency records [_id, code, name, symbol] excluding USD.
+
+        """
+        return self.get_rows("SELECT _id, code, name, symbol FROM currencies WHERE code != 'USD' ORDER BY code")
+
     def get_currency_by_code(self, code: str) -> tuple[int, str, str] | None:
         """Get currency information by code.
 
@@ -791,6 +780,17 @@ class DatabaseManager:
         default_code = self.get_default_currency()
         currency_info = self.get_currency_by_code(default_code)
         return currency_info[0] if currency_info else 1
+
+    def get_earliest_currency_exchange_date(self) -> str | None:
+        """Get the earliest date from currency_exchanges table.
+
+        Returns:
+
+        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+
+        """
+        rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
+        return rows[0][0] if rows and rows[0][0] else None
 
     def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
         """Get exchange rate between currencies.

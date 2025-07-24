@@ -895,9 +895,135 @@ class MainWindow(
         elif index == 7:  # Reports tab
             self.update_summary_labels()
 
+    @requires_database()
     def on_update_exchange_rates(self) -> None:
-        """Update exchange rates (placeholder for future implementation)."""
-        QMessageBox.information(self, "Info", "Exchange rate update not implemented yet")
+        """Update exchange rates from yfinance.
+
+        Downloads exchange rates for all currencies (except USD) from the earliest
+        currency exchange date to today. USD is used as the base currency.
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get the earliest date from currency_exchanges
+            earliest_date = self.db_manager.get_earliest_currency_exchange_date()
+            if not earliest_date:
+                QMessageBox.warning(
+                    self, "No Data", "No currency exchanges found. Please add some currency exchanges first."
+                )
+                return
+
+            # Get all currencies except USD (base currency)
+            currencies = self.db_manager.get_currencies_except_usd()
+            if not currencies:
+                QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
+                return
+
+            # Get USD currency ID
+            usd_currency = self.db_manager.get_currency_by_code("USD")
+            if not usd_currency:
+                QMessageBox.warning(self, "USD Not Found", "USD currency not found in database.")
+                return
+            usd_currency_id = usd_currency[0]
+
+            # Calculate date range
+            start_date = datetime.strptime(earliest_date, "%Y-%m-%d").date()
+            end_date = datetime.now().date()
+
+            # Show progress dialog
+            progress_dialog = QMessageBox(self)
+            progress_dialog.setWindowTitle("Updating Exchange Rates")
+            progress_dialog.setText(f"Updating exchange rates from {start_date} to {end_date}...")
+            progress_dialog.setStandardButtons(QMessageBox.StandardButton.NoButton)
+            progress_dialog.show()
+
+            # Process events to show the dialog
+            QApplication.processEvents()
+
+            total_updates = 0
+            total_days = (end_date - start_date).days + 1
+
+            # Import yfinance here to avoid import issues
+            try:
+                import yfinance as yf
+            except ImportError:
+                QMessageBox.critical(
+                    self,
+                    "Import Error",
+                    "yfinance library is not installed. Please install it with: pip install yfinance",
+                )
+                return
+
+            # Process each currency
+            for currency_id, currency_code, currency_name, currency_symbol in currencies:
+                progress_dialog.setText(f"Processing {currency_code}...")
+                QApplication.processEvents()
+
+                # Create ticker symbol for yfinance (e.g., "EURUSD=X" for EUR to USD)
+                ticker_symbol = f"{currency_code}USD=X"
+
+                try:
+                    # Download historical data
+                    ticker = yf.Ticker(ticker_symbol)
+                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                    if hist.empty:
+                        print(f"⚠️ No data found for {ticker_symbol}")
+                        continue
+
+                    # Process each day
+                    for date, row in hist.iterrows():
+                        date_str = date.strftime("%Y-%m-%d")
+
+                        # Check if exchange rate already exists
+                        if not self.db_manager.check_exchange_rate_exists(currency_id, usd_currency_id, date_str):
+                            # Get the close price (exchange rate)
+                            close_price = row["Close"]
+
+                            if not pd.isna(close_price) and close_price > 0:
+                                # Add exchange rate to database
+                                if self.db_manager.add_exchange_rate(
+                                    currency_id, usd_currency_id, close_price, date_str
+                                ):
+                                    total_updates += 1
+                                    print(f"✅ Added {currency_code}/USD rate: {close_price:.4f} for {date_str}")
+                                else:
+                                    print(f"❌ Failed to add {currency_code}/USD rate for {date_str}")
+                            else:
+                                print(f"⚠️ Invalid price for {currency_code} on {date_str}: {close_price}")
+
+                except Exception as e:
+                    print(f"❌ Error processing {currency_code}: {e}")
+                    continue
+
+            progress_dialog.close()
+
+            # Show results
+            if total_updates > 0:
+                QMessageBox.information(
+                    self,
+                    "Update Complete",
+                    f"Successfully updated {total_updates} exchange rates.\n\n"
+                    f"Date range: {start_date} to {end_date}\n"
+                    f"Currencies processed: {len(currencies)}",
+                )
+
+                # Refresh the exchange rates table
+                self.update_all()
+            else:
+                QMessageBox.information(
+                    self,
+                    "Update Complete",
+                    "No new exchange rates were added.\n\n"
+                    f"Date range: {start_date} to {end_date}\n"
+                    f"Currencies processed: {len(currencies)}",
+                )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates: {e}")
+            print(f"❌ Exchange rate update error: {e}")
 
     def on_yesterday(self) -> None:
         """Set yesterday's date in the main date field."""
@@ -3832,14 +3958,138 @@ def on_tab_changed(self, index: int) -> None:
 def on_update_exchange_rates(self) -> None
 ```
 
-Update exchange rates (placeholder for future implementation).
+Update exchange rates from yfinance.
+
+Downloads exchange rates for all currencies (except USD) from the earliest
+currency exchange date to today. USD is used as the base currency.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_update_exchange_rates(self) -> None:
-        QMessageBox.information(self, "Info", "Exchange rate update not implemented yet")
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get the earliest date from currency_exchanges
+            earliest_date = self.db_manager.get_earliest_currency_exchange_date()
+            if not earliest_date:
+                QMessageBox.warning(
+                    self, "No Data", "No currency exchanges found. Please add some currency exchanges first."
+                )
+                return
+
+            # Get all currencies except USD (base currency)
+            currencies = self.db_manager.get_currencies_except_usd()
+            if not currencies:
+                QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
+                return
+
+            # Get USD currency ID
+            usd_currency = self.db_manager.get_currency_by_code("USD")
+            if not usd_currency:
+                QMessageBox.warning(self, "USD Not Found", "USD currency not found in database.")
+                return
+            usd_currency_id = usd_currency[0]
+
+            # Calculate date range
+            start_date = datetime.strptime(earliest_date, "%Y-%m-%d").date()
+            end_date = datetime.now().date()
+
+            # Show progress dialog
+            progress_dialog = QMessageBox(self)
+            progress_dialog.setWindowTitle("Updating Exchange Rates")
+            progress_dialog.setText(f"Updating exchange rates from {start_date} to {end_date}...")
+            progress_dialog.setStandardButtons(QMessageBox.StandardButton.NoButton)
+            progress_dialog.show()
+
+            # Process events to show the dialog
+            QApplication.processEvents()
+
+            total_updates = 0
+            total_days = (end_date - start_date).days + 1
+
+            # Import yfinance here to avoid import issues
+            try:
+                import yfinance as yf
+            except ImportError:
+                QMessageBox.critical(
+                    self,
+                    "Import Error",
+                    "yfinance library is not installed. Please install it with: pip install yfinance",
+                )
+                return
+
+            # Process each currency
+            for currency_id, currency_code, currency_name, currency_symbol in currencies:
+                progress_dialog.setText(f"Processing {currency_code}...")
+                QApplication.processEvents()
+
+                # Create ticker symbol for yfinance (e.g., "EURUSD=X" for EUR to USD)
+                ticker_symbol = f"{currency_code}USD=X"
+
+                try:
+                    # Download historical data
+                    ticker = yf.Ticker(ticker_symbol)
+                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                    if hist.empty:
+                        print(f"⚠️ No data found for {ticker_symbol}")
+                        continue
+
+                    # Process each day
+                    for date, row in hist.iterrows():
+                        date_str = date.strftime("%Y-%m-%d")
+
+                        # Check if exchange rate already exists
+                        if not self.db_manager.check_exchange_rate_exists(currency_id, usd_currency_id, date_str):
+                            # Get the close price (exchange rate)
+                            close_price = row["Close"]
+
+                            if not pd.isna(close_price) and close_price > 0:
+                                # Add exchange rate to database
+                                if self.db_manager.add_exchange_rate(
+                                    currency_id, usd_currency_id, close_price, date_str
+                                ):
+                                    total_updates += 1
+                                    print(f"✅ Added {currency_code}/USD rate: {close_price:.4f} for {date_str}")
+                                else:
+                                    print(f"❌ Failed to add {currency_code}/USD rate for {date_str}")
+                            else:
+                                print(f"⚠️ Invalid price for {currency_code} on {date_str}: {close_price}")
+
+                except Exception as e:
+                    print(f"❌ Error processing {currency_code}: {e}")
+                    continue
+
+            progress_dialog.close()
+
+            # Show results
+            if total_updates > 0:
+                QMessageBox.information(
+                    self,
+                    "Update Complete",
+                    f"Successfully updated {total_updates} exchange rates.\n\n"
+                    f"Date range: {start_date} to {end_date}\n"
+                    f"Currencies processed: {len(currencies)}",
+                )
+
+                # Refresh the exchange rates table
+                self.update_all()
+            else:
+                QMessageBox.information(
+                    self,
+                    "Update Complete",
+                    "No new exchange rates were added.\n\n"
+                    f"Date range: {start_date} to {end_date}\n"
+                    f"Currencies processed: {len(currencies)}",
+                )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates: {e}")
+            print(f"❌ Exchange rate update error: {e}")
 ```
 
 </details>
