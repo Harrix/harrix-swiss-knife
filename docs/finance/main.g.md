@@ -260,22 +260,22 @@ class MainWindow(
         )
         self.tableView_transactions.setModel(self.models["transactions"])
 
-        # Настройка растягивания столбцов (как в show_tables)
+        # Column stretching setup (like in show_tables)
         self.tableView_transactions.resizeColumnsToContents()
 
-        # Настройка поведения заголовка таблицы для растягивания столбцов
+        # Table header behavior setup for column stretching
         header = self.tableView_transactions.horizontalHeader()
         if header.count() > 0:
-            # Установить режим растягивания для всех столбцов кроме двух последних
+            # Set stretch mode for all columns except the last two
             for i in range(header.count() - 2):
                 header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-            # Для предпоследнего столбца (Tag) установить фиксированную ширину
+            # For the second-to-last column (Tag) set fixed width
             second_last_column = header.count() - 2
             header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
             self.tableView_transactions.setColumnWidth(second_last_column, 100)
 
-            # Для последнего столбца (Total per day) установить фиксированную ширину
+            # For the last column (Total per day) set fixed width
             last_column = header.count() - 1
             header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
             self.tableView_transactions.setColumnWidth(last_column, 120)
@@ -1227,19 +1227,19 @@ class MainWindow(
                     view = self.table_config[table_name][0]
                     view.resizeColumnsToContents()
 
-            # Special handling for transactions table - настройка растягивания столбцов
+            # Special handling for transactions table - column stretching setup
             header = self.tableView_transactions.horizontalHeader()
             if header.count() > 0:
-                # Установить режим растягивания для всех столбцов кроме двух последних
+                # Set stretch mode for all columns except the last two
                 for i in range(header.count() - 2):
                     header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-                # Для предпоследнего столбца (Tag) установить фиксированную ширину
+                # For the second-to-last column (Tag) set fixed width
                 second_last_column = header.count() - 2
                 header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
                 self.tableView_transactions.setColumnWidth(second_last_column, 100)
 
-                # Для последнего столбца (Total per day) установить фиксированную ширину
+                # For the last column (Total per day) set fixed width
                 last_column = header.count() - 1
                 header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
                 self.tableView_transactions.setColumnWidth(last_column, 120)
@@ -2473,7 +2473,7 @@ class MainWindow(
         # Create completer
         self.description_completer = QCompleter(self)
         self.description_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Поиск по содержимому
+        self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Search by content
         self.description_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
         # Create model for completer
@@ -2932,22 +2932,22 @@ def apply_filter(self) -> None:
         )
         self.tableView_transactions.setModel(self.models["transactions"])
 
-        # Настройка растягивания столбцов (как в show_tables)
+        # Column stretching setup (like in show_tables)
         self.tableView_transactions.resizeColumnsToContents()
 
-        # Настройка поведения заголовка таблицы для растягивания столбцов
+        # Table header behavior setup for column stretching
         header = self.tableView_transactions.horizontalHeader()
         if header.count() > 0:
-            # Установить режим растягивания для всех столбцов кроме двух последних
+            # Set stretch mode for all columns except the last two
             for i in range(header.count() - 2):
                 header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-            # Для предпоследнего столбца (Tag) установить фиксированную ширину
+            # For the second-to-last column (Tag) set fixed width
             second_last_column = header.count() - 2
             header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
             self.tableView_transactions.setColumnWidth(second_last_column, 100)
 
-            # Для последнего столбца (Total per day) установить фиксированную ширину
+            # For the last column (Total per day) set fixed width
             last_column = header.count() - 1
             header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
             self.tableView_transactions.setColumnWidth(last_column, 120)
@@ -4294,19 +4294,19 @@ def show_tables(self) -> None:
                     view = self.table_config[table_name][0]
                     view.resizeColumnsToContents()
 
-            # Special handling for transactions table - настройка растягивания столбцов
+            # Special handling for transactions table - column stretching setup
             header = self.tableView_transactions.horizontalHeader()
             if header.count() > 0:
-                # Установить режим растягивания для всех столбцов кроме двух последних
+                # Set stretch mode for all columns except the last two
                 for i in range(header.count() - 2):
                     header.setSectionResizeMode(i, header.ResizeMode.Stretch)
 
-                # Для предпоследнего столбца (Tag) установить фиксированную ширину
+                # For the second-to-last column (Tag) set fixed width
                 second_last_column = header.count() - 2
                 header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
                 self.tableView_transactions.setColumnWidth(second_last_column, 100)
 
-                # Для последнего столбца (Total per day) установить фиксированную ширину
+                # For the last column (Total per day) set fixed width
                 last_column = header.count() - 1
                 header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
                 self.tableView_transactions.setColumnWidth(last_column, 120)
@@ -6052,7 +6052,7 @@ def _setup_autocomplete(self) -> None:
         # Create completer
         self.description_completer = QCompleter(self)
         self.description_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Поиск по содержимому
+        self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Search by content
         self.description_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
         # Create model for completer

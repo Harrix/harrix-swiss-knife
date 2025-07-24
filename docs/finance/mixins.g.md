@@ -247,7 +247,7 @@ class AutoSaveOperations:
         - `row_id` (`str`): Database ID of the row.
 
         """
-        # Правильный порядок столбцов в tableView_transactions:
+        # Correct column order in tableView_transactions:
         # [Description, Amount, Category, Currency, Date, Tag]
         description = model.data(model.index(row, 0)) or ""  # Description
         amount_str = model.data(model.index(row, 1)) or "0"  # Amount
@@ -565,7 +565,7 @@ Args:
 
 ```python
 def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        # Правильный порядок столбцов в tableView_transactions:
+        # Correct column order in tableView_transactions:
         # [Description, Amount, Category, Currency, Date, Tag]
         description = model.data(model.index(row, 0)) or ""  # Description
         amount_str = model.data(model.index(row, 1)) or "0"  # Amount

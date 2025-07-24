@@ -961,7 +961,7 @@ class MainWindow(
         # Update food items list
         self._update_food_items_list()
         self._update_favorite_food_items_list()
-        self._update_autocomplete_data()  # Добавьте эту строку
+        self._update_autocomplete_data()  # Add this line
         self.update_food_calories_today()
         self.show_tables()
 
@@ -1351,10 +1351,10 @@ class MainWindow(
             return ""
 
         # Remove calories info in parentheses at the end
-        # Pattern: " (XXX kcal/порция)" or " (XXX kcal/100g)"
+        # Pattern: " (XXX kcal/portion)" or " (XXX kcal/100g)"
         import re
 
-        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:порция|100g)\)$"
+        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:portion|100g)\)$"
         clean_name = re.sub(pattern, "", display_text)
 
         return clean_name.strip()
@@ -1437,7 +1437,7 @@ class MainWindow(
 
         if portion_cal is not None:
             # Show portion calories if available (including zero)
-            calories_info = f"({portion_cal:.0f} kcal/порция)"
+            calories_info = f"({portion_cal:.0f} kcal/portion)"
         elif cal_100g is not None:
             # Show calories per 100g if no portion calories (including zero)
             calories_info = f"({cal_100g:.0f} kcal/100g)"
@@ -2011,7 +2011,7 @@ class MainWindow(
         # Create completer
         self.food_completer = QCompleter(self)
         self.food_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.food_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Поиск по содержимому
+        self.food_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Search by content
         self.food_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
         # Create model for completer
@@ -3917,7 +3917,7 @@ def update_food_data(self) -> None:
         # Update food items list
         self._update_food_items_list()
         self._update_favorite_food_items_list()
-        self._update_autocomplete_data()  # Добавьте эту строку
+        self._update_autocomplete_data()  # Add this line
         self.update_food_calories_today()
         self.show_tables()
 ```
@@ -4449,10 +4449,10 @@ def _extract_food_name_from_display(self, display_text: str) -> str:
             return ""
 
         # Remove calories info in parentheses at the end
-        # Pattern: " (XXX kcal/порция)" or " (XXX kcal/100g)"
+        # Pattern: " (XXX kcal/portion)" or " (XXX kcal/100g)"
         import re
 
-        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:порция|100g)\)$"
+        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:portion|100g)\)$"
         clean_name = re.sub(pattern, "", display_text)
 
         return clean_name.strip()
@@ -4573,7 +4573,7 @@ def _format_food_name_with_calories(
 
         if portion_cal is not None:
             # Show portion calories if available (including zero)
-            calories_info = f"({portion_cal:.0f} kcal/порция)"
+            calories_info = f"({portion_cal:.0f} kcal/portion)"
         elif cal_100g is not None:
             # Show calories per 100g if no portion calories (including zero)
             calories_info = f"({cal_100g:.0f} kcal/100g)"
@@ -5330,7 +5330,7 @@ def _setup_autocomplete(self) -> None:
         # Create completer
         self.food_completer = QCompleter(self)
         self.food_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.food_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Поиск по содержимому
+        self.food_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Search by content
         self.food_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
         # Create model for completer
