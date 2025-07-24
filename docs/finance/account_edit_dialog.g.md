@@ -61,6 +61,7 @@ class AccountEditDialog(QDialog):
 
         Returns:
             Dictionary with action and data.
+
         """
         return self.result_data
 

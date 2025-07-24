@@ -2274,8 +2274,7 @@ class MainWindow(
 
                         QMessageBox.information(self, "Success", "Account updated successfully")
                         return  # Exit the method to prevent reopening the dialog
-                    else:
-                        QMessageBox.warning(self, "Error", "Failed to update account")
+                    QMessageBox.warning(self, "Error", "Failed to update account")
 
                 elif result["action"] == "delete":
                     # Save current column widths before update
@@ -2291,8 +2290,7 @@ class MainWindow(
 
                         QMessageBox.information(self, "Success", "Account deleted successfully")
                         return  # Exit the method to prevent reopening the dialog
-                    else:
-                        QMessageBox.warning(self, "Error", "Failed to delete account")
+                    QMessageBox.warning(self, "Error", "Failed to delete account")
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
@@ -2406,6 +2404,7 @@ class MainWindow(
         Args:
             table_view: The table view to restore column widths for.
             column_widths: List of column widths to restore.
+
         """
         header = table_view.horizontalHeader()
         if column_widths and header.count() == len(column_widths):
@@ -2420,6 +2419,7 @@ class MainWindow(
 
         Returns:
             List of column widths.
+
         """
         header = table_view.horizontalHeader()
         column_widths = []
@@ -5763,8 +5763,7 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
 
                         QMessageBox.information(self, "Success", "Account updated successfully")
                         return  # Exit the method to prevent reopening the dialog
-                    else:
-                        QMessageBox.warning(self, "Error", "Failed to update account")
+                    QMessageBox.warning(self, "Error", "Failed to update account")
 
                 elif result["action"] == "delete":
                     # Save current column widths before update
@@ -5780,8 +5779,7 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
 
                         QMessageBox.information(self, "Success", "Account deleted successfully")
                         return  # Exit the method to prevent reopening the dialog
-                    else:
-                        QMessageBox.warning(self, "Error", "Failed to delete account")
+                    QMessageBox.warning(self, "Error", "Failed to delete account")
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
