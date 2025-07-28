@@ -1614,8 +1614,9 @@ class MainWindow(
                 # Determine if this exercise group should be light (even) or dark (odd)
                 is_light_group = exercise_group_index % 2 == 0
 
-                # Determine how many rows we need (max of both groups, up to 8)
-                max_rows = min(max(len(entries), len(year_entries)), 8)
+                # Determine how many rows we need (max of both groups, up to spinBox_record_count value)
+                record_count = self.spinBox_record_count.value()
+                max_rows = min(max(len(entries), len(year_entries)), record_count)
 
                 for i in range(max_rows):
                     # Get all-time data if available
@@ -6096,8 +6097,9 @@ def on_refresh_statistics(self) -> None:
                 # Determine if this exercise group should be light (even) or dark (odd)
                 is_light_group = exercise_group_index % 2 == 0
 
-                # Determine how many rows we need (max of both groups, up to 8)
-                max_rows = min(max(len(entries), len(year_entries)), 8)
+                # Determine how many rows we need (max of both groups, up to spinBox_record_count value)
+                record_count = self.spinBox_record_count.value()
+                max_rows = min(max(len(entries), len(year_entries)), record_count)
 
                 for i in range(max_rows):
                     # Get all-time data if available

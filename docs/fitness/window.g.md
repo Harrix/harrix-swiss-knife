@@ -126,6 +126,7 @@ class Ui_MainWindow(object):
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
         self.groupBox_10.setTitle(QCoreApplication.translate("MainWindow", "Records", None))
+        self.label_record_count.setText(QCoreApplication.translate("MainWindow", "Record count:", None))
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
         self.pushButton_check_steps.setText(QCoreApplication.translate("MainWindow", "Check steps", None))
@@ -1023,6 +1024,23 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_19.addWidget(self.comboBox_records_select_exercise)
 
+        self.horizontalLayout_24 = QHBoxLayout()
+        self.horizontalLayout_24.setObjectName("horizontalLayout_24")
+        self.label_record_count = QLabel(self.groupBox_10)
+        self.label_record_count.setObjectName("label_record_count")
+
+        self.horizontalLayout_24.addWidget(self.label_record_count)
+
+        self.spinBox_record_count = QSpinBox(self.groupBox_10)
+        self.spinBox_record_count.setObjectName("spinBox_record_count")
+        self.spinBox_record_count.setMinimum(1)
+        self.spinBox_record_count.setMaximum(100)
+        self.spinBox_record_count.setValue(5)
+
+        self.horizontalLayout_24.addWidget(self.spinBox_record_count)
+
+        self.verticalLayout_19.addLayout(self.horizontalLayout_24)
+
         self.pushButton_statistics_refresh = QPushButton(self.groupBox_10)
         self.pushButton_statistics_refresh.setObjectName("pushButton_statistics_refresh")
 
@@ -1191,6 +1209,7 @@ def retranslateUi(self, MainWindow):
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
         self.groupBox_10.setTitle(QCoreApplication.translate("MainWindow", "Records", None))
+        self.label_record_count.setText(QCoreApplication.translate("MainWindow", "Record count:", None))
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
         self.pushButton_check_steps.setText(QCoreApplication.translate("MainWindow", "Check steps", None))
@@ -2102,6 +2121,23 @@ def setupUi(self, MainWindow):
         self.comboBox_records_select_exercise.setObjectName("comboBox_records_select_exercise")
 
         self.verticalLayout_19.addWidget(self.comboBox_records_select_exercise)
+
+        self.horizontalLayout_24 = QHBoxLayout()
+        self.horizontalLayout_24.setObjectName("horizontalLayout_24")
+        self.label_record_count = QLabel(self.groupBox_10)
+        self.label_record_count.setObjectName("label_record_count")
+
+        self.horizontalLayout_24.addWidget(self.label_record_count)
+
+        self.spinBox_record_count = QSpinBox(self.groupBox_10)
+        self.spinBox_record_count.setObjectName("spinBox_record_count")
+        self.spinBox_record_count.setMinimum(1)
+        self.spinBox_record_count.setMaximum(100)
+        self.spinBox_record_count.setValue(5)
+
+        self.horizontalLayout_24.addWidget(self.spinBox_record_count)
+
+        self.verticalLayout_19.addLayout(self.horizontalLayout_24)
 
         self.pushButton_statistics_refresh = QPushButton(self.groupBox_10)
         self.pushButton_statistics_refresh.setObjectName("pushButton_statistics_refresh")
