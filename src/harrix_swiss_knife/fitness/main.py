@@ -1289,6 +1289,14 @@ class MainWindow(
                     # Set spinBox_count value based on exercise _id
                     if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                         self.spinBox_count.setValue(0)
+
+                        # For Steps exercise, if current date is today, set it to yesterday
+                        # since steps are recorded for the previous day
+                        current_date = self.dateEdit.date()
+                        today = QDate.currentDate()
+                        if current_date == today:
+                            yesterday = today.addDays(-1)
+                            self.dateEdit.setDate(yesterday)
                     else:  # Other exercises - use last value
                         try:
                             value = int(float(last_value))
@@ -1298,6 +1306,14 @@ class MainWindow(
                             print(f"Could not convert last value '{last_value}' to int for exercise '{exercise}'")
                 elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                     self.spinBox_count.setValue(0)
+
+                    # For Steps exercise, if current date is today, set it to yesterday
+                    # since steps are recorded for the previous day
+                    current_date = self.dateEdit.date()
+                    today = QDate.currentDate()
+                    if current_date == today:
+                        yesterday = today.addDays(-1)
+                        self.dateEdit.setDate(yesterday)
 
             except Exception as e:
                 print(f"Error getting last exercise record for '{exercise}': {e}")
