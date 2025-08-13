@@ -440,6 +440,10 @@ class MainWindow(
                 # Update UI - only food-related data
                 self.update_food_data()
 
+                # Reset drink checkbox and button appearance
+                self.checkBox_food_is_drink.setChecked(False)
+                self._update_add_button_appearance()
+
                 # Move focus to food name field and select all text
                 self.lineEdit_food_manual_name.setFocus()
                 self.lineEdit_food_manual_name.selectAll()
@@ -481,6 +485,9 @@ class MainWindow(
     def on_clear_food_manual_name(self) -> None:
         """Clear the food manual name input field."""
         self.lineEdit_food_manual_name.clear()
+        # Reset drink checkbox and button appearance
+        self.checkBox_food_is_drink.setChecked(False)
+        self._update_add_button_appearance()
         # Move focus back to the cleared field
         self.lineEdit_food_manual_name.setFocus()
 
@@ -616,6 +623,7 @@ class MainWindow(
             self.lineEdit_food_manual_name.setText(name)
             self.spinBox_food_weight.setValue(int(weight) if weight > 0 else 0)
             self.checkBox_food_is_drink.setChecked(is_drink)
+            self._update_add_button_appearance()
 
             # Determine radio button state based on portion_calories
             if portion_calories > 0:
@@ -1067,6 +1075,9 @@ class MainWindow(
 
         # Connect food name input for real-time filtering
         self.lineEdit_food_manual_name.textChanged.connect(self._filter_food_items)
+
+        # Connect drink checkbox for button appearance update
+        self.checkBox_food_is_drink.toggled.connect(self._update_add_button_appearance)
 
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
@@ -1809,6 +1820,7 @@ class MainWindow(
                 # Populate form fields
                 self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
                 self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                self._update_add_button_appearance()
 
                 # Determine radio button state based on default_portion_calories
                 if default_portion_calories and default_portion_calories > 0:
@@ -1831,6 +1843,7 @@ class MainWindow(
                     # Populate form fields
                     self.spinBox_food_weight.setValue(int(weight) if weight else 100)
                     self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                    self._update_add_button_appearance()
 
                     # Determine radio button state based on portion_calories
                     if portion_calories and portion_calories > 0:
@@ -1845,6 +1858,7 @@ class MainWindow(
                     self.checkBox_food_is_drink.setChecked(False)
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(0)
+                    self._update_add_button_appearance()
 
             # Update calories calculation
             self.update_calories_calculation()
@@ -1899,6 +1913,7 @@ class MainWindow(
                 self.lineEdit_food_manual_name.setText(name)
                 self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
                 self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                self._update_add_button_appearance()
 
                 # Determine radio button state based on default_portion_calories
                 if default_portion_calories and default_portion_calories > 0:
@@ -1936,6 +1951,7 @@ class MainWindow(
                     self.lineEdit_food_manual_name.setText(name)
                     self.spinBox_food_weight.setValue(int(weight) if weight else 100)
                     self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                    self._update_add_button_appearance()
 
                     # Determine radio button state based on portion_calories
                     if portion_calories and portion_calories > 0:
@@ -1969,6 +1985,7 @@ class MainWindow(
                     self.doubleSpinBox_food_cal100.setValue(0)
                     self.spinBox_food_default_weight.setValue(100)
                     self.doubleSpinBox_food_default_cal.setValue(0)
+                    self._update_add_button_appearance()
 
             # Update calories calculation
             self.update_calories_calculation()
@@ -2133,6 +2150,9 @@ class MainWindow(
 
         # Set focus to the food name input field for quick data entry
         self.lineEdit_food_manual_name.setFocus()
+
+        # Initialize add button appearance
+        self._update_add_button_appearance()
 
         # Set tab order for groupBox_food_add so that pushButton_food_manual_name_clear is last
         # Current order: lineEdit_food_manual_name -> pushButton_food_manual_name_clear -> spinBox_food_weight -> ...
@@ -2776,6 +2796,45 @@ class MainWindow(
                 self.pushButton_food_delete.click()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
+
+    def _update_add_button_appearance(self) -> None:
+        """Update the appearance of the add button based on whether it's a drink or food."""
+        is_drink = self.checkBox_food_is_drink.isChecked()
+
+        if is_drink:
+            # Drink mode: blue color and drink icon
+            self.pushButton_food_add.setText("🥤 Add Drink")
+            self.pushButton_food_add.setStyleSheet(
+                "QPushButton {\n"
+                "    background-color: #e8f5e8;\n"
+                "    border: 1px solid #4CAF50;\n"
+                "    border-radius: 4px;\n"
+                "    color: #2E7D32;\n"
+                "    }\n"
+                "    QPushButton:hover {\n"
+                "    background-color: #c8e6c9;\n"
+                "    }\n"
+                "    QPushButton:pressed {\n"
+                "    background-color: #a5d6a7;\n"
+                "    }"
+            )
+        else:
+            # Food mode: default blue color and food icon
+            self.pushButton_food_add.setText("➕ Add Food")
+            self.pushButton_food_add.setStyleSheet(
+                "QPushButton {\n"
+                "    background-color: #e3f2fd;\n"
+                "    border: 1px solid #2196F3;\n"
+                "    border-radius: 4px;\n"
+                "    color: #000000;\n"
+                "    }\n"
+                "    QPushButton:hover {\n"
+                "    background-color: #bbdefb;\n"
+                "    }\n"
+                "    QPushButton:pressed {\n"
+                "    background-color: #90caf9;\n"
+                "    }"
+            )
 
 
 if __name__ == "__main__":
