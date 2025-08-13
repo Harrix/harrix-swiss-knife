@@ -45,6 +45,7 @@ class Ui_MainWindow(object):
         self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
+        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
         self.pushButton_export_csv.setText(QCoreApplication.translate("MainWindow", "Export Table", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
         self.label_filter_exercise.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
@@ -276,6 +277,11 @@ class Ui_MainWindow(object):
         self.pushButton_refresh.setMinimumSize(QSize(80, 0))
 
         self.horizontalLayout_8.addWidget(self.pushButton_refresh)
+
+        self.pushButton_show_all_records = QPushButton(self.groupBox_5)
+        self.pushButton_show_all_records.setObjectName("pushButton_show_all_records")
+
+        self.horizontalLayout_8.addWidget(self.pushButton_show_all_records)
 
         self.pushButton_export_csv = QPushButton(self.groupBox_5)
         self.pushButton_export_csv.setObjectName("pushButton_export_csv")
@@ -1128,6 +1134,7 @@ def retranslateUi(self, MainWindow):
         self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
+        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
         self.pushButton_export_csv.setText(QCoreApplication.translate("MainWindow", "Export Table", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
         self.label_filter_exercise.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
@@ -1374,6 +1381,11 @@ def setupUi(self, MainWindow):
         self.pushButton_refresh.setMinimumSize(QSize(80, 0))
 
         self.horizontalLayout_8.addWidget(self.pushButton_refresh)
+
+        self.pushButton_show_all_records = QPushButton(self.groupBox_5)
+        self.pushButton_show_all_records.setObjectName("pushButton_show_all_records")
+
+        self.horizontalLayout_8.addWidget(self.pushButton_show_all_records)
 
         self.pushButton_export_csv = QPushButton(self.groupBox_5)
         self.pushButton_export_csv.setObjectName("pushButton_export_csv")

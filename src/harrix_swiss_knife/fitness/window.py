@@ -8,20 +8,66 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-                            QMetaObject, QObject, QPoint, QRect, QSize, Qt,
-                            QTime, QUrl)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QFont,
-                           QFontDatabase, QGradient, QIcon, QImage,
-                           QKeySequence, QLinearGradient, QPainter, QPalette,
-                           QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateEdit,
-                               QDoubleSpinBox, QFrame, QGroupBox, QHBoxLayout,
-                               QHeaderView, QLabel, QLineEdit, QListView,
-                               QMainWindow, QMenuBar, QPushButton, QScrollArea,
-                               QSizePolicy, QSpacerItem, QSpinBox, QSplitter,
-                               QStatusBar, QTableView, QTabWidget, QToolBar,
-                               QVBoxLayout, QWidget)
+from PySide6.QtCore import (
+    QCoreApplication,
+    QDate,
+    QDateTime,
+    QLocale,
+    QMetaObject,
+    QObject,
+    QPoint,
+    QRect,
+    QSize,
+    Qt,
+    QTime,
+    QUrl,
+)
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QConicalGradient,
+    QCursor,
+    QFont,
+    QFontDatabase,
+    QGradient,
+    QIcon,
+    QImage,
+    QKeySequence,
+    QLinearGradient,
+    QPainter,
+    QPalette,
+    QPixmap,
+    QRadialGradient,
+    QTransform,
+)
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDateEdit,
+    QDoubleSpinBox,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QListView,
+    QMainWindow,
+    QMenuBar,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSpacerItem,
+    QSpinBox,
+    QSplitter,
+    QStatusBar,
+    QTableView,
+    QTabWidget,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class Ui_MainWindow(object):
@@ -40,6 +86,7 @@ class Ui_MainWindow(object):
         self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
+        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
         self.pushButton_export_csv.setText(QCoreApplication.translate("MainWindow", "Export Table", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
         self.label_filter_exercise.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
@@ -271,6 +318,11 @@ class Ui_MainWindow(object):
         self.pushButton_refresh.setMinimumSize(QSize(80, 0))
 
         self.horizontalLayout_8.addWidget(self.pushButton_refresh)
+
+        self.pushButton_show_all_records = QPushButton(self.groupBox_5)
+        self.pushButton_show_all_records.setObjectName("pushButton_show_all_records")
+
+        self.horizontalLayout_8.addWidget(self.pushButton_show_all_records)
 
         self.pushButton_export_csv = QPushButton(self.groupBox_5)
         self.pushButton_export_csv.setObjectName("pushButton_export_csv")

@@ -126,6 +126,9 @@ class MainWindow(
             "statistics": None,
         }
 
+        # Process table display mode flag
+        self.show_all_records = False
+
         # Chart configuration
         self.max_count_points_in_charts = 40
         self.id_steps = 39  # ID for steps exercise
@@ -394,6 +397,69 @@ class MainWindow(
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
+
+    @requires_database()
+    def load_process_table(self) -> None:
+        """Load process table data with appropriate limit based on show_all_records flag."""
+
+        def transform_process_data(rows: list[list]) -> list[list]:
+            """Refresh process table with data transformation and coloring.
+
+            Args:
+
+            - `rows` (`list[list]`): Raw process data from database.
+
+            Returns:
+
+            - `list[list]`: Transformed process data.
+
+            """
+            # Get all unique dates and assign colors
+            unique_dates = list({row[5] for row in rows if row[5]})  # row[5] is date
+            date_to_color = {}
+
+            for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
+                color_index = idx % len(self.exercise_colors)
+                date_to_color[date_str] = self.exercise_colors[color_index]
+
+            # Transform data and add color information
+            transformed_rows = []
+            for row in rows:
+                # Original transformation:
+                # [id, exercise, type, value, unit, date] -> [exercise, type, "value unit", date]
+                transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]]
+
+                # Add color information based on date
+                date_str = row[5]
+                date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
+
+                # Add original ID and color to the row for later use
+                transformed_row.extend([row[0], date_color])  # [exercise, type, "value unit", date, id, color]
+                transformed_rows.append(transformed_row)
+
+            return transformed_rows
+
+        # Get process data based on current mode
+        if self.show_all_records:
+            process_rows = self.db_manager.get_all_process_records()
+        else:
+            process_rows = self.db_manager.get_limited_process_records(5000)
+
+        transformed_process_data = transform_process_data(process_rows)
+
+        # Create process table model with coloring
+        self.models["process"] = self._create_colored_process_table_model(
+            transformed_process_data, self.table_config["process"][2]
+        )
+        self.tableView_process.setModel(self.models["process"])
+
+        # Configure process table header - interactive mode for all columns
+        process_header = self.tableView_process.horizontalHeader()
+        # Set all columns to interactive (resizable)
+        for i in range(process_header.count()):
+            process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
+        # Set proportional column widths for all columns
+        self._adjust_process_table_columns()
 
     @requires_database()
     def on_add_exercise(self) -> None:
@@ -1962,6 +2028,25 @@ class MainWindow(
                     # Refresh statistics with the selected exercise
                     self.on_refresh_statistics()
 
+    @requires_database()
+    def on_toggle_show_all_records(self) -> None:
+        """Toggle between showing all records and limited records (5000).
+
+        When show_all_records is False (default), shows only the last 5000 records.
+        When True, shows all records from the database.
+        """
+        # Toggle the flag
+        self.show_all_records = not self.show_all_records
+
+        # Update button text to reflect current state
+        if self.show_all_records:
+            self.pushButton_show_all_records.setText("📋 Show Last 5000")
+        else:
+            self.pushButton_show_all_records.setText("📋 Show All Records")
+
+        # Reload the process table with the appropriate data
+        self.load_process_table()
+
     def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when weight selection changes in the table.
 
@@ -2266,60 +2351,8 @@ class MainWindow(
             )
             self.tableView_exercise_types.setModel(self.models["types"])
 
-            def transform_process_data(rows: list[list]) -> list[list]:
-                """Refresh process table with data transformation and coloring.
-
-                Args:
-
-                - `rows` (`list[list]`): Raw process data from database.
-
-                Returns:
-
-                - `list[list]`: Transformed process data.
-
-                """
-                # Get all unique dates and assign colors
-                unique_dates = list({row[5] for row in rows if row[5]})  # row[5] is date
-                date_to_color = {}
-
-                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
-                    color_index = idx % len(self.exercise_colors)
-                    date_to_color[date_str] = self.exercise_colors[color_index]
-
-                # Transform data and add color information
-                transformed_rows = []
-                for row in rows:
-                    # Original transformation:
-                    # [id, exercise, type, value, unit, date] -> [exercise, type, "value unit", date]
-                    transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5]]
-
-                    # Add color information based on date
-                    date_str = row[5]
-                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
-
-                    # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], date_color])  # [exercise, type, "value unit", date, id, color]
-                    transformed_rows.append(transformed_row)
-
-                return transformed_rows
-
-            # Get process data and transform it
-            process_rows = self.db_manager.get_all_process_records()
-            transformed_process_data = transform_process_data(process_rows)
-
-            # Create process table model with coloring
-            self.models["process"] = self._create_colored_process_table_model(
-                transformed_process_data, self.table_config["process"][2]
-            )
-            self.tableView_process.setModel(self.models["process"])
-
-            # Configure process table header - interactive mode for all columns
-            process_header = self.tableView_process.horizontalHeader()
-            # Set all columns to interactive (resizable)
-            for i in range(process_header.count()):
-                process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
-            # Set proportional column widths for all columns
-            self._adjust_process_table_columns()
+            # Load process table data with appropriate limit
+            self.load_process_table()
 
             # Refresh weight table (keeping original implementation)
             self._refresh_table("weight", self.db_manager.get_all_weight_records)
@@ -2386,6 +2419,10 @@ class MainWindow(
         if not self._validate_database_connection():
             print("Database connection not available for update_all")
             return
+
+        # Reset show_all_records flag to default (show limited records)
+        self.show_all_records = False
+        self.pushButton_show_all_records.setText("📋 Show All Records")
 
         if is_preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()
@@ -2927,6 +2964,7 @@ class MainWindow(
         self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
         self.pushButton_check_steps.clicked.connect(self.on_check_steps)
         self.pushButton_export_csv.clicked.connect(self.on_export_csv)
+        self.pushButton_show_all_records.clicked.connect(self.on_toggle_show_all_records)
 
         # Tab change
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
@@ -3969,6 +4007,7 @@ class MainWindow(
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
+        self.pushButton_show_all_records.setText(f"📋 {self.pushButton_show_all_records.text()}")
         self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")

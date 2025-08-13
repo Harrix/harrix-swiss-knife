@@ -266,6 +266,13 @@
                   </widget>
                  </item>
                  <item>
+                  <widget class="QPushButton" name="pushButton_show_all_records">
+                   <property name="text">
+                    <string>Show All Records</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QPushButton" name="pushButton_export_csv">
                    <property name="minimumSize">
                     <size>

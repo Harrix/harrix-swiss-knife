@@ -293,7 +293,6 @@ class MainWindow(
 
         # Handle Delete key on tableView_food_log to trigger delete button
 
-
         # Call parent implementation for other key events
         super().keyPressEvent(event)
 
@@ -2212,6 +2211,68 @@ class MainWindow(
             for i in range(self.food_items_list_model.rowCount()):
                 self.listView_food_items.setRowHidden(i, False)
 
+    def _show_food_log_context_menu(self, position) -> None:
+        """Show context menu for food log table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
+
+        if action == delete_action:
+            # Проверяем, что выбрана строка
+            if self.tableView_food_log.currentIndex().isValid():
+                print("🔧 Context menu: Delete action triggered")
+                self.pushButton_food_delete.click()
+            else:
+                print("⚠️ Context menu: No row selected for deletion")
+
+    def _update_add_button_appearance(self) -> None:
+        """Update the appearance of the add button based on whether it's a drink or food."""
+        is_drink = self.checkBox_food_is_drink.isChecked()
+
+        if is_drink:
+            # Drink mode: blue color and drink icon
+            self.pushButton_food_add.setText("🥤 Add Drink")
+            self.pushButton_food_add.setStyleSheet(
+                "QPushButton {\n"
+                "    background-color: #e8f5e8;\n"
+                "    border: 1px solid #4CAF50;\n"
+                "    border-radius: 4px;\n"
+                "    color: #2E7D32;\n"
+                "    }\n"
+                "    QPushButton:hover {\n"
+                "    background-color: #c8e6c9;\n"
+                "    }\n"
+                "    QPushButton:pressed {\n"
+                "    background-color: #a5d6a7;\n"
+                "    }"
+            )
+        else:
+            # Food mode: default blue color and food icon
+            self.pushButton_food_add.setText("➕ Add Food")
+            self.pushButton_food_add.setStyleSheet(
+                "QPushButton {\n"
+                "    background-color: #e3f2fd;\n"
+                "    border: 1px solid #2196F3;\n"
+                "    border-radius: 4px;\n"
+                "    color: #000000;\n"
+                "    }\n"
+                "    QPushButton:hover {\n"
+                "    background-color: #bbdefb;\n"
+                "    }\n"
+                "    QPushButton:pressed {\n"
+                "    background-color: #90caf9;\n"
+                "    }"
+            )
+
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""
         if not self._validate_database_connection():
@@ -2773,68 +2834,6 @@ class MainWindow(
             return False
 
         return True
-
-    def _show_food_log_context_menu(self, position) -> None:
-        """Show context menu for food log table.
-
-        Args:
-
-        - `position`: Position where context menu should appear.
-
-        """
-        from PySide6.QtWidgets import QMenu
-
-        context_menu = QMenu(self)
-        delete_action = context_menu.addAction("🗑 Delete selected row")
-
-        action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
-
-        if action == delete_action:
-            # Проверяем, что выбрана строка
-            if self.tableView_food_log.currentIndex().isValid():
-                print("🔧 Context menu: Delete action triggered")
-                self.pushButton_food_delete.click()
-            else:
-                print("⚠️ Context menu: No row selected for deletion")
-
-    def _update_add_button_appearance(self) -> None:
-        """Update the appearance of the add button based on whether it's a drink or food."""
-        is_drink = self.checkBox_food_is_drink.isChecked()
-
-        if is_drink:
-            # Drink mode: blue color and drink icon
-            self.pushButton_food_add.setText("🥤 Add Drink")
-            self.pushButton_food_add.setStyleSheet(
-                "QPushButton {\n"
-                "    background-color: #e8f5e8;\n"
-                "    border: 1px solid #4CAF50;\n"
-                "    border-radius: 4px;\n"
-                "    color: #2E7D32;\n"
-                "    }\n"
-                "    QPushButton:hover {\n"
-                "    background-color: #c8e6c9;\n"
-                "    }\n"
-                "    QPushButton:pressed {\n"
-                "    background-color: #a5d6a7;\n"
-                "    }"
-            )
-        else:
-            # Food mode: default blue color and food icon
-            self.pushButton_food_add.setText("➕ Add Food")
-            self.pushButton_food_add.setStyleSheet(
-                "QPushButton {\n"
-                "    background-color: #e3f2fd;\n"
-                "    border: 1px solid #2196F3;\n"
-                "    border-radius: 4px;\n"
-                "    color: #000000;\n"
-                "    }\n"
-                "    QPushButton:hover {\n"
-                "    background-color: #bbdefb;\n"
-                "    }\n"
-                "    QPushButton:pressed {\n"
-                "    background-color: #90caf9;\n"
-                "    }"
-            )
 
 
 if __name__ == "__main__":

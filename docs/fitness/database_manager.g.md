@@ -52,6 +52,7 @@ lang: en
   - [⚙️ Method `get_last_exercise_dates`](#%EF%B8%8F-method-get_last_exercise_dates)
   - [⚙️ Method `get_last_exercise_record`](#%EF%B8%8F-method-get_last_exercise_record)
   - [⚙️ Method `get_last_weight`](#%EF%B8%8F-method-get_last_weight)
+  - [⚙️ Method `get_limited_process_records`](#%EF%B8%8F-method-get_limited_process_records)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `get_sets_chart_data`](#%EF%B8%8F-method-get_sets_chart_data)
   - [⚙️ Method `get_sets_count_today`](#%EF%B8%8F-method-get_sets_count_today)
@@ -1141,6 +1142,37 @@ class DatabaseManager:
             except (ValueError, TypeError):
                 return None
         return None
+
+    def get_limited_process_records(self, limit: int = 5000) -> list[list[Any]]:
+        """Get limited number of process records with exercise and type names.
+
+        Args:
+
+        - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+
+        Returns:
+
+        - `list[list[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
+
+        """
+        return self.get_rows(
+            """
+            SELECT p._id,
+                e.name,
+                IFNULL(t.type, ''),
+                p.value,
+                e.unit,
+                p.date
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t
+                ON p._id_types = t._id
+                AND t._id_exercises = e._id
+            ORDER BY p.date DESC, p._id DESC
+            LIMIT :limit
+        """,
+            {"limit": limit},
+        )
 
     def get_rows(
         self,
@@ -3028,6 +3060,49 @@ def get_last_weight(self) -> float | None:
             except (ValueError, TypeError):
                 return None
         return None
+```
+
+</details>
+
+### ⚙️ Method `get_limited_process_records`
+
+```python
+def get_limited_process_records(self, limit: int = 5000) -> list[list[Any]]
+```
+
+Get limited number of process records with exercise and type names.
+
+Args:
+
+- `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+
+Returns:
+
+- `list[list[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_limited_process_records(self, limit: int = 5000) -> list[list[Any]]:
+        return self.get_rows(
+            """
+            SELECT p._id,
+                e.name,
+                IFNULL(t.type, ''),
+                p.value,
+                e.unit,
+                p.date
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t
+                ON p._id_types = t._id
+                AND t._id_exercises = e._id
+            ORDER BY p.date DESC, p._id DESC
+            LIMIT :limit
+        """,
+            {"limit": limit},
+        )
 ```
 
 </details>

@@ -72,6 +72,8 @@ lang: en
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_all_food_items`](#%EF%B8%8F-method-_show_all_food_items)
+  - [⚙️ Method `_show_food_log_context_menu`](#%EF%B8%8F-method-_show_food_log_context_menu)
+  - [⚙️ Method `_update_add_button_appearance`](#%EF%B8%8F-method-_update_add_button_appearance)
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_drinks_chart`](#%EF%B8%8F-method-_update_drinks_chart)
   - [⚙️ Method `_update_favorite_food_items_list`](#%EF%B8%8F-method-_update_favorite_food_items_list)
@@ -344,21 +346,6 @@ class MainWindow(
                 return
 
         # Handle Delete key on tableView_food_log to trigger delete button
-        if event.key() == Qt.Key.Key_Delete:
-            focused_widget = QApplication.focusWidget()
-
-            # Check if the focused widget is tableView_food_log or its child
-            if focused_widget == self.tableView_food_log or (
-                focused_widget and self.tableView_food_log.isAncestorOf(focused_widget)
-            ):
-                # Check if a row is selected and not being edited
-                if (
-                    self.tableView_food_log.currentIndex().isValid()
-                    and not self.tableView_food_log.state() == QAbstractItemView.State.EditingState
-                ):
-                    print("🔧 Delete key pressed on tableView_food_log - triggering delete button")
-                    self.pushButton_food_delete.click()
-                    return
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
@@ -506,6 +493,10 @@ class MainWindow(
                 # Update UI - only food-related data
                 self.update_food_data()
 
+                # Reset drink checkbox and button appearance
+                self.checkBox_food_is_drink.setChecked(False)
+                self._update_add_button_appearance()
+
                 # Move focus to food name field and select all text
                 self.lineEdit_food_manual_name.setFocus()
                 self.lineEdit_food_manual_name.selectAll()
@@ -547,6 +538,9 @@ class MainWindow(
     def on_clear_food_manual_name(self) -> None:
         """Clear the food manual name input field."""
         self.lineEdit_food_manual_name.clear()
+        # Reset drink checkbox and button appearance
+        self.checkBox_food_is_drink.setChecked(False)
+        self._update_add_button_appearance()
         # Move focus back to the cleared field
         self.lineEdit_food_manual_name.setFocus()
 
@@ -682,6 +676,7 @@ class MainWindow(
             self.lineEdit_food_manual_name.setText(name)
             self.spinBox_food_weight.setValue(int(weight) if weight > 0 else 0)
             self.checkBox_food_is_drink.setChecked(is_drink)
+            self._update_add_button_appearance()
 
             # Determine radio button state based on portion_calories
             if portion_calories > 0:
@@ -1134,6 +1129,9 @@ class MainWindow(
         # Connect food name input for real-time filtering
         self.lineEdit_food_manual_name.textChanged.connect(self._filter_food_items)
 
+        # Connect drink checkbox for button appearance update
+        self.checkBox_food_is_drink.toggled.connect(self._update_add_button_appearance)
+
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
 
@@ -1168,6 +1166,10 @@ class MainWindow(
 
         # Connect food log table cell click
         self.tableView_food_log.clicked.connect(self.on_food_log_table_cell_clicked)
+
+        # Add context menu for food log table
+        self.tableView_food_log.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from table to clipboard as tab-separated text.
@@ -1871,6 +1873,7 @@ class MainWindow(
                 # Populate form fields
                 self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
                 self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                self._update_add_button_appearance()
 
                 # Determine radio button state based on default_portion_calories
                 if default_portion_calories and default_portion_calories > 0:
@@ -1893,6 +1896,7 @@ class MainWindow(
                     # Populate form fields
                     self.spinBox_food_weight.setValue(int(weight) if weight else 100)
                     self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                    self._update_add_button_appearance()
 
                     # Determine radio button state based on portion_calories
                     if portion_calories and portion_calories > 0:
@@ -1907,6 +1911,7 @@ class MainWindow(
                     self.checkBox_food_is_drink.setChecked(False)
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(0)
+                    self._update_add_button_appearance()
 
             # Update calories calculation
             self.update_calories_calculation()
@@ -1961,6 +1966,7 @@ class MainWindow(
                 self.lineEdit_food_manual_name.setText(name)
                 self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
                 self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                self._update_add_button_appearance()
 
                 # Determine radio button state based on default_portion_calories
                 if default_portion_calories and default_portion_calories > 0:
@@ -1998,6 +2004,7 @@ class MainWindow(
                     self.lineEdit_food_manual_name.setText(name)
                     self.spinBox_food_weight.setValue(int(weight) if weight else 100)
                     self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                    self._update_add_button_appearance()
 
                     # Determine radio button state based on portion_calories
                     if portion_calories and portion_calories > 0:
@@ -2031,6 +2038,7 @@ class MainWindow(
                     self.doubleSpinBox_food_cal100.setValue(0)
                     self.spinBox_food_default_weight.setValue(100)
                     self.doubleSpinBox_food_default_cal.setValue(0)
+                    self._update_add_button_appearance()
 
             # Update calories calculation
             self.update_calories_calculation()
@@ -2196,6 +2204,9 @@ class MainWindow(
         # Set focus to the food name input field for quick data entry
         self.lineEdit_food_manual_name.setFocus()
 
+        # Initialize add button appearance
+        self._update_add_button_appearance()
+
         # Set tab order for groupBox_food_add so that pushButton_food_manual_name_clear is last
         # Current order: lineEdit_food_manual_name -> pushButton_food_manual_name_clear -> spinBox_food_weight -> ...
         # Desired order: lineEdit_food_manual_name -> spinBox_food_weight -> ... -> pushButton_food_manual_name_clear
@@ -2253,6 +2264,68 @@ class MainWindow(
         if self.food_items_list_model:
             for i in range(self.food_items_list_model.rowCount()):
                 self.listView_food_items.setRowHidden(i, False)
+
+    def _show_food_log_context_menu(self, position) -> None:
+        """Show context menu for food log table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
+
+        if action == delete_action:
+            # Проверяем, что выбрана строка
+            if self.tableView_food_log.currentIndex().isValid():
+                print("🔧 Context menu: Delete action triggered")
+                self.pushButton_food_delete.click()
+            else:
+                print("⚠️ Context menu: No row selected for deletion")
+
+    def _update_add_button_appearance(self) -> None:
+        """Update the appearance of the add button based on whether it's a drink or food."""
+        is_drink = self.checkBox_food_is_drink.isChecked()
+
+        if is_drink:
+            # Drink mode: blue color and drink icon
+            self.pushButton_food_add.setText("🥤 Add Drink")
+            self.pushButton_food_add.setStyleSheet(
+                "QPushButton {\n"
+                "    background-color: #e8f5e8;\n"
+                "    border: 1px solid #4CAF50;\n"
+                "    border-radius: 4px;\n"
+                "    color: #2E7D32;\n"
+                "    }\n"
+                "    QPushButton:hover {\n"
+                "    background-color: #c8e6c9;\n"
+                "    }\n"
+                "    QPushButton:pressed {\n"
+                "    background-color: #a5d6a7;\n"
+                "    }"
+            )
+        else:
+            # Food mode: default blue color and food icon
+            self.pushButton_food_add.setText("➕ Add Food")
+            self.pushButton_food_add.setStyleSheet(
+                "QPushButton {\n"
+                "    background-color: #e3f2fd;\n"
+                "    border: 1px solid #2196F3;\n"
+                "    border-radius: 4px;\n"
+                "    color: #000000;\n"
+                "    }\n"
+                "    QPushButton:hover {\n"
+                "    background-color: #bbdefb;\n"
+                "    }\n"
+                "    QPushButton:pressed {\n"
+                "    background-color: #90caf9;\n"
+                "    }"
+            )
 
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""
@@ -3087,21 +3160,6 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
                 return
 
         # Handle Delete key on tableView_food_log to trigger delete button
-        if event.key() == Qt.Key.Key_Delete:
-            focused_widget = QApplication.focusWidget()
-
-            # Check if the focused widget is tableView_food_log or its child
-            if focused_widget == self.tableView_food_log or (
-                focused_widget and self.tableView_food_log.isAncestorOf(focused_widget)
-            ):
-                # Check if a row is selected and not being edited
-                if (
-                    self.tableView_food_log.currentIndex().isValid()
-                    and not self.tableView_food_log.state() == QAbstractItemView.State.EditingState
-                ):
-                    print("🔧 Delete key pressed on tableView_food_log - triggering delete button")
-                    self.pushButton_food_delete.click()
-                    return
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
@@ -3289,6 +3347,10 @@ def on_add_food_log(self) -> None:
                 # Update UI - only food-related data
                 self.update_food_data()
 
+                # Reset drink checkbox and button appearance
+                self.checkBox_food_is_drink.setChecked(False)
+                self._update_add_button_appearance()
+
                 # Move focus to food name field and select all text
                 self.lineEdit_food_manual_name.setFocus()
                 self.lineEdit_food_manual_name.selectAll()
@@ -3358,6 +3420,9 @@ Clear the food manual name input field.
 ```python
 def on_clear_food_manual_name(self) -> None:
         self.lineEdit_food_manual_name.clear()
+        # Reset drink checkbox and button appearance
+        self.checkBox_food_is_drink.setChecked(False)
+        self._update_add_button_appearance()
         # Move focus back to the cleared field
         self.lineEdit_food_manual_name.setFocus()
 ```
@@ -3535,6 +3600,7 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
             self.lineEdit_food_manual_name.setText(name)
             self.spinBox_food_weight.setValue(int(weight) if weight > 0 else 0)
             self.checkBox_food_is_drink.setChecked(is_drink)
+            self._update_add_button_appearance()
 
             # Determine radio button state based on portion_calories
             if portion_calories > 0:
@@ -4249,6 +4315,9 @@ def _connect_signals(self) -> None:
 
         # Connect food name input for real-time filtering
         self.lineEdit_food_manual_name.textChanged.connect(self._filter_food_items)
+
+        # Connect drink checkbox for button appearance update
+        self.checkBox_food_is_drink.toggled.connect(self._update_add_button_appearance)
 ```
 
 </details>
@@ -4311,6 +4380,10 @@ def _connect_table_selection_signals(self) -> None:
 
         # Connect food log table cell click
         self.tableView_food_log.clicked.connect(self.on_food_log_table_cell_clicked)
+
+        # Add context menu for food log table
+        self.tableView_food_log.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
 ```
 
 </details>
@@ -5269,6 +5342,7 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
                 # Populate form fields
                 self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
                 self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                self._update_add_button_appearance()
 
                 # Determine radio button state based on default_portion_calories
                 if default_portion_calories and default_portion_calories > 0:
@@ -5291,6 +5365,7 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
                     # Populate form fields
                     self.spinBox_food_weight.setValue(int(weight) if weight else 100)
                     self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                    self._update_add_button_appearance()
 
                     # Determine radio button state based on portion_calories
                     if portion_calories and portion_calories > 0:
@@ -5305,6 +5380,7 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
                     self.checkBox_food_is_drink.setChecked(False)
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(0)
+                    self._update_add_button_appearance()
 
             # Update calories calculation
             self.update_calories_calculation()
@@ -5373,6 +5449,7 @@ def _process_food_item_selection(self, food_name: str) -> None:
                 self.lineEdit_food_manual_name.setText(name)
                 self.spinBox_food_weight.setValue(int(default_portion_weight) if default_portion_weight else 100)
                 self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                self._update_add_button_appearance()
 
                 # Determine radio button state based on default_portion_calories
                 if default_portion_calories and default_portion_calories > 0:
@@ -5410,6 +5487,7 @@ def _process_food_item_selection(self, food_name: str) -> None:
                     self.lineEdit_food_manual_name.setText(name)
                     self.spinBox_food_weight.setValue(int(weight) if weight else 100)
                     self.checkBox_food_is_drink.setChecked(is_drink == 1)
+                    self._update_add_button_appearance()
 
                     # Determine radio button state based on portion_calories
                     if portion_calories and portion_calories > 0:
@@ -5443,6 +5521,7 @@ def _process_food_item_selection(self, food_name: str) -> None:
                     self.doubleSpinBox_food_cal100.setValue(0)
                     self.spinBox_food_default_weight.setValue(100)
                     self.doubleSpinBox_food_default_cal.setValue(0)
+                    self._update_add_button_appearance()
 
             # Update calories calculation
             self.update_calories_calculation()
@@ -5648,6 +5727,9 @@ def _setup_ui(self) -> None:
         # Set focus to the food name input field for quick data entry
         self.lineEdit_food_manual_name.setFocus()
 
+        # Initialize add button appearance
+        self._update_add_button_appearance()
+
         # Set tab order for groupBox_food_add so that pushButton_food_manual_name_clear is last
         # Current order: lineEdit_food_manual_name -> pushButton_food_manual_name_clear -> spinBox_food_weight -> ...
         # Desired order: lineEdit_food_manual_name -> spinBox_food_weight -> ... -> pushButton_food_manual_name_clear
@@ -5733,6 +5815,94 @@ def _show_all_food_items(self) -> None:
         if self.food_items_list_model:
             for i in range(self.food_items_list_model.rowCount()):
                 self.listView_food_items.setRowHidden(i, False)
+```
+
+</details>
+
+### ⚙️ Method `_show_food_log_context_menu`
+
+```python
+def _show_food_log_context_menu(self, position) -> None
+```
+
+Show context menu for food log table.
+
+Args:
+
+- `position`: Position where context menu should appear.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_food_log_context_menu(self, position) -> None:
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
+
+        if action == delete_action:
+            # Проверяем, что выбрана строка
+            if self.tableView_food_log.currentIndex().isValid():
+                print("🔧 Context menu: Delete action triggered")
+                self.pushButton_food_delete.click()
+            else:
+                print("⚠️ Context menu: No row selected for deletion")
+```
+
+</details>
+
+### ⚙️ Method `_update_add_button_appearance`
+
+```python
+def _update_add_button_appearance(self) -> None
+```
+
+Update the appearance of the add button based on whether it's a drink or food.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_add_button_appearance(self) -> None:
+        is_drink = self.checkBox_food_is_drink.isChecked()
+
+        if is_drink:
+            # Drink mode: blue color and drink icon
+            self.pushButton_food_add.setText("🥤 Add Drink")
+            self.pushButton_food_add.setStyleSheet(
+                "QPushButton {\n"
+                "    background-color: #e8f5e8;\n"
+                "    border: 1px solid #4CAF50;\n"
+                "    border-radius: 4px;\n"
+                "    color: #2E7D32;\n"
+                "    }\n"
+                "    QPushButton:hover {\n"
+                "    background-color: #c8e6c9;\n"
+                "    }\n"
+                "    QPushButton:pressed {\n"
+                "    background-color: #a5d6a7;\n"
+                "    }"
+            )
+        else:
+            # Food mode: default blue color and food icon
+            self.pushButton_food_add.setText("➕ Add Food")
+            self.pushButton_food_add.setStyleSheet(
+                "QPushButton {\n"
+                "    background-color: #e3f2fd;\n"
+                "    border: 1px solid #2196F3;\n"
+                "    border-radius: 4px;\n"
+                "    color: #000000;\n"
+                "    }\n"
+                "    QPushButton:hover {\n"
+                "    background-color: #bbdefb;\n"
+                "    }\n"
+                "    QPushButton:pressed {\n"
+                "    background-color: #90caf9;\n"
+                "    }"
+            )
 ```
 
 </details>
