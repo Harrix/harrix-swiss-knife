@@ -100,6 +100,7 @@ lang: en
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
+  - [⚙️ Method `_show_process_context_menu`](#%EF%B8%8F-method-_show_process_context_menu)
   - [⚙️ Method `_show_record_congratulations`](#%EF%B8%8F-method-_show_record_congratulations)
   - [⚙️ Method `_update_charts_avif`](#%EF%B8%8F-method-_update_charts_avif)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
@@ -3072,6 +3073,10 @@ class MainWindow(
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
 
+        # Add context menu for process table
+        self.tableView_process.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_process.customContextMenuRequested.connect(self._show_process_context_menu)
+
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
 
@@ -4147,6 +4152,29 @@ class MainWindow(
                 window_width,
                 window_height,
             )
+
+    def _show_process_context_menu(self, position) -> None:
+        """Show context menu for process table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        action = context_menu.exec(self.tableView_process.mapToGlobal(position))
+
+        if action == delete_action:
+            # Проверяем, что выбрана строка
+            if self.tableView_process.currentIndex().isValid():
+                print("🔧 Context menu: Delete action triggered")
+                self.pushButton_delete.click()
+            else:
+                print("⚠️ Context menu: No row selected for deletion")
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
@@ -7984,6 +8012,10 @@ def _connect_signals(self) -> None:
 
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
+
+        # Add context menu for process table
+        self.tableView_process.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_process.customContextMenuRequested.connect(self._show_process_context_menu)
 ```
 
 </details>
@@ -9520,6 +9552,41 @@ def _setup_window_size_and_position(self) -> None:
                 window_width,
                 window_height,
             )
+```
+
+</details>
+
+### ⚙️ Method `_show_process_context_menu`
+
+```python
+def _show_process_context_menu(self, position) -> None
+```
+
+Show context menu for process table.
+
+Args:
+
+- `position`: Position where context menu should appear.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_process_context_menu(self, position) -> None:
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        action = context_menu.exec(self.tableView_process.mapToGlobal(position))
+
+        if action == delete_action:
+            # Проверяем, что выбрана строка
+            if self.tableView_process.currentIndex().isValid():
+                print("🔧 Context menu: Delete action triggered")
+                self.pushButton_delete.click()
+            else:
+                print("⚠️ Context menu: No row selected for deletion")
 ```
 
 </details>
