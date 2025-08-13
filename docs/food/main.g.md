@@ -343,6 +343,23 @@ class MainWindow(
                 self.pushButton_food_add.click()
                 return
 
+        # Handle Delete key on tableView_food_log to trigger delete button
+        if event.key() == Qt.Key.Key_Delete:
+            focused_widget = QApplication.focusWidget()
+
+            # Check if the focused widget is tableView_food_log or its child
+            if focused_widget == self.tableView_food_log or (
+                focused_widget and self.tableView_food_log.isAncestorOf(focused_widget)
+            ):
+                # Check if a row is selected and not being edited
+                if (
+                    self.tableView_food_log.currentIndex().isValid()
+                    and not self.tableView_food_log.state() == QAbstractItemView.State.EditingState
+                ):
+                    print("🔧 Delete key pressed on tableView_food_log - triggering delete button")
+                    self.pushButton_food_delete.click()
+                    return
+
         # Call parent implementation for other key events
         super().keyPressEvent(event)
 
@@ -3068,6 +3085,23 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
             ):
                 self.pushButton_food_add.click()
                 return
+
+        # Handle Delete key on tableView_food_log to trigger delete button
+        if event.key() == Qt.Key.Key_Delete:
+            focused_widget = QApplication.focusWidget()
+
+            # Check if the focused widget is tableView_food_log or its child
+            if focused_widget == self.tableView_food_log or (
+                focused_widget and self.tableView_food_log.isAncestorOf(focused_widget)
+            ):
+                # Check if a row is selected and not being edited
+                if (
+                    self.tableView_food_log.currentIndex().isValid()
+                    and not self.tableView_food_log.state() == QAbstractItemView.State.EditingState
+                ):
+                    print("🔧 Delete key pressed on tableView_food_log - triggering delete button")
+                    self.pushButton_food_delete.click()
+                    return
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)

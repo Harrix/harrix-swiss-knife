@@ -291,6 +291,9 @@ class MainWindow(
                 self.pushButton_food_add.click()
                 return
 
+        # Handle Delete key on tableView_food_log to trigger delete button
+
+
         # Call parent implementation for other key events
         super().keyPressEvent(event)
 
@@ -1099,6 +1102,10 @@ class MainWindow(
 
         # Connect food log table cell click
         self.tableView_food_log.clicked.connect(self.on_food_log_table_cell_clicked)
+
+        # Add context menu for food log table
+        self.tableView_food_log.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from table to clipboard as tab-separated text.
@@ -2746,6 +2753,29 @@ class MainWindow(
             return False
 
         return True
+
+    def _show_food_log_context_menu(self, position) -> None:
+        """Show context menu for food log table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
+
+        if action == delete_action:
+            # Проверяем, что выбрана строка
+            if self.tableView_food_log.currentIndex().isValid():
+                print("🔧 Context menu: Delete action triggered")
+                self.pushButton_food_delete.click()
+            else:
+                print("⚠️ Context menu: No row selected for deletion")
 
 
 if __name__ == "__main__":
