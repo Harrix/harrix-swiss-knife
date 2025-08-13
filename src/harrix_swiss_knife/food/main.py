@@ -2231,6 +2231,8 @@ class MainWindow(
             if self.tableView_food_log.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
                 self.pushButton_food_delete.click()
+                # Принудительно закрываем контекстное меню
+                context_menu.close()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
 
