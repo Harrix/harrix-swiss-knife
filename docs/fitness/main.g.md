@@ -4169,10 +4169,12 @@ class MainWindow(
         action = context_menu.exec(self.tableView_process.mapToGlobal(position))
 
         if action == delete_action:
-            # Проверяем, что выбрана строка
+            # Check that a row is selected
             if self.tableView_process.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
                 self.pushButton_delete.click()
+                # Force close the context menu
+                context_menu.close()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
 
@@ -9581,10 +9583,12 @@ def _show_process_context_menu(self, position) -> None:
         action = context_menu.exec(self.tableView_process.mapToGlobal(position))
 
         if action == delete_action:
-            # Проверяем, что выбрана строка
+            # Check that a row is selected
             if self.tableView_process.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
                 self.pushButton_delete.click()
+                # Force close the context menu
+                context_menu.close()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
 ```
