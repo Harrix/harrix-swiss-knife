@@ -177,6 +177,7 @@ c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-kn
 
 CLI commands after installation:
 
+- `.venv\Scripts\Activate.ps1` — activate virtual environment
 - `uv self update` — update uv itself.
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
 - `ruff check` — lint the project's Python files.
