@@ -265,6 +265,10 @@
                    </property>
                   </widget>
                  </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_25">
                  <item>
                   <widget class="QPushButton" name="pushButton_show_all_records">
                    <property name="text">
