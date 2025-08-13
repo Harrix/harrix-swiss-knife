@@ -406,9 +406,6 @@ class MainWindow(
     @requires_database()
     def on_add_food_log(self) -> None:
         """Insert a new food log record using database manager."""
-        # Automatically activate radioButton_use_weight when add button is clicked
-        self.radioButton_use_weight.setChecked(True)
-
         # Get values from UI
         food_name = self.lineEdit_food_manual_name.text().strip()
         weight = self.spinBox_food_weight.value()
@@ -416,6 +413,13 @@ class MainWindow(
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
         use_weight = self.radioButton_use_weight.isChecked()
         is_drink = self.checkBox_food_is_drink.isChecked()
+
+        print(
+            f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, use_weight={use_weight}, is_drink={is_drink}"
+        )
+        print(
+            f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+        )
 
         # Validate required fields
         if not food_name:
@@ -425,6 +429,11 @@ class MainWindow(
         # Validate weight based on radio button selection
         if use_weight and weight <= 0:
             QMessageBox.warning(self, "Error", "Weight is required when using weight mode")
+            return
+
+        # Validate calories based on radio button selection
+        if not use_weight and calories <= 0:
+            QMessageBox.warning(self, "Error", "Calories are required when using portion mode")
             return
 
         # Validate the date
@@ -437,15 +446,36 @@ class MainWindow(
             return
 
         try:
+            # Double-check radio button state before processing
+            use_weight_final = self.radioButton_use_weight.isChecked()
+            use_calories_final = self.radioButton_use_calories.isChecked()
+            print(f"🔧 Final radio button check: use_weight={use_weight_final}, use_calories={use_calories_final}")
+
             # Determine calories_per_100g and portion_calories based on radio button
-            if use_weight:
+            if use_weight_final:
                 # Weight mode: calories is calories_per_100g
                 calories_per_100g = max(0, calories)
                 portion_calories = None
+                print(
+                    f"🔧 Using weight mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+                )
             else:
                 # Portion mode: calories is portion_calories, set calories_per_100g to 0
                 calories_per_100g = 0  # Required by database schema (NOT NULL)
                 portion_calories = calories if calories > 0 else None
+                print(
+                    f"🔧 Using portion mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+                )
+
+            # Final check before database call
+            print(
+                f"🔧 Final values before database call: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+            )
+
+            # Final radio button state check before database call
+            print(
+                f"🔧 Final radio button state before database call: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            )
 
             # Use database manager method
             if self.db_manager.add_food_log_record(
@@ -641,10 +671,12 @@ class MainWindow(
                 # Use portion calories mode
                 self.radioButton_use_calories.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(portion_calories)
+                print(f"🔧 on_food_log_table_cell_clicked: Set use_calories=True for {name}")
             else:
                 # Use weight mode
                 self.radioButton_use_weight.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(calories_per_100g)
+                print(f"🔧 on_food_log_table_cell_clicked: Set use_weight=True for {name}")
 
             # Populate groupBox_food_items fields (food item form)
             self.lineEdit_food_name.setText(name)
@@ -660,6 +692,19 @@ class MainWindow(
             # Move focus to weight spinbox and select all text
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
+
+            # Check radio button state after populating form
+            print(
+                f"🔧 on_food_log_table_cell_clicked: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            )
+
+            # Additional check: verify that only one radio button is checked
+            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: Both radio buttons are checked!")
+            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: No radio button is checked!")
+            else:
+                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food log table cell clicked: {e}")
@@ -916,18 +961,27 @@ class MainWindow(
         calories = self.doubleSpinBox_food_calories.value()
         use_weight = self.radioButton_use_weight.isChecked()
 
+        print(f"🔧 update_calories_calculation: weight={weight}, calories={calories}, use_weight={use_weight}")
+        print(
+            f"🔧 Radio button states in update_calories_calculation: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+        )
+
         if use_weight:
             # Weight mode: calories per 100g
             if weight > 0 and calories > 0:
                 calculated_calories = (weight * calories) / 100
                 self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
+                print(f"🔧 Weight mode: calculated_calories={calculated_calories}")
             else:
                 self.label_food_calories_calc.setText("Total: 0.0 kcal")
+                print(f"🔧 Weight mode: insufficient data for calculation")
         # Portion mode: direct calories
         elif calories > 0:
             self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
+            print(f"🔧 Portion mode: direct calories={calories}")
         else:
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
+            print(f"🔧 Portion mode: no calories specified")
 
     def update_food_calories_today(self) -> None:
         """Update the label showing calories consumed today and drinks weight in liters (comma as decimal separator)."""
@@ -1681,6 +1735,8 @@ class MainWindow(
         if not text:
             return
 
+        print(f"🔧 _on_autocomplete_selected: text='{text}'")
+
         # Set the selected text
         self.lineEdit_food_manual_name.setText(text)
 
@@ -1690,6 +1746,19 @@ class MainWindow(
         # Move focus to weight spinbox and select all text
         self.spinBox_food_weight.setFocus()
         self.spinBox_food_weight.selectAll()
+
+        # Check radio button state after populating form
+        print(
+            f"🔧 _on_autocomplete_selected: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+        )
+
+        # Additional check: verify that only one radio button is checked
+        if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
+            print("⚠️ WARNING: Both radio buttons are checked!")
+        elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
+            print("⚠️ WARNING: No radio button is checked!")
+        else:
+            print("✅ Radio button state is correct")
 
     def _on_tab_changed(self, index: int) -> None:
         """Handle tab widget index change.
@@ -1790,9 +1859,11 @@ class MainWindow(
                 if default_portion_calories and default_portion_calories > 0:
                     self.radioButton_use_calories.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
+                    print(f"🔧 _populate_form_from_food_name: Set use_calories=True for {food_name}")
                 else:
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                    print(f"🔧 _populate_form_from_food_name: Set use_weight=True for {food_name}")
 
             else:
                 # If not found in food_items, try to get from food_log
@@ -1822,6 +1893,19 @@ class MainWindow(
 
             # Update calories calculation
             self.update_calories_calculation()
+
+            # Check radio button state after populating form
+            print(
+                f"🔧 _populate_form_from_food_name: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            )
+
+            # Additional check: verify that only one radio button is checked
+            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: Both radio buttons are checked!")
+            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: No radio button is checked!")
+            else:
+                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error populating form from food name: {e}")
@@ -1866,10 +1950,12 @@ class MainWindow(
                     # Use portion calories mode
                     self.radioButton_use_calories.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
+                    print(f"🔧 _process_food_item_selection: Set use_calories=True for {food_name}")
                 else:
                     # Use weight mode
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                    print(f"🔧 _process_food_item_selection: Set use_weight=True for {food_name}")
 
                 # Populate groupBox_food_items fields (food item form)
                 self.lineEdit_food_name.setText(name)
@@ -1935,6 +2021,19 @@ class MainWindow(
             # Move focus to weight spinbox and select all text after selection
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
+
+            # Check radio button state after populating form
+            print(
+                f"🔧 _process_food_item_selection: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            )
+
+            # Additional check: verify that only one radio button is checked
+            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: Both radio buttons are checked!")
+            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: No radio button is checked!")
+            else:
+                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food item selection: {e}")
@@ -2063,6 +2162,9 @@ class MainWindow(
 
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)
+        print(
+            f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+        )
         self.update_calories_calculation()
 
         # Initialize food stats date range (will be set after database initialization)
@@ -3070,9 +3172,6 @@ Insert a new food log record using database manager.
 
 ```python
 def on_add_food_log(self) -> None:
-        # Automatically activate radioButton_use_weight when add button is clicked
-        self.radioButton_use_weight.setChecked(True)
-
         # Get values from UI
         food_name = self.lineEdit_food_manual_name.text().strip()
         weight = self.spinBox_food_weight.value()
@@ -3080,6 +3179,13 @@ def on_add_food_log(self) -> None:
         food_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
         use_weight = self.radioButton_use_weight.isChecked()
         is_drink = self.checkBox_food_is_drink.isChecked()
+
+        print(
+            f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, use_weight={use_weight}, is_drink={is_drink}"
+        )
+        print(
+            f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+        )
 
         # Validate required fields
         if not food_name:
@@ -3089,6 +3195,11 @@ def on_add_food_log(self) -> None:
         # Validate weight based on radio button selection
         if use_weight and weight <= 0:
             QMessageBox.warning(self, "Error", "Weight is required when using weight mode")
+            return
+
+        # Validate calories based on radio button selection
+        if not use_weight and calories <= 0:
+            QMessageBox.warning(self, "Error", "Calories are required when using portion mode")
             return
 
         # Validate the date
@@ -3101,15 +3212,36 @@ def on_add_food_log(self) -> None:
             return
 
         try:
+            # Double-check radio button state before processing
+            use_weight_final = self.radioButton_use_weight.isChecked()
+            use_calories_final = self.radioButton_use_calories.isChecked()
+            print(f"🔧 Final radio button check: use_weight={use_weight_final}, use_calories={use_calories_final}")
+
             # Determine calories_per_100g and portion_calories based on radio button
-            if use_weight:
+            if use_weight_final:
                 # Weight mode: calories is calories_per_100g
                 calories_per_100g = max(0, calories)
                 portion_calories = None
+                print(
+                    f"🔧 Using weight mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+                )
             else:
                 # Portion mode: calories is portion_calories, set calories_per_100g to 0
                 calories_per_100g = 0  # Required by database schema (NOT NULL)
                 portion_calories = calories if calories > 0 else None
+                print(
+                    f"🔧 Using portion mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+                )
+
+            # Final check before database call
+            print(
+                f"🔧 Final values before database call: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+            )
+
+            # Final radio button state check before database call
+            print(
+                f"🔧 Final radio button state before database call: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            )
 
             # Use database manager method
             if self.db_manager.add_food_log_record(
@@ -3375,10 +3507,12 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
                 # Use portion calories mode
                 self.radioButton_use_calories.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(portion_calories)
+                print(f"🔧 on_food_log_table_cell_clicked: Set use_calories=True for {name}")
             else:
                 # Use weight mode
                 self.radioButton_use_weight.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(calories_per_100g)
+                print(f"🔧 on_food_log_table_cell_clicked: Set use_weight=True for {name}")
 
             # Populate groupBox_food_items fields (food item form)
             self.lineEdit_food_name.setText(name)
@@ -3394,6 +3528,19 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
             # Move focus to weight spinbox and select all text
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
+
+            # Check radio button state after populating form
+            print(
+                f"🔧 on_food_log_table_cell_clicked: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            )
+
+            # Additional check: verify that only one radio button is checked
+            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: Both radio buttons are checked!")
+            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: No radio button is checked!")
+            else:
+                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food log table cell clicked: {e}")
@@ -3845,18 +3992,27 @@ def update_calories_calculation(self) -> None:
         calories = self.doubleSpinBox_food_calories.value()
         use_weight = self.radioButton_use_weight.isChecked()
 
+        print(f"🔧 update_calories_calculation: weight={weight}, calories={calories}, use_weight={use_weight}")
+        print(
+            f"🔧 Radio button states in update_calories_calculation: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+        )
+
         if use_weight:
             # Weight mode: calories per 100g
             if weight > 0 and calories > 0:
                 calculated_calories = (weight * calories) / 100
                 self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
+                print(f"🔧 Weight mode: calculated_calories={calculated_calories}")
             else:
                 self.label_food_calories_calc.setText("Total: 0.0 kcal")
+                print(f"🔧 Weight mode: insufficient data for calculation")
         # Portion mode: direct calories
         elif calories > 0:
             self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
+            print(f"🔧 Portion mode: direct calories={calories}")
         else:
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
+            print(f"🔧 Portion mode: no calories specified")
 ```
 
 </details>
@@ -4910,6 +5066,8 @@ def _on_autocomplete_selected(self, text: str) -> None:
         if not text:
             return
 
+        print(f"🔧 _on_autocomplete_selected: text='{text}'")
+
         # Set the selected text
         self.lineEdit_food_manual_name.setText(text)
 
@@ -4919,6 +5077,19 @@ def _on_autocomplete_selected(self, text: str) -> None:
         # Move focus to weight spinbox and select all text
         self.spinBox_food_weight.setFocus()
         self.spinBox_food_weight.selectAll()
+
+        # Check radio button state after populating form
+        print(
+            f"🔧 _on_autocomplete_selected: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+        )
+
+        # Additional check: verify that only one radio button is checked
+        if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
+            print("⚠️ WARNING: Both radio buttons are checked!")
+        elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
+            print("⚠️ WARNING: No radio button is checked!")
+        else:
+            print("✅ Radio button state is correct")
 ```
 
 </details>
@@ -5069,9 +5240,11 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
                 if default_portion_calories and default_portion_calories > 0:
                     self.radioButton_use_calories.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
+                    print(f"🔧 _populate_form_from_food_name: Set use_calories=True for {food_name}")
                 else:
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                    print(f"🔧 _populate_form_from_food_name: Set use_weight=True for {food_name}")
 
             else:
                 # If not found in food_items, try to get from food_log
@@ -5101,6 +5274,19 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
 
             # Update calories calculation
             self.update_calories_calculation()
+
+            # Check radio button state after populating form
+            print(
+                f"🔧 _populate_form_from_food_name: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            )
+
+            # Additional check: verify that only one radio button is checked
+            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: Both radio buttons are checked!")
+            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: No radio button is checked!")
+            else:
+                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error populating form from food name: {e}")
@@ -5159,10 +5345,12 @@ def _process_food_item_selection(self, food_name: str) -> None:
                     # Use portion calories mode
                     self.radioButton_use_calories.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
+                    print(f"🔧 _process_food_item_selection: Set use_calories=True for {food_name}")
                 else:
                     # Use weight mode
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                    print(f"🔧 _process_food_item_selection: Set use_weight=True for {food_name}")
 
                 # Populate groupBox_food_items fields (food item form)
                 self.lineEdit_food_name.setText(name)
@@ -5228,6 +5416,19 @@ def _process_food_item_selection(self, food_name: str) -> None:
             # Move focus to weight spinbox and select all text after selection
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
+
+            # Check radio button state after populating form
+            print(
+                f"🔧 _process_food_item_selection: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            )
+
+            # Additional check: verify that only one radio button is checked
+            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: Both radio buttons are checked!")
+            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
+                print("⚠️ WARNING: No radio button is checked!")
+            else:
+                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food item selection: {e}")
@@ -5396,6 +5597,9 @@ def _setup_ui(self) -> None:
 
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)
+        print(
+            f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+        )
         self.update_calories_calculation()
 
         # Initialize food stats date range (will be set after database initialization)
