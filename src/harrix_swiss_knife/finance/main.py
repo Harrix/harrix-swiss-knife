@@ -99,7 +99,8 @@ class MainWindow(
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
-        # Toggle for showing all records vs last 5000
+        # Toggle for showing all records vs last self.count_transactions_to_show
+        self.count_transactions_to_show = 1000
         self.show_all_transactions = False
 
         # Table configuration mapping
@@ -804,12 +805,12 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to set default currency: {e}")
 
     def on_show_all_records_clicked(self) -> None:
-        """Toggle between showing all records and last 5000 records."""
+        """Toggle between showing all records and last self.count_transactions_to_show records."""
         self.show_all_transactions = not self.show_all_transactions
 
         # Update button text and icon
         if self.show_all_transactions:
-            self.pushButton_show_all_records.setText("📊 Show Last 5000")
+            self.pushButton_show_all_records.setText(f"📊 Show Last {self.count_transactions_to_show}")
         else:
             self.pushButton_show_all_records.setText("📊 Show All Records")
 
@@ -1118,8 +1119,8 @@ class MainWindow(
 
         try:
             # Refresh transactions table
-            # Show last 5000 records by default, or all records if toggle is on
-            limit = None if self.show_all_transactions else 5000
+            # Show last self.count_transactions_to_show records by default, or all records if toggle is on
+            limit = None if self.show_all_transactions else self.count_transactions_to_show
             transactions_data = self.db_manager.get_all_transactions(limit=limit)
             transactions_transformed_data = self._transform_transaction_data(transactions_data)
             self.models["transactions"] = self._create_transactions_table_model(
