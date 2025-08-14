@@ -236,6 +236,48 @@ class MainMenuBase:
         menu.setIcon(self.get_icon(icon))
         return menu
 
+    def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
+        """Add an item to the given menu.
+
+        Args:
+
+        - `menu` (`QMenu`): The menu to which the action will be added.
+        - `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
+        - `icon` (`str`, optional): Path or emoji for the icon of the menu item. Defaults to `""`.
+
+        Returns:
+
+        - `None`
+
+        """
+        action_instance = class_action(parent=self)
+
+        # Add visual emphasis for bold items
+        title_text = action_instance.title
+        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
+            title_text = f"★ {action_instance.title}"
+
+        if icon:
+            action = QAction(self.get_icon(icon), title_text)
+            action.triggered.connect(action_instance)
+            setattr(action, "icon_name", icon)  # noqa: B010
+        elif hasattr(action_instance, "icon") and action_instance.icon:
+            action = QAction(self.get_icon(action_instance.icon), title_text)
+            action.triggered.connect(action_instance)
+            setattr(action, "icon_name", action_instance.icon)  # noqa: B010
+        else:
+            action = QAction(title_text)
+            action.triggered.connect(action_instance)
+
+        # Apply bold font styling (works in system tray menu)
+        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
+            font = action.font()
+            font.setBold(True)
+            action.setFont(font)
+
+        setattr(self, f"action_{class_action.__name__}", action)
+        menu.addAction(action)
+
     def _filter_items_for_compact_mode(self, items: list) -> list:
         """Filter items for compact mode, keeping only those with show_in_compact_mode = True.
 
@@ -293,45 +335,3 @@ class MainMenuBase:
         # For now, we assume that if a menu exists, it might have visible items
         # A better approach would be to check if the menu was populated with any visible actions
         return menu.actions() != []
-
-    def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
-        """Add an item to the given menu.
-
-        Args:
-
-        - `menu` (`QMenu`): The menu to which the action will be added.
-        - `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
-        - `icon` (`str`, optional): Path or emoji for the icon of the menu item. Defaults to `""`.
-
-        Returns:
-
-        - `None`
-
-        """
-        action_instance = class_action(parent=self)
-
-        # Add visual emphasis for bold items
-        title_text = action_instance.title
-        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
-            title_text = f"★ {action_instance.title}"
-
-        if icon:
-            action = QAction(self.get_icon(icon), title_text)
-            action.triggered.connect(action_instance)
-            setattr(action, "icon_name", icon)  # noqa: B010
-        elif hasattr(action_instance, "icon") and action_instance.icon:
-            action = QAction(self.get_icon(action_instance.icon), title_text)
-            action.triggered.connect(action_instance)
-            setattr(action, "icon_name", action_instance.icon)  # noqa: B010
-        else:
-            action = QAction(title_text)
-            action.triggered.connect(action_instance)
-
-        # Apply bold font styling (works in system tray menu)
-        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
-            font = action.font()
-            font.setBold(True)
-            action.setFont(font)
-
-        setattr(self, f"action_{class_action.__name__}", action)
-        menu.addAction(action)

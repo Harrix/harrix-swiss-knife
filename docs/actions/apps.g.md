@@ -43,6 +43,7 @@ class OnFinance(ActionBase):
 
     icon = "💰"
     title = "Finance tracker"
+    show_in_compact_mode = True
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnFinance action."""
@@ -127,6 +128,7 @@ class OnFitness(ActionBase):
 
     icon = "🏃🏻"
     title = "Fitness tracker"
+    show_in_compact_mode = True
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnFitness action."""
@@ -210,6 +212,7 @@ class OnFood(ActionBase):
 
     icon = "🍔"
     title = "Food tracker"
+    show_in_compact_mode = True
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnFood action."""
