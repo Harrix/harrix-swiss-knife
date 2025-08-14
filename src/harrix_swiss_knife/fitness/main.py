@@ -127,7 +127,7 @@ class MainWindow(
         }
 
         # Process table display mode flag
-        self.count_records_to_show = 1000
+        self.count_records_to_show = 5000
         self.show_all_records = False
 
         # Chart configuration

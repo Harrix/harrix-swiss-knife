@@ -163,7 +163,7 @@ class MainWindow(
         }
 
         # Food log display state
-        self.count_food_records_to_show = 1000
+        self.count_food_records_to_show = 5000
         self.show_all_food_records: bool = False
 
         # Dialog state to prevent multiple dialogs
@@ -2933,7 +2933,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         }
 
         # Food log display state
-        self.count_food_records_to_show = 1000
+        self.count_food_records_to_show = 5000
         self.show_all_food_records: bool = False
 
         # Dialog state to prevent multiple dialogs

@@ -195,7 +195,7 @@ class MainWindow(
         }
 
         # Process table display mode flag
-        self.count_records_to_show = 1000
+        self.count_records_to_show = 5000
         self.show_all_records = False
 
         # Chart configuration
@@ -4487,7 +4487,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         }
 
         # Process table display mode flag
-        self.count_records_to_show = 1000
+        self.count_records_to_show = 5000
         self.show_all_records = False
 
         # Chart configuration
