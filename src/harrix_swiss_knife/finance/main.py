@@ -1183,8 +1183,9 @@ class MainWindow(
             for group_key in [(0, 1), (1, 1), (0, 0), (1, 0)]:
                 color = account_colors[group_key]
                 for row in account_groups[group_key]:
-                    # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash] -> [name, balance, currency, liquid, cash, id, color]
-                    balance = float(row[2]) / 100  # Convert from cents
+                    # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] -> [name, balance, currency, liquid, cash, id, color]
+                    currency_id = row[6]  # currency_id
+                    balance = self.db_manager.convert_from_minor_units(row[2], currency_id)
                     liquid_str = "👍" if row[4] == 1 else "👎"
                     cash_str = "💵" if row[5] == 1 else "💳"
                     transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
@@ -2293,10 +2294,11 @@ class MainWindow(
                 return
 
             # Prepare account data for dialog
+            currency_id = account_data[6]  # currency_id
             account_dict = {
                 "id": account_data[0],
                 "name": account_data[1],
-                "balance": float(account_data[2]) / 100,  # Convert from cents
+                "balance": self.db_manager.convert_from_minor_units(account_data[2], currency_id),
                 "currency_code": account_data[3],
                 "is_liquid": account_data[4] == 1,
                 "is_cash": account_data[5] == 1,

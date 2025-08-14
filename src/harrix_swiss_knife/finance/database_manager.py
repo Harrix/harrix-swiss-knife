@@ -87,7 +87,7 @@ class DatabaseManager:
                    VALUES (:name, :balance, :currency_id, :is_liquid, :is_cash)"""
         params = {
             "name": name,
-            "balance": int(balance * 100),  # Convert to cents
+            "balance": self.convert_to_minor_units(balance, currency_id),
             "currency_id": currency_id,
             "is_liquid": 1 if is_liquid else 0,
             "is_cash": 1 if is_cash else 0,
@@ -169,6 +169,11 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
+        from_subdivision = self.get_currency_subdivision(currency_from_id)
+        to_subdivision = self.get_currency_subdivision(currency_to_id)
+        # For exchange rate, we use a standard subdivision (100) to maintain consistency
+        # since it represents the ratio between two currencies
+        rate_subdivision = 100
         query = """INSERT INTO currency_exchanges
                    (_id_currency_from, _id_currency_to, amount_from, amount_to,
                     exchange_rate, fee, date, description)
@@ -177,10 +182,10 @@ class DatabaseManager:
         params = {
             "from_id": currency_from_id,
             "to_id": currency_to_id,
-            "amount_from": int(amount_from * 100),  # Convert to cents
-            "amount_to": int(amount_to * 100),  # Convert to cents
-            "exchange_rate": int(exchange_rate * 100),  # Convert to cents
-            "fee": int(fee * 100),  # Convert to cents
+            "amount_from": int(amount_from * from_subdivision),  # Convert to minor units
+            "amount_to": int(amount_to * to_subdivision),  # Convert to minor units
+            "exchange_rate": int(exchange_rate * rate_subdivision),  # Standardized rate
+            "fee": int(fee * from_subdivision),  # Fee in from_currency minor units
             "date": date,
             "description": description,
         }
@@ -201,12 +206,15 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
+        # For exchange rates, we use a standard subdivision (100) to maintain consistency
+        # since it represents the ratio between two currencies
+        rate_subdivision = 100
         query = """INSERT INTO exchange_rates (_id_currency_from, _id_currency_to, rate, date)
                    VALUES (:from_id, :to_id, :rate, :date)"""
         params = {
             "from_id": currency_from_id,
             "to_id": currency_to_id,
-            "rate": int(rate * 100),  # Convert to cents
+            "rate": int(rate * rate_subdivision),  # Standardized rate
             "date": date,
         }
         return self.execute_simple_query(query, params)
@@ -239,7 +247,7 @@ class DatabaseManager:
         query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date, tag)
                    VALUES (:amount, :description, :category_id, :currency_id, :date, :tag)"""
         params = {
-            "amount": int(amount * 100),  # Convert to cents
+            "amount": self.convert_to_minor_units(amount, currency_id),
             "description": description,
             "category_id": category_id,
             "currency_id": currency_id,
@@ -586,7 +594,7 @@ class DatabaseManager:
 
         """
         query = """
-            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash
+            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash, c._id as currency_id
             FROM accounts a
             JOIN currencies c ON a._id_currencies = c._id
             WHERE a._id = :account_id
@@ -599,11 +607,11 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[list[Any]]`: List of account records [_id, name, balance, currency_code, is_liquid, is_cash].
+        - `list[list[Any]]`: List of account records [_id, name, balance, currency_code, is_liquid, is_cash, currency_id].
 
         """
         return self.get_rows("""
-            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash
+            SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash, c._id as currency_id
             FROM accounts a
             JOIN currencies c ON a._id_currencies = c._id
             ORDER BY a.name
@@ -759,6 +767,53 @@ class DatabaseManager:
         """
         rows = self.get_rows("SELECT code, name, symbol FROM currencies WHERE _id = :id", {"id": currency_id})
         return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
+
+    def get_currency_subdivision(self, currency_id: int) -> int:
+        """Get subdivision value for a currency.
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID.
+
+        Returns:
+
+        - `int`: Number of minor units in one major unit (e.g., 100 for USD cents). Returns 100 as default if not found.
+
+        """
+        rows = self.get_rows("SELECT subdivision FROM currencies WHERE _id = :id", {"id": currency_id})
+        return rows[0][0] if rows else 100
+
+    def convert_from_minor_units(self, amount_minor: int | float, currency_id: int) -> float:
+        """Convert amount from minor units to major units using currency subdivision.
+
+        Args:
+
+        - `amount_minor` (`int | float`): Amount in minor units (e.g., cents).
+        - `currency_id` (`int`): Currency ID.
+
+        Returns:
+
+        - `float`: Amount in major units (e.g., dollars).
+
+        """
+        subdivision = self.get_currency_subdivision(currency_id)
+        return float(amount_minor) / subdivision
+
+    def convert_to_minor_units(self, amount_major: float, currency_id: int) -> int:
+        """Convert amount from major units to minor units using currency subdivision.
+
+        Args:
+
+        - `amount_major` (`float`): Amount in major units (e.g., dollars).
+        - `currency_id` (`int`): Currency ID.
+
+        Returns:
+
+        - `int`: Amount in minor units (e.g., cents).
+
+        """
+        subdivision = self.get_currency_subdivision(currency_id)
+        return int(amount_major * subdivision)
 
     def get_default_currency(self) -> str:
         """Get the default currency code.
@@ -1286,7 +1341,7 @@ class DatabaseManager:
                    is_liquid = :is_liquid, is_cash = :is_cash WHERE _id = :id"""
         params = {
             "name": name,
-            "balance": int(balance * 100),  # Convert to cents
+            "balance": self.convert_to_minor_units(balance, currency_id),
             "currency_id": currency_id,
             "is_liquid": 1 if is_liquid else 0,
             "is_cash": 1 if is_cash else 0,
@@ -1373,7 +1428,7 @@ class DatabaseManager:
                    _id_categories = :category_id, _id_currencies = :currency_id,
                    date = :date, tag = :tag WHERE _id = :id"""
         params = {
-            "amount": int(amount * 100),  # Convert to cents
+            "amount": self.convert_to_minor_units(amount, currency_id),
             "description": description,
             "category_id": category_id,
             "currency_id": currency_id,
