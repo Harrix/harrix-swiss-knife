@@ -932,14 +932,14 @@ class MainWindow(
                 print(f"🔧 Weight mode: calculated_calories={calculated_calories}")
             else:
                 self.label_food_calories_calc.setText("Total: 0.0 kcal")
-                print(f"🔧 Weight mode: insufficient data for calculation")
+                print("🔧 Weight mode: insufficient data for calculation")
         # Portion mode: direct calories
         elif calories > 0:
             self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
             print(f"🔧 Portion mode: direct calories={calories}")
         else:
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
-            print(f"🔧 Portion mode: no calories specified")
+            print("🔧 Portion mode: no calories specified")
 
     def update_food_calories_today(self) -> None:
         """Update the label showing calories consumed today and drinks weight in liters (comma as decimal separator)."""

@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-"""
-Тестовый скрипт для проверки работы radio button'ов в food tracker.
-"""
+"""Тестовый скрипт для проверки работы radio button'ов в food tracker."""
 
 import sys
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
     QDoubleSpinBox,
@@ -94,7 +91,7 @@ class TestRadioButtons(QMainWindow):
 
     def test_calculation(self):
         """Тестирует расчет при нажатии кнопки"""
-        print(f"🔧 Test button clicked!")
+        print("🔧 Test button clicked!")
         print(
             f"🔧 Current state: weight={self.weight_spin.value()}, calories={self.calories_spin.value()}, use_weight={self.radio_weight.isChecked()}"
         )
@@ -116,15 +113,14 @@ class TestRadioButtons(QMainWindow):
                 print(f"🔧 Weight mode: calculated_calories={calculated_calories}")
             else:
                 self.result_label.setText("Weight Mode: Need weight > 0 and calories > 0")
-                print(f"🔧 Weight mode: insufficient data for calculation")
+                print("🔧 Weight mode: insufficient data for calculation")
+        # Portion mode: direct calories
+        elif calories > 0:
+            self.result_label.setText(f"Portion Mode: {calories:.1f} kcal total")
+            print(f"🔧 Portion mode: direct calories={calories}")
         else:
-            # Portion mode: direct calories
-            if calories > 0:
-                self.result_label.setText(f"Portion Mode: {calories:.1f} kcal total")
-                print(f"🔧 Portion mode: direct calories={calories}")
-            else:
-                self.result_label.setText("Portion Mode: Need calories > 0")
-                print(f"🔧 Portion mode: no calories specified")
+            self.result_label.setText("Portion Mode: Need calories > 0")
+            print("🔧 Portion mode: no calories specified")
 
 
 def main():
