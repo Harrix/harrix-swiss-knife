@@ -2,7 +2,8 @@ CREATE TABLE "currencies" (
     "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
     "code" TEXT NOT NULL UNIQUE,
     "name" TEXT NOT NULL,
-    "symbol" TEXT NOT NULL
+    "symbol" TEXT NOT NULL,
+    "subdivision" INTEGER NOT NULL DEFAULT 100
 );
 
 CREATE TABLE "settings" (
@@ -67,9 +68,10 @@ CREATE TABLE "currency_exchanges" (
 );
 
 
-INSERT INTO currencies (code, name, symbol) VALUES ('RUB', 'Russian Ruble', '₽');
-INSERT INTO currencies (code, name, symbol) VALUES ('USD', 'US Dollar', '$');
-INSERT INTO currencies (code, name, symbol) VALUES ('EUR', 'Euro', '€');
+INSERT INTO currencies (code, name, symbol, subdivision) VALUES ('RUB', 'Russian Ruble', '₽', 100);
+INSERT INTO currencies (code, name, symbol, subdivision) VALUES ('USD', 'US Dollar', '$', 100);
+INSERT INTO currencies (code, name, symbol, subdivision) VALUES ('EUR', 'Euro', '€', 100);
+INSERT INTO currencies (code, name, symbol, subdivision) VALUES ('CNY', 'Chinese Yuan', '¥', 100);
 
 INSERT INTO categories (name, type, icon) VALUES ('Salary', 1, "💰");
 INSERT INTO categories (name, type, icon) VALUES ('Food', 0, "🍔");

@@ -116,7 +116,7 @@ class DatabaseManager:
         }
         return self.execute_simple_query(query, params)
 
-    def add_currency(self, code: str, name: str, symbol: str) -> bool:
+    def add_currency(self, code: str, name: str, symbol: str, subdivision: int = 100) -> bool:
         """Add a new currency to the database.
 
         Args:
@@ -124,17 +124,19 @@ class DatabaseManager:
         - `code` (`str`): Currency code (e.g., USD, EUR).
         - `name` (`str`): Currency name.
         - `symbol` (`str`): Currency symbol.
+        - `subdivision` (`int`): Number of minor units in one major unit (e.g., 100 for USD cents). Defaults to 100.
 
         Returns:
 
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "INSERT INTO currencies (code, name, symbol) VALUES (:code, :name, :symbol)"
+        query = "INSERT INTO currencies (code, name, symbol, subdivision) VALUES (:code, :name, :symbol, :subdivision)"
         params = {
             "code": code,
             "name": name,
             "symbol": symbol,
+            "subdivision": subdivision,
         }
         return self.execute_simple_query(query, params)
 

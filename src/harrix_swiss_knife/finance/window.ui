@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1400</width>
+    <width>1179</width>
     <height>950</height>
    </rect>
   </property>
@@ -1365,10 +1365,16 @@
           <layout class="QVBoxLayout" name="verticalLayout_8">
            <item>
             <widget class="QGroupBox" name="groupBox_add_currency">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
              <property name="title">
               <string>Add New Currency</string>
              </property>
-             <layout class="QVBoxLayout" name="verticalLayout_add_currency">
+             <layout class="QVBoxLayout" name="verticalLayout_9">
               <item>
                <layout class="QHBoxLayout" name="horizontalLayout_currency_code">
                 <item>
@@ -1388,7 +1394,7 @@
                  <widget class="QLineEdit" name="lineEdit_currency_code">
                   <property name="minimumSize">
                    <size>
-                    <width>170</width>
+                    <width>191</width>
                     <height>0</height>
                    </size>
                   </property>
@@ -1418,7 +1424,7 @@
                  <widget class="QLineEdit" name="lineEdit_currency_name">
                   <property name="minimumSize">
                    <size>
-                    <width>170</width>
+                    <width>191</width>
                     <height>0</height>
                    </size>
                   </property>
@@ -1448,12 +1454,36 @@
                  <widget class="QLineEdit" name="lineEdit_currency_symbol">
                   <property name="minimumSize">
                    <size>
-                    <width>170</width>
+                    <width>191</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="placeholderText">
                    <string>$, €, ₽</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_13">
+                <item>
+                 <widget class="QLabel" name="label_subdivision">
+                  <property name="text">
+                   <string>Subdivision:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSpinBox" name="spinBox_subdivision">
+                  <property name="minimumSize">
+                   <size>
+                    <width>191</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximum">
+                   <number>1000000000</number>
                   </property>
                  </widget>
                 </item>
@@ -2210,7 +2240,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1400</width>
+     <width>1179</width>
      <height>21</height>
     </rect>
    </property>

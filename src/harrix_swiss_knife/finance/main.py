@@ -469,6 +469,7 @@ class MainWindow(
         code = self.lineEdit_currency_code.text().strip().upper()
         name = self.lineEdit_currency_name.text().strip()
         symbol = self.lineEdit_currency_symbol.text().strip()
+        subdivision = self.spinBox_subdivision.value()
 
         if not code:
             QMessageBox.warning(self, "Error", "Enter currency code")
@@ -482,12 +483,16 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Enter currency symbol")
             return
 
+        if subdivision <= 0:
+            QMessageBox.warning(self, "Error", "Subdivision must be a positive number")
+            return
+
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
-            if self.db_manager.add_currency(code, name, symbol):
+            if self.db_manager.add_currency(code, name, symbol, subdivision):
                 self.update_all()
                 self._clear_currency_form()
             else:
@@ -1528,6 +1533,7 @@ class MainWindow(
         self.lineEdit_currency_code.clear()
         self.lineEdit_currency_name.clear()
         self.lineEdit_currency_symbol.clear()
+        self.spinBox_subdivision.setValue(100)
 
     def _clear_exchange_form(self) -> None:
         """Clear the exchange addition form."""
@@ -2591,6 +2597,7 @@ class MainWindow(
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
         self.doubleSpinBox_rate_value.setValue(73.5)
+        self.spinBox_subdivision.setValue(100)
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
