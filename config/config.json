@@ -82,5 +82,6 @@
   "sqlite_finance": "D:/Dropbox/Databases/finance.db",
   "vscode_workspace_articles": "D:/Dropbox/_Temp/_VS Code Workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_notes": "D:/Dropbox/_Temp/_VS Code Workspaces/Notes.code-workspace",
-  "show_main_window_on_startup": false
+  "show_main_window_on_startup": false,
+  "compact_mode": false
 }
