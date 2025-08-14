@@ -127,6 +127,7 @@ class MainWindow(
         }
 
         # Process table display mode flag
+        self.count_records_to_show = 1000
         self.show_all_records = False
 
         # Chart configuration
@@ -443,7 +444,7 @@ class MainWindow(
         if self.show_all_records:
             process_rows = self.db_manager.get_all_process_records()
         else:
-            process_rows = self.db_manager.get_limited_process_records(5000)
+            process_rows = self.db_manager.get_limited_process_records(self.count_records_to_show)
 
         transformed_process_data = transform_process_data(process_rows)
 
@@ -2030,9 +2031,9 @@ class MainWindow(
 
     @requires_database()
     def on_toggle_show_all_records(self) -> None:
-        """Toggle between showing all records and limited records (5000).
+        """Toggle between showing all records and limited records (self.count_records_to_show).
 
-        When show_all_records is False (default), shows only the last 5000 records.
+        When show_all_records is False (default), shows only the last self.count_records_to_show records.
         When True, shows all records from the database.
         """
         # Toggle the flag
@@ -2040,7 +2041,7 @@ class MainWindow(
 
         # Update button text to reflect current state
         if self.show_all_records:
-            self.pushButton_show_all_records.setText("📋 Show Last 5000")
+            self.pushButton_show_all_records.setText(f"📋 Show Last {self.count_records_to_show}")
         else:
             self.pushButton_show_all_records.setText("📋 Show All Records")
 
