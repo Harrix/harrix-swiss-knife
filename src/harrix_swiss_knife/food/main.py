@@ -109,6 +109,7 @@ class MainWindow(
         }
 
         # Food log display state
+        self.count_food_records_to_show = 1000
         self.show_all_food_records: bool = False
 
         # Dialog state to prevent multiple dialogs
@@ -766,12 +767,12 @@ class MainWindow(
                 self._process_food_item_selection(food_name)
 
     def on_show_all_records_clicked(self) -> None:
-        """Toggle between showing all records and last 5000 records."""
+        """Toggle between showing all records and last self.count_food_records_to_show records."""
         self.show_all_food_records = not self.show_all_food_records
 
         # Update button text and icon
         if self.show_all_food_records:
-            self.pushButton_show_all_records.setText("📊 Show Last 5000")
+            self.pushButton_show_all_records.setText(f"📊 Show Last {self.count_food_records_to_show}")
         else:
             self.pushButton_show_all_records.setText("📊 Show All Records")
 
@@ -878,7 +879,7 @@ class MainWindow(
             # Get food_log data and transform it
             # Use limited records for table display to improve performance with large datasets
             # Statistics methods will still analyze all records from the database
-            food_log_rows = self.db_manager.get_recent_food_log_records(5000)
+            food_log_rows = self.db_manager.get_recent_food_log_records(self.count_food_records_to_show)
             transformed_food_log_data = transform_food_log_data(food_log_rows)
 
             # Create food_log table model with coloring
@@ -2575,8 +2576,8 @@ class MainWindow(
                 # Get all records
                 food_log_rows = self.db_manager.get_all_food_log_records()
             else:
-                # Get recent records (last 5000)
-                food_log_rows = self.db_manager.get_recent_food_log_records(5000)
+                # Get recent records (last self.count_food_records_to_show)
+                food_log_rows = self.db_manager.get_recent_food_log_records(self.count_food_records_to_show)
 
             transformed_food_log_data = transform_food_log_data(food_log_rows)
 
