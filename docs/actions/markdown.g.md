@@ -132,6 +132,16 @@ class OnBeautifyMdFolder(ActionBase):
         self.add_line("🔵 Rename files with spaces to hyphens")
         self.add_line(h.file.apply_func(folder_path, ".md", h.file.rename_file_spaces_to_hyphens))
 
+        # Sort sections in Markdown files (using YAML frontmatter if present)
+        self.add_line("🔵 Sort sections in Markdown files (YAML-controlled)")
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
+            )
+        )
+
         # Generate image captions
         self.add_line("🔵 Generate image captions")
         self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
@@ -235,6 +245,16 @@ def beautify_markdown_common(
         # Rename files with spaces to hyphens
         self.add_line("🔵 Rename files with spaces to hyphens")
         self.add_line(h.file.apply_func(folder_path, ".md", h.file.rename_file_spaces_to_hyphens))
+
+        # Sort sections in Markdown files (using YAML frontmatter if present)
+        self.add_line("🔵 Sort sections in Markdown files (YAML-controlled)")
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
+            )
+        )
 
         # Generate image captions
         self.add_line("🔵 Generate image captions")
