@@ -166,7 +166,8 @@ class MainWindow(
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
-        # Toggle for showing all records vs last 5000
+        # Toggle for showing all records vs last self.count_transactions_to_show
+        self.count_transactions_to_show = 1000
         self.show_all_transactions = False
 
         # Table configuration mapping
@@ -536,6 +537,7 @@ class MainWindow(
         code = self.lineEdit_currency_code.text().strip().upper()
         name = self.lineEdit_currency_name.text().strip()
         symbol = self.lineEdit_currency_symbol.text().strip()
+        subdivision = self.spinBox_subdivision.value()
 
         if not code:
             QMessageBox.warning(self, "Error", "Enter currency code")
@@ -549,12 +551,16 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Enter currency symbol")
             return
 
+        if subdivision <= 0:
+            QMessageBox.warning(self, "Error", "Subdivision must be a positive number")
+            return
+
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
-            if self.db_manager.add_currency(code, name, symbol):
+            if self.db_manager.add_currency(code, name, symbol, subdivision):
                 self.update_all()
                 self._clear_currency_form()
             else:
@@ -866,12 +872,12 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to set default currency: {e}")
 
     def on_show_all_records_clicked(self) -> None:
-        """Toggle between showing all records and last 5000 records."""
+        """Toggle between showing all records and last self.count_transactions_to_show records."""
         self.show_all_transactions = not self.show_all_transactions
 
         # Update button text and icon
         if self.show_all_transactions:
-            self.pushButton_show_all_records.setText("📊 Show Last 5000")
+            self.pushButton_show_all_records.setText(f"📊 Show Last {self.count_transactions_to_show}")
         else:
             self.pushButton_show_all_records.setText("📊 Show All Records")
 
@@ -1180,8 +1186,8 @@ class MainWindow(
 
         try:
             # Refresh transactions table
-            # Show last 5000 records by default, or all records if toggle is on
-            limit = None if self.show_all_transactions else 5000
+            # Show last self.count_transactions_to_show records by default, or all records if toggle is on
+            limit = None if self.show_all_transactions else self.count_transactions_to_show
             transactions_data = self.db_manager.get_all_transactions(limit=limit)
             transactions_transformed_data = self._transform_transaction_data(transactions_data)
             self.models["transactions"] = self._create_transactions_table_model(
@@ -1245,8 +1251,9 @@ class MainWindow(
             for group_key in [(0, 1), (1, 1), (0, 0), (1, 0)]:
                 color = account_colors[group_key]
                 for row in account_groups[group_key]:
-                    # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash] -> [name, balance, currency, liquid, cash, id, color]
-                    balance = float(row[2]) / 100  # Convert from cents
+                    # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] -> [name, balance, currency, liquid, cash, id, color]
+                    currency_id = row[6]  # currency_id
+                    balance = self.db_manager.convert_from_minor_units(row[2], currency_id)
                     liquid_str = "👍" if row[4] == 1 else "👎"
                     cash_str = "💵" if row[5] == 1 else "💳"
                     transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
@@ -1595,6 +1602,7 @@ class MainWindow(
         self.lineEdit_currency_code.clear()
         self.lineEdit_currency_name.clear()
         self.lineEdit_currency_symbol.clear()
+        self.spinBox_subdivision.setValue(100)
 
     def _clear_exchange_form(self) -> None:
         """Clear the exchange addition form."""
@@ -2354,10 +2362,11 @@ class MainWindow(
                 return
 
             # Prepare account data for dialog
+            currency_id = account_data[6]  # currency_id
             account_dict = {
                 "id": account_data[0],
                 "name": account_data[1],
-                "balance": float(account_data[2]) / 100,  # Convert from cents
+                "balance": self.db_manager.convert_from_minor_units(account_data[2], currency_id),
                 "currency_code": account_data[3],
                 "is_liquid": account_data[4] == 1,
                 "is_cash": account_data[5] == 1,
@@ -2658,6 +2667,7 @@ class MainWindow(
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
         self.doubleSpinBox_rate_value.setValue(73.5)
+        self.spinBox_subdivision.setValue(100)
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
@@ -2951,7 +2961,8 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
-        # Toggle for showing all records vs last 5000
+        # Toggle for showing all records vs last self.count_transactions_to_show
+        self.count_transactions_to_show = 1000
         self.show_all_transactions = False
 
         # Table configuration mapping
@@ -3446,6 +3457,7 @@ def on_add_currency(self) -> None:
         code = self.lineEdit_currency_code.text().strip().upper()
         name = self.lineEdit_currency_name.text().strip()
         symbol = self.lineEdit_currency_symbol.text().strip()
+        subdivision = self.spinBox_subdivision.value()
 
         if not code:
             QMessageBox.warning(self, "Error", "Enter currency code")
@@ -3459,12 +3471,16 @@ def on_add_currency(self) -> None:
             QMessageBox.warning(self, "Error", "Enter currency symbol")
             return
 
+        if subdivision <= 0:
+            QMessageBox.warning(self, "Error", "Subdivision must be a positive number")
+            return
+
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
-            if self.db_manager.add_currency(code, name, symbol):
+            if self.db_manager.add_currency(code, name, symbol, subdivision):
                 self.update_all()
                 self._clear_currency_form()
             else:
@@ -3902,7 +3918,7 @@ def on_set_default_currency(self) -> None:
 def on_show_all_records_clicked(self) -> None
 ```
 
-Toggle between showing all records and last 5000 records.
+Toggle between showing all records and last self.count_transactions_to_show records.
 
 <details>
 <summary>Code:</summary>
@@ -3913,7 +3929,7 @@ def on_show_all_records_clicked(self) -> None:
 
         # Update button text and icon
         if self.show_all_transactions:
-            self.pushButton_show_all_records.setText("📊 Show Last 5000")
+            self.pushButton_show_all_records.setText(f"📊 Show Last {self.count_transactions_to_show}")
         else:
             self.pushButton_show_all_records.setText("📊 Show All Records")
 
@@ -4371,8 +4387,8 @@ def show_tables(self) -> None:
 
         try:
             # Refresh transactions table
-            # Show last 5000 records by default, or all records if toggle is on
-            limit = None if self.show_all_transactions else 5000
+            # Show last self.count_transactions_to_show records by default, or all records if toggle is on
+            limit = None if self.show_all_transactions else self.count_transactions_to_show
             transactions_data = self.db_manager.get_all_transactions(limit=limit)
             transactions_transformed_data = self._transform_transaction_data(transactions_data)
             self.models["transactions"] = self._create_transactions_table_model(
@@ -4436,8 +4452,9 @@ def show_tables(self) -> None:
             for group_key in [(0, 1), (1, 1), (0, 0), (1, 0)]:
                 color = account_colors[group_key]
                 for row in account_groups[group_key]:
-                    # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash] -> [name, balance, currency, liquid, cash, id, color]
-                    balance = float(row[2]) / 100  # Convert from cents
+                    # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] -> [name, balance, currency, liquid, cash, id, color]
+                    currency_id = row[6]  # currency_id
+                    balance = self.db_manager.convert_from_minor_units(row[2], currency_id)
                     liquid_str = "👍" if row[4] == 1 else "👎"
                     cash_str = "💵" if row[5] == 1 else "💳"
                     transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
@@ -4920,6 +4937,7 @@ def _clear_currency_form(self) -> None:
         self.lineEdit_currency_code.clear()
         self.lineEdit_currency_name.clear()
         self.lineEdit_currency_symbol.clear()
+        self.spinBox_subdivision.setValue(100)
 ```
 
 </details>
@@ -5967,10 +5985,11 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
                 return
 
             # Prepare account data for dialog
+            currency_id = account_data[6]  # currency_id
             account_dict = {
                 "id": account_data[0],
                 "name": account_data[1],
-                "balance": float(account_data[2]) / 100,  # Convert from cents
+                "balance": self.db_manager.convert_from_minor_units(account_data[2], currency_id),
                 "currency_code": account_data[3],
                 "is_liquid": account_data[4] == 1,
                 "is_cash": account_data[5] == 1,
@@ -6389,6 +6408,7 @@ def _setup_ui(self) -> None:
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
         self.doubleSpinBox_rate_value.setValue(73.5)
+        self.spinBox_subdivision.setValue(100)
 ```
 
 </details>

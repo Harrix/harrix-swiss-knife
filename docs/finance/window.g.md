@@ -120,6 +120,7 @@ class Ui_MainWindow(object):
         self.lineEdit_currency_symbol.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "$, \u20ac, \u20bd", None)
         )
+        self.label_subdivision.setText(QCoreApplication.translate("MainWindow", "Subdivision:", None))
         self.pushButton_currency_add.setText(QCoreApplication.translate("MainWindow", "Add Currency", None))
         self.groupBox_default_currency.setTitle(QCoreApplication.translate("MainWindow", "Default Currency", None))
         self.pushButton_set_default_currency.setText(QCoreApplication.translate("MainWindow", "Set Default", None))
@@ -188,7 +189,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1400, 950)
+        MainWindow.resize(1179, 950)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -966,8 +967,9 @@ class Ui_MainWindow(object):
         self.verticalLayout_8.setObjectName("verticalLayout_8")
         self.groupBox_add_currency = QGroupBox(self.frame_currencies)
         self.groupBox_add_currency.setObjectName("groupBox_add_currency")
-        self.verticalLayout_add_currency = QVBoxLayout(self.groupBox_add_currency)
-        self.verticalLayout_add_currency.setObjectName("verticalLayout_add_currency")
+        self.groupBox_add_currency.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_9 = QVBoxLayout(self.groupBox_add_currency)
+        self.verticalLayout_9.setObjectName("verticalLayout_9")
         self.horizontalLayout_currency_code = QHBoxLayout()
         self.horizontalLayout_currency_code.setObjectName("horizontalLayout_currency_code")
         self.label_currency_code = QLabel(self.groupBox_add_currency)
@@ -978,11 +980,11 @@ class Ui_MainWindow(object):
 
         self.lineEdit_currency_code = QLineEdit(self.groupBox_add_currency)
         self.lineEdit_currency_code.setObjectName("lineEdit_currency_code")
-        self.lineEdit_currency_code.setMinimumSize(QSize(170, 0))
+        self.lineEdit_currency_code.setMinimumSize(QSize(191, 0))
 
         self.horizontalLayout_currency_code.addWidget(self.lineEdit_currency_code)
 
-        self.verticalLayout_add_currency.addLayout(self.horizontalLayout_currency_code)
+        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_code)
 
         self.horizontalLayout_currency_name = QHBoxLayout()
         self.horizontalLayout_currency_name.setObjectName("horizontalLayout_currency_name")
@@ -994,11 +996,11 @@ class Ui_MainWindow(object):
 
         self.lineEdit_currency_name = QLineEdit(self.groupBox_add_currency)
         self.lineEdit_currency_name.setObjectName("lineEdit_currency_name")
-        self.lineEdit_currency_name.setMinimumSize(QSize(170, 0))
+        self.lineEdit_currency_name.setMinimumSize(QSize(191, 0))
 
         self.horizontalLayout_currency_name.addWidget(self.lineEdit_currency_name)
 
-        self.verticalLayout_add_currency.addLayout(self.horizontalLayout_currency_name)
+        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_name)
 
         self.horizontalLayout_currency_symbol = QHBoxLayout()
         self.horizontalLayout_currency_symbol.setObjectName("horizontalLayout_currency_symbol")
@@ -1010,11 +1012,27 @@ class Ui_MainWindow(object):
 
         self.lineEdit_currency_symbol = QLineEdit(self.groupBox_add_currency)
         self.lineEdit_currency_symbol.setObjectName("lineEdit_currency_symbol")
-        self.lineEdit_currency_symbol.setMinimumSize(QSize(170, 0))
+        self.lineEdit_currency_symbol.setMinimumSize(QSize(191, 0))
 
         self.horizontalLayout_currency_symbol.addWidget(self.lineEdit_currency_symbol)
 
-        self.verticalLayout_add_currency.addLayout(self.horizontalLayout_currency_symbol)
+        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_symbol)
+
+        self.horizontalLayout_13 = QHBoxLayout()
+        self.horizontalLayout_13.setObjectName("horizontalLayout_13")
+        self.label_subdivision = QLabel(self.groupBox_add_currency)
+        self.label_subdivision.setObjectName("label_subdivision")
+
+        self.horizontalLayout_13.addWidget(self.label_subdivision)
+
+        self.spinBox_subdivision = QSpinBox(self.groupBox_add_currency)
+        self.spinBox_subdivision.setObjectName("spinBox_subdivision")
+        self.spinBox_subdivision.setMinimumSize(QSize(191, 0))
+        self.spinBox_subdivision.setMaximum(1000000000)
+
+        self.horizontalLayout_13.addWidget(self.spinBox_subdivision)
+
+        self.verticalLayout_9.addLayout(self.horizontalLayout_13)
 
         self.horizontalLayout_currency_add = QHBoxLayout()
         self.horizontalLayout_currency_add.setObjectName("horizontalLayout_currency_add")
@@ -1027,7 +1045,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_currency_add.addWidget(self.pushButton_currency_add)
 
-        self.verticalLayout_add_currency.addLayout(self.horizontalLayout_currency_add)
+        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_add)
 
         self.verticalLayout_8.addWidget(self.groupBox_add_currency)
 
@@ -1355,7 +1373,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 751))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1135, 751))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1447,7 +1465,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1400, 21))
+        self.menuBar.setGeometry(QRect(0, 0, 1179, 21))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")
@@ -1458,7 +1476,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(0)
 
         QMetaObject.connectSlotsByName(MainWindow)
 ```
@@ -1565,6 +1583,7 @@ def retranslateUi(self, MainWindow):
         self.lineEdit_currency_symbol.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "$, \u20ac, \u20bd", None)
         )
+        self.label_subdivision.setText(QCoreApplication.translate("MainWindow", "Subdivision:", None))
         self.pushButton_currency_add.setText(QCoreApplication.translate("MainWindow", "Add Currency", None))
         self.groupBox_default_currency.setTitle(QCoreApplication.translate("MainWindow", "Default Currency", None))
         self.pushButton_set_default_currency.setText(QCoreApplication.translate("MainWindow", "Set Default", None))
@@ -1648,7 +1667,7 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1400, 950)
+        MainWindow.resize(1179, 950)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -2426,8 +2445,9 @@ def setupUi(self, MainWindow):
         self.verticalLayout_8.setObjectName("verticalLayout_8")
         self.groupBox_add_currency = QGroupBox(self.frame_currencies)
         self.groupBox_add_currency.setObjectName("groupBox_add_currency")
-        self.verticalLayout_add_currency = QVBoxLayout(self.groupBox_add_currency)
-        self.verticalLayout_add_currency.setObjectName("verticalLayout_add_currency")
+        self.groupBox_add_currency.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_9 = QVBoxLayout(self.groupBox_add_currency)
+        self.verticalLayout_9.setObjectName("verticalLayout_9")
         self.horizontalLayout_currency_code = QHBoxLayout()
         self.horizontalLayout_currency_code.setObjectName("horizontalLayout_currency_code")
         self.label_currency_code = QLabel(self.groupBox_add_currency)
@@ -2438,11 +2458,11 @@ def setupUi(self, MainWindow):
 
         self.lineEdit_currency_code = QLineEdit(self.groupBox_add_currency)
         self.lineEdit_currency_code.setObjectName("lineEdit_currency_code")
-        self.lineEdit_currency_code.setMinimumSize(QSize(170, 0))
+        self.lineEdit_currency_code.setMinimumSize(QSize(191, 0))
 
         self.horizontalLayout_currency_code.addWidget(self.lineEdit_currency_code)
 
-        self.verticalLayout_add_currency.addLayout(self.horizontalLayout_currency_code)
+        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_code)
 
         self.horizontalLayout_currency_name = QHBoxLayout()
         self.horizontalLayout_currency_name.setObjectName("horizontalLayout_currency_name")
@@ -2454,11 +2474,11 @@ def setupUi(self, MainWindow):
 
         self.lineEdit_currency_name = QLineEdit(self.groupBox_add_currency)
         self.lineEdit_currency_name.setObjectName("lineEdit_currency_name")
-        self.lineEdit_currency_name.setMinimumSize(QSize(170, 0))
+        self.lineEdit_currency_name.setMinimumSize(QSize(191, 0))
 
         self.horizontalLayout_currency_name.addWidget(self.lineEdit_currency_name)
 
-        self.verticalLayout_add_currency.addLayout(self.horizontalLayout_currency_name)
+        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_name)
 
         self.horizontalLayout_currency_symbol = QHBoxLayout()
         self.horizontalLayout_currency_symbol.setObjectName("horizontalLayout_currency_symbol")
@@ -2470,11 +2490,27 @@ def setupUi(self, MainWindow):
 
         self.lineEdit_currency_symbol = QLineEdit(self.groupBox_add_currency)
         self.lineEdit_currency_symbol.setObjectName("lineEdit_currency_symbol")
-        self.lineEdit_currency_symbol.setMinimumSize(QSize(170, 0))
+        self.lineEdit_currency_symbol.setMinimumSize(QSize(191, 0))
 
         self.horizontalLayout_currency_symbol.addWidget(self.lineEdit_currency_symbol)
 
-        self.verticalLayout_add_currency.addLayout(self.horizontalLayout_currency_symbol)
+        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_symbol)
+
+        self.horizontalLayout_13 = QHBoxLayout()
+        self.horizontalLayout_13.setObjectName("horizontalLayout_13")
+        self.label_subdivision = QLabel(self.groupBox_add_currency)
+        self.label_subdivision.setObjectName("label_subdivision")
+
+        self.horizontalLayout_13.addWidget(self.label_subdivision)
+
+        self.spinBox_subdivision = QSpinBox(self.groupBox_add_currency)
+        self.spinBox_subdivision.setObjectName("spinBox_subdivision")
+        self.spinBox_subdivision.setMinimumSize(QSize(191, 0))
+        self.spinBox_subdivision.setMaximum(1000000000)
+
+        self.horizontalLayout_13.addWidget(self.spinBox_subdivision)
+
+        self.verticalLayout_9.addLayout(self.horizontalLayout_13)
 
         self.horizontalLayout_currency_add = QHBoxLayout()
         self.horizontalLayout_currency_add.setObjectName("horizontalLayout_currency_add")
@@ -2487,7 +2523,7 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_currency_add.addWidget(self.pushButton_currency_add)
 
-        self.verticalLayout_add_currency.addLayout(self.horizontalLayout_currency_add)
+        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_add)
 
         self.verticalLayout_8.addWidget(self.groupBox_add_currency)
 
@@ -2815,7 +2851,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1356, 751))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1135, 751))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -2907,7 +2943,7 @@ def setupUi(self, MainWindow):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1400, 21))
+        self.menuBar.setGeometry(QRect(0, 0, 1179, 21))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")
@@ -2918,7 +2954,7 @@ def setupUi(self, MainWindow):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(0)
 
         QMetaObject.connectSlotsByName(MainWindow)
 ```

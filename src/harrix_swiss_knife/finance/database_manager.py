@@ -289,6 +289,38 @@ class DatabaseManager:
         if hasattr(self, "connection_name"):
             QSqlDatabase.removeDatabase(self.connection_name)
 
+    def convert_from_minor_units(self, amount_minor: float, currency_id: int) -> float:
+        """Convert amount from minor units to major units using currency subdivision.
+
+        Args:
+
+        - `amount_minor` (`int | float`): Amount in minor units (e.g., cents).
+        - `currency_id` (`int`): Currency ID.
+
+        Returns:
+
+        - `float`: Amount in major units (e.g., dollars).
+
+        """
+        subdivision = self.get_currency_subdivision(currency_id)
+        return float(amount_minor) / subdivision
+
+    def convert_to_minor_units(self, amount_major: float, currency_id: int) -> int:
+        """Convert amount from major units to minor units using currency subdivision.
+
+        Args:
+
+        - `amount_major` (`float`): Amount in major units (e.g., dollars).
+        - `currency_id` (`int`): Currency ID.
+
+        Returns:
+
+        - `int`: Amount in minor units (e.g., cents).
+
+        """
+        subdivision = self.get_currency_subdivision(currency_id)
+        return int(amount_major * subdivision)
+
     @staticmethod
     def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
         """Create a new database from SQL file.
@@ -782,38 +814,6 @@ class DatabaseManager:
         """
         rows = self.get_rows("SELECT subdivision FROM currencies WHERE _id = :id", {"id": currency_id})
         return rows[0][0] if rows else 100
-
-    def convert_from_minor_units(self, amount_minor: int | float, currency_id: int) -> float:
-        """Convert amount from minor units to major units using currency subdivision.
-
-        Args:
-
-        - `amount_minor` (`int | float`): Amount in minor units (e.g., cents).
-        - `currency_id` (`int`): Currency ID.
-
-        Returns:
-
-        - `float`: Amount in major units (e.g., dollars).
-
-        """
-        subdivision = self.get_currency_subdivision(currency_id)
-        return float(amount_minor) / subdivision
-
-    def convert_to_minor_units(self, amount_major: float, currency_id: int) -> int:
-        """Convert amount from major units to minor units using currency subdivision.
-
-        Args:
-
-        - `amount_major` (`float`): Amount in major units (e.g., dollars).
-        - `currency_id` (`int`): Currency ID.
-
-        Returns:
-
-        - `int`: Amount in minor units (e.g., cents).
-
-        """
-        subdivision = self.get_currency_subdivision(currency_id)
-        return int(amount_major * subdivision)
 
     def get_default_currency(self) -> str:
         """Get the default currency code.
