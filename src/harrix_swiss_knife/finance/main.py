@@ -1536,10 +1536,13 @@ class MainWindow(
             rates_data = self.db_manager.get_all_exchange_rates()
             rates_transformed_data = []
             for row in rates_data:
-                # Transform: [id, from_code, to_code, rate_cents, date]
-                rate = float(row[3]) / 100
+                # Transform: [id, from_code, to_code, rate, date]
+                # Rate is stored as USD→currency, but display as currency→USD
+                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
+                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
                 color = QColor(240, 255, 255)
-                transformed_row = [row[1], row[2], f"{rate:.4f}", row[4], row[0], color]
+                # Show as currency → USD instead of USD → currency
+                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
                 rates_transformed_data.append(transformed_row)
 
             self.models["exchange_rates"] = self._create_colored_table_model(
