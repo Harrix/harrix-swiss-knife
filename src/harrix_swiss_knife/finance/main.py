@@ -103,6 +103,13 @@ class MainWindow(
         self.count_transactions_to_show = 5000
         self.show_all_transactions = False
 
+        # Lazy loading flags for tab optimization
+        self._transactions_tab_initialized = False
+        self._categories_changed = False
+        self._currencies_changed = False
+        self._transactions_changed = False
+        self._default_currency_changed = False
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "transactions": (
@@ -276,12 +283,18 @@ class MainWindow(
         try:
             if table_name == "transactions":
                 success = self.db_manager.delete_transaction(record_id)
+                if success:
+                    self._mark_transactions_changed()
             elif table_name == "categories":
                 success = self.db_manager.delete_category(record_id)
+                if success:
+                    self._mark_categories_changed()
             elif table_name == "accounts":
                 success = self.db_manager.delete_account(record_id)
             elif table_name == "currencies":
                 success = self.db_manager.delete_currency(record_id)
+                if success:
+                    self._mark_currencies_changed()
             elif table_name == "currency_exchanges":
                 success = self.db_manager.delete_currency_exchange(record_id)
             elif table_name == "exchange_rates":
@@ -457,6 +470,7 @@ class MainWindow(
 
         try:
             if self.db_manager.add_category(name, category_type):
+                self._mark_categories_changed()
                 self.update_all()
                 self._clear_category_form()
             else:
@@ -494,6 +508,7 @@ class MainWindow(
 
         try:
             if self.db_manager.add_currency(code, name, symbol, subdivision):
+                self._mark_currencies_changed()
                 self.update_all()
                 self._clear_currency_form()
             else:
@@ -666,6 +681,9 @@ class MainWindow(
                 # Save current date before updating UI
                 current_date = self.dateEdit.date()
 
+                # Mark transactions changed for lazy loading
+                self._mark_transactions_changed()
+
                 # Update UI
                 self.update_all()
                 self.update_summary_labels()
@@ -796,6 +814,8 @@ class MainWindow(
         try:
             if self.db_manager.set_default_currency(currency_code):
                 QMessageBox.information(self, "Success", f"Default currency set to {currency_code}")
+                # Mark default currency changed for lazy loading
+                self._mark_default_currency_changed()
                 # Update all displays to reflect new currency
                 self.update_summary_labels()
                 self._update_comboboxes()
@@ -818,7 +838,7 @@ class MainWindow(
         self.show_tables()
 
     def on_tab_changed(self, index: int) -> None:
-        """React to tab change.
+        """React to tab change with lazy loading optimization.
 
         Args:
 
@@ -827,8 +847,7 @@ class MainWindow(
         """
         # Update relevant data when switching to different tabs
         if index == 0:  # Transactions tab
-            self.update_filter_comboboxes()
-            self.update_summary_labels()
+            self._handle_transactions_tab_change()
         elif index == 6:  # Charts tab
             self.update_chart_comboboxes()
         elif index == 7:  # Reports tab
@@ -2206,6 +2225,23 @@ class MainWindow(
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
+    def _handle_transactions_tab_change(self) -> None:
+        """Handle transactions tab change with lazy loading optimization."""
+        # Initialize on first access or update if data changed
+        if not self._transactions_tab_initialized or self._categories_changed or self._currencies_changed:
+            self.update_filter_comboboxes()
+            self._categories_changed = False
+            self._currencies_changed = False
+
+        # Update summary labels if transactions or currency changed
+        if not self._transactions_tab_initialized or self._transactions_changed or self._default_currency_changed:
+            self.update_summary_labels()
+            self._transactions_changed = False
+            self._default_currency_changed = False
+
+        # Mark as initialized after first access
+        self._transactions_tab_initialized = True
+
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
         current_date = QDate.currentDate()
@@ -2257,6 +2293,22 @@ class MainWindow(
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
         self.checkBox_use_date_filter.setChecked(False)
+
+    def _mark_categories_changed(self) -> None:
+        """Mark that categories data has changed and needs refresh."""
+        self._categories_changed = True
+
+    def _mark_currencies_changed(self) -> None:
+        """Mark that currencies data has changed and needs refresh."""
+        self._currencies_changed = True
+
+    def _mark_default_currency_changed(self) -> None:
+        """Mark that default currency has changed and needs refresh."""
+        self._default_currency_changed = True
+
+    def _mark_transactions_changed(self) -> None:
+        """Mark that transactions data has changed and needs refresh."""
+        self._transactions_changed = True
 
     def _on_account_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on accounts table.

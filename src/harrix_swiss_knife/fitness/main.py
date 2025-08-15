@@ -130,6 +130,10 @@ class MainWindow(
         self.count_records_to_show = 5000
         self.show_all_records = False
 
+        # Lazy loading flags for tab optimization
+        self._main_tab_initialized = False
+        self._exercises_changed = False
+
         # Chart configuration
         self.max_count_points_in_charts = 40
         self.id_steps = 39  # ID for steps exercise
@@ -311,8 +315,12 @@ class MainWindow(
                 success = self.db_manager.delete_process_record(record_id)
             elif table_name == "exercises":
                 success = self.db_manager.delete_exercise(record_id)
+                if success:
+                    self._mark_exercises_changed()
             elif table_name == "types":
                 success = self.db_manager.delete_exercise_type(record_id)
+                if success:
+                    self._mark_exercises_changed()
             elif table_name == "weight":
                 success = self.db_manager.delete_weight_record(record_id)
         except Exception as e:
@@ -484,6 +492,7 @@ class MainWindow(
             if self.db_manager.add_exercise(
                 exercise, unit, is_type_required=is_type_required, calories_per_unit=calories_per_unit
             ):
+                self._mark_exercises_changed()
                 self.update_all()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add exercise")
@@ -582,6 +591,7 @@ class MainWindow(
             calories_modifier = self.doubleSpinBox_calories_modifier.value()
 
             if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier):
+                self._mark_exercises_changed()
                 self.update_all()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add exercise type")
@@ -1998,7 +2008,7 @@ class MainWindow(
         index_tab_statistics = 4
 
         if index == 0:  # Main tab
-            self.update_filter_comboboxes()
+            self._handle_main_tab_change()
         elif index == 1:  # Exercises tab
             # Update exercises AVIF when switching to exercises tab
             self._update_exercises_avif()
@@ -3467,6 +3477,16 @@ class MainWindow(
         except (KeyError, ValueError, TypeError, AttributeError):
             return None
 
+    def _handle_main_tab_change(self) -> None:
+        """Handle main tab change with lazy loading optimization."""
+        # Initialize on first access or update if exercises changed
+        if not self._main_tab_initialized or self._exercises_changed:
+            self.update_filter_comboboxes()
+            self._exercises_changed = False
+
+        # Mark as initialized after first access
+        self._main_tab_initialized = True
+
     def _init_database(self) -> None:
         """Open the SQLite file from `config` (create from recover.sql if missing).
 
@@ -3860,6 +3880,10 @@ class MainWindow(
         self._update_charts_avif()
 
         # Statistics AVIF will be loaded when statistics tab is accessed
+
+    def _mark_exercises_changed(self) -> None:
+        """Mark that exercises data has changed and needs refresh."""
+        self._exercises_changed = True
 
     def _next_avif_frame(self, label_key: str) -> None:
         """Show next frame in AVIF animation for specific label.
