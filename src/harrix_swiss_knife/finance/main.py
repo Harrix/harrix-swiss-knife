@@ -338,6 +338,9 @@ class MainWindow(
         self.count_exchange_rates_to_show = 1000
         self.show_all_transactions = False
 
+        # Lazy loading flags
+        self.exchange_rates_loaded = False
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "transactions": (
@@ -378,7 +381,7 @@ class MainWindow(
         self._init_filter_controls()
         self._init_chart_controls()
         self._setup_autocomplete()
-        self.update_all()
+        self._initial_load()
 
         # Set window size and position
         self._setup_window_size_and_position()
@@ -388,6 +391,41 @@ class MainWindow(
 
         # Show window after initialization
         QTimer.singleShot(200, self._finish_window_initialization)
+
+    def _initial_load(self) -> None:
+        """Initial load of essential data at startup (without exchange rates)."""
+        if not self._validate_database_connection():
+            print("Database connection not available for initial load")
+            return
+
+        # Load essential tables only (excluding exchange rates)
+        self._load_essential_tables()
+        self._update_comboboxes()
+        self.update_filter_comboboxes()
+        self.update_chart_comboboxes()
+        self.set_today_date()
+        self.update_summary_labels()
+
+        # Clear forms
+        self._clear_all_forms()
+
+    def _load_essential_tables(self) -> None:
+        """Load essential tables at startup (excluding exchange rates for lazy loading)."""
+        if not self._validate_database_connection():
+            print("Database connection not available for showing essential tables")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Just call the existing show_tables method but exchange rates are excluded there
+            self.show_tables()
+
+        except Exception as e:
+            print(f"Error loading essential tables: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to load essential tables: {e}")
 
     @requires_database()
     def apply_filter(self) -> None:
@@ -1080,7 +1118,11 @@ class MainWindow(
 
         """
         # Update relevant data when switching to different tabs
-        if index == 6:  # Charts tab
+        if index == 4:  # Exchange Rates tab - lazy loading
+            if not self.exchange_rates_loaded:
+                self.load_exchange_rates_table()
+                self.exchange_rates_loaded = True
+        elif index == 6:  # Charts tab
             self.update_chart_comboboxes()
         elif index == 7:  # Reports tab
             self.update_summary_labels()
@@ -1304,8 +1346,46 @@ class MainWindow(
         # Create pie chart
         self._create_pie_chart(category_totals, f"Expenses by Category ({default_currency_code})")
 
+    def load_exchange_rates_table(self) -> None:
+        """Load exchange rates table data (lazy loading)."""
+        if not self._validate_database_connection():
+            print("Database connection not available for loading exchange rates")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Refresh exchange rates table - get only the latest records sorted by date
+            rates_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
+            rates_transformed_data = []
+            for row in rates_data:
+                # Transform: [id, from_code, to_code, rate, date]
+                # Rate is stored as USD→currency, but display as currency→USD
+                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
+                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
+                color = QColor(240, 255, 255)
+                # Show as currency → USD instead of USD → currency
+                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
+                rates_transformed_data.append(transformed_row)
+
+            self.models["exchange_rates"] = self._create_colored_table_model(
+                rates_transformed_data, self.table_config["exchange_rates"][2]
+            )
+            self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+
+            # Configure column stretching for exchange rates table
+            rates_header = self.tableView_exchange_rates.horizontalHeader()
+            if rates_header.count() > 0:
+                for i in range(rates_header.count()):
+                    rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
+
+        except Exception as e:
+            print(f"❌ Error loading exchange rates table: {e}")
+
     def show_tables(self) -> None:
-        """Populate all QTableViews using database manager methods."""
+        """Populate all QTableViews using database manager methods (except exchange rates - lazy loaded)."""
         if not self._validate_database_connection():
             print("Database connection not available for showing tables")
             return
@@ -1463,29 +1543,7 @@ class MainWindow(
                 # Ensure stretch settings are applied
                 exchange_header.setStretchLastSection(False)
 
-            # Refresh exchange rates table - get only the latest records sorted by date
-            rates_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
-            rates_transformed_data = []
-            for row in rates_data:
-                # Transform: [id, from_code, to_code, rate, date]
-                # Rate is stored as USD→currency, but display as currency→USD
-                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
-                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
-                color = QColor(240, 255, 255)
-                # Show as currency → USD instead of USD → currency
-                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
-                rates_transformed_data.append(transformed_row)
-
-            self.models["exchange_rates"] = self._create_colored_table_model(
-                rates_transformed_data, self.table_config["exchange_rates"][2]
-            )
-            self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
-
-            # Configure column stretching for exchange rates table
-            rates_header = self.tableView_exchange_rates.horizontalHeader()
-            if rates_header.count() > 0:
-                for i in range(rates_header.count()):
-                    rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
+            # Exchange rates table loaded lazily on first tab access
 
             # Resize columns to content (excluding exchange table to preserve stretch settings)
             for table_name in self.table_config:
@@ -1523,12 +1581,21 @@ class MainWindow(
             print("Database connection not available for update_all")
             return
 
+        # Reset exchange rates loaded flag to force reload
+        self.exchange_rates_loaded = False
+
         self.show_tables()
         self._update_comboboxes()
         self.update_filter_comboboxes()
         self.update_chart_comboboxes()
         self.set_today_date()
         self.update_summary_labels()
+
+        # If exchange rates tab is currently active, reload the data
+        current_tab_index = self.tabWidget.currentIndex()
+        if current_tab_index == 4:  # Exchange Rates tab
+            self.load_exchange_rates_table()
+            self.exchange_rates_loaded = True
 
         # Clear forms
         self._clear_all_forms()
