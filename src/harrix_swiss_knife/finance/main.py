@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 import harrix_pylib as h
-import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import (
@@ -420,12 +419,21 @@ class MainWindow(
             return
 
         try:
-            # Load only essential tables (exclude exchange_rates)
-            self._load_transactions_table()
-            self._load_categories_table()
-            self._load_accounts_table()
-            self._load_currencies_table()
-            self._load_currency_exchanges_table()
+            # Load each table individually with error handling
+            tables_to_load = [
+                ("transactions", self._load_transactions_table),
+                ("categories", self._load_categories_table),
+                ("accounts", self._load_accounts_table),
+                ("currencies", self._load_currencies_table),
+                ("currency_exchanges", self._load_currency_exchanges_table),
+            ]
+
+            for table_name, load_method in tables_to_load:
+                try:
+                    load_method()
+                except Exception as e:
+                    print(f"❌ Error loading {table_name} table: {e}")
+                    # Продолжаем загрузку других таблиц
 
             # Connect auto-save signals for loaded tables
             self._connect_table_auto_save_signals()
@@ -663,6 +671,9 @@ class MainWindow(
             header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
             self.tableView_transactions.setColumnWidth(last_column, 120)
 
+        # Reconnect auto-save signals for the updated table
+        self._connect_table_auto_save_signals()
+
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
         self.radioButton.setChecked(True)  # All
@@ -674,7 +685,10 @@ class MainWindow(
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
 
-        self.show_tables()
+        # Load transactions table instead of all tables
+        self._load_transactions_table()
+        # Reconnect auto-save signals for the updated table
+        self._connect_table_auto_save_signals()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
@@ -1280,6 +1294,9 @@ class MainWindow(
 
         # Refresh the transactions table
         self._load_transactions_table()
+
+        # Reconnect auto-save signals for the updated table
+        self._connect_table_auto_save_signals()
 
     def on_tab_changed(self, index: int) -> None:
         """React to tab change.
@@ -2511,62 +2528,6 @@ class MainWindow(
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
-
-    def _get_yfinance_data(self, currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict:
-        """Get exchange rate data from yfinance."""
-        import pandas as pd
-        import yfinance as yf
-
-        rates_data = {}
-        ticker_symbol = f"{currency_code}USD=X"
-
-        try:
-            # Download historical data
-            ticker = yf.Ticker(ticker_symbol)
-            hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
-
-            # If no data found, try alternative ticker formats
-            if hist.empty and currency_code in alternative_tickers:
-                print(f"⚠️ No data found for {ticker_symbol}, trying alternatives...")
-
-                for alt_ticker in alternative_tickers[currency_code]:
-                    print(f"🔄 Trying alternative ticker: {alt_ticker}")
-                    ticker = yf.Ticker(alt_ticker)
-                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
-
-                    if not hist.empty:
-                        print(f"✅ Found data with alternative ticker: {alt_ticker}")
-                        ticker_symbol = alt_ticker  # Update for logging
-
-                        # For inverse rates (USD/XXX), we need to invert the values
-                        if alt_ticker.startswith("USD/") or alt_ticker.startswith("USD"):
-                            print(f"🔄 Inverting rates for {alt_ticker}")
-                            hist = hist.copy()
-                            for col in ["Open", "High", "Low", "Close"]:
-                                if col in hist.columns:
-                                    hist[col] = 1.0 / hist[col]
-                        break
-
-            if hist.empty:
-                print(f"⚠️ No data found for {currency_code} with any yfinance ticker format")
-                return {}
-
-            print(f"📊 Processing {len(hist)} days of yfinance data for {ticker_symbol}")
-
-            # Process each day
-            for date_idx, row in hist.iterrows():
-                date_str = date_idx.strftime("%Y-%m-%d")
-                close_price = row["Close"]
-
-                if not pd.isna(close_price) and close_price > 0:
-                    rates_data[date_str] = float(close_price)
-                else:
-                    print(f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}")
-
-        except Exception as e:
-            print(f"❌ Error with yfinance for {currency_code}: {e}")
-
-        return rates_data
 
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
