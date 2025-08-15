@@ -1494,7 +1494,15 @@ class MainWindow(
 
             # Only count expenses (category_type == 0)
             if category_type == 0:
-                amount = float(amount_cents) / 100
+                # Convert amount from minor units to display format using currency subdivision
+                currency_code = row[4]
+                if self.db_manager:
+                    amount = self.db_manager.convert_from_minor_units(amount_cents,
+                                                                     self.db_manager.get_currency_by_code(currency_code)[0]
+                                                                     if self.db_manager.get_currency_by_code(currency_code) else 1)
+                else:
+                    amount = float(amount_cents) / 100  # Fallback
+
                 if date in daily_expenses:
                     daily_expenses[date] += amount
                 else:
@@ -2690,8 +2698,13 @@ class MainWindow(
             tag = row[6]
             category_type = row[7]
 
-            # Convert amount from cents to display format
-            amount = float(amount_cents) / 100
+            # Convert amount from minor units to display format using currency subdivision
+            if self.db_manager:
+                amount = self.db_manager.convert_from_minor_units(amount_cents,
+                                                                 self.db_manager.get_currency_by_code(currency_code)[0]
+                                                                 if self.db_manager.get_currency_by_code(currency_code) else 1)
+            else:
+                amount = float(amount_cents) / 100  # Fallback
 
             # Determine color based on date
             if date not in date_to_color_index:

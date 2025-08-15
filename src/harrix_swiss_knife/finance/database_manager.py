@@ -792,16 +792,7 @@ class DatabaseManager:
         if limit is not None:
             query += f" LIMIT {limit}"
 
-        rows = self.get_rows(query)
-
-        # Convert amounts from stored subdivision to actual values
-        for row in rows:
-            if len(row) >= 5 and row[1] is not None and row[4] is not None:  # amount and currency_code
-                currency_code = row[4]
-                subdivision = self.get_currency_subdivision_by_code(currency_code)
-                row[1] = float(row[1]) / subdivision
-
-        return rows
+        return self.get_rows(query)
 
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
