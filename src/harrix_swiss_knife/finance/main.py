@@ -334,8 +334,8 @@ class MainWindow(
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
         # Toggle for showing all records vs last self.count_transactions_to_show
-        self.count_transactions_to_show = 5000
-        self.count_exchange_rates_to_show = 5000
+        self.count_transactions_to_show = 1000
+        self.count_exchange_rates_to_show = 1000
         self.show_all_transactions = False
 
         # Table configuration mapping
