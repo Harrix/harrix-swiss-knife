@@ -639,18 +639,17 @@ class MainWindow(
 
     @requires_database()
     def on_add_rate(self) -> None:
-        """Add a new exchange rate using database manager."""
+        """Add a new exchange rate to USD using database manager."""
         from_currency = self.comboBox_rate_from.currentText()
-        to_currency = self.comboBox_rate_to.currentText()
         rate = self.doubleSpinBox_rate_value.value()
         date = self.dateEdit_rate.date().toString("yyyy-MM-dd")
 
-        if not from_currency or not to_currency:
-            QMessageBox.warning(self, "Error", "Select both currencies")
+        if not from_currency:
+            QMessageBox.warning(self, "Error", "Select currency")
             return
 
-        if from_currency == to_currency:
-            QMessageBox.warning(self, "Error", "From and To currencies must be different")
+        if from_currency == "USD":
+            QMessageBox.warning(self, "Error", "Cannot add USD to USD exchange rate")
             return
 
         if rate <= 0:
@@ -661,19 +660,17 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
-        # Get currency IDs
+        # Get currency ID
         from_currency_info = self.db_manager.get_currency_by_code(from_currency)
-        to_currency_info = self.db_manager.get_currency_by_code(to_currency)
 
-        if not from_currency_info or not to_currency_info:
+        if not from_currency_info:
             QMessageBox.warning(self, "Error", "Currency not found")
             return
 
         from_currency_id = from_currency_info[0]
-        to_currency_id = to_currency_info[0]
 
         try:
-            if self.db_manager.add_exchange_rate(from_currency_id, to_currency_id, rate, date):
+            if self.db_manager.add_exchange_rate(from_currency_id, rate, date):
                 # Save current column widths before update
                 column_widths = self._save_table_column_widths(self.tableView_exchange)
 
@@ -995,15 +992,13 @@ class MainWindow(
                         date_str = date.strftime("%Y-%m-%d")
 
                         # Check if exchange rate already exists
-                        if not self.db_manager.check_exchange_rate_exists(currency_id, usd_currency_id, date_str):
+                        if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
                             # Get the close price (exchange rate)
                             close_price = row["Close"]
 
                             if not pd.isna(close_price) and close_price > 0:
                                 # Add exchange rate to database
-                                if self.db_manager.add_exchange_rate(
-                                    currency_id, usd_currency_id, close_price, date_str
-                                ):
+                                if self.db_manager.add_exchange_rate(currency_id, close_price, date_str):
                                     total_updates += 1
                                     print(f"✅ Added {currency_code}/USD rate: {close_price:.4f} for {date_str}")
                                 else:
@@ -2840,7 +2835,6 @@ class MainWindow(
                 self.comboBox_exchange_from,
                 self.comboBox_exchange_to,
                 self.comboBox_rate_from,
-                self.comboBox_rate_to,
                 self.comboBox_default_currency,
             ]:
                 combo.clear()
@@ -3590,7 +3584,7 @@ def on_add_exchange(self) -> None:
 def on_add_rate(self) -> None
 ```
 
-Add a new exchange rate using database manager.
+Add a new exchange rate to USD using database manager.
 
 <details>
 <summary>Code:</summary>
@@ -3598,16 +3592,15 @@ Add a new exchange rate using database manager.
 ```python
 def on_add_rate(self) -> None:
         from_currency = self.comboBox_rate_from.currentText()
-        to_currency = self.comboBox_rate_to.currentText()
         rate = self.doubleSpinBox_rate_value.value()
         date = self.dateEdit_rate.date().toString("yyyy-MM-dd")
 
-        if not from_currency or not to_currency:
-            QMessageBox.warning(self, "Error", "Select both currencies")
+        if not from_currency:
+            QMessageBox.warning(self, "Error", "Select currency")
             return
 
-        if from_currency == to_currency:
-            QMessageBox.warning(self, "Error", "From and To currencies must be different")
+        if from_currency == "USD":
+            QMessageBox.warning(self, "Error", "Cannot add USD to USD exchange rate")
             return
 
         if rate <= 0:
@@ -3618,19 +3611,17 @@ def on_add_rate(self) -> None:
             print("❌ Database manager is not initialized")
             return
 
-        # Get currency IDs
+        # Get currency ID
         from_currency_info = self.db_manager.get_currency_by_code(from_currency)
-        to_currency_info = self.db_manager.get_currency_by_code(to_currency)
 
-        if not from_currency_info or not to_currency_info:
+        if not from_currency_info:
             QMessageBox.warning(self, "Error", "Currency not found")
             return
 
         from_currency_id = from_currency_info[0]
-        to_currency_id = to_currency_info[0]
 
         try:
-            if self.db_manager.add_exchange_rate(from_currency_id, to_currency_id, rate, date):
+            if self.db_manager.add_exchange_rate(from_currency_id, rate, date):
                 # Save current column widths before update
                 column_widths = self._save_table_column_widths(self.tableView_exchange)
 
@@ -4081,15 +4072,13 @@ def on_update_exchange_rates(self) -> None:
                         date_str = date.strftime("%Y-%m-%d")
 
                         # Check if exchange rate already exists
-                        if not self.db_manager.check_exchange_rate_exists(currency_id, usd_currency_id, date_str):
+                        if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
                             # Get the close price (exchange rate)
                             close_price = row["Close"]
 
                             if not pd.isna(close_price) and close_price > 0:
                                 # Add exchange rate to database
-                                if self.db_manager.add_exchange_rate(
-                                    currency_id, usd_currency_id, close_price, date_str
-                                ):
+                                if self.db_manager.add_exchange_rate(currency_id, close_price, date_str):
                                     total_updates += 1
                                     print(f"✅ Added {currency_code}/USD rate: {close_price:.4f} for {date_str}")
                                 else:
@@ -6656,7 +6645,6 @@ def _update_comboboxes(self) -> None:
                 self.comboBox_exchange_from,
                 self.comboBox_exchange_to,
                 self.comboBox_rate_from,
-                self.comboBox_rate_to,
                 self.comboBox_default_currency,
             ]:
                 combo.clear()

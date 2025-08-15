@@ -47,10 +47,12 @@ lang: en
   - [⚙️ Method `get_currency_by_code`](#%EF%B8%8F-method-get_currency_by_code)
   - [⚙️ Method `get_currency_by_id`](#%EF%B8%8F-method-get_currency_by_id)
   - [⚙️ Method `get_currency_subdivision`](#%EF%B8%8F-method-get_currency_subdivision)
+  - [⚙️ Method `get_currency_subdivision_by_code`](#%EF%B8%8F-method-get_currency_subdivision_by_code)
   - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
   - [⚙️ Method `get_default_currency_id`](#%EF%B8%8F-method-get_default_currency_id)
   - [⚙️ Method `get_earliest_currency_exchange_date`](#%EF%B8%8F-method-get_earliest_currency_exchange_date)
   - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate)
+  - [⚙️ Method `get_exchange_rate_to_usd`](#%EF%B8%8F-method-get_exchange_rate_to_usd)
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
@@ -240,9 +242,7 @@ class DatabaseManager:
         """
         from_subdivision = self.get_currency_subdivision(currency_from_id)
         to_subdivision = self.get_currency_subdivision(currency_to_id)
-        # For exchange rate, we use a standard subdivision (100) to maintain consistency
-        # since it represents the ratio between two currencies
-        rate_subdivision = 100
+        # Exchange rate is now stored as REAL directly
         query = """INSERT INTO currency_exchanges
                    (_id_currency_from, _id_currency_to, amount_from, amount_to,
                     exchange_rate, fee, date, description)
@@ -253,21 +253,20 @@ class DatabaseManager:
             "to_id": currency_to_id,
             "amount_from": int(amount_from * from_subdivision),  # Convert to minor units
             "amount_to": int(amount_to * to_subdivision),  # Convert to minor units
-            "exchange_rate": int(exchange_rate * rate_subdivision),  # Standardized rate
+            "exchange_rate": exchange_rate,  # Store as REAL directly
             "fee": int(fee * from_subdivision),  # Fee in from_currency minor units
             "date": date,
             "description": description,
         }
         return self.execute_simple_query(query, params)
 
-    def add_exchange_rate(self, currency_from_id: int, currency_to_id: int, rate: float, date: str) -> bool:
-        """Add a new exchange rate.
+    def add_exchange_rate(self, currency_id: int, rate: float, date: str) -> bool:
+        """Add a new exchange rate to USD.
 
         Args:
 
-        - `currency_from_id` (`int`): Source currency ID.
-        - `currency_to_id` (`int`): Target currency ID.
-        - `rate` (`float`): Exchange rate.
+        - `currency_id` (`int`): Currency ID (rate is always to USD).
+        - `rate` (`float`): Exchange rate to USD.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
         Returns:
@@ -275,15 +274,11 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        # For exchange rates, we use a standard subdivision (100) to maintain consistency
-        # since it represents the ratio between two currencies
-        rate_subdivision = 100
-        query = """INSERT INTO exchange_rates (_id_currency_from, _id_currency_to, rate, date)
-                   VALUES (:from_id, :to_id, :rate, :date)"""
+        query = """INSERT INTO exchange_rates (_id_currency, rate, date)
+                   VALUES (:currency_id, :rate, :date)"""
         params = {
-            "from_id": currency_from_id,
-            "to_id": currency_to_id,
-            "rate": int(rate * rate_subdivision),  # Standardized rate
+            "currency_id": currency_id,
+            "rate": rate,  # Store as REAL directly
             "date": date,
         }
         return self.execute_simple_query(query, params)
@@ -325,13 +320,12 @@ class DatabaseManager:
         }
         return self.execute_simple_query(query, params)
 
-    def check_exchange_rate_exists(self, currency_from_id: int, currency_to_id: int, date: str) -> bool:
-        """Check if exchange rate exists for given currencies and date.
+    def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool:
+        """Check if exchange rate to USD exists for given currency and date.
 
         Args:
 
-        - `currency_from_id` (`int`): Source currency ID.
-        - `currency_to_id` (`int`): Target currency ID.
+        - `currency_id` (`int`): Currency ID.
         - `date` (`str`): Date in YYYY-MM-DD format.
 
         Returns:
@@ -340,8 +334,8 @@ class DatabaseManager:
 
         """
         rows = self.get_rows(
-            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id AND date = :date",
-            {"from_id": currency_from_id, "to_id": currency_to_id, "date": date},
+            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency = :currency_id AND date = :date",
+            {"currency_id": currency_id, "date": date},
         )
         return rows[0][0] > 0 if rows else False
 
@@ -711,12 +705,21 @@ class DatabaseManager:
         - `list[list[Any]]`: List of account records [_id, name, balance, currency_code, is_liquid, is_cash, currency_id].
 
         """
-        return self.get_rows("""
+        rows = self.get_rows("""
             SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash, c._id as currency_id
             FROM accounts a
             JOIN currencies c ON a._id_currencies = c._id
             ORDER BY a.name
         """)
+
+        # Convert balances from stored subdivision to actual values
+        for row in rows:
+            if len(row) >= 4 and row[2] is not None and row[3] is not None:  # balance and currency_code
+                currency_code = row[3]
+                subdivision = self.get_currency_subdivision_by_code(currency_code)
+                row[2] = float(row[2]) / subdivision
+
+        return rows
 
     def get_all_categories(self) -> list[list[Any]]:
         """Get all categories.
@@ -746,7 +749,7 @@ class DatabaseManager:
         - `list[list[Any]]`: List of exchange records.
 
         """
-        return self.get_rows("""
+        rows = self.get_rows("""
             SELECT ce._id, cf.code, ct.code, ce.amount_from, ce.amount_to,
                    ce.exchange_rate, ce.fee, ce.date, ce.description
             FROM currency_exchanges ce
@@ -754,6 +757,28 @@ class DatabaseManager:
             JOIN currencies ct ON ce._id_currency_to = ct._id
             ORDER BY ce.date DESC, ce._id DESC
         """)
+
+        # Convert amounts, rates and fees from stored subdivision to actual values
+        for row in rows:
+            if len(row) >= 9:
+                # Get currency subdivisions for proper conversion
+                from_currency_code = row[1]
+                to_currency_code = row[2]
+
+                from_subdivision = self.get_currency_subdivision_by_code(from_currency_code)
+                to_subdivision = self.get_currency_subdivision_by_code(to_currency_code)
+
+                # Convert amounts and fees
+                if row[3] is not None:  # amount_from
+                    row[3] = float(row[3]) / from_subdivision
+                if row[4] is not None:  # amount_to
+                    row[4] = float(row[4]) / to_subdivision
+                if row[5] is not None:  # exchange_rate (already stored as REAL)
+                    row[5] = float(row[5])
+                if row[6] is not None:  # fee (in from_currency)
+                    row[6] = float(row[6]) / from_subdivision
+
+        return rows
 
     def get_all_exchange_rates(self) -> list[list[Any]]:
         """Get all exchange rates with currency information.
@@ -763,13 +788,20 @@ class DatabaseManager:
         - `list[list[Any]]`: List of exchange rate records.
 
         """
-        return self.get_rows("""
-            SELECT er._id, cf.code, ct.code, er.rate, er.date
+        rows = self.get_rows("""
+            SELECT er._id, c.code, 'USD', er.rate, er.date
             FROM exchange_rates er
-            JOIN currencies cf ON er._id_currency_from = cf._id
-            JOIN currencies ct ON er._id_currency_to = ct._id
+            JOIN currencies c ON er._id_currency = c._id
             ORDER BY er.date DESC, er._id DESC
         """)
+
+        # Rates are already stored as REAL, no conversion needed
+        # Just ensure they are float type for consistency
+        for row in rows:
+            if len(row) >= 4 and row[3] is not None:
+                row[3] = float(row[3])
+
+        return rows
 
     def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
         """Get all transactions with category and currency information.
@@ -795,7 +827,16 @@ class DatabaseManager:
         if limit is not None:
             query += f" LIMIT {limit}"
 
-        return self.get_rows(query)
+        rows = self.get_rows(query)
+
+        # Convert amounts from stored subdivision to actual values
+        for row in rows:
+            if len(row) >= 5 and row[1] is not None and row[4] is not None:  # amount and currency_code
+                currency_code = row[4]
+                subdivision = self.get_currency_subdivision_by_code(currency_code)
+                row[1] = float(row[1]) / subdivision
+
+        return rows
 
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
@@ -884,6 +925,21 @@ class DatabaseManager:
         rows = self.get_rows("SELECT subdivision FROM currencies WHERE _id = :id", {"id": currency_id})
         return rows[0][0] if rows else 100
 
+    def get_currency_subdivision_by_code(self, currency_code: str) -> int:
+        """Get subdivision value for a currency by currency code.
+
+        Args:
+
+        - `currency_code` (`str`): Currency code (e.g., 'USD', 'EUR').
+
+        Returns:
+
+        - `int`: Number of minor units in one major unit (e.g., 100 for USD cents). Returns 100 as default if not found.
+
+        """
+        rows = self.get_rows("SELECT subdivision FROM currencies WHERE code = :code", {"code": currency_code})
+        return rows[0][0] if rows else 100
+
     def get_default_currency(self) -> str:
         """Get the default currency code.
 
@@ -919,7 +975,7 @@ class DatabaseManager:
         return rows[0][0] if rows and rows[0][0] else None
 
     def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
-        """Get exchange rate between currencies.
+        """Get exchange rate between currencies (both referenced to USD).
 
         Args:
 
@@ -935,47 +991,64 @@ class DatabaseManager:
         if from_currency_id == to_currency_id:
             return 1.0
 
+        # Get USD currency ID
+        usd_currency = self.get_currency_by_code("USD")
+        if not usd_currency:
+            return 1.0
+        usd_currency_id = usd_currency[0]
+
+        # If one of the currencies is USD, get direct rate
+        if to_currency_id == usd_currency_id:
+            # from_currency to USD
+            return self.get_exchange_rate_to_usd(from_currency_id, date)
+        elif from_currency_id == usd_currency_id:
+            # USD to to_currency (inverse of to_currency to USD)
+            usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+            return 1.0 / usd_rate if usd_rate != 0 else 1.0
+        else:
+            # from_currency to to_currency via USD
+            from_usd_rate = self.get_exchange_rate_to_usd(from_currency_id, date)
+            to_usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+            if from_usd_rate != 0 and to_usd_rate != 0:
+                return from_usd_rate / to_usd_rate
+            return 1.0
+
+    def get_exchange_rate_to_usd(self, currency_id: int, date: str | None = None) -> float:
+        """Get exchange rate from currency to USD.
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID.
+        - `date` (`str | None`): Date for rate lookup. Uses latest if None. Defaults to `None`.
+
+        Returns:
+
+        - `float`: Exchange rate to USD or 1.0 if USD or not found.
+
+        """
+        # Check if currency is USD
+        usd_currency = self.get_currency_by_code("USD")
+        if usd_currency and currency_id == usd_currency[0]:
+            return 1.0
+
         if date:
             query = """
                 SELECT rate FROM exchange_rates
-                WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id
-                  AND date <= :date
+                WHERE _id_currency = :currency_id AND date <= :date
                 ORDER BY date DESC LIMIT 1
             """
-            params = {"from_id": from_currency_id, "to_id": to_currency_id, "date": date}
+            params = {"currency_id": currency_id, "date": date}
         else:
             query = """
                 SELECT rate FROM exchange_rates
-                WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id
+                WHERE _id_currency = :currency_id
                 ORDER BY date DESC LIMIT 1
             """
-            params = {"from_id": from_currency_id, "to_id": to_currency_id}
+            params = {"currency_id": currency_id}
 
         rows = self.get_rows(query, params)
         if rows:
-            return float(rows[0][0]) / 100  # Convert from cents
-
-        # Try inverse rate
-        if date:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency_from = :to_id AND _id_currency_to = :from_id
-                  AND date <= :date
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"from_id": to_currency_id, "to_id": from_currency_id, "date": date}
-        else:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency_from = :to_id AND _id_currency_to = :from_id
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"from_id": to_currency_id, "to_id": from_currency_id}
-
-        rows = self.get_rows(query, params)
-        if rows:
-            rate = float(rows[0][0]) / 100
-            return 1.0 / rate if rate != 0 else 1.0
+            return float(rows[0][0])
 
         return 1.0
 
@@ -1839,9 +1912,7 @@ def add_currency_exchange(
     ) -> bool:
         from_subdivision = self.get_currency_subdivision(currency_from_id)
         to_subdivision = self.get_currency_subdivision(currency_to_id)
-        # For exchange rate, we use a standard subdivision (100) to maintain consistency
-        # since it represents the ratio between two currencies
-        rate_subdivision = 100
+        # Exchange rate is now stored as REAL directly
         query = """INSERT INTO currency_exchanges
                    (_id_currency_from, _id_currency_to, amount_from, amount_to,
                     exchange_rate, fee, date, description)
@@ -1852,7 +1923,7 @@ def add_currency_exchange(
             "to_id": currency_to_id,
             "amount_from": int(amount_from * from_subdivision),  # Convert to minor units
             "amount_to": int(amount_to * to_subdivision),  # Convert to minor units
-            "exchange_rate": int(exchange_rate * rate_subdivision),  # Standardized rate
+            "exchange_rate": exchange_rate,  # Store as REAL directly
             "fee": int(fee * from_subdivision),  # Fee in from_currency minor units
             "date": date,
             "description": description,
@@ -1865,16 +1936,15 @@ def add_currency_exchange(
 ### ⚙️ Method `add_exchange_rate`
 
 ```python
-def add_exchange_rate(self, currency_from_id: int, currency_to_id: int, rate: float, date: str) -> bool
+def add_exchange_rate(self, currency_id: int, rate: float, date: str) -> bool
 ```
 
-Add a new exchange rate.
+Add a new exchange rate to USD.
 
 Args:
 
-- `currency_from_id` (`int`): Source currency ID.
-- `currency_to_id` (`int`): Target currency ID.
-- `rate` (`float`): Exchange rate.
+- `currency_id` (`int`): Currency ID (rate is always to USD).
+- `rate` (`float`): Exchange rate to USD.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
 Returns:
@@ -1885,16 +1955,12 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_exchange_rate(self, currency_from_id: int, currency_to_id: int, rate: float, date: str) -> bool:
-        # For exchange rates, we use a standard subdivision (100) to maintain consistency
-        # since it represents the ratio between two currencies
-        rate_subdivision = 100
-        query = """INSERT INTO exchange_rates (_id_currency_from, _id_currency_to, rate, date)
-                   VALUES (:from_id, :to_id, :rate, :date)"""
+def add_exchange_rate(self, currency_id: int, rate: float, date: str) -> bool:
+        query = """INSERT INTO exchange_rates (_id_currency, rate, date)
+                   VALUES (:currency_id, :rate, :date)"""
         params = {
-            "from_id": currency_from_id,
-            "to_id": currency_to_id,
-            "rate": int(rate * rate_subdivision),  # Standardized rate
+            "currency_id": currency_id,
+            "rate": rate,  # Store as REAL directly
             "date": date,
         }
         return self.execute_simple_query(query, params)
@@ -1954,15 +2020,14 @@ def add_transaction(
 ### ⚙️ Method `check_exchange_rate_exists`
 
 ```python
-def check_exchange_rate_exists(self, currency_from_id: int, currency_to_id: int, date: str) -> bool
+def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool
 ```
 
-Check if exchange rate exists for given currencies and date.
+Check if exchange rate to USD exists for given currency and date.
 
 Args:
 
-- `currency_from_id` (`int`): Source currency ID.
-- `currency_to_id` (`int`): Target currency ID.
+- `currency_id` (`int`): Currency ID.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
 Returns:
@@ -1973,10 +2038,10 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def check_exchange_rate_exists(self, currency_from_id: int, currency_to_id: int, date: str) -> bool:
+def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool:
         rows = self.get_rows(
-            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id AND date = :date",
-            {"from_id": currency_from_id, "to_id": currency_to_id, "date": date},
+            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency = :currency_id AND date = :date",
+            {"currency_id": currency_id, "date": date},
         )
         return rows[0][0] > 0 if rows else False
 ```
@@ -2527,12 +2592,21 @@ Returns:
 
 ```python
 def get_all_accounts(self) -> list[list[Any]]:
-        return self.get_rows("""
+        rows = self.get_rows("""
             SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash, c._id as currency_id
             FROM accounts a
             JOIN currencies c ON a._id_currencies = c._id
             ORDER BY a.name
         """)
+
+        # Convert balances from stored subdivision to actual values
+        for row in rows:
+            if len(row) >= 4 and row[2] is not None and row[3] is not None:  # balance and currency_code
+                currency_code = row[3]
+                subdivision = self.get_currency_subdivision_by_code(currency_code)
+                row[2] = float(row[2]) / subdivision
+
+        return rows
 ```
 
 </details>
@@ -2598,7 +2672,7 @@ Returns:
 
 ```python
 def get_all_currency_exchanges(self) -> list[list[Any]]:
-        return self.get_rows("""
+        rows = self.get_rows("""
             SELECT ce._id, cf.code, ct.code, ce.amount_from, ce.amount_to,
                    ce.exchange_rate, ce.fee, ce.date, ce.description
             FROM currency_exchanges ce
@@ -2606,6 +2680,28 @@ def get_all_currency_exchanges(self) -> list[list[Any]]:
             JOIN currencies ct ON ce._id_currency_to = ct._id
             ORDER BY ce.date DESC, ce._id DESC
         """)
+
+        # Convert amounts, rates and fees from stored subdivision to actual values
+        for row in rows:
+            if len(row) >= 9:
+                # Get currency subdivisions for proper conversion
+                from_currency_code = row[1]
+                to_currency_code = row[2]
+
+                from_subdivision = self.get_currency_subdivision_by_code(from_currency_code)
+                to_subdivision = self.get_currency_subdivision_by_code(to_currency_code)
+
+                # Convert amounts and fees
+                if row[3] is not None:  # amount_from
+                    row[3] = float(row[3]) / from_subdivision
+                if row[4] is not None:  # amount_to
+                    row[4] = float(row[4]) / to_subdivision
+                if row[5] is not None:  # exchange_rate (already stored as REAL)
+                    row[5] = float(row[5])
+                if row[6] is not None:  # fee (in from_currency)
+                    row[6] = float(row[6]) / from_subdivision
+
+        return rows
 ```
 
 </details>
@@ -2627,13 +2723,20 @@ Returns:
 
 ```python
 def get_all_exchange_rates(self) -> list[list[Any]]:
-        return self.get_rows("""
-            SELECT er._id, cf.code, ct.code, er.rate, er.date
+        rows = self.get_rows("""
+            SELECT er._id, c.code, 'USD', er.rate, er.date
             FROM exchange_rates er
-            JOIN currencies cf ON er._id_currency_from = cf._id
-            JOIN currencies ct ON er._id_currency_to = ct._id
+            JOIN currencies c ON er._id_currency = c._id
             ORDER BY er.date DESC, er._id DESC
         """)
+
+        # Rates are already stored as REAL, no conversion needed
+        # Just ensure they are float type for consistency
+        for row in rows:
+            if len(row) >= 4 and row[3] is not None:
+                row[3] = float(row[3])
+
+        return rows
 ```
 
 </details>
@@ -2671,7 +2774,16 @@ def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
         if limit is not None:
             query += f" LIMIT {limit}"
 
-        return self.get_rows(query)
+        rows = self.get_rows(query)
+
+        # Convert amounts from stored subdivision to actual values
+        for row in rows:
+            if len(row) >= 5 and row[1] is not None and row[4] is not None:  # amount and currency_code
+                currency_code = row[4]
+                subdivision = self.get_currency_subdivision_by_code(currency_code)
+                row[1] = float(row[1]) / subdivision
+
+        return rows
 ```
 
 </details>
@@ -2835,6 +2947,33 @@ def get_currency_subdivision(self, currency_id: int) -> int:
 
 </details>
 
+### ⚙️ Method `get_currency_subdivision_by_code`
+
+```python
+def get_currency_subdivision_by_code(self, currency_code: str) -> int
+```
+
+Get subdivision value for a currency by currency code.
+
+Args:
+
+- `currency_code` (`str`): Currency code (e.g., 'USD', 'EUR').
+
+Returns:
+
+- `int`: Number of minor units in one major unit (e.g., 100 for USD cents). Returns 100 as default if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_currency_subdivision_by_code(self, currency_code: str) -> int:
+        rows = self.get_rows("SELECT subdivision FROM currencies WHERE code = :code", {"code": currency_code})
+        return rows[0][0] if rows else 100
+```
+
+</details>
+
 ### ⚙️ Method `get_default_currency`
 
 ```python
@@ -2911,7 +3050,7 @@ def get_earliest_currency_exchange_date(self) -> str | None:
 def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float
 ```
 
-Get exchange rate between currencies.
+Get exchange rate between currencies (both referenced to USD).
 
 Args:
 
@@ -2931,47 +3070,76 @@ def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: st
         if from_currency_id == to_currency_id:
             return 1.0
 
+        # Get USD currency ID
+        usd_currency = self.get_currency_by_code("USD")
+        if not usd_currency:
+            return 1.0
+        usd_currency_id = usd_currency[0]
+
+        # If one of the currencies is USD, get direct rate
+        if to_currency_id == usd_currency_id:
+            # from_currency to USD
+            return self.get_exchange_rate_to_usd(from_currency_id, date)
+        elif from_currency_id == usd_currency_id:
+            # USD to to_currency (inverse of to_currency to USD)
+            usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+            return 1.0 / usd_rate if usd_rate != 0 else 1.0
+        else:
+            # from_currency to to_currency via USD
+            from_usd_rate = self.get_exchange_rate_to_usd(from_currency_id, date)
+            to_usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+            if from_usd_rate != 0 and to_usd_rate != 0:
+                return from_usd_rate / to_usd_rate
+            return 1.0
+```
+
+</details>
+
+### ⚙️ Method `get_exchange_rate_to_usd`
+
+```python
+def get_exchange_rate_to_usd(self, currency_id: int, date: str | None = None) -> float
+```
+
+Get exchange rate from currency to USD.
+
+Args:
+
+- `currency_id` (`int`): Currency ID.
+- `date` (`str | None`): Date for rate lookup. Uses latest if None. Defaults to `None`.
+
+Returns:
+
+- `float`: Exchange rate to USD or 1.0 if USD or not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exchange_rate_to_usd(self, currency_id: int, date: str | None = None) -> float:
+        # Check if currency is USD
+        usd_currency = self.get_currency_by_code("USD")
+        if usd_currency and currency_id == usd_currency[0]:
+            return 1.0
+
         if date:
             query = """
                 SELECT rate FROM exchange_rates
-                WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id
-                  AND date <= :date
+                WHERE _id_currency = :currency_id AND date <= :date
                 ORDER BY date DESC LIMIT 1
             """
-            params = {"from_id": from_currency_id, "to_id": to_currency_id, "date": date}
+            params = {"currency_id": currency_id, "date": date}
         else:
             query = """
                 SELECT rate FROM exchange_rates
-                WHERE _id_currency_from = :from_id AND _id_currency_to = :to_id
+                WHERE _id_currency = :currency_id
                 ORDER BY date DESC LIMIT 1
             """
-            params = {"from_id": from_currency_id, "to_id": to_currency_id}
+            params = {"currency_id": currency_id}
 
         rows = self.get_rows(query, params)
         if rows:
-            return float(rows[0][0]) / 100  # Convert from cents
-
-        # Try inverse rate
-        if date:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency_from = :to_id AND _id_currency_to = :from_id
-                  AND date <= :date
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"from_id": to_currency_id, "to_id": from_currency_id, "date": date}
-        else:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency_from = :to_id AND _id_currency_to = :from_id
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"from_id": to_currency_id, "to_id": from_currency_id}
-
-        rows = self.get_rows(query, params)
-        if rows:
-            rate = float(rows[0][0]) / 100
-            return 1.0 / rate if rate != 0 else 1.0
+            return float(rows[0][0])
 
         return 1.0
 ```

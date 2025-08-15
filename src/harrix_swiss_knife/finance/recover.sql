@@ -14,12 +14,10 @@ CREATE TABLE "settings" (
 
 CREATE TABLE "exchange_rates" (
     "_id" INTEGER PRIMARY KEY AUTOINCREMENT,
-    "_id_currency_from" INTEGER NOT NULL,
-    "_id_currency_to" INTEGER NOT NULL,
-    "rate" INTEGER NOT NULL,
+    "_id_currency" INTEGER NOT NULL,
+    "rate" REAL NOT NULL,
     "date" TEXT NOT NULL,
-    FOREIGN KEY("_id_currency_from") REFERENCES "currencies"("_id"),
-    FOREIGN KEY("_id_currency_to") REFERENCES "currencies"("_id")
+    FOREIGN KEY("_id_currency") REFERENCES "currencies"("_id")
 );
 
 CREATE TABLE "categories" (
@@ -59,7 +57,7 @@ CREATE TABLE "currency_exchanges" (
     "_id_currency_to" INTEGER NOT NULL,
     "amount_from" INTEGER NOT NULL,
     "amount_to" INTEGER NOT NULL,
-    "exchange_rate" INTEGER NOT NULL,
+    "exchange_rate" REAL NOT NULL,
     "fee" INTEGER DEFAULT 0,
     "date" TEXT NOT NULL,
     "description" TEXT,

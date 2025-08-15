@@ -175,7 +175,6 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update.setText(QCoreApplication.translate("MainWindow", "Update", None))
         self.groupBox_add_rate.setTitle(QCoreApplication.translate("MainWindow", "Add Exchange Rate", None))
         self.label_rate_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
-        self.label_rate_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
         self.label_rate_value.setText(QCoreApplication.translate("MainWindow", "Rate:", None))
         self.label_rate_date.setText(QCoreApplication.translate("MainWindow", "Date:", None))
         self.dateEdit_rate.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
@@ -1191,22 +1190,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_rate_from.addWidget(self.comboBox_rate_from)
 
         self.verticalLayout_add_rate.addLayout(self.horizontalLayout_rate_from)
-
-        self.horizontalLayout_rate_to = QHBoxLayout()
-        self.horizontalLayout_rate_to.setObjectName("horizontalLayout_rate_to")
-        self.label_rate_to = QLabel(self.groupBox_add_rate)
-        self.label_rate_to.setObjectName("label_rate_to")
-        self.label_rate_to.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_rate_to.addWidget(self.label_rate_to)
-
-        self.comboBox_rate_to = QComboBox(self.groupBox_add_rate)
-        self.comboBox_rate_to.setObjectName("comboBox_rate_to")
-        self.comboBox_rate_to.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_rate_to.addWidget(self.comboBox_rate_to)
-
-        self.verticalLayout_add_rate.addLayout(self.horizontalLayout_rate_to)
 
         self.horizontalLayout_rate_value = QHBoxLayout()
         self.horizontalLayout_rate_value.setObjectName("horizontalLayout_rate_value")
