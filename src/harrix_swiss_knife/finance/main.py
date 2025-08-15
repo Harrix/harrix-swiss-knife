@@ -1463,12 +1463,10 @@ class MainWindow(
                 # Ensure stretch settings are applied
                 exchange_header.setStretchLastSection(False)
 
-            # Refresh exchange rates table
-            rates_data = self.db_manager.get_all_exchange_rates()
+            # Refresh exchange rates table - get only the latest records sorted by date
+            rates_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
             rates_transformed_data = []
-            for i, row in enumerate(rates_data):
-                if i >= self.count_exchange_rates_to_show:
-                    break
+            for row in rates_data:
                 # Transform: [id, from_code, to_code, rate, date]
                 # Rate is stored as USD→currency, but display as currency→USD
                 usd_to_currency_rate = float(row[3]) if row[3] else 0.0
