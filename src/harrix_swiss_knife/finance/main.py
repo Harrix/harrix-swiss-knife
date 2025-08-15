@@ -306,6 +306,7 @@ class MainWindow(
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show = 5000
+        self.count_exchange_rates_to_show = 5000
         self.show_all_transactions = False
 
         # Table configuration mapping
@@ -1535,7 +1536,9 @@ class MainWindow(
             # Refresh exchange rates table
             rates_data = self.db_manager.get_all_exchange_rates()
             rates_transformed_data = []
-            for row in rates_data:
+            for i, row in enumerate(rates_data):
+                if i >= self.count_exchange_rates_to_show:
+                    break
                 # Transform: [id, from_code, to_code, rate, date]
                 # Rate is stored as USD→currency, but display as currency→USD
                 usd_to_currency_rate = float(row[3]) if row[3] else 0.0
