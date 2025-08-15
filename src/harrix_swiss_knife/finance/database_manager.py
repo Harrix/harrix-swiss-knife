@@ -585,24 +585,60 @@ class DatabaseManager:
         - `list[tuple[str, float]]`: List of (account_name, balance) tuples in target currency.
 
         """
-        query = """
-            SELECT a.name,
-                   CASE
-                       WHEN a._id_currencies = :currency_id THEN a.balance
-                       ELSE COALESCE(er.rate * a.balance / 100, a.balance)
-                   END as converted_balance
-            FROM accounts a
-            LEFT JOIN exchange_rates er ON er._id_currency_from = a._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = a._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                        )
-            ORDER BY a.name
-        """
-        rows = self.get_rows(query, {"currency_id": currency_id})
+        # Get USD currency ID for conversion calculations
+        usd_currency = self.get_currency_by_code("USD")
+        usd_currency_id = usd_currency[0] if usd_currency else None
+
+        if currency_id == usd_currency_id:
+            # Converting to USD - direct rates
+            query = """
+                SELECT a.name,
+                       CASE
+                           WHEN a._id_currencies = :currency_id THEN a.balance
+                           ELSE COALESCE(er.rate * a.balance, a.balance)
+                       END as converted_balance
+                FROM accounts a
+                LEFT JOIN exchange_rates er ON er._id_currency = a._id_currencies
+                                            AND er.date = (
+                                                SELECT MAX(date)
+                                                FROM exchange_rates er2
+                                                WHERE er2._id_currency = a._id_currencies
+                                                  AND er2.date <= date('now')
+                                            )
+                ORDER BY a.name
+            """
+        else:
+            # Converting to non-USD currency via USD
+            query = """
+                SELECT a.name,
+                       CASE
+                           WHEN a._id_currencies = :currency_id THEN a.balance
+                           WHEN a._id_currencies = :usd_currency_id THEN
+                               COALESCE(a.balance / NULLIF(target_er.rate, 0), a.balance)
+                           ELSE
+                               COALESCE(source_er.rate * a.balance / NULLIF(target_er.rate, 0), a.balance)
+                       END as converted_balance
+                FROM accounts a
+                LEFT JOIN exchange_rates source_er ON source_er._id_currency = a._id_currencies
+                                                   AND source_er.date = (
+                                                       SELECT MAX(date)
+                                                       FROM exchange_rates ser2
+                                                       WHERE ser2._id_currency = a._id_currencies
+                                                         AND ser2.date <= date('now')
+                                                   )
+                LEFT JOIN exchange_rates target_er ON target_er._id_currency = :currency_id
+                                                   AND target_er.date = (
+                                                       SELECT MAX(date)
+                                                       FROM exchange_rates ter2
+                                                       WHERE ter2._id_currency = :currency_id
+                                                         AND ter2.date <= date('now')
+                                                   )
+                ORDER BY a.name
+            """
+        if currency_id == usd_currency_id:
+            rows = self.get_rows(query, {"currency_id": currency_id})
+        else:
+            rows = self.get_rows(query, {"currency_id": currency_id, "usd_currency_id": usd_currency_id})
         return [(row[0], float(row[1]) / 100) for row in rows]
 
     def get_account_by_id(self, account_id: int) -> list[Any] | None:
@@ -1113,6 +1149,65 @@ class DatabaseManager:
             return result
         return None
 
+    def _get_currency_conversion_sql(self, currency_id: int) -> tuple[str, dict]:
+        """Generate SQL for currency conversion via USD.
+
+        Args:
+        - currency_id (int): Target currency ID
+
+        Returns:
+        - tuple[str, dict]: (join_clause, extra_params)
+        """
+        usd_currency = self.get_currency_by_code("USD")
+        usd_currency_id = usd_currency[0] if usd_currency else None
+
+        if currency_id == usd_currency_id:
+            # Converting to USD - direct rates
+            join_clause = """
+            LEFT JOIN exchange_rates er ON er._id_currency = t._id_currencies
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency = t._id_currencies
+                                              AND er2.date <= t.date
+                                        )
+            """
+            conversion_case = """
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    ELSE COALESCE(er.rate * t.amount, t.amount)
+                END
+            """
+            return join_clause, conversion_case, {}
+        else:
+            # Converting to non-USD currency via USD
+            join_clause = """
+            LEFT JOIN exchange_rates source_er ON source_er._id_currency = t._id_currencies
+                                               AND source_er.date = (
+                                                   SELECT MAX(date)
+                                                   FROM exchange_rates ser2
+                                                   WHERE ser2._id_currency = t._id_currencies
+                                                     AND ser2.date <= t.date
+                                               )
+            LEFT JOIN exchange_rates target_er ON target_er._id_currency = :currency_id
+                                               AND target_er.date = (
+                                                   SELECT MAX(date)
+                                                   FROM exchange_rates ter2
+                                                   WHERE ter2._id_currency = :currency_id
+                                                     AND ter2.date <= t.date
+                                               )
+            """
+            conversion_case = """
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    WHEN t._id_currencies = :usd_currency_id THEN
+                        COALESCE(t.amount / NULLIF(target_er.rate, 0), t.amount)
+                    ELSE
+                        COALESCE(source_er.rate * t.amount / NULLIF(target_er.rate, 0), t.amount)
+                END
+            """
+            return join_clause, conversion_case, {"usd_currency_id": usd_currency_id}
+
     def get_income_vs_expenses_in_currency(
         self, currency_id: int, date_from: str | None = None, date_to: str | None = None
     ) -> tuple[float, float]:
@@ -1139,47 +1234,25 @@ class DatabaseManager:
 
         where_clause = " AND " + " AND ".join(conditions) if conditions else ""
 
+        # Get currency conversion SQL
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(currency_id)
+        params.update(extra_params)
+
         # Get income (category type = 1)
         income_query = f"""
-            SELECT SUM(
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
-                END
-            ) as total_income
+            SELECT SUM({conversion_case}) as total_income
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = t._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                              AND er2.date <= t.date
-                                        )
+            {join_clause}
             WHERE cat.type = 1{where_clause}
         """
 
         # Get expenses (category type = 0)
         expenses_query = f"""
-            SELECT SUM(
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
-                END
-            ) as total_expenses
+            SELECT SUM({conversion_case}) as total_expenses
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = t._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                              AND er2.date <= t.date
-                                        )
+            {join_clause}
             WHERE cat.type = 0{where_clause}
         """
 
@@ -1330,24 +1403,15 @@ class DatabaseManager:
 
         where_clause = " AND " + " AND ".join(conditions) if conditions else ""
 
+        # Get currency conversion SQL
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(currency_id)
+        params.update(extra_params)
+
         query = f"""
-            SELECT t.date, SUM(
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
-                END
-            ) as total_amount
+            SELECT t.date, SUM({conversion_case}) as total_amount
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = t._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                              AND er2.date <= t.date
-                                        )
+            {join_clause}
             WHERE 1=1{where_clause}
             GROUP BY t.date
             ORDER BY t.date ASC
