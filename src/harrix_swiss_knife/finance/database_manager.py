@@ -212,6 +212,23 @@ class DatabaseManager:
         }
         return self.execute_simple_query(query, params)
 
+    def clean_invalid_exchange_rates(self) -> int:
+        """Clean exchange rates with empty or invalid rate values.
+
+        Returns:
+        - int: Number of cleaned records
+        """
+        query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
+        cursor = self.db.exec(query)
+        if cursor.lastError().isValid():
+            print(f"❌ Error cleaning exchange rates: {cursor.lastError().text()}")
+            return 0
+
+        affected_rows = cursor.numRowsAffected()
+        cursor.clear()
+        print(f"🧹 Cleaned {affected_rows} invalid exchange rate records")
+        return affected_rows
+
     def add_transaction(
         self,
         amount: float,
@@ -761,10 +778,15 @@ class DatabaseManager:
         """)
 
         # Rates are already stored as REAL, no conversion needed
-        # Just ensure they are float type for consistency
+        # Just ensure they are float type for consistency and handle empty strings
         for row in rows:
-            if len(row) >= 4 and row[3] is not None:
-                row[3] = float(row[3])
+            if len(row) >= 4 and row[3] is not None and row[3] != '':
+                try:
+                    row[3] = float(row[3])
+                except (ValueError, TypeError):
+                    row[3] = 0.0  # Set to 0 for invalid values
+            elif len(row) >= 4:
+                row[3] = 0.0  # Set to 0 for None or empty string
 
         return rows
 
@@ -1035,8 +1057,11 @@ class DatabaseManager:
             params = {"currency_id": currency_id}
 
         rows = self.get_rows(query, params)
-        if rows:
-            return float(rows[0][0])
+        if rows and rows[0][0] is not None and rows[0][0] != '':
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return 1.0  # Return 1.0 for invalid values
 
         return 1.0
 

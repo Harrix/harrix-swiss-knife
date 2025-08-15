@@ -854,6 +854,9 @@ class MainWindow(
             return
 
         try:
+            # Clean invalid exchange rates first
+            cleaned_count = self.db_manager.clean_invalid_exchange_rates()
+
             # Get the earliest date from transactions or currency_exchanges
             earliest_date = self.db_manager.get_earliest_financial_date()
             if not earliest_date:
@@ -892,16 +895,77 @@ class MainWindow(
             total_updates = 0
             total_days = (end_date - start_date).days + 1
 
-            # Import yfinance here to avoid import issues
+            # Import required libraries
             try:
+                import requests
                 import yfinance as yf
-            except ImportError:
+            except ImportError as e:
                 QMessageBox.critical(
                     self,
                     "Import Error",
-                    "yfinance library is not installed. Please install it with: pip install yfinance",
+                    f"Required library is not installed: {e}\nPlease install with: pip install requests yfinance",
                 )
                 return
+
+            # Methods for getting exchange rates from different sources
+            def get_exchangerate_api_data(currency: str, start_date: str, end_date: str) -> dict:
+                """Get historical exchange rates from ExchangeRate-API."""
+                rates_data = {}
+                try:
+                    # ExchangeRate-API provides historical data
+                    base_url = "https://api.exchangerate-api.com/v4/history"
+
+                    # Get data for date range (API has limitations, so we'll get recent data)
+                    current_date = datetime.now().date()
+                    url = f"{base_url}/USD/{current_date.strftime('%Y-%m-%d')}"
+
+                    response = requests.get(url, timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if currency in data.get('rates', {}):
+                            # For USD base, we get XXX/USD rate (how many XXX for 1 USD)
+                            # We need USD/XXX rate (how many USD for 1 XXX)
+                            usd_to_currency_rate = data['rates'][currency]
+                            currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0
+
+                            # For simplicity, use the same rate for all dates in range
+                            current = datetime.strptime(start_date, '%Y-%m-%d').date()
+                            end = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+                            while current <= end:
+                                rates_data[current.strftime('%Y-%m-%d')] = currency_to_usd_rate
+                                current += timedelta(days=1)
+
+                            print(f"📊 Got {currency}/USD rate from ExchangeRate-API: {currency_to_usd_rate:.6f}")
+                        else:
+                            print(f"⚠️ Currency {currency} not found in ExchangeRate-API")
+                    else:
+                        print(f"❌ ExchangeRate-API error: {response.status_code}")
+
+                except Exception as e:
+                    print(f"❌ Error with ExchangeRate-API for {currency}: {e}")
+
+                return rates_data
+
+            def get_fixer_api_data(currency: str, start_date: str, end_date: str) -> dict:
+                """Get exchange rates from Fixer.io (free tier)."""
+                rates_data = {}
+                try:
+                    # Fixer.io free tier - latest rates only
+                    url = "http://data.fixer.io/api/latest"
+                    params = {
+                        'access_key': 'YOUR_API_KEY',  # Would need API key
+                        'base': 'USD',
+                        'symbols': currency
+                    }
+
+                    # Skip for now since it requires API key
+                    print(f"⏭️ Skipping Fixer.io for {currency} (requires API key)")
+
+                except Exception as e:
+                    print(f"❌ Error with Fixer.io for {currency}: {e}")
+
+                return rates_data
 
             # Process each currency
             for currency_id, currency_code, currency_name, currency_symbol in currencies:
@@ -909,39 +973,63 @@ class MainWindow(
                 QApplication.processEvents()
 
                 # Create ticker symbol for yfinance (e.g., "EURUSD=X" for EUR to USD)
+                # Some currencies might need special handling
                 ticker_symbol = f"{currency_code}USD=X"
 
-                try:
-                    # Download historical data
-                    ticker = yf.Ticker(ticker_symbol)
-                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+                # Alternative ticker formats for problematic currencies
+                alternative_tickers = {
+                    'VND': ['USD/VND=X', 'USDVND=X'],  # Vietnamese Dong alternatives
+                    'TRY': ['USD/TRY=X', 'USDTRY=X'],  # Turkish Lira alternatives
+                    'RUB': ['USD/RUB=X', 'USDRUB=X']   # Russian Ruble alternatives
+                }
 
-                    if hist.empty:
-                        print(f"⚠️ No data found for {ticker_symbol}")
+                success = False
+                rates_data = {}
+
+                # Try multiple data sources in order of preference
+                data_sources = [
+                    ("ExchangeRate-API", lambda: get_exchangerate_api_data(currency_code, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))),
+                    ("yfinance", lambda: self._get_yfinance_data(currency_code, start_date, end_date, alternative_tickers))
+                ]
+
+                for source_name, get_data_func in data_sources:
+                    try:
+                        print(f"🔄 Trying {source_name} for {currency_code}...")
+                        rates_data = get_data_func()
+
+                        if rates_data:
+                            print(f"✅ Successfully got data from {source_name} for {currency_code}")
+                            success = True
+                            break
+                        else:
+                            print(f"⚠️ No data from {source_name} for {currency_code}")
+
+                    except Exception as e:
+                        print(f"❌ Error with {source_name} for {currency_code}: {e}")
                         continue
 
-                    # Process each day
-                    for date, row in hist.iterrows():
-                        date_str = date.strftime("%Y-%m-%d")
+                if not success or not rates_data:
+                    print(f"❌ Failed to get exchange rate data for {currency_code} from any source")
+                    continue
 
+                # Save the rates to database
+                print(f"💾 Saving {len(rates_data)} exchange rates for {currency_code}")
+
+                for date_str, rate in rates_data.items():
+                    try:
                         # Check if exchange rate already exists
                         if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
-                            # Get the close price (exchange rate)
-                            close_price = row["Close"]
-
-                            if not pd.isna(close_price) and close_price > 0:
-                                # Add exchange rate to database
-                                if self.db_manager.add_exchange_rate(currency_id, close_price, date_str):
+                            if rate is not None and rate > 0:
+                                if self.db_manager.add_exchange_rate(currency_id, rate, date_str):
                                     total_updates += 1
-                                    print(f"✅ Added {currency_code}/USD rate: {close_price:.4f} for {date_str}")
+                                    print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
                                 else:
                                     print(f"❌ Failed to add {currency_code}/USD rate for {date_str}")
                             else:
-                                print(f"⚠️ Invalid price for {currency_code} on {date_str}: {close_price}")
-
-                except Exception as e:
-                    print(f"❌ Error processing {currency_code}: {e}")
-                    continue
+                                print(f"⚠️ Skipping invalid rate for {currency_code} on {date_str}: {rate}")
+                    except Exception as e:
+                        print(f"❌ Error saving rate for {currency_code} on {date_str}: {e}")
+                        continue
 
             progress_dialog.close()
 
@@ -969,6 +1057,62 @@ class MainWindow(
         except Exception as e:
             QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates: {e}")
             print(f"❌ Exchange rate update error: {e}")
+
+    def _get_yfinance_data(self, currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict:
+        """Get exchange rate data from yfinance."""
+        import yfinance as yf
+        import pandas as pd
+
+        rates_data = {}
+        ticker_symbol = f"{currency_code}USD=X"
+
+        try:
+            # Download historical data
+            ticker = yf.Ticker(ticker_symbol)
+            hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+            # If no data found, try alternative ticker formats
+            if hist.empty and currency_code in alternative_tickers:
+                print(f"⚠️ No data found for {ticker_symbol}, trying alternatives...")
+
+                for alt_ticker in alternative_tickers[currency_code]:
+                    print(f"🔄 Trying alternative ticker: {alt_ticker}")
+                    ticker = yf.Ticker(alt_ticker)
+                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                    if not hist.empty:
+                        print(f"✅ Found data with alternative ticker: {alt_ticker}")
+                        ticker_symbol = alt_ticker  # Update for logging
+
+                        # For inverse rates (USD/XXX), we need to invert the values
+                        if alt_ticker.startswith('USD/') or alt_ticker.startswith('USD'):
+                            print(f"🔄 Inverting rates for {alt_ticker}")
+                            hist = hist.copy()
+                            for col in ['Open', 'High', 'Low', 'Close']:
+                                if col in hist.columns:
+                                    hist[col] = 1.0 / hist[col]
+                        break
+
+            if hist.empty:
+                print(f"⚠️ No data found for {currency_code} with any yfinance ticker format")
+                return {}
+
+            print(f"📊 Processing {len(hist)} days of yfinance data for {ticker_symbol}")
+
+            # Process each day
+            for date_idx, row in hist.iterrows():
+                date_str = date_idx.strftime("%Y-%m-%d")
+                close_price = row["Close"]
+
+                if not pd.isna(close_price) and close_price > 0:
+                    rates_data[date_str] = float(close_price)
+                else:
+                    print(f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}")
+
+        except Exception as e:
+            print(f"❌ Error with yfinance for {currency_code}: {e}")
+
+        return rates_data
 
     def on_yesterday(self) -> None:
         """Set yesterday's date in the main date field."""
