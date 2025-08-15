@@ -17,7 +17,7 @@ import harrix_pylib as h
 import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, QStringListModel, Qt, QThread, QTimer, pyqtSignal
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, QStringListModel, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QCompleter, QDialog, QFileDialog, QMainWindow, QMessageBox, QTableView
 
@@ -40,11 +40,11 @@ class ExchangeRateUpdateWorker(QThread):
     """Worker thread for updating exchange rates."""
 
     # Signals
-    progress_updated = pyqtSignal(str)  # Progress message
-    currency_started = pyqtSignal(str)  # Currency being processed
-    rates_added = pyqtSignal(str, float, str)  # currency_code, rate, date
-    finished_success = pyqtSignal(int)  # Total updates count
-    finished_error = pyqtSignal(str)  # Error message
+    progress_updated = Signal(str)  # Progress message
+    currency_started = Signal(str)  # Currency being processed
+    rates_added = Signal(str, float, str)  # currency_code, rate, date
+    finished_success = Signal(int)  # Total updates count
+    finished_error = Signal(str)  # Error message
 
     def __init__(self, db_manager, currencies, start_date, end_date):
         super().__init__()
