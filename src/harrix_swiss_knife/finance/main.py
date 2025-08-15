@@ -854,11 +854,11 @@ class MainWindow(
             return
 
         try:
-            # Get the earliest date from currency_exchanges
-            earliest_date = self.db_manager.get_earliest_currency_exchange_date()
+            # Get the earliest date from transactions or currency_exchanges
+            earliest_date = self.db_manager.get_earliest_financial_date()
             if not earliest_date:
                 QMessageBox.warning(
-                    self, "No Data", "No currency exchanges found. Please add some currency exchanges first."
+                    self, "No Data", "No transactions or currency exchanges found. Please add some financial data first."
                 )
                 return
 

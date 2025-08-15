@@ -903,6 +903,38 @@ class DatabaseManager:
         rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
         return rows[0][0] if rows and rows[0][0] else None
 
+    def get_earliest_transaction_date(self) -> str | None:
+        """Get the earliest date from transactions table.
+
+        Returns:
+
+        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+
+        """
+        rows = self.get_rows("SELECT MIN(date) FROM transactions WHERE date IS NOT NULL")
+        return rows[0][0] if rows and rows[0][0] else None
+
+    def get_earliest_financial_date(self) -> str | None:
+        """Get the earliest date from either transactions or currency_exchanges tables.
+
+        Returns:
+
+        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+
+        """
+        transaction_date = self.get_earliest_transaction_date()
+        exchange_date = self.get_earliest_currency_exchange_date()
+
+        # Return the earliest of the two dates
+        if transaction_date and exchange_date:
+            return min(transaction_date, exchange_date)
+        elif transaction_date:
+            return transaction_date
+        elif exchange_date:
+            return exchange_date
+        else:
+            return None
+
     def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
         """Get exchange rate between currencies (both referenced to USD).
 
