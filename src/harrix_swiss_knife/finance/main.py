@@ -89,19 +89,18 @@ class ExchangeRateUpdateWorker(QThread):
                         data = response.json()
                         if currency in data.get('rates', {}):
                             # For USD base, we get XXX/USD rate (how many XXX for 1 USD)
-                            # We need USD/XXX rate (how many USD for 1 XXX)
+                            # Store this directly as USD→currency rate (more intuitive)
                             usd_to_currency_rate = data['rates'][currency]
-                            currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0
 
                             # For simplicity, use the same rate for all dates in range
                             current = datetime.strptime(start_date, '%Y-%m-%d').date()
                             end = datetime.strptime(end_date, '%Y-%m-%d').date()
 
                             while current <= end:
-                                rates_data[current.strftime('%Y-%m-%d')] = currency_to_usd_rate
+                                rates_data[current.strftime('%Y-%m-%d')] = usd_to_currency_rate
                                 current += timedelta(days=1)
 
-                            self.progress_updated.emit(f"📊 Got {currency}/USD rate from ExchangeRate-API: {currency_to_usd_rate:.6f}")
+                            self.progress_updated.emit(f"📊 Got USD/{currency} rate from ExchangeRate-API: {usd_to_currency_rate:.6f}")
                         else:
                             self.progress_updated.emit(f"⚠️ Currency {currency} not found in ExchangeRate-API")
                     else:

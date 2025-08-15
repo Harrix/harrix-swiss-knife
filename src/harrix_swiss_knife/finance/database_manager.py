@@ -771,7 +771,7 @@ class DatabaseManager:
 
         """
         rows = self.get_rows("""
-            SELECT er._id, c.code, 'USD', er.rate, er.date
+            SELECT er._id, 'USD', c.code, er.rate, er.date
             FROM exchange_rates er
             JOIN currencies c ON er._id_currency = c._id
             ORDER BY er.date DESC, er._id DESC
@@ -1007,24 +1007,25 @@ class DatabaseManager:
             return 1.0
         usd_currency_id = usd_currency[0]
 
-        # If one of the currencies is USD, get direct rate
-        if to_currency_id == usd_currency_id:
-            # from_currency to USD
-            return self.get_exchange_rate_to_usd(from_currency_id, date)
-        elif from_currency_id == usd_currency_id:
-            # USD to to_currency (inverse of to_currency to USD)
-            usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+        # Now rates are stored as USD → currency (e.g., 1 USD = 79.85 RUB)
+        if from_currency_id == usd_currency_id:
+            # USD to other currency - direct rate from database
+            return self.get_usd_to_currency_rate(to_currency_id, date)
+        elif to_currency_id == usd_currency_id:
+            # Other currency to USD - inverse of stored rate
+            usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)
             return 1.0 / usd_rate if usd_rate != 0 else 1.0
         else:
             # from_currency to to_currency via USD
-            from_usd_rate = self.get_exchange_rate_to_usd(from_currency_id, date)
-            to_usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+            from_usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)  # USD → from_currency
+            to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)      # USD → to_currency
             if from_usd_rate != 0 and to_usd_rate != 0:
-                return from_usd_rate / to_usd_rate
+                # from_currency → USD → to_currency = (1/from_usd_rate) * to_usd_rate
+                return to_usd_rate / from_usd_rate
             return 1.0
 
-    def get_exchange_rate_to_usd(self, currency_id: int, date: str | None = None) -> float:
-        """Get exchange rate from currency to USD.
+    def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
+        """Get exchange rate from USD to currency (how many currency units for 1 USD).
 
         Args:
 
@@ -1033,7 +1034,7 @@ class DatabaseManager:
 
         Returns:
 
-        - `float`: Exchange rate to USD or 1.0 if USD or not found.
+        - `float`: Exchange rate from USD to currency or 1.0 if USD or not found.
 
         """
         # Check if currency is USD
