@@ -21,6 +21,7 @@ lang: en
   - [⚙️ Method `add_exchange_rate`](#%EF%B8%8F-method-add_exchange_rate)
   - [⚙️ Method `add_transaction`](#%EF%B8%8F-method-add_transaction)
   - [⚙️ Method `check_exchange_rate_exists`](#%EF%B8%8F-method-check_exchange_rate_exists)
+  - [⚙️ Method `clean_invalid_exchange_rates`](#%EF%B8%8F-method-clean_invalid_exchange_rates)
   - [⚙️ Method `close`](#%EF%B8%8F-method-close)
   - [⚙️ Method `convert_from_minor_units`](#%EF%B8%8F-method-convert_from_minor_units)
   - [⚙️ Method `convert_to_minor_units`](#%EF%B8%8F-method-convert_to_minor_units)
@@ -51,8 +52,9 @@ lang: en
   - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
   - [⚙️ Method `get_default_currency_id`](#%EF%B8%8F-method-get_default_currency_id)
   - [⚙️ Method `get_earliest_currency_exchange_date`](#%EF%B8%8F-method-get_earliest_currency_exchange_date)
+  - [⚙️ Method `get_earliest_financial_date`](#%EF%B8%8F-method-get_earliest_financial_date)
+  - [⚙️ Method `get_earliest_transaction_date`](#%EF%B8%8F-method-get_earliest_transaction_date)
   - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate)
-  - [⚙️ Method `get_exchange_rate_to_usd`](#%EF%B8%8F-method-get_exchange_rate_to_usd)
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
@@ -61,6 +63,7 @@ lang: en
   - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
   - [⚙️ Method `get_today_expenses_in_currency`](#%EF%B8%8F-method-get_today_expenses_in_currency)
   - [⚙️ Method `get_transactions_chart_data`](#%EF%B8%8F-method-get_transactions_chart_data)
+  - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
@@ -70,6 +73,7 @@ lang: en
   - [⚙️ Method `update_transaction`](#%EF%B8%8F-method-update_transaction)
   - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
   - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
+  - [⚙️ Method `_get_currency_conversion_sql`](#%EF%B8%8F-method-_get_currency_conversion_sql)
   - [⚙️ Method `_init_default_settings`](#%EF%B8%8F-method-_init_default_settings)
   - [⚙️ Method `_iter_query`](#%EF%B8%8F-method-_iter_query)
   - [⚙️ Method `_reconnect`](#%EF%B8%8F-method-_reconnect)
@@ -338,6 +342,23 @@ class DatabaseManager:
             {"currency_id": currency_id, "date": date},
         )
         return rows[0][0] > 0 if rows else False
+
+    def clean_invalid_exchange_rates(self) -> int:
+        """Clean exchange rates with empty or invalid rate values.
+
+        Returns:
+        - int: Number of cleaned records
+        """
+        query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
+        cursor = self.db.exec(query)
+        if cursor.lastError().isValid():
+            print(f"❌ Error cleaning exchange rates: {cursor.lastError().text()}")
+            return 0
+
+        affected_rows = cursor.numRowsAffected()
+        cursor.clear()
+        print(f"🧹 Cleaned {affected_rows} invalid exchange rate records")
+        return affected_rows
 
     def close(self) -> None:
         """Close the database connection."""
@@ -656,24 +677,60 @@ class DatabaseManager:
         - `list[tuple[str, float]]`: List of (account_name, balance) tuples in target currency.
 
         """
-        query = """
-            SELECT a.name,
-                   CASE
-                       WHEN a._id_currencies = :currency_id THEN a.balance
-                       ELSE COALESCE(er.rate * a.balance / 100, a.balance)
-                   END as converted_balance
-            FROM accounts a
-            LEFT JOIN exchange_rates er ON er._id_currency_from = a._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = a._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                        )
-            ORDER BY a.name
-        """
-        rows = self.get_rows(query, {"currency_id": currency_id})
+        # Get USD currency ID for conversion calculations
+        usd_currency = self.get_currency_by_code("USD")
+        usd_currency_id = usd_currency[0] if usd_currency else None
+
+        if currency_id == usd_currency_id:
+            # Converting to USD - direct rates
+            query = """
+                SELECT a.name,
+                       CASE
+                           WHEN a._id_currencies = :currency_id THEN a.balance
+                           ELSE COALESCE(er.rate * a.balance, a.balance)
+                       END as converted_balance
+                FROM accounts a
+                LEFT JOIN exchange_rates er ON er._id_currency = a._id_currencies
+                                            AND er.date = (
+                                                SELECT MAX(date)
+                                                FROM exchange_rates er2
+                                                WHERE er2._id_currency = a._id_currencies
+                                                  AND er2.date <= date('now')
+                                            )
+                ORDER BY a.name
+            """
+        else:
+            # Converting to non-USD currency via USD
+            query = """
+                SELECT a.name,
+                       CASE
+                           WHEN a._id_currencies = :currency_id THEN a.balance
+                           WHEN a._id_currencies = :usd_currency_id THEN
+                               COALESCE(a.balance / NULLIF(target_er.rate, 0), a.balance)
+                           ELSE
+                               COALESCE(source_er.rate * a.balance / NULLIF(target_er.rate, 0), a.balance)
+                       END as converted_balance
+                FROM accounts a
+                LEFT JOIN exchange_rates source_er ON source_er._id_currency = a._id_currencies
+                                                   AND source_er.date = (
+                                                       SELECT MAX(date)
+                                                       FROM exchange_rates ser2
+                                                       WHERE ser2._id_currency = a._id_currencies
+                                                         AND ser2.date <= date('now')
+                                                   )
+                LEFT JOIN exchange_rates target_er ON target_er._id_currency = :currency_id
+                                                   AND target_er.date = (
+                                                       SELECT MAX(date)
+                                                       FROM exchange_rates ter2
+                                                       WHERE ter2._id_currency = :currency_id
+                                                         AND ter2.date <= date('now')
+                                                   )
+                ORDER BY a.name
+            """
+        if currency_id == usd_currency_id:
+            rows = self.get_rows(query, {"currency_id": currency_id})
+        else:
+            rows = self.get_rows(query, {"currency_id": currency_id, "usd_currency_id": usd_currency_id})
         return [(row[0], float(row[1]) / 100) for row in rows]
 
     def get_account_by_id(self, account_id: int) -> list[Any] | None:
@@ -789,17 +846,22 @@ class DatabaseManager:
 
         """
         rows = self.get_rows("""
-            SELECT er._id, c.code, 'USD', er.rate, er.date
+            SELECT er._id, 'USD', c.code, er.rate, er.date
             FROM exchange_rates er
             JOIN currencies c ON er._id_currency = c._id
             ORDER BY er.date DESC, er._id DESC
         """)
 
         # Rates are already stored as REAL, no conversion needed
-        # Just ensure they are float type for consistency
+        # Just ensure they are float type for consistency and handle empty strings
         for row in rows:
-            if len(row) >= 4 and row[3] is not None:
-                row[3] = float(row[3])
+            if len(row) >= 4 and row[3] is not None and row[3] != "":
+                try:
+                    row[3] = float(row[3])
+                except (ValueError, TypeError):
+                    row[3] = 0.0  # Set to 0 for invalid values
+            elif len(row) >= 4:
+                row[3] = 0.0  # Set to 0 for None or empty string
 
         return rows
 
@@ -827,16 +889,7 @@ class DatabaseManager:
         if limit is not None:
             query += f" LIMIT {limit}"
 
-        rows = self.get_rows(query)
-
-        # Convert amounts from stored subdivision to actual values
-        for row in rows:
-            if len(row) >= 5 and row[1] is not None and row[4] is not None:  # amount and currency_code
-                currency_code = row[4]
-                subdivision = self.get_currency_subdivision_by_code(currency_code)
-                row[1] = float(row[1]) / subdivision
-
-        return rows
+        return self.get_rows(query)
 
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
@@ -974,6 +1027,38 @@ class DatabaseManager:
         rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
         return rows[0][0] if rows and rows[0][0] else None
 
+    def get_earliest_financial_date(self) -> str | None:
+        """Get the earliest date from either transactions or currency_exchanges tables.
+
+        Returns:
+
+        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+
+        """
+        transaction_date = self.get_earliest_transaction_date()
+        exchange_date = self.get_earliest_currency_exchange_date()
+
+        # Return the earliest of the two dates
+        if transaction_date and exchange_date:
+            return min(transaction_date, exchange_date)
+        elif transaction_date:
+            return transaction_date
+        elif exchange_date:
+            return exchange_date
+        else:
+            return None
+
+    def get_earliest_transaction_date(self) -> str | None:
+        """Get the earliest date from transactions table.
+
+        Returns:
+
+        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+
+        """
+        rows = self.get_rows("SELECT MIN(date) FROM transactions WHERE date IS NOT NULL")
+        return rows[0][0] if rows and rows[0][0] else None
+
     def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
         """Get exchange rate between currencies (both referenced to USD).
 
@@ -997,60 +1082,22 @@ class DatabaseManager:
             return 1.0
         usd_currency_id = usd_currency[0]
 
-        # If one of the currencies is USD, get direct rate
-        if to_currency_id == usd_currency_id:
-            # from_currency to USD
-            return self.get_exchange_rate_to_usd(from_currency_id, date)
-        elif from_currency_id == usd_currency_id:
-            # USD to to_currency (inverse of to_currency to USD)
-            usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+        # Now rates are stored as USD → currency (e.g., 1 USD = 79.85 RUB)
+        if from_currency_id == usd_currency_id:
+            # USD to other currency - direct rate from database
+            return self.get_usd_to_currency_rate(to_currency_id, date)
+        elif to_currency_id == usd_currency_id:
+            # Other currency to USD - inverse of stored rate
+            usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)
             return 1.0 / usd_rate if usd_rate != 0 else 1.0
         else:
             # from_currency to to_currency via USD
-            from_usd_rate = self.get_exchange_rate_to_usd(from_currency_id, date)
-            to_usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+            from_usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)  # USD → from_currency
+            to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)  # USD → to_currency
             if from_usd_rate != 0 and to_usd_rate != 0:
-                return from_usd_rate / to_usd_rate
+                # from_currency → USD → to_currency = (1/from_usd_rate) * to_usd_rate
+                return to_usd_rate / from_usd_rate
             return 1.0
-
-    def get_exchange_rate_to_usd(self, currency_id: int, date: str | None = None) -> float:
-        """Get exchange rate from currency to USD.
-
-        Args:
-
-        - `currency_id` (`int`): Currency ID.
-        - `date` (`str | None`): Date for rate lookup. Uses latest if None. Defaults to `None`.
-
-        Returns:
-
-        - `float`: Exchange rate to USD or 1.0 if USD or not found.
-
-        """
-        # Check if currency is USD
-        usd_currency = self.get_currency_by_code("USD")
-        if usd_currency and currency_id == usd_currency[0]:
-            return 1.0
-
-        if date:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id AND date <= :date
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"currency_id": currency_id, "date": date}
-        else:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"currency_id": currency_id}
-
-        rows = self.get_rows(query, params)
-        if rows:
-            return float(rows[0][0])
-
-        return 1.0
 
     def get_filtered_transactions(
         self,
@@ -1178,47 +1225,25 @@ class DatabaseManager:
 
         where_clause = " AND " + " AND ".join(conditions) if conditions else ""
 
+        # Get currency conversion SQL
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(currency_id)
+        params.update(extra_params)
+
         # Get income (category type = 1)
         income_query = f"""
-            SELECT SUM(
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
-                END
-            ) as total_income
+            SELECT SUM({conversion_case}) as total_income
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = t._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                              AND er2.date <= t.date
-                                        )
+            {join_clause}
             WHERE cat.type = 1{where_clause}
         """
 
         # Get expenses (category type = 0)
         expenses_query = f"""
-            SELECT SUM(
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
-                END
-            ) as total_expenses
+            SELECT SUM({conversion_case}) as total_expenses
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = t._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                              AND er2.date <= t.date
-                                        )
+            {join_clause}
             WHERE cat.type = 0{where_clause}
         """
 
@@ -1369,24 +1394,15 @@ class DatabaseManager:
 
         where_clause = " AND " + " AND ".join(conditions) if conditions else ""
 
+        # Get currency conversion SQL
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(currency_id)
+        params.update(extra_params)
+
         query = f"""
-            SELECT t.date, SUM(
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
-                END
-            ) as total_amount
+            SELECT t.date, SUM({conversion_case}) as total_amount
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = t._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                              AND er2.date <= t.date
-                                        )
+            {join_clause}
             WHERE 1=1{where_clause}
             GROUP BY t.date
             ORDER BY t.date ASC
@@ -1394,6 +1410,48 @@ class DatabaseManager:
 
         rows = self.get_rows(query, params)
         return [(row[0], float(row[1]) / 100) for row in rows]
+
+    def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
+        """Get exchange rate from USD to currency (how many currency units for 1 USD).
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID.
+        - `date` (`str | None`): Date for rate lookup. Uses latest if None. Defaults to `None`.
+
+        Returns:
+
+        - `float`: Exchange rate from USD to currency or 1.0 if USD or not found.
+
+        """
+        # Check if currency is USD
+        usd_currency = self.get_currency_by_code("USD")
+        if usd_currency and currency_id == usd_currency[0]:
+            return 1.0
+
+        if date:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency = :currency_id AND date <= :date
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"currency_id": currency_id, "date": date}
+        else:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"currency_id": currency_id}
+
+        rows = self.get_rows(query, params)
+        if rows and rows[0][0] is not None and rows[0][0] != "":
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return 1.0  # Return 1.0 for invalid values
+
+        return 1.0
 
     def is_database_open(self) -> bool:
         """Check if the database connection is open.
@@ -1623,6 +1681,65 @@ class DatabaseManager:
                     return False
 
         return True
+
+    def _get_currency_conversion_sql(self, currency_id: int) -> tuple[str, dict]:
+        """Generate SQL for currency conversion via USD.
+
+        Args:
+        - currency_id (int): Target currency ID
+
+        Returns:
+        - tuple[str, dict]: (join_clause, extra_params)
+        """
+        usd_currency = self.get_currency_by_code("USD")
+        usd_currency_id = usd_currency[0] if usd_currency else None
+
+        if currency_id == usd_currency_id:
+            # Converting to USD - direct rates
+            join_clause = """
+            LEFT JOIN exchange_rates er ON er._id_currency = t._id_currencies
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency = t._id_currencies
+                                              AND er2.date <= t.date
+                                        )
+            """
+            conversion_case = """
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    ELSE COALESCE(er.rate * t.amount, t.amount)
+                END
+            """
+            return join_clause, conversion_case, {}
+        else:
+            # Converting to non-USD currency via USD
+            join_clause = """
+            LEFT JOIN exchange_rates source_er ON source_er._id_currency = t._id_currencies
+                                               AND source_er.date = (
+                                                   SELECT MAX(date)
+                                                   FROM exchange_rates ser2
+                                                   WHERE ser2._id_currency = t._id_currencies
+                                                     AND ser2.date <= t.date
+                                               )
+            LEFT JOIN exchange_rates target_er ON target_er._id_currency = :currency_id
+                                               AND target_er.date = (
+                                                   SELECT MAX(date)
+                                                   FROM exchange_rates ter2
+                                                   WHERE ter2._id_currency = :currency_id
+                                                     AND ter2.date <= t.date
+                                               )
+            """
+            conversion_case = """
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    WHEN t._id_currencies = :usd_currency_id THEN
+                        COALESCE(t.amount / NULLIF(target_er.rate, 0), t.amount)
+                    ELSE
+                        COALESCE(source_er.rate * t.amount / NULLIF(target_er.rate, 0), t.amount)
+                END
+            """
+            return join_clause, conversion_case, {"usd_currency_id": usd_currency_id}
 
     def _init_default_settings(self) -> None:
         """Initialize default settings if they don't exist."""
@@ -2044,6 +2161,37 @@ def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool:
             {"currency_id": currency_id, "date": date},
         )
         return rows[0][0] > 0 if rows else False
+```
+
+</details>
+
+### ⚙️ Method `clean_invalid_exchange_rates`
+
+```python
+def clean_invalid_exchange_rates(self) -> int
+```
+
+Clean exchange rates with empty or invalid rate values.
+
+Returns:
+
+- int: Number of cleaned records
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clean_invalid_exchange_rates(self) -> int:
+        query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
+        cursor = self.db.exec(query)
+        if cursor.lastError().isValid():
+            print(f"❌ Error cleaning exchange rates: {cursor.lastError().text()}")
+            return 0
+
+        affected_rows = cursor.numRowsAffected()
+        cursor.clear()
+        print(f"🧹 Cleaned {affected_rows} invalid exchange rate records")
+        return affected_rows
 ```
 
 </details>
@@ -2519,24 +2667,60 @@ Returns:
 
 ```python
 def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]:
-        query = """
-            SELECT a.name,
-                   CASE
-                       WHEN a._id_currencies = :currency_id THEN a.balance
-                       ELSE COALESCE(er.rate * a.balance / 100, a.balance)
-                   END as converted_balance
-            FROM accounts a
-            LEFT JOIN exchange_rates er ON er._id_currency_from = a._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = a._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                        )
-            ORDER BY a.name
-        """
-        rows = self.get_rows(query, {"currency_id": currency_id})
+        # Get USD currency ID for conversion calculations
+        usd_currency = self.get_currency_by_code("USD")
+        usd_currency_id = usd_currency[0] if usd_currency else None
+
+        if currency_id == usd_currency_id:
+            # Converting to USD - direct rates
+            query = """
+                SELECT a.name,
+                       CASE
+                           WHEN a._id_currencies = :currency_id THEN a.balance
+                           ELSE COALESCE(er.rate * a.balance, a.balance)
+                       END as converted_balance
+                FROM accounts a
+                LEFT JOIN exchange_rates er ON er._id_currency = a._id_currencies
+                                            AND er.date = (
+                                                SELECT MAX(date)
+                                                FROM exchange_rates er2
+                                                WHERE er2._id_currency = a._id_currencies
+                                                  AND er2.date <= date('now')
+                                            )
+                ORDER BY a.name
+            """
+        else:
+            # Converting to non-USD currency via USD
+            query = """
+                SELECT a.name,
+                       CASE
+                           WHEN a._id_currencies = :currency_id THEN a.balance
+                           WHEN a._id_currencies = :usd_currency_id THEN
+                               COALESCE(a.balance / NULLIF(target_er.rate, 0), a.balance)
+                           ELSE
+                               COALESCE(source_er.rate * a.balance / NULLIF(target_er.rate, 0), a.balance)
+                       END as converted_balance
+                FROM accounts a
+                LEFT JOIN exchange_rates source_er ON source_er._id_currency = a._id_currencies
+                                                   AND source_er.date = (
+                                                       SELECT MAX(date)
+                                                       FROM exchange_rates ser2
+                                                       WHERE ser2._id_currency = a._id_currencies
+                                                         AND ser2.date <= date('now')
+                                                   )
+                LEFT JOIN exchange_rates target_er ON target_er._id_currency = :currency_id
+                                                   AND target_er.date = (
+                                                       SELECT MAX(date)
+                                                       FROM exchange_rates ter2
+                                                       WHERE ter2._id_currency = :currency_id
+                                                         AND ter2.date <= date('now')
+                                                   )
+                ORDER BY a.name
+            """
+        if currency_id == usd_currency_id:
+            rows = self.get_rows(query, {"currency_id": currency_id})
+        else:
+            rows = self.get_rows(query, {"currency_id": currency_id, "usd_currency_id": usd_currency_id})
         return [(row[0], float(row[1]) / 100) for row in rows]
 ```
 
@@ -2724,17 +2908,22 @@ Returns:
 ```python
 def get_all_exchange_rates(self) -> list[list[Any]]:
         rows = self.get_rows("""
-            SELECT er._id, c.code, 'USD', er.rate, er.date
+            SELECT er._id, 'USD', c.code, er.rate, er.date
             FROM exchange_rates er
             JOIN currencies c ON er._id_currency = c._id
             ORDER BY er.date DESC, er._id DESC
         """)
 
         # Rates are already stored as REAL, no conversion needed
-        # Just ensure they are float type for consistency
+        # Just ensure they are float type for consistency and handle empty strings
         for row in rows:
-            if len(row) >= 4 and row[3] is not None:
-                row[3] = float(row[3])
+            if len(row) >= 4 and row[3] is not None and row[3] != "":
+                try:
+                    row[3] = float(row[3])
+                except (ValueError, TypeError):
+                    row[3] = 0.0  # Set to 0 for invalid values
+            elif len(row) >= 4:
+                row[3] = 0.0  # Set to 0 for None or empty string
 
         return rows
 ```
@@ -2774,16 +2963,7 @@ def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
         if limit is not None:
             query += f" LIMIT {limit}"
 
-        rows = self.get_rows(query)
-
-        # Convert amounts from stored subdivision to actual values
-        for row in rows:
-            if len(row) >= 5 and row[1] is not None and row[4] is not None:  # amount and currency_code
-                currency_code = row[4]
-                subdivision = self.get_currency_subdivision_by_code(currency_code)
-                row[1] = float(row[1]) / subdivision
-
-        return rows
+        return self.get_rows(query)
 ```
 
 </details>
@@ -3044,6 +3224,62 @@ def get_earliest_currency_exchange_date(self) -> str | None:
 
 </details>
 
+### ⚙️ Method `get_earliest_financial_date`
+
+```python
+def get_earliest_financial_date(self) -> str | None
+```
+
+Get the earliest date from either transactions or currency_exchanges tables.
+
+Returns:
+
+- `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_earliest_financial_date(self) -> str | None:
+        transaction_date = self.get_earliest_transaction_date()
+        exchange_date = self.get_earliest_currency_exchange_date()
+
+        # Return the earliest of the two dates
+        if transaction_date and exchange_date:
+            return min(transaction_date, exchange_date)
+        elif transaction_date:
+            return transaction_date
+        elif exchange_date:
+            return exchange_date
+        else:
+            return None
+```
+
+</details>
+
+### ⚙️ Method `get_earliest_transaction_date`
+
+```python
+def get_earliest_transaction_date(self) -> str | None
+```
+
+Get the earliest date from transactions table.
+
+Returns:
+
+- `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_earliest_transaction_date(self) -> str | None:
+        rows = self.get_rows("SELECT MIN(date) FROM transactions WHERE date IS NOT NULL")
+        return rows[0][0] if rows and rows[0][0] else None
+```
+
+</details>
+
 ### ⚙️ Method `get_exchange_rate`
 
 ```python
@@ -3076,72 +3312,22 @@ def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: st
             return 1.0
         usd_currency_id = usd_currency[0]
 
-        # If one of the currencies is USD, get direct rate
-        if to_currency_id == usd_currency_id:
-            # from_currency to USD
-            return self.get_exchange_rate_to_usd(from_currency_id, date)
-        elif from_currency_id == usd_currency_id:
-            # USD to to_currency (inverse of to_currency to USD)
-            usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+        # Now rates are stored as USD → currency (e.g., 1 USD = 79.85 RUB)
+        if from_currency_id == usd_currency_id:
+            # USD to other currency - direct rate from database
+            return self.get_usd_to_currency_rate(to_currency_id, date)
+        elif to_currency_id == usd_currency_id:
+            # Other currency to USD - inverse of stored rate
+            usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)
             return 1.0 / usd_rate if usd_rate != 0 else 1.0
         else:
             # from_currency to to_currency via USD
-            from_usd_rate = self.get_exchange_rate_to_usd(from_currency_id, date)
-            to_usd_rate = self.get_exchange_rate_to_usd(to_currency_id, date)
+            from_usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)  # USD → from_currency
+            to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)  # USD → to_currency
             if from_usd_rate != 0 and to_usd_rate != 0:
-                return from_usd_rate / to_usd_rate
+                # from_currency → USD → to_currency = (1/from_usd_rate) * to_usd_rate
+                return to_usd_rate / from_usd_rate
             return 1.0
-```
-
-</details>
-
-### ⚙️ Method `get_exchange_rate_to_usd`
-
-```python
-def get_exchange_rate_to_usd(self, currency_id: int, date: str | None = None) -> float
-```
-
-Get exchange rate from currency to USD.
-
-Args:
-
-- `currency_id` (`int`): Currency ID.
-- `date` (`str | None`): Date for rate lookup. Uses latest if None. Defaults to `None`.
-
-Returns:
-
-- `float`: Exchange rate to USD or 1.0 if USD or not found.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_exchange_rate_to_usd(self, currency_id: int, date: str | None = None) -> float:
-        # Check if currency is USD
-        usd_currency = self.get_currency_by_code("USD")
-        if usd_currency and currency_id == usd_currency[0]:
-            return 1.0
-
-        if date:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id AND date <= :date
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"currency_id": currency_id, "date": date}
-        else:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"currency_id": currency_id}
-
-        rows = self.get_rows(query, params)
-        if rows:
-            return float(rows[0][0])
-
-        return 1.0
 ```
 
 </details>
@@ -3305,47 +3491,25 @@ def get_income_vs_expenses_in_currency(
 
         where_clause = " AND " + " AND ".join(conditions) if conditions else ""
 
+        # Get currency conversion SQL
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(currency_id)
+        params.update(extra_params)
+
         # Get income (category type = 1)
         income_query = f"""
-            SELECT SUM(
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
-                END
-            ) as total_income
+            SELECT SUM({conversion_case}) as total_income
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = t._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                              AND er2.date <= t.date
-                                        )
+            {join_clause}
             WHERE cat.type = 1{where_clause}
         """
 
         # Get expenses (category type = 0)
         expenses_query = f"""
-            SELECT SUM(
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
-                END
-            ) as total_expenses
+            SELECT SUM({conversion_case}) as total_expenses
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = t._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                              AND er2.date <= t.date
-                                        )
+            {join_clause}
             WHERE cat.type = 0{where_clause}
         """
 
@@ -3556,24 +3720,15 @@ def get_transactions_chart_data(
 
         where_clause = " AND " + " AND ".join(conditions) if conditions else ""
 
+        # Get currency conversion SQL
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(currency_id)
+        params.update(extra_params)
+
         query = f"""
-            SELECT t.date, SUM(
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount / 100, t.amount)
-                END
-            ) as total_amount
+            SELECT t.date, SUM({conversion_case}) as total_amount
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
-            LEFT JOIN exchange_rates er ON er._id_currency_from = t._id_currencies
-                                        AND er._id_currency_to = :currency_id
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency_from = t._id_currencies
-                                              AND er2._id_currency_to = :currency_id
-                                              AND er2.date <= t.date
-                                        )
+            {join_clause}
             WHERE 1=1{where_clause}
             GROUP BY t.date
             ORDER BY t.date ASC
@@ -3581,6 +3736,60 @@ def get_transactions_chart_data(
 
         rows = self.get_rows(query, params)
         return [(row[0], float(row[1]) / 100) for row in rows]
+```
+
+</details>
+
+### ⚙️ Method `get_usd_to_currency_rate`
+
+```python
+def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float
+```
+
+Get exchange rate from USD to currency (how many currency units for 1 USD).
+
+Args:
+
+- `currency_id` (`int`): Currency ID.
+- `date` (`str | None`): Date for rate lookup. Uses latest if None. Defaults to `None`.
+
+Returns:
+
+- `float`: Exchange rate from USD to currency or 1.0 if USD or not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
+        # Check if currency is USD
+        usd_currency = self.get_currency_by_code("USD")
+        if usd_currency and currency_id == usd_currency[0]:
+            return 1.0
+
+        if date:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency = :currency_id AND date <= :date
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"currency_id": currency_id, "date": date}
+        else:
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                ORDER BY date DESC LIMIT 1
+            """
+            params = {"currency_id": currency_id}
+
+        rows = self.get_rows(query, params)
+        if rows and rows[0][0] is not None and rows[0][0] != "":
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return 1.0  # Return 1.0 for invalid values
+
+        return 1.0
 ```
 
 </details>
@@ -3918,6 +4127,80 @@ def _ensure_connection(self) -> bool:
                     return False
 
         return True
+```
+
+</details>
+
+### ⚙️ Method `_get_currency_conversion_sql`
+
+```python
+def _get_currency_conversion_sql(self, currency_id: int) -> tuple[str, dict]
+```
+
+Generate SQL for currency conversion via USD.
+
+Args:
+
+- currency_id (int): Target currency ID
+
+Returns:
+
+- tuple[str, dict]: (join_clause, extra_params)
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_currency_conversion_sql(self, currency_id: int) -> tuple[str, dict]:
+        usd_currency = self.get_currency_by_code("USD")
+        usd_currency_id = usd_currency[0] if usd_currency else None
+
+        if currency_id == usd_currency_id:
+            # Converting to USD - direct rates
+            join_clause = """
+            LEFT JOIN exchange_rates er ON er._id_currency = t._id_currencies
+                                        AND er.date = (
+                                            SELECT MAX(date)
+                                            FROM exchange_rates er2
+                                            WHERE er2._id_currency = t._id_currencies
+                                              AND er2.date <= t.date
+                                        )
+            """
+            conversion_case = """
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    ELSE COALESCE(er.rate * t.amount, t.amount)
+                END
+            """
+            return join_clause, conversion_case, {}
+        else:
+            # Converting to non-USD currency via USD
+            join_clause = """
+            LEFT JOIN exchange_rates source_er ON source_er._id_currency = t._id_currencies
+                                               AND source_er.date = (
+                                                   SELECT MAX(date)
+                                                   FROM exchange_rates ser2
+                                                   WHERE ser2._id_currency = t._id_currencies
+                                                     AND ser2.date <= t.date
+                                               )
+            LEFT JOIN exchange_rates target_er ON target_er._id_currency = :currency_id
+                                               AND target_er.date = (
+                                                   SELECT MAX(date)
+                                                   FROM exchange_rates ter2
+                                                   WHERE ter2._id_currency = :currency_id
+                                                     AND ter2.date <= t.date
+                                               )
+            """
+            conversion_case = """
+                CASE
+                    WHEN t._id_currencies = :currency_id THEN t.amount
+                    WHEN t._id_currencies = :usd_currency_id THEN
+                        COALESCE(t.amount / NULLIF(target_er.rate, 0), t.amount)
+                    ELSE
+                        COALESCE(source_er.rate * t.amount / NULLIF(target_er.rate, 0), t.amount)
+                END
+            """
+            return join_clause, conversion_case, {"usd_currency_id": usd_currency_id}
 ```
 
 </details>

@@ -11,8 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+- [🏛️ Class `ExchangeRateUpdateWorker`](#%EF%B8%8F-class-exchangerateupdateworker)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
+  - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
+- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
@@ -72,12 +76,18 @@ lang: en
   - [⚙️ Method `_generate_currency_analysis_report`](#%EF%B8%8F-method-_generate_currency_analysis_report)
   - [⚙️ Method `_generate_income_vs_expenses_report`](#%EF%B8%8F-method-_generate_income_vs_expenses_report)
   - [⚙️ Method `_generate_monthly_summary_report`](#%EF%B8%8F-method-_generate_monthly_summary_report)
+  - [⚙️ Method `_get_yfinance_data`](#%EF%B8%8F-method-_get_yfinance_data)
   - [⚙️ Method `_init_chart_controls`](#%EF%B8%8F-method-_init_chart_controls)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
   - [⚙️ Method `_on_account_double_clicked`](#%EF%B8%8F-method-_on_account_double_clicked)
   - [⚙️ Method `_on_autocomplete_selected`](#%EF%B8%8F-method-_on_autocomplete_selected)
+  - [⚙️ Method `_on_currency_started`](#%EF%B8%8F-method-_on_currency_started)
+  - [⚙️ Method `_on_progress_updated`](#%EF%B8%8F-method-_on_progress_updated)
+  - [⚙️ Method `_on_rate_added`](#%EF%B8%8F-method-_on_rate_added)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
+  - [⚙️ Method `_on_update_finished_error`](#%EF%B8%8F-method-_on_update_finished_error)
+  - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success)
   - [⚙️ Method `_populate_form_from_description`](#%EF%B8%8F-method-_populate_form_from_description)
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
@@ -91,6 +101,499 @@ lang: en
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
+
+</details>
+
+## 🏛️ Class `ExchangeRateUpdateWorker`
+
+```python
+class ExchangeRateUpdateWorker(QThread)
+```
+
+Worker thread for updating exchange rates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ExchangeRateUpdateWorker(QThread):
+
+    # Signals
+    progress_updated = Signal(str)  # Progress message
+    currency_started = Signal(str)  # Currency being processed
+    rates_added = Signal(str, float, str)  # currency_code, rate, date
+    finished_success = Signal(int)  # Total updates count
+    finished_error = Signal(str)  # Error message
+
+    def __init__(self, db_manager, currencies, start_date, end_date):
+        super().__init__()
+        self.db_manager = db_manager
+        self.currencies = currencies
+        self.start_date = start_date
+        self.end_date = end_date
+        self.should_stop = False
+
+    def run(self):
+        """Main worker execution."""
+        try:
+            # Import required libraries
+            import pandas as pd
+            import requests
+            import yfinance as yf
+
+            total_updates = 0
+
+            # Clean invalid exchange rates first
+            self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
+            cleaned_count = self.db_manager.clean_invalid_exchange_rates()
+
+            # Methods for getting exchange rates from different sources
+            def get_exchangerate_api_data(currency: str, start_date: str, end_date: str) -> dict:
+                """Get historical exchange rates from ExchangeRate-API."""
+                rates_data = {}
+                try:
+                    # ExchangeRate-API provides historical data
+                    base_url = "https://api.exchangerate-api.com/v4/history"
+
+                    # Get data for date range (API has limitations, so we'll get recent data)
+                    current_date = datetime.now().date()
+                    url = f"{base_url}/USD/{current_date.strftime('%Y-%m-%d')}"
+
+                    response = requests.get(url, timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if currency in data.get("rates", {}):
+                            # For USD base, we get XXX/USD rate (how many XXX for 1 USD)
+                            # Store this directly as USD→currency rate (more intuitive)
+                            usd_to_currency_rate = data["rates"][currency]
+
+                            # For simplicity, use the same rate for all dates in range
+                            current = datetime.strptime(start_date, "%Y-%m-%d").date()
+                            end = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+                            while current <= end:
+                                rates_data[current.strftime("%Y-%m-%d")] = usd_to_currency_rate
+                                current += timedelta(days=1)
+
+                            self.progress_updated.emit(
+                                f"📊 Got USD/{currency} rate from ExchangeRate-API: {usd_to_currency_rate:.6f}"
+                            )
+                        else:
+                            self.progress_updated.emit(f"⚠️ Currency {currency} not found in ExchangeRate-API")
+                    else:
+                        self.progress_updated.emit(f"❌ ExchangeRate-API error: {response.status_code}")
+
+                except Exception as e:
+                    self.progress_updated.emit(f"❌ Error with ExchangeRate-API for {currency}: {e}")
+
+                return rates_data
+
+            def get_yfinance_data(currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict:
+                """Get exchange rate data from yfinance."""
+                rates_data = {}
+                ticker_symbol = f"{currency_code}USD=X"
+
+                # Alternative ticker formats for problematic currencies
+                alternative_tickers = {
+                    "VND": ["USD/VND=X", "USDVND=X"],  # Vietnamese Dong alternatives
+                    "TRY": ["USD/TRY=X", "USDTRY=X"],  # Turkish Lira alternatives
+                    "RUB": ["USD/RUB=X", "USDRUB=X"],  # Russian Ruble alternatives
+                }
+
+                try:
+                    # Download historical data
+                    ticker = yf.Ticker(ticker_symbol)
+                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                    # If no data found, try alternative ticker formats
+                    if hist.empty and currency_code in alternative_tickers:
+                        self.progress_updated.emit(f"⚠️ No data found for {ticker_symbol}, trying alternatives...")
+
+                        for alt_ticker in alternative_tickers[currency_code]:
+                            if self.should_stop:
+                                return {}
+                            self.progress_updated.emit(f"🔄 Trying alternative ticker: {alt_ticker}")
+                            ticker = yf.Ticker(alt_ticker)
+                            hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                            if not hist.empty:
+                                self.progress_updated.emit(f"✅ Found data with alternative ticker: {alt_ticker}")
+                                ticker_symbol = alt_ticker  # Update for logging
+
+                                # For inverse rates (USD/XXX), we need to invert the values
+                                if alt_ticker.startswith("USD/") or alt_ticker.startswith("USD"):
+                                    self.progress_updated.emit(f"🔄 Inverting rates for {alt_ticker}")
+                                    hist = hist.copy()
+                                    for col in ["Open", "High", "Low", "Close"]:
+                                        if col in hist.columns:
+                                            hist[col] = 1.0 / hist[col]
+                                break
+
+                    if hist.empty:
+                        self.progress_updated.emit(
+                            f"⚠️ No data found for {currency_code} with any yfinance ticker format"
+                        )
+                        return {}
+
+                    self.progress_updated.emit(f"📊 Processing {len(hist)} days of yfinance data for {ticker_symbol}")
+
+                    # Process each day
+                    for date_idx, row in hist.iterrows():
+                        if self.should_stop:
+                            return {}
+                        date_str = date_idx.strftime("%Y-%m-%d")
+                        close_price = row["Close"]
+
+                        if not pd.isna(close_price) and close_price > 0:
+                            rates_data[date_str] = float(close_price)
+                        else:
+                            self.progress_updated.emit(
+                                f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}"
+                            )
+
+                except Exception as e:
+                    self.progress_updated.emit(f"❌ Error with yfinance for {currency_code}: {e}")
+
+                return rates_data
+
+            # Process each currency
+            for currency_id, currency_code, currency_name, currency_symbol in self.currencies:
+                if self.should_stop:
+                    break
+
+                self.currency_started.emit(currency_code)
+
+                success = False
+                rates_data = {}
+
+                # Try multiple data sources in order of preference
+                data_sources = [
+                    (
+                        "ExchangeRate-API",
+                        lambda: get_exchangerate_api_data(
+                            currency_code, self.start_date.strftime("%Y-%m-%d"), self.end_date.strftime("%Y-%m-%d")
+                        ),
+                    ),
+                    ("yfinance", lambda: get_yfinance_data(currency_code, self.start_date, self.end_date, {})),
+                ]
+
+                for source_name, get_data_func in data_sources:
+                    if self.should_stop:
+                        break
+                    try:
+                        self.progress_updated.emit(f"🔄 Trying {source_name} for {currency_code}...")
+                        rates_data = get_data_func()
+
+                        if rates_data:
+                            self.progress_updated.emit(
+                                f"✅ Successfully got data from {source_name} for {currency_code}"
+                            )
+                            success = True
+                            break
+                        else:
+                            self.progress_updated.emit(f"⚠️ No data from {source_name} for {currency_code}")
+
+                    except Exception as e:
+                        self.progress_updated.emit(f"❌ Error with {source_name} for {currency_code}: {e}")
+                        continue
+
+                if not success or not rates_data:
+                    self.progress_updated.emit(
+                        f"❌ Failed to get exchange rate data for {currency_code} from any source"
+                    )
+                    continue
+
+                # Save the rates to database
+                self.progress_updated.emit(f"💾 Saving {len(rates_data)} exchange rates for {currency_code}")
+
+                for date_str, rate in rates_data.items():
+                    if self.should_stop:
+                        break
+                    try:
+                        # Check if exchange rate already exists
+                        if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                            if rate is not None and rate > 0:
+                                if self.db_manager.add_exchange_rate(currency_id, rate, date_str):
+                                    total_updates += 1
+                                    self.rates_added.emit(currency_code, rate, date_str)
+                                else:
+                                    self.progress_updated.emit(
+                                        f"❌ Failed to add {currency_code}/USD rate for {date_str}"
+                                    )
+                            else:
+                                self.progress_updated.emit(
+                                    f"⚠️ Skipping invalid rate for {currency_code} on {date_str}: {rate}"
+                                )
+                    except Exception as e:
+                        self.progress_updated.emit(f"❌ Error saving rate for {currency_code} on {date_str}: {e}")
+                        continue
+
+            if not self.should_stop:
+                self.finished_success.emit(total_updates)
+
+        except Exception as e:
+            self.finished_error.emit(f"Exchange rate update error: {e}")
+
+    def stop(self):
+        """Request worker to stop."""
+        self.should_stop = True
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, db_manager, currencies, start_date, end_date)
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, db_manager, currencies, start_date, end_date):
+        super().__init__()
+        self.db_manager = db_manager
+        self.currencies = currencies
+        self.start_date = start_date
+        self.end_date = end_date
+        self.should_stop = False
+```
+
+</details>
+
+### ⚙️ Method `run`
+
+```python
+def run(self)
+```
+
+Main worker execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def run(self):
+        try:
+            # Import required libraries
+            import pandas as pd
+            import requests
+            import yfinance as yf
+
+            total_updates = 0
+
+            # Clean invalid exchange rates first
+            self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
+            cleaned_count = self.db_manager.clean_invalid_exchange_rates()
+
+            # Methods for getting exchange rates from different sources
+            def get_exchangerate_api_data(currency: str, start_date: str, end_date: str) -> dict:
+                """Get historical exchange rates from ExchangeRate-API."""
+                rates_data = {}
+                try:
+                    # ExchangeRate-API provides historical data
+                    base_url = "https://api.exchangerate-api.com/v4/history"
+
+                    # Get data for date range (API has limitations, so we'll get recent data)
+                    current_date = datetime.now().date()
+                    url = f"{base_url}/USD/{current_date.strftime('%Y-%m-%d')}"
+
+                    response = requests.get(url, timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if currency in data.get("rates", {}):
+                            # For USD base, we get XXX/USD rate (how many XXX for 1 USD)
+                            # Store this directly as USD→currency rate (more intuitive)
+                            usd_to_currency_rate = data["rates"][currency]
+
+                            # For simplicity, use the same rate for all dates in range
+                            current = datetime.strptime(start_date, "%Y-%m-%d").date()
+                            end = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+                            while current <= end:
+                                rates_data[current.strftime("%Y-%m-%d")] = usd_to_currency_rate
+                                current += timedelta(days=1)
+
+                            self.progress_updated.emit(
+                                f"📊 Got USD/{currency} rate from ExchangeRate-API: {usd_to_currency_rate:.6f}"
+                            )
+                        else:
+                            self.progress_updated.emit(f"⚠️ Currency {currency} not found in ExchangeRate-API")
+                    else:
+                        self.progress_updated.emit(f"❌ ExchangeRate-API error: {response.status_code}")
+
+                except Exception as e:
+                    self.progress_updated.emit(f"❌ Error with ExchangeRate-API for {currency}: {e}")
+
+                return rates_data
+
+            def get_yfinance_data(currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict:
+                """Get exchange rate data from yfinance."""
+                rates_data = {}
+                ticker_symbol = f"{currency_code}USD=X"
+
+                # Alternative ticker formats for problematic currencies
+                alternative_tickers = {
+                    "VND": ["USD/VND=X", "USDVND=X"],  # Vietnamese Dong alternatives
+                    "TRY": ["USD/TRY=X", "USDTRY=X"],  # Turkish Lira alternatives
+                    "RUB": ["USD/RUB=X", "USDRUB=X"],  # Russian Ruble alternatives
+                }
+
+                try:
+                    # Download historical data
+                    ticker = yf.Ticker(ticker_symbol)
+                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                    # If no data found, try alternative ticker formats
+                    if hist.empty and currency_code in alternative_tickers:
+                        self.progress_updated.emit(f"⚠️ No data found for {ticker_symbol}, trying alternatives...")
+
+                        for alt_ticker in alternative_tickers[currency_code]:
+                            if self.should_stop:
+                                return {}
+                            self.progress_updated.emit(f"🔄 Trying alternative ticker: {alt_ticker}")
+                            ticker = yf.Ticker(alt_ticker)
+                            hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                            if not hist.empty:
+                                self.progress_updated.emit(f"✅ Found data with alternative ticker: {alt_ticker}")
+                                ticker_symbol = alt_ticker  # Update for logging
+
+                                # For inverse rates (USD/XXX), we need to invert the values
+                                if alt_ticker.startswith("USD/") or alt_ticker.startswith("USD"):
+                                    self.progress_updated.emit(f"🔄 Inverting rates for {alt_ticker}")
+                                    hist = hist.copy()
+                                    for col in ["Open", "High", "Low", "Close"]:
+                                        if col in hist.columns:
+                                            hist[col] = 1.0 / hist[col]
+                                break
+
+                    if hist.empty:
+                        self.progress_updated.emit(
+                            f"⚠️ No data found for {currency_code} with any yfinance ticker format"
+                        )
+                        return {}
+
+                    self.progress_updated.emit(f"📊 Processing {len(hist)} days of yfinance data for {ticker_symbol}")
+
+                    # Process each day
+                    for date_idx, row in hist.iterrows():
+                        if self.should_stop:
+                            return {}
+                        date_str = date_idx.strftime("%Y-%m-%d")
+                        close_price = row["Close"]
+
+                        if not pd.isna(close_price) and close_price > 0:
+                            rates_data[date_str] = float(close_price)
+                        else:
+                            self.progress_updated.emit(
+                                f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}"
+                            )
+
+                except Exception as e:
+                    self.progress_updated.emit(f"❌ Error with yfinance for {currency_code}: {e}")
+
+                return rates_data
+
+            # Process each currency
+            for currency_id, currency_code, currency_name, currency_symbol in self.currencies:
+                if self.should_stop:
+                    break
+
+                self.currency_started.emit(currency_code)
+
+                success = False
+                rates_data = {}
+
+                # Try multiple data sources in order of preference
+                data_sources = [
+                    (
+                        "ExchangeRate-API",
+                        lambda: get_exchangerate_api_data(
+                            currency_code, self.start_date.strftime("%Y-%m-%d"), self.end_date.strftime("%Y-%m-%d")
+                        ),
+                    ),
+                    ("yfinance", lambda: get_yfinance_data(currency_code, self.start_date, self.end_date, {})),
+                ]
+
+                for source_name, get_data_func in data_sources:
+                    if self.should_stop:
+                        break
+                    try:
+                        self.progress_updated.emit(f"🔄 Trying {source_name} for {currency_code}...")
+                        rates_data = get_data_func()
+
+                        if rates_data:
+                            self.progress_updated.emit(
+                                f"✅ Successfully got data from {source_name} for {currency_code}"
+                            )
+                            success = True
+                            break
+                        else:
+                            self.progress_updated.emit(f"⚠️ No data from {source_name} for {currency_code}")
+
+                    except Exception as e:
+                        self.progress_updated.emit(f"❌ Error with {source_name} for {currency_code}: {e}")
+                        continue
+
+                if not success or not rates_data:
+                    self.progress_updated.emit(
+                        f"❌ Failed to get exchange rate data for {currency_code} from any source"
+                    )
+                    continue
+
+                # Save the rates to database
+                self.progress_updated.emit(f"💾 Saving {len(rates_data)} exchange rates for {currency_code}")
+
+                for date_str, rate in rates_data.items():
+                    if self.should_stop:
+                        break
+                    try:
+                        # Check if exchange rate already exists
+                        if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                            if rate is not None and rate > 0:
+                                if self.db_manager.add_exchange_rate(currency_id, rate, date_str):
+                                    total_updates += 1
+                                    self.rates_added.emit(currency_code, rate, date_str)
+                                else:
+                                    self.progress_updated.emit(
+                                        f"❌ Failed to add {currency_code}/USD rate for {date_str}"
+                                    )
+                            else:
+                                self.progress_updated.emit(
+                                    f"⚠️ Skipping invalid rate for {currency_code} on {date_str}: {rate}"
+                                )
+                    except Exception as e:
+                        self.progress_updated.emit(f"❌ Error saving rate for {currency_code} on {date_str}: {e}")
+                        continue
+
+            if not self.should_stop:
+                self.finished_success.emit(total_updates)
+
+        except Exception as e:
+            self.finished_error.emit(f"Exchange rate update error: {e}")
+```
+
+</details>
+
+### ⚙️ Method `stop`
+
+```python
+def stop(self)
+```
+
+Request worker to stop.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def stop(self):
+        self.should_stop = True
+```
 
 </details>
 
@@ -168,6 +671,7 @@ class MainWindow(
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show = 5000
+        self.count_exchange_rates_to_show = 5000
         self.show_all_transactions = False
 
         # Table configuration mapping
@@ -302,6 +806,15 @@ class MainWindow(
         - `event` (`QCloseEvent`): The close event.
 
         """
+        # Stop any running worker threads
+        if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
+            self.exchange_rate_worker.stop()
+            self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
+
+        # Close progress dialog if open
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.close()
+
         # Dispose Models
         self._dispose_models()
 
@@ -911,21 +1424,19 @@ class MainWindow(
 
     @requires_database()
     def on_update_exchange_rates(self) -> None:
-        """Update exchange rates from yfinance.
-
-        Downloads exchange rates for all currencies (except USD) from the earliest
-        currency exchange date to today. USD is used as the base currency.
-        """
+        """Update exchange rates using a background thread."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
-            # Get the earliest date from currency_exchanges
-            earliest_date = self.db_manager.get_earliest_currency_exchange_date()
+            # Get the earliest date from transactions or currency_exchanges
+            earliest_date = self.db_manager.get_earliest_financial_date()
             if not earliest_date:
                 QMessageBox.warning(
-                    self, "No Data", "No currency exchanges found. Please add some currency exchanges first."
+                    self,
+                    "No Data",
+                    "No transactions or currency exchanges found. Please add some financial data first.",
                 )
                 return
 
@@ -935,106 +1446,55 @@ class MainWindow(
                 QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
                 return
 
-            # Get USD currency ID
-            usd_currency = self.db_manager.get_currency_by_code("USD")
-            if not usd_currency:
-                QMessageBox.warning(self, "USD Not Found", "USD currency not found in database.")
-                return
-            usd_currency_id = usd_currency[0]
-
             # Calculate date range
             start_date = datetime.strptime(earliest_date, "%Y-%m-%d").date()
             end_date = datetime.now().date()
 
-            # Show progress dialog
-            progress_dialog = QMessageBox(self)
-            progress_dialog.setWindowTitle("Updating Exchange Rates")
-            progress_dialog.setText(f"Updating exchange rates from {start_date} to {end_date}...")
-            progress_dialog.setStandardButtons(QMessageBox.StandardButton.NoButton)
-            progress_dialog.show()
-
-            # Process events to show the dialog
-            QApplication.processEvents()
-
-            total_updates = 0
-            total_days = (end_date - start_date).days + 1
-
-            # Import yfinance here to avoid import issues
-            try:
-                import yfinance as yf
-            except ImportError:
-                QMessageBox.critical(
+            # Check if worker is already running
+            if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
+                reply = QMessageBox.question(
                     self,
-                    "Import Error",
-                    "yfinance library is not installed. Please install it with: pip install yfinance",
+                    "Update in Progress",
+                    "Exchange rate update is already running. Do you want to stop it and start a new one?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 )
-                return
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.exchange_rate_worker.stop()
+                    self.exchange_rate_worker.wait()
+                else:
+                    return
 
-            # Process each currency
-            for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                progress_dialog.setText(f"Processing {currency_code}...")
-                QApplication.processEvents()
+            # Create and configure progress dialog
+            self.progress_dialog = QMessageBox(self)
+            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
+            self.progress_dialog.setText(f"Starting exchange rate update from {start_date} to {end_date}...")
+            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
-                # Create ticker symbol for yfinance (e.g., "EURUSD=X" for EUR to USD)
-                ticker_symbol = f"{currency_code}USD=X"
+            # Connect cancel button
+            def cancel_update():
+                if hasattr(self, "exchange_rate_worker"):
+                    self.exchange_rate_worker.stop()
+                self.progress_dialog.close()
 
-                try:
-                    # Download historical data
-                    ticker = yf.Ticker(ticker_symbol)
-                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
+            self.progress_dialog.show()
 
-                    if hist.empty:
-                        print(f"⚠️ No data found for {ticker_symbol}")
-                        continue
+            # Create and start worker thread
+            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies, start_date, end_date)
 
-                    # Process each day
-                    for date, row in hist.iterrows():
-                        date_str = date.strftime("%Y-%m-%d")
+            # Connect signals
+            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
+            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
+            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
+            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
+            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
 
-                        # Check if exchange rate already exists
-                        if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
-                            # Get the close price (exchange rate)
-                            close_price = row["Close"]
-
-                            if not pd.isna(close_price) and close_price > 0:
-                                # Add exchange rate to database
-                                if self.db_manager.add_exchange_rate(currency_id, close_price, date_str):
-                                    total_updates += 1
-                                    print(f"✅ Added {currency_code}/USD rate: {close_price:.4f} for {date_str}")
-                                else:
-                                    print(f"❌ Failed to add {currency_code}/USD rate for {date_str}")
-                            else:
-                                print(f"⚠️ Invalid price for {currency_code} on {date_str}: {close_price}")
-
-                except Exception as e:
-                    print(f"❌ Error processing {currency_code}: {e}")
-                    continue
-
-            progress_dialog.close()
-
-            # Show results
-            if total_updates > 0:
-                QMessageBox.information(
-                    self,
-                    "Update Complete",
-                    f"Successfully updated {total_updates} exchange rates.\n\n"
-                    f"Date range: {start_date} to {end_date}\n"
-                    f"Currencies processed: {len(currencies)}",
-                )
-
-                # Refresh the exchange rates table
-                self.update_all()
-            else:
-                QMessageBox.information(
-                    self,
-                    "Update Complete",
-                    "No new exchange rates were added.\n\n"
-                    f"Date range: {start_date} to {end_date}\n"
-                    f"Currencies processed: {len(currencies)}",
-                )
+            # Start the worker
+            self.exchange_rate_worker.start()
 
         except Exception as e:
-            QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates: {e}")
+            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
             print(f"❌ Exchange rate update error: {e}")
 
     def on_yesterday(self) -> None:
@@ -1342,11 +1802,16 @@ class MainWindow(
             # Refresh exchange rates table
             rates_data = self.db_manager.get_all_exchange_rates()
             rates_transformed_data = []
-            for row in rates_data:
-                # Transform: [id, from_code, to_code, rate_cents, date]
-                rate = float(row[3]) / 100
+            for i, row in enumerate(rates_data):
+                if i >= self.count_exchange_rates_to_show:
+                    break
+                # Transform: [id, from_code, to_code, rate, date]
+                # Rate is stored as USD→currency, but display as currency→USD
+                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
+                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
                 color = QColor(240, 255, 255)
-                transformed_row = [row[1], row[2], f"{rate:.4f}", row[4], row[0], color]
+                # Show as currency → USD instead of USD → currency
+                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
                 rates_transformed_data.append(transformed_row)
 
             self.models["exchange_rates"] = self._create_colored_table_model(
@@ -1561,7 +2026,18 @@ class MainWindow(
 
             # Only count expenses (category_type == 0)
             if category_type == 0:
-                amount = float(amount_cents) / 100
+                # Convert amount from minor units to display format using currency subdivision
+                currency_code = row[4]
+                if self.db_manager:
+                    amount = self.db_manager.convert_from_minor_units(
+                        amount_cents,
+                        self.db_manager.get_currency_by_code(currency_code)[0]
+                        if self.db_manager.get_currency_by_code(currency_code)
+                        else 1,
+                    )
+                else:
+                    amount = float(amount_cents) / 100  # Fallback
+
                 if date in daily_expenses:
                     daily_expenses[date] += amount
                 else:
@@ -2279,6 +2755,62 @@ class MainWindow(
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
+    def _get_yfinance_data(self, currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict:
+        """Get exchange rate data from yfinance."""
+        import pandas as pd
+        import yfinance as yf
+
+        rates_data = {}
+        ticker_symbol = f"{currency_code}USD=X"
+
+        try:
+            # Download historical data
+            ticker = yf.Ticker(ticker_symbol)
+            hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+            # If no data found, try alternative ticker formats
+            if hist.empty and currency_code in alternative_tickers:
+                print(f"⚠️ No data found for {ticker_symbol}, trying alternatives...")
+
+                for alt_ticker in alternative_tickers[currency_code]:
+                    print(f"🔄 Trying alternative ticker: {alt_ticker}")
+                    ticker = yf.Ticker(alt_ticker)
+                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                    if not hist.empty:
+                        print(f"✅ Found data with alternative ticker: {alt_ticker}")
+                        ticker_symbol = alt_ticker  # Update for logging
+
+                        # For inverse rates (USD/XXX), we need to invert the values
+                        if alt_ticker.startswith("USD/") or alt_ticker.startswith("USD"):
+                            print(f"🔄 Inverting rates for {alt_ticker}")
+                            hist = hist.copy()
+                            for col in ["Open", "High", "Low", "Close"]:
+                                if col in hist.columns:
+                                    hist[col] = 1.0 / hist[col]
+                        break
+
+            if hist.empty:
+                print(f"⚠️ No data found for {currency_code} with any yfinance ticker format")
+                return {}
+
+            print(f"📊 Processing {len(hist)} days of yfinance data for {ticker_symbol}")
+
+            # Process each day
+            for date_idx, row in hist.iterrows():
+                date_str = date_idx.strftime("%Y-%m-%d")
+                close_price = row["Close"]
+
+                if not pd.isna(close_price) and close_price > 0:
+                    rates_data[date_str] = float(close_price)
+                else:
+                    print(f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}")
+
+        except Exception as e:
+            print(f"❌ Error with yfinance for {currency_code}: {e}")
+
+        return rates_data
+
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
         current_date = QDate.currentDate()
@@ -2451,6 +2983,21 @@ class MainWindow(
         # This ensures form population is complete before focusing
         QTimer.singleShot(100, self._focus_amount_and_select_text)
 
+    def _on_currency_started(self, currency_code: str):
+        """Handle currency processing start."""
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.setText(f"Processing {currency_code}...")
+
+    def _on_progress_updated(self, message: str):
+        """Handle progress updates from worker."""
+        print(message)
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.setText(message)
+
+    def _on_rate_added(self, currency_code: str, rate: float, date_str: str):
+        """Handle successful rate addition."""
+        print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -2487,6 +3034,34 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+
+    def _on_update_finished_error(self, error_message: str):
+        """Handle error completion."""
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.close()
+
+        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
+        print(f"❌ {error_message}")
+
+    def _on_update_finished_success(self, total_updates: int):
+        """Handle successful completion."""
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.close()
+
+        if total_updates > 0:
+            QMessageBox.information(
+                self,
+                "Update Complete",
+                f"Successfully updated {total_updates} exchange rates.",
+            )
+            # Refresh the exchange rates table
+            self.update_all()
+        else:
+            QMessageBox.information(
+                self,
+                "Update Complete",
+                "No new exchange rates were added.",
+            )
 
     def _populate_form_from_description(self, description: str) -> None:
         """Populate form fields based on description from database."""
@@ -2757,8 +3332,16 @@ class MainWindow(
             tag = row[6]
             category_type = row[7]
 
-            # Convert amount from cents to display format
-            amount = float(amount_cents) / 100
+            # Convert amount from minor units to display format using currency subdivision
+            if self.db_manager:
+                amount = self.db_manager.convert_from_minor_units(
+                    amount_cents,
+                    self.db_manager.get_currency_by_code(currency_code)[0]
+                    if self.db_manager.get_currency_by_code(currency_code)
+                    else 1,
+                )
+            else:
+                amount = float(amount_cents) / 100  # Fallback
 
             # Determine color based on date
             if date not in date_to_color_index:
@@ -2968,6 +3551,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show = 5000
+        self.count_exchange_rates_to_show = 5000
         self.show_all_transactions = False
 
         # Table configuration mapping
@@ -3141,6 +3725,15 @@ Args:
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        # Stop any running worker threads
+        if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
+            self.exchange_rate_worker.stop()
+            self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
+
+        # Close progress dialog if open
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.close()
+
         # Dispose Models
         self._dispose_models()
 
@@ -3986,10 +4579,7 @@ def on_tab_changed(self, index: int) -> None:
 def on_update_exchange_rates(self) -> None
 ```
 
-Update exchange rates from yfinance.
-
-Downloads exchange rates for all currencies (except USD) from the earliest
-currency exchange date to today. USD is used as the base currency.
+Update exchange rates using a background thread.
 
 <details>
 <summary>Code:</summary>
@@ -4001,11 +4591,13 @@ def on_update_exchange_rates(self) -> None:
             return
 
         try:
-            # Get the earliest date from currency_exchanges
-            earliest_date = self.db_manager.get_earliest_currency_exchange_date()
+            # Get the earliest date from transactions or currency_exchanges
+            earliest_date = self.db_manager.get_earliest_financial_date()
             if not earliest_date:
                 QMessageBox.warning(
-                    self, "No Data", "No currency exchanges found. Please add some currency exchanges first."
+                    self,
+                    "No Data",
+                    "No transactions or currency exchanges found. Please add some financial data first.",
                 )
                 return
 
@@ -4015,106 +4607,55 @@ def on_update_exchange_rates(self) -> None:
                 QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
                 return
 
-            # Get USD currency ID
-            usd_currency = self.db_manager.get_currency_by_code("USD")
-            if not usd_currency:
-                QMessageBox.warning(self, "USD Not Found", "USD currency not found in database.")
-                return
-            usd_currency_id = usd_currency[0]
-
             # Calculate date range
             start_date = datetime.strptime(earliest_date, "%Y-%m-%d").date()
             end_date = datetime.now().date()
 
-            # Show progress dialog
-            progress_dialog = QMessageBox(self)
-            progress_dialog.setWindowTitle("Updating Exchange Rates")
-            progress_dialog.setText(f"Updating exchange rates from {start_date} to {end_date}...")
-            progress_dialog.setStandardButtons(QMessageBox.StandardButton.NoButton)
-            progress_dialog.show()
-
-            # Process events to show the dialog
-            QApplication.processEvents()
-
-            total_updates = 0
-            total_days = (end_date - start_date).days + 1
-
-            # Import yfinance here to avoid import issues
-            try:
-                import yfinance as yf
-            except ImportError:
-                QMessageBox.critical(
+            # Check if worker is already running
+            if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
+                reply = QMessageBox.question(
                     self,
-                    "Import Error",
-                    "yfinance library is not installed. Please install it with: pip install yfinance",
+                    "Update in Progress",
+                    "Exchange rate update is already running. Do you want to stop it and start a new one?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 )
-                return
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.exchange_rate_worker.stop()
+                    self.exchange_rate_worker.wait()
+                else:
+                    return
 
-            # Process each currency
-            for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                progress_dialog.setText(f"Processing {currency_code}...")
-                QApplication.processEvents()
+            # Create and configure progress dialog
+            self.progress_dialog = QMessageBox(self)
+            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
+            self.progress_dialog.setText(f"Starting exchange rate update from {start_date} to {end_date}...")
+            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
-                # Create ticker symbol for yfinance (e.g., "EURUSD=X" for EUR to USD)
-                ticker_symbol = f"{currency_code}USD=X"
+            # Connect cancel button
+            def cancel_update():
+                if hasattr(self, "exchange_rate_worker"):
+                    self.exchange_rate_worker.stop()
+                self.progress_dialog.close()
 
-                try:
-                    # Download historical data
-                    ticker = yf.Ticker(ticker_symbol)
-                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
+            self.progress_dialog.show()
 
-                    if hist.empty:
-                        print(f"⚠️ No data found for {ticker_symbol}")
-                        continue
+            # Create and start worker thread
+            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies, start_date, end_date)
 
-                    # Process each day
-                    for date, row in hist.iterrows():
-                        date_str = date.strftime("%Y-%m-%d")
+            # Connect signals
+            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
+            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
+            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
+            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
+            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
 
-                        # Check if exchange rate already exists
-                        if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
-                            # Get the close price (exchange rate)
-                            close_price = row["Close"]
-
-                            if not pd.isna(close_price) and close_price > 0:
-                                # Add exchange rate to database
-                                if self.db_manager.add_exchange_rate(currency_id, close_price, date_str):
-                                    total_updates += 1
-                                    print(f"✅ Added {currency_code}/USD rate: {close_price:.4f} for {date_str}")
-                                else:
-                                    print(f"❌ Failed to add {currency_code}/USD rate for {date_str}")
-                            else:
-                                print(f"⚠️ Invalid price for {currency_code} on {date_str}: {close_price}")
-
-                except Exception as e:
-                    print(f"❌ Error processing {currency_code}: {e}")
-                    continue
-
-            progress_dialog.close()
-
-            # Show results
-            if total_updates > 0:
-                QMessageBox.information(
-                    self,
-                    "Update Complete",
-                    f"Successfully updated {total_updates} exchange rates.\n\n"
-                    f"Date range: {start_date} to {end_date}\n"
-                    f"Currencies processed: {len(currencies)}",
-                )
-
-                # Refresh the exchange rates table
-                self.update_all()
-            else:
-                QMessageBox.information(
-                    self,
-                    "Update Complete",
-                    "No new exchange rates were added.\n\n"
-                    f"Date range: {start_date} to {end_date}\n"
-                    f"Currencies processed: {len(currencies)}",
-                )
+            # Start the worker
+            self.exchange_rate_worker.start()
 
         except Exception as e:
-            QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates: {e}")
+            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
             print(f"❌ Exchange rate update error: {e}")
 ```
 
@@ -4547,11 +5088,16 @@ def show_tables(self) -> None:
             # Refresh exchange rates table
             rates_data = self.db_manager.get_all_exchange_rates()
             rates_transformed_data = []
-            for row in rates_data:
-                # Transform: [id, from_code, to_code, rate_cents, date]
-                rate = float(row[3]) / 100
+            for i, row in enumerate(rates_data):
+                if i >= self.count_exchange_rates_to_show:
+                    break
+                # Transform: [id, from_code, to_code, rate, date]
+                # Rate is stored as USD→currency, but display as currency→USD
+                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
+                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
                 color = QColor(240, 255, 255)
-                transformed_row = [row[1], row[2], f"{rate:.4f}", row[4], row[0], color]
+                # Show as currency → USD instead of USD → currency
+                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
                 rates_transformed_data.append(transformed_row)
 
             self.models["exchange_rates"] = self._create_colored_table_model(
@@ -4844,7 +5390,18 @@ def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
 
             # Only count expenses (category_type == 0)
             if category_type == 0:
-                amount = float(amount_cents) / 100
+                # Convert amount from minor units to display format using currency subdivision
+                currency_code = row[4]
+                if self.db_manager:
+                    amount = self.db_manager.convert_from_minor_units(
+                        amount_cents,
+                        self.db_manager.get_currency_by_code(currency_code)[0]
+                        if self.db_manager.get_currency_by_code(currency_code)
+                        else 1,
+                    )
+                else:
+                    amount = float(amount_cents) / 100  # Fallback
+
                 if date in daily_expenses:
                     daily_expenses[date] += amount
                 else:
@@ -5855,6 +6412,76 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
 
 </details>
 
+### ⚙️ Method `_get_yfinance_data`
+
+```python
+def _get_yfinance_data(self, currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict
+```
+
+Get exchange rate data from yfinance.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_yfinance_data(self, currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict:
+        import pandas as pd
+        import yfinance as yf
+
+        rates_data = {}
+        ticker_symbol = f"{currency_code}USD=X"
+
+        try:
+            # Download historical data
+            ticker = yf.Ticker(ticker_symbol)
+            hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+            # If no data found, try alternative ticker formats
+            if hist.empty and currency_code in alternative_tickers:
+                print(f"⚠️ No data found for {ticker_symbol}, trying alternatives...")
+
+                for alt_ticker in alternative_tickers[currency_code]:
+                    print(f"🔄 Trying alternative ticker: {alt_ticker}")
+                    ticker = yf.Ticker(alt_ticker)
+                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                    if not hist.empty:
+                        print(f"✅ Found data with alternative ticker: {alt_ticker}")
+                        ticker_symbol = alt_ticker  # Update for logging
+
+                        # For inverse rates (USD/XXX), we need to invert the values
+                        if alt_ticker.startswith("USD/") or alt_ticker.startswith("USD"):
+                            print(f"🔄 Inverting rates for {alt_ticker}")
+                            hist = hist.copy()
+                            for col in ["Open", "High", "Low", "Close"]:
+                                if col in hist.columns:
+                                    hist[col] = 1.0 / hist[col]
+                        break
+
+            if hist.empty:
+                print(f"⚠️ No data found for {currency_code} with any yfinance ticker format")
+                return {}
+
+            print(f"📊 Processing {len(hist)} days of yfinance data for {ticker_symbol}")
+
+            # Process each day
+            for date_idx, row in hist.iterrows():
+                date_str = date_idx.strftime("%Y-%m-%d")
+                close_price = row["Close"]
+
+                if not pd.isna(close_price) and close_price > 0:
+                    rates_data[date_str] = float(close_price)
+                else:
+                    print(f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}")
+
+        except Exception as e:
+            print(f"❌ Error with yfinance for {currency_code}: {e}")
+
+        return rates_data
+```
+
+</details>
+
 ### ⚙️ Method `_init_chart_controls`
 
 ```python
@@ -6095,6 +6722,63 @@ def _on_autocomplete_selected(self, text: str) -> None:
 
 </details>
 
+### ⚙️ Method `_on_currency_started`
+
+```python
+def _on_currency_started(self, currency_code: str)
+```
+
+Handle currency processing start.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_currency_started(self, currency_code: str):
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.setText(f"Processing {currency_code}...")
+```
+
+</details>
+
+### ⚙️ Method `_on_progress_updated`
+
+```python
+def _on_progress_updated(self, message: str)
+```
+
+Handle progress updates from worker.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_progress_updated(self, message: str):
+        print(message)
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.setText(message)
+```
+
+</details>
+
+### ⚙️ Method `_on_rate_added`
+
+```python
+def _on_rate_added(self, currency_code: str, rate: float, date_str: str)
+```
+
+Handle successful rate addition.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_rate_added(self, currency_code: str, rate: float, date_str: str):
+        print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
+```
+
+</details>
+
 ### ⚙️ Method `_on_table_data_changed`
 
 ```python
@@ -6140,6 +6824,62 @@ def _on_table_data_changed(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+```
+
+</details>
+
+### ⚙️ Method `_on_update_finished_error`
+
+```python
+def _on_update_finished_error(self, error_message: str)
+```
+
+Handle error completion.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_update_finished_error(self, error_message: str):
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.close()
+
+        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
+        print(f"❌ {error_message}")
+```
+
+</details>
+
+### ⚙️ Method `_on_update_finished_success`
+
+```python
+def _on_update_finished_success(self, total_updates: int)
+```
+
+Handle successful completion.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_update_finished_success(self, total_updates: int):
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.close()
+
+        if total_updates > 0:
+            QMessageBox.information(
+                self,
+                "Update Complete",
+                f"Successfully updated {total_updates} exchange rates.",
+            )
+            # Refresh the exchange rates table
+            self.update_all()
+        else:
+            QMessageBox.information(
+                self,
+                "Update Complete",
+                "No new exchange rates were added.",
+            )
 ```
 
 </details>
@@ -6540,8 +7280,16 @@ def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
             tag = row[6]
             category_type = row[7]
 
-            # Convert amount from cents to display format
-            amount = float(amount_cents) / 100
+            # Convert amount from minor units to display format using currency subdivision
+            if self.db_manager:
+                amount = self.db_manager.convert_from_minor_units(
+                    amount_cents,
+                    self.db_manager.get_currency_by_code(currency_code)[0]
+                    if self.db_manager.get_currency_by_code(currency_code)
+                    else 1,
+                )
+            else:
+                amount = float(amount_cents) / 100  # Fallback
 
             # Determine color based on date
             if date not in date_to_color_index:

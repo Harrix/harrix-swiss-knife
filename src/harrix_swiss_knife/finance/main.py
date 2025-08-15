@@ -17,7 +17,17 @@ import harrix_pylib as h
 import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, QStringListModel, Qt, QThread, QTimer, Signal
+from PySide6.QtCore import (
+    QDate,
+    QDateTime,
+    QModelIndex,
+    QSortFilterProxyModel,
+    QStringListModel,
+    Qt,
+    QThread,
+    QTimer,
+    Signal,
+)
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QCompleter, QDialog, QFileDialog, QMainWindow, QMessageBox, QTableView
 
@@ -54,17 +64,13 @@ class ExchangeRateUpdateWorker(QThread):
         self.end_date = end_date
         self.should_stop = False
 
-    def stop(self):
-        """Request worker to stop."""
-        self.should_stop = True
-
     def run(self):
         """Main worker execution."""
         try:
             # Import required libraries
+            import pandas as pd
             import requests
             import yfinance as yf
-            import pandas as pd
 
             total_updates = 0
 
@@ -87,20 +93,22 @@ class ExchangeRateUpdateWorker(QThread):
                     response = requests.get(url, timeout=10)
                     if response.status_code == 200:
                         data = response.json()
-                        if currency in data.get('rates', {}):
+                        if currency in data.get("rates", {}):
                             # For USD base, we get XXX/USD rate (how many XXX for 1 USD)
                             # Store this directly as USD→currency rate (more intuitive)
-                            usd_to_currency_rate = data['rates'][currency]
+                            usd_to_currency_rate = data["rates"][currency]
 
                             # For simplicity, use the same rate for all dates in range
-                            current = datetime.strptime(start_date, '%Y-%m-%d').date()
-                            end = datetime.strptime(end_date, '%Y-%m-%d').date()
+                            current = datetime.strptime(start_date, "%Y-%m-%d").date()
+                            end = datetime.strptime(end_date, "%Y-%m-%d").date()
 
                             while current <= end:
-                                rates_data[current.strftime('%Y-%m-%d')] = usd_to_currency_rate
+                                rates_data[current.strftime("%Y-%m-%d")] = usd_to_currency_rate
                                 current += timedelta(days=1)
 
-                            self.progress_updated.emit(f"📊 Got USD/{currency} rate from ExchangeRate-API: {usd_to_currency_rate:.6f}")
+                            self.progress_updated.emit(
+                                f"📊 Got USD/{currency} rate from ExchangeRate-API: {usd_to_currency_rate:.6f}"
+                            )
                         else:
                             self.progress_updated.emit(f"⚠️ Currency {currency} not found in ExchangeRate-API")
                     else:
@@ -118,9 +126,9 @@ class ExchangeRateUpdateWorker(QThread):
 
                 # Alternative ticker formats for problematic currencies
                 alternative_tickers = {
-                    'VND': ['USD/VND=X', 'USDVND=X'],  # Vietnamese Dong alternatives
-                    'TRY': ['USD/TRY=X', 'USDTRY=X'],  # Turkish Lira alternatives
-                    'RUB': ['USD/RUB=X', 'USDRUB=X']   # Russian Ruble alternatives
+                    "VND": ["USD/VND=X", "USDVND=X"],  # Vietnamese Dong alternatives
+                    "TRY": ["USD/TRY=X", "USDTRY=X"],  # Turkish Lira alternatives
+                    "RUB": ["USD/RUB=X", "USDRUB=X"],  # Russian Ruble alternatives
                 }
 
                 try:
@@ -144,16 +152,18 @@ class ExchangeRateUpdateWorker(QThread):
                                 ticker_symbol = alt_ticker  # Update for logging
 
                                 # For inverse rates (USD/XXX), we need to invert the values
-                                if alt_ticker.startswith('USD/') or alt_ticker.startswith('USD'):
+                                if alt_ticker.startswith("USD/") or alt_ticker.startswith("USD"):
                                     self.progress_updated.emit(f"🔄 Inverting rates for {alt_ticker}")
                                     hist = hist.copy()
-                                    for col in ['Open', 'High', 'Low', 'Close']:
+                                    for col in ["Open", "High", "Low", "Close"]:
                                         if col in hist.columns:
                                             hist[col] = 1.0 / hist[col]
                                 break
 
                     if hist.empty:
-                        self.progress_updated.emit(f"⚠️ No data found for {currency_code} with any yfinance ticker format")
+                        self.progress_updated.emit(
+                            f"⚠️ No data found for {currency_code} with any yfinance ticker format"
+                        )
                         return {}
 
                     self.progress_updated.emit(f"📊 Processing {len(hist)} days of yfinance data for {ticker_symbol}")
@@ -168,7 +178,9 @@ class ExchangeRateUpdateWorker(QThread):
                         if not pd.isna(close_price) and close_price > 0:
                             rates_data[date_str] = float(close_price)
                         else:
-                            self.progress_updated.emit(f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}")
+                            self.progress_updated.emit(
+                                f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}"
+                            )
 
                 except Exception as e:
                     self.progress_updated.emit(f"❌ Error with yfinance for {currency_code}: {e}")
@@ -187,8 +199,13 @@ class ExchangeRateUpdateWorker(QThread):
 
                 # Try multiple data sources in order of preference
                 data_sources = [
-                    ("ExchangeRate-API", lambda: get_exchangerate_api_data(currency_code, self.start_date.strftime('%Y-%m-%d'), self.end_date.strftime('%Y-%m-%d'))),
-                    ("yfinance", lambda: get_yfinance_data(currency_code, self.start_date, self.end_date, {}))
+                    (
+                        "ExchangeRate-API",
+                        lambda: get_exchangerate_api_data(
+                            currency_code, self.start_date.strftime("%Y-%m-%d"), self.end_date.strftime("%Y-%m-%d")
+                        ),
+                    ),
+                    ("yfinance", lambda: get_yfinance_data(currency_code, self.start_date, self.end_date, {})),
                 ]
 
                 for source_name, get_data_func in data_sources:
@@ -199,7 +216,9 @@ class ExchangeRateUpdateWorker(QThread):
                         rates_data = get_data_func()
 
                         if rates_data:
-                            self.progress_updated.emit(f"✅ Successfully got data from {source_name} for {currency_code}")
+                            self.progress_updated.emit(
+                                f"✅ Successfully got data from {source_name} for {currency_code}"
+                            )
                             success = True
                             break
                         else:
@@ -210,7 +229,9 @@ class ExchangeRateUpdateWorker(QThread):
                         continue
 
                 if not success or not rates_data:
-                    self.progress_updated.emit(f"❌ Failed to get exchange rate data for {currency_code} from any source")
+                    self.progress_updated.emit(
+                        f"❌ Failed to get exchange rate data for {currency_code} from any source"
+                    )
                     continue
 
                 # Save the rates to database
@@ -227,9 +248,13 @@ class ExchangeRateUpdateWorker(QThread):
                                     total_updates += 1
                                     self.rates_added.emit(currency_code, rate, date_str)
                                 else:
-                                    self.progress_updated.emit(f"❌ Failed to add {currency_code}/USD rate for {date_str}")
+                                    self.progress_updated.emit(
+                                        f"❌ Failed to add {currency_code}/USD rate for {date_str}"
+                                    )
                             else:
-                                self.progress_updated.emit(f"⚠️ Skipping invalid rate for {currency_code} on {date_str}: {rate}")
+                                self.progress_updated.emit(
+                                    f"⚠️ Skipping invalid rate for {currency_code} on {date_str}: {rate}"
+                                )
                     except Exception as e:
                         self.progress_updated.emit(f"❌ Error saving rate for {currency_code} on {date_str}: {e}")
                         continue
@@ -239,6 +264,10 @@ class ExchangeRateUpdateWorker(QThread):
 
         except Exception as e:
             self.finished_error.emit(f"Exchange rate update error: {e}")
+
+    def stop(self):
+        """Request worker to stop."""
+        self.should_stop = True
 
 
 class MainWindow(
@@ -442,12 +471,12 @@ class MainWindow(
 
         """
         # Stop any running worker threads
-        if hasattr(self, 'exchange_rate_worker') and self.exchange_rate_worker.isRunning():
+        if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
             self.exchange_rate_worker.stop()
             self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
 
         # Close progress dialog if open
-        if hasattr(self, 'progress_dialog'):
+        if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
 
         # Dispose Models
@@ -1069,7 +1098,9 @@ class MainWindow(
             earliest_date = self.db_manager.get_earliest_financial_date()
             if not earliest_date:
                 QMessageBox.warning(
-                    self, "No Data", "No transactions or currency exchanges found. Please add some financial data first."
+                    self,
+                    "No Data",
+                    "No transactions or currency exchanges found. Please add some financial data first.",
                 )
                 return
 
@@ -1084,12 +1115,12 @@ class MainWindow(
             end_date = datetime.now().date()
 
             # Check if worker is already running
-            if hasattr(self, 'exchange_rate_worker') and self.exchange_rate_worker.isRunning():
+            if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
                 reply = QMessageBox.question(
                     self,
                     "Update in Progress",
                     "Exchange rate update is already running. Do you want to stop it and start a new one?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 )
                 if reply == QMessageBox.StandardButton.Yes:
                     self.exchange_rate_worker.stop()
@@ -1106,7 +1137,7 @@ class MainWindow(
 
             # Connect cancel button
             def cancel_update():
-                if hasattr(self, 'exchange_rate_worker'):
+                if hasattr(self, "exchange_rate_worker"):
                     self.exchange_rate_worker.stop()
                 self.progress_dialog.close()
 
@@ -1114,9 +1145,7 @@ class MainWindow(
             self.progress_dialog.show()
 
             # Create and start worker thread
-            self.exchange_rate_worker = ExchangeRateUpdateWorker(
-                self.db_manager, currencies, start_date, end_date
-            )
+            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies, start_date, end_date)
 
             # Connect signals
             self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
@@ -1131,105 +1160,6 @@ class MainWindow(
         except Exception as e:
             QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
             print(f"❌ Exchange rate update error: {e}")
-
-    def _on_progress_updated(self, message: str):
-        """Handle progress updates from worker."""
-        print(message)
-        if hasattr(self, 'progress_dialog'):
-            self.progress_dialog.setText(message)
-
-    def _on_currency_started(self, currency_code: str):
-        """Handle currency processing start."""
-        if hasattr(self, 'progress_dialog'):
-            self.progress_dialog.setText(f"Processing {currency_code}...")
-
-    def _on_rate_added(self, currency_code: str, rate: float, date_str: str):
-        """Handle successful rate addition."""
-        print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
-
-    def _on_update_finished_success(self, total_updates: int):
-        """Handle successful completion."""
-        if hasattr(self, 'progress_dialog'):
-            self.progress_dialog.close()
-
-        if total_updates > 0:
-            QMessageBox.information(
-                self,
-                "Update Complete",
-                f"Successfully updated {total_updates} exchange rates.",
-            )
-            # Refresh the exchange rates table
-            self.update_all()
-        else:
-            QMessageBox.information(
-                self,
-                "Update Complete",
-                "No new exchange rates were added.",
-            )
-
-    def _on_update_finished_error(self, error_message: str):
-        """Handle error completion."""
-        if hasattr(self, 'progress_dialog'):
-            self.progress_dialog.close()
-
-        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
-        print(f"❌ {error_message}")
-
-    def _get_yfinance_data(self, currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict:
-        """Get exchange rate data from yfinance."""
-        import yfinance as yf
-        import pandas as pd
-
-        rates_data = {}
-        ticker_symbol = f"{currency_code}USD=X"
-
-        try:
-            # Download historical data
-            ticker = yf.Ticker(ticker_symbol)
-            hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
-
-            # If no data found, try alternative ticker formats
-            if hist.empty and currency_code in alternative_tickers:
-                print(f"⚠️ No data found for {ticker_symbol}, trying alternatives...")
-
-                for alt_ticker in alternative_tickers[currency_code]:
-                    print(f"🔄 Trying alternative ticker: {alt_ticker}")
-                    ticker = yf.Ticker(alt_ticker)
-                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
-
-                    if not hist.empty:
-                        print(f"✅ Found data with alternative ticker: {alt_ticker}")
-                        ticker_symbol = alt_ticker  # Update for logging
-
-                        # For inverse rates (USD/XXX), we need to invert the values
-                        if alt_ticker.startswith('USD/') or alt_ticker.startswith('USD'):
-                            print(f"🔄 Inverting rates for {alt_ticker}")
-                            hist = hist.copy()
-                            for col in ['Open', 'High', 'Low', 'Close']:
-                                if col in hist.columns:
-                                    hist[col] = 1.0 / hist[col]
-                        break
-
-            if hist.empty:
-                print(f"⚠️ No data found for {currency_code} with any yfinance ticker format")
-                return {}
-
-            print(f"📊 Processing {len(hist)} days of yfinance data for {ticker_symbol}")
-
-            # Process each day
-            for date_idx, row in hist.iterrows():
-                date_str = date_idx.strftime("%Y-%m-%d")
-                close_price = row["Close"]
-
-                if not pd.isna(close_price) and close_price > 0:
-                    rates_data[date_str] = float(close_price)
-                else:
-                    print(f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}")
-
-        except Exception as e:
-            print(f"❌ Error with yfinance for {currency_code}: {e}")
-
-        return rates_data
 
     def on_yesterday(self) -> None:
         """Set yesterday's date in the main date field."""
@@ -1763,9 +1693,12 @@ class MainWindow(
                 # Convert amount from minor units to display format using currency subdivision
                 currency_code = row[4]
                 if self.db_manager:
-                    amount = self.db_manager.convert_from_minor_units(amount_cents,
-                                                                     self.db_manager.get_currency_by_code(currency_code)[0]
-                                                                     if self.db_manager.get_currency_by_code(currency_code) else 1)
+                    amount = self.db_manager.convert_from_minor_units(
+                        amount_cents,
+                        self.db_manager.get_currency_by_code(currency_code)[0]
+                        if self.db_manager.get_currency_by_code(currency_code)
+                        else 1,
+                    )
                 else:
                     amount = float(amount_cents) / 100  # Fallback
 
@@ -2486,6 +2419,62 @@ class MainWindow(
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
+    def _get_yfinance_data(self, currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict:
+        """Get exchange rate data from yfinance."""
+        import pandas as pd
+        import yfinance as yf
+
+        rates_data = {}
+        ticker_symbol = f"{currency_code}USD=X"
+
+        try:
+            # Download historical data
+            ticker = yf.Ticker(ticker_symbol)
+            hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+            # If no data found, try alternative ticker formats
+            if hist.empty and currency_code in alternative_tickers:
+                print(f"⚠️ No data found for {ticker_symbol}, trying alternatives...")
+
+                for alt_ticker in alternative_tickers[currency_code]:
+                    print(f"🔄 Trying alternative ticker: {alt_ticker}")
+                    ticker = yf.Ticker(alt_ticker)
+                    hist = ticker.history(start=start_date, end=end_date + timedelta(days=1))
+
+                    if not hist.empty:
+                        print(f"✅ Found data with alternative ticker: {alt_ticker}")
+                        ticker_symbol = alt_ticker  # Update for logging
+
+                        # For inverse rates (USD/XXX), we need to invert the values
+                        if alt_ticker.startswith("USD/") or alt_ticker.startswith("USD"):
+                            print(f"🔄 Inverting rates for {alt_ticker}")
+                            hist = hist.copy()
+                            for col in ["Open", "High", "Low", "Close"]:
+                                if col in hist.columns:
+                                    hist[col] = 1.0 / hist[col]
+                        break
+
+            if hist.empty:
+                print(f"⚠️ No data found for {currency_code} with any yfinance ticker format")
+                return {}
+
+            print(f"📊 Processing {len(hist)} days of yfinance data for {ticker_symbol}")
+
+            # Process each day
+            for date_idx, row in hist.iterrows():
+                date_str = date_idx.strftime("%Y-%m-%d")
+                close_price = row["Close"]
+
+                if not pd.isna(close_price) and close_price > 0:
+                    rates_data[date_str] = float(close_price)
+                else:
+                    print(f"⚠️ Invalid yfinance price for {currency_code} on {date_str}: {close_price}")
+
+        except Exception as e:
+            print(f"❌ Error with yfinance for {currency_code}: {e}")
+
+        return rates_data
+
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
         current_date = QDate.currentDate()
@@ -2658,6 +2647,21 @@ class MainWindow(
         # This ensures form population is complete before focusing
         QTimer.singleShot(100, self._focus_amount_and_select_text)
 
+    def _on_currency_started(self, currency_code: str):
+        """Handle currency processing start."""
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.setText(f"Processing {currency_code}...")
+
+    def _on_progress_updated(self, message: str):
+        """Handle progress updates from worker."""
+        print(message)
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.setText(message)
+
+    def _on_rate_added(self, currency_code: str, rate: float, date_str: str):
+        """Handle successful rate addition."""
+        print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -2694,6 +2698,34 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+
+    def _on_update_finished_error(self, error_message: str):
+        """Handle error completion."""
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.close()
+
+        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
+        print(f"❌ {error_message}")
+
+    def _on_update_finished_success(self, total_updates: int):
+        """Handle successful completion."""
+        if hasattr(self, "progress_dialog"):
+            self.progress_dialog.close()
+
+        if total_updates > 0:
+            QMessageBox.information(
+                self,
+                "Update Complete",
+                f"Successfully updated {total_updates} exchange rates.",
+            )
+            # Refresh the exchange rates table
+            self.update_all()
+        else:
+            QMessageBox.information(
+                self,
+                "Update Complete",
+                "No new exchange rates were added.",
+            )
 
     def _populate_form_from_description(self, description: str) -> None:
         """Populate form fields based on description from database."""
@@ -2966,9 +2998,12 @@ class MainWindow(
 
             # Convert amount from minor units to display format using currency subdivision
             if self.db_manager:
-                amount = self.db_manager.convert_from_minor_units(amount_cents,
-                                                                 self.db_manager.get_currency_by_code(currency_code)[0]
-                                                                 if self.db_manager.get_currency_by_code(currency_code) else 1)
+                amount = self.db_manager.convert_from_minor_units(
+                    amount_cents,
+                    self.db_manager.get_currency_by_code(currency_code)[0]
+                    if self.db_manager.get_currency_by_code(currency_code)
+                    else 1,
+                )
             else:
                 amount = float(amount_cents) / 100  # Fallback
 
