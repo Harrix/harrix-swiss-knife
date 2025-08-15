@@ -462,14 +462,14 @@
           <widget class="QWidget" name="widget_food_middle">
            <layout class="QVBoxLayout" name="verticalLayout_food_middle">
             <item>
-             <widget class="QLabel" name="label_favorite_food_items">
+             <widget class="QLabel" name="label_food_items">
               <property name="text">
-               <string>Food Favorite Items:</string>
+               <string>Food Items:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QListView" name="listView_favorite_food_items">
+             <widget class="QListView" name="listView_food_items">
               <property name="styleSheet">
                <string notr="true">QListView {
                                 border: 2px solid #2196F3;
@@ -491,14 +491,14 @@
              </widget>
             </item>
             <item>
-             <widget class="QLabel" name="label_food_items">
+             <widget class="QLabel" name="label_favorite_food_items">
               <property name="text">
-               <string>Food Items:</string>
+               <string>Food Favorite Items:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QListView" name="listView_food_items">
+             <widget class="QListView" name="listView_favorite_food_items">
               <property name="styleSheet">
                <string notr="true">QListView {
                                 border: 2px solid #2196F3;
