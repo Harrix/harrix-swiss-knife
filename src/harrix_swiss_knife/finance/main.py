@@ -391,226 +391,6 @@ class MainWindow(
         # Show window after initialization
         QTimer.singleShot(200, self._finish_window_initialization)
 
-    def _initial_load(self) -> None:
-        """Initial load of essential data at startup (without exchange rates)."""
-        if not self._validate_database_connection():
-            print("Database connection not available for initial load")
-            return
-
-        # Load essential tables only (excluding exchange rates)
-        self._load_essential_tables()
-        self._update_comboboxes()
-        self.update_filter_comboboxes()
-        self.update_chart_comboboxes()
-        self.set_today_date()
-        self.update_summary_labels()
-
-        # Clear forms
-        self._clear_all_forms()
-
-    def _load_essential_tables(self) -> None:
-        """Load essential tables at startup (excluding exchange rates for lazy loading)."""
-        if not self._validate_database_connection():
-            print("Database connection not available for showing essential tables")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Load each table individually with error handling
-            tables_to_load = [
-                ("transactions", self._load_transactions_table),
-                ("categories", self._load_categories_table),
-                ("accounts", self._load_accounts_table),
-                ("currencies", self._load_currencies_table),
-                ("currency_exchanges", self._load_currency_exchanges_table),
-            ]
-
-            for table_name, load_method in tables_to_load:
-                try:
-                    load_method()
-                except Exception as e:
-                    print(f"❌ Error loading {table_name} table: {e}")
-                    # Продолжаем загрузку других таблиц
-
-            # Connect auto-save signals for loaded tables
-            self._connect_table_auto_save_signals()
-
-        except Exception as e:
-            print(f"Error loading essential tables: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load essential tables: {e}")
-
-    def _load_transactions_table(self) -> None:
-        """Load transactions table."""
-        limit = None if self.show_all_transactions else self.count_transactions_to_show
-        transactions_data = self.db_manager.get_all_transactions(limit=limit)
-        transactions_transformed_data = self._transform_transaction_data(transactions_data)
-        self.models["transactions"] = self._create_transactions_table_model(
-            transactions_transformed_data, self.table_config["transactions"][2]
-        )
-        self.tableView_transactions.setModel(self.models["transactions"])
-
-        # Special handling for transactions table - column stretching setup
-        header = self.tableView_transactions.horizontalHeader()
-        if header.count() > 0:
-            # Set stretch mode for all columns except the last two
-            for i in range(header.count() - 2):
-                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
-
-            # For the second-to-last column (Tag) set fixed width
-            second_last_column = header.count() - 2
-            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(second_last_column, 100)
-
-            # For the last column (Total per day) set fixed width
-            last_column = header.count() - 1
-            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(last_column, 120)
-
-    def _load_categories_table(self) -> None:
-        """Load categories table."""
-        categories_data = self.db_manager.get_all_categories()
-        categories_transformed_data = []
-        for row in categories_data:
-            # Transform: [id, name, type, icon] -> [name, type_str, icon, id, color]
-            type_str = "Expense" if row[2] == 0 else "Income"
-            color = QColor(255, 200, 200) if row[2] == 0 else QColor(200, 255, 200)
-            transformed_row = [row[1], type_str, row[3], row[0], color]
-            categories_transformed_data.append(transformed_row)
-
-        self.models["categories"] = self._create_colored_table_model(
-            categories_transformed_data, self.table_config["categories"][2]
-        )
-        self.tableView_categories.setModel(self.models["categories"])
-
-        # Configure column stretching for categories table
-        categories_header = self.tableView_categories.horizontalHeader()
-        if categories_header.count() > 0:
-            for i in range(categories_header.count()):
-                categories_header.setSectionResizeMode(i, categories_header.ResizeMode.Stretch)
-
-    def _load_accounts_table(self) -> None:
-        """Load accounts table."""
-        accounts_data = self.db_manager.get_all_accounts()
-
-        # Define colors for different account groups
-        account_colors = {
-            (0, 1): QColor(220, 255, 220),  # is_cash=0, is_liquid=1 - Light green
-            (1, 1): QColor(255, 255, 200),  # is_cash=1, is_liquid=1 - Light yellow
-            (0, 0): QColor(255, 220, 220),  # is_cash=0, is_liquid=0 - Light red
-            (1, 0): QColor(255, 200, 255),  # is_cash=1, is_liquid=0 - Light purple
-        }
-
-        # Group accounts by (is_cash, is_liquid) and sort within groups
-        account_groups = {
-            (0, 1): [],  # is_cash=0, is_liquid=1
-            (1, 1): [],  # is_cash=1, is_liquid=1
-            (0, 0): [],  # is_cash=0, is_liquid=0
-            (1, 0): [],  # is_cash=1, is_liquid=0
-        }
-
-        for row in accounts_data:
-            # Raw data: [id, name, balance_cents, currency_code, is_liquid, is_cash]
-            is_liquid = row[4]
-            is_cash = row[5]
-            group_key = (is_cash, is_liquid)
-            account_groups[group_key].append(row)
-
-        # Sort each group alphabetically by name
-        for group in account_groups.values():
-            group.sort(key=lambda x: x[1].lower())  # Sort by name (case-insensitive)
-
-        # Combine groups in the specified order
-        accounts_transformed_data = []
-        for group_key in [(0, 1), (1, 1), (0, 0), (1, 0)]:
-            color = account_colors[group_key]
-            for row in account_groups[group_key]:
-                # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] -> [name, balance, currency, liquid, cash, id, color]
-                currency_id = row[6]  # currency_id
-                balance = self.db_manager.convert_from_minor_units(row[2], currency_id)
-                liquid_str = "👍" if row[4] == 1 else "👎"
-                cash_str = "💵" if row[5] == 1 else "💳"
-                transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
-                accounts_transformed_data.append(transformed_row)
-
-        self.models["accounts"] = self._create_colored_table_model(
-            accounts_transformed_data, self.table_config["accounts"][2]
-        )
-        self.tableView_accounts.setModel(self.models["accounts"])
-
-        # Make accounts table non-editable and connect double-click signal
-        self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
-        self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
-
-        # Configure column stretching for accounts table
-        accounts_header = self.tableView_accounts.horizontalHeader()
-        if accounts_header.count() > 0:
-            for i in range(accounts_header.count()):
-                accounts_header.setSectionResizeMode(i, accounts_header.ResizeMode.Stretch)
-            # Ensure stretch settings are applied
-            accounts_header.setStretchLastSection(False)
-
-    def _load_currencies_table(self) -> None:
-        """Load currencies table."""
-        currencies_data = self.db_manager.get_all_currencies()
-        currencies_transformed_data = []
-        for row in currencies_data:
-            # Transform: [id, code, name, symbol] -> [code, name, symbol, id, color]
-            color = QColor(255, 255, 220)
-            transformed_row = [row[1], row[2], row[3], row[0], color]
-            currencies_transformed_data.append(transformed_row)
-
-        self.models["currencies"] = self._create_colored_table_model(
-            currencies_transformed_data, self.table_config["currencies"][2]
-        )
-        self.tableView_currencies.setModel(self.models["currencies"])
-
-        # Configure column stretching for currencies table
-        currencies_header = self.tableView_currencies.horizontalHeader()
-        if currencies_header.count() > 0:
-            for i in range(currencies_header.count()):
-                currencies_header.setSectionResizeMode(i, currencies_header.ResizeMode.Stretch)
-
-    def _load_currency_exchanges_table(self) -> None:
-        """Load currency exchanges table."""
-        exchanges_data = self.db_manager.get_all_currency_exchanges()
-        exchanges_transformed_data = []
-        for row in exchanges_data:
-            # Transform: [id, from_code, to_code, amount_from_cents, amount_to_cents, rate_cents, fee_cents, date, description]
-            amount_from = float(row[3]) / 100
-            amount_to = float(row[4]) / 100
-            rate = float(row[5]) / 100
-            fee = float(row[6]) / 100
-            color = QColor(255, 240, 255)
-            transformed_row = [
-                row[1],
-                row[2],
-                f"{amount_from:.2f}",
-                f"{amount_to:.2f}",
-                f"{rate:.4f}",
-                f"{fee:.2f}",
-                row[7],
-                row[8],
-                row[0],
-                color,
-            ]
-            exchanges_transformed_data.append(transformed_row)
-
-        self.models["currency_exchanges"] = self._create_colored_table_model(
-            exchanges_transformed_data, self.table_config["currency_exchanges"][2]
-        )
-        self.tableView_exchange.setModel(self.models["currency_exchanges"])
-
-        # Configure column stretching for exchange table
-        exchange_header = self.tableView_exchange.horizontalHeader()
-        if exchange_header.count() > 0:
-            for i in range(exchange_header.count()):
-                exchange_header.setSectionResizeMode(i, exchange_header.ResizeMode.Stretch)
-            # Ensure stretch settings are applied
-            exchange_header.setStretchLastSection(False)
-
     @requires_database()
     def apply_filter(self) -> None:
         """Apply combo-box/date filters to the transactions table."""
@@ -882,6 +662,44 @@ class MainWindow(
 
         # Call parent implementation for other key events
         super().keyPressEvent(event)
+
+    def load_exchange_rates_table(self) -> None:
+        """Load exchange rates table data (lazy loading)."""
+        if not self._validate_database_connection():
+            print("Database connection not available for loading exchange rates")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Refresh exchange rates table - get only the latest records sorted by date
+            rates_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
+            rates_transformed_data = []
+            for row in rates_data:
+                # Transform: [id, from_code, to_code, rate, date]
+                # Rate is stored as USD→currency, but display as currency→USD
+                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
+                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
+                color = QColor(240, 255, 255)
+                # Show as currency → USD instead of USD → currency
+                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
+                rates_transformed_data.append(transformed_row)
+
+            self.models["exchange_rates"] = self._create_colored_table_model(
+                rates_transformed_data, self.table_config["exchange_rates"][2]
+            )
+            self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+
+            # Configure column stretching for exchange rates table
+            rates_header = self.tableView_exchange_rates.horizontalHeader()
+            if rates_header.count() > 0:
+                for i in range(rates_header.count()):
+                    rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
+
+        except Exception as e:
+            print(f"❌ Error loading exchange rates table: {e}")
 
     @requires_database()
     def on_add_account(self) -> None:
@@ -1535,44 +1353,6 @@ class MainWindow(
         # Create pie chart
         self._create_pie_chart(category_totals, f"Expenses by Category ({default_currency_code})")
 
-    def load_exchange_rates_table(self) -> None:
-        """Load exchange rates table data (lazy loading)."""
-        if not self._validate_database_connection():
-            print("Database connection not available for loading exchange rates")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Refresh exchange rates table - get only the latest records sorted by date
-            rates_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
-            rates_transformed_data = []
-            for row in rates_data:
-                # Transform: [id, from_code, to_code, rate, date]
-                # Rate is stored as USD→currency, but display as currency→USD
-                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
-                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
-                color = QColor(240, 255, 255)
-                # Show as currency → USD instead of USD → currency
-                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
-                rates_transformed_data.append(transformed_row)
-
-            self.models["exchange_rates"] = self._create_colored_table_model(
-                rates_transformed_data, self.table_config["exchange_rates"][2]
-            )
-            self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
-
-            # Configure column stretching for exchange rates table
-            rates_header = self.tableView_exchange_rates.horizontalHeader()
-            if rates_header.count() > 0:
-                for i in range(rates_header.count()):
-                    rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
-
-        except Exception as e:
-            print(f"❌ Error loading exchange rates table: {e}")
-
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods (except exchange rates - lazy loaded)."""
         if not self._validate_database_connection():
@@ -1753,32 +1533,6 @@ class MainWindow(
             self.label_total_expenses.setText("Total Expenses: 0.00₽")
             self.label_daily_balance.setText("0.00₽")
             self.label_today_expense.setText("0.00₽")
-
-    # Lazy loading change markers
-    def _mark_transactions_changed(self) -> None:
-        """Mark that transaction data has changed and needs refresh."""
-        # No specific action needed for transactions as they load immediately
-        pass
-
-    def _mark_categories_changed(self) -> None:
-        """Mark that category data has changed and needs refresh."""
-        # No specific action needed for categories as they load immediately
-        pass
-
-    def _mark_currencies_changed(self) -> None:
-        """Mark that currency data has changed and needs refresh."""
-        # No specific action needed for currencies as they load immediately
-        pass
-
-    def _mark_exchange_rates_changed(self) -> None:
-        """Mark that exchange rates data has changed and needs refresh."""
-        # Mark exchange rates as needing reload
-        self.exchange_rates_loaded = False
-
-    def _mark_default_currency_changed(self) -> None:
-        """Mark that default currency has changed and needs refresh."""
-        # No specific action needed as this affects multiple areas that reload immediately
-        pass
 
     def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
         """Calculate daily expenses from transaction data.
@@ -2580,6 +2334,252 @@ class MainWindow(
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
         self.checkBox_use_date_filter.setChecked(False)
+
+    def _initial_load(self) -> None:
+        """Initial load of essential data at startup (without exchange rates)."""
+        if not self._validate_database_connection():
+            print("Database connection not available for initial load")
+            return
+
+        # Load essential tables only (excluding exchange rates)
+        self._load_essential_tables()
+        self._update_comboboxes()
+        self.update_filter_comboboxes()
+        self.update_chart_comboboxes()
+        self.set_today_date()
+        self.update_summary_labels()
+
+        # Clear forms
+        self._clear_all_forms()
+
+    def _load_accounts_table(self) -> None:
+        """Load accounts table."""
+        accounts_data = self.db_manager.get_all_accounts()
+
+        # Define colors for different account groups
+        account_colors = {
+            (0, 1): QColor(220, 255, 220),  # is_cash=0, is_liquid=1 - Light green
+            (1, 1): QColor(255, 255, 200),  # is_cash=1, is_liquid=1 - Light yellow
+            (0, 0): QColor(255, 220, 220),  # is_cash=0, is_liquid=0 - Light red
+            (1, 0): QColor(255, 200, 255),  # is_cash=1, is_liquid=0 - Light purple
+        }
+
+        # Group accounts by (is_cash, is_liquid) and sort within groups
+        account_groups = {
+            (0, 1): [],  # is_cash=0, is_liquid=1
+            (1, 1): [],  # is_cash=1, is_liquid=1
+            (0, 0): [],  # is_cash=0, is_liquid=0
+            (1, 0): [],  # is_cash=1, is_liquid=0
+        }
+
+        for row in accounts_data:
+            # Raw data: [id, name, balance_cents, currency_code, is_liquid, is_cash]
+            is_liquid = row[4]
+            is_cash = row[5]
+            group_key = (is_cash, is_liquid)
+            account_groups[group_key].append(row)
+
+        # Sort each group alphabetically by name
+        for group in account_groups.values():
+            group.sort(key=lambda x: x[1].lower())  # Sort by name (case-insensitive)
+
+        # Combine groups in the specified order
+        accounts_transformed_data = []
+        for group_key in [(0, 1), (1, 1), (0, 0), (1, 0)]:
+            color = account_colors[group_key]
+            for row in account_groups[group_key]:
+                # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] -> [name, balance, currency, liquid, cash, id, color]
+                currency_id = row[6]  # currency_id
+                balance = self.db_manager.convert_from_minor_units(row[2], currency_id)
+                liquid_str = "👍" if row[4] == 1 else "👎"
+                cash_str = "💵" if row[5] == 1 else "💳"
+                transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
+                accounts_transformed_data.append(transformed_row)
+
+        self.models["accounts"] = self._create_colored_table_model(
+            accounts_transformed_data, self.table_config["accounts"][2]
+        )
+        self.tableView_accounts.setModel(self.models["accounts"])
+
+        # Make accounts table non-editable and connect double-click signal
+        self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
+        self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
+
+        # Configure column stretching for accounts table
+        accounts_header = self.tableView_accounts.horizontalHeader()
+        if accounts_header.count() > 0:
+            for i in range(accounts_header.count()):
+                accounts_header.setSectionResizeMode(i, accounts_header.ResizeMode.Stretch)
+            # Ensure stretch settings are applied
+            accounts_header.setStretchLastSection(False)
+
+    def _load_categories_table(self) -> None:
+        """Load categories table."""
+        categories_data = self.db_manager.get_all_categories()
+        categories_transformed_data = []
+        for row in categories_data:
+            # Transform: [id, name, type, icon] -> [name, type_str, icon, id, color]
+            type_str = "Expense" if row[2] == 0 else "Income"
+            color = QColor(255, 200, 200) if row[2] == 0 else QColor(200, 255, 200)
+            transformed_row = [row[1], type_str, row[3], row[0], color]
+            categories_transformed_data.append(transformed_row)
+
+        self.models["categories"] = self._create_colored_table_model(
+            categories_transformed_data, self.table_config["categories"][2]
+        )
+        self.tableView_categories.setModel(self.models["categories"])
+
+        # Configure column stretching for categories table
+        categories_header = self.tableView_categories.horizontalHeader()
+        if categories_header.count() > 0:
+            for i in range(categories_header.count()):
+                categories_header.setSectionResizeMode(i, categories_header.ResizeMode.Stretch)
+
+    def _load_currencies_table(self) -> None:
+        """Load currencies table."""
+        currencies_data = self.db_manager.get_all_currencies()
+        currencies_transformed_data = []
+        for row in currencies_data:
+            # Transform: [id, code, name, symbol] -> [code, name, symbol, id, color]
+            color = QColor(255, 255, 220)
+            transformed_row = [row[1], row[2], row[3], row[0], color]
+            currencies_transformed_data.append(transformed_row)
+
+        self.models["currencies"] = self._create_colored_table_model(
+            currencies_transformed_data, self.table_config["currencies"][2]
+        )
+        self.tableView_currencies.setModel(self.models["currencies"])
+
+        # Configure column stretching for currencies table
+        currencies_header = self.tableView_currencies.horizontalHeader()
+        if currencies_header.count() > 0:
+            for i in range(currencies_header.count()):
+                currencies_header.setSectionResizeMode(i, currencies_header.ResizeMode.Stretch)
+
+    def _load_currency_exchanges_table(self) -> None:
+        """Load currency exchanges table."""
+        exchanges_data = self.db_manager.get_all_currency_exchanges()
+        exchanges_transformed_data = []
+        for row in exchanges_data:
+            # Transform: [id, from_code, to_code, amount_from_cents, amount_to_cents, rate_cents, fee_cents, date, description]
+            amount_from = float(row[3]) / 100
+            amount_to = float(row[4]) / 100
+            rate = float(row[5]) / 100
+            fee = float(row[6]) / 100
+            color = QColor(255, 240, 255)
+            transformed_row = [
+                row[1],
+                row[2],
+                f"{amount_from:.2f}",
+                f"{amount_to:.2f}",
+                f"{rate:.4f}",
+                f"{fee:.2f}",
+                row[7],
+                row[8],
+                row[0],
+                color,
+            ]
+            exchanges_transformed_data.append(transformed_row)
+
+        self.models["currency_exchanges"] = self._create_colored_table_model(
+            exchanges_transformed_data, self.table_config["currency_exchanges"][2]
+        )
+        self.tableView_exchange.setModel(self.models["currency_exchanges"])
+
+        # Configure column stretching for exchange table
+        exchange_header = self.tableView_exchange.horizontalHeader()
+        if exchange_header.count() > 0:
+            for i in range(exchange_header.count()):
+                exchange_header.setSectionResizeMode(i, exchange_header.ResizeMode.Stretch)
+            # Ensure stretch settings are applied
+            exchange_header.setStretchLastSection(False)
+
+    def _load_essential_tables(self) -> None:
+        """Load essential tables at startup (excluding exchange rates for lazy loading)."""
+        if not self._validate_database_connection():
+            print("Database connection not available for showing essential tables")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Load each table individually with error handling
+            tables_to_load = [
+                ("transactions", self._load_transactions_table),
+                ("categories", self._load_categories_table),
+                ("accounts", self._load_accounts_table),
+                ("currencies", self._load_currencies_table),
+                ("currency_exchanges", self._load_currency_exchanges_table),
+            ]
+
+            for table_name, load_method in tables_to_load:
+                try:
+                    load_method()
+                except Exception as e:
+                    print(f"❌ Error loading {table_name} table: {e}")
+                    # Продолжаем загрузку других таблиц
+
+            # Connect auto-save signals for loaded tables
+            self._connect_table_auto_save_signals()
+
+        except Exception as e:
+            print(f"Error loading essential tables: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to load essential tables: {e}")
+
+    def _load_transactions_table(self) -> None:
+        """Load transactions table."""
+        limit = None if self.show_all_transactions else self.count_transactions_to_show
+        transactions_data = self.db_manager.get_all_transactions(limit=limit)
+        transactions_transformed_data = self._transform_transaction_data(transactions_data)
+        self.models["transactions"] = self._create_transactions_table_model(
+            transactions_transformed_data, self.table_config["transactions"][2]
+        )
+        self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Special handling for transactions table - column stretching setup
+        header = self.tableView_transactions.horizontalHeader()
+        if header.count() > 0:
+            # Set stretch mode for all columns except the last two
+            for i in range(header.count() - 2):
+                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+
+            # For the second-to-last column (Tag) set fixed width
+            second_last_column = header.count() - 2
+            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
+            self.tableView_transactions.setColumnWidth(second_last_column, 100)
+
+            # For the last column (Total per day) set fixed width
+            last_column = header.count() - 1
+            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
+            self.tableView_transactions.setColumnWidth(last_column, 120)
+
+    def _mark_categories_changed(self) -> None:
+        """Mark that category data has changed and needs refresh."""
+        # No specific action needed for categories as they load immediately
+        pass
+
+    def _mark_currencies_changed(self) -> None:
+        """Mark that currency data has changed and needs refresh."""
+        # No specific action needed for currencies as they load immediately
+        pass
+
+    def _mark_default_currency_changed(self) -> None:
+        """Mark that default currency has changed and needs refresh."""
+        # No specific action needed as this affects multiple areas that reload immediately
+        pass
+
+    def _mark_exchange_rates_changed(self) -> None:
+        """Mark that exchange rates data has changed and needs refresh."""
+        # Mark exchange rates as needing reload
+        self.exchange_rates_loaded = False
+
+    # Lazy loading change markers
+    def _mark_transactions_changed(self) -> None:
+        """Mark that transaction data has changed and needs refresh."""
+        # No specific action needed for transactions as they load immediately
+        pass
 
     def _on_account_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on accounts table.

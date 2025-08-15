@@ -837,20 +837,29 @@ class DatabaseManager:
 
         return rows
 
-    def get_all_exchange_rates(self) -> list[list[Any]]:
+    def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
         """Get all exchange rates with currency information.
+
+        Args:
+
+        - `limit` (`int | None`): Maximum number of records to return. None for all records. Defaults to `None`.
 
         Returns:
 
         - `list[list[Any]]`: List of exchange rate records.
 
         """
-        rows = self.get_rows("""
+        query = """
             SELECT er._id, 'USD', c.code, er.rate, er.date
             FROM exchange_rates er
             JOIN currencies c ON er._id_currency = c._id
             ORDER BY er.date DESC, er._id DESC
-        """)
+        """
+
+        if limit is not None:
+            query += f" LIMIT {limit}"
+
+        rows = self.get_rows(query)
 
         # Rates are already stored as REAL, no conversion needed
         # Just ensure they are float type for consistency and handle empty strings
@@ -2893,10 +2902,14 @@ def get_all_currency_exchanges(self) -> list[list[Any]]:
 ### ⚙️ Method `get_all_exchange_rates`
 
 ```python
-def get_all_exchange_rates(self) -> list[list[Any]]
+def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]
 ```
 
 Get all exchange rates with currency information.
+
+Args:
+
+- `limit` (`int | None`): Maximum number of records to return. None for all records. Defaults to `None`.
 
 Returns:
 
@@ -2906,13 +2919,18 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_all_exchange_rates(self) -> list[list[Any]]:
-        rows = self.get_rows("""
+def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
+        query = """
             SELECT er._id, 'USD', c.code, er.rate, er.date
             FROM exchange_rates er
             JOIN currencies c ON er._id_currency = c._id
             ORDER BY er.date DESC, er._id DESC
-        """)
+        """
+
+        if limit is not None:
+            query += f" LIMIT {limit}"
+
+        rows = self.get_rows(query)
 
         # Rates are already stored as REAL, no conversion needed
         # Just ensure they are float type for consistency and handle empty strings
