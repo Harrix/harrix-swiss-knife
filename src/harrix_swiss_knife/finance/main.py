@@ -104,7 +104,7 @@ class MainWindow(
         self.show_all_transactions = False
 
         # Lazy loading flags for tab optimization
-        self._transactions_tab_initialized = False
+        self._transactions_tab_initialized = True  # True because transactions tab is active on startup
         self._categories_changed = False
         self._currencies_changed = False
         self._transactions_changed = False

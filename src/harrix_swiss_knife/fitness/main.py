@@ -131,7 +131,7 @@ class MainWindow(
         self.show_all_records = False
 
         # Lazy loading flags for tab optimization
-        self._main_tab_initialized = False
+        self._main_tab_initialized = True  # True because main tab is active on startup
         self._exercises_changed = False
 
         # Chart configuration
