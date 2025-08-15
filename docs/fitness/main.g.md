@@ -81,7 +81,6 @@ lang: en
   - [⚙️ Method `_get_selected_exercise_from_statistics_table`](#%EF%B8%8F-method-_get_selected_exercise_from_statistics_table)
   - [⚙️ Method `_get_selected_exercise_from_table`](#%EF%B8%8F-method-_get_selected_exercise_from_table)
   - [⚙️ Method `_get_selected_row_id`](#%EF%B8%8F-method-_get_selected_row_id)
-  - [⚙️ Method `_handle_main_tab_change`](#%EF%B8%8F-method-_handle_main_tab_change)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_exercise_chart_controls`](#%EF%B8%8F-method-_init_exercise_chart_controls)
   - [⚙️ Method `_init_exercises_list`](#%EF%B8%8F-method-_init_exercises_list)
@@ -199,10 +198,6 @@ class MainWindow(
         # Process table display mode flag
         self.count_records_to_show = 5000
         self.show_all_records = False
-
-        # Lazy loading flags for tab optimization
-        self._main_tab_initialized = False
-        self._exercises_changed = False
 
         # Chart configuration
         self.max_count_points_in_charts = 40
@@ -2077,9 +2072,8 @@ class MainWindow(
         index_tab_charts = 3
         index_tab_statistics = 4
 
-        if index == 0:  # Main tab
-            self._handle_main_tab_change()
-        elif index == 1:  # Exercises tab
+        # Note: Main tab (index 0) needs no updates - data loaded on startup
+        if index == 1:  # Exercises tab
             # Update exercises AVIF when switching to exercises tab
             self._update_exercises_avif()
             self._update_types_avif()
@@ -3547,16 +3541,6 @@ class MainWindow(
         except (KeyError, ValueError, TypeError, AttributeError):
             return None
 
-    def _handle_main_tab_change(self) -> None:
-        """Handle main tab change with lazy loading optimization."""
-        # Initialize on first access or update if exercises changed
-        if not self._main_tab_initialized or self._exercises_changed:
-            self.update_filter_comboboxes()
-            self._exercises_changed = False
-
-        # Mark as initialized after first access
-        self._main_tab_initialized = True
-
     def _init_database(self) -> None:
         """Open the SQLite file from `config` (create from recover.sql if missing).
 
@@ -4515,10 +4499,6 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Process table display mode flag
         self.count_records_to_show = 5000
         self.show_all_records = False
-
-        # Lazy loading flags for tab optimization
-        self._main_tab_initialized = False
-        self._exercises_changed = False
 
         # Chart configuration
         self.max_count_points_in_charts = 40
@@ -6719,9 +6699,8 @@ def on_tab_changed(self, index: int) -> None:
         index_tab_charts = 3
         index_tab_statistics = 4
 
-        if index == 0:  # Main tab
-            self._handle_main_tab_change()
-        elif index == 1:  # Exercises tab
+        # Note: Main tab (index 0) needs no updates - data loaded on startup
+        if index == 1:  # Exercises tab
             # Update exercises AVIF when switching to exercises tab
             self._update_exercises_avif()
             self._update_types_avif()
@@ -8725,30 +8704,6 @@ def _get_selected_row_id(self, table_name: str) -> int | None:
 
         except (KeyError, ValueError, TypeError, AttributeError):
             return None
-```
-
-</details>
-
-### ⚙️ Method `_handle_main_tab_change`
-
-```python
-def _handle_main_tab_change(self) -> None
-```
-
-Handle main tab change with lazy loading optimization.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _handle_main_tab_change(self) -> None:
-        # Initialize on first access or update if exercises changed
-        if not self._main_tab_initialized or self._exercises_changed:
-            self.update_filter_comboboxes()
-            self._exercises_changed = False
-
-        # Mark as initialized after first access
-        self._main_tab_initialized = True
 ```
 
 </details>

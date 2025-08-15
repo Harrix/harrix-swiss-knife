@@ -72,14 +72,9 @@ lang: en
   - [⚙️ Method `_generate_currency_analysis_report`](#%EF%B8%8F-method-_generate_currency_analysis_report)
   - [⚙️ Method `_generate_income_vs_expenses_report`](#%EF%B8%8F-method-_generate_income_vs_expenses_report)
   - [⚙️ Method `_generate_monthly_summary_report`](#%EF%B8%8F-method-_generate_monthly_summary_report)
-  - [⚙️ Method `_handle_transactions_tab_change`](#%EF%B8%8F-method-_handle_transactions_tab_change)
   - [⚙️ Method `_init_chart_controls`](#%EF%B8%8F-method-_init_chart_controls)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
-  - [⚙️ Method `_mark_categories_changed`](#%EF%B8%8F-method-_mark_categories_changed)
-  - [⚙️ Method `_mark_currencies_changed`](#%EF%B8%8F-method-_mark_currencies_changed)
-  - [⚙️ Method `_mark_default_currency_changed`](#%EF%B8%8F-method-_mark_default_currency_changed)
-  - [⚙️ Method `_mark_transactions_changed`](#%EF%B8%8F-method-_mark_transactions_changed)
   - [⚙️ Method `_on_account_double_clicked`](#%EF%B8%8F-method-_on_account_double_clicked)
   - [⚙️ Method `_on_autocomplete_selected`](#%EF%B8%8F-method-_on_autocomplete_selected)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
@@ -174,13 +169,6 @@ class MainWindow(
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show = 5000
         self.show_all_transactions = False
-
-        # Lazy loading flags for tab optimization
-        self._transactions_tab_initialized = False
-        self._categories_changed = False
-        self._currencies_changed = False
-        self._transactions_changed = False
-        self._default_currency_changed = False
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -910,7 +898,7 @@ class MainWindow(
         self.show_tables()
 
     def on_tab_changed(self, index: int) -> None:
-        """React to tab change with lazy loading optimization.
+        """React to tab change.
 
         Args:
 
@@ -918,12 +906,11 @@ class MainWindow(
 
         """
         # Update relevant data when switching to different tabs
-        if index == 0:  # Transactions tab
-            self._handle_transactions_tab_change()
-        elif index == 6:  # Charts tab
+        if index == 6:  # Charts tab
             self.update_chart_comboboxes()
         elif index == 7:  # Reports tab
             self.update_summary_labels()
+        # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
     @requires_database()
     def on_update_exchange_rates(self) -> None:
@@ -2297,23 +2284,6 @@ class MainWindow(
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
-    def _handle_transactions_tab_change(self) -> None:
-        """Handle transactions tab change with lazy loading optimization."""
-        # Initialize on first access or update if data changed
-        if not self._transactions_tab_initialized or self._categories_changed or self._currencies_changed:
-            self.update_filter_comboboxes()
-            self._categories_changed = False
-            self._currencies_changed = False
-
-        # Update summary labels if transactions or currency changed
-        if not self._transactions_tab_initialized or self._transactions_changed or self._default_currency_changed:
-            self.update_summary_labels()
-            self._transactions_changed = False
-            self._default_currency_changed = False
-
-        # Mark as initialized after first access
-        self._transactions_tab_initialized = True
-
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
         current_date = QDate.currentDate()
@@ -2365,22 +2335,6 @@ class MainWindow(
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
         self.checkBox_use_date_filter.setChecked(False)
-
-    def _mark_categories_changed(self) -> None:
-        """Mark that categories data has changed and needs refresh."""
-        self._categories_changed = True
-
-    def _mark_currencies_changed(self) -> None:
-        """Mark that currencies data has changed and needs refresh."""
-        self._currencies_changed = True
-
-    def _mark_default_currency_changed(self) -> None:
-        """Mark that default currency has changed and needs refresh."""
-        self._default_currency_changed = True
-
-    def _mark_transactions_changed(self) -> None:
-        """Mark that transactions data has changed and needs refresh."""
-        self._transactions_changed = True
 
     def _on_account_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on accounts table.
@@ -3021,13 +2975,6 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show = 5000
         self.show_all_transactions = False
-
-        # Lazy loading flags for tab optimization
-        self._transactions_tab_initialized = False
-        self._categories_changed = False
-        self._currencies_changed = False
-        self._transactions_changed = False
-        self._default_currency_changed = False
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -4022,7 +3969,7 @@ def on_show_all_records_clicked(self) -> None:
 def on_tab_changed(self, index: int) -> None
 ```
 
-React to tab change with lazy loading optimization.
+React to tab change.
 
 Args:
 
@@ -4034,9 +3981,7 @@ Args:
 ```python
 def on_tab_changed(self, index: int) -> None:
         # Update relevant data when switching to different tabs
-        if index == 0:  # Transactions tab
-            self._handle_transactions_tab_change()
-        elif index == 6:  # Charts tab
+        if index == 6:  # Charts tab
             self.update_chart_comboboxes()
         elif index == 7:  # Reports tab
             self.update_summary_labels()
@@ -5921,37 +5866,6 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
 
 </details>
 
-### ⚙️ Method `_handle_transactions_tab_change`
-
-```python
-def _handle_transactions_tab_change(self) -> None
-```
-
-Handle transactions tab change with lazy loading optimization.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _handle_transactions_tab_change(self) -> None:
-        # Initialize on first access or update if data changed
-        if not self._transactions_tab_initialized or self._categories_changed or self._currencies_changed:
-            self.update_filter_comboboxes()
-            self._categories_changed = False
-            self._currencies_changed = False
-
-        # Update summary labels if transactions or currency changed
-        if not self._transactions_tab_initialized or self._transactions_changed or self._default_currency_changed:
-            self.update_summary_labels()
-            self._transactions_changed = False
-            self._default_currency_changed = False
-
-        # Mark as initialized after first access
-        self._transactions_tab_initialized = True
-```
-
-</details>
-
 ### ⚙️ Method `_init_chart_controls`
 
 ```python
@@ -6042,78 +5956,6 @@ def _init_filter_controls(self) -> None:
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
         self.checkBox_use_date_filter.setChecked(False)
-```
-
-</details>
-
-### ⚙️ Method `_mark_categories_changed`
-
-```python
-def _mark_categories_changed(self) -> None
-```
-
-Mark that categories data has changed and needs refresh.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _mark_categories_changed(self) -> None:
-        self._categories_changed = True
-```
-
-</details>
-
-### ⚙️ Method `_mark_currencies_changed`
-
-```python
-def _mark_currencies_changed(self) -> None
-```
-
-Mark that currencies data has changed and needs refresh.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _mark_currencies_changed(self) -> None:
-        self._currencies_changed = True
-```
-
-</details>
-
-### ⚙️ Method `_mark_default_currency_changed`
-
-```python
-def _mark_default_currency_changed(self) -> None
-```
-
-Mark that default currency has changed and needs refresh.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _mark_default_currency_changed(self) -> None:
-        self._default_currency_changed = True
-```
-
-</details>
-
-### ⚙️ Method `_mark_transactions_changed`
-
-```python
-def _mark_transactions_changed(self) -> None
-```
-
-Mark that transactions data has changed and needs refresh.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _mark_transactions_changed(self) -> None:
-        self._transactions_changed = True
 ```
 
 </details>
