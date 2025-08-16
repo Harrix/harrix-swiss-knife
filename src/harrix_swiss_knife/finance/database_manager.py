@@ -1204,12 +1204,14 @@ class DatabaseManager:
     def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
         """Get information about missing exchange rates for each currency.
 
+        Only checks if there are ANY rates in the date range, not every single day.
+
         Args:
             date_from: Start date in YYYY-MM-DD format
             date_to: End date in YYYY-MM-DD format
 
         Returns:
-            Dictionary mapping currency_id to list of missing dates
+            Dictionary mapping currency_id to list of missing dates (empty if rates exist)
         """
         missing_info = {}
 
@@ -1217,35 +1219,34 @@ class DatabaseManager:
         currencies = self.get_currencies_except_usd()
 
         for currency_id, currency_code, _, _ in currencies:
-            # Get existing rates for this currency in the date range
+            # Check if we have ANY rates for this currency in the date range
             query = """
-                SELECT date FROM exchange_rates
+                SELECT COUNT(*) FROM exchange_rates
                 WHERE _id_currency = :currency_id
                 AND date BETWEEN :date_from AND :date_to
-                ORDER BY date
             """
 
-            rows = self.get_rows(query, {"currency_id": currency_id, "date_from": date_from, "date_to": date_to})
+            rows = self.get_rows(query, {
+                "currency_id": currency_id,
+                "date_from": date_from,
+                "date_to": date_to
+            })
 
-            existing_dates = set(row[0] for row in rows if row[0])
+            rate_count = rows[0][0] if rows else 0
 
-            # Generate all dates in the range
-            from datetime import datetime, timedelta
-
+            # We consider rates missing only if there are NO rates at all in the range
+            # or if there are too few rates (less than 10% of days)
+            from datetime import datetime
             start = datetime.strptime(date_from, "%Y-%m-%d").date()
             end = datetime.strptime(date_to, "%Y-%m-%d").date()
+            total_days = (end - start).days + 1
 
-            all_dates = []
-            current = start
-            while current <= end:
-                all_dates.append(current.strftime("%Y-%m-%d"))
-                current += timedelta(days=1)
+            # If we have less than 10% of expected rates, consider it needs update
+            min_expected_rates = max(1, total_days // 10)  # At least 1 rate per 10 days
 
-            # Find missing dates
-            missing_dates = [date for date in all_dates if date not in existing_dates]
-
-            if missing_dates:
-                missing_info[currency_id] = missing_dates
+            if rate_count < min_expected_rates:
+                # Return a simple indicator that rates are missing
+                missing_info[currency_id] = [f"Only {rate_count} rates found for {total_days} days"]
 
         return missing_info
 
