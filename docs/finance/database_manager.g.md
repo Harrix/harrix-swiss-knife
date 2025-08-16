@@ -58,6 +58,7 @@ lang: en
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
+  - [⚙️ Method `get_missing_exchange_rates_info`](#%EF%B8%8F-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
@@ -1263,6 +1264,54 @@ class DatabaseManager:
         total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
         return total_income, total_expenses
+
+    def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
+        """Get information about missing exchange rates for each currency.
+
+        Args:
+            date_from: Start date in YYYY-MM-DD format
+            date_to: End date in YYYY-MM-DD format
+
+        Returns:
+            Dictionary mapping currency_id to list of missing dates
+        """
+        missing_info = {}
+
+        # Get all currencies except USD
+        currencies = self.get_currencies_except_usd()
+
+        for currency_id, currency_code, _, _ in currencies:
+            # Get existing rates for this currency in the date range
+            query = """
+                SELECT date FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                AND date BETWEEN :date_from AND :date_to
+                ORDER BY date
+            """
+
+            rows = self.get_rows(query, {"currency_id": currency_id, "date_from": date_from, "date_to": date_to})
+
+            existing_dates = set(row[0] for row in rows if row[0])
+
+            # Generate all dates in the range
+            from datetime import datetime, timedelta
+
+            start = datetime.strptime(date_from, "%Y-%m-%d").date()
+            end = datetime.strptime(date_to, "%Y-%m-%d").date()
+
+            all_dates = []
+            current = start
+            while current <= end:
+                all_dates.append(current.strftime("%Y-%m-%d"))
+                current += timedelta(days=1)
+
+            # Find missing dates
+            missing_dates = [date for date in all_dates if date not in existing_dates]
+
+            if missing_dates:
+                missing_info[currency_id] = missing_dates
+
+        return missing_info
 
     def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique transaction descriptions for autocomplete.
@@ -3538,6 +3587,67 @@ def get_income_vs_expenses_in_currency(
         total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
         return total_income, total_expenses
+```
+
+</details>
+
+### ⚙️ Method `get_missing_exchange_rates_info`
+
+```python
+def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]
+```
+
+Get information about missing exchange rates for each currency.
+
+Args:
+date_from: Start date in YYYY-MM-DD format
+date_to: End date in YYYY-MM-DD format
+
+Returns:
+Dictionary mapping currency_id to list of missing dates
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
+        missing_info = {}
+
+        # Get all currencies except USD
+        currencies = self.get_currencies_except_usd()
+
+        for currency_id, currency_code, _, _ in currencies:
+            # Get existing rates for this currency in the date range
+            query = """
+                SELECT date FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                AND date BETWEEN :date_from AND :date_to
+                ORDER BY date
+            """
+
+            rows = self.get_rows(query, {"currency_id": currency_id, "date_from": date_from, "date_to": date_to})
+
+            existing_dates = set(row[0] for row in rows if row[0])
+
+            # Generate all dates in the range
+            from datetime import datetime, timedelta
+
+            start = datetime.strptime(date_from, "%Y-%m-%d").date()
+            end = datetime.strptime(date_to, "%Y-%m-%d").date()
+
+            all_dates = []
+            current = start
+            while current <= end:
+                all_dates.append(current.strftime("%Y-%m-%d"))
+                current += timedelta(days=1)
+
+            # Find missing dates
+            missing_dates = [date for date in all_dates if date not in existing_dates]
+
+            if missing_dates:
+                missing_info[currency_id] = missing_dates
+
+        return missing_info
 ```
 
 </details>

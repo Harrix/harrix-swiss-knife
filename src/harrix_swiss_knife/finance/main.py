@@ -76,6 +76,8 @@ class ExchangeRateUpdateWorker(QThread):
             # Clean invalid exchange rates first
             self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
             cleaned_count = self.db_manager.clean_invalid_exchange_rates()
+            if cleaned_count > 0:
+                self.progress_updated.emit(f"🧹 Cleaned {cleaned_count} invalid exchange rate records")
 
             # Methods for getting exchange rates from different sources
             def get_exchangerate_api_data(currency: str, start_date: str, end_date: str) -> dict:
@@ -118,7 +120,7 @@ class ExchangeRateUpdateWorker(QThread):
 
                 return rates_data
 
-            def get_yfinance_data(currency_code: str, start_date, end_date, alternative_tickers: dict) -> dict:
+            def get_yfinance_data(currency_code: str, start_date, end_date) -> dict:
                 """Get exchange rate data from yfinance."""
                 rates_data = {}
                 ticker_symbol = f"{currency_code}USD=X"
@@ -204,7 +206,7 @@ class ExchangeRateUpdateWorker(QThread):
                             currency_code, self.start_date.strftime("%Y-%m-%d"), self.end_date.strftime("%Y-%m-%d")
                         ),
                     ),
-                    ("yfinance", lambda: get_yfinance_data(currency_code, self.start_date, self.end_date, {})),
+                    ("yfinance", lambda: get_yfinance_data(currency_code, self.start_date, self.end_date)),
                 ]
 
                 for source_name, get_data_func in data_sources:
@@ -698,6 +700,9 @@ class MainWindow(
                 for i in range(rates_header.count()):
                     rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
 
+            # Mark as loaded
+            self.exchange_rates_loaded = True
+
         except Exception as e:
             print(f"❌ Error loading exchange rates table: {e}")
 
@@ -1128,7 +1133,6 @@ class MainWindow(
         if index == 4:  # Exchange Rates tab - lazy loading
             if not self.exchange_rates_loaded:
                 self.load_exchange_rates_table()
-                self.exchange_rates_loaded = True
         elif index == 6:  # Charts tab
             self.update_chart_comboboxes()
         elif index == 7:  # Reports tab
@@ -1163,37 +1167,30 @@ class MainWindow(
             start_date = datetime.strptime(earliest_date, "%Y-%m-%d").date()
             end_date = datetime.now().date()
 
-            # Quick check: count missing exchange rates for all currencies
+            # Quick check: get missing exchange rates for each currency
             print(f"🔍 Checking existing exchange rates from {start_date} to {end_date}...")
+
+            missing_rates_info = self.db_manager.get_missing_exchange_rates_info(
+                start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+            )
 
             total_missing_rates = 0
             currencies_with_missing_rates = []
 
             for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                # Count expected days (rough estimate)
-                total_days = (end_date - start_date).days + 1
-
-                # Count existing rates for this currency in the date range
-                existing_rates_query = """
-                    SELECT COUNT(*) FROM exchange_rates
-                    WHERE _id_currency = :currency_id
-                    AND date BETWEEN :start_date AND :end_date
-                """
-                existing_rows = self.db_manager.get_rows(existing_rates_query, {
-                    "currency_id": currency_id,
-                    "start_date": start_date.strftime("%Y-%m-%d"),
-                    "end_date": end_date.strftime("%Y-%m-%d")
-                })
-
-                existing_count = existing_rows[0][0] if existing_rows else 0
-                missing_count = max(0, total_days - existing_count)
+                missing_dates = missing_rates_info.get(currency_id, [])
+                missing_count = len(missing_dates)
 
                 if missing_count > 0:
                     total_missing_rates += missing_count
                     currencies_with_missing_rates.append((currency_id, currency_code, currency_name, currency_symbol))
-                    print(f"📊 {currency_code}: {existing_count}/{total_days} rates exist, ~{missing_count} missing")
+                    print(f"📊 {currency_code}: {missing_count} missing rates")
+                    # Show first few missing dates for debugging
+                    if missing_dates:
+                        sample_dates = missing_dates[:5]
+                        print(f"    Missing dates sample: {', '.join(sample_dates)}")
                 else:
-                    print(f"✅ {currency_code}: All rates exist ({existing_count} rates)")
+                    print(f"✅ {currency_code}: All rates exist")
 
             # If no missing rates found, inform user and exit
             if total_missing_rates == 0:
@@ -1211,7 +1208,7 @@ class MainWindow(
             reply = QMessageBox.question(
                 self,
                 "Update Exchange Rates",
-                f"Found approximately {total_missing_rates} missing exchange rates for {len(currencies_with_missing_rates)} currencies:\n"
+                f"Found {total_missing_rates} missing exchange rates for {len(currencies_with_missing_rates)} currencies:\n"
                 f"{missing_currencies_text}\n\n"
                 f"Period: {start_date} to {end_date}\n\n"
                 f"Do you want to proceed with the update?",
@@ -1238,7 +1235,9 @@ class MainWindow(
             # Create and configure progress dialog
             self.progress_dialog = QMessageBox(self)
             self.progress_dialog.setWindowTitle("Updating Exchange Rates")
-            self.progress_dialog.setText(f"Starting exchange rate update for {len(currencies_with_missing_rates)} currencies...")
+            self.progress_dialog.setText(
+                f"Starting exchange rate update for {len(currencies_with_missing_rates)} currencies..."
+            )
             self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
             self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
@@ -1255,79 +1254,6 @@ class MainWindow(
             self.exchange_rate_worker = ExchangeRateUpdateWorker(
                 self.db_manager, currencies_with_missing_rates, start_date, end_date
             )
-
-            # Connect signals
-            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
-            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
-            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
-            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
-            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
-
-            # Start the worker
-            self.exchange_rate_worker.start()
-
-        except Exception as e:
-            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
-            print(f"❌ Exchange rate update error: {e}")
-
-        """Update exchange rates using a background thread."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get the earliest date from transactions or currency_exchanges
-            earliest_date = self.db_manager.get_earliest_financial_date()
-            if not earliest_date:
-                QMessageBox.warning(
-                    self,
-                    "No Data",
-                    "No transactions or currency exchanges found. Please add some financial data first.",
-                )
-                return
-
-            # Get all currencies except USD (base currency)
-            currencies = self.db_manager.get_currencies_except_usd()
-            if not currencies:
-                QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
-                return
-
-            # Calculate date range
-            start_date = datetime.strptime(earliest_date, "%Y-%m-%d").date()
-            end_date = datetime.now().date()
-
-            # Check if worker is already running
-            if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
-                reply = QMessageBox.question(
-                    self,
-                    "Update in Progress",
-                    "Exchange rate update is already running. Do you want to stop it and start a new one?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                )
-                if reply == QMessageBox.StandardButton.Yes:
-                    self.exchange_rate_worker.stop()
-                    self.exchange_rate_worker.wait()
-                else:
-                    return
-
-            # Create and configure progress dialog
-            self.progress_dialog = QMessageBox(self)
-            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
-            self.progress_dialog.setText(f"Starting exchange rate update from {start_date} to {end_date}...")
-            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
-            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
-
-            # Connect cancel button
-            def cancel_update():
-                if hasattr(self, "exchange_rate_worker"):
-                    self.exchange_rate_worker.stop()
-                self.progress_dialog.close()
-
-            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
-            self.progress_dialog.show()
-
-            # Create and start worker thread
-            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies, start_date, end_date)
 
             # Connect signals
             self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
@@ -1524,7 +1450,6 @@ class MainWindow(
         current_tab_index = self.tabWidget.currentIndex()
         if current_tab_index == 4:  # Exchange Rates tab
             self.load_exchange_rates_table()
-            self.exchange_rates_loaded = True
         else:
             # Mark exchange rates as not loaded to force reload when tab is accessed
             self.exchange_rates_loaded = False
@@ -2911,7 +2836,6 @@ class MainWindow(
             current_tab_index = self.tabWidget.currentIndex()
             if current_tab_index == 4:  # Exchange Rates tab
                 self.load_exchange_rates_table()
-                self.exchange_rates_loaded = True
         else:
             QMessageBox.information(
                 self,
