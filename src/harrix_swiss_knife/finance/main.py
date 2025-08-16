@@ -1569,19 +1569,70 @@ class MainWindow(
             default_currency_info = self.db_manager.get_currency_by_code(self.db_manager.get_default_currency())
             currency_symbol = default_currency_info[2] if default_currency_info else "₽"
 
-            # Get total income and expenses
-            total_income, total_expenses = self.db_manager.get_income_vs_expenses_in_currency(default_currency_id)
+            # Для начальной загрузки показываем только суммы в валюте по умолчанию
+            # без конвертации из других валют
+
+            # Упрощенный запрос для получения сумм только в валюте по умолчанию
+            query_income = """
+                SELECT SUM(t.amount) as total_income
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE cat.type = 1 AND t._id_currencies = :currency_id
+            """
+
+            query_expenses = """
+                SELECT SUM(t.amount) as total_expenses
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE cat.type = 0 AND t._id_currencies = :currency_id
+            """
+
+            income_rows = self.db_manager.get_rows(query_income, {"currency_id": default_currency_id})
+            expenses_rows = self.db_manager.get_rows(query_expenses, {"currency_id": default_currency_id})
+
+            total_income = float(income_rows[0][0] or 0) / 100 if income_rows and income_rows[0][0] else 0.0
+            total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
             # Update labels
             self.label_total_income.setText(f"Total Income: {total_income:.2f}{currency_symbol}")
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
-            # Get today's balance
-            today_balance = self.db_manager.get_today_balance_in_currency(default_currency_id)
-            self.label_daily_balance.setText(f"{today_balance:.2f}{currency_symbol}")
+            # Для today's balance и expenses также используем упрощенные запросы
+            today = datetime.now().strftime("%Y-%m-%d")
 
-            # Get today's expenses
-            today_expenses = self.db_manager.get_today_expenses_in_currency(default_currency_id)
+            today_query_income = """
+                SELECT SUM(t.amount) as total
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE cat.type = 1 AND t._id_currencies = :currency_id AND t.date = :date
+            """
+
+            today_query_expenses = """
+                SELECT SUM(t.amount) as total
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE cat.type = 0 AND t._id_currencies = :currency_id AND t.date = :date
+            """
+
+            today_income_rows = self.db_manager.get_rows(
+                today_query_income, {"currency_id": default_currency_id, "date": today}
+            )
+            today_expenses_rows = self.db_manager.get_rows(
+                today_query_expenses, {"currency_id": default_currency_id, "date": today}
+            )
+
+            today_income = (
+                float(today_income_rows[0][0] or 0) / 100 if today_income_rows and today_income_rows[0][0] else 0.0
+            )
+            today_expenses = (
+                float(today_expenses_rows[0][0] or 0) / 100
+                if today_expenses_rows and today_expenses_rows[0][0]
+                else 0.0
+            )
+
+            today_balance = today_income - today_expenses
+
+            self.label_daily_balance.setText(f"{today_balance:.2f}{currency_symbol}")
             self.label_today_expense.setText(f"{today_expenses:.2f}{currency_symbol}")
 
         except Exception as e:
@@ -2516,25 +2567,25 @@ class MainWindow(
 
     def _load_currency_exchanges_table(self) -> None:
         """Load currency exchanges table."""
+        if self.db_manager is None:
+            return
+
         exchanges_data = self.db_manager.get_all_currency_exchanges()
         exchanges_transformed_data = []
         for row in exchanges_data:
-            # Transform: [id, from_code, to_code, amount_from_cents, amount_to_cents, rate_cents, fee_cents, date, description]
-            amount_from = float(row[3]) / 100
-            amount_to = float(row[4]) / 100
-            rate = float(row[5]) / 100
-            fee = float(row[6]) / 100
+            # Transform: [id, from_code, to_code, amount_from, amount_to, rate, fee, date, description]
+            # Данные уже конвертированы в get_all_currency_exchanges()
             color = QColor(255, 240, 255)
             transformed_row = [
-                row[1],
-                row[2],
-                f"{amount_from:.2f}",
-                f"{amount_to:.2f}",
-                f"{rate:.4f}",
-                f"{fee:.2f}",
-                row[7],
-                row[8],
-                row[0],
+                row[1],  # from_code
+                row[2],  # to_code
+                f"{row[3]:.2f}",  # amount_from (уже конвертировано)
+                f"{row[4]:.2f}",  # amount_to (уже конвертировано)
+                f"{row[5]:.4f}",  # rate (уже конвертировано)
+                f"{row[6]:.2f}",  # fee (уже конвертировано)
+                row[7],  # date
+                row[8] or "",  # description
+                row[0],  # id
                 color,
             ]
             exchanges_transformed_data.append(transformed_row)
