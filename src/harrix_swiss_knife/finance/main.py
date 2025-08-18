@@ -596,6 +596,59 @@ class MainWindow(
                 return True
         return super().eventFilter(obj, event)
 
+    @requires_database()
+    def fill_missing_exchange_rates(self) -> None:
+        """Fill missing exchange rates with previous available rates."""
+        if self.db_manager is None:
+            return
+
+        currencies = self.db_manager.get_currencies_except_usd()
+        total_filled = 0
+
+        for currency_id, currency_code, _, _ in currencies:
+            # Get all existing rates for currency
+            query = """
+                SELECT date, rate FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                ORDER BY date ASC
+            """
+            rows = self.db_manager.get_rows(query, {"currency_id": currency_id})
+
+            if len(rows) < 2:
+                continue
+
+            # Fill gaps between existing dates
+            for i in range(len(rows) - 1):
+                current_date = datetime.strptime(rows[i][0], "%Y-%m-%d").date()
+                next_date = datetime.strptime(rows[i + 1][0], "%Y-%m-%d").date()
+                current_rate = rows[i][1]
+
+                # Fill missing days between current_date and next_date
+                fill_date = current_date + timedelta(days=1)
+                while fill_date < next_date:
+                    # Skip weekends
+                    if fill_date.weekday() < 5:  # Only weekdays
+                        date_str = fill_date.strftime("%Y-%m-%d")
+                        if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                            if self.db_manager.add_exchange_rate(currency_id, current_rate, date_str):
+                                total_filled += 1
+                                print(f"Filled gap {currency_code}: {date_str} = {current_rate}")
+
+                    fill_date += timedelta(days=1)
+
+        if total_filled > 0:
+            QMessageBox.information(
+                self, "Fill Complete", f"Successfully filled {total_filled} missing exchange rates."
+            )
+            # Mark exchange rates as changed to trigger reload if tab is active
+            self._mark_exchange_rates_changed()
+            # If exchange rates tab is currently active, reload the data
+            current_tab_index = self.tabWidget.currentIndex()
+            if current_tab_index == 4:  # Exchange Rates tab
+                self.load_exchange_rates_table()
+        else:
+            QMessageBox.information(self, "Fill Complete", "No missing exchange rates found to fill.")
+
     def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
         """Generate pastel colors using mathematical distribution.
 
@@ -1145,6 +1198,9 @@ class MainWindow(
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
+
+        # Fill missing exchange rates first
+        self.fill_missing_exchange_rates()
 
         try:
             # Get the earliest date from transactions or currency_exchanges

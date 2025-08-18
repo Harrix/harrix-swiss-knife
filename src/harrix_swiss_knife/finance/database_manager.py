@@ -593,6 +593,42 @@ class DatabaseManager:
             query.clear()
             return True
 
+    def fill_missing_exchange_rates(self) -> None:
+        """Fill missing exchange rates with previous available rates."""
+        from datetime import datetime, timedelta
+
+        currencies = self.get_currencies_except_usd()
+
+        for currency_id, currency_code, _, _ in currencies:
+            # Get all existing rates for currency
+            query = """
+                SELECT date, rate FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                ORDER BY date ASC
+            """
+            rows = self.get_rows(query, {"currency_id": currency_id})
+
+            if len(rows) < 2:
+                continue
+
+            # Fill gaps between existing dates
+            for i in range(len(rows) - 1):
+                current_date = datetime.strptime(rows[i][0], "%Y-%m-%d").date()
+                next_date = datetime.strptime(rows[i + 1][0], "%Y-%m-%d").date()
+                current_rate = rows[i][1]
+
+                # Fill missing days between current_date and next_date
+                fill_date = current_date + timedelta(days=1)
+                while fill_date < next_date:
+                    # Skip weekends
+                    if fill_date.weekday() < 5:  # Only weekdays
+                        date_str = fill_date.strftime("%Y-%m-%d")
+                        if not self.check_exchange_rate_exists(currency_id, date_str):
+                            if self.add_exchange_rate(currency_id, current_rate, date_str):
+                                print(f"Filled gap {currency_code}: {date_str} = {current_rate}")
+
+                    fill_date += timedelta(days=1)
+
     def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]:
         """Get all account balances converted to specified currency.
 
@@ -1204,49 +1240,91 @@ class DatabaseManager:
     def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
         """Get information about missing exchange rates for each currency.
 
-        Only checks if there are ANY rates in the date range, not every single day.
+        Checks for missing rates for each day in the date range.
 
         Args:
             date_from: Start date in YYYY-MM-DD format
             date_to: End date in YYYY-MM-DD format
 
         Returns:
-            Dictionary mapping currency_id to list of missing dates (empty if rates exist)
+            Dictionary mapping currency_id to list of missing dates
         """
+        from datetime import datetime, timedelta
+
         missing_info = {}
 
         # Get all currencies except USD
         currencies = self.get_currencies_except_usd()
 
+        # Generate all dates in the range
+        start_date = datetime.strptime(date_from, "%Y-%m-%d").date()
+        end_date = datetime.strptime(date_to, "%Y-%m-%d").date()
+
+        all_dates = []
+        current_date = start_date
+        while current_date <= end_date:
+            all_dates.append(current_date.strftime("%Y-%m-%d"))
+            current_date += timedelta(days=1)
+
+        print(f"Проверяем курсы валют с {date_from} по {date_to} ({len(all_dates)} дней)")
+
         for currency_id, currency_code, _, _ in currencies:
-            # Check if we have ANY rates for this currency in the date range
+            # Get existing dates for this currency
             query = """
-                SELECT COUNT(*) FROM exchange_rates
+                SELECT DISTINCT date FROM exchange_rates
                 WHERE _id_currency = :currency_id
                 AND date BETWEEN :date_from AND :date_to
+                ORDER BY date
             """
 
-            rows = self.get_rows(query, {
-                "currency_id": currency_id,
-                "date_from": date_from,
-                "date_to": date_to
-            })
+            rows = self.get_rows(query, {"currency_id": currency_id, "date_from": date_from, "date_to": date_to})
 
-            rate_count = rows[0][0] if rows else 0
+            existing_dates = set(row[0] for row in rows)
 
-            # We consider rates missing only if there are NO rates at all in the range
-            # or if there are too few rates (less than 10% of days)
-            from datetime import datetime
-            start = datetime.strptime(date_from, "%Y-%m-%d").date()
-            end = datetime.strptime(date_to, "%Y-%m-%d").date()
-            total_days = (end - start).days + 1
+            # Find missing dates
+            missing_dates = []
+            for date_str in all_dates:
+                if date_str not in existing_dates:
+                    missing_dates.append(date_str)
 
-            # If we have less than 10% of expected rates, consider it needs update
-            min_expected_rates = max(1, total_days // 10)  # At least 1 rate per 10 days
+            # Print information about missing dates
+            if missing_dates:
+                print(f"📊 {currency_code}: {len(missing_dates)} missing rates")
 
-            if rate_count < min_expected_rates:
-                # Return a simple indicator that rates are missing
-                missing_info[currency_id] = [f"Only {rate_count} rates found for {total_days} days"]
+                # Show first 10 dates as sample
+                sample_size = min(10, len(missing_dates))
+                sample_dates = missing_dates[:sample_size]
+                print(f"    Первые {sample_size} пропущенных дат: {', '.join(sample_dates)}")
+
+                if len(missing_dates) > 10:
+                    print(f"    ... и еще {len(missing_dates) - 10} дат")
+
+                # Show date ranges for better understanding
+                if len(missing_dates) > 1:
+                    print(f"    Диапазон: с {missing_dates[0]} по {missing_dates[-1]}")
+
+                missing_info[currency_id] = missing_dates
+            else:
+                print(f"✅ {currency_code}: все курсы присутствуют")
+
+        if not missing_info:
+            print("✅ Все курсы валют присутствуют в указанном диапазоне дат")
+        else:
+            total_missing = sum(len(dates) for dates in missing_info.values())
+            print(f"\n📈 ИТОГО: {total_missing} пропущенных записей для {len(missing_info)} валют")
+
+            # Show full list of all missing dates for first currency as example
+            if missing_info:
+                first_currency_id = next(iter(missing_info))
+                first_currency_code = next(code for id, code, _, _ in currencies if id == first_currency_id)
+                first_missing = missing_info[first_currency_id]
+
+                print(f"\n🔍 ПОЛНЫЙ СПИСОК для {first_currency_code} ({len(first_missing)} дат):")
+                for i, date in enumerate(first_missing, 1):
+                    print(f"  {i:4d}. {date}")
+                    if i >= 50:  # Ограничиваем вывод 50 датами
+                        print(f"  ... и еще {len(first_missing) - 50} дат")
+                        break
 
         return missing_info
 
