@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1179</width>
+    <width>2013</width>
     <height>950</height>
    </rect>
   </property>
@@ -1585,12 +1585,12 @@
        <attribute name="title">
         <string>Exchange Rates</string>
        </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_rates">
+       <layout class="QHBoxLayout" name="horizontalLayout_14">
         <item>
          <widget class="QFrame" name="frame_rates">
           <property name="minimumSize">
            <size>
-            <width>300</width>
+            <width>700</width>
             <height>0</height>
            </size>
           </property>
@@ -1668,23 +1668,135 @@
             </widget>
            </item>
            <item>
-            <spacer name="verticalSpacer_rates">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
+            <widget class="QTableView" name="tableView_exchange_rates"/>
            </item>
           </layout>
          </widget>
         </item>
         <item>
-         <widget class="QTableView" name="tableView_exchange_rates"/>
+         <layout class="QVBoxLayout" name="verticalLayout_12">
+          <item>
+           <widget class="QFrame" name="frame_exchange_rates_controls">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>80</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_exchange_rates_controls">
+             <item>
+              <widget class="QLabel" name="label_exchange_rates_currency">
+               <property name="text">
+                <string>Currency</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="comboBox_exchange_rates_currency"/>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_exchange_rates_from">
+               <property name="text">
+                <string>From:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QDateEdit" name="dateEdit_exchange_rates_from">
+               <property name="displayFormat">
+                <string>yyyy-MM-dd</string>
+               </property>
+               <property name="calendarPopup">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_exchange_rates_to">
+               <property name="text">
+                <string>To:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QDateEdit" name="dateEdit_exchange_rates_to">
+               <property name="displayFormat">
+                <string>yyyy-MM-dd</string>
+               </property>
+               <property name="calendarPopup">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_exchange_rates_last_month">
+               <property name="text">
+                <string>Last Month</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_exchange_rates_last_year">
+               <property name="text">
+                <string>Last Year</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_exchange_rates_all_time">
+               <property name="text">
+                <string>All Time</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_exchange_rates_update">
+               <property name="text">
+                <string>Update Chart</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_food_stats">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QScrollArea" name="scrollArea_food_stats">
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContents_food_stats">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>1261</width>
+               <height>782</height>
+              </rect>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_exchange_rates_content"/>
+            </widget>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -1906,7 +2018,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>1135</width>
+             <width>1969</width>
              <height>751</height>
             </rect>
            </property>
@@ -2084,7 +2196,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1179</width>
+     <width>2013</width>
      <height>21</height>
     </rect>
    </property>
