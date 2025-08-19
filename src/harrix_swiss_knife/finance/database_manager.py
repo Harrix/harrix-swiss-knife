@@ -620,12 +620,10 @@ class DatabaseManager:
                 # Fill missing days between current_date and next_date
                 fill_date = current_date + timedelta(days=1)
                 while fill_date < next_date:
-                    # Skip weekends
-                    if fill_date.weekday() < 5:  # Only weekdays
-                        date_str = fill_date.strftime("%Y-%m-%d")
-                        if not self.check_exchange_rate_exists(currency_id, date_str):
-                            if self.add_exchange_rate(currency_id, current_rate, date_str):
-                                print(f"Filled gap {currency_code}: {date_str} = {current_rate}")
+                    date_str = fill_date.strftime("%Y-%m-%d")
+                    if not self.check_exchange_rate_exists(currency_id, date_str):
+                        if self.add_exchange_rate(currency_id, current_rate, date_str):
+                            print(f"Filled gap {currency_code}: {date_str} = {current_rate}")
 
                     fill_date += timedelta(days=1)
 
