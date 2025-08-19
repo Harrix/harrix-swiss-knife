@@ -593,11 +593,16 @@ class DatabaseManager:
             query.clear()
             return True
 
-    def fill_missing_exchange_rates(self) -> None:
-        """Fill missing exchange rates with previous available rates."""
+    def fill_missing_exchange_rates(self) -> int:
+        """Fill missing exchange rates with previous available rates.
+
+        Returns:
+            int: Number of exchange rates that were filled.
+        """
         from datetime import datetime, timedelta
 
         currencies = self.get_currencies_except_usd()
+        total_filled = 0
 
         for currency_id, currency_code, _, _ in currencies:
             # Get all existing rates for currency
@@ -623,9 +628,12 @@ class DatabaseManager:
                     date_str = fill_date.strftime("%Y-%m-%d")
                     if not self.check_exchange_rate_exists(currency_id, date_str):
                         if self.add_exchange_rate(currency_id, current_rate, date_str):
+                            total_filled += 1
                             print(f"Filled gap {currency_code}: {date_str} = {current_rate}")
 
                     fill_date += timedelta(days=1)
+
+        return total_filled
 
     def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]:
         """Get all account balances converted to specified currency.
