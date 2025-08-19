@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>4</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab_transactions">
        <attribute name="title">
@@ -1779,7 +1779,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QScrollArea" name="scrollArea_food_stats">
+           <widget class="QScrollArea" name="scrollArea_xchange_rates">
             <property name="widgetResizable">
              <bool>true</bool>
             </property>

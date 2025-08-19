@@ -1268,17 +1268,17 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_12.addWidget(self.frame_exchange_rates_controls)
 
-        self.scrollArea_food_stats = QScrollArea(self.tab_exchange_rates)
-        self.scrollArea_food_stats.setObjectName("scrollArea_food_stats")
-        self.scrollArea_food_stats.setWidgetResizable(True)
+        self.scrollArea_xchange_rates = QScrollArea(self.tab_exchange_rates)
+        self.scrollArea_xchange_rates.setObjectName("scrollArea_xchange_rates")
+        self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
         self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1261, 782))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
-        self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)
+        self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
 
-        self.verticalLayout_12.addWidget(self.scrollArea_food_stats)
+        self.verticalLayout_12.addWidget(self.scrollArea_xchange_rates)
 
         self.horizontalLayout_14.addLayout(self.verticalLayout_12)
 
@@ -1510,6 +1510,6 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(4)
+        self.tabWidget.setCurrentIndex(0)
 
         QMetaObject.connectSlotsByName(MainWindow)
