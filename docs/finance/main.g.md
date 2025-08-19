@@ -29,7 +29,6 @@ lang: en
   - [⚙️ Method `on_add_category`](#%EF%B8%8F-method-on_add_category)
   - [⚙️ Method `on_add_currency`](#%EF%B8%8F-method-on_add_currency)
   - [⚙️ Method `on_add_exchange`](#%EF%B8%8F-method-on_add_exchange)
-  - [⚙️ Method `on_add_rate`](#%EF%B8%8F-method-on_add_rate)
   - [⚙️ Method `on_add_transaction`](#%EF%B8%8F-method-on_add_transaction)
   - [⚙️ Method `on_calculate_exchange`](#%EF%B8%8F-method-on_calculate_exchange)
   - [⚙️ Method `on_category_selection_changed`](#%EF%B8%8F-method-on_category_selection_changed)
@@ -60,7 +59,6 @@ lang: en
   - [⚙️ Method `_clear_category_form`](#%EF%B8%8F-method-_clear_category_form)
   - [⚙️ Method `_clear_currency_form`](#%EF%B8%8F-method-_clear_currency_form)
   - [⚙️ Method `_clear_exchange_form`](#%EF%B8%8F-method-_clear_exchange_form)
-  - [⚙️ Method `_clear_rate_form`](#%EF%B8%8F-method-_clear_rate_form)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_copy_table_selection_to_clipboard`](#%EF%B8%8F-method-_copy_table_selection_to_clipboard)
@@ -1257,48 +1255,6 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to add currency exchange: {e}")
 
     @requires_database()
-    def on_add_rate(self) -> None:
-        """Add a new exchange rate to USD using database manager."""
-        from_currency = self.comboBox_rate_from.currentText()
-        rate = self.doubleSpinBox_rate_value.value()
-        date = self.dateEdit_rate.date().toString("yyyy-MM-dd")
-
-        if not from_currency:
-            QMessageBox.warning(self, "Error", "Select currency")
-            return
-
-        if from_currency == "USD":
-            QMessageBox.warning(self, "Error", "Cannot add USD to USD exchange rate")
-            return
-
-        if rate <= 0:
-            QMessageBox.warning(self, "Error", "Exchange rate must be positive")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        # Get currency ID
-        from_currency_info = self.db_manager.get_currency_by_code(from_currency)
-
-        if not from_currency_info:
-            QMessageBox.warning(self, "Error", "Currency not found")
-            return
-
-        from_currency_id = from_currency_info[0]
-
-        try:
-            if self.db_manager.add_exchange_rate(from_currency_id, rate, date):
-                self._mark_exchange_rates_changed()
-                self.update_all()
-                self._clear_rate_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add exchange rate")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add exchange rate: {e}")
-
-    @requires_database()
     def on_add_transaction(self) -> None:
         """Add a new transaction using database manager."""
         amount = self.doubleSpinBox_amount.value()
@@ -1695,7 +1651,6 @@ class MainWindow(
         today_qdate = QDate.currentDate()
         self.dateEdit.setDate(today_qdate)
         self.dateEdit_exchange.setDate(today_qdate)
-        self.dateEdit_rate.setDate(today_qdate)
 
     def show_balance_chart(self) -> None:
         """Show balance chart."""
@@ -2104,9 +2059,6 @@ class MainWindow(
         # Exchange form
         self._clear_exchange_form()
 
-        # Rate form
-        self._clear_rate_form()
-
     def _clear_category_form(self) -> None:
         """Clear the category addition form."""
         self.lineEdit_category_name.clear()
@@ -2126,10 +2078,6 @@ class MainWindow(
         self.doubleSpinBox_exchange_rate.setValue(73.5)
         self.doubleSpinBox_exchange_fee.setValue(0.0)
         self.lineEdit_exchange_description.clear()
-
-    def _clear_rate_form(self) -> None:
-        """Clear the rate addition form."""
-        self.doubleSpinBox_rate_value.setValue(73.5)
 
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
@@ -2159,7 +2107,6 @@ class MainWindow(
         self.pushButton_account_add.clicked.connect(self.on_add_account)
         self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
-        self.pushButton_rate_add.clicked.connect(self.on_add_rate)
 
         # Filter signals
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
@@ -3481,7 +3428,6 @@ class MainWindow(
         self.doubleSpinBox_exchange_from.setValue(100.0)
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
-        self.doubleSpinBox_rate_value.setValue(73.5)
         self.spinBox_subdivision.setValue(100)
 
     def _setup_window_size_and_position(self) -> None:
@@ -3651,7 +3597,6 @@ class MainWindow(
                 self.comboBox_account_currency,
                 self.comboBox_exchange_from,
                 self.comboBox_exchange_to,
-                self.comboBox_rate_from,
                 self.comboBox_default_currency,
             ]:
                 combo.clear()
@@ -4471,61 +4416,6 @@ def on_add_exchange(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_add_rate`
-
-```python
-def on_add_rate(self) -> None
-```
-
-Add a new exchange rate to USD using database manager.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_add_rate(self) -> None:
-        from_currency = self.comboBox_rate_from.currentText()
-        rate = self.doubleSpinBox_rate_value.value()
-        date = self.dateEdit_rate.date().toString("yyyy-MM-dd")
-
-        if not from_currency:
-            QMessageBox.warning(self, "Error", "Select currency")
-            return
-
-        if from_currency == "USD":
-            QMessageBox.warning(self, "Error", "Cannot add USD to USD exchange rate")
-            return
-
-        if rate <= 0:
-            QMessageBox.warning(self, "Error", "Exchange rate must be positive")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        # Get currency ID
-        from_currency_info = self.db_manager.get_currency_by_code(from_currency)
-
-        if not from_currency_info:
-            QMessageBox.warning(self, "Error", "Currency not found")
-            return
-
-        from_currency_id = from_currency_info[0]
-
-        try:
-            if self.db_manager.add_exchange_rate(from_currency_id, rate, date):
-                self._mark_exchange_rates_changed()
-                self.update_all()
-                self._clear_rate_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add exchange rate")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add exchange rate: {e}")
-```
-
-</details>
-
 ### ⚙️ Method `on_add_transaction`
 
 ```python
@@ -5134,7 +5024,6 @@ def set_today_date(self) -> None:
         today_qdate = QDate.currentDate()
         self.dateEdit.setDate(today_qdate)
         self.dateEdit_exchange.setDate(today_qdate)
-        self.dateEdit_rate.setDate(today_qdate)
 ```
 
 </details>
@@ -5689,9 +5578,6 @@ def _clear_all_forms(self) -> None:
 
         # Exchange form
         self._clear_exchange_form()
-
-        # Rate form
-        self._clear_rate_form()
 ```
 
 </details>
@@ -5758,24 +5644,6 @@ def _clear_exchange_form(self) -> None:
 
 </details>
 
-### ⚙️ Method `_clear_rate_form`
-
-```python
-def _clear_rate_form(self) -> None
-```
-
-Clear the rate addition form.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _clear_rate_form(self) -> None:
-        self.doubleSpinBox_rate_value.setValue(73.5)
-```
-
-</details>
-
 ### ⚙️ Method `_connect_signals`
 
 ```python
@@ -5815,7 +5683,6 @@ def _connect_signals(self) -> None:
         self.pushButton_account_add.clicked.connect(self.on_add_account)
         self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
-        self.pushButton_rate_add.clicked.connect(self.on_add_rate)
 
         # Filter signals
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
@@ -7738,7 +7605,6 @@ def _setup_ui(self) -> None:
         self.doubleSpinBox_exchange_from.setValue(100.0)
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
-        self.doubleSpinBox_rate_value.setValue(73.5)
         self.spinBox_subdivision.setValue(100)
 ```
 
@@ -7973,7 +7839,6 @@ def _update_comboboxes(self) -> None:
                 self.comboBox_account_currency,
                 self.comboBox_exchange_from,
                 self.comboBox_exchange_to,
-                self.comboBox_rate_from,
                 self.comboBox_default_currency,
             ]:
                 combo.clear()
