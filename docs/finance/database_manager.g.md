@@ -59,6 +59,8 @@ lang: en
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
+  - [⚙️ Method `get_last_exchange_rate_date`](#%EF%B8%8F-method-get_last_exchange_rate_date)
+  - [⚙️ Method `get_last_exchange_rates_update_date`](#%EF%B8%8F-method-get_last_exchange_rates_update_date)
   - [⚙️ Method `get_missing_exchange_rates_info`](#%EF%B8%8F-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
@@ -68,6 +70,7 @@ lang: en
   - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
+  - [⚙️ Method `set_last_exchange_rates_update_date`](#%EF%B8%8F-method-set_last_exchange_rates_update_date)
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `update_account`](#%EF%B8%8F-method-update_account)
   - [⚙️ Method `update_category`](#%EF%B8%8F-method-update_category)
@@ -671,14 +674,32 @@ class DatabaseManager:
             query.clear()
             return True
 
-    def fill_missing_exchange_rates(self) -> None:
-        """Fill missing exchange rates with previous available rates."""
+    def fill_missing_exchange_rates(self) -> int:
+        """Fill missing exchange rates with previous available rates for all date gaps.
+
+        Returns:
+            int: Number of exchange rates that were filled.
+        """
         from datetime import datetime, timedelta
 
         currencies = self.get_currencies_except_usd()
+        total_filled = 0
+
+        # Get the earliest transaction date as the absolute start date
+        earliest_transaction_date = self.get_earliest_transaction_date()
+        if not earliest_transaction_date:
+            print("No transactions found, cannot determine start date for filling rates")
+            return 0
+
+        start_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
+        end_date = datetime.now().date()
+
+        print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
 
         for currency_id, currency_code, _, _ in currencies:
-            # Get all existing rates for currency
+            print(f"📊 Processing {currency_code}...")
+
+            # Get all existing rates for this currency
             query = """
                 SELECT date, rate FROM exchange_rates
                 WHERE _id_currency = :currency_id
@@ -686,26 +707,37 @@ class DatabaseManager:
             """
             rows = self.get_rows(query, {"currency_id": currency_id})
 
-            if len(rows) < 2:
+            if not rows:
+                print(f"⚠️ No exchange rates found for {currency_code}, skipping")
                 continue
 
-            # Fill gaps between existing dates
-            for i in range(len(rows) - 1):
-                current_date = datetime.strptime(rows[i][0], "%Y-%m-%d").date()
-                next_date = datetime.strptime(rows[i + 1][0], "%Y-%m-%d").date()
-                current_rate = rows[i][1]
+            # Create a map of existing rates
+            existing_rates = {row[0]: row[1] for row in rows}
 
-                # Fill missing days between current_date and next_date
-                fill_date = current_date + timedelta(days=1)
-                while fill_date < next_date:
-                    # Skip weekends
-                    if fill_date.weekday() < 5:  # Only weekdays
-                        date_str = fill_date.strftime("%Y-%m-%d")
-                        if not self.check_exchange_rate_exists(currency_id, date_str):
-                            if self.add_exchange_rate(currency_id, current_rate, date_str):
-                                print(f"Filled gap {currency_code}: {date_str} = {current_rate}")
+            # Fill missing dates from start_date to end_date
+            current_date = start_date
+            last_known_rate = None
+            currency_filled = 0
 
-                    fill_date += timedelta(days=1)
+            while current_date <= end_date:
+                date_str = current_date.strftime("%Y-%m-%d")
+
+                if date_str in existing_rates:
+                    # Update last known rate
+                    last_known_rate = existing_rates[date_str]
+                elif last_known_rate is not None:
+                    # Fill missing date with last known rate
+                    if self.add_exchange_rate(currency_id, last_known_rate, date_str):
+                        currency_filled += 1
+                        total_filled += 1
+                        print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
+
+                current_date += timedelta(days=1)
+
+            print(f"  📈 Filled {currency_filled} missing dates for {currency_code}")
+
+        print(f"🎉 Total filled: {total_filled} exchange rate records")
+        return total_filled
 
     def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]:
         """Get all account balances converted to specified currency.
@@ -1315,6 +1347,29 @@ class DatabaseManager:
 
         return total_income, total_expenses
 
+    def get_last_exchange_rate_date(self, currency_id: int) -> str | None:
+        """Get the last date for which exchange rate exists for a currency.
+
+        Args:
+            currency_id (int): Currency ID.
+
+        Returns:
+            str | None: Last date in YYYY-MM-DD format or None if no rates exist.
+        """
+        rows = self.get_rows(
+            "SELECT MAX(date) FROM exchange_rates WHERE _id_currency = :currency_id", {"currency_id": currency_id}
+        )
+        return rows[0][0] if rows and rows[0][0] else None
+
+    def get_last_exchange_rates_update_date(self) -> str | None:
+        """Get the last date when exchange rates were updated.
+
+        Returns:
+            str | None: Last update date in YYYY-MM-DD format or None if never updated.
+        """
+        rows = self.get_rows("SELECT value FROM settings WHERE key = 'last_exchange_rates_update'")
+        return rows[0][0] if rows else None
+
     def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
         """Get information about missing exchange rates for each currency.
 
@@ -1649,6 +1704,28 @@ class DatabaseManager:
         # If update didn't affect any rows, insert new setting
         insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
         return self.execute_simple_query(insert_query, {"code": currency_code})
+
+    def set_last_exchange_rates_update_date(self, date: str) -> bool:
+        """Set the last date when exchange rates were updated.
+
+        Args:
+            date (str): Date in YYYY-MM-DD format.
+
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        # First try to update existing setting
+        update_query = "UPDATE settings SET value = :date WHERE key = 'last_exchange_rates_update'"
+        if self.execute_simple_query(update_query, {"date": date}):
+            # Check if any rows were affected
+            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'last_exchange_rates_update'"
+            rows = self.get_rows(check_query)
+            if rows and rows[0][0] > 0:
+                return True
+
+        # If update didn't affect any rows, insert new setting
+        insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
+        return self.execute_simple_query(insert_query, {"date": date})
 
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
@@ -2885,22 +2962,39 @@ def execute_simple_query(
 ### ⚙️ Method `fill_missing_exchange_rates`
 
 ```python
-def fill_missing_exchange_rates(self) -> None
+def fill_missing_exchange_rates(self) -> int
 ```
 
-Fill missing exchange rates with previous available rates.
+Fill missing exchange rates with previous available rates for all date gaps.
+
+Returns:
+int: Number of exchange rates that were filled.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def fill_missing_exchange_rates(self) -> None:
+def fill_missing_exchange_rates(self) -> int:
         from datetime import datetime, timedelta
 
         currencies = self.get_currencies_except_usd()
+        total_filled = 0
+
+        # Get the earliest transaction date as the absolute start date
+        earliest_transaction_date = self.get_earliest_transaction_date()
+        if not earliest_transaction_date:
+            print("No transactions found, cannot determine start date for filling rates")
+            return 0
+
+        start_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
+        end_date = datetime.now().date()
+
+        print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
 
         for currency_id, currency_code, _, _ in currencies:
-            # Get all existing rates for currency
+            print(f"📊 Processing {currency_code}...")
+
+            # Get all existing rates for this currency
             query = """
                 SELECT date, rate FROM exchange_rates
                 WHERE _id_currency = :currency_id
@@ -2908,26 +3002,37 @@ def fill_missing_exchange_rates(self) -> None:
             """
             rows = self.get_rows(query, {"currency_id": currency_id})
 
-            if len(rows) < 2:
+            if not rows:
+                print(f"⚠️ No exchange rates found for {currency_code}, skipping")
                 continue
 
-            # Fill gaps between existing dates
-            for i in range(len(rows) - 1):
-                current_date = datetime.strptime(rows[i][0], "%Y-%m-%d").date()
-                next_date = datetime.strptime(rows[i + 1][0], "%Y-%m-%d").date()
-                current_rate = rows[i][1]
+            # Create a map of existing rates
+            existing_rates = {row[0]: row[1] for row in rows}
 
-                # Fill missing days between current_date and next_date
-                fill_date = current_date + timedelta(days=1)
-                while fill_date < next_date:
-                    # Skip weekends
-                    if fill_date.weekday() < 5:  # Only weekdays
-                        date_str = fill_date.strftime("%Y-%m-%d")
-                        if not self.check_exchange_rate_exists(currency_id, date_str):
-                            if self.add_exchange_rate(currency_id, current_rate, date_str):
-                                print(f"Filled gap {currency_code}: {date_str} = {current_rate}")
+            # Fill missing dates from start_date to end_date
+            current_date = start_date
+            last_known_rate = None
+            currency_filled = 0
 
-                    fill_date += timedelta(days=1)
+            while current_date <= end_date:
+                date_str = current_date.strftime("%Y-%m-%d")
+
+                if date_str in existing_rates:
+                    # Update last known rate
+                    last_known_rate = existing_rates[date_str]
+                elif last_known_rate is not None:
+                    # Fill missing date with last known rate
+                    if self.add_exchange_rate(currency_id, last_known_rate, date_str):
+                        currency_filled += 1
+                        total_filled += 1
+                        print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
+
+                current_date += timedelta(days=1)
+
+            print(f"  📈 Filled {currency_filled} missing dates for {currency_code}")
+
+        print(f"🎉 Total filled: {total_filled} exchange rate records")
+        return total_filled
 ```
 
 </details>
@@ -3831,6 +3936,55 @@ def get_income_vs_expenses_in_currency(
 
 </details>
 
+### ⚙️ Method `get_last_exchange_rate_date`
+
+```python
+def get_last_exchange_rate_date(self, currency_id: int) -> str | None
+```
+
+Get the last date for which exchange rate exists for a currency.
+
+Args:
+currency_id (int): Currency ID.
+
+Returns:
+str | None: Last date in YYYY-MM-DD format or None if no rates exist.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_last_exchange_rate_date(self, currency_id: int) -> str | None:
+        rows = self.get_rows(
+            "SELECT MAX(date) FROM exchange_rates WHERE _id_currency = :currency_id", {"currency_id": currency_id}
+        )
+        return rows[0][0] if rows and rows[0][0] else None
+```
+
+</details>
+
+### ⚙️ Method `get_last_exchange_rates_update_date`
+
+```python
+def get_last_exchange_rates_update_date(self) -> str | None
+```
+
+Get the last date when exchange rates were updated.
+
+Returns:
+str | None: Last update date in YYYY-MM-DD format or None if never updated.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_last_exchange_rates_update_date(self) -> str | None:
+        rows = self.get_rows("SELECT value FROM settings WHERE key = 'last_exchange_rates_update'")
+        return rows[0][0] if rows else None
+```
+
+</details>
+
 ### ⚙️ Method `get_missing_exchange_rates_info`
 
 ```python
@@ -4272,6 +4426,41 @@ def set_default_currency(self, currency_code: str) -> bool:
         # If update didn't affect any rows, insert new setting
         insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
         return self.execute_simple_query(insert_query, {"code": currency_code})
+```
+
+</details>
+
+### ⚙️ Method `set_last_exchange_rates_update_date`
+
+```python
+def set_last_exchange_rates_update_date(self, date: str) -> bool
+```
+
+Set the last date when exchange rates were updated.
+
+Args:
+date (str): Date in YYYY-MM-DD format.
+
+Returns:
+bool: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_last_exchange_rates_update_date(self, date: str) -> bool:
+        # First try to update existing setting
+        update_query = "UPDATE settings SET value = :date WHERE key = 'last_exchange_rates_update'"
+        if self.execute_simple_query(update_query, {"date": date}):
+            # Check if any rows were affected
+            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'last_exchange_rates_update'"
+            rows = self.get_rows(check_query)
+            if rows and rows[0][0] > 0:
+                return True
+
+        # If update didn't affect any rows, insert new setting
+        insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
+        return self.execute_simple_query(insert_query, {"date": date})
 ```
 
 </details>

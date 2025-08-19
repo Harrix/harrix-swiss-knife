@@ -22,7 +22,6 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
-  - [⚙️ Method `fill_missing_exchange_rates`](#%EF%B8%8F-method-fill_missing_exchange_rates)
   - [⚙️ Method `generate_pastel_colors_mathematical`](#%EF%B8%8F-method-generate_pastel_colors_mathematical)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `load_exchange_rates_table`](#%EF%B8%8F-method-load_exchange_rates_table)
@@ -135,13 +134,13 @@ class ExchangeRateUpdateWorker(QThread):
     progress_updated = Signal(str)  # Progress message
     currency_started = Signal(str)  # Currency being processed
     rates_added = Signal(str, float, str)  # currency_code, rate, date
-    finished_success = Signal(int)  # Total updates count
+    finished_success = Signal(int, int)  # Downloaded updates, filled updates
     finished_error = Signal(str)  # Error message
 
-    def __init__(self, db_manager, currencies, start_date, end_date):
+    def __init__(self, db_manager, currencies_to_update, start_date, end_date):
         super().__init__()
         self.db_manager = db_manager
-        self.currencies = currencies
+        self.currencies_to_update = currencies_to_update  # List of (currency_id, code, start_date, end_date)
         self.start_date = start_date
         self.end_date = end_date
         self.should_stop = False
@@ -154,7 +153,7 @@ class ExchangeRateUpdateWorker(QThread):
             import requests
             import yfinance as yf
 
-            total_updates = 0
+            total_downloaded = 0
 
             # Clean invalid exchange rates first
             self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
@@ -271,25 +270,30 @@ class ExchangeRateUpdateWorker(QThread):
 
                 return rates_data
 
-            # Process each currency
-            for currency_id, currency_code, currency_name, currency_symbol in self.currencies:
+            # Process each currency that needs updates
+            for currency_id, currency_code, currency_start_date, currency_end_date in self.currencies_to_update:
                 if self.should_stop:
                     break
 
                 self.currency_started.emit(currency_code)
+                self.progress_updated.emit(
+                    f"📈 Updating {currency_code} from {currency_start_date} to {currency_end_date}"
+                )
 
                 success = False
                 rates_data = {}
 
                 # Try multiple data sources in order of preference
                 data_sources = [
+                    ("yfinance", lambda: get_yfinance_data(currency_code, currency_start_date, currency_end_date)),
                     (
                         "ExchangeRate-API",
                         lambda: get_exchangerate_api_data(
-                            currency_code, self.start_date.strftime("%Y-%m-%d"), self.end_date.strftime("%Y-%m-%d")
+                            currency_code,
+                            currency_start_date.strftime("%Y-%m-%d"),
+                            currency_end_date.strftime("%Y-%m-%d"),
                         ),
                     ),
-                    ("yfinance", lambda: get_yfinance_data(currency_code, self.start_date, self.end_date)),
                 ]
 
                 for source_name, get_data_func in data_sources:
@@ -301,7 +305,7 @@ class ExchangeRateUpdateWorker(QThread):
 
                         if rates_data:
                             self.progress_updated.emit(
-                                f"✅ Successfully got data from {source_name} for {currency_code}"
+                                f"✅ Successfully got {len(rates_data)} rates from {source_name} for {currency_code}"
                             )
                             success = True
                             break
@@ -320,6 +324,7 @@ class ExchangeRateUpdateWorker(QThread):
 
                 # Save the rates to database
                 self.progress_updated.emit(f"💾 Saving {len(rates_data)} exchange rates for {currency_code}")
+                currency_downloaded = 0
 
                 for date_str, rate in rates_data.items():
                     if self.should_stop:
@@ -329,7 +334,8 @@ class ExchangeRateUpdateWorker(QThread):
                         if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
                             if rate is not None and rate > 0:
                                 if self.db_manager.add_exchange_rate(currency_id, rate, date_str):
-                                    total_updates += 1
+                                    total_downloaded += 1
+                                    currency_downloaded += 1
                                     self.rates_added.emit(currency_code, rate, date_str)
                                 else:
                                     self.progress_updated.emit(
@@ -343,8 +349,20 @@ class ExchangeRateUpdateWorker(QThread):
                         self.progress_updated.emit(f"❌ Error saving rate for {currency_code} on {date_str}: {e}")
                         continue
 
+                self.progress_updated.emit(f"📊 Downloaded {currency_downloaded} new rates for {currency_code}")
+
+            # Fill missing exchange rates
             if not self.should_stop:
-                self.finished_success.emit(total_updates)
+                self.progress_updated.emit("🔄 Filling missing exchange rates...")
+                filled_count = self.db_manager.fill_missing_exchange_rates()
+                self.progress_updated.emit(f"✅ Filled {filled_count} missing exchange rate records")
+
+                # Update last update date
+                today = datetime.now().strftime("%Y-%m-%d")
+                if self.db_manager.set_last_exchange_rates_update_date(today):
+                    self.progress_updated.emit(f"📅 Updated last exchange rates update date to {today}")
+
+                self.finished_success.emit(total_downloaded, filled_count)
 
         except Exception as e:
             self.finished_error.emit(f"Exchange rate update error: {e}")
@@ -359,7 +377,7 @@ class ExchangeRateUpdateWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_manager, currencies, start_date, end_date)
+def __init__(self, db_manager, currencies_to_update, start_date, end_date)
 ```
 
 _No docstring provided._
@@ -368,10 +386,10 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, db_manager, currencies, start_date, end_date):
+def __init__(self, db_manager, currencies_to_update, start_date, end_date):
         super().__init__()
         self.db_manager = db_manager
-        self.currencies = currencies
+        self.currencies_to_update = currencies_to_update  # List of (currency_id, code, start_date, end_date)
         self.start_date = start_date
         self.end_date = end_date
         self.should_stop = False
@@ -398,7 +416,7 @@ def run(self):
             import requests
             import yfinance as yf
 
-            total_updates = 0
+            total_downloaded = 0
 
             # Clean invalid exchange rates first
             self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
@@ -515,25 +533,30 @@ def run(self):
 
                 return rates_data
 
-            # Process each currency
-            for currency_id, currency_code, currency_name, currency_symbol in self.currencies:
+            # Process each currency that needs updates
+            for currency_id, currency_code, currency_start_date, currency_end_date in self.currencies_to_update:
                 if self.should_stop:
                     break
 
                 self.currency_started.emit(currency_code)
+                self.progress_updated.emit(
+                    f"📈 Updating {currency_code} from {currency_start_date} to {currency_end_date}"
+                )
 
                 success = False
                 rates_data = {}
 
                 # Try multiple data sources in order of preference
                 data_sources = [
+                    ("yfinance", lambda: get_yfinance_data(currency_code, currency_start_date, currency_end_date)),
                     (
                         "ExchangeRate-API",
                         lambda: get_exchangerate_api_data(
-                            currency_code, self.start_date.strftime("%Y-%m-%d"), self.end_date.strftime("%Y-%m-%d")
+                            currency_code,
+                            currency_start_date.strftime("%Y-%m-%d"),
+                            currency_end_date.strftime("%Y-%m-%d"),
                         ),
                     ),
-                    ("yfinance", lambda: get_yfinance_data(currency_code, self.start_date, self.end_date)),
                 ]
 
                 for source_name, get_data_func in data_sources:
@@ -545,7 +568,7 @@ def run(self):
 
                         if rates_data:
                             self.progress_updated.emit(
-                                f"✅ Successfully got data from {source_name} for {currency_code}"
+                                f"✅ Successfully got {len(rates_data)} rates from {source_name} for {currency_code}"
                             )
                             success = True
                             break
@@ -564,6 +587,7 @@ def run(self):
 
                 # Save the rates to database
                 self.progress_updated.emit(f"💾 Saving {len(rates_data)} exchange rates for {currency_code}")
+                currency_downloaded = 0
 
                 for date_str, rate in rates_data.items():
                     if self.should_stop:
@@ -573,7 +597,8 @@ def run(self):
                         if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
                             if rate is not None and rate > 0:
                                 if self.db_manager.add_exchange_rate(currency_id, rate, date_str):
-                                    total_updates += 1
+                                    total_downloaded += 1
+                                    currency_downloaded += 1
                                     self.rates_added.emit(currency_code, rate, date_str)
                                 else:
                                     self.progress_updated.emit(
@@ -587,8 +612,20 @@ def run(self):
                         self.progress_updated.emit(f"❌ Error saving rate for {currency_code} on {date_str}: {e}")
                         continue
 
+                self.progress_updated.emit(f"📊 Downloaded {currency_downloaded} new rates for {currency_code}")
+
+            # Fill missing exchange rates
             if not self.should_stop:
-                self.finished_success.emit(total_updates)
+                self.progress_updated.emit("🔄 Filling missing exchange rates...")
+                filled_count = self.db_manager.fill_missing_exchange_rates()
+                self.progress_updated.emit(f"✅ Filled {filled_count} missing exchange rate records")
+
+                # Update last update date
+                today = datetime.now().strftime("%Y-%m-%d")
+                if self.db_manager.set_last_exchange_rates_update_date(today):
+                    self.progress_updated.emit(f"📅 Updated last exchange rates update date to {today}")
+
+                self.finished_success.emit(total_downloaded, filled_count)
 
         except Exception as e:
             self.finished_error.emit(f"Exchange rate update error: {e}")
@@ -947,59 +984,6 @@ class MainWindow(
                 self.on_add_transaction()
                 return True
         return super().eventFilter(obj, event)
-
-    @requires_database()
-    def fill_missing_exchange_rates(self) -> None:
-        """Fill missing exchange rates with previous available rates."""
-        if self.db_manager is None:
-            return
-
-        currencies = self.db_manager.get_currencies_except_usd()
-        total_filled = 0
-
-        for currency_id, currency_code, _, _ in currencies:
-            # Get all existing rates for currency
-            query = """
-                SELECT date, rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                ORDER BY date ASC
-            """
-            rows = self.db_manager.get_rows(query, {"currency_id": currency_id})
-
-            if len(rows) < 2:
-                continue
-
-            # Fill gaps between existing dates
-            for i in range(len(rows) - 1):
-                current_date = datetime.strptime(rows[i][0], "%Y-%m-%d").date()
-                next_date = datetime.strptime(rows[i + 1][0], "%Y-%m-%d").date()
-                current_rate = rows[i][1]
-
-                # Fill missing days between current_date and next_date
-                fill_date = current_date + timedelta(days=1)
-                while fill_date < next_date:
-                    # Skip weekends
-                    if fill_date.weekday() < 5:  # Only weekdays
-                        date_str = fill_date.strftime("%Y-%m-%d")
-                        if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
-                            if self.db_manager.add_exchange_rate(currency_id, current_rate, date_str):
-                                total_filled += 1
-                                print(f"Filled gap {currency_code}: {date_str} = {current_rate}")
-
-                    fill_date += timedelta(days=1)
-
-        if total_filled > 0:
-            QMessageBox.information(
-                self, "Fill Complete", f"Successfully filled {total_filled} missing exchange rates."
-            )
-            # Mark exchange rates as changed to trigger reload if tab is active
-            self._mark_exchange_rates_changed()
-            # If exchange rates tab is currently active, reload the data
-            current_tab_index = self.tabWidget.currentIndex()
-            if current_tab_index == 4:  # Exchange Rates tab
-                self.load_exchange_rates_table()
-        else:
-            QMessageBox.information(self, "Fill Complete", "No missing exchange rates found to fill.")
 
     def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
         """Generate pastel colors using mathematical distribution.
@@ -1551,17 +1535,14 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
-        # Fill missing exchange rates first
-        self.fill_missing_exchange_rates()
-
         try:
-            # Get the earliest date from transactions or currency_exchanges
-            earliest_date = self.db_manager.get_earliest_financial_date()
-            if not earliest_date:
+            # Get the earliest date from transactions
+            earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
+            if not earliest_transaction_date:
                 QMessageBox.warning(
                     self,
                     "No Data",
-                    "No transactions or currency exchanges found. Please add some financial data first.",
+                    "No transactions found. Please add some transactions first.",
                 )
                 return
 
@@ -1571,54 +1552,63 @@ class MainWindow(
                 QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
                 return
 
-            # Calculate date range
-            start_date = datetime.strptime(earliest_date, "%Y-%m-%d").date()
-            end_date = datetime.now().date()
+            # Calculate which currencies need updates
+            currencies_to_update = []
+            today = datetime.now().date()
+            earliest_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
 
-            # Quick check: get missing exchange rates for each currency
-            print(f"🔍 Checking existing exchange rates from {start_date} to {end_date}...")
-
-            missing_rates_info = self.db_manager.get_missing_exchange_rates_info(
-                start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
-            )
-
-            total_missing_rates = 0
-            currencies_with_missing_rates = []
+            print(f"🔍 Checking which currencies need updates...")
+            print(f"📅 Earliest transaction date: {earliest_date}")
+            print(f"📅 Today's date: {today}")
 
             for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                missing_dates = missing_rates_info.get(currency_id, [])
-                missing_count = len(missing_dates)
+                # Get the last date for this currency
+                last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
 
-                if missing_count > 0:
-                    total_missing_rates += missing_count
-                    currencies_with_missing_rates.append((currency_id, currency_code, currency_name, currency_symbol))
-                    print(f"📊 {currency_code}: {missing_count} missing rates")
-                    # Show first few missing dates for debugging
-                    if missing_dates:
-                        sample_dates = missing_dates[:5]
-                        print(f"    Missing dates sample: {', '.join(sample_dates)}")
+                if last_date_str:
+                    last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+                    # Need to update from the day after last_date to today
+                    start_date = last_date + timedelta(days=1)
+
+                    # But make sure we don't go earlier than earliest transaction date
+                    if start_date < earliest_date:
+                        start_date = earliest_date
+
+                    if start_date <= today:
+                        currencies_to_update.append((currency_id, currency_code, start_date, today))
+                        days_to_update = (today - start_date).days + 1
+                        print(f"📊 {currency_code}: Update from {start_date} to {today} ({days_to_update} days)")
+                    else:
+                        print(f"✅ {currency_code}: Already up to date (last: {last_date})")
                 else:
-                    print(f"✅ {currency_code}: All rates exist")
+                    # No rates exist for this currency, need to download from earliest transaction date
+                    currencies_to_update.append((currency_id, currency_code, earliest_date, today))
+                    days_to_update = (today - earliest_date).days + 1
+                    print(
+                        f"📊 {currency_code}: First time download from {earliest_date} to {today} ({days_to_update} days)"
+                    )
 
-            # If no missing rates found, inform user and exit
-            if total_missing_rates == 0:
+            # If no currencies need updates, inform user
+            if not currencies_to_update:
                 QMessageBox.information(
                     self,
                     "Exchange Rates Up to Date",
-                    f"All exchange rates are already up to date for the period {start_date} to {end_date}.\n"
+                    f"All exchange rates are already up to date as of {today}.\n"
                     f"No updates needed for {len(currencies)} currencies.",
                 )
                 print(f"✅ All exchange rates are up to date. No updates needed.")
                 return
 
             # Show summary and ask for confirmation
-            missing_currencies_text = ", ".join([curr[1] for curr in currencies_with_missing_rates])
+            total_days = sum((end_date - start_date).days + 1 for _, _, start_date, end_date in currencies_to_update)
+            currencies_text = ", ".join([curr[1] for curr in currencies_to_update])
+
             reply = QMessageBox.question(
                 self,
                 "Update Exchange Rates",
-                f"Found {total_missing_rates} missing exchange rates for {len(currencies_with_missing_rates)} currencies:\n"
-                f"{missing_currencies_text}\n\n"
-                f"Period: {start_date} to {end_date}\n\n"
+                f"Found {len(currencies_to_update)} currencies that need updates:\n"
+                f"{currencies_text}\n\n"
+                f"Total days to download: {total_days}\n\n"
                 f"Do you want to proceed with the update?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
@@ -1643,9 +1633,7 @@ class MainWindow(
             # Create and configure progress dialog
             self.progress_dialog = QMessageBox(self)
             self.progress_dialog.setWindowTitle("Updating Exchange Rates")
-            self.progress_dialog.setText(
-                f"Starting exchange rate update for {len(currencies_with_missing_rates)} currencies..."
-            )
+            self.progress_dialog.setText(f"Starting exchange rate update for {len(currencies_to_update)} currencies...")
             self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
             self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
@@ -1658,9 +1646,9 @@ class MainWindow(
             self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
             self.progress_dialog.show()
 
-            # Create and start worker thread with only currencies that need updates
+            # Create and start worker thread
             self.exchange_rate_worker = ExchangeRateUpdateWorker(
-                self.db_manager, currencies_with_missing_rates, start_date, end_date
+                self.db_manager, currencies_to_update, earliest_date, today
             )
 
             # Connect signals
@@ -3278,17 +3266,24 @@ class MainWindow(
         QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
         print(f"❌ {error_message}")
 
-    def _on_update_finished_success(self, total_updates: int):
+    def _on_update_finished_success(self, downloaded_count: int, filled_count: int):
         """Handle successful completion."""
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
 
-        if total_updates > 0:
-            QMessageBox.information(
-                self,
-                "Update Complete",
-                f"Successfully updated {total_updates} exchange rates.",
-            )
+        total_updates = downloaded_count + filled_count
+        message_parts = []
+
+        if downloaded_count > 0:
+            message_parts.append(f"Downloaded {downloaded_count} new exchange rates")
+
+        if filled_count > 0:
+            message_parts.append(f"Filled {filled_count} missing dates")
+
+        if message_parts:
+            message = "Successfully completed exchange rate update:\n• " + "\n• ".join(message_parts)
+            QMessageBox.information(self, "Update Complete", message)
+
             # Mark exchange rates as changed to trigger reload if tab is active
             self._mark_exchange_rates_changed()
             # If exchange rates tab is currently active, reload the data
@@ -3299,7 +3294,7 @@ class MainWindow(
             QMessageBox.information(
                 self,
                 "Update Complete",
-                "No new exchange rates were added.",
+                "Exchange rates are already up to date.",
             )
 
     def _populate_form_from_description(self, description: str) -> None:
@@ -4115,72 +4110,6 @@ def eventFilter(self, obj, event) -> bool:
 
 </details>
 
-### ⚙️ Method `fill_missing_exchange_rates`
-
-```python
-def fill_missing_exchange_rates(self) -> None
-```
-
-Fill missing exchange rates with previous available rates.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def fill_missing_exchange_rates(self) -> None:
-        if self.db_manager is None:
-            return
-
-        currencies = self.db_manager.get_currencies_except_usd()
-        total_filled = 0
-
-        for currency_id, currency_code, _, _ in currencies:
-            # Get all existing rates for currency
-            query = """
-                SELECT date, rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                ORDER BY date ASC
-            """
-            rows = self.db_manager.get_rows(query, {"currency_id": currency_id})
-
-            if len(rows) < 2:
-                continue
-
-            # Fill gaps between existing dates
-            for i in range(len(rows) - 1):
-                current_date = datetime.strptime(rows[i][0], "%Y-%m-%d").date()
-                next_date = datetime.strptime(rows[i + 1][0], "%Y-%m-%d").date()
-                current_rate = rows[i][1]
-
-                # Fill missing days between current_date and next_date
-                fill_date = current_date + timedelta(days=1)
-                while fill_date < next_date:
-                    # Skip weekends
-                    if fill_date.weekday() < 5:  # Only weekdays
-                        date_str = fill_date.strftime("%Y-%m-%d")
-                        if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
-                            if self.db_manager.add_exchange_rate(currency_id, current_rate, date_str):
-                                total_filled += 1
-                                print(f"Filled gap {currency_code}: {date_str} = {current_rate}")
-
-                    fill_date += timedelta(days=1)
-
-        if total_filled > 0:
-            QMessageBox.information(
-                self, "Fill Complete", f"Successfully filled {total_filled} missing exchange rates."
-            )
-            # Mark exchange rates as changed to trigger reload if tab is active
-            self._mark_exchange_rates_changed()
-            # If exchange rates tab is currently active, reload the data
-            current_tab_index = self.tabWidget.currentIndex()
-            if current_tab_index == 4:  # Exchange Rates tab
-                self.load_exchange_rates_table()
-        else:
-            QMessageBox.information(self, "Fill Complete", "No missing exchange rates found to fill.")
-```
-
-</details>
-
 ### ⚙️ Method `generate_pastel_colors_mathematical`
 
 ```python
@@ -4961,17 +4890,14 @@ def on_update_exchange_rates(self) -> None:
             print("❌ Database manager is not initialized")
             return
 
-        # Fill missing exchange rates first
-        self.fill_missing_exchange_rates()
-
         try:
-            # Get the earliest date from transactions or currency_exchanges
-            earliest_date = self.db_manager.get_earliest_financial_date()
-            if not earliest_date:
+            # Get the earliest date from transactions
+            earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
+            if not earliest_transaction_date:
                 QMessageBox.warning(
                     self,
                     "No Data",
-                    "No transactions or currency exchanges found. Please add some financial data first.",
+                    "No transactions found. Please add some transactions first.",
                 )
                 return
 
@@ -4981,54 +4907,63 @@ def on_update_exchange_rates(self) -> None:
                 QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
                 return
 
-            # Calculate date range
-            start_date = datetime.strptime(earliest_date, "%Y-%m-%d").date()
-            end_date = datetime.now().date()
+            # Calculate which currencies need updates
+            currencies_to_update = []
+            today = datetime.now().date()
+            earliest_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
 
-            # Quick check: get missing exchange rates for each currency
-            print(f"🔍 Checking existing exchange rates from {start_date} to {end_date}...")
-
-            missing_rates_info = self.db_manager.get_missing_exchange_rates_info(
-                start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
-            )
-
-            total_missing_rates = 0
-            currencies_with_missing_rates = []
+            print(f"🔍 Checking which currencies need updates...")
+            print(f"📅 Earliest transaction date: {earliest_date}")
+            print(f"📅 Today's date: {today}")
 
             for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                missing_dates = missing_rates_info.get(currency_id, [])
-                missing_count = len(missing_dates)
+                # Get the last date for this currency
+                last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
 
-                if missing_count > 0:
-                    total_missing_rates += missing_count
-                    currencies_with_missing_rates.append((currency_id, currency_code, currency_name, currency_symbol))
-                    print(f"📊 {currency_code}: {missing_count} missing rates")
-                    # Show first few missing dates for debugging
-                    if missing_dates:
-                        sample_dates = missing_dates[:5]
-                        print(f"    Missing dates sample: {', '.join(sample_dates)}")
+                if last_date_str:
+                    last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+                    # Need to update from the day after last_date to today
+                    start_date = last_date + timedelta(days=1)
+
+                    # But make sure we don't go earlier than earliest transaction date
+                    if start_date < earliest_date:
+                        start_date = earliest_date
+
+                    if start_date <= today:
+                        currencies_to_update.append((currency_id, currency_code, start_date, today))
+                        days_to_update = (today - start_date).days + 1
+                        print(f"📊 {currency_code}: Update from {start_date} to {today} ({days_to_update} days)")
+                    else:
+                        print(f"✅ {currency_code}: Already up to date (last: {last_date})")
                 else:
-                    print(f"✅ {currency_code}: All rates exist")
+                    # No rates exist for this currency, need to download from earliest transaction date
+                    currencies_to_update.append((currency_id, currency_code, earliest_date, today))
+                    days_to_update = (today - earliest_date).days + 1
+                    print(
+                        f"📊 {currency_code}: First time download from {earliest_date} to {today} ({days_to_update} days)"
+                    )
 
-            # If no missing rates found, inform user and exit
-            if total_missing_rates == 0:
+            # If no currencies need updates, inform user
+            if not currencies_to_update:
                 QMessageBox.information(
                     self,
                     "Exchange Rates Up to Date",
-                    f"All exchange rates are already up to date for the period {start_date} to {end_date}.\n"
+                    f"All exchange rates are already up to date as of {today}.\n"
                     f"No updates needed for {len(currencies)} currencies.",
                 )
                 print(f"✅ All exchange rates are up to date. No updates needed.")
                 return
 
             # Show summary and ask for confirmation
-            missing_currencies_text = ", ".join([curr[1] for curr in currencies_with_missing_rates])
+            total_days = sum((end_date - start_date).days + 1 for _, _, start_date, end_date in currencies_to_update)
+            currencies_text = ", ".join([curr[1] for curr in currencies_to_update])
+
             reply = QMessageBox.question(
                 self,
                 "Update Exchange Rates",
-                f"Found {total_missing_rates} missing exchange rates for {len(currencies_with_missing_rates)} currencies:\n"
-                f"{missing_currencies_text}\n\n"
-                f"Period: {start_date} to {end_date}\n\n"
+                f"Found {len(currencies_to_update)} currencies that need updates:\n"
+                f"{currencies_text}\n\n"
+                f"Total days to download: {total_days}\n\n"
                 f"Do you want to proceed with the update?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
@@ -5053,9 +4988,7 @@ def on_update_exchange_rates(self) -> None:
             # Create and configure progress dialog
             self.progress_dialog = QMessageBox(self)
             self.progress_dialog.setWindowTitle("Updating Exchange Rates")
-            self.progress_dialog.setText(
-                f"Starting exchange rate update for {len(currencies_with_missing_rates)} currencies..."
-            )
+            self.progress_dialog.setText(f"Starting exchange rate update for {len(currencies_to_update)} currencies...")
             self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
             self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
@@ -5068,9 +5001,9 @@ def on_update_exchange_rates(self) -> None:
             self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
             self.progress_dialog.show()
 
-            # Create and start worker thread with only currencies that need updates
+            # Create and start worker thread
             self.exchange_rate_worker = ExchangeRateUpdateWorker(
-                self.db_manager, currencies_with_missing_rates, start_date, end_date
+                self.db_manager, currencies_to_update, earliest_date, today
             )
 
             # Connect signals
@@ -7490,7 +7423,7 @@ def _on_update_finished_error(self, error_message: str):
 ### ⚙️ Method `_on_update_finished_success`
 
 ```python
-def _on_update_finished_success(self, total_updates: int)
+def _on_update_finished_success(self, downloaded_count: int, filled_count: int)
 ```
 
 Handle successful completion.
@@ -7499,16 +7432,23 @@ Handle successful completion.
 <summary>Code:</summary>
 
 ```python
-def _on_update_finished_success(self, total_updates: int):
+def _on_update_finished_success(self, downloaded_count: int, filled_count: int):
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
 
-        if total_updates > 0:
-            QMessageBox.information(
-                self,
-                "Update Complete",
-                f"Successfully updated {total_updates} exchange rates.",
-            )
+        total_updates = downloaded_count + filled_count
+        message_parts = []
+
+        if downloaded_count > 0:
+            message_parts.append(f"Downloaded {downloaded_count} new exchange rates")
+
+        if filled_count > 0:
+            message_parts.append(f"Filled {filled_count} missing dates")
+
+        if message_parts:
+            message = "Successfully completed exchange rate update:\n• " + "\n• ".join(message_parts)
+            QMessageBox.information(self, "Update Complete", message)
+
             # Mark exchange rates as changed to trigger reload if tab is active
             self._mark_exchange_rates_changed()
             # If exchange rates tab is currently active, reload the data
@@ -7519,7 +7459,7 @@ def _on_update_finished_success(self, total_updates: int):
             QMessageBox.information(
                 self,
                 "Update Complete",
-                "No new exchange rates were added.",
+                "Exchange rates are already up to date.",
             )
 ```
 
