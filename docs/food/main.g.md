@@ -41,6 +41,7 @@ lang: en
   - [⚙️ Method `update_calories_calculation`](#%EF%B8%8F-method-update_calories_calculation)
   - [⚙️ Method `update_food_calories_today`](#%EF%B8%8F-method-update_food_calories_today)
   - [⚙️ Method `update_food_data`](#%EF%B8%8F-method-update_food_data)
+  - [⚙️ Method `_add_food_item_from_log_record`](#%EF%B8%8F-method-_add_food_item_from_log_record)
   - [⚙️ Method `_adjust_food_log_table_columns`](#%EF%B8%8F-method-_adjust_food_log_table_columns)
   - [⚙️ Method `_adjust_kcal_per_day_table_columns`](#%EF%B8%8F-method-_adjust_kcal_per_day_table_columns)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
@@ -1042,6 +1043,128 @@ class MainWindow(
         self._update_autocomplete_data()  # Add this line
         self.update_food_calories_today()
         self.show_tables()
+
+    @requires_database()
+    def _add_food_item_from_log_record(self, include_weight: bool = True) -> None:
+        """Add a new food item to food_items table based on selected food log record.
+
+        Args:
+            include_weight (bool): If True, includes the weight from the log record.
+                                If False, sets weight to zero.
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get the selected row data from the table model
+            proxy_model = self.models["food_log"]
+            if proxy_model is None:
+                return
+            source_model = proxy_model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return
+
+            current_index = self.tableView_food_log.currentIndex()
+            if not current_index.isValid():
+                QMessageBox.warning(self, "Error", "No row selected")
+                return
+
+            row = current_index.row()
+
+            # Get data from the table model directly
+            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+            name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
+            is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
+            weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
+            calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
+            portion_calories_str = source_model.item(row, 4).text() if source_model.item(row, 4) else "0"
+            name_en = source_model.item(row, 7).text() if source_model.item(row, 7) else ""
+
+            # Validate food name
+            if not name.strip():
+                QMessageBox.warning(self, "Error", "Food name cannot be empty")
+                return
+
+            # Check if food item already exists
+            existing_item = self.db_manager.get_food_item_by_name(name.strip())
+            if existing_item:
+                QMessageBox.warning(self, "Error", f"Food item '{name.strip()}' already exists in food items table")
+                return
+
+            # Parse values
+            is_drink = is_drink_str.strip() == "1"
+
+            # Parse weight
+            weight = None
+            if include_weight and weight_str.strip():
+                try:
+                    weight = float(weight_str)
+                    if weight <= 0:
+                        weight = None
+                except (ValueError, TypeError):
+                    weight = None
+
+            # Parse calories per 100g
+            calories_per_100g = None
+            if calories_per_100g_str.strip():
+                try:
+                    calories_per_100g = float(calories_per_100g_str)
+                    if calories_per_100g <= 0:
+                        calories_per_100g = None
+                except (ValueError, TypeError):
+                    calories_per_100g = None
+
+            # Parse portion calories
+            portion_calories = None
+            if portion_calories_str.strip():
+                try:
+                    portion_calories = float(portion_calories_str)
+                    if portion_calories <= 0:
+                        portion_calories = None
+                except (ValueError, TypeError):
+                    portion_calories = None
+
+            # Determine which values to use based on what's available
+            # If portion_calories exists, use it as default_portion_calories
+            # If calories_per_100g exists, use it
+            # Use weight as default_portion_weight if include_weight is True
+
+            default_portion_weight = weight if include_weight else None
+            default_portion_calories = portion_calories
+            final_calories_per_100g = calories_per_100g
+
+            # Add the food item to database
+            success = self.db_manager.add_food_item(
+                name=name.strip(),
+                name_en=name_en.strip() if name_en.strip() else None,
+                is_drink=is_drink,
+                calories_per_100g=final_calories_per_100g,
+                default_portion_weight=default_portion_weight,
+                default_portion_calories=default_portion_calories,
+            )
+
+            if success:
+                # Update UI
+                self.update_food_data()
+
+                # Show success message with details
+                weight_info = f" with weight {weight}g" if include_weight and weight else " without weight"
+                calories_info = ""
+                if final_calories_per_100g:
+                    calories_info += f", {final_calories_per_100g} kcal/100g"
+                if default_portion_calories:
+                    calories_info += f", {default_portion_calories} kcal/portion"
+
+                QMessageBox.information(
+                    self, "Success", f"Food item '{name.strip()}' added successfully{weight_info}{calories_info}!"
+                )
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add food item to database")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add food item: {e}")
+            print(f"Error adding food item from log record: {e}")
 
     def _adjust_food_log_table_columns(self) -> None:
         """Adjust food log table column widths proportionally to window size."""
@@ -2295,13 +2418,28 @@ class MainWindow(
             return
 
         context_menu = QMenu(self)
+
+        # Add food item actions
+        add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")
+        add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Delete action
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
         # Execute the context menu and get the selected action
         action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
 
         # Process the action only if it was actually selected
-        if action == delete_action:
+        if action == add_food_item_action:
+            print("🔧 Context menu: Add food item with weight action triggered")
+            self._add_food_item_from_log_record(include_weight=True)
+        elif action == add_food_item_no_weight_action:
+            print("🔧 Context menu: Add food item without weight action triggered")
+            self._add_food_item_from_log_record(include_weight=False)
+        elif action == delete_action:
             print("🔧 Context menu: Delete action triggered")
             # Temporarily disconnect the context menu signal to prevent recursive calls
             self.tableView_food_log.customContextMenuRequested.disconnect()
@@ -4216,6 +4354,140 @@ def update_food_data(self) -> None:
 
 </details>
 
+### ⚙️ Method `_add_food_item_from_log_record`
+
+```python
+def _add_food_item_from_log_record(self, include_weight: bool = True) -> None
+```
+
+Add a new food item to food_items table based on selected food log record.
+
+Args:
+include_weight (bool): If True, includes the weight from the log record.
+If False, sets weight to zero.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_food_item_from_log_record(self, include_weight: bool = True) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get the selected row data from the table model
+            proxy_model = self.models["food_log"]
+            if proxy_model is None:
+                return
+            source_model = proxy_model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return
+
+            current_index = self.tableView_food_log.currentIndex()
+            if not current_index.isValid():
+                QMessageBox.warning(self, "Error", "No row selected")
+                return
+
+            row = current_index.row()
+
+            # Get data from the table model directly
+            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+            name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
+            is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
+            weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
+            calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
+            portion_calories_str = source_model.item(row, 4).text() if source_model.item(row, 4) else "0"
+            name_en = source_model.item(row, 7).text() if source_model.item(row, 7) else ""
+
+            # Validate food name
+            if not name.strip():
+                QMessageBox.warning(self, "Error", "Food name cannot be empty")
+                return
+
+            # Check if food item already exists
+            existing_item = self.db_manager.get_food_item_by_name(name.strip())
+            if existing_item:
+                QMessageBox.warning(self, "Error", f"Food item '{name.strip()}' already exists in food items table")
+                return
+
+            # Parse values
+            is_drink = is_drink_str.strip() == "1"
+
+            # Parse weight
+            weight = None
+            if include_weight and weight_str.strip():
+                try:
+                    weight = float(weight_str)
+                    if weight <= 0:
+                        weight = None
+                except (ValueError, TypeError):
+                    weight = None
+
+            # Parse calories per 100g
+            calories_per_100g = None
+            if calories_per_100g_str.strip():
+                try:
+                    calories_per_100g = float(calories_per_100g_str)
+                    if calories_per_100g <= 0:
+                        calories_per_100g = None
+                except (ValueError, TypeError):
+                    calories_per_100g = None
+
+            # Parse portion calories
+            portion_calories = None
+            if portion_calories_str.strip():
+                try:
+                    portion_calories = float(portion_calories_str)
+                    if portion_calories <= 0:
+                        portion_calories = None
+                except (ValueError, TypeError):
+                    portion_calories = None
+
+            # Determine which values to use based on what's available
+            # If portion_calories exists, use it as default_portion_calories
+            # If calories_per_100g exists, use it
+            # Use weight as default_portion_weight if include_weight is True
+
+            default_portion_weight = weight if include_weight else None
+            default_portion_calories = portion_calories
+            final_calories_per_100g = calories_per_100g
+
+            # Add the food item to database
+            success = self.db_manager.add_food_item(
+                name=name.strip(),
+                name_en=name_en.strip() if name_en.strip() else None,
+                is_drink=is_drink,
+                calories_per_100g=final_calories_per_100g,
+                default_portion_weight=default_portion_weight,
+                default_portion_calories=default_portion_calories,
+            )
+
+            if success:
+                # Update UI
+                self.update_food_data()
+
+                # Show success message with details
+                weight_info = f" with weight {weight}g" if include_weight and weight else " without weight"
+                calories_info = ""
+                if final_calories_per_100g:
+                    calories_info += f", {final_calories_per_100g} kcal/100g"
+                if default_portion_calories:
+                    calories_info += f", {default_portion_calories} kcal/portion"
+
+                QMessageBox.information(
+                    self, "Success", f"Food item '{name.strip()}' added successfully{weight_info}{calories_info}!"
+                )
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add food item to database")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add food item: {e}")
+            print(f"Error adding food item from log record: {e}")
+```
+
+</details>
+
 ### ⚙️ Method `_adjust_food_log_table_columns`
 
 ```python
@@ -5897,13 +6169,28 @@ def _show_food_log_context_menu(self, position) -> None:
             return
 
         context_menu = QMenu(self)
+
+        # Add food item actions
+        add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")
+        add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Delete action
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
         # Execute the context menu and get the selected action
         action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
 
         # Process the action only if it was actually selected
-        if action == delete_action:
+        if action == add_food_item_action:
+            print("🔧 Context menu: Add food item with weight action triggered")
+            self._add_food_item_from_log_record(include_weight=True)
+        elif action == add_food_item_no_weight_action:
+            print("🔧 Context menu: Add food item without weight action triggered")
+            self._add_food_item_from_log_record(include_weight=False)
+        elif action == delete_action:
             print("🔧 Context menu: Delete action triggered")
             # Temporarily disconnect the context menu signal to prevent recursive calls
             self.tableView_food_log.customContextMenuRequested.disconnect()

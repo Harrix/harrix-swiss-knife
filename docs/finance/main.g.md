@@ -847,6 +847,8 @@ class MainWindow(
     def on_exchange_rates_all_time(self) -> None:
         """Set date range to all available data."""
         self._set_exchange_rates_date_range()
+        # Automatically update the chart
+        self.on_exchange_rates_update()
 
     def on_exchange_rates_currency_changed(self) -> None:
         """Handle currency selection change in exchange rates tab."""
@@ -860,6 +862,8 @@ class MainWindow(
         last_month = current_date.addMonths(-1)
         self.dateEdit_exchange_rates_from.setDate(last_month)
         self.dateEdit_exchange_rates_to.setDate(current_date)
+        # Automatically update the chart
+        self.on_exchange_rates_update()
 
     def on_exchange_rates_last_year(self) -> None:
         """Set date range to last year."""
@@ -867,6 +871,8 @@ class MainWindow(
         last_year = current_date.addYears(-1)
         self.dateEdit_exchange_rates_from.setDate(last_year)
         self.dateEdit_exchange_rates_to.setDate(current_date)
+        # Automatically update the chart
+        self.on_exchange_rates_update()
 
     def on_exchange_rates_update(self) -> None:
         """Update the exchange rate chart."""
@@ -4379,6 +4385,8 @@ Set date range to all available data.
 ```python
 def on_exchange_rates_all_time(self) -> None:
         self._set_exchange_rates_date_range()
+        # Automatically update the chart
+        self.on_exchange_rates_update()
 ```
 
 </details>
@@ -4420,6 +4428,8 @@ def on_exchange_rates_last_month(self) -> None:
         last_month = current_date.addMonths(-1)
         self.dateEdit_exchange_rates_from.setDate(last_month)
         self.dateEdit_exchange_rates_to.setDate(current_date)
+        # Automatically update the chart
+        self.on_exchange_rates_update()
 ```
 
 </details>
@@ -4441,6 +4451,8 @@ def on_exchange_rates_last_year(self) -> None:
         last_year = current_date.addYears(-1)
         self.dateEdit_exchange_rates_from.setDate(last_year)
         self.dateEdit_exchange_rates_to.setDate(current_date)
+        # Automatically update the chart
+        self.on_exchange_rates_update()
 ```
 
 </details>
