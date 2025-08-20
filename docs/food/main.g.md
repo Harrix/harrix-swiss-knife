@@ -604,7 +604,6 @@ class MainWindow(
 
             if not food_item_data:
                 QMessageBox.warning(self, "Error", f"Food item '{food_item}' not found in database!")
-                self._food_item_dialog_open = False
                 return
 
             # Create and show the edit dialog
@@ -619,8 +618,8 @@ class MainWindow(
                     if self.db_manager.delete_food_item(food_id):
                         QMessageBox.information(self, "Success", f"Food item '{food_item}' deleted successfully!")
                         self.update_food_data()
-                        return  # Exit the method to prevent reopening the dialog
-                    QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
+                    else:
+                        QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
                 else:
                     # Update the food item
                     edited_data = dialog.get_edited_data()
@@ -639,9 +638,11 @@ class MainWindow(
                             self, "Success", f"Food item '{edited_data['name']}' updated successfully!"
                         )
                         self.update_food_data()
-                        return  # Exit the method to prevent reopening the dialog
-                    QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
+                    else:
+                        QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
+
             # If result is Rejected (Cancel), do nothing - just close the dialog
+            # No need for additional logic here
 
         except Exception as e:
             print(f"Error in food item double clicked: {e}")
@@ -2432,24 +2433,28 @@ class MainWindow(
         # Execute the context menu and get the selected action
         action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
 
-        # Process the action only if it was actually selected
-        if action == add_food_item_action:
-            print("🔧 Context menu: Add food item with weight action triggered")
-            self._add_food_item_from_log_record(include_weight=True)
-        elif action == add_food_item_no_weight_action:
-            print("🔧 Context menu: Add food item without weight action triggered")
-            self._add_food_item_from_log_record(include_weight=False)
-        elif action == delete_action:
-            print("🔧 Context menu: Delete action triggered")
-            # Temporarily disconnect the context menu signal to prevent recursive calls
-            self.tableView_food_log.customContextMenuRequested.disconnect()
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
-            try:
+        # Temporarily disconnect the context menu signal to prevent recursive calls
+        self.tableView_food_log.customContextMenuRequested.disconnect()
+
+        try:
+            if action == add_food_item_action:
+                print("🔧 Context menu: Add food item with weight action triggered")
+                self._add_food_item_from_log_record(include_weight=True)
+            elif action == add_food_item_no_weight_action:
+                print("🔧 Context menu: Add food item without weight action triggered")
+                self._add_food_item_from_log_record(include_weight=False)
+            elif action == delete_action:
+                print("🔧 Context menu: Delete action triggered")
                 # Perform the deletion
                 self.pushButton_food_delete.click()
-            finally:
-                # Reconnect the context menu signal after a short delay
-                QTimer.singleShot(100, self._reconnect_context_menu)
+        finally:
+            # Reconnect the context menu signal after a short delay
+            QTimer.singleShot(100, self._reconnect_context_menu)
 
     def _update_add_button_appearance(self) -> None:
         """Update the appearance of the add button based on whether it's a drink or food."""
@@ -3675,7 +3680,6 @@ def on_food_item_double_clicked(self, index: QModelIndex) -> None:
 
             if not food_item_data:
                 QMessageBox.warning(self, "Error", f"Food item '{food_item}' not found in database!")
-                self._food_item_dialog_open = False
                 return
 
             # Create and show the edit dialog
@@ -3690,8 +3694,8 @@ def on_food_item_double_clicked(self, index: QModelIndex) -> None:
                     if self.db_manager.delete_food_item(food_id):
                         QMessageBox.information(self, "Success", f"Food item '{food_item}' deleted successfully!")
                         self.update_food_data()
-                        return  # Exit the method to prevent reopening the dialog
-                    QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
+                    else:
+                        QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
                 else:
                     # Update the food item
                     edited_data = dialog.get_edited_data()
@@ -3710,9 +3714,11 @@ def on_food_item_double_clicked(self, index: QModelIndex) -> None:
                             self, "Success", f"Food item '{edited_data['name']}' updated successfully!"
                         )
                         self.update_food_data()
-                        return  # Exit the method to prevent reopening the dialog
-                    QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
+                    else:
+                        QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
+
             # If result is Rejected (Cancel), do nothing - just close the dialog
+            # No need for additional logic here
 
         except Exception as e:
             print(f"Error in food item double clicked: {e}")
@@ -6183,24 +6189,28 @@ def _show_food_log_context_menu(self, position) -> None:
         # Execute the context menu and get the selected action
         action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
 
-        # Process the action only if it was actually selected
-        if action == add_food_item_action:
-            print("🔧 Context menu: Add food item with weight action triggered")
-            self._add_food_item_from_log_record(include_weight=True)
-        elif action == add_food_item_no_weight_action:
-            print("🔧 Context menu: Add food item without weight action triggered")
-            self._add_food_item_from_log_record(include_weight=False)
-        elif action == delete_action:
-            print("🔧 Context menu: Delete action triggered")
-            # Temporarily disconnect the context menu signal to prevent recursive calls
-            self.tableView_food_log.customContextMenuRequested.disconnect()
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
-            try:
+        # Temporarily disconnect the context menu signal to prevent recursive calls
+        self.tableView_food_log.customContextMenuRequested.disconnect()
+
+        try:
+            if action == add_food_item_action:
+                print("🔧 Context menu: Add food item with weight action triggered")
+                self._add_food_item_from_log_record(include_weight=True)
+            elif action == add_food_item_no_weight_action:
+                print("🔧 Context menu: Add food item without weight action triggered")
+                self._add_food_item_from_log_record(include_weight=False)
+            elif action == delete_action:
+                print("🔧 Context menu: Delete action triggered")
                 # Perform the deletion
                 self.pushButton_food_delete.click()
-            finally:
-                # Reconnect the context menu signal after a short delay
-                QTimer.singleShot(100, self._reconnect_context_menu)
+        finally:
+            # Reconnect the context menu signal after a short delay
+            QTimer.singleShot(100, self._reconnect_context_menu)
 ```
 
 </details>

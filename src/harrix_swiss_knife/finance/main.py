@@ -796,7 +796,7 @@ class MainWindow(
     def on_exchange_rates_update(self) -> None:
         """Update the exchange rate chart."""
         # Check if exchange rates controls have been initialized
-        if not hasattr(self, '_exchange_rates_initialized') or not self._exchange_rates_initialized:
+        if not hasattr(self, "_exchange_rates_initialized") or not self._exchange_rates_initialized:
             return
 
         # Get selected currency
