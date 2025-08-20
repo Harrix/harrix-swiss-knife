@@ -29,6 +29,11 @@ lang: en
   - [⚙️ Method `on_calculate_exchange`](#%EF%B8%8F-method-on_calculate_exchange)
   - [⚙️ Method `on_category_selection_changed`](#%EF%B8%8F-method-on_category_selection_changed)
   - [⚙️ Method `on_clear_description`](#%EF%B8%8F-method-on_clear_description)
+  - [⚙️ Method `on_exchange_rates_all_time`](#%EF%B8%8F-method-on_exchange_rates_all_time)
+  - [⚙️ Method `on_exchange_rates_currency_changed`](#%EF%B8%8F-method-on_exchange_rates_currency_changed)
+  - [⚙️ Method `on_exchange_rates_last_month`](#%EF%B8%8F-method-on_exchange_rates_last_month)
+  - [⚙️ Method `on_exchange_rates_last_year`](#%EF%B8%8F-method-on_exchange_rates_last_year)
+  - [⚙️ Method `on_exchange_rates_update`](#%EF%B8%8F-method-on_exchange_rates_update)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_generate_report`](#%EF%B8%8F-method-on_generate_report)
   - [⚙️ Method `on_set_default_currency`](#%EF%B8%8F-method-on_set_default_currency)
@@ -55,10 +60,12 @@ lang: en
   - [⚙️ Method `_clear_category_form`](#%EF%B8%8F-method-_clear_category_form)
   - [⚙️ Method `_clear_currency_form`](#%EF%B8%8F-method-_clear_currency_form)
   - [⚙️ Method `_clear_exchange_form`](#%EF%B8%8F-method-_clear_exchange_form)
+  - [⚙️ Method `_clear_layout`](#%EF%B8%8F-method-_clear_layout)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_copy_table_selection_to_clipboard`](#%EF%B8%8F-method-_copy_table_selection_to_clipboard)
   - [⚙️ Method `_create_colored_table_model`](#%EF%B8%8F-method-_create_colored_table_model)
+  - [⚙️ Method `_create_exchange_rate_chart`](#%EF%B8%8F-method-_create_exchange_rate_chart)
   - [⚙️ Method `_create_pie_chart`](#%EF%B8%8F-method-_create_pie_chart)
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
   - [⚙️ Method `_create_transactions_table_model`](#%EF%B8%8F-method-_create_transactions_table_model)
@@ -71,6 +78,7 @@ lang: en
   - [⚙️ Method `_generate_currency_analysis_report`](#%EF%B8%8F-method-_generate_currency_analysis_report)
   - [⚙️ Method `_generate_income_vs_expenses_report`](#%EF%B8%8F-method-_generate_income_vs_expenses_report)
   - [⚙️ Method `_generate_monthly_summary_report`](#%EF%B8%8F-method-_generate_monthly_summary_report)
+  - [⚙️ Method `_get_exchange_rates_data`](#%EF%B8%8F-method-_get_exchange_rates_data)
   - [⚙️ Method `_init_chart_controls`](#%EF%B8%8F-method-_init_chart_controls)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
@@ -98,10 +106,13 @@ lang: en
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
   - [⚙️ Method `_select_category_by_id`](#%EF%B8%8F-method-_select_category_by_id)
+  - [⚙️ Method `_set_exchange_rates_date_range`](#%EF%B8%8F-method-_set_exchange_rates_date_range)
   - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
+  - [⚙️ Method `_setup_exchange_rates_controls`](#%EF%B8%8F-method-_setup_exchange_rates_controls)
   - [⚙️ Method `_setup_tab_order`](#%EF%B8%8F-method-_setup_tab_order)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
+  - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
   - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
   - [⚙️ Method `_transform_transaction_data`](#%EF%B8%8F-method-_transform_transaction_data)
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
@@ -833,6 +844,53 @@ class MainWindow(
         """Clear the description field."""
         self.lineEdit_description.clear()
 
+    def on_exchange_rates_all_time(self) -> None:
+        """Set date range to all available data."""
+        self._set_exchange_rates_date_range()
+
+    def on_exchange_rates_currency_changed(self) -> None:
+        """Handle currency selection change in exchange rates tab."""
+        # Update chart if dates are set
+        if self.dateEdit_exchange_rates_from.date().isValid() and self.dateEdit_exchange_rates_to.date().isValid():
+            self.on_exchange_rates_update()
+
+    def on_exchange_rates_last_month(self) -> None:
+        """Set date range to last month."""
+        current_date = QDate.currentDate()
+        last_month = current_date.addMonths(-1)
+        self.dateEdit_exchange_rates_from.setDate(last_month)
+        self.dateEdit_exchange_rates_to.setDate(current_date)
+
+    def on_exchange_rates_last_year(self) -> None:
+        """Set date range to last year."""
+        current_date = QDate.currentDate()
+        last_year = current_date.addYears(-1)
+        self.dateEdit_exchange_rates_from.setDate(last_year)
+        self.dateEdit_exchange_rates_to.setDate(current_date)
+
+    def on_exchange_rates_update(self) -> None:
+        """Update the exchange rate chart."""
+        # Get selected currency
+        current_index = self.comboBox_exchange_rates_currency.currentIndex()
+        if current_index < 0:
+            return
+
+        currency_id = self.comboBox_exchange_rates_currency.itemData(current_index)
+        if not currency_id:
+            return
+
+        # Get date range
+        date_from = self.dateEdit_exchange_rates_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_exchange_rates_to.date().toString("yyyy-MM-dd")
+
+        # Validate date range
+        if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
+            QMessageBox.warning(self, "Invalid Date Range", "Start date cannot be after end date.")
+            return
+
+        # Create chart
+        self._create_exchange_rate_chart(currency_id, date_from, date_to)
+
     def on_export_csv(self) -> None:
         """Save current transactions view to a CSV file."""
         filename_str, _ = QFileDialog.getSaveFileName(
@@ -1540,6 +1598,13 @@ class MainWindow(
         self.doubleSpinBox_exchange_fee.setValue(0.0)
         self.lineEdit_exchange_description.clear()
 
+    def _clear_layout(self, layout) -> None:
+        """Clear all widgets from the specified layout."""
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
         # Main transaction signals
@@ -1599,6 +1664,13 @@ class MainWindow(
 
         # Rate signals
         self.pushButton_exchange_update.clicked.connect(self.on_update_exchange_rates)
+
+        # Exchange rates chart signals
+        self.comboBox_exchange_rates_currency.currentIndexChanged.connect(self.on_exchange_rates_currency_changed)
+        self.pushButton_exchange_rates_last_month.clicked.connect(self.on_exchange_rates_last_month)
+        self.pushButton_exchange_rates_last_year.clicked.connect(self.on_exchange_rates_last_year)
+        self.pushButton_exchange_rates_all_time.clicked.connect(self.on_exchange_rates_all_time)
+        self.pushButton_exchange_rates_update.clicked.connect(self.on_exchange_rates_update)
 
         # Report signals
         self.pushButton_generate_report.clicked.connect(self.on_generate_report)
@@ -1734,6 +1806,147 @@ class MainWindow(
         proxy = QSortFilterProxyModel()
         proxy.setSourceModel(model)
         return proxy
+
+    def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to: str) -> None:
+        """Create and display exchange rate chart.
+
+        Args:
+            currency_id: ID of the currency
+            date_from: Start date in yyyy-MM-dd format
+            date_to: End date in yyyy-MM-dd format
+        """
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get currency info
+            currency_info = self.db_manager.get_currency_by_id(currency_id)
+            if not currency_info:
+                self._show_no_data_label(self.verticalLayout_exchange_rates_content, "Currency not found")
+                return
+
+            currency_code, currency_name, currency_symbol = currency_info
+
+            # Get exchange rates data
+            rates_data = self._get_exchange_rates_data(currency_id, date_from, date_to)
+
+            if not rates_data:
+                self._show_no_data_label(
+                    self.verticalLayout_exchange_rates_content, "No exchange rate data found for the selected period"
+                )
+                return
+
+            # Clear existing chart
+            self._clear_layout(self.verticalLayout_exchange_rates_content)
+
+            # Create matplotlib figure
+            fig = Figure(figsize=(12, 6), dpi=100)
+            canvas = FigureCanvas(fig)
+            ax = fig.add_subplot(111)
+
+            # Extract dates and rates, and transform rates to match table display
+            dates = [row[0] for row in rates_data]
+            # Transform rates: stored as USD→currency, but display as currency→USD (like in table)
+            transformed_rates = []
+            for row in rates_data:
+                usd_to_currency_rate = float(row[1])
+                if usd_to_currency_rate != 0:
+                    currency_to_usd_rate = 1.0 / usd_to_currency_rate
+                    transformed_rates.append(currency_to_usd_rate)
+                else:
+                    transformed_rates.append(0.0)
+
+            # Convert dates to datetime objects for plotting
+            from datetime import datetime
+
+            date_objects = [datetime.strptime(date, "%Y-%m-%d") for date in dates]
+
+            # Plot the data
+            ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=2, marker="o", markersize=4)
+
+            # Customize plot
+            ax.set_xlabel("Date", fontsize=12)
+            ax.set_ylabel(f"Exchange Rate ({currency_code} to USD)", fontsize=12)
+            ax.set_title(f"Exchange Rate: {currency_code} to USD ({currency_name})", fontsize=14, fontweight="bold")
+
+            # Format x-axis dates
+            ax.tick_params(axis="x", rotation=45)
+            fig.autofmt_xdate()
+
+            # Add grid
+            ax.grid(visible=True, alpha=0.3)
+
+            # Add value labels for significant points
+            if len(transformed_rates) > 1:
+                # Label first and last points
+                ax.annotate(
+                    f"{transformed_rates[0]:.6f}",
+                    (date_objects[0], transformed_rates[0]),
+                    xytext=(10, 10),
+                    textcoords="offset points",
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7),
+                )
+
+                ax.annotate(
+                    f"{transformed_rates[-1]:.6f}",
+                    (date_objects[-1], transformed_rates[-1]),
+                    xytext=(10, 10),
+                    textcoords="offset points",
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7),
+                )
+
+                # Label min and max points if different from first/last
+                min_rate = min(transformed_rates)
+                max_rate = max(transformed_rates)
+                min_idx = transformed_rates.index(min_rate)
+                max_idx = transformed_rates.index(max_rate)
+
+                if min_idx != 0 and min_idx != len(transformed_rates) - 1:
+                    ax.annotate(
+                        f"{min_rate:.6f}",
+                        (date_objects[min_idx], min_rate),
+                        xytext=(10, -15),
+                        textcoords="offset points",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.7),
+                    )
+
+                if max_idx != 0 and max_idx != len(transformed_rates) - 1:
+                    ax.annotate(
+                        f"{max_rate:.6f}",
+                        (date_objects[max_idx], max_rate),
+                        xytext=(10, 15),
+                        textcoords="offset points",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="lightcoral", alpha=0.7),
+                    )
+
+            # Add statistics text
+            if len(transformed_rates) > 1:
+                avg_rate = sum(transformed_rates) / len(transformed_rates)
+                rate_change = transformed_rates[-1] - transformed_rates[0]
+                rate_change_percent = (rate_change / transformed_rates[0]) * 100 if transformed_rates[0] != 0 else 0
+
+                stats_text = f"Period: {date_from} to {date_to}\n"
+                stats_text += f"Data points: {len(transformed_rates)}\n"
+                stats_text += f"Average rate: {avg_rate:.6f}\n"
+                stats_text += f"Change: {rate_change:+.6f} ({rate_change_percent:+.2f}%)"
+
+                ax.text(
+                    0.02,
+                    0.98,
+                    stats_text,
+                    transform=ax.transAxes,
+                    verticalalignment="top",
+                    fontsize=10,
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8),
+                )
+
+            fig.tight_layout()
+            self.verticalLayout_exchange_rates_content.addWidget(canvas)
+            canvas.draw()
+
+        except Exception as e:
+            print(f"Error creating exchange rate chart: {e}")
+            self._show_no_data_label(self.verticalLayout_exchange_rates_content, f"Error creating chart: {e}")
 
     def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
         """Create a pie chart with the given data.
@@ -1892,6 +2105,9 @@ class MainWindow(
 
         # Select category with _id = 1
         self._select_category_by_id(1)
+
+        # Setup exchange rates controls
+        self._setup_exchange_rates_controls()
 
     def _focus_amount_and_select_text(self) -> None:
         """Set focus to amount field and select all text."""
@@ -2196,6 +2412,43 @@ class MainWindow(
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
+    def _get_exchange_rates_data(self, currency_id: int, date_from: str, date_to: str) -> list[tuple[str, float]]:
+        """Get exchange rates data for the specified currency and date range.
+
+        Args:
+            currency_id: ID of the currency
+            date_from: Start date in yyyy-MM-dd format
+            date_to: End date in yyyy-MM-dd format
+
+        Returns:
+            List of tuples (date, rate) sorted by date
+        """
+        if not self._validate_database_connection():
+            return []
+
+        try:
+            # Get exchange rates for the currency in the date range
+            query = """
+                SELECT date, rate
+                FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                AND date BETWEEN :date_from AND :date_to
+                ORDER BY date ASC
+            """
+            params = {"currency_id": currency_id, "date_from": date_from, "date_to": date_to}
+
+            # Execute query and get results
+            query_obj = self.db_manager.execute_query(query, params)
+            if query_obj:
+                rows = self.db_manager._rows_from_query(query_obj)
+                query_obj.clear()
+                return [(row[0], float(row[1])) for row in rows if row[1] is not None]
+            return []
+
+        except Exception as e:
+            print(f"Error getting exchange rates data: {e}")
+            return []
+
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
         current_date = QDate.currentDate()
@@ -2264,6 +2517,9 @@ class MainWindow(
 
         # Clear forms
         self._clear_all_forms()
+
+        # Setup exchange rates controls
+        self._setup_exchange_rates_controls()
 
     def _load_accounts_table(self) -> None:
         """Load accounts table."""
@@ -2826,6 +3082,28 @@ class MainWindow(
         except Exception as e:
             print(f"Error selecting category by ID: {e}")
 
+    def _set_exchange_rates_date_range(self) -> None:
+        """Set the date range for exchange rates chart."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get earliest transaction date for start date
+            earliest_date = self.db_manager.get_earliest_transaction_date()
+            if earliest_date:
+                start_date = QDate.fromString(earliest_date, "yyyy-MM-dd")
+                self.dateEdit_exchange_rates_from.setDate(start_date)
+            else:
+                # Fallback to 1 year ago
+                start_date = QDate.currentDate().addYears(-1)
+                self.dateEdit_exchange_rates_from.setDate(start_date)
+
+            # Set end date to current date
+            self.dateEdit_exchange_rates_to.setDate(QDate.currentDate())
+
+        except Exception as e:
+            print(f"Error setting exchange rates date range: {e}")
+
     def _setup_autocomplete(self) -> None:
         """Setup autocomplete functionality for description input."""
         # Create completer
@@ -2846,6 +3124,33 @@ class MainWindow(
 
         # Connect selection signal
         self.description_completer.activated.connect(self._on_autocomplete_selected)
+
+    def _setup_exchange_rates_controls(self) -> None:
+        """Setup exchange rates chart controls with initial values."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Fill currency combo box
+            currencies = self.db_manager.get_all_currencies()
+            self.comboBox_exchange_rates_currency.clear()
+
+            # Add currencies with format: "RUB - Russian Ruble"
+            for currency in currencies:
+                currency_id, code, name, symbol = currency
+                display_text = f"{code} - {name}"
+                self.comboBox_exchange_rates_currency.addItem(display_text, currency_id)
+
+            # Set default currency (ID = 1)
+            default_index = self.comboBox_exchange_rates_currency.findData(1)
+            if default_index >= 0:
+                self.comboBox_exchange_rates_currency.setCurrentIndex(default_index)
+
+            # Set date range
+            self._set_exchange_rates_date_range()
+
+        except Exception as e:
+            print(f"Error setting up exchange rates controls: {e}")
 
     def _setup_tab_order(self) -> None:
         """Setup tab order for widgets in groupBox_transaction."""
@@ -2919,6 +3224,19 @@ class MainWindow(
                 window_width,
                 window_height,
             )
+
+    def _show_no_data_label(self, layout, message: str) -> None:
+        """Show a message when no data is available for the chart."""
+        from PySide6.QtWidgets import QLabel
+
+        # Clear existing content
+        self._clear_layout(layout)
+
+        # Create and add label
+        label = QLabel(message)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
+        layout.addWidget(label)
 
     def _show_transactions_context_menu(self, position) -> None:
         """Show context menu for transactions table.
@@ -4047,6 +4365,123 @@ def on_clear_description(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_exchange_rates_all_time`
+
+```python
+def on_exchange_rates_all_time(self) -> None
+```
+
+Set date range to all available data.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_exchange_rates_all_time(self) -> None:
+        self._set_exchange_rates_date_range()
+```
+
+</details>
+
+### ⚙️ Method `on_exchange_rates_currency_changed`
+
+```python
+def on_exchange_rates_currency_changed(self) -> None
+```
+
+Handle currency selection change in exchange rates tab.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_exchange_rates_currency_changed(self) -> None:
+        # Update chart if dates are set
+        if self.dateEdit_exchange_rates_from.date().isValid() and self.dateEdit_exchange_rates_to.date().isValid():
+            self.on_exchange_rates_update()
+```
+
+</details>
+
+### ⚙️ Method `on_exchange_rates_last_month`
+
+```python
+def on_exchange_rates_last_month(self) -> None
+```
+
+Set date range to last month.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_exchange_rates_last_month(self) -> None:
+        current_date = QDate.currentDate()
+        last_month = current_date.addMonths(-1)
+        self.dateEdit_exchange_rates_from.setDate(last_month)
+        self.dateEdit_exchange_rates_to.setDate(current_date)
+```
+
+</details>
+
+### ⚙️ Method `on_exchange_rates_last_year`
+
+```python
+def on_exchange_rates_last_year(self) -> None
+```
+
+Set date range to last year.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_exchange_rates_last_year(self) -> None:
+        current_date = QDate.currentDate()
+        last_year = current_date.addYears(-1)
+        self.dateEdit_exchange_rates_from.setDate(last_year)
+        self.dateEdit_exchange_rates_to.setDate(current_date)
+```
+
+</details>
+
+### ⚙️ Method `on_exchange_rates_update`
+
+```python
+def on_exchange_rates_update(self) -> None
+```
+
+Update the exchange rate chart.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_exchange_rates_update(self) -> None:
+        # Get selected currency
+        current_index = self.comboBox_exchange_rates_currency.currentIndex()
+        if current_index < 0:
+            return
+
+        currency_id = self.comboBox_exchange_rates_currency.itemData(current_index)
+        if not currency_id:
+            return
+
+        # Get date range
+        date_from = self.dateEdit_exchange_rates_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_exchange_rates_to.date().toString("yyyy-MM-dd")
+
+        # Validate date range
+        if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
+            QMessageBox.warning(self, "Invalid Date Range", "Start date cannot be after end date.")
+            return
+
+        # Create chart
+        self._create_exchange_rate_chart(currency_id, date_from, date_to)
+```
+
+</details>
+
 ### ⚙️ Method `on_export_csv`
 
 ```python
@@ -5105,6 +5540,27 @@ def _clear_exchange_form(self) -> None:
 
 </details>
 
+### ⚙️ Method `_clear_layout`
+
+```python
+def _clear_layout(self, layout) -> None
+```
+
+Clear all widgets from the specified layout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _clear_layout(self, layout) -> None:
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+```
+
+</details>
+
 ### ⚙️ Method `_connect_signals`
 
 ```python
@@ -5175,6 +5631,13 @@ def _connect_signals(self) -> None:
 
         # Rate signals
         self.pushButton_exchange_update.clicked.connect(self.on_update_exchange_rates)
+
+        # Exchange rates chart signals
+        self.comboBox_exchange_rates_currency.currentIndexChanged.connect(self.on_exchange_rates_currency_changed)
+        self.pushButton_exchange_rates_last_month.clicked.connect(self.on_exchange_rates_last_month)
+        self.pushButton_exchange_rates_last_year.clicked.connect(self.on_exchange_rates_last_year)
+        self.pushButton_exchange_rates_all_time.clicked.connect(self.on_exchange_rates_all_time)
+        self.pushButton_exchange_rates_update.clicked.connect(self.on_exchange_rates_update)
 
         # Report signals
         self.pushButton_generate_report.clicked.connect(self.on_generate_report)
@@ -5348,6 +5811,160 @@ def _create_colored_table_model(
         proxy = QSortFilterProxyModel()
         proxy.setSourceModel(model)
         return proxy
+```
+
+</details>
+
+### ⚙️ Method `_create_exchange_rate_chart`
+
+```python
+def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to: str) -> None
+```
+
+Create and display exchange rate chart.
+
+Args:
+currency_id: ID of the currency
+date_from: Start date in yyyy-MM-dd format
+date_to: End date in yyyy-MM-dd format
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to: str) -> None:
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get currency info
+            currency_info = self.db_manager.get_currency_by_id(currency_id)
+            if not currency_info:
+                self._show_no_data_label(self.verticalLayout_exchange_rates_content, "Currency not found")
+                return
+
+            currency_code, currency_name, currency_symbol = currency_info
+
+            # Get exchange rates data
+            rates_data = self._get_exchange_rates_data(currency_id, date_from, date_to)
+
+            if not rates_data:
+                self._show_no_data_label(
+                    self.verticalLayout_exchange_rates_content, "No exchange rate data found for the selected period"
+                )
+                return
+
+            # Clear existing chart
+            self._clear_layout(self.verticalLayout_exchange_rates_content)
+
+            # Create matplotlib figure
+            fig = Figure(figsize=(12, 6), dpi=100)
+            canvas = FigureCanvas(fig)
+            ax = fig.add_subplot(111)
+
+            # Extract dates and rates, and transform rates to match table display
+            dates = [row[0] for row in rates_data]
+            # Transform rates: stored as USD→currency, but display as currency→USD (like in table)
+            transformed_rates = []
+            for row in rates_data:
+                usd_to_currency_rate = float(row[1])
+                if usd_to_currency_rate != 0:
+                    currency_to_usd_rate = 1.0 / usd_to_currency_rate
+                    transformed_rates.append(currency_to_usd_rate)
+                else:
+                    transformed_rates.append(0.0)
+
+            # Convert dates to datetime objects for plotting
+            from datetime import datetime
+
+            date_objects = [datetime.strptime(date, "%Y-%m-%d") for date in dates]
+
+            # Plot the data
+            ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=2, marker="o", markersize=4)
+
+            # Customize plot
+            ax.set_xlabel("Date", fontsize=12)
+            ax.set_ylabel(f"Exchange Rate ({currency_code} to USD)", fontsize=12)
+            ax.set_title(f"Exchange Rate: {currency_code} to USD ({currency_name})", fontsize=14, fontweight="bold")
+
+            # Format x-axis dates
+            ax.tick_params(axis="x", rotation=45)
+            fig.autofmt_xdate()
+
+            # Add grid
+            ax.grid(visible=True, alpha=0.3)
+
+            # Add value labels for significant points
+            if len(transformed_rates) > 1:
+                # Label first and last points
+                ax.annotate(
+                    f"{transformed_rates[0]:.6f}",
+                    (date_objects[0], transformed_rates[0]),
+                    xytext=(10, 10),
+                    textcoords="offset points",
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7),
+                )
+
+                ax.annotate(
+                    f"{transformed_rates[-1]:.6f}",
+                    (date_objects[-1], transformed_rates[-1]),
+                    xytext=(10, 10),
+                    textcoords="offset points",
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7),
+                )
+
+                # Label min and max points if different from first/last
+                min_rate = min(transformed_rates)
+                max_rate = max(transformed_rates)
+                min_idx = transformed_rates.index(min_rate)
+                max_idx = transformed_rates.index(max_rate)
+
+                if min_idx != 0 and min_idx != len(transformed_rates) - 1:
+                    ax.annotate(
+                        f"{min_rate:.6f}",
+                        (date_objects[min_idx], min_rate),
+                        xytext=(10, -15),
+                        textcoords="offset points",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.7),
+                    )
+
+                if max_idx != 0 and max_idx != len(transformed_rates) - 1:
+                    ax.annotate(
+                        f"{max_rate:.6f}",
+                        (date_objects[max_idx], max_rate),
+                        xytext=(10, 15),
+                        textcoords="offset points",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="lightcoral", alpha=0.7),
+                    )
+
+            # Add statistics text
+            if len(transformed_rates) > 1:
+                avg_rate = sum(transformed_rates) / len(transformed_rates)
+                rate_change = transformed_rates[-1] - transformed_rates[0]
+                rate_change_percent = (rate_change / transformed_rates[0]) * 100 if transformed_rates[0] != 0 else 0
+
+                stats_text = f"Period: {date_from} to {date_to}\n"
+                stats_text += f"Data points: {len(transformed_rates)}\n"
+                stats_text += f"Average rate: {avg_rate:.6f}\n"
+                stats_text += f"Change: {rate_change:+.6f} ({rate_change_percent:+.2f}%)"
+
+                ax.text(
+                    0.02,
+                    0.98,
+                    stats_text,
+                    transform=ax.transAxes,
+                    verticalalignment="top",
+                    fontsize=10,
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8),
+                )
+
+            fig.tight_layout()
+            self.verticalLayout_exchange_rates_content.addWidget(canvas)
+            canvas.draw()
+
+        except Exception as e:
+            print(f"Error creating exchange rate chart: {e}")
+            self._show_no_data_label(self.verticalLayout_exchange_rates_content, f"Error creating chart: {e}")
 ```
 
 </details>
@@ -5570,6 +6187,9 @@ def _finish_window_initialization(self) -> None:
 
         # Select category with _id = 1
         self._select_category_by_id(1)
+
+        # Setup exchange rates controls
+        self._setup_exchange_rates_controls()
 ```
 
 </details>
@@ -5967,6 +6587,56 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
 
 </details>
 
+### ⚙️ Method `_get_exchange_rates_data`
+
+```python
+def _get_exchange_rates_data(self, currency_id: int, date_from: str, date_to: str) -> list[tuple[str, float]]
+```
+
+Get exchange rates data for the specified currency and date range.
+
+Args:
+currency_id: ID of the currency
+date_from: Start date in yyyy-MM-dd format
+date_to: End date in yyyy-MM-dd format
+
+Returns:
+List of tuples (date, rate) sorted by date
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_exchange_rates_data(self, currency_id: int, date_from: str, date_to: str) -> list[tuple[str, float]]:
+        if not self._validate_database_connection():
+            return []
+
+        try:
+            # Get exchange rates for the currency in the date range
+            query = """
+                SELECT date, rate
+                FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                AND date BETWEEN :date_from AND :date_to
+                ORDER BY date ASC
+            """
+            params = {"currency_id": currency_id, "date_from": date_from, "date_to": date_to}
+
+            # Execute query and get results
+            query_obj = self.db_manager.execute_query(query, params)
+            if query_obj:
+                rows = self.db_manager._rows_from_query(query_obj)
+                query_obj.clear()
+                return [(row[0], float(row[1])) for row in rows if row[1] is not None]
+            return []
+
+        except Exception as e:
+            print(f"Error getting exchange rates data: {e}")
+            return []
+```
+
+</details>
+
 ### ⚙️ Method `_init_chart_controls`
 
 ```python
@@ -6088,6 +6758,9 @@ def _initial_load(self) -> None:
 
         # Clear forms
         self._clear_all_forms()
+
+        # Setup exchange rates controls
+        self._setup_exchange_rates_controls()
 ```
 
 </details>
@@ -6964,6 +7637,42 @@ def _select_category_by_id(self, category_id: int) -> None:
 
 </details>
 
+### ⚙️ Method `_set_exchange_rates_date_range`
+
+```python
+def _set_exchange_rates_date_range(self) -> None
+```
+
+Set the date range for exchange rates chart.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_exchange_rates_date_range(self) -> None:
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get earliest transaction date for start date
+            earliest_date = self.db_manager.get_earliest_transaction_date()
+            if earliest_date:
+                start_date = QDate.fromString(earliest_date, "yyyy-MM-dd")
+                self.dateEdit_exchange_rates_from.setDate(start_date)
+            else:
+                # Fallback to 1 year ago
+                start_date = QDate.currentDate().addYears(-1)
+                self.dateEdit_exchange_rates_from.setDate(start_date)
+
+            # Set end date to current date
+            self.dateEdit_exchange_rates_to.setDate(QDate.currentDate())
+
+        except Exception as e:
+            print(f"Error setting exchange rates date range: {e}")
+```
+
+</details>
+
 ### ⚙️ Method `_setup_autocomplete`
 
 ```python
@@ -6995,6 +7704,47 @@ def _setup_autocomplete(self) -> None:
 
         # Connect selection signal
         self.description_completer.activated.connect(self._on_autocomplete_selected)
+```
+
+</details>
+
+### ⚙️ Method `_setup_exchange_rates_controls`
+
+```python
+def _setup_exchange_rates_controls(self) -> None
+```
+
+Setup exchange rates chart controls with initial values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_exchange_rates_controls(self) -> None:
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Fill currency combo box
+            currencies = self.db_manager.get_all_currencies()
+            self.comboBox_exchange_rates_currency.clear()
+
+            # Add currencies with format: "RUB - Russian Ruble"
+            for currency in currencies:
+                currency_id, code, name, symbol = currency
+                display_text = f"{code} - {name}"
+                self.comboBox_exchange_rates_currency.addItem(display_text, currency_id)
+
+            # Set default currency (ID = 1)
+            default_index = self.comboBox_exchange_rates_currency.findData(1)
+            if default_index >= 0:
+                self.comboBox_exchange_rates_currency.setCurrentIndex(default_index)
+
+            # Set date range
+            self._set_exchange_rates_date_range()
+
+        except Exception as e:
+            print(f"Error setting up exchange rates controls: {e}")
 ```
 
 </details>
@@ -7110,6 +7860,33 @@ def _setup_window_size_and_position(self) -> None:
                 window_width,
                 window_height,
             )
+```
+
+</details>
+
+### ⚙️ Method `_show_no_data_label`
+
+```python
+def _show_no_data_label(self, layout, message: str) -> None
+```
+
+Show a message when no data is available for the chart.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_no_data_label(self, layout, message: str) -> None:
+        from PySide6.QtWidgets import QLabel
+
+        # Clear existing content
+        self._clear_layout(layout)
+
+        # Create and add label
+        label = QLabel(message)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
+        layout.addWidget(label)
 ```
 
 </details>
