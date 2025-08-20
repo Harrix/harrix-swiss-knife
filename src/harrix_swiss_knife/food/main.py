@@ -2075,6 +2075,10 @@ class MainWindow(
         else:
             QMessageBox.information(self, "Success", f"Successfully added {success_count} food items.")
 
+    def _reconnect_context_menu(self) -> None:
+        """Reconnect the context menu signal after deletion."""
+        self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
+
     def _setup_autocomplete(self) -> None:
         """Setup autocomplete functionality for food name input."""
         from PySide6.QtCore import Qt
@@ -2216,26 +2220,33 @@ class MainWindow(
         """Show context menu for food log table.
 
         Args:
-
-        - `position`: Position where context menu should appear.
-
+            position: Position where context menu should appear.
         """
         from PySide6.QtWidgets import QMenu
+
+        # Check that a row is selected before showing the menu
+        if not self.tableView_food_log.currentIndex().isValid():
+            print("⚠️ Context menu: No row selected")
+            return
 
         context_menu = QMenu(self)
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
+        # Execute the context menu and get the selected action
         action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
 
+        # Process the action only if it was actually selected
         if action == delete_action:
-            # Check that a row is selected
-            if self.tableView_food_log.currentIndex().isValid():
-                print("🔧 Context menu: Delete action triggered")
+            print("🔧 Context menu: Delete action triggered")
+            # Temporarily disconnect the context menu signal to prevent recursive calls
+            self.tableView_food_log.customContextMenuRequested.disconnect()
+
+            try:
+                # Perform the deletion
                 self.pushButton_food_delete.click()
-                # Force close the context menu
-                context_menu.close()
-            else:
-                print("⚠️ Context menu: No row selected for deletion")
+            finally:
+                # Reconnect the context menu signal after a short delay
+                QTimer.singleShot(100, self._reconnect_context_menu)
 
     def _update_add_button_appearance(self) -> None:
         """Update the appearance of the add button based on whether it's a drink or food."""
