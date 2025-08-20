@@ -495,13 +495,23 @@ class MainWindow(
                 # Update UI - only food-related data
                 self.update_food_data()
 
-                # Reset drink checkbox and button appearance
+                # Clear form fields after successful addition
+                self.lineEdit_food_manual_name.clear()
+                self.spinBox_food_weight.setValue(0)
+                self.doubleSpinBox_food_calories.setValue(0.0)
                 self.checkBox_food_is_drink.setChecked(False)
-                self._update_add_button_appearance()
 
-                # Move focus to food name field and select all text
+                # Reset radio buttons to default state
+                self.radioButton_use_weight.setChecked(True)
+                self.radioButton_use_calories.setChecked(False)
+
+                # Update button appearance and calories calculation
+                self._update_add_button_appearance()
+                self.update_calories_calculation()
+
+                # Keep focus on food name field for next entry
                 self.lineEdit_food_manual_name.setFocus()
-                self.lineEdit_food_manual_name.selectAll()
+
             else:
                 QMessageBox.warning(self, "Error", "Failed to add food log record")
 
@@ -3363,13 +3373,23 @@ def on_add_food_log(self) -> None:
                 # Update UI - only food-related data
                 self.update_food_data()
 
-                # Reset drink checkbox and button appearance
+                # Clear form fields after successful addition
+                self.lineEdit_food_manual_name.clear()
+                self.spinBox_food_weight.setValue(0)
+                self.doubleSpinBox_food_calories.setValue(0.0)
                 self.checkBox_food_is_drink.setChecked(False)
-                self._update_add_button_appearance()
 
-                # Move focus to food name field and select all text
+                # Reset radio buttons to default state
+                self.radioButton_use_weight.setChecked(True)
+                self.radioButton_use_calories.setChecked(False)
+
+                # Update button appearance and calories calculation
+                self._update_add_button_appearance()
+                self.update_calories_calculation()
+
+                # Keep focus on food name field for next entry
                 self.lineEdit_food_manual_name.setFocus()
-                self.lineEdit_food_manual_name.selectAll()
+
             else:
                 QMessageBox.warning(self, "Error", "Failed to add food log record")
 
