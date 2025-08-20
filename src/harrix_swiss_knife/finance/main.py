@@ -117,6 +117,9 @@ class MainWindow(
         # Lazy loading flags
         self.exchange_rates_loaded = False
 
+        # Exchange rates initialization flag
+        self._exchange_rates_initialized = False
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "transactions": (
@@ -792,6 +795,10 @@ class MainWindow(
 
     def on_exchange_rates_update(self) -> None:
         """Update the exchange rate chart."""
+        # Check if exchange rates controls have been initialized
+        if not hasattr(self, '_exchange_rates_initialized') or not self._exchange_rates_initialized:
+            return
+
         # Get selected currency
         current_index = self.comboBox_exchange_rates_currency.currentIndex()
         if current_index < 0:
@@ -3057,6 +3064,10 @@ class MainWindow(
             return
 
         try:
+            # Block signals temporarily to prevent chart drawing during setup
+            self.dateEdit_exchange_rates_from.blockSignals(True)
+            self.dateEdit_exchange_rates_to.blockSignals(True)
+
             # Fill currency combo box
             currencies = self.db_manager.get_all_currencies()
             self.comboBox_exchange_rates_currency.clear()
@@ -3075,8 +3086,21 @@ class MainWindow(
             # Set date range
             self._set_exchange_rates_date_range()
 
+            # Mark that initial setup is complete
+            self._exchange_rates_initialized = True
+
+            # Unblock signals after setup is complete
+            self.dateEdit_exchange_rates_from.blockSignals(False)
+            self.dateEdit_exchange_rates_to.blockSignals(False)
+
+            # Draw initial chart
+            self.on_exchange_rates_update()
+
         except Exception as e:
             print(f"Error setting up exchange rates controls: {e}")
+            # Ensure signals are unblocked even if there's an error
+            self.dateEdit_exchange_rates_from.blockSignals(False)
+            self.dateEdit_exchange_rates_to.blockSignals(False)
 
     def _setup_tab_order(self) -> None:
         """Setup tab order for widgets in groupBox_transaction."""
