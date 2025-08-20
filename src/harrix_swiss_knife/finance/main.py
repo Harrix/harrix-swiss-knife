@@ -1784,7 +1784,7 @@ class MainWindow(
             date_objects = [datetime.strptime(date, "%Y-%m-%d") for date in dates]
 
             # Plot the data
-            ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=2, marker="o", markersize=4)
+            ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=2)
 
             # Customize plot
             ax.set_xlabel("Date", fontsize=12)
