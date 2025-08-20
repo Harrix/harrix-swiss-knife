@@ -1599,7 +1599,6 @@ class MainWindow(
         self.pushButton_exchange_rates_last_month.clicked.connect(self.on_exchange_rates_last_month)
         self.pushButton_exchange_rates_last_year.clicked.connect(self.on_exchange_rates_last_year)
         self.pushButton_exchange_rates_all_time.clicked.connect(self.on_exchange_rates_all_time)
-        self.pushButton_exchange_rates_update.clicked.connect(self.on_exchange_rates_update)
 
         # Auto-update chart when dates change
         self.dateEdit_exchange_rates_from.dateChanged.connect(self.on_exchange_rates_update)
