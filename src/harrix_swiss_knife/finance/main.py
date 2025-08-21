@@ -773,6 +773,7 @@ class MainWindow(
         self._set_exchange_rates_date_range()
         # Automatically update the chart with a small delay to ensure dates are properly set
         from PySide6.QtCore import QTimer
+
         QTimer.singleShot(50, self.on_exchange_rates_update)
 
     def on_exchange_rates_currency_changed(self) -> None:
@@ -789,6 +790,7 @@ class MainWindow(
         self.dateEdit_exchange_rates_to.setDate(current_date)
         # Automatically update the chart with a small delay to ensure dates are properly set
         from PySide6.QtCore import QTimer
+
         QTimer.singleShot(50, self.on_exchange_rates_update)
 
     def on_exchange_rates_last_year(self) -> None:
@@ -799,6 +801,7 @@ class MainWindow(
         self.dateEdit_exchange_rates_to.setDate(current_date)
         # Automatically update the chart with a small delay to ensure dates are properly set
         from PySide6.QtCore import QTimer
+
         QTimer.singleShot(50, self.on_exchange_rates_update)
 
     def on_exchange_rates_update(self) -> None:
@@ -818,7 +821,10 @@ class MainWindow(
                 if not self._current_exchange_rate_canvas.figure:
                     return
                 # Additional check: if canvas is being deleted, wait a bit
-                if hasattr(self._current_exchange_rate_canvas, '_deleting') and self._current_exchange_rate_canvas._deleting:
+                if (
+                    hasattr(self._current_exchange_rate_canvas, "_deleting")
+                    and self._current_exchange_rate_canvas._deleting
+                ):
                     return
             except Exception:
                 return
@@ -1799,9 +1805,13 @@ class MainWindow(
         # Additional safety check: ensure no previous chart is being deleted
         if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
             try:
-                if hasattr(self._current_exchange_rate_canvas, '_deleting') and self._current_exchange_rate_canvas._deleting:
+                if (
+                    hasattr(self._current_exchange_rate_canvas, "_deleting")
+                    and self._current_exchange_rate_canvas._deleting
+                ):
                     # Wait a bit for cleanup to complete
                     from PySide6.QtCore import QTimer
+
                     QTimer.singleShot(100, lambda: self._create_exchange_rate_chart(currency_id, date_from, date_to))
                     return
             except Exception:

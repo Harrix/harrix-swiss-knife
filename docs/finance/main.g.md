@@ -855,8 +855,10 @@ class MainWindow(
     def on_exchange_rates_all_time(self) -> None:
         """Set date range to all available data."""
         self._set_exchange_rates_date_range()
-        # Automatically update the chart
-        self.on_exchange_rates_update()
+        # Automatically update the chart with a small delay to ensure dates are properly set
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(50, self.on_exchange_rates_update)
 
     def on_exchange_rates_currency_changed(self) -> None:
         """Handle currency selection change in exchange rates tab."""
@@ -870,8 +872,10 @@ class MainWindow(
         last_month = current_date.addMonths(-1)
         self.dateEdit_exchange_rates_from.setDate(last_month)
         self.dateEdit_exchange_rates_to.setDate(current_date)
-        # Automatically update the chart
-        self.on_exchange_rates_update()
+        # Automatically update the chart with a small delay to ensure dates are properly set
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(50, self.on_exchange_rates_update)
 
     def on_exchange_rates_last_year(self) -> None:
         """Set date range to last year."""
@@ -879,8 +883,10 @@ class MainWindow(
         last_year = current_date.addYears(-1)
         self.dateEdit_exchange_rates_from.setDate(last_year)
         self.dateEdit_exchange_rates_to.setDate(current_date)
-        # Automatically update the chart
-        self.on_exchange_rates_update()
+        # Automatically update the chart with a small delay to ensure dates are properly set
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(50, self.on_exchange_rates_update)
 
     def on_exchange_rates_update(self) -> None:
         """Update the exchange rate chart."""
@@ -892,11 +898,17 @@ class MainWindow(
         if hasattr(self, "_exchange_rates_updating") and self._exchange_rates_updating:
             return
 
-        # Check if previous chart is still being created
+        # Check if previous chart is still being created or if we need to wait for cleanup
         if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
             try:
                 # Test if canvas is still valid
                 if not self._current_exchange_rate_canvas.figure:
+                    return
+                # Additional check: if canvas is being deleted, wait a bit
+                if (
+                    hasattr(self._current_exchange_rate_canvas, "_deleting")
+                    and self._current_exchange_rate_canvas._deleting
+                ):
                     return
             except Exception:
                 return
@@ -1644,6 +1656,8 @@ class MainWindow(
                 # Special handling for matplotlib canvas
                 if hasattr(widget, "figure"):
                     try:
+                        # Mark canvas as being deleted to prevent new updates
+                        widget._deleting = True
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
@@ -1871,6 +1885,21 @@ class MainWindow(
         """
         if not self._validate_database_connection():
             return
+
+        # Additional safety check: ensure no previous chart is being deleted
+        if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
+            try:
+                if (
+                    hasattr(self._current_exchange_rate_canvas, "_deleting")
+                    and self._current_exchange_rate_canvas._deleting
+                ):
+                    # Wait a bit for cleanup to complete
+                    from PySide6.QtCore import QTimer
+
+                    QTimer.singleShot(100, lambda: self._create_exchange_rate_chart(currency_id, date_from, date_to))
+                    return
+            except Exception:
+                pass
 
         try:
             # Get currency info
@@ -3207,9 +3236,12 @@ class MainWindow(
             currencies = self.db_manager.get_all_currencies()
             self.comboBox_exchange_rates_currency.clear()
 
-            # Add currencies with format: "RUB - Russian Ruble"
+            # Add currencies with format: "RUB - Russian Ruble" (excluding USD)
             for currency in currencies:
                 currency_id, code, name, symbol = currency
+                # Skip USD currency
+                if code.upper() == "USD":
+                    continue
                 display_text = f"{code} - {name}"
                 self.comboBox_exchange_rates_currency.addItem(display_text, currency_id)
 
@@ -4474,8 +4506,10 @@ Set date range to all available data.
 ```python
 def on_exchange_rates_all_time(self) -> None:
         self._set_exchange_rates_date_range()
-        # Automatically update the chart
-        self.on_exchange_rates_update()
+        # Automatically update the chart with a small delay to ensure dates are properly set
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(50, self.on_exchange_rates_update)
 ```
 
 </details>
@@ -4517,8 +4551,10 @@ def on_exchange_rates_last_month(self) -> None:
         last_month = current_date.addMonths(-1)
         self.dateEdit_exchange_rates_from.setDate(last_month)
         self.dateEdit_exchange_rates_to.setDate(current_date)
-        # Automatically update the chart
-        self.on_exchange_rates_update()
+        # Automatically update the chart with a small delay to ensure dates are properly set
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(50, self.on_exchange_rates_update)
 ```
 
 </details>
@@ -4540,8 +4576,10 @@ def on_exchange_rates_last_year(self) -> None:
         last_year = current_date.addYears(-1)
         self.dateEdit_exchange_rates_from.setDate(last_year)
         self.dateEdit_exchange_rates_to.setDate(current_date)
-        # Automatically update the chart
-        self.on_exchange_rates_update()
+        # Automatically update the chart with a small delay to ensure dates are properly set
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(50, self.on_exchange_rates_update)
 ```
 
 </details>
@@ -4567,11 +4605,17 @@ def on_exchange_rates_update(self) -> None:
         if hasattr(self, "_exchange_rates_updating") and self._exchange_rates_updating:
             return
 
-        # Check if previous chart is still being created
+        # Check if previous chart is still being created or if we need to wait for cleanup
         if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
             try:
                 # Test if canvas is still valid
                 if not self._current_exchange_rate_canvas.figure:
+                    return
+                # Additional check: if canvas is being deleted, wait a bit
+                if (
+                    hasattr(self._current_exchange_rate_canvas, "_deleting")
+                    and self._current_exchange_rate_canvas._deleting
+                ):
                     return
             except Exception:
                 return
@@ -5684,6 +5728,8 @@ def _clear_layout(self, layout) -> None:
                 # Special handling for matplotlib canvas
                 if hasattr(widget, "figure"):
                     try:
+                        # Mark canvas as being deleted to prevent new updates
+                        widget._deleting = True
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
@@ -5976,6 +6022,21 @@ date_to: End date in yyyy-MM-dd format
 def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to: str) -> None:
         if not self._validate_database_connection():
             return
+
+        # Additional safety check: ensure no previous chart is being deleted
+        if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
+            try:
+                if (
+                    hasattr(self._current_exchange_rate_canvas, "_deleting")
+                    and self._current_exchange_rate_canvas._deleting
+                ):
+                    # Wait a bit for cleanup to complete
+                    from PySide6.QtCore import QTimer
+
+                    QTimer.singleShot(100, lambda: self._create_exchange_rate_chart(currency_id, date_from, date_to))
+                    return
+            except Exception:
+                pass
 
         try:
             # Get currency info
@@ -7888,9 +7949,12 @@ def _setup_exchange_rates_controls(self) -> None:
             currencies = self.db_manager.get_all_currencies()
             self.comboBox_exchange_rates_currency.clear()
 
-            # Add currencies with format: "RUB - Russian Ruble"
+            # Add currencies with format: "RUB - Russian Ruble" (excluding USD)
             for currency in currencies:
                 currency_id, code, name, symbol = currency
+                # Skip USD currency
+                if code.upper() == "USD":
+                    continue
                 display_text = f"{code} - {name}"
                 self.comboBox_exchange_rates_currency.addItem(display_text, currency_id)
 
