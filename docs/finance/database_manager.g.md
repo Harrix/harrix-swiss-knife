@@ -61,6 +61,7 @@ lang: en
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
   - [⚙️ Method `get_last_exchange_rate_date`](#%EF%B8%8F-method-get_last_exchange_rate_date)
   - [⚙️ Method `get_last_exchange_rates_update_date`](#%EF%B8%8F-method-get_last_exchange_rates_update_date)
+  - [⚙️ Method `get_last_two_exchange_rate_records`](#%EF%B8%8F-method-get_last_two_exchange_rate_records)
   - [⚙️ Method `get_missing_exchange_rates_info`](#%EF%B8%8F-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
@@ -75,6 +76,7 @@ lang: en
   - [⚙️ Method `update_account`](#%EF%B8%8F-method-update_account)
   - [⚙️ Method `update_category`](#%EF%B8%8F-method-update_category)
   - [⚙️ Method `update_currency`](#%EF%B8%8F-method-update_currency)
+  - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate)
   - [⚙️ Method `update_transaction`](#%EF%B8%8F-method-update_transaction)
   - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
   - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
@@ -1370,6 +1372,26 @@ class DatabaseManager:
         rows = self.get_rows("SELECT value FROM settings WHERE key = 'last_exchange_rates_update'")
         return rows[0][0] if rows else None
 
+    def get_last_two_exchange_rate_records(self, currency_id: int) -> list[tuple[str, float]]:
+        """Get the last two exchange rate records for a currency.
+
+        Args:
+            currency_id (int): Currency ID.
+
+        Returns:
+            list[tuple[str, float]]: List of tuples (date, rate) for the last two records, sorted by date.
+        """
+        rows = self.get_rows(
+            """SELECT date, rate
+               FROM exchange_rates
+               WHERE _id_currency = :currency_id
+               ORDER BY date DESC
+               LIMIT 2""",
+            {"currency_id": currency_id},
+        )
+        # Return in chronological order (oldest first)
+        return [(row[0], float(row[1])) for row in reversed(rows)] if rows else []
+
     def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
         """Get information about missing exchange rates for each currency.
 
@@ -1835,6 +1857,34 @@ class DatabaseManager:
             "id": currency_id,
         }
         return self.execute_simple_query(query, params)
+
+    def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> bool:
+        """Update an existing exchange rate record.
+
+        Args:
+            currency_id (int): Currency ID.
+            date (str): Date in YYYY-MM-DD format.
+            new_rate (float): New exchange rate value.
+
+        Returns:
+            bool: True if update was successful, False otherwise.
+        """
+        try:
+            query = """
+                UPDATE exchange_rates
+                SET rate = :rate
+                WHERE _id_currency = :currency_id AND date = :date
+            """
+            params = {"currency_id": currency_id, "date": date, "rate": new_rate}
+
+            result = self.execute_query(query, params)
+            if result:
+                result.clear()
+                return True
+            return False
+        except Exception as e:
+            print(f"Error updating exchange rate: {e}")
+            return False
 
     def update_transaction(
         self,
@@ -3985,6 +4035,39 @@ def get_last_exchange_rates_update_date(self) -> str | None:
 
 </details>
 
+### ⚙️ Method `get_last_two_exchange_rate_records`
+
+```python
+def get_last_two_exchange_rate_records(self, currency_id: int) -> list[tuple[str, float]]
+```
+
+Get the last two exchange rate records for a currency.
+
+Args:
+currency_id (int): Currency ID.
+
+Returns:
+list[tuple[str, float]]: List of tuples (date, rate) for the last two records, sorted by date.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_last_two_exchange_rate_records(self, currency_id: int) -> list[tuple[str, float]]:
+        rows = self.get_rows(
+            """SELECT date, rate
+               FROM exchange_rates
+               WHERE _id_currency = :currency_id
+               ORDER BY date DESC
+               LIMIT 2""",
+            {"currency_id": currency_id},
+        )
+        # Return in chronological order (oldest first)
+        return [(row[0], float(row[1])) for row in reversed(rows)] if rows else []
+```
+
+</details>
+
 ### ⚙️ Method `get_missing_exchange_rates_info`
 
 ```python
@@ -4618,6 +4701,47 @@ def update_currency(self, currency_id: int, code: str, name: str, symbol: str) -
             "id": currency_id,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_exchange_rate`
+
+```python
+def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> bool
+```
+
+Update an existing exchange rate record.
+
+Args:
+currency_id (int): Currency ID.
+date (str): Date in YYYY-MM-DD format.
+new_rate (float): New exchange rate value.
+
+Returns:
+bool: True if update was successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> bool:
+        try:
+            query = """
+                UPDATE exchange_rates
+                SET rate = :rate
+                WHERE _id_currency = :currency_id AND date = :date
+            """
+            params = {"currency_id": currency_id, "date": date, "rate": new_rate}
+
+            result = self.execute_query(query, params)
+            if result:
+                result.clear()
+                return True
+            return False
+        except Exception as e:
+            print(f"Error updating exchange rate: {e}")
+            return False
 ```
 
 </details>

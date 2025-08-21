@@ -1289,6 +1289,26 @@ class DatabaseManager:
         rows = self.get_rows("SELECT value FROM settings WHERE key = 'last_exchange_rates_update'")
         return rows[0][0] if rows else None
 
+    def get_last_two_exchange_rate_records(self, currency_id: int) -> list[tuple[str, float]]:
+        """Get the last two exchange rate records for a currency.
+
+        Args:
+            currency_id (int): Currency ID.
+
+        Returns:
+            list[tuple[str, float]]: List of tuples (date, rate) for the last two records, sorted by date.
+        """
+        rows = self.get_rows(
+            """SELECT date, rate
+               FROM exchange_rates
+               WHERE _id_currency = :currency_id
+               ORDER BY date DESC
+               LIMIT 2""",
+            {"currency_id": currency_id},
+        )
+        # Return in chronological order (oldest first)
+        return [(row[0], float(row[1])) for row in reversed(rows)] if rows else []
+
     def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
         """Get information about missing exchange rates for each currency.
 
@@ -1754,6 +1774,34 @@ class DatabaseManager:
             "id": currency_id,
         }
         return self.execute_simple_query(query, params)
+
+    def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> bool:
+        """Update an existing exchange rate record.
+
+        Args:
+            currency_id (int): Currency ID.
+            date (str): Date in YYYY-MM-DD format.
+            new_rate (float): New exchange rate value.
+
+        Returns:
+            bool: True if update was successful, False otherwise.
+        """
+        try:
+            query = """
+                UPDATE exchange_rates
+                SET rate = :rate
+                WHERE _id_currency = :currency_id AND date = :date
+            """
+            params = {"currency_id": currency_id, "date": date, "rate": new_rate}
+
+            result = self.execute_query(query, params)
+            if result:
+                result.clear()
+                return True
+            return False
+        except Exception as e:
+            print(f"Error updating exchange rate: {e}")
+            return False
 
     def update_transaction(
         self,

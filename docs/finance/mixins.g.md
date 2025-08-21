@@ -962,7 +962,7 @@ class ChartOperations:
                 color=plot_color,
                 marker="o",
                 linestyle="-",
-                linewidth=2,
+                linewidth=1,
                 alpha=0.8,
                 markersize=6,
                 markerfacecolor=plot_color,
@@ -989,7 +989,7 @@ class ChartOperations:
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
         else:
-            ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
+            ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=1, alpha=0.8)
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a 'no data' label in the layout.
@@ -1427,7 +1427,7 @@ def _plot_data(
                 color=plot_color,
                 marker="o",
                 linestyle="-",
-                linewidth=2,
+                linewidth=1,
                 alpha=0.8,
                 markersize=6,
                 markerfacecolor=plot_color,
@@ -1454,7 +1454,7 @@ def _plot_data(
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
         else:
-            ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
+            ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=1, alpha=0.8)
 ```
 
 </details>
