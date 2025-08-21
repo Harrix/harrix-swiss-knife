@@ -3142,9 +3142,12 @@ class MainWindow(
             currencies = self.db_manager.get_all_currencies()
             self.comboBox_exchange_rates_currency.clear()
 
-            # Add currencies with format: "RUB - Russian Ruble"
+            # Add currencies with format: "RUB - Russian Ruble" (excluding USD)
             for currency in currencies:
                 currency_id, code, name, symbol = currency
+                # Skip USD currency
+                if code.upper() == "USD":
+                    continue
                 display_text = f"{code} - {name}"
                 self.comboBox_exchange_rates_currency.addItem(display_text, currency_id)
 
