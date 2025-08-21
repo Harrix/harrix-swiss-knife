@@ -121,6 +121,10 @@ class MainWindow(
         self._exchange_rates_initialized = False
         self._exchange_rates_updating = False
 
+        # Matplotlib object references
+        self._current_exchange_rate_fig = None
+        self._current_exchange_rate_canvas = None
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "transactions": (
@@ -803,6 +807,15 @@ class MainWindow(
         # Prevent multiple simultaneous updates
         if hasattr(self, "_exchange_rates_updating") and self._exchange_rates_updating:
             return
+
+        # Check if previous chart is still being created
+        if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
+            try:
+                # Test if canvas is still valid
+                if not self._current_exchange_rate_canvas.figure:
+                    return
+            except Exception:
+                return
 
         try:
             self._exchange_rates_updating = True
@@ -1545,10 +1558,16 @@ class MainWindow(
             if child.widget():
                 widget = child.widget()
                 # Special handling for matplotlib canvas
-                if hasattr(widget, 'figure'):
+                if hasattr(widget, "figure"):
                     try:
+                        # Clear the figure first
                         widget.figure.clear()
+                        # Close the canvas properly
                         widget.close()
+                        # Force garbage collection
+                        import gc
+
+                        gc.collect()
                     except Exception:
                         pass
                 widget.deleteLater()
@@ -1795,8 +1814,9 @@ class MainWindow(
             canvas = FigureCanvas(fig)
             ax = fig.add_subplot(111)
 
-            # Ensure canvas is properly managed
-            canvas.setParent(None)
+            # Store references to prevent premature deletion
+            self._current_exchange_rate_fig = fig
+            self._current_exchange_rate_canvas = canvas
 
             # Extract dates and rates, and transform rates to match table display
             dates = [row[0] for row in rates_data]
@@ -1898,9 +1918,19 @@ class MainWindow(
             self.verticalLayout_exchange_rates_content.addWidget(canvas)
             canvas.draw()
 
+            # Clear previous references
+            if hasattr(self, "_current_exchange_rate_fig") and self._current_exchange_rate_fig is not None:
+                try:
+                    self._current_exchange_rate_fig = None
+                except Exception:
+                    pass
+
         except Exception as e:
             print(f"Error creating exchange rate chart: {e}")
             self._show_no_data_label(self.verticalLayout_exchange_rates_content, f"Error creating chart: {e}")
+            # Clear references on error
+            self._current_exchange_rate_fig = None
+            self._current_exchange_rate_canvas = None
 
     def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
         """Create a pie chart with the given data.
@@ -3114,8 +3144,10 @@ class MainWindow(
             self.dateEdit_exchange_rates_from.blockSignals(False)
             self.dateEdit_exchange_rates_to.blockSignals(False)
 
-            # Draw initial chart
-            self.on_exchange_rates_update()
+            # Use QTimer to delay initial chart creation, ensuring widgets are fully initialized
+            from PySide6.QtCore import QTimer
+
+            QTimer.singleShot(100, self.on_exchange_rates_update)
 
         except Exception as e:
             print(f"Error setting up exchange rates controls: {e}")

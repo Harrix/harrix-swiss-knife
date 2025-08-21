@@ -203,6 +203,11 @@ class MainWindow(
 
         # Exchange rates initialization flag
         self._exchange_rates_initialized = False
+        self._exchange_rates_updating = False
+
+        # Matplotlib object references
+        self._current_exchange_rate_fig = None
+        self._current_exchange_rate_canvas = None
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -883,26 +888,45 @@ class MainWindow(
         if not hasattr(self, "_exchange_rates_initialized") or not self._exchange_rates_initialized:
             return
 
-        # Get selected currency
-        current_index = self.comboBox_exchange_rates_currency.currentIndex()
-        if current_index < 0:
+        # Prevent multiple simultaneous updates
+        if hasattr(self, "_exchange_rates_updating") and self._exchange_rates_updating:
             return
 
-        currency_id = self.comboBox_exchange_rates_currency.itemData(current_index)
-        if not currency_id:
-            return
+        # Check if previous chart is still being created
+        if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
+            try:
+                # Test if canvas is still valid
+                if not self._current_exchange_rate_canvas.figure:
+                    return
+            except Exception:
+                return
 
-        # Get date range
-        date_from = self.dateEdit_exchange_rates_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_exchange_rates_to.date().toString("yyyy-MM-dd")
+        try:
+            self._exchange_rates_updating = True
 
-        # Validate date range
-        if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
-            QMessageBox.warning(self, "Invalid Date Range", "Start date cannot be after end date.")
-            return
+            # Get selected currency
+            current_index = self.comboBox_exchange_rates_currency.currentIndex()
+            if current_index < 0:
+                return
 
-        # Create chart
-        self._create_exchange_rate_chart(currency_id, date_from, date_to)
+            currency_id = self.comboBox_exchange_rates_currency.itemData(current_index)
+            if not currency_id:
+                return
+
+            # Get date range
+            date_from = self.dateEdit_exchange_rates_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_exchange_rates_to.date().toString("yyyy-MM-dd")
+
+            # Validate date range
+            if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
+                QMessageBox.warning(self, "Invalid Date Range", "Start date cannot be after end date.")
+                return
+
+            # Create chart
+            self._create_exchange_rate_chart(currency_id, date_from, date_to)
+
+        finally:
+            self._exchange_rates_updating = False
 
     def on_export_csv(self) -> None:
         """Save current transactions view to a CSV file."""
@@ -1616,7 +1640,21 @@ class MainWindow(
         while layout.count():
             child = layout.takeAt(0)
             if child.widget():
-                child.widget().deleteLater()
+                widget = child.widget()
+                # Special handling for matplotlib canvas
+                if hasattr(widget, "figure"):
+                    try:
+                        # Clear the figure first
+                        widget.figure.clear()
+                        # Close the canvas properly
+                        widget.close()
+                        # Force garbage collection
+                        import gc
+
+                        gc.collect()
+                    except Exception:
+                        pass
+                widget.deleteLater()
 
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
@@ -1855,10 +1893,14 @@ class MainWindow(
             # Clear existing chart
             self._clear_layout(self.verticalLayout_exchange_rates_content)
 
-            # Create matplotlib figure
+            # Create matplotlib figure with proper cleanup
             fig = Figure(figsize=(12, 6), dpi=100)
             canvas = FigureCanvas(fig)
             ax = fig.add_subplot(111)
+
+            # Store references to prevent premature deletion
+            self._current_exchange_rate_fig = fig
+            self._current_exchange_rate_canvas = canvas
 
             # Extract dates and rates, and transform rates to match table display
             dates = [row[0] for row in rates_data]
@@ -1960,9 +2002,19 @@ class MainWindow(
             self.verticalLayout_exchange_rates_content.addWidget(canvas)
             canvas.draw()
 
+            # Clear previous references
+            if hasattr(self, "_current_exchange_rate_fig") and self._current_exchange_rate_fig is not None:
+                try:
+                    self._current_exchange_rate_fig = None
+                except Exception:
+                    pass
+
         except Exception as e:
             print(f"Error creating exchange rate chart: {e}")
             self._show_no_data_label(self.verticalLayout_exchange_rates_content, f"Error creating chart: {e}")
+            # Clear references on error
+            self._current_exchange_rate_fig = None
+            self._current_exchange_rate_canvas = None
 
     def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
         """Create a pie chart with the given data.
@@ -3176,8 +3228,10 @@ class MainWindow(
             self.dateEdit_exchange_rates_from.blockSignals(False)
             self.dateEdit_exchange_rates_to.blockSignals(False)
 
-            # Draw initial chart
-            self.on_exchange_rates_update()
+            # Use QTimer to delay initial chart creation, ensuring widgets are fully initialized
+            from PySide6.QtCore import QTimer
+
+            QTimer.singleShot(100, self.on_exchange_rates_update)
 
         except Exception as e:
             print(f"Error setting up exchange rates controls: {e}")
@@ -3550,6 +3604,11 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Exchange rates initialization flag
         self._exchange_rates_initialized = False
+        self._exchange_rates_updating = False
+
+        # Matplotlib object references
+        self._current_exchange_rate_fig = None
+        self._current_exchange_rate_canvas = None
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -4504,26 +4563,45 @@ def on_exchange_rates_update(self) -> None:
         if not hasattr(self, "_exchange_rates_initialized") or not self._exchange_rates_initialized:
             return
 
-        # Get selected currency
-        current_index = self.comboBox_exchange_rates_currency.currentIndex()
-        if current_index < 0:
+        # Prevent multiple simultaneous updates
+        if hasattr(self, "_exchange_rates_updating") and self._exchange_rates_updating:
             return
 
-        currency_id = self.comboBox_exchange_rates_currency.itemData(current_index)
-        if not currency_id:
-            return
+        # Check if previous chart is still being created
+        if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
+            try:
+                # Test if canvas is still valid
+                if not self._current_exchange_rate_canvas.figure:
+                    return
+            except Exception:
+                return
 
-        # Get date range
-        date_from = self.dateEdit_exchange_rates_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_exchange_rates_to.date().toString("yyyy-MM-dd")
+        try:
+            self._exchange_rates_updating = True
 
-        # Validate date range
-        if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
-            QMessageBox.warning(self, "Invalid Date Range", "Start date cannot be after end date.")
-            return
+            # Get selected currency
+            current_index = self.comboBox_exchange_rates_currency.currentIndex()
+            if current_index < 0:
+                return
 
-        # Create chart
-        self._create_exchange_rate_chart(currency_id, date_from, date_to)
+            currency_id = self.comboBox_exchange_rates_currency.itemData(current_index)
+            if not currency_id:
+                return
+
+            # Get date range
+            date_from = self.dateEdit_exchange_rates_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_exchange_rates_to.date().toString("yyyy-MM-dd")
+
+            # Validate date range
+            if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
+                QMessageBox.warning(self, "Invalid Date Range", "Start date cannot be after end date.")
+                return
+
+            # Create chart
+            self._create_exchange_rate_chart(currency_id, date_from, date_to)
+
+        finally:
+            self._exchange_rates_updating = False
 ```
 
 </details>
@@ -5602,7 +5680,21 @@ def _clear_layout(self, layout) -> None:
         while layout.count():
             child = layout.takeAt(0)
             if child.widget():
-                child.widget().deleteLater()
+                widget = child.widget()
+                # Special handling for matplotlib canvas
+                if hasattr(widget, "figure"):
+                    try:
+                        # Clear the figure first
+                        widget.figure.clear()
+                        # Close the canvas properly
+                        widget.close()
+                        # Force garbage collection
+                        import gc
+
+                        gc.collect()
+                    except Exception:
+                        pass
+                widget.deleteLater()
 ```
 
 </details>
@@ -5906,10 +5998,14 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
             # Clear existing chart
             self._clear_layout(self.verticalLayout_exchange_rates_content)
 
-            # Create matplotlib figure
+            # Create matplotlib figure with proper cleanup
             fig = Figure(figsize=(12, 6), dpi=100)
             canvas = FigureCanvas(fig)
             ax = fig.add_subplot(111)
+
+            # Store references to prevent premature deletion
+            self._current_exchange_rate_fig = fig
+            self._current_exchange_rate_canvas = canvas
 
             # Extract dates and rates, and transform rates to match table display
             dates = [row[0] for row in rates_data]
@@ -6011,9 +6107,19 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
             self.verticalLayout_exchange_rates_content.addWidget(canvas)
             canvas.draw()
 
+            # Clear previous references
+            if hasattr(self, "_current_exchange_rate_fig") and self._current_exchange_rate_fig is not None:
+                try:
+                    self._current_exchange_rate_fig = None
+                except Exception:
+                    pass
+
         except Exception as e:
             print(f"Error creating exchange rate chart: {e}")
             self._show_no_data_label(self.verticalLayout_exchange_rates_content, f"Error creating chart: {e}")
+            # Clear references on error
+            self._current_exchange_rate_fig = None
+            self._current_exchange_rate_canvas = None
 ```
 
 </details>
@@ -7803,8 +7909,10 @@ def _setup_exchange_rates_controls(self) -> None:
             self.dateEdit_exchange_rates_from.blockSignals(False)
             self.dateEdit_exchange_rates_to.blockSignals(False)
 
-            # Draw initial chart
-            self.on_exchange_rates_update()
+            # Use QTimer to delay initial chart creation, ensuring widgets are fully initialized
+            from PySide6.QtCore import QTimer
+
+            QTimer.singleShot(100, self.on_exchange_rates_update)
 
         except Exception as e:
             print(f"Error setting up exchange rates controls: {e}")
