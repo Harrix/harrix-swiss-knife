@@ -71,112 +71,119 @@ class ExchangeRateUpdateWorker(QThread):
                 For example: 1 RUB = 0.012 USD
                 """
 
-                # Primary ticker formats - these should give us CURRENCY/USD rates directly
-                primary_tickers = [
-                    f"{currency_code}USD=X",  # RUBUSD=X gives RUB to USD rate
-                    f"{currency_code}/USD",  # RUB/USD gives RUB to USD rate
-                    f"{currency_code}USD",  # RUBUSD gives RUB to USD rate
-                ]
+                # Generate all possible ticker formats dynamically
+                def generate_ticker_formats(currency_code: str):
+                    """Generate all possible ticker formats for a currency."""
 
-                # Inverse ticker formats - these give us USD/CURRENCY rates (need to invert)
-                inverse_tickers = [
-                    f"USD{currency_code}=X",  # USDRUB=X gives USD to RUB rate (need to invert)
-                    f"USD/{currency_code}",  # USD/RUB gives USD to RUB rate (need to invert)
-                    f"USD{currency_code}",  # USDRUB gives USD to RUB rate (need to invert)
-                ]
+                    # Primary ticker formats - these should give us CURRENCY/USD rates directly
+                    primary_tickers = [
+                        f"{currency_code}USD=X",  # EURUSD=X, RUBUSD=X
+                        f"{currency_code}/USD",  # EUR/USD, RUB/USD
+                        f"{currency_code}USD",  # EURUSD, RUBUSD
+                        f"{currency_code}=X",  # EUR=X, RUB=X
+                        f"{currency_code}-USD",  # EUR-USD, RUB-USD
+                        f"{currency_code}.USD",  # EUR.USD, RUB.USD
+                        f"{currency_code}_USD",  # EUR_USD, RUB_USD
+                    ]
 
-                # Special cases for known problematic currencies
-                special_cases = {
-                    "RUB": {"primary": ["RUBUSD=X", "RUB=X"], "inverse": ["USDRUB=X", "USD/RUB=X"]},
-                    "EUR": {"primary": ["EURUSD=X", "EUR=X"], "inverse": ["USDEUR=X", "USD/EUR=X"]},
-                    "CNY": {"primary": ["CNYUSD=X", "CNY=X"], "inverse": ["USDCNY=X", "USD/CNY=X"]},
-                    "TRY": {"primary": ["TRYUSD=X", "TRY=X"], "inverse": ["USDTRY=X", "USD/TRY=X"]},
-                    "VND": {"primary": ["VNDUSD=X", "VND=X"], "inverse": ["USDVND=X", "USD/VND=X"]},
-                }
+                    # Inverse ticker formats - these give us USD/CURRENCY rates (need to invert)
+                    inverse_tickers = [
+                        f"USD{currency_code}=X",  # USDEUR=X, USDRUB=X
+                        f"USD/{currency_code}",  # USD/EUR, USD/RUB
+                        f"USD{currency_code}",  # USDEUR, USDRUB
+                        f"USD={currency_code}",  # USD=EUR, USD=RUB
+                        f"USD-{currency_code}",  # USD-EUR, USD-RUB
+                        f"USD.{currency_code}",  # USD.EUR, USD.RUB
+                        f"USD_{currency_code}",  # USD_EUR, USD_RUB
+                        f"USD/{currency_code}=X",  # USD/EUR=X, USD/RUB=X
+                    ]
 
-                # Build the ticker list
-                if currency_code in special_cases:
-                    primary_list = special_cases[currency_code]["primary"]
-                    inverse_list = special_cases[currency_code]["inverse"]
-                else:
-                    primary_list = primary_tickers
-                    inverse_list = inverse_tickers
+                    return primary_tickers, inverse_tickers
+
+                primary_list, inverse_list = generate_ticker_formats(currency_code)
 
                 # Try to get data with a date range
                 date_obj = datetime.strptime(date, "%Y-%m-%d")
                 start_date = date_obj.strftime("%Y-%m-%d")
                 end_date = (date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
 
-                # First try primary tickers (no inversion needed)
-                for ticker_symbol in primary_list:
-                    if self.should_stop:
-                        return None
-
+                # Helper function to try getting data with different date ranges
+                def try_ticker_with_dates(ticker_symbol: str, is_inverse: bool = False):
+                    """Try to get data for a ticker with different date ranges."""
                     try:
-                        self.progress_updated.emit(f"🔄 Trying primary ticker: {ticker_symbol}")
+                        self.progress_updated.emit(
+                            f"🔄 Trying {'inverse' if is_inverse else 'primary'} ticker: {ticker_symbol}"
+                        )
 
                         ticker = yf.Ticker(ticker_symbol)
 
-                        # Try both single date and date range
-                        for date_range in [(start_date, start_date), (start_date, end_date)]:
+                        # Try different date ranges: exact date, date range, extended range
+                        date_ranges = [
+                            (start_date, start_date),
+                            (start_date, end_date),
+                            ((date_obj - timedelta(days=1)).strftime("%Y-%m-%d"), end_date),
+                            (start_date, (date_obj + timedelta(days=2)).strftime("%Y-%m-%d")),
+                        ]
+
+                        for range_start, range_end in date_ranges:
                             try:
-                                hist = ticker.history(start=date_range[0], end=date_range[1], interval="1d")
+                                hist = ticker.history(start=range_start, end=range_end, interval="1d")
 
                                 if not hist.empty:
-                                    close_price = hist.iloc[0]["Close"]
+                                    # Try to find data for the exact date first, then any available date
+                                    target_date = pd.Timestamp(date_obj.date())
+
+                                    if target_date in hist.index:
+                                        close_price = hist.loc[target_date]["Close"]
+                                    else:
+                                        close_price = hist.iloc[0]["Close"]
 
                                     if not pd.isna(close_price) and close_price > 0:
                                         rate = float(close_price)
-                                        self.progress_updated.emit(
-                                            f"✅ Found primary rate with {ticker_symbol}: {rate:.6f} (1 {currency_code} = {rate:.6f} USD)"
-                                        )
-                                        return rate
+
+                                        if is_inverse:
+                                            # This is USD to CURRENCY rate, we need CURRENCY to USD rate
+                                            currency_to_usd_rate = 1.0 / rate
+                                            self.progress_updated.emit(
+                                                f"✅ Found inverse rate with {ticker_symbol}: {rate:.6f} USD/{currency_code}"
+                                            )
+                                            self.progress_updated.emit(
+                                                f"🔄 Inverted to: {currency_to_usd_rate:.6f} (1 {currency_code} = {currency_to_usd_rate:.6f} USD)"
+                                            )
+                                            return currency_to_usd_rate
+                                        else:
+                                            self.progress_updated.emit(
+                                                f"✅ Found primary rate with {ticker_symbol}: {rate:.6f} (1 {currency_code} = {rate:.6f} USD)"
+                                            )
+                                            return rate
 
                             except Exception:
                                 continue  # Try next date range
 
                     except Exception as e:
-                        if "delisted" not in str(e).lower():
-                            self.progress_updated.emit(f"⚠️ Error with primary ticker {ticker_symbol}: {str(e)[:50]}...")
-                        continue
+                        error_msg = str(e).lower()
+                        if "delisted" not in error_msg and "not found" not in error_msg:
+                            self.progress_updated.emit(f"⚠️ Error with ticker {ticker_symbol}: {str(e)[:50]}...")
+
+                    return None
+
+                # First try primary tickers (no inversion needed)
+                for ticker_symbol in primary_list:
+                    if self.should_stop:
+                        return None
+
+                    result = try_ticker_with_dates(ticker_symbol, is_inverse=False)
+                    if result is not None:
+                        return result
 
                 # If primary tickers failed, try inverse tickers (need inversion)
                 for ticker_symbol in inverse_list:
                     if self.should_stop:
                         return None
 
-                    try:
-                        self.progress_updated.emit(f"🔄 Trying inverse ticker: {ticker_symbol}")
-
-                        ticker = yf.Ticker(ticker_symbol)
-
-                        # Try both single date and date range
-                        for date_range in [(start_date, start_date), (start_date, end_date)]:
-                            try:
-                                hist = ticker.history(start=date_range[0], end=date_range[1], interval="1d")
-
-                                if not hist.empty:
-                                    close_price = hist.iloc[0]["Close"]
-
-                                    if not pd.isna(close_price) and close_price > 0:
-                                        # This is USD to CURRENCY rate, we need CURRENCY to USD rate
-                                        usd_to_currency_rate = float(close_price)
-                                        currency_to_usd_rate = 1.0 / usd_to_currency_rate
-                                        self.progress_updated.emit(
-                                            f"✅ Found inverse rate with {ticker_symbol}: {usd_to_currency_rate:.6f} USD/{currency_code}"
-                                        )
-                                        self.progress_updated.emit(
-                                            f"🔄 Inverted to: {currency_to_usd_rate:.6f} (1 {currency_code} = {currency_to_usd_rate:.6f} USD)"
-                                        )
-                                        return currency_to_usd_rate
-
-                            except Exception:
-                                continue  # Try next date range
-
-                    except Exception as e:
-                        if "delisted" not in str(e).lower():
-                            self.progress_updated.emit(f"⚠️ Error with inverse ticker {ticker_symbol}: {str(e)[:50]}...")
-                        continue
+                    result = try_ticker_with_dates(ticker_symbol, is_inverse=True)
+                    if result is not None:
+                        return result
 
                 # If we get here, no ticker worked
                 self.progress_updated.emit(
@@ -384,112 +391,119 @@ def run(self):
                 For example: 1 RUB = 0.012 USD
                 """
 
-                # Primary ticker formats - these should give us CURRENCY/USD rates directly
-                primary_tickers = [
-                    f"{currency_code}USD=X",  # RUBUSD=X gives RUB to USD rate
-                    f"{currency_code}/USD",  # RUB/USD gives RUB to USD rate
-                    f"{currency_code}USD",  # RUBUSD gives RUB to USD rate
-                ]
+                # Generate all possible ticker formats dynamically
+                def generate_ticker_formats(currency_code: str):
+                    """Generate all possible ticker formats for a currency."""
 
-                # Inverse ticker formats - these give us USD/CURRENCY rates (need to invert)
-                inverse_tickers = [
-                    f"USD{currency_code}=X",  # USDRUB=X gives USD to RUB rate (need to invert)
-                    f"USD/{currency_code}",  # USD/RUB gives USD to RUB rate (need to invert)
-                    f"USD{currency_code}",  # USDRUB gives USD to RUB rate (need to invert)
-                ]
+                    # Primary ticker formats - these should give us CURRENCY/USD rates directly
+                    primary_tickers = [
+                        f"{currency_code}USD=X",  # EURUSD=X, RUBUSD=X
+                        f"{currency_code}/USD",  # EUR/USD, RUB/USD
+                        f"{currency_code}USD",  # EURUSD, RUBUSD
+                        f"{currency_code}=X",  # EUR=X, RUB=X
+                        f"{currency_code}-USD",  # EUR-USD, RUB-USD
+                        f"{currency_code}.USD",  # EUR.USD, RUB.USD
+                        f"{currency_code}_USD",  # EUR_USD, RUB_USD
+                    ]
 
-                # Special cases for known problematic currencies
-                special_cases = {
-                    "RUB": {"primary": ["RUBUSD=X", "RUB=X"], "inverse": ["USDRUB=X", "USD/RUB=X"]},
-                    "EUR": {"primary": ["EURUSD=X", "EUR=X"], "inverse": ["USDEUR=X", "USD/EUR=X"]},
-                    "CNY": {"primary": ["CNYUSD=X", "CNY=X"], "inverse": ["USDCNY=X", "USD/CNY=X"]},
-                    "TRY": {"primary": ["TRYUSD=X", "TRY=X"], "inverse": ["USDTRY=X", "USD/TRY=X"]},
-                    "VND": {"primary": ["VNDUSD=X", "VND=X"], "inverse": ["USDVND=X", "USD/VND=X"]},
-                }
+                    # Inverse ticker formats - these give us USD/CURRENCY rates (need to invert)
+                    inverse_tickers = [
+                        f"USD{currency_code}=X",  # USDEUR=X, USDRUB=X
+                        f"USD/{currency_code}",  # USD/EUR, USD/RUB
+                        f"USD{currency_code}",  # USDEUR, USDRUB
+                        f"USD={currency_code}",  # USD=EUR, USD=RUB
+                        f"USD-{currency_code}",  # USD-EUR, USD-RUB
+                        f"USD.{currency_code}",  # USD.EUR, USD.RUB
+                        f"USD_{currency_code}",  # USD_EUR, USD_RUB
+                        f"USD/{currency_code}=X",  # USD/EUR=X, USD/RUB=X
+                    ]
 
-                # Build the ticker list
-                if currency_code in special_cases:
-                    primary_list = special_cases[currency_code]["primary"]
-                    inverse_list = special_cases[currency_code]["inverse"]
-                else:
-                    primary_list = primary_tickers
-                    inverse_list = inverse_tickers
+                    return primary_tickers, inverse_tickers
+
+                primary_list, inverse_list = generate_ticker_formats(currency_code)
 
                 # Try to get data with a date range
                 date_obj = datetime.strptime(date, "%Y-%m-%d")
                 start_date = date_obj.strftime("%Y-%m-%d")
                 end_date = (date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
 
-                # First try primary tickers (no inversion needed)
-                for ticker_symbol in primary_list:
-                    if self.should_stop:
-                        return None
-
+                # Helper function to try getting data with different date ranges
+                def try_ticker_with_dates(ticker_symbol: str, is_inverse: bool = False):
+                    """Try to get data for a ticker with different date ranges."""
                     try:
-                        self.progress_updated.emit(f"🔄 Trying primary ticker: {ticker_symbol}")
+                        self.progress_updated.emit(
+                            f"🔄 Trying {'inverse' if is_inverse else 'primary'} ticker: {ticker_symbol}"
+                        )
 
                         ticker = yf.Ticker(ticker_symbol)
 
-                        # Try both single date and date range
-                        for date_range in [(start_date, start_date), (start_date, end_date)]:
+                        # Try different date ranges: exact date, date range, extended range
+                        date_ranges = [
+                            (start_date, start_date),
+                            (start_date, end_date),
+                            ((date_obj - timedelta(days=1)).strftime("%Y-%m-%d"), end_date),
+                            (start_date, (date_obj + timedelta(days=2)).strftime("%Y-%m-%d")),
+                        ]
+
+                        for range_start, range_end in date_ranges:
                             try:
-                                hist = ticker.history(start=date_range[0], end=date_range[1], interval="1d")
+                                hist = ticker.history(start=range_start, end=range_end, interval="1d")
 
                                 if not hist.empty:
-                                    close_price = hist.iloc[0]["Close"]
+                                    # Try to find data for the exact date first, then any available date
+                                    target_date = pd.Timestamp(date_obj.date())
+
+                                    if target_date in hist.index:
+                                        close_price = hist.loc[target_date]["Close"]
+                                    else:
+                                        close_price = hist.iloc[0]["Close"]
 
                                     if not pd.isna(close_price) and close_price > 0:
                                         rate = float(close_price)
-                                        self.progress_updated.emit(
-                                            f"✅ Found primary rate with {ticker_symbol}: {rate:.6f} (1 {currency_code} = {rate:.6f} USD)"
-                                        )
-                                        return rate
+
+                                        if is_inverse:
+                                            # This is USD to CURRENCY rate, we need CURRENCY to USD rate
+                                            currency_to_usd_rate = 1.0 / rate
+                                            self.progress_updated.emit(
+                                                f"✅ Found inverse rate with {ticker_symbol}: {rate:.6f} USD/{currency_code}"
+                                            )
+                                            self.progress_updated.emit(
+                                                f"🔄 Inverted to: {currency_to_usd_rate:.6f} (1 {currency_code} = {currency_to_usd_rate:.6f} USD)"
+                                            )
+                                            return currency_to_usd_rate
+                                        else:
+                                            self.progress_updated.emit(
+                                                f"✅ Found primary rate with {ticker_symbol}: {rate:.6f} (1 {currency_code} = {rate:.6f} USD)"
+                                            )
+                                            return rate
 
                             except Exception:
                                 continue  # Try next date range
 
                     except Exception as e:
-                        if "delisted" not in str(e).lower():
-                            self.progress_updated.emit(f"⚠️ Error with primary ticker {ticker_symbol}: {str(e)[:50]}...")
-                        continue
+                        error_msg = str(e).lower()
+                        if "delisted" not in error_msg and "not found" not in error_msg:
+                            self.progress_updated.emit(f"⚠️ Error with ticker {ticker_symbol}: {str(e)[:50]}...")
+
+                    return None
+
+                # First try primary tickers (no inversion needed)
+                for ticker_symbol in primary_list:
+                    if self.should_stop:
+                        return None
+
+                    result = try_ticker_with_dates(ticker_symbol, is_inverse=False)
+                    if result is not None:
+                        return result
 
                 # If primary tickers failed, try inverse tickers (need inversion)
                 for ticker_symbol in inverse_list:
                     if self.should_stop:
                         return None
 
-                    try:
-                        self.progress_updated.emit(f"🔄 Trying inverse ticker: {ticker_symbol}")
-
-                        ticker = yf.Ticker(ticker_symbol)
-
-                        # Try both single date and date range
-                        for date_range in [(start_date, start_date), (start_date, end_date)]:
-                            try:
-                                hist = ticker.history(start=date_range[0], end=date_range[1], interval="1d")
-
-                                if not hist.empty:
-                                    close_price = hist.iloc[0]["Close"]
-
-                                    if not pd.isna(close_price) and close_price > 0:
-                                        # This is USD to CURRENCY rate, we need CURRENCY to USD rate
-                                        usd_to_currency_rate = float(close_price)
-                                        currency_to_usd_rate = 1.0 / usd_to_currency_rate
-                                        self.progress_updated.emit(
-                                            f"✅ Found inverse rate with {ticker_symbol}: {usd_to_currency_rate:.6f} USD/{currency_code}"
-                                        )
-                                        self.progress_updated.emit(
-                                            f"🔄 Inverted to: {currency_to_usd_rate:.6f} (1 {currency_code} = {currency_to_usd_rate:.6f} USD)"
-                                        )
-                                        return currency_to_usd_rate
-
-                            except Exception:
-                                continue  # Try next date range
-
-                    except Exception as e:
-                        if "delisted" not in str(e).lower():
-                            self.progress_updated.emit(f"⚠️ Error with inverse ticker {ticker_symbol}: {str(e)[:50]}...")
-                        continue
+                    result = try_ticker_with_dates(ticker_symbol, is_inverse=True)
+                    if result is not None:
+                        return result
 
                 # If we get here, no ticker worked
                 self.progress_updated.emit(
