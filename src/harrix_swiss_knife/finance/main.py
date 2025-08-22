@@ -990,6 +990,188 @@ class MainWindow(
             print(f"🔍 Checking which currencies need updates and missing records...")
             print(f"📅 Today's date: {today}")
 
+            # Get the earliest transaction date to determine the start date for initial data
+            earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
+            if earliest_transaction_date:
+                earliest_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
+            else:
+                # If no transactions, start from 1 year ago
+                earliest_date = today - timedelta(days=365)
+
+            for currency_id, currency_code, currency_name, currency_symbol in currencies:
+                # Get the last exchange rate date for this currency
+                last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
+
+                if not last_date_str:
+                    # No exchange rate records exist for this currency - need to create initial data
+                    print(f"⚠️ {currency_code}: No exchange rate records found - will create initial data from {earliest_date}")
+
+                    # Generate all dates from earliest transaction date to today
+                    missing_dates = []
+                    current_date = earliest_date
+                    while current_date <= today:
+                        date_str = current_date.strftime("%Y-%m-%d")
+                        missing_dates.append(date_str)
+                        current_date += timedelta(days=1)
+
+                    records_to_process = {"missing_dates": missing_dates, "existing_records": []}
+                    currencies_to_process.append((currency_id, currency_code, records_to_process))
+                    print(f"📊 {currency_code}: Will create {len(missing_dates)} initial records")
+                    continue
+
+                last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+
+                # Get the last two existing records for updates
+                last_two_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
+
+                # Calculate missing dates from last_date + 1 day to today
+                missing_dates = []
+                current_date = last_date + timedelta(days=1)
+
+                while current_date <= today:
+                    date_str = current_date.strftime("%Y-%m-%d")
+                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                        missing_dates.append(date_str)
+                    current_date += timedelta(days=1)
+
+                # Combine missing dates and existing records to update
+                records_to_process = {"missing_dates": missing_dates, "existing_records": last_two_records}
+
+                if missing_dates or last_two_records:
+                    currencies_to_process.append((currency_id, currency_code, records_to_process))
+                    print(
+                        f"📊 {currency_code}: Will add {len(missing_dates)} missing records and update {len(last_two_records)} existing records"
+                    )
+                    if missing_dates:
+                        print(f"    Missing dates: {missing_dates[:5]}{'...' if len(missing_dates) > 5 else ''}")
+                    if last_two_records:
+                        print(f"    Will update records from: {[record[0] for record in last_two_records]}")
+
+            # If no currencies need processing, inform user
+            if not currencies_to_process:
+                QMessageBox.information(
+                    self,
+                    "No Updates Needed",
+                    "All exchange rates are up to date.",
+                )
+                print(f"✅ All exchange rates are up to date.")
+                return
+
+            # Show summary and ask for confirmation
+            total_missing = sum(len(records["missing_dates"]) for _, _, records in currencies_to_process)
+            total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
+            currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
+
+            # Determine if this is initial setup or regular update
+            has_initial_setup = any(len(records["existing_records"]) == 0 and len(records["missing_dates"]) > 100
+                                for _, _, records in currencies_to_process)
+
+            if has_initial_setup:
+                message_title = "Initial Exchange Rates Setup"
+                message_text = (f"This appears to be the first time setting up exchange rates.\n"
+                            f"Found {len(currencies_to_process)} currencies to process:\n"
+                            f"{currencies_text}\n\n"
+                            f"Initial records to create: {total_missing}\n"
+                            f"Existing records to update: {total_updates}\n"
+                            f"Total operations: {total_missing + total_updates}\n\n"
+                            f"This may take several minutes to download historical data from yfinance.\n"
+                            f"Do you want to proceed?")
+            else:
+                message_title = "Update Exchange Rates"
+                message_text = (f"Found {len(currencies_to_process)} currencies to process:\n"
+                            f"{currencies_text}\n\n"
+                            f"Missing records to add: {total_missing}\n"
+                            f"Existing records to update: {total_updates}\n"
+                            f"Total operations: {total_missing + total_updates}\n\n"
+                            f"Do you want to proceed with downloading from yfinance?")
+
+            reply = QMessageBox.question(
+                self,
+                message_title,
+                message_text,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            # Check if worker is already running
+            if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
+                reply = QMessageBox.question(
+                    self,
+                    "Update in Progress",
+                    "Exchange rate update is already running. Do you want to stop it and start a new one?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.exchange_rate_worker.stop()
+                    self.exchange_rate_worker.wait()
+                else:
+                    return
+
+            # Create and configure progress dialog
+            self.progress_dialog = QMessageBox(self)
+            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
+
+            if has_initial_setup:
+                self.progress_dialog.setText(
+                    f"Starting initial exchange rate setup for {len(currencies_to_process)} currencies from yfinance...\n"
+                    f"This may take several minutes for historical data."
+                )
+            else:
+                self.progress_dialog.setText(
+                    f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
+                )
+
+            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+
+            # Connect cancel button
+            def cancel_update():
+                if hasattr(self, "exchange_rate_worker"):
+                    self.exchange_rate_worker.stop()
+                self.progress_dialog.close()
+
+            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
+            self.progress_dialog.show()
+
+            # Create and start worker thread
+            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)
+
+            # Connect signals
+            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
+            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
+            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
+            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
+            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
+
+            # Start the worker
+            self.exchange_rate_worker.start()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
+            print(f"❌ Exchange rate update error: {e}")
+
+        """Update and fill missing exchange rate records for each currency from yfinance."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get all currencies except USD (base currency)
+            currencies = self.db_manager.get_currencies_except_usd()
+            if not currencies:
+                QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
+                return
+
+            # Calculate which currencies need updates and missing records
+            currencies_to_process = []
+            today = datetime.now().date()
+            today_str = today.strftime("%Y-%m-%d")
+
+            print(f"🔍 Checking which currencies need updates and missing records...")
+            print(f"📅 Today's date: {today}")
+
             for currency_id, currency_code, currency_name, currency_symbol in currencies:
                 # Get the last exchange rate date for this currency
                 last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
