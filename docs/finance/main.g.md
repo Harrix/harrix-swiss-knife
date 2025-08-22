@@ -101,7 +101,9 @@ lang: en
   - [⚙️ Method `_on_rate_added`](#%EF%B8%8F-method-_on_rate_added)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_on_update_finished_error`](#%EF%B8%8F-method-_on_update_finished_error)
+  - [⚙️ Method `_on_update_finished_error`](#%EF%B8%8F-method-_on_update_finished_error-1)
   - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success)
+  - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success-1)
   - [⚙️ Method `_populate_form_from_description`](#%EF%B8%8F-method-_populate_form_from_description)
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
@@ -176,6 +178,9 @@ class MainWindow(
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+
+        # Initialize worker thread reference
+        self.exchange_rate_worker: ExchangeRateUpdateWorker | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -348,12 +353,16 @@ class MainWindow(
 
         """
         # Stop any running worker threads
-        if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
+        if (
+            hasattr(self, "exchange_rate_worker")
+            and self.exchange_rate_worker is not None
+            and self.exchange_rate_worker.isRunning()
+        ):
             self.exchange_rate_worker.stop()
             self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
 
         # Close progress dialog if open
-        if hasattr(self, "progress_dialog"):
+        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
             self.progress_dialog.close()
 
         # Dispose Models
@@ -1060,6 +1069,24 @@ class MainWindow(
             return
 
         try:
+            # Check if worker is already running (with proper initialization check)
+            if (
+                hasattr(self, "exchange_rate_worker")
+                and self.exchange_rate_worker is not None
+                and self.exchange_rate_worker.isRunning()
+            ):
+                reply = QMessageBox.question(
+                    self,
+                    "Update in Progress",
+                    "Exchange rate update is already running. Do you want to stop it and start a new one?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.exchange_rate_worker.stop()
+                    self.exchange_rate_worker.wait()
+                else:
+                    return
+
             # Get all currencies except USD (base currency)
             currencies = self.db_manager.get_currencies_except_usd()
             if not currencies:
@@ -1074,12 +1101,35 @@ class MainWindow(
             print(f"🔍 Checking which currencies need updates and missing records...")
             print(f"📅 Today's date: {today}")
 
+            # Get the earliest transaction date to determine the start date for initial data
+            earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
+            if earliest_transaction_date:
+                earliest_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
+            else:
+                # If no transactions, start from 1 year ago
+                earliest_date = today - timedelta(days=365)
+
             for currency_id, currency_code, currency_name, currency_symbol in currencies:
                 # Get the last exchange rate date for this currency
                 last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
 
                 if not last_date_str:
-                    print(f"⚠️ {currency_code}: No exchange rate records found - skipping")
+                    # No exchange rate records exist for this currency - need to create initial data
+                    print(
+                        f"⚠️ {currency_code}: No exchange rate records found - will create initial data from {earliest_date}"
+                    )
+
+                    # Generate all dates from earliest transaction date to today
+                    missing_dates = []
+                    current_date = earliest_date
+                    while current_date <= today:
+                        date_str = current_date.strftime("%Y-%m-%d")
+                        missing_dates.append(date_str)
+                        current_date += timedelta(days=1)
+
+                    records_to_process = {"missing_dates": missing_dates, "existing_records": []}
+                    currencies_to_process.append((currency_id, currency_code, records_to_process))
+                    print(f"📊 {currency_code}: Will create {len(missing_dates)} initial records")
                     continue
 
                 last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
@@ -1125,49 +1175,68 @@ class MainWindow(
             total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
             currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
 
+            # Determine if this is initial setup or regular update
+            has_initial_setup = any(
+                len(records["existing_records"]) == 0 and len(records["missing_dates"]) > 100
+                for _, _, records in currencies_to_process
+            )
+
+            if has_initial_setup:
+                message_title = "Initial Exchange Rates Setup"
+                message_text = (
+                    f"This appears to be the first time setting up exchange rates.\n"
+                    f"Found {len(currencies_to_process)} currencies to process:\n"
+                    f"{currencies_text}\n\n"
+                    f"Initial records to create: {total_missing}\n"
+                    f"Existing records to update: {total_updates}\n"
+                    f"Total operations: {total_missing + total_updates}\n\n"
+                    f"This may take several minutes to download historical data from yfinance.\n"
+                    f"Do you want to proceed?"
+                )
+            else:
+                message_title = "Update Exchange Rates"
+                message_text = (
+                    f"Found {len(currencies_to_process)} currencies to process:\n"
+                    f"{currencies_text}\n\n"
+                    f"Missing records to add: {total_missing}\n"
+                    f"Existing records to update: {total_updates}\n"
+                    f"Total operations: {total_missing + total_updates}\n\n"
+                    f"Do you want to proceed with downloading from yfinance?"
+                )
+
             reply = QMessageBox.question(
                 self,
-                "Update Exchange Rates",
-                f"Found {len(currencies_to_process)} currencies to process:\n"
-                f"{currencies_text}\n\n"
-                f"Missing records to add: {total_missing}\n"
-                f"Existing records to update: {total_updates}\n"
-                f"Total operations: {total_missing + total_updates}\n\n"
-                f"Do you want to proceed with downloading from yfinance?",
+                message_title,
+                message_text,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
 
             if reply != QMessageBox.StandardButton.Yes:
                 return
 
-            # Check if worker is already running
-            if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
-                reply = QMessageBox.question(
-                    self,
-                    "Update in Progress",
-                    "Exchange rate update is already running. Do you want to stop it and start a new one?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                )
-                if reply == QMessageBox.StandardButton.Yes:
-                    self.exchange_rate_worker.stop()
-                    self.exchange_rate_worker.wait()
-                else:
-                    return
-
             # Create and configure progress dialog
             self.progress_dialog = QMessageBox(self)
             self.progress_dialog.setWindowTitle("Updating Exchange Rates")
-            self.progress_dialog.setText(
-                f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
-            )
+
+            if has_initial_setup:
+                self.progress_dialog.setText(
+                    f"Starting initial exchange rate setup for {len(currencies_to_process)} currencies from yfinance...\n"
+                    f"This may take several minutes for historical data."
+                )
+            else:
+                self.progress_dialog.setText(
+                    f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
+                )
+
             self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
             self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
             # Connect cancel button
             def cancel_update():
-                if hasattr(self, "exchange_rate_worker"):
+                if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker is not None:
                     self.exchange_rate_worker.stop()
-                self.progress_dialog.close()
+                if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+                    self.progress_dialog.close()
 
             self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
             self.progress_dialog.show()
@@ -1668,6 +1737,8 @@ class MainWindow(
                         gc.collect()
                     except Exception:
                         pass
+                # Remove widget from layout and delete it
+                widget.setParent(None)
                 widget.deleteLater()
 
     def _connect_signals(self) -> None:
@@ -1879,12 +1950,17 @@ class MainWindow(
         """Create and display exchange rate chart.
 
         Args:
-            currency_id: ID of the currency
-            date_from: Start date in yyyy-MM-dd format
-            date_to: End date in yyyy-MM-dd format
+
+        - `currency_id` (`int`): ID of the currency
+        - `date_from` (`str`): Start date in yyyy-MM-dd format
+        - `date_to` (`str`): End date in yyyy-MM-dd format
+
         """
         if not self._validate_database_connection():
             return
+
+        # Clear existing chart FIRST, before any other operations
+        self._clear_layout(self.verticalLayout_exchange_rates_content)
 
         # Additional safety check: ensure no previous chart is being deleted
         if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
@@ -1918,9 +1994,6 @@ class MainWindow(
                     self.verticalLayout_exchange_rates_content, "No exchange rate data found for the selected period"
                 )
                 return
-
-            # Clear existing chart
-            self._clear_layout(self.verticalLayout_exchange_rates_content)
 
             # Create matplotlib figure with proper cleanup
             fig = Figure(figsize=(12, 6), dpi=100)
@@ -2133,12 +2206,14 @@ class MainWindow(
         """Create a special model for transactions table with non-editable total column.
 
         Args:
-            data: The table data with color information.
-            headers: Column header names.
-            id_column: Index of the ID column. Defaults to -2 (second-to-last).
+
+        - `data` (`list[list]`): The table data with color information.
+        - `headers` (`list[str]`): Column header names.
+        - `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
 
         Returns:
-            A filterable and sortable model with colored data and non-editable total column.
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with colored data and non-editable total column.
 
         """
         model = QStandardItemModel()
@@ -3027,10 +3102,48 @@ class MainWindow(
         QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
         print(f"❌ {error_message}")
 
+    def _on_update_finished_error(self, error_message: str):
+        """Handle error completion."""
+        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+            self.progress_dialog.close()
+
+        # Clean up worker reference
+        if hasattr(self, "exchange_rate_worker"):
+            self.exchange_rate_worker = None
+
+        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
+        print(f"❌ {error_message}")
+
     def _on_update_finished_success(self, processed_count: int, total_operations: int):
         """Handle successful completion."""
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
+
+        if processed_count > 0:
+            message = f"Successfully completed exchange rate update:\n• Processed {processed_count} out of {total_operations} operations from yfinance"
+            QMessageBox.information(self, "Update Complete", message)
+
+            # Mark exchange rates as changed to trigger reload if tab is active
+            self._mark_exchange_rates_changed()
+            # If exchange rates tab is currently active, reload the data
+            current_tab_index = self.tabWidget.currentIndex()
+            if current_tab_index == 4:  # Exchange Rates tab
+                self.load_exchange_rates_table()
+        else:
+            QMessageBox.information(
+                self,
+                "Update Complete",
+                "No exchange rate records were processed.",
+            )
+
+    def _on_update_finished_success(self, processed_count: int, total_operations: int):
+        """Handle successful completion."""
+        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+            self.progress_dialog.close()
+
+        # Clean up worker reference
+        if hasattr(self, "exchange_rate_worker"):
+            self.exchange_rate_worker = None
 
         if processed_count > 0:
             message = f"Successfully completed exchange rate update:\n• Processed {processed_count} out of {total_operations} operations from yfinance"
@@ -3339,7 +3452,7 @@ class MainWindow(
         """Show a message when no data is available for the chart."""
         from PySide6.QtWidgets import QLabel
 
-        # Clear existing content
+        # Clear existing content first
         self._clear_layout(layout)
 
         # Create and add label
@@ -3601,6 +3714,9 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
 
+        # Initialize worker thread reference
+        self.exchange_rate_worker: ExchangeRateUpdateWorker | None = None
+
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "transactions": None,
@@ -3811,12 +3927,16 @@ Args:
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         # Stop any running worker threads
-        if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
+        if (
+            hasattr(self, "exchange_rate_worker")
+            and self.exchange_rate_worker is not None
+            and self.exchange_rate_worker.isRunning()
+        ):
             self.exchange_rate_worker.stop()
             self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
 
         # Close progress dialog if open
-        if hasattr(self, "progress_dialog"):
+        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
             self.progress_dialog.close()
 
         # Dispose Models
@@ -4836,6 +4956,24 @@ def on_update_exchange_rates(self) -> None:
             return
 
         try:
+            # Check if worker is already running (with proper initialization check)
+            if (
+                hasattr(self, "exchange_rate_worker")
+                and self.exchange_rate_worker is not None
+                and self.exchange_rate_worker.isRunning()
+            ):
+                reply = QMessageBox.question(
+                    self,
+                    "Update in Progress",
+                    "Exchange rate update is already running. Do you want to stop it and start a new one?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.exchange_rate_worker.stop()
+                    self.exchange_rate_worker.wait()
+                else:
+                    return
+
             # Get all currencies except USD (base currency)
             currencies = self.db_manager.get_currencies_except_usd()
             if not currencies:
@@ -4850,12 +4988,35 @@ def on_update_exchange_rates(self) -> None:
             print(f"🔍 Checking which currencies need updates and missing records...")
             print(f"📅 Today's date: {today}")
 
+            # Get the earliest transaction date to determine the start date for initial data
+            earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
+            if earliest_transaction_date:
+                earliest_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
+            else:
+                # If no transactions, start from 1 year ago
+                earliest_date = today - timedelta(days=365)
+
             for currency_id, currency_code, currency_name, currency_symbol in currencies:
                 # Get the last exchange rate date for this currency
                 last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
 
                 if not last_date_str:
-                    print(f"⚠️ {currency_code}: No exchange rate records found - skipping")
+                    # No exchange rate records exist for this currency - need to create initial data
+                    print(
+                        f"⚠️ {currency_code}: No exchange rate records found - will create initial data from {earliest_date}"
+                    )
+
+                    # Generate all dates from earliest transaction date to today
+                    missing_dates = []
+                    current_date = earliest_date
+                    while current_date <= today:
+                        date_str = current_date.strftime("%Y-%m-%d")
+                        missing_dates.append(date_str)
+                        current_date += timedelta(days=1)
+
+                    records_to_process = {"missing_dates": missing_dates, "existing_records": []}
+                    currencies_to_process.append((currency_id, currency_code, records_to_process))
+                    print(f"📊 {currency_code}: Will create {len(missing_dates)} initial records")
                     continue
 
                 last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
@@ -4901,49 +5062,68 @@ def on_update_exchange_rates(self) -> None:
             total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
             currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
 
+            # Determine if this is initial setup or regular update
+            has_initial_setup = any(
+                len(records["existing_records"]) == 0 and len(records["missing_dates"]) > 100
+                for _, _, records in currencies_to_process
+            )
+
+            if has_initial_setup:
+                message_title = "Initial Exchange Rates Setup"
+                message_text = (
+                    f"This appears to be the first time setting up exchange rates.\n"
+                    f"Found {len(currencies_to_process)} currencies to process:\n"
+                    f"{currencies_text}\n\n"
+                    f"Initial records to create: {total_missing}\n"
+                    f"Existing records to update: {total_updates}\n"
+                    f"Total operations: {total_missing + total_updates}\n\n"
+                    f"This may take several minutes to download historical data from yfinance.\n"
+                    f"Do you want to proceed?"
+                )
+            else:
+                message_title = "Update Exchange Rates"
+                message_text = (
+                    f"Found {len(currencies_to_process)} currencies to process:\n"
+                    f"{currencies_text}\n\n"
+                    f"Missing records to add: {total_missing}\n"
+                    f"Existing records to update: {total_updates}\n"
+                    f"Total operations: {total_missing + total_updates}\n\n"
+                    f"Do you want to proceed with downloading from yfinance?"
+                )
+
             reply = QMessageBox.question(
                 self,
-                "Update Exchange Rates",
-                f"Found {len(currencies_to_process)} currencies to process:\n"
-                f"{currencies_text}\n\n"
-                f"Missing records to add: {total_missing}\n"
-                f"Existing records to update: {total_updates}\n"
-                f"Total operations: {total_missing + total_updates}\n\n"
-                f"Do you want to proceed with downloading from yfinance?",
+                message_title,
+                message_text,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
 
             if reply != QMessageBox.StandardButton.Yes:
                 return
 
-            # Check if worker is already running
-            if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
-                reply = QMessageBox.question(
-                    self,
-                    "Update in Progress",
-                    "Exchange rate update is already running. Do you want to stop it and start a new one?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                )
-                if reply == QMessageBox.StandardButton.Yes:
-                    self.exchange_rate_worker.stop()
-                    self.exchange_rate_worker.wait()
-                else:
-                    return
-
             # Create and configure progress dialog
             self.progress_dialog = QMessageBox(self)
             self.progress_dialog.setWindowTitle("Updating Exchange Rates")
-            self.progress_dialog.setText(
-                f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
-            )
+
+            if has_initial_setup:
+                self.progress_dialog.setText(
+                    f"Starting initial exchange rate setup for {len(currencies_to_process)} currencies from yfinance...\n"
+                    f"This may take several minutes for historical data."
+                )
+            else:
+                self.progress_dialog.setText(
+                    f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
+                )
+
             self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
             self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
             # Connect cancel button
             def cancel_update():
-                if hasattr(self, "exchange_rate_worker"):
+                if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker is not None:
                     self.exchange_rate_worker.stop()
-                self.progress_dialog.close()
+                if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+                    self.progress_dialog.close()
 
             self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
             self.progress_dialog.show()
@@ -5731,6 +5911,8 @@ def _clear_layout(self, layout) -> None:
                         gc.collect()
                     except Exception:
                         pass
+                # Remove widget from layout and delete it
+                widget.setParent(None)
                 widget.deleteLater()
 ```
 
@@ -6002,9 +6184,10 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
 Create and display exchange rate chart.
 
 Args:
-currency_id: ID of the currency
-date_from: Start date in yyyy-MM-dd format
-date_to: End date in yyyy-MM-dd format
+
+- `currency_id` (`int`): ID of the currency
+- `date_from` (`str`): Start date in yyyy-MM-dd format
+- `date_to` (`str`): End date in yyyy-MM-dd format
 
 <details>
 <summary>Code:</summary>
@@ -6013,6 +6196,9 @@ date_to: End date in yyyy-MM-dd format
 def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to: str) -> None:
         if not self._validate_database_connection():
             return
+
+        # Clear existing chart FIRST, before any other operations
+        self._clear_layout(self.verticalLayout_exchange_rates_content)
 
         # Additional safety check: ensure no previous chart is being deleted
         if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
@@ -6046,9 +6232,6 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                     self.verticalLayout_exchange_rates_content, "No exchange rate data found for the selected period"
                 )
                 return
-
-            # Clear existing chart
-            self._clear_layout(self.verticalLayout_exchange_rates_content)
 
             # Create matplotlib figure with proper cleanup
             fig = Figure(figsize=(12, 6), dpi=100)
@@ -6288,12 +6471,14 @@ def _create_transactions_table_model(self, data: list[list], headers: list[str],
 Create a special model for transactions table with non-editable total column.
 
 Args:
-data: The table data with color information.
-headers: Column header names.
-id_column: Index of the ID column. Defaults to -2 (second-to-last).
+
+- `data` (`list[list]`): The table data with color information.
+- `headers` (`list[str]`): Column header names.
+- `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
 
 Returns:
-A filterable and sortable model with colored data and non-editable total column.
+
+- `QSortFilterProxyModel`: A filterable and sortable model with colored data and non-editable total column.
 
 <details>
 <summary>Code:</summary>
@@ -7628,6 +7813,32 @@ def _on_update_finished_error(self, error_message: str):
 
 </details>
 
+### ⚙️ Method `_on_update_finished_error`
+
+```python
+def _on_update_finished_error(self, error_message: str)
+```
+
+Handle error completion.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_update_finished_error(self, error_message: str):
+        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+            self.progress_dialog.close()
+
+        # Clean up worker reference
+        if hasattr(self, "exchange_rate_worker"):
+            self.exchange_rate_worker = None
+
+        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
+        print(f"❌ {error_message}")
+```
+
+</details>
+
 ### ⚙️ Method `_on_update_finished_success`
 
 ```python
@@ -7643,6 +7854,46 @@ Handle successful completion.
 def _on_update_finished_success(self, processed_count: int, total_operations: int):
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
+
+        if processed_count > 0:
+            message = f"Successfully completed exchange rate update:\n• Processed {processed_count} out of {total_operations} operations from yfinance"
+            QMessageBox.information(self, "Update Complete", message)
+
+            # Mark exchange rates as changed to trigger reload if tab is active
+            self._mark_exchange_rates_changed()
+            # If exchange rates tab is currently active, reload the data
+            current_tab_index = self.tabWidget.currentIndex()
+            if current_tab_index == 4:  # Exchange Rates tab
+                self.load_exchange_rates_table()
+        else:
+            QMessageBox.information(
+                self,
+                "Update Complete",
+                "No exchange rate records were processed.",
+            )
+```
+
+</details>
+
+### ⚙️ Method `_on_update_finished_success`
+
+```python
+def _on_update_finished_success(self, processed_count: int, total_operations: int)
+```
+
+Handle successful completion.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_update_finished_success(self, processed_count: int, total_operations: int):
+        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+            self.progress_dialog.close()
+
+        # Clean up worker reference
+        if hasattr(self, "exchange_rate_worker"):
+            self.exchange_rate_worker = None
 
         if processed_count > 0:
             message = f"Successfully completed exchange rate update:\n• Processed {processed_count} out of {total_operations} operations from yfinance"
@@ -8099,7 +8350,7 @@ Show a message when no data is available for the chart.
 def _show_no_data_label(self, layout, message: str) -> None:
         from PySide6.QtWidgets import QLabel
 
-        # Clear existing content
+        # Clear existing content first
         self._clear_layout(layout)
 
         # Create and add label

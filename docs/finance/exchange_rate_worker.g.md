@@ -45,6 +45,9 @@ class ExchangeRateUpdateWorker(QThread):
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
         self.should_stop = False
 
+        # Cache for working tickers - once we find a working ticker for a currency, we use it
+        self.working_tickers = {}
+
     def run(self):
         """Main worker execution."""
         try:
@@ -64,132 +67,185 @@ class ExchangeRateUpdateWorker(QThread):
             if cleaned_count > 0:
                 self.progress_updated.emit(f"🧹 Cleaned {cleaned_count} invalid exchange rate records")
 
-            def get_yfinance_data(currency_code: str, date: str) -> float | None:
-                """Get exchange rate data from yfinance for a specific date.
+            def get_working_ticker_for_currency(currency_code: str) -> tuple[str, bool] | None:
+                """Find and cache the working ticker for a currency.
 
-                Returns the rate as: 1 CURRENCY = X USD (currency to USD rate)
-                For example: 1 RUB = 0.012 USD
+                Returns:
+                    Tuple of (ticker_symbol, is_inverse) or None if no working ticker found
                 """
+                if currency_code in self.working_tickers:
+                    return self.working_tickers[currency_code]
 
-                # Generate all possible ticker formats dynamically
-                def generate_ticker_formats(currency_code: str):
-                    """Generate all possible ticker formats for a currency."""
+                # Predefined ticker formats for common currencies
+                predefined_tickers = {
+                    "RUB": {"primary": ["RUBUSD=X", "RUB=X"], "inverse": ["USDRUB=X", "USD/RUB=X"]},
+                    "EUR": {"primary": ["EURUSD=X", "EUR=X"], "inverse": ["USDEUR=X", "USD/EUR=X"]},
+                    "GBP": {"primary": ["GBPUSD=X", "GBP=X"], "inverse": ["USDGBP=X", "USD/GBP=X"]},
+                    "JPY": {"primary": ["JPYUSD=X", "JPY=X"], "inverse": ["USDJPY=X", "USD/JPY=X"]},
+                    "CNY": {"primary": ["CNYUSD=X", "CNY=X"], "inverse": ["USDCNY=X", "USD/CNY=X"]},
+                    "CHF": {"primary": ["CHFUSD=X", "CHF=X"], "inverse": ["USDCHF=X", "USD/CHF=X"]},
+                    "CAD": {"primary": ["CADUSD=X", "CAD=X"], "inverse": ["USDCAD=X", "USD/CAD=X"]},
+                    "AUD": {"primary": ["AUDUSD=X", "AUD=X"], "inverse": ["USDAUD=X", "USD/AUD=X"]},
+                    "NZD": {"primary": ["NZDUSD=X", "NZD=X"], "inverse": ["USDNZD=X", "USD/NZD=X"]},
+                    "SEK": {"primary": ["SEKUSD=X", "SEK=X"], "inverse": ["USDSEK=X", "USD/SEK=X"]},
+                    "NOK": {"primary": ["NOKUSD=X", "NOK=X"], "inverse": ["USDNOK=X", "USD/NOK=X"]},
+                    "DKK": {"primary": ["DKKUSD=X", "DKK=X"], "inverse": ["USDDKK=X", "USD/DKK=X"]},
+                }
 
-                    # Primary ticker formats - these should give us CURRENCY/USD rates directly
-                    primary_tickers = [
-                        f"{currency_code}USD=X",  # EURUSD=X, RUBUSD=X
-                        f"{currency_code}/USD",  # EUR/USD, RUB/USD
-                        f"{currency_code}USD",  # EURUSD, RUBUSD
-                        f"{currency_code}=X",  # EUR=X, RUB=X
-                        f"{currency_code}-USD",  # EUR-USD, RUB-USD
-                        f"{currency_code}.USD",  # EUR.USD, RUB.USD
-                        f"{currency_code}_USD",  # EUR_USD, RUB_USD
-                    ]
+                # Get predefined tickers or generate generic ones
+                if currency_code in predefined_tickers:
+                    primary_tickers = predefined_tickers[currency_code]["primary"]
+                    inverse_tickers = predefined_tickers[currency_code]["inverse"]
+                else:
+                    # Generate generic ticker formats
+                    primary_tickers = [f"{currency_code}USD=X", f"{currency_code}=X"]
+                    inverse_tickers = [f"USD{currency_code}=X", f"USD/{currency_code}=X"]
 
-                    # Inverse ticker formats - these give us USD/CURRENCY rates (need to invert)
-                    inverse_tickers = [
-                        f"USD{currency_code}=X",  # USDEUR=X, USDRUB=X
-                        f"USD/{currency_code}",  # USD/EUR, USD/RUB
-                        f"USD{currency_code}",  # USDEUR, USDRUB
-                        f"USD={currency_code}",  # USD=EUR, USD=RUB
-                        f"USD-{currency_code}",  # USD-EUR, USD-RUB
-                        f"USD.{currency_code}",  # USD.EUR, USD.RUB
-                        f"USD_{currency_code}",  # USD_EUR, USD_RUB
-                        f"USD/{currency_code}=X",  # USD/EUR=X, USD/RUB=X
-                    ]
+                self.progress_updated.emit(f"🔍 Finding working ticker for {currency_code}...")
 
-                    return primary_tickers, inverse_tickers
+                # Test a recent date to find working ticker
+                test_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+                test_start = test_date
+                test_end = (datetime.strptime(test_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
 
-                primary_list, inverse_list = generate_ticker_formats(currency_code)
+                # Try primary tickers first (no inversion needed)
+                for ticker_symbol in primary_tickers:
+                    if self.should_stop:
+                        return None
 
-                # Try to get data with a date range
-                date_obj = datetime.strptime(date, "%Y-%m-%d")
-                start_date = date_obj.strftime("%Y-%m-%d")
-                end_date = (date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
-
-                # Helper function to try getting data with different date ranges
-                def try_ticker_with_dates(ticker_symbol: str, is_inverse: bool = False):
-                    """Try to get data for a ticker with different date ranges."""
                     try:
-                        self.progress_updated.emit(
-                            f"🔄 Trying {'inverse' if is_inverse else 'primary'} ticker: {ticker_symbol}"
-                        )
-
+                        self.progress_updated.emit(f"🔄 Testing primary ticker: {ticker_symbol}")
                         ticker = yf.Ticker(ticker_symbol)
+                        hist = ticker.history(start=test_start, end=test_end, interval="1d")
 
-                        # Try different date ranges: exact date, date range, extended range
-                        date_ranges = [
-                            (start_date, start_date),
-                            (start_date, end_date),
-                            ((date_obj - timedelta(days=1)).strftime("%Y-%m-%d"), end_date),
-                            (start_date, (date_obj + timedelta(days=2)).strftime("%Y-%m-%d")),
-                        ]
-
-                        for range_start, range_end in date_ranges:
-                            try:
-                                hist = ticker.history(start=range_start, end=range_end, interval="1d")
-
-                                if not hist.empty:
-                                    # Try to find data for the exact date first, then any available date
-                                    target_date = pd.Timestamp(date_obj.date())
-
-                                    if target_date in hist.index:
-                                        close_price = hist.loc[target_date]["Close"]
-                                    else:
-                                        close_price = hist.iloc[0]["Close"]
-
-                                    if not pd.isna(close_price) and close_price > 0:
-                                        rate = float(close_price)
-
-                                        if is_inverse:
-                                            # This is USD to CURRENCY rate, we need CURRENCY to USD rate
-                                            currency_to_usd_rate = 1.0 / rate
-                                            self.progress_updated.emit(
-                                                f"✅ Found inverse rate with {ticker_symbol}: {rate:.6f} USD/{currency_code}"
-                                            )
-                                            self.progress_updated.emit(
-                                                f"🔄 Inverted to: {currency_to_usd_rate:.6f} (1 {currency_code} = {currency_to_usd_rate:.6f} USD)"
-                                            )
-                                            return currency_to_usd_rate
-                                        else:
-                                            self.progress_updated.emit(
-                                                f"✅ Found primary rate with {ticker_symbol}: {rate:.6f} (1 {currency_code} = {rate:.6f} USD)"
-                                            )
-                                            return rate
-
-                            except Exception:
-                                continue  # Try next date range
+                        if not hist.empty and not pd.isna(hist.iloc[0]["Close"]) and hist.iloc[0]["Close"] > 0:
+                            self.progress_updated.emit(
+                                f"✅ Found working primary ticker for {currency_code}: {ticker_symbol}"
+                            )
+                            result = (ticker_symbol, False)  # False = not inverse
+                            self.working_tickers[currency_code] = result
+                            return result
 
                     except Exception as e:
                         error_msg = str(e).lower()
                         if "delisted" not in error_msg and "not found" not in error_msg:
-                            self.progress_updated.emit(f"⚠️ Error with ticker {ticker_symbol}: {str(e)[:50]}...")
+                            self.progress_updated.emit(f"⚠️ Error testing {ticker_symbol}: {str(e)[:50]}...")
 
-                    return None
-
-                # First try primary tickers (no inversion needed)
-                for ticker_symbol in primary_list:
+                # Try inverse tickers if primary failed
+                for ticker_symbol in inverse_tickers:
                     if self.should_stop:
                         return None
 
-                    result = try_ticker_with_dates(ticker_symbol, is_inverse=False)
-                    if result is not None:
-                        return result
+                    try:
+                        self.progress_updated.emit(f"🔄 Testing inverse ticker: {ticker_symbol}")
+                        ticker = yf.Ticker(ticker_symbol)
+                        hist = ticker.history(start=test_start, end=test_end, interval="1d")
 
-                # If primary tickers failed, try inverse tickers (need inversion)
-                for ticker_symbol in inverse_list:
-                    if self.should_stop:
-                        return None
+                        if not hist.empty and not pd.isna(hist.iloc[0]["Close"]) and hist.iloc[0]["Close"] > 0:
+                            self.progress_updated.emit(
+                                f"✅ Found working inverse ticker for {currency_code}: {ticker_symbol}"
+                            )
+                            result = (ticker_symbol, True)  # True = inverse
+                            self.working_tickers[currency_code] = result
+                            return result
 
-                    result = try_ticker_with_dates(ticker_symbol, is_inverse=True)
-                    if result is not None:
-                        return result
+                    except Exception as e:
+                        error_msg = str(e).lower()
+                        if "delisted" not in error_msg and "not found" not in error_msg:
+                            self.progress_updated.emit(f"⚠️ Error testing {ticker_symbol}: {str(e)[:50]}...")
 
-                # If we get here, no ticker worked
-                self.progress_updated.emit(
-                    f"❌ No valid data found for {currency_code} on {date} with any ticker format"
-                )
+                # No working ticker found
+                self.progress_updated.emit(f"❌ No working ticker found for {currency_code}")
+                self.working_tickers[currency_code] = None
                 return None
+
+            def get_bulk_exchange_rates(currency_code: str, dates: list[str]) -> dict[str, float]:
+                """Get exchange rates for multiple dates at once."""
+                if not dates:
+                    return {}
+
+                # Get working ticker for this currency
+                ticker_info = get_working_ticker_for_currency(currency_code)
+                if not ticker_info:
+                    return {}
+
+                ticker_symbol, is_inverse = ticker_info
+
+                try:
+                    # Get date range for bulk download
+                    start_date = min(dates)
+                    end_date = max(dates)
+
+                    # Add buffer days to ensure we get all data
+                    start_dt = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=2)
+                    end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=2)
+
+                    start_str = start_dt.strftime("%Y-%m-%d")
+                    end_str = end_dt.strftime("%Y-%m-%d")
+
+                    self.progress_updated.emit(
+                        f"📥 Downloading bulk data for {currency_code} from {start_date} to {end_date}..."
+                    )
+
+                    ticker = yf.Ticker(ticker_symbol)
+                    hist = ticker.history(start=start_str, end=end_str, interval="1d")
+
+                    if hist.empty:
+                        self.progress_updated.emit(f"⚠️ No bulk data received for {currency_code}")
+                        return {}
+
+                    # Process the bulk data
+                    rates = {}
+                    for date_str in dates:
+                        if self.should_stop:
+                            break
+
+                        try:
+                            # Создаем timezone-naive datetime для сравнения
+                            target_date_naive = datetime.strptime(date_str, "%Y-%m-%d")
+                            target_date = pd.Timestamp(target_date_naive)
+
+                            # Убираем timezone информацию из индекса если она есть
+                            hist_index_tz_naive = hist.index
+                            if hasattr(hist_index_tz_naive, "tz") and hist_index_tz_naive.tz is not None:
+                                hist_index_tz_naive = hist_index_tz_naive.tz_localize(None)
+
+                            # Try to find exact date first
+                            if target_date in hist_index_tz_naive:
+                                close_price = hist.loc[hist_index_tz_naive == target_date]["Close"].iloc[0]
+                            else:
+                                # Find closest date
+                                if len(hist_index_tz_naive) > 0:
+                                    # Находим ближайшую дату
+                                    date_diffs = abs(hist_index_tz_naive - target_date)
+                                    closest_idx = date_diffs.argmin()
+                                    closest_date = hist_index_tz_naive[closest_idx]
+                                    close_price = hist.iloc[closest_idx]["Close"]
+                                else:
+                                    continue
+
+                            if pd.isna(close_price) or close_price <= 0:
+                                continue
+
+                            rate = float(close_price)
+
+                            if is_inverse:
+                                # This is USD to CURRENCY rate, we need CURRENCY to USD rate
+                                currency_to_usd_rate = 1.0 / rate
+                                rates[date_str] = currency_to_usd_rate
+                            else:
+                                rates[date_str] = rate
+
+                        except Exception as e:
+                            self.progress_updated.emit(f"⚠️ Error processing {date_str} for {currency_code}: {e}")
+                            continue
+
+                    self.progress_updated.emit(f"✅ Got {len(rates)} rates for {currency_code} from bulk download")
+                    return rates
+
+                except Exception as e:
+                    self.progress_updated.emit(f"❌ Bulk download failed for {currency_code}: {e}")
+                    return {}
 
             def get_fallback_rate(currency_code: str, date: str) -> float | None:
                 """Get fallback rate using the most recent available rate."""
@@ -231,87 +287,102 @@ class ExchangeRateUpdateWorker(QThread):
 
                 currency_processed = 0
 
-                # First, add missing records
-                for date_str in missing_dates:
-                    if self.should_stop:
-                        break
+                # Process missing dates in bulk
+                if missing_dates:
+                    self.progress_updated.emit(
+                        f"📥 Bulk downloading {len(missing_dates)} missing rates for {currency_code}..."
+                    )
 
-                    try:
-                        self.progress_updated.emit(f"➕ Adding {currency_code} rate for {date_str}...")
+                    # Get bulk rates for all missing dates
+                    bulk_rates = get_bulk_exchange_rates(currency_code, missing_dates)
 
-                        # Get rate from yfinance
-                        new_rate = get_yfinance_data(currency_code, date_str)
+                    # Process each missing date
+                    for date_str in missing_dates:
+                        if self.should_stop:
+                            break
 
-                        # If yfinance fails, try fallback rate for weekends/holidays
-                        if new_rate is None:
-                            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-                            # Check if it's weekend
-                            if date_obj.weekday() >= 5:  # Saturday = 5, Sunday = 6
-                                self.progress_updated.emit(f"📅 {date_str} is a weekend, trying fallback rate...")
-                                new_rate = get_fallback_rate(currency_code, date_str)
+                        try:
+                            new_rate = bulk_rates.get(date_str)
 
-                        if new_rate is not None and new_rate > 0:
-                            # Add new record
-                            if self.db_manager.add_exchange_rate(currency_id, new_rate, date_str):
-                                total_processed += 1
-                                currency_processed += 1
-                                self.rates_added.emit(currency_code, new_rate, date_str)
-                                self.progress_updated.emit(
-                                    f"✅ Added {currency_code} rate for {date_str}: {new_rate:.6f}"
-                                )
-                            else:
-                                self.progress_updated.emit(f"❌ Failed to add {currency_code} rate for {date_str}")
-                        else:
-                            self.progress_updated.emit(
-                                f"⚠️ Skipping {currency_code} on {date_str}: no valid rate available"
-                            )
-                    except Exception as e:
-                        self.progress_updated.emit(f"❌ Error adding rate for {currency_code} on {date_str}: {e}")
-                        continue
+                            # If bulk download failed for this date, try fallback rate for weekends/holidays
+                            if new_rate is None:
+                                date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                                # Check if it's weekend
+                                if date_obj.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                                    self.progress_updated.emit(f"📅 {date_str} is a weekend, trying fallback rate...")
+                                    new_rate = get_fallback_rate(currency_code, date_str)
 
-                # Then, update existing records (only for recent dates, not weekends)
-                for date_str, old_rate in existing_records:
-                    if self.should_stop:
-                        break
-
-                    try:
-                        # Skip weekend updates to avoid unnecessary API calls
-                        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-                        if date_obj.weekday() >= 5:  # Weekend
-                            self.progress_updated.emit(f"📅 Skipping weekend update for {currency_code} on {date_str}")
-                            continue
-
-                        self.progress_updated.emit(f"🔄 Updating {currency_code} rate for {date_str}...")
-
-                        # Get new rate from yfinance
-                        new_rate = get_yfinance_data(currency_code, date_str)
-
-                        if new_rate is not None and new_rate > 0:
-                            # Only update if the rate is significantly different
-                            rate_diff = abs(new_rate - old_rate) / old_rate
-                            if rate_diff > 0.001:  # Update if difference > 0.1%
-                                if self.db_manager.update_exchange_rate(currency_id, date_str, new_rate):
+                            if new_rate is not None and new_rate > 0:
+                                # Add new record
+                                if self.db_manager.add_exchange_rate(currency_id, new_rate, date_str):
                                     total_processed += 1
                                     currency_processed += 1
                                     self.rates_added.emit(currency_code, new_rate, date_str)
                                     self.progress_updated.emit(
-                                        f"✅ Updated {currency_code} rate for {date_str}: {old_rate:.6f} → {new_rate:.6f}"
+                                        f"✅ Added {currency_code} rate for {date_str}: {new_rate:.6f}"
                                     )
                                 else:
+                                    self.progress_updated.emit(f"❌ Failed to add {currency_code} rate for {date_str}")
+                            else:
+                                self.progress_updated.emit(
+                                    f"⚠️ Skipping {currency_code} on {date_str}: no valid rate available"
+                                )
+                        except Exception as e:
+                            self.progress_updated.emit(f"❌ Error adding rate for {currency_code} on {date_str}: {e}")
+                            continue
+
+                # Process existing records for updates (only recent dates, not weekends)
+                if existing_records:
+                    update_dates = [record[0] for record in existing_records]
+                    self.progress_updated.emit(
+                        f"📥 Bulk downloading {len(update_dates)} rates for updates for {currency_code}..."
+                    )
+
+                    # Get bulk rates for update dates
+                    bulk_rates = get_bulk_exchange_rates(currency_code, update_dates)
+
+                    for date_str, old_rate in existing_records:
+                        if self.should_stop:
+                            break
+
+                        try:
+                            # Skip weekend updates to avoid unnecessary processing
+                            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                            if date_obj.weekday() >= 5:  # Weekend
+                                self.progress_updated.emit(
+                                    f"📅 Skipping weekend update for {currency_code} on {date_str}"
+                                )
+                                continue
+
+                            # Get new rate from bulk download
+                            new_rate = bulk_rates.get(date_str)
+
+                            if new_rate is not None and new_rate > 0:
+                                # Only update if the rate is significantly different
+                                rate_diff = abs(new_rate - old_rate) / old_rate
+                                if rate_diff > 0.001:  # Update if difference > 0.1%
+                                    if self.db_manager.update_exchange_rate(currency_id, date_str, new_rate):
+                                        total_processed += 1
+                                        currency_processed += 1
+                                        self.rates_added.emit(currency_code, new_rate, date_str)
+                                        self.progress_updated.emit(
+                                            f"✅ Updated {currency_code} rate for {date_str}: {old_rate:.6f} → {new_rate:.6f}"
+                                        )
+                                    else:
+                                        self.progress_updated.emit(
+                                            f"❌ Failed to update {currency_code} rate for {date_str}"
+                                        )
+                                else:
                                     self.progress_updated.emit(
-                                        f"❌ Failed to update {currency_code} rate for {date_str}"
+                                        f"📊 {currency_code} rate for {date_str} unchanged (diff: {rate_diff:.4f})"
                                     )
                             else:
                                 self.progress_updated.emit(
-                                    f"📊 {currency_code} rate for {date_str} unchanged (diff: {rate_diff:.4f})"
+                                    f"⚠️ Skipping update for {currency_code} on {date_str}: no valid rate from bulk download"
                                 )
-                        else:
-                            self.progress_updated.emit(
-                                f"⚠️ Skipping update for {currency_code} on {date_str}: no valid rate from yfinance"
-                            )
-                    except Exception as e:
-                        self.progress_updated.emit(f"❌ Error updating rate for {currency_code} on {date_str}: {e}")
-                        continue
+                        except Exception as e:
+                            self.progress_updated.emit(f"❌ Error updating rate for {currency_code} on {date_str}: {e}")
+                            continue
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
 
@@ -350,6 +421,9 @@ def __init__(self, db_manager, currencies_to_process):
         self.db_manager = db_manager
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
         self.should_stop = False
+
+        # Cache for working tickers - once we find a working ticker for a currency, we use it
+        self.working_tickers = {}
 ```
 
 </details>
@@ -384,132 +458,185 @@ def run(self):
             if cleaned_count > 0:
                 self.progress_updated.emit(f"🧹 Cleaned {cleaned_count} invalid exchange rate records")
 
-            def get_yfinance_data(currency_code: str, date: str) -> float | None:
-                """Get exchange rate data from yfinance for a specific date.
+            def get_working_ticker_for_currency(currency_code: str) -> tuple[str, bool] | None:
+                """Find and cache the working ticker for a currency.
 
-                Returns the rate as: 1 CURRENCY = X USD (currency to USD rate)
-                For example: 1 RUB = 0.012 USD
+                Returns:
+                    Tuple of (ticker_symbol, is_inverse) or None if no working ticker found
                 """
+                if currency_code in self.working_tickers:
+                    return self.working_tickers[currency_code]
 
-                # Generate all possible ticker formats dynamically
-                def generate_ticker_formats(currency_code: str):
-                    """Generate all possible ticker formats for a currency."""
+                # Predefined ticker formats for common currencies
+                predefined_tickers = {
+                    "RUB": {"primary": ["RUBUSD=X", "RUB=X"], "inverse": ["USDRUB=X", "USD/RUB=X"]},
+                    "EUR": {"primary": ["EURUSD=X", "EUR=X"], "inverse": ["USDEUR=X", "USD/EUR=X"]},
+                    "GBP": {"primary": ["GBPUSD=X", "GBP=X"], "inverse": ["USDGBP=X", "USD/GBP=X"]},
+                    "JPY": {"primary": ["JPYUSD=X", "JPY=X"], "inverse": ["USDJPY=X", "USD/JPY=X"]},
+                    "CNY": {"primary": ["CNYUSD=X", "CNY=X"], "inverse": ["USDCNY=X", "USD/CNY=X"]},
+                    "CHF": {"primary": ["CHFUSD=X", "CHF=X"], "inverse": ["USDCHF=X", "USD/CHF=X"]},
+                    "CAD": {"primary": ["CADUSD=X", "CAD=X"], "inverse": ["USDCAD=X", "USD/CAD=X"]},
+                    "AUD": {"primary": ["AUDUSD=X", "AUD=X"], "inverse": ["USDAUD=X", "USD/AUD=X"]},
+                    "NZD": {"primary": ["NZDUSD=X", "NZD=X"], "inverse": ["USDNZD=X", "USD/NZD=X"]},
+                    "SEK": {"primary": ["SEKUSD=X", "SEK=X"], "inverse": ["USDSEK=X", "USD/SEK=X"]},
+                    "NOK": {"primary": ["NOKUSD=X", "NOK=X"], "inverse": ["USDNOK=X", "USD/NOK=X"]},
+                    "DKK": {"primary": ["DKKUSD=X", "DKK=X"], "inverse": ["USDDKK=X", "USD/DKK=X"]},
+                }
 
-                    # Primary ticker formats - these should give us CURRENCY/USD rates directly
-                    primary_tickers = [
-                        f"{currency_code}USD=X",  # EURUSD=X, RUBUSD=X
-                        f"{currency_code}/USD",  # EUR/USD, RUB/USD
-                        f"{currency_code}USD",  # EURUSD, RUBUSD
-                        f"{currency_code}=X",  # EUR=X, RUB=X
-                        f"{currency_code}-USD",  # EUR-USD, RUB-USD
-                        f"{currency_code}.USD",  # EUR.USD, RUB.USD
-                        f"{currency_code}_USD",  # EUR_USD, RUB_USD
-                    ]
+                # Get predefined tickers or generate generic ones
+                if currency_code in predefined_tickers:
+                    primary_tickers = predefined_tickers[currency_code]["primary"]
+                    inverse_tickers = predefined_tickers[currency_code]["inverse"]
+                else:
+                    # Generate generic ticker formats
+                    primary_tickers = [f"{currency_code}USD=X", f"{currency_code}=X"]
+                    inverse_tickers = [f"USD{currency_code}=X", f"USD/{currency_code}=X"]
 
-                    # Inverse ticker formats - these give us USD/CURRENCY rates (need to invert)
-                    inverse_tickers = [
-                        f"USD{currency_code}=X",  # USDEUR=X, USDRUB=X
-                        f"USD/{currency_code}",  # USD/EUR, USD/RUB
-                        f"USD{currency_code}",  # USDEUR, USDRUB
-                        f"USD={currency_code}",  # USD=EUR, USD=RUB
-                        f"USD-{currency_code}",  # USD-EUR, USD-RUB
-                        f"USD.{currency_code}",  # USD.EUR, USD.RUB
-                        f"USD_{currency_code}",  # USD_EUR, USD_RUB
-                        f"USD/{currency_code}=X",  # USD/EUR=X, USD/RUB=X
-                    ]
+                self.progress_updated.emit(f"🔍 Finding working ticker for {currency_code}...")
 
-                    return primary_tickers, inverse_tickers
+                # Test a recent date to find working ticker
+                test_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+                test_start = test_date
+                test_end = (datetime.strptime(test_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
 
-                primary_list, inverse_list = generate_ticker_formats(currency_code)
+                # Try primary tickers first (no inversion needed)
+                for ticker_symbol in primary_tickers:
+                    if self.should_stop:
+                        return None
 
-                # Try to get data with a date range
-                date_obj = datetime.strptime(date, "%Y-%m-%d")
-                start_date = date_obj.strftime("%Y-%m-%d")
-                end_date = (date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
-
-                # Helper function to try getting data with different date ranges
-                def try_ticker_with_dates(ticker_symbol: str, is_inverse: bool = False):
-                    """Try to get data for a ticker with different date ranges."""
                     try:
-                        self.progress_updated.emit(
-                            f"🔄 Trying {'inverse' if is_inverse else 'primary'} ticker: {ticker_symbol}"
-                        )
-
+                        self.progress_updated.emit(f"🔄 Testing primary ticker: {ticker_symbol}")
                         ticker = yf.Ticker(ticker_symbol)
+                        hist = ticker.history(start=test_start, end=test_end, interval="1d")
 
-                        # Try different date ranges: exact date, date range, extended range
-                        date_ranges = [
-                            (start_date, start_date),
-                            (start_date, end_date),
-                            ((date_obj - timedelta(days=1)).strftime("%Y-%m-%d"), end_date),
-                            (start_date, (date_obj + timedelta(days=2)).strftime("%Y-%m-%d")),
-                        ]
-
-                        for range_start, range_end in date_ranges:
-                            try:
-                                hist = ticker.history(start=range_start, end=range_end, interval="1d")
-
-                                if not hist.empty:
-                                    # Try to find data for the exact date first, then any available date
-                                    target_date = pd.Timestamp(date_obj.date())
-
-                                    if target_date in hist.index:
-                                        close_price = hist.loc[target_date]["Close"]
-                                    else:
-                                        close_price = hist.iloc[0]["Close"]
-
-                                    if not pd.isna(close_price) and close_price > 0:
-                                        rate = float(close_price)
-
-                                        if is_inverse:
-                                            # This is USD to CURRENCY rate, we need CURRENCY to USD rate
-                                            currency_to_usd_rate = 1.0 / rate
-                                            self.progress_updated.emit(
-                                                f"✅ Found inverse rate with {ticker_symbol}: {rate:.6f} USD/{currency_code}"
-                                            )
-                                            self.progress_updated.emit(
-                                                f"🔄 Inverted to: {currency_to_usd_rate:.6f} (1 {currency_code} = {currency_to_usd_rate:.6f} USD)"
-                                            )
-                                            return currency_to_usd_rate
-                                        else:
-                                            self.progress_updated.emit(
-                                                f"✅ Found primary rate with {ticker_symbol}: {rate:.6f} (1 {currency_code} = {rate:.6f} USD)"
-                                            )
-                                            return rate
-
-                            except Exception:
-                                continue  # Try next date range
+                        if not hist.empty and not pd.isna(hist.iloc[0]["Close"]) and hist.iloc[0]["Close"] > 0:
+                            self.progress_updated.emit(
+                                f"✅ Found working primary ticker for {currency_code}: {ticker_symbol}"
+                            )
+                            result = (ticker_symbol, False)  # False = not inverse
+                            self.working_tickers[currency_code] = result
+                            return result
 
                     except Exception as e:
                         error_msg = str(e).lower()
                         if "delisted" not in error_msg and "not found" not in error_msg:
-                            self.progress_updated.emit(f"⚠️ Error with ticker {ticker_symbol}: {str(e)[:50]}...")
+                            self.progress_updated.emit(f"⚠️ Error testing {ticker_symbol}: {str(e)[:50]}...")
 
-                    return None
-
-                # First try primary tickers (no inversion needed)
-                for ticker_symbol in primary_list:
+                # Try inverse tickers if primary failed
+                for ticker_symbol in inverse_tickers:
                     if self.should_stop:
                         return None
 
-                    result = try_ticker_with_dates(ticker_symbol, is_inverse=False)
-                    if result is not None:
-                        return result
+                    try:
+                        self.progress_updated.emit(f"🔄 Testing inverse ticker: {ticker_symbol}")
+                        ticker = yf.Ticker(ticker_symbol)
+                        hist = ticker.history(start=test_start, end=test_end, interval="1d")
 
-                # If primary tickers failed, try inverse tickers (need inversion)
-                for ticker_symbol in inverse_list:
-                    if self.should_stop:
-                        return None
+                        if not hist.empty and not pd.isna(hist.iloc[0]["Close"]) and hist.iloc[0]["Close"] > 0:
+                            self.progress_updated.emit(
+                                f"✅ Found working inverse ticker for {currency_code}: {ticker_symbol}"
+                            )
+                            result = (ticker_symbol, True)  # True = inverse
+                            self.working_tickers[currency_code] = result
+                            return result
 
-                    result = try_ticker_with_dates(ticker_symbol, is_inverse=True)
-                    if result is not None:
-                        return result
+                    except Exception as e:
+                        error_msg = str(e).lower()
+                        if "delisted" not in error_msg and "not found" not in error_msg:
+                            self.progress_updated.emit(f"⚠️ Error testing {ticker_symbol}: {str(e)[:50]}...")
 
-                # If we get here, no ticker worked
-                self.progress_updated.emit(
-                    f"❌ No valid data found for {currency_code} on {date} with any ticker format"
-                )
+                # No working ticker found
+                self.progress_updated.emit(f"❌ No working ticker found for {currency_code}")
+                self.working_tickers[currency_code] = None
                 return None
+
+            def get_bulk_exchange_rates(currency_code: str, dates: list[str]) -> dict[str, float]:
+                """Get exchange rates for multiple dates at once."""
+                if not dates:
+                    return {}
+
+                # Get working ticker for this currency
+                ticker_info = get_working_ticker_for_currency(currency_code)
+                if not ticker_info:
+                    return {}
+
+                ticker_symbol, is_inverse = ticker_info
+
+                try:
+                    # Get date range for bulk download
+                    start_date = min(dates)
+                    end_date = max(dates)
+
+                    # Add buffer days to ensure we get all data
+                    start_dt = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=2)
+                    end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=2)
+
+                    start_str = start_dt.strftime("%Y-%m-%d")
+                    end_str = end_dt.strftime("%Y-%m-%d")
+
+                    self.progress_updated.emit(
+                        f"📥 Downloading bulk data for {currency_code} from {start_date} to {end_date}..."
+                    )
+
+                    ticker = yf.Ticker(ticker_symbol)
+                    hist = ticker.history(start=start_str, end=end_str, interval="1d")
+
+                    if hist.empty:
+                        self.progress_updated.emit(f"⚠️ No bulk data received for {currency_code}")
+                        return {}
+
+                    # Process the bulk data
+                    rates = {}
+                    for date_str in dates:
+                        if self.should_stop:
+                            break
+
+                        try:
+                            # Создаем timezone-naive datetime для сравнения
+                            target_date_naive = datetime.strptime(date_str, "%Y-%m-%d")
+                            target_date = pd.Timestamp(target_date_naive)
+
+                            # Убираем timezone информацию из индекса если она есть
+                            hist_index_tz_naive = hist.index
+                            if hasattr(hist_index_tz_naive, "tz") and hist_index_tz_naive.tz is not None:
+                                hist_index_tz_naive = hist_index_tz_naive.tz_localize(None)
+
+                            # Try to find exact date first
+                            if target_date in hist_index_tz_naive:
+                                close_price = hist.loc[hist_index_tz_naive == target_date]["Close"].iloc[0]
+                            else:
+                                # Find closest date
+                                if len(hist_index_tz_naive) > 0:
+                                    # Находим ближайшую дату
+                                    date_diffs = abs(hist_index_tz_naive - target_date)
+                                    closest_idx = date_diffs.argmin()
+                                    closest_date = hist_index_tz_naive[closest_idx]
+                                    close_price = hist.iloc[closest_idx]["Close"]
+                                else:
+                                    continue
+
+                            if pd.isna(close_price) or close_price <= 0:
+                                continue
+
+                            rate = float(close_price)
+
+                            if is_inverse:
+                                # This is USD to CURRENCY rate, we need CURRENCY to USD rate
+                                currency_to_usd_rate = 1.0 / rate
+                                rates[date_str] = currency_to_usd_rate
+                            else:
+                                rates[date_str] = rate
+
+                        except Exception as e:
+                            self.progress_updated.emit(f"⚠️ Error processing {date_str} for {currency_code}: {e}")
+                            continue
+
+                    self.progress_updated.emit(f"✅ Got {len(rates)} rates for {currency_code} from bulk download")
+                    return rates
+
+                except Exception as e:
+                    self.progress_updated.emit(f"❌ Bulk download failed for {currency_code}: {e}")
+                    return {}
 
             def get_fallback_rate(currency_code: str, date: str) -> float | None:
                 """Get fallback rate using the most recent available rate."""
@@ -551,87 +678,102 @@ def run(self):
 
                 currency_processed = 0
 
-                # First, add missing records
-                for date_str in missing_dates:
-                    if self.should_stop:
-                        break
+                # Process missing dates in bulk
+                if missing_dates:
+                    self.progress_updated.emit(
+                        f"📥 Bulk downloading {len(missing_dates)} missing rates for {currency_code}..."
+                    )
 
-                    try:
-                        self.progress_updated.emit(f"➕ Adding {currency_code} rate for {date_str}...")
+                    # Get bulk rates for all missing dates
+                    bulk_rates = get_bulk_exchange_rates(currency_code, missing_dates)
 
-                        # Get rate from yfinance
-                        new_rate = get_yfinance_data(currency_code, date_str)
+                    # Process each missing date
+                    for date_str in missing_dates:
+                        if self.should_stop:
+                            break
 
-                        # If yfinance fails, try fallback rate for weekends/holidays
-                        if new_rate is None:
-                            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-                            # Check if it's weekend
-                            if date_obj.weekday() >= 5:  # Saturday = 5, Sunday = 6
-                                self.progress_updated.emit(f"📅 {date_str} is a weekend, trying fallback rate...")
-                                new_rate = get_fallback_rate(currency_code, date_str)
+                        try:
+                            new_rate = bulk_rates.get(date_str)
 
-                        if new_rate is not None and new_rate > 0:
-                            # Add new record
-                            if self.db_manager.add_exchange_rate(currency_id, new_rate, date_str):
-                                total_processed += 1
-                                currency_processed += 1
-                                self.rates_added.emit(currency_code, new_rate, date_str)
-                                self.progress_updated.emit(
-                                    f"✅ Added {currency_code} rate for {date_str}: {new_rate:.6f}"
-                                )
-                            else:
-                                self.progress_updated.emit(f"❌ Failed to add {currency_code} rate for {date_str}")
-                        else:
-                            self.progress_updated.emit(
-                                f"⚠️ Skipping {currency_code} on {date_str}: no valid rate available"
-                            )
-                    except Exception as e:
-                        self.progress_updated.emit(f"❌ Error adding rate for {currency_code} on {date_str}: {e}")
-                        continue
+                            # If bulk download failed for this date, try fallback rate for weekends/holidays
+                            if new_rate is None:
+                                date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                                # Check if it's weekend
+                                if date_obj.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                                    self.progress_updated.emit(f"📅 {date_str} is a weekend, trying fallback rate...")
+                                    new_rate = get_fallback_rate(currency_code, date_str)
 
-                # Then, update existing records (only for recent dates, not weekends)
-                for date_str, old_rate in existing_records:
-                    if self.should_stop:
-                        break
-
-                    try:
-                        # Skip weekend updates to avoid unnecessary API calls
-                        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-                        if date_obj.weekday() >= 5:  # Weekend
-                            self.progress_updated.emit(f"📅 Skipping weekend update for {currency_code} on {date_str}")
-                            continue
-
-                        self.progress_updated.emit(f"🔄 Updating {currency_code} rate for {date_str}...")
-
-                        # Get new rate from yfinance
-                        new_rate = get_yfinance_data(currency_code, date_str)
-
-                        if new_rate is not None and new_rate > 0:
-                            # Only update if the rate is significantly different
-                            rate_diff = abs(new_rate - old_rate) / old_rate
-                            if rate_diff > 0.001:  # Update if difference > 0.1%
-                                if self.db_manager.update_exchange_rate(currency_id, date_str, new_rate):
+                            if new_rate is not None and new_rate > 0:
+                                # Add new record
+                                if self.db_manager.add_exchange_rate(currency_id, new_rate, date_str):
                                     total_processed += 1
                                     currency_processed += 1
                                     self.rates_added.emit(currency_code, new_rate, date_str)
                                     self.progress_updated.emit(
-                                        f"✅ Updated {currency_code} rate for {date_str}: {old_rate:.6f} → {new_rate:.6f}"
+                                        f"✅ Added {currency_code} rate for {date_str}: {new_rate:.6f}"
                                     )
                                 else:
+                                    self.progress_updated.emit(f"❌ Failed to add {currency_code} rate for {date_str}")
+                            else:
+                                self.progress_updated.emit(
+                                    f"⚠️ Skipping {currency_code} on {date_str}: no valid rate available"
+                                )
+                        except Exception as e:
+                            self.progress_updated.emit(f"❌ Error adding rate for {currency_code} on {date_str}: {e}")
+                            continue
+
+                # Process existing records for updates (only recent dates, not weekends)
+                if existing_records:
+                    update_dates = [record[0] for record in existing_records]
+                    self.progress_updated.emit(
+                        f"📥 Bulk downloading {len(update_dates)} rates for updates for {currency_code}..."
+                    )
+
+                    # Get bulk rates for update dates
+                    bulk_rates = get_bulk_exchange_rates(currency_code, update_dates)
+
+                    for date_str, old_rate in existing_records:
+                        if self.should_stop:
+                            break
+
+                        try:
+                            # Skip weekend updates to avoid unnecessary processing
+                            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                            if date_obj.weekday() >= 5:  # Weekend
+                                self.progress_updated.emit(
+                                    f"📅 Skipping weekend update for {currency_code} on {date_str}"
+                                )
+                                continue
+
+                            # Get new rate from bulk download
+                            new_rate = bulk_rates.get(date_str)
+
+                            if new_rate is not None and new_rate > 0:
+                                # Only update if the rate is significantly different
+                                rate_diff = abs(new_rate - old_rate) / old_rate
+                                if rate_diff > 0.001:  # Update if difference > 0.1%
+                                    if self.db_manager.update_exchange_rate(currency_id, date_str, new_rate):
+                                        total_processed += 1
+                                        currency_processed += 1
+                                        self.rates_added.emit(currency_code, new_rate, date_str)
+                                        self.progress_updated.emit(
+                                            f"✅ Updated {currency_code} rate for {date_str}: {old_rate:.6f} → {new_rate:.6f}"
+                                        )
+                                    else:
+                                        self.progress_updated.emit(
+                                            f"❌ Failed to update {currency_code} rate for {date_str}"
+                                        )
+                                else:
                                     self.progress_updated.emit(
-                                        f"❌ Failed to update {currency_code} rate for {date_str}"
+                                        f"📊 {currency_code} rate for {date_str} unchanged (diff: {rate_diff:.4f})"
                                     )
                             else:
                                 self.progress_updated.emit(
-                                    f"📊 {currency_code} rate for {date_str} unchanged (diff: {rate_diff:.4f})"
+                                    f"⚠️ Skipping update for {currency_code} on {date_str}: no valid rate from bulk download"
                                 )
-                        else:
-                            self.progress_updated.emit(
-                                f"⚠️ Skipping update for {currency_code} on {date_str}: no valid rate from yfinance"
-                            )
-                    except Exception as e:
-                        self.progress_updated.emit(f"❌ Error updating rate for {currency_code} on {date_str}: {e}")
-                        continue
+                        except Exception as e:
+                            self.progress_updated.emit(f"❌ Error updating rate for {currency_code} on {date_str}: {e}")
+                            continue
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
 
