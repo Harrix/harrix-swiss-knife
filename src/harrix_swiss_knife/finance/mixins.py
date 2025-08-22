@@ -585,7 +585,7 @@ class ChartOperations:
                 x_values,
                 y_values,
                 color=plot_color,
-                marker="o",
+                marker=None,
                 linestyle="-",
                 linewidth=1,
                 alpha=0.8,
