@@ -79,7 +79,7 @@ _Figure 1: Screenshot_
   - 📚 Rename FB2, Epub, PDF files in …
   - 📝 Rename files by mapping in …
   - 🖲️ Rename largest images to featured_image in …
-  - 🎯 Rename last git commit with emoji
+  - 🎯 Rename last Git commit with emoji
   - ├ Tree view of a folder
   - ├ Tree view of a folder (ignore hidden folders)
 - **Markdown**
