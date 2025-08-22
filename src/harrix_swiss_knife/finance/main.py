@@ -1017,7 +1017,7 @@ class MainWindow(
             print(f"🔍 Checking which currencies need updates and missing records...")
             print(f"📅 Today's date: {today}")
 
-            # Get the earliest transaction date to determine the start date for initial data
+            # Get the earliest transaction date to determine the start date for checking
             earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
             if earliest_transaction_date:
                 earliest_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
@@ -1025,56 +1025,49 @@ class MainWindow(
                 # If no transactions, start from 1 year ago
                 earliest_date = today - timedelta(days=365)
 
+            print(f"📅 Checking range: from {earliest_date} to {today}")
+
             for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                # Get the last exchange rate date for this currency
-                last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
+                print(f"🔍 Checking {currency_code}...")
 
-                if not last_date_str:
-                    # No exchange rate records exist for this currency - need to create initial data
-                    print(
-                        f"⚠️ {currency_code}: No exchange rate records found - will create initial data from {earliest_date}"
-                    )
+                # Get ALL missing dates in the entire range (not just after last record)
+                missing_dates = []
 
-                    # Generate all dates from earliest transaction date to today
-                    missing_dates = []
-                    current_date = earliest_date
-                    while current_date <= today:
-                        date_str = current_date.strftime("%Y-%m-%d")
+                # Check each date in the range from earliest transaction to today
+                current_date = earliest_date
+                while current_date <= today:
+                    date_str = current_date.strftime("%Y-%m-%d")
+
+                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                        # Record is missing
                         missing_dates.append(date_str)
-                        current_date += timedelta(days=1)
 
-                    records_to_process = {"missing_dates": missing_dates, "existing_records": []}
-                    currencies_to_process.append((currency_id, currency_code, records_to_process))
-                    print(f"📊 {currency_code}: Will create {len(missing_dates)} initial records")
-                    continue
-
-                last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+                    current_date += timedelta(days=1)
 
                 # Get the last two existing records for updates
                 last_two_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
 
-                # Calculate missing dates from last_date + 1 day to today
-                missing_dates = []
-                current_date = last_date + timedelta(days=1)
-
-                while current_date <= today:
-                    date_str = current_date.strftime("%Y-%m-%d")
-                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
-                        missing_dates.append(date_str)
-                    current_date += timedelta(days=1)
-
-                # Combine missing dates and existing records to update
-                records_to_process = {"missing_dates": missing_dates, "existing_records": last_two_records}
-
+                # Only process if there are missing dates or records to update
                 if missing_dates or last_two_records:
+                    records_to_process = {"missing_dates": missing_dates, "existing_records": last_two_records}
                     currencies_to_process.append((currency_id, currency_code, records_to_process))
+
                     print(
                         f"📊 {currency_code}: Will add {len(missing_dates)} missing records and update {len(last_two_records)} existing records"
                     )
                     if missing_dates:
-                        print(f"    Missing dates: {missing_dates[:5]}{'...' if len(missing_dates) > 5 else ''}")
+                        # Show sample of missing dates
+                        sample_size = min(10, len(missing_dates))
+                        sample_dates = missing_dates[:sample_size]
+                        print(f"    Sample missing dates: {', '.join(sample_dates)}")
+                        if len(missing_dates) > 10:
+                            print(f"    ... and {len(missing_dates) - 10} more dates")
+                        print(f"    Date range: {missing_dates[0]} to {missing_dates[-1]}")
+
                     if last_two_records:
                         print(f"    Will update records from: {[record[0] for record in last_two_records]}")
+                else:
+                    print(f"✅ {currency_code}: All records up to date")
 
             # If no currencies need processing, inform user
             if not currencies_to_process:
@@ -1091,19 +1084,16 @@ class MainWindow(
             total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
             currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
 
-            # Determine if this is initial setup or regular update
-            has_initial_setup = any(
-                len(records["existing_records"]) == 0 and len(records["missing_dates"]) > 100
-                for _, _, records in currencies_to_process
-            )
+            # Determine if this is initial setup or has significant gaps
+            has_significant_gaps = any(len(records["missing_dates"]) > 50 for _, _, records in currencies_to_process)
 
-            if has_initial_setup:
-                message_title = "Initial Exchange Rates Setup"
+            if has_significant_gaps:
+                message_title = "Exchange Rates Update with Historical Gaps"
                 message_text = (
-                    f"This appears to be the first time setting up exchange rates.\n"
+                    f"Found historical gaps in exchange rate data.\n"
                     f"Found {len(currencies_to_process)} currencies to process:\n"
                     f"{currencies_text}\n\n"
-                    f"Initial records to create: {total_missing}\n"
+                    f"Missing records to create: {total_missing}\n"
                     f"Existing records to update: {total_updates}\n"
                     f"Total operations: {total_missing + total_updates}\n\n"
                     f"This may take several minutes to download historical data from yfinance.\n"
@@ -1134,9 +1124,9 @@ class MainWindow(
             self.progress_dialog = QMessageBox(self)
             self.progress_dialog.setWindowTitle("Updating Exchange Rates")
 
-            if has_initial_setup:
+            if has_significant_gaps:
                 self.progress_dialog.setText(
-                    f"Starting initial exchange rate setup for {len(currencies_to_process)} currencies from yfinance...\n"
+                    f"Starting exchange rate update with gap filling for {len(currencies_to_process)} currencies from yfinance...\n"
                     f"This may take several minutes for historical data."
                 )
             else:
