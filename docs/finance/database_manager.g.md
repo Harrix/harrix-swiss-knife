@@ -19,6 +19,7 @@ lang: en
   - [⚙️ Method `add_currency`](#%EF%B8%8F-method-add_currency)
   - [⚙️ Method `add_currency_exchange`](#%EF%B8%8F-method-add_currency_exchange)
   - [⚙️ Method `add_exchange_rate`](#%EF%B8%8F-method-add_exchange_rate)
+  - [⚙️ Method `add_exchange_rates_batch`](#%EF%B8%8F-method-add_exchange_rates_batch)
   - [⚙️ Method `add_transaction`](#%EF%B8%8F-method-add_transaction)
   - [⚙️ Method `check_exchange_rate_exists`](#%EF%B8%8F-method-check_exchange_rate_exists)
   - [⚙️ Method `clean_invalid_exchange_rates`](#%EF%B8%8F-method-clean_invalid_exchange_rates)
@@ -297,6 +298,68 @@ class DatabaseManager:
             "date": date,
         }
         return self.execute_simple_query(query, params)
+
+    def add_exchange_rates_batch(self, exchange_rates_data: list[tuple[int, float, str]]) -> int:
+        """Add multiple exchange rates in a single transaction.
+
+        Args:
+            exchange_rates_data: List of tuples (currency_id, rate, date)
+
+        Returns:
+            int: Number of successfully inserted records
+        """
+        if not exchange_rates_data:
+            return 0
+
+        try:
+            # Prepare batch insert query
+            query = """INSERT INTO exchange_rates (_id_currency, rate, date)
+                    VALUES (?, ?, ?)"""
+
+            # Convert to the format expected by executemany
+            batch_data = [(currency_id, rate, date) for currency_id, rate, date in exchange_rates_data]
+
+            # Use Qt's batch execution
+            sql_query = self._create_query()
+            sql_query.prepare(query)
+
+            # Execute batch insert
+            success_count = 0
+            batch_size = 1000  # Process in batches of 1000
+
+            for i in range(0, len(batch_data), batch_size):
+                batch = batch_data[i : i + batch_size]
+
+                # Clear previous bindings
+                sql_query.clear()
+                sql_query.prepare(query)
+
+                # Bind batch data
+                currency_ids = [item[0] for item in batch]
+                rates = [item[1] for item in batch]
+                dates = [item[2] for item in batch]
+
+                sql_query.addBindValue(currency_ids)
+                sql_query.addBindValue(rates)
+                sql_query.addBindValue(dates)
+
+                if sql_query.execBatch():
+                    success_count += len(batch)
+                    print(f"✅ Batch inserted {len(batch)} exchange rates (total: {success_count})")
+                else:
+                    error_msg = sql_query.lastError().text() if sql_query.lastError().isValid() else "Unknown error"
+                    print(f"❌ Batch insert failed: {error_msg}")
+                    # Try individual inserts for this batch as fallback
+                    for currency_id, rate, date in batch:
+                        if self.add_exchange_rate(currency_id, rate, date):
+                            success_count += 1
+
+            sql_query.clear()
+            return success_count
+
+        except Exception as e:
+            print(f"❌ Error in batch exchange rate insert: {e}")
+            return 0
 
     def add_transaction(
         self,
@@ -2444,6 +2507,81 @@ def add_exchange_rate(self, currency_id: int, rate: float, date: str) -> bool:
             "date": date,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `add_exchange_rates_batch`
+
+```python
+def add_exchange_rates_batch(self, exchange_rates_data: list[tuple[int, float, str]]) -> int
+```
+
+Add multiple exchange rates in a single transaction.
+
+Args:
+exchange_rates_data: List of tuples (currency_id, rate, date)
+
+Returns:
+int: Number of successfully inserted records
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_exchange_rates_batch(self, exchange_rates_data: list[tuple[int, float, str]]) -> int:
+        if not exchange_rates_data:
+            return 0
+
+        try:
+            # Prepare batch insert query
+            query = """INSERT INTO exchange_rates (_id_currency, rate, date)
+                    VALUES (?, ?, ?)"""
+
+            # Convert to the format expected by executemany
+            batch_data = [(currency_id, rate, date) for currency_id, rate, date in exchange_rates_data]
+
+            # Use Qt's batch execution
+            sql_query = self._create_query()
+            sql_query.prepare(query)
+
+            # Execute batch insert
+            success_count = 0
+            batch_size = 1000  # Process in batches of 1000
+
+            for i in range(0, len(batch_data), batch_size):
+                batch = batch_data[i : i + batch_size]
+
+                # Clear previous bindings
+                sql_query.clear()
+                sql_query.prepare(query)
+
+                # Bind batch data
+                currency_ids = [item[0] for item in batch]
+                rates = [item[1] for item in batch]
+                dates = [item[2] for item in batch]
+
+                sql_query.addBindValue(currency_ids)
+                sql_query.addBindValue(rates)
+                sql_query.addBindValue(dates)
+
+                if sql_query.execBatch():
+                    success_count += len(batch)
+                    print(f"✅ Batch inserted {len(batch)} exchange rates (total: {success_count})")
+                else:
+                    error_msg = sql_query.lastError().text() if sql_query.lastError().isValid() else "Unknown error"
+                    print(f"❌ Batch insert failed: {error_msg}")
+                    # Try individual inserts for this batch as fallback
+                    for currency_id, rate, date in batch:
+                        if self.add_exchange_rate(currency_id, rate, date):
+                            success_count += 1
+
+            sql_query.clear()
+            return success_count
+
+        except Exception as e:
+            print(f"❌ Error in batch exchange rate insert: {e}")
+            return 0
 ```
 
 </details>

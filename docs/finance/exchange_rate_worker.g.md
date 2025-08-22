@@ -287,7 +287,7 @@ class ExchangeRateUpdateWorker(QThread):
 
                 currency_processed = 0
 
-                # Process missing dates in bulk
+                # Process missing dates in bulk with batch insert
                 if missing_dates:
                     self.progress_updated.emit(
                         f"📥 Bulk downloading {len(missing_dates)} missing rates for {currency_code}..."
@@ -296,7 +296,9 @@ class ExchangeRateUpdateWorker(QThread):
                     # Get bulk rates for all missing dates
                     bulk_rates = get_bulk_exchange_rates(currency_code, missing_dates)
 
-                    # Process each missing date
+                    # Prepare batch data for insertion
+                    batch_insert_data = []
+
                     for date_str in missing_dates:
                         if self.should_stop:
                             break
@@ -313,25 +315,39 @@ class ExchangeRateUpdateWorker(QThread):
                                     new_rate = get_fallback_rate(currency_code, date_str)
 
                             if new_rate is not None and new_rate > 0:
-                                # Add new record
-                                if self.db_manager.add_exchange_rate(currency_id, new_rate, date_str):
-                                    total_processed += 1
-                                    currency_processed += 1
-                                    self.rates_added.emit(currency_code, new_rate, date_str)
-                                    self.progress_updated.emit(
-                                        f"✅ Added {currency_code} rate for {date_str}: {new_rate:.6f}"
-                                    )
-                                else:
-                                    self.progress_updated.emit(f"❌ Failed to add {currency_code} rate for {date_str}")
+                                # Add to batch data instead of individual insert
+                                batch_insert_data.append((currency_id, new_rate, date_str))
                             else:
                                 self.progress_updated.emit(
                                     f"⚠️ Skipping {currency_code} on {date_str}: no valid rate available"
                                 )
                         except Exception as e:
-                            self.progress_updated.emit(f"❌ Error adding rate for {currency_code} on {date_str}: {e}")
+                            self.progress_updated.emit(
+                                f"❌ Error preparing rate for {currency_code} on {date_str}: {e}"
+                            )
                             continue
 
-                # Process existing records for updates (only recent dates, not weekends)
+                    # Execute batch insert
+                    if batch_insert_data:
+                        self.progress_updated.emit(
+                            f"💾 Batch inserting {len(batch_insert_data)} rates for {currency_code}..."
+                        )
+
+                        # Use batch insert method (need to add this to DatabaseManager)
+                        inserted_count = self.db_manager.add_exchange_rates_batch(batch_insert_data)
+                        total_processed += inserted_count
+                        currency_processed += inserted_count
+
+                        self.progress_updated.emit(
+                            f"✅ Batch inserted {inserted_count}/{len(batch_insert_data)} rates for {currency_code}"
+                        )
+
+                        # Emit signals for successfully inserted rates (for UI updates)
+                        for i, (currency_id_item, rate, date_str) in enumerate(batch_insert_data):
+                            if i < inserted_count:  # Only emit for successfully inserted records
+                                self.rates_added.emit(currency_code, rate, date_str)
+
+                # Process existing records for updates (keep individual updates for precision)
                 if existing_records:
                     update_dates = [record[0] for record in existing_records]
                     self.progress_updated.emit(
@@ -678,7 +694,7 @@ def run(self):
 
                 currency_processed = 0
 
-                # Process missing dates in bulk
+                # Process missing dates in bulk with batch insert
                 if missing_dates:
                     self.progress_updated.emit(
                         f"📥 Bulk downloading {len(missing_dates)} missing rates for {currency_code}..."
@@ -687,7 +703,9 @@ def run(self):
                     # Get bulk rates for all missing dates
                     bulk_rates = get_bulk_exchange_rates(currency_code, missing_dates)
 
-                    # Process each missing date
+                    # Prepare batch data for insertion
+                    batch_insert_data = []
+
                     for date_str in missing_dates:
                         if self.should_stop:
                             break
@@ -704,25 +722,39 @@ def run(self):
                                     new_rate = get_fallback_rate(currency_code, date_str)
 
                             if new_rate is not None and new_rate > 0:
-                                # Add new record
-                                if self.db_manager.add_exchange_rate(currency_id, new_rate, date_str):
-                                    total_processed += 1
-                                    currency_processed += 1
-                                    self.rates_added.emit(currency_code, new_rate, date_str)
-                                    self.progress_updated.emit(
-                                        f"✅ Added {currency_code} rate for {date_str}: {new_rate:.6f}"
-                                    )
-                                else:
-                                    self.progress_updated.emit(f"❌ Failed to add {currency_code} rate for {date_str}")
+                                # Add to batch data instead of individual insert
+                                batch_insert_data.append((currency_id, new_rate, date_str))
                             else:
                                 self.progress_updated.emit(
                                     f"⚠️ Skipping {currency_code} on {date_str}: no valid rate available"
                                 )
                         except Exception as e:
-                            self.progress_updated.emit(f"❌ Error adding rate for {currency_code} on {date_str}: {e}")
+                            self.progress_updated.emit(
+                                f"❌ Error preparing rate for {currency_code} on {date_str}: {e}"
+                            )
                             continue
 
-                # Process existing records for updates (only recent dates, not weekends)
+                    # Execute batch insert
+                    if batch_insert_data:
+                        self.progress_updated.emit(
+                            f"💾 Batch inserting {len(batch_insert_data)} rates for {currency_code}..."
+                        )
+
+                        # Use batch insert method (need to add this to DatabaseManager)
+                        inserted_count = self.db_manager.add_exchange_rates_batch(batch_insert_data)
+                        total_processed += inserted_count
+                        currency_processed += inserted_count
+
+                        self.progress_updated.emit(
+                            f"✅ Batch inserted {inserted_count}/{len(batch_insert_data)} rates for {currency_code}"
+                        )
+
+                        # Emit signals for successfully inserted rates (for UI updates)
+                        for i, (currency_id_item, rate, date_str) in enumerate(batch_insert_data):
+                            if i < inserted_count:  # Only emit for successfully inserted records
+                                self.rates_added.emit(currency_code, rate, date_str)
+
+                # Process existing records for updates (keep individual updates for precision)
                 if existing_records:
                     update_dates = [record[0] for record in existing_records]
                     self.progress_updated.emit(
