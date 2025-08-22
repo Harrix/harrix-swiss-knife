@@ -77,6 +77,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.file.OnRemoveEmptyFolders,
                 hsk.file.OnRenameFb2EpubPdfFiles,
                 hsk.file.OnRenameFilesByMapping,
+                hsk.file.OnRenameLastGitCommitWithEmoji,
                 hsk.file.OnRenameLargestImagesToFeaturedImage,
                 hsk.file.OnTreeViewFolder,
                 hsk.file.OnTreeViewFolderIgnoreHiddenFolders,

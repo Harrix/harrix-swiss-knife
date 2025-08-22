@@ -494,7 +494,7 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
     """
 
     icon = "🎯"
-    title = "Rename last git commit with emoji"
+    title = "Rename last Git commit with emoji"
 
     # Mapping of keywords to emojis
     EMOJI_MAPPING = {
@@ -569,7 +569,7 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
 
             # Handle quotes in commit message by escaping them properly
             escaped_message = new_message.replace('"', '\\"')
-            command = f'git commit --amend -m "{escaped_message}"'
+            command = f'git commit --amend -m "{escaped_message}" && git push origin main --force'
 
             result = h.dev.run_command(command, cwd=str(self.folder_path))
             self.add_line("✅ Commit amended successfully")
