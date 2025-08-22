@@ -46,10 +46,12 @@ lang: en
   - [⚙️ Method `_parse_mapping_text`](#%EF%B8%8F-method-_parse_mapping_text)
 - [🏛️ Class `OnRenameLargestImagesToFeaturedImage`](#%EF%B8%8F-class-onrenamelargestimagestofeaturedimage)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
-- [🏛️ Class `OnTreeViewFolder`](#%EF%B8%8F-class-ontreeviewfolder)
+- [🏛️ Class `OnRenameLastGitCommitWithEmoji`](#%EF%B8%8F-class-onrenamelastgitcommitwithemoji)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
-- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
+- [🏛️ Class `OnTreeViewFolder`](#%EF%B8%8F-class-ontreeviewfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
+- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
 
 </details>
 
@@ -1271,6 +1273,190 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         result = h.file.rename_largest_images_to_featured(folder_path)
         self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+## 🏛️ Class `OnRenameLastGitCommitWithEmoji`
+
+```python
+class OnRenameLastGitCommitWithEmoji(ActionBase)
+```
+
+Rename the last git commit by adding emoji if missing.
+
+This action checks the last git commit message and adds an appropriate emoji
+if the message starts with specific keywords like Add, Create, Build, etc.
+It uses git commit --amend to modify the last commit.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnRenameLastGitCommitWithEmoji(ActionBase):
+
+    icon = "🎯"
+    title = "Rename last git commit with emoji"
+
+    # Mapping of keywords to emojis
+    EMOJI_MAPPING = {
+        "Add": "➕",
+        "Create": "➕",
+        "Build": "🚀",
+        "Delete": "🗑️",
+        "Remove": "🗑️",
+        "Docs": "📚",
+        "Experiment": "🧪",
+        "Fix": "🐞",
+        "Modify": "🔧",
+        "Move": "🚚",
+        "Refactor": "♻️",
+        "Rename": "✒️",
+        "Replace": "🔄",
+        "Style": "✨",
+        "Test": "⚗️",
+        "Update": "⬆️",
+        "Revert": "🔙",
+        "Publish": "🚀",
+        "Merge": "🔀",
+    }
+
+    @ActionBase.handle_exceptions("renaming last git commit with emoji")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Select git folder
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select Git folder", self.config["paths_git"], self.config["path_github"]
+        )
+        if not self.folder_path:
+            return
+
+        self.add_line(f"🔵 Processing git repository: {self.folder_path}")
+
+        # Change to the selected directory
+        import os
+
+        original_cwd = os.getcwd()
+        os.chdir(self.folder_path)
+
+        try:
+            # Get the last commit message
+            result = h.dev.run_command("git log -1 --pretty=format:%s", cwd=str(self.folder_path))
+            if not result.strip():
+                self.add_line("❌ No git commits found or not a git repository")
+                return
+
+            last_commit_message = result.strip()
+            self.add_line(f"📝 Last commit message: {last_commit_message}")
+
+            # Check if emoji is already present
+            if any(emoji in last_commit_message for emoji in self.EMOJI_MAPPING.values()):
+                self.add_line("✅ Emoji already present in commit message")
+                return
+
+            # Find matching keyword and emoji
+            new_message = None
+            for keyword, emoji in self.EMOJI_MAPPING.items():
+                if last_commit_message.startswith(keyword):
+                    new_message = f"{emoji} {last_commit_message}"
+                    self.add_line(f"🎯 Found keyword '{keyword}', adding emoji {emoji}")
+                    break
+
+            if not new_message:
+                self.add_line("ℹ️ No matching keyword found, no changes needed")
+                return
+
+            # Amend the commit with new message
+            self.add_line(f"🔄 Amending commit with new message: {new_message}")
+
+            # Handle quotes in commit message by escaping them properly
+            escaped_message = new_message.replace('"', '\\"')
+            command = f'git commit --amend -m "{escaped_message}"'
+
+            result = h.dev.run_command(command, cwd=str(self.folder_path))
+            self.add_line("✅ Commit amended successfully")
+            self.add_line(f"📊 Git output: {result}")
+
+        finally:
+            # Restore original working directory
+            os.chdir(original_cwd)
+
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        # Select git folder
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select Git folder", self.config["paths_git"], self.config["path_github"]
+        )
+        if not self.folder_path:
+            return
+
+        self.add_line(f"🔵 Processing git repository: {self.folder_path}")
+
+        # Change to the selected directory
+        import os
+
+        original_cwd = os.getcwd()
+        os.chdir(self.folder_path)
+
+        try:
+            # Get the last commit message
+            result = h.dev.run_command("git log -1 --pretty=format:%s", cwd=str(self.folder_path))
+            if not result.strip():
+                self.add_line("❌ No git commits found or not a git repository")
+                return
+
+            last_commit_message = result.strip()
+            self.add_line(f"📝 Last commit message: {last_commit_message}")
+
+            # Check if emoji is already present
+            if any(emoji in last_commit_message for emoji in self.EMOJI_MAPPING.values()):
+                self.add_line("✅ Emoji already present in commit message")
+                return
+
+            # Find matching keyword and emoji
+            new_message = None
+            for keyword, emoji in self.EMOJI_MAPPING.items():
+                if last_commit_message.startswith(keyword):
+                    new_message = f"{emoji} {last_commit_message}"
+                    self.add_line(f"🎯 Found keyword '{keyword}', adding emoji {emoji}")
+                    break
+
+            if not new_message:
+                self.add_line("ℹ️ No matching keyword found, no changes needed")
+                return
+
+            # Amend the commit with new message
+            self.add_line(f"🔄 Amending commit with new message: {new_message}")
+
+            # Handle quotes in commit message by escaping them properly
+            escaped_message = new_message.replace('"', '\\"')
+            command = f'git commit --amend -m "{escaped_message}"'
+
+            result = h.dev.run_command(command, cwd=str(self.folder_path))
+            self.add_line("✅ Commit amended successfully")
+            self.add_line(f"📊 Git output: {result}")
+
+        finally:
+            # Restore original working directory
+            os.chdir(original_cwd)
+
         self.show_result()
 ```
 
