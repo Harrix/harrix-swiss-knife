@@ -69,6 +69,7 @@ _Figure 1: Screenshot_
   - 🔒 Block disks
   - ✅ Check featured_image
   - ✅ Check featured_image in …
+  - 🤖 Combine files for AI
   - 📦 Extract ZIP archives in …
   - 📄 List files current folder
   - 📄 List files simple

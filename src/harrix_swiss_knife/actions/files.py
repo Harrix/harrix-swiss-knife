@@ -94,6 +94,51 @@ class OnCheckFeaturedImageInFolders(ActionBase):
         self.show_result()
 
 
+class OnCombineForAI(ActionBase):
+    """Combine multiple text files into a single markdown document for AI processing.
+
+    This action allows users to select from predefined file combinations configured
+    in paths_combine_for_ai. It combines multiple files into a single markdown
+    document with proper code fencing, making it suitable for AI analysis and processing.
+    """
+
+    icon = "🤖"
+    title = "Combine files for AI"
+
+    @ActionBase.handle_exceptions("combining files for AI")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Get list of available combinations from config
+        combinations = self.config.get("paths_combine_for_ai", [])
+        if not combinations:
+            self.add_line("❌ No file combinations configured in paths_combine_for_ai")
+            return
+
+        # Extract names for selection
+        combination_names = [combo["name"] for combo in combinations]
+
+        # Let user select a combination
+        selected_name = self.get_choice_from_list(
+            "Select file combination", "Choose a file combination to combine:", combination_names
+        )
+
+        if not selected_name:
+            return
+
+        # Find the selected combination
+        selected_combo = next((combo for combo in combinations if combo["name"] == selected_name), None)
+        if not selected_combo:
+            self.add_line(f"❌ Could not find combination: {selected_name}")
+            return
+
+        # Get files and base folder from the selected combination
+        files = selected_combo["files"]
+        base_folder = selected_combo["base_folder"]
+
+        self.add_line(h.file.collect_text_files_to_markdown(files, base_folder))
+        self.show_result()
+
+
 class OnExtractZipArchives(ActionBase):
     """Extract all ZIP archives from a selected folder.
 

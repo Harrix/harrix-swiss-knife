@@ -70,6 +70,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.file.OnCheckFeaturedImage,
                 hsk.file.OnCheckFeaturedImageInFolders,
                 hsk.file.OnExtractZipArchives,
+                hsk.file.OnCombineForAI,
                 hsk.file.OnListFilesSimple,
                 hsk.file.OnListFilesSimpleIgnoreHiddenFolders,
                 hsk.file.OnListFilesCurrentFolder,

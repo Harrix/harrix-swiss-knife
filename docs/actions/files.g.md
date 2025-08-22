@@ -19,35 +19,37 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
 - [🏛️ Class `OnCheckFeaturedImageInFolders`](#%EF%B8%8F-class-oncheckfeaturedimageinfolders)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
-- [🏛️ Class `OnExtractZipArchives`](#%EF%B8%8F-class-onextractziparchives)
+- [🏛️ Class `OnCombineForAI`](#%EF%B8%8F-class-oncombineforai)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+- [🏛️ Class `OnExtractZipArchives`](#%EF%B8%8F-class-onextractziparchives)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `OnListFilesCurrentFolder`](#%EF%B8%8F-class-onlistfilescurrentfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
-- [🏛️ Class `OnListFilesSimple`](#%EF%B8%8F-class-onlistfilessimple)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
-- [🏛️ Class `OnListFilesSimpleIgnoreHiddenFolders`](#%EF%B8%8F-class-onlistfilessimpleignorehiddenfolders)
+- [🏛️ Class `OnListFilesSimple`](#%EF%B8%8F-class-onlistfilessimple)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
-- [🏛️ Class `OnRemoveEmptyFolders`](#%EF%B8%8F-class-onremoveemptyfolders)
+- [🏛️ Class `OnListFilesSimpleIgnoreHiddenFolders`](#%EF%B8%8F-class-onlistfilessimpleignorehiddenfolders)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
+- [🏛️ Class `OnRemoveEmptyFolders`](#%EF%B8%8F-class-onremoveemptyfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
 - [🏛️ Class `OnRenameFb2EpubPdfFiles`](#%EF%B8%8F-class-onrenamefb2epubpdffiles)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
 - [🏛️ Class `OnRenameFilesByMapping`](#%EF%B8%8F-class-onrenamefilesbymapping)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
   - [⚙️ Method `_parse_mapping_text`](#%EF%B8%8F-method-_parse_mapping_text)
 - [🏛️ Class `OnRenameLargestImagesToFeaturedImage`](#%EF%B8%8F-class-onrenamelargestimagestofeaturedimage)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
-- [🏛️ Class `OnTreeViewFolder`](#%EF%B8%8F-class-ontreeviewfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
-- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
+- [🏛️ Class `OnTreeViewFolder`](#%EF%B8%8F-class-ontreeviewfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
+- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
 
 </details>
 
@@ -271,6 +273,109 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         for path in self.config["paths_with_featured_image"]:
             result = h.file.check_featured_image(path)[1]
             self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+## 🏛️ Class `OnCombineForAI`
+
+```python
+class OnCombineForAI(ActionBase)
+```
+
+Combine multiple text files into a single markdown document for AI processing.
+
+This action allows users to select from predefined file combinations configured
+in paths_combine_for_ai. It combines multiple files into a single markdown
+document with proper code fencing, making it suitable for AI analysis and processing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnCombineForAI(ActionBase):
+
+    icon = "🤖"
+    title = "Combine files for AI"
+
+    @ActionBase.handle_exceptions("combining files for AI")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Get list of available combinations from config
+        combinations = self.config.get("paths_combine_for_ai", [])
+        if not combinations:
+            self.add_line("❌ No file combinations configured in paths_combine_for_ai")
+            return
+
+        # Extract names for selection
+        combination_names = [combo["name"] for combo in combinations]
+
+        # Let user select a combination
+        selected_name = self.get_choice_from_list(
+            "Select file combination", "Choose a file combination to combine:", combination_names
+        )
+
+        if not selected_name:
+            return
+
+        # Find the selected combination
+        selected_combo = next((combo for combo in combinations if combo["name"] == selected_name), None)
+        if not selected_combo:
+            self.add_line(f"❌ Could not find combination: {selected_name}")
+            return
+
+        # Get files and base folder from the selected combination
+        files = selected_combo["files"]
+        base_folder = selected_combo["base_folder"]
+
+        self.add_line(h.file.collect_text_files_to_markdown(files, base_folder))
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        # Get list of available combinations from config
+        combinations = self.config.get("paths_combine_for_ai", [])
+        if not combinations:
+            self.add_line("❌ No file combinations configured in paths_combine_for_ai")
+            return
+
+        # Extract names for selection
+        combination_names = [combo["name"] for combo in combinations]
+
+        # Let user select a combination
+        selected_name = self.get_choice_from_list(
+            "Select file combination", "Choose a file combination to combine:", combination_names
+        )
+
+        if not selected_name:
+            return
+
+        # Find the selected combination
+        selected_combo = next((combo for combo in combinations if combo["name"] == selected_name), None)
+        if not selected_combo:
+            self.add_line(f"❌ Could not find combination: {selected_name}")
+            return
+
+        # Get files and base folder from the selected combination
+        files = selected_combo["files"]
+        base_folder = selected_combo["base_folder"]
+
+        self.add_line(h.file.collect_text_files_to_markdown(files, base_folder))
         self.show_result()
 ```
 

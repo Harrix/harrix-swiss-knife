@@ -17,6 +17,38 @@
   "path_notes": "D:/Dropbox/Notes",
   "path_py_projects": "C:/Users/sergi/OneDrive/Projects/Python",
   "path_quotes": "D:/Dropbox/Notes/Notes/Quotes",
+  "paths_combine_for_ai": [
+    {
+      "name": "harrix-swiss-knife - finance",
+      "base_folder": "C:/GitHub/harrix-swiss-knife",
+      "files": [
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/recover.sql",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/database_manager.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/mixins.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/main.py"
+      ]
+    },
+    {
+      "name": "harrix-swiss-knife - food",
+      "base_folder": "C:/GitHub/harrix-swiss-knife",
+      "files": [
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/food/recover.sql",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/food/database_manager.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/food/mixins.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/food/main.py"
+      ]
+    },
+    {
+      "name": "harrix-swiss-knife - fitness",
+      "base_folder": "C:/GitHub/harrix-swiss-knife",
+      "files": [
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/fitness/recover.sql",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/fitness/database_manager.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/fitness/mixins.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/fitness/main.py"
+      ]
+    }
+  ],
   "paths_camera_uploads": [
     "D:/Dropbox/Camera Uploads",
     "D:/Dropbox/Camera Uploads/3d_printing",
