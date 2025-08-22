@@ -1014,14 +1014,13 @@ class MainWindow(
                     current_date += timedelta(days=1)
 
                 # Combine missing dates and existing records to update
-                records_to_process = {
-                    'missing_dates': missing_dates,
-                    'existing_records': last_two_records
-                }
+                records_to_process = {"missing_dates": missing_dates, "existing_records": last_two_records}
 
                 if missing_dates or last_two_records:
                     currencies_to_process.append((currency_id, currency_code, records_to_process))
-                    print(f"📊 {currency_code}: Will add {len(missing_dates)} missing records and update {len(last_two_records)} existing records")
+                    print(
+                        f"📊 {currency_code}: Will add {len(missing_dates)} missing records and update {len(last_two_records)} existing records"
+                    )
                     if missing_dates:
                         print(f"    Missing dates: {missing_dates[:5]}{'...' if len(missing_dates) > 5 else ''}")
                     if last_two_records:
@@ -1038,8 +1037,8 @@ class MainWindow(
                 return
 
             # Show summary and ask for confirmation
-            total_missing = sum(len(records['missing_dates']) for _, _, records in currencies_to_process)
-            total_updates = sum(len(records['existing_records']) for _, _, records in currencies_to_process)
+            total_missing = sum(len(records["missing_dates"]) for _, _, records in currencies_to_process)
+            total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
             currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
 
             reply = QMessageBox.question(

@@ -35,7 +35,7 @@ class ExchangeRateUpdateWorker(QThread):
 
             total_processed = 0
             total_operations = sum(
-                len(records['missing_dates']) + len(records['existing_records'])
+                len(records["missing_dates"]) + len(records["existing_records"])
                 for _, _, records in self.currencies_to_process
             )
 
@@ -55,39 +55,24 @@ class ExchangeRateUpdateWorker(QThread):
                 # Primary ticker formats - these should give us CURRENCY/USD rates directly
                 primary_tickers = [
                     f"{currency_code}USD=X",  # RUBUSD=X gives RUB to USD rate
-                    f"{currency_code}/USD",   # RUB/USD gives RUB to USD rate
-                    f"{currency_code}USD",    # RUBUSD gives RUB to USD rate
+                    f"{currency_code}/USD",  # RUB/USD gives RUB to USD rate
+                    f"{currency_code}USD",  # RUBUSD gives RUB to USD rate
                 ]
 
                 # Inverse ticker formats - these give us USD/CURRENCY rates (need to invert)
                 inverse_tickers = [
                     f"USD{currency_code}=X",  # USDRUB=X gives USD to RUB rate (need to invert)
-                    f"USD/{currency_code}",   # USD/RUB gives USD to RUB rate (need to invert)
-                    f"USD{currency_code}",    # USDRUB gives USD to RUB rate (need to invert)
+                    f"USD/{currency_code}",  # USD/RUB gives USD to RUB rate (need to invert)
+                    f"USD{currency_code}",  # USDRUB gives USD to RUB rate (need to invert)
                 ]
 
                 # Special cases for known problematic currencies
                 special_cases = {
-                    "RUB": {
-                        "primary": ["RUBUSD=X", "RUB=X"],
-                        "inverse": ["USDRUB=X", "USD/RUB=X"]
-                    },
-                    "EUR": {
-                        "primary": ["EURUSD=X", "EUR=X"],
-                        "inverse": ["USDEUR=X", "USD/EUR=X"]
-                    },
-                    "CNY": {
-                        "primary": ["CNYUSD=X", "CNY=X"],
-                        "inverse": ["USDCNY=X", "USD/CNY=X"]
-                    },
-                    "TRY": {
-                        "primary": ["TRYUSD=X", "TRY=X"],
-                        "inverse": ["USDTRY=X", "USD/TRY=X"]
-                    },
-                    "VND": {
-                        "primary": ["VNDUSD=X", "VND=X"],
-                        "inverse": ["USDVND=X", "USD/VND=X"]
-                    }
+                    "RUB": {"primary": ["RUBUSD=X", "RUB=X"], "inverse": ["USDRUB=X", "USD/RUB=X"]},
+                    "EUR": {"primary": ["EURUSD=X", "EUR=X"], "inverse": ["USDEUR=X", "USD/EUR=X"]},
+                    "CNY": {"primary": ["CNYUSD=X", "CNY=X"], "inverse": ["USDCNY=X", "USD/CNY=X"]},
+                    "TRY": {"primary": ["TRYUSD=X", "TRY=X"], "inverse": ["USDTRY=X", "USD/TRY=X"]},
+                    "VND": {"primary": ["VNDUSD=X", "VND=X"], "inverse": ["USDVND=X", "USD/VND=X"]},
                 }
 
                 # Build the ticker list
@@ -123,7 +108,9 @@ class ExchangeRateUpdateWorker(QThread):
 
                                     if not pd.isna(close_price) and close_price > 0:
                                         rate = float(close_price)
-                                        self.progress_updated.emit(f"✅ Found primary rate with {ticker_symbol}: {rate:.6f} (1 {currency_code} = {rate:.6f} USD)")
+                                        self.progress_updated.emit(
+                                            f"✅ Found primary rate with {ticker_symbol}: {rate:.6f} (1 {currency_code} = {rate:.6f} USD)"
+                                        )
                                         return rate
 
                             except Exception:
@@ -156,8 +143,12 @@ class ExchangeRateUpdateWorker(QThread):
                                         # This is USD to CURRENCY rate, we need CURRENCY to USD rate
                                         usd_to_currency_rate = float(close_price)
                                         currency_to_usd_rate = 1.0 / usd_to_currency_rate
-                                        self.progress_updated.emit(f"✅ Found inverse rate with {ticker_symbol}: {usd_to_currency_rate:.6f} USD/{currency_code}")
-                                        self.progress_updated.emit(f"🔄 Inverted to: {currency_to_usd_rate:.6f} (1 {currency_code} = {currency_to_usd_rate:.6f} USD)")
+                                        self.progress_updated.emit(
+                                            f"✅ Found inverse rate with {ticker_symbol}: {usd_to_currency_rate:.6f} USD/{currency_code}"
+                                        )
+                                        self.progress_updated.emit(
+                                            f"🔄 Inverted to: {currency_to_usd_rate:.6f} (1 {currency_code} = {currency_to_usd_rate:.6f} USD)"
+                                        )
                                         return currency_to_usd_rate
 
                             except Exception:
@@ -169,7 +160,9 @@ class ExchangeRateUpdateWorker(QThread):
                         continue
 
                 # If we get here, no ticker worked
-                self.progress_updated.emit(f"❌ No valid data found for {currency_code} on {date} with any ticker format")
+                self.progress_updated.emit(
+                    f"❌ No valid data found for {currency_code} on {date} with any ticker format"
+                )
                 return None
 
             def get_fallback_rate(currency_code: str, date: str) -> float | None:
@@ -187,7 +180,9 @@ class ExchangeRateUpdateWorker(QThread):
                     rows = self.db_manager.get_rows(query, {"currency_code": currency_code, "date": date})
                     if rows and rows[0][0]:
                         fallback_rate = float(rows[0][0])
-                        self.progress_updated.emit(f"📊 Using fallback rate for {currency_code} on {date}: {fallback_rate:.6f}")
+                        self.progress_updated.emit(
+                            f"📊 Using fallback rate for {currency_code} on {date}: {fallback_rate:.6f}"
+                        )
                         return fallback_rate
 
                 except Exception as e:
@@ -201,8 +196,8 @@ class ExchangeRateUpdateWorker(QThread):
                     break
 
                 self.currency_started.emit(currency_code)
-                missing_dates = records_dict['missing_dates']
-                existing_records = records_dict['existing_records']
+                missing_dates = records_dict["missing_dates"]
+                existing_records = records_dict["existing_records"]
 
                 self.progress_updated.emit(
                     f"📈 Processing {currency_code}: {len(missing_dates)} missing + {len(existing_records)} updates"
@@ -277,7 +272,9 @@ class ExchangeRateUpdateWorker(QThread):
                                         f"✅ Updated {currency_code} rate for {date_str}: {old_rate:.6f} → {new_rate:.6f}"
                                     )
                                 else:
-                                    self.progress_updated.emit(f"❌ Failed to update {currency_code} rate for {date_str}")
+                                    self.progress_updated.emit(
+                                        f"❌ Failed to update {currency_code} rate for {date_str}"
+                                    )
                             else:
                                 self.progress_updated.emit(
                                     f"📊 {currency_code} rate for {date_str} unchanged (diff: {rate_diff:.4f})"
