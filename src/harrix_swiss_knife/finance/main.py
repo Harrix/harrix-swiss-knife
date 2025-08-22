@@ -1762,10 +1762,11 @@ class MainWindow(
                         widget.close()
                         # Force garbage collection
                         import gc
-
                         gc.collect()
                     except Exception:
                         pass
+                # Remove widget from layout and delete it
+                widget.setParent(None)
                 widget.deleteLater()
 
     def _connect_signals(self) -> None:
@@ -1977,12 +1978,17 @@ class MainWindow(
         """Create and display exchange rate chart.
 
         Args:
-            currency_id: ID of the currency
-            date_from: Start date in yyyy-MM-dd format
-            date_to: End date in yyyy-MM-dd format
+
+        - `currency_id` (`int`): ID of the currency
+        - `date_from` (`str`): Start date in yyyy-MM-dd format
+        - `date_to` (`str`): End date in yyyy-MM-dd format
+
         """
         if not self._validate_database_connection():
             return
+
+        # Clear existing chart FIRST, before any other operations
+        self._clear_layout(self.verticalLayout_exchange_rates_content)
 
         # Additional safety check: ensure no previous chart is being deleted
         if hasattr(self, "_current_exchange_rate_canvas") and self._current_exchange_rate_canvas is not None:
@@ -2016,9 +2022,6 @@ class MainWindow(
                     self.verticalLayout_exchange_rates_content, "No exchange rate data found for the selected period"
                 )
                 return
-
-            # Clear existing chart
-            self._clear_layout(self.verticalLayout_exchange_rates_content)
 
             # Create matplotlib figure with proper cleanup
             fig = Figure(figsize=(12, 6), dpi=100)
@@ -2143,6 +2146,7 @@ class MainWindow(
             self._current_exchange_rate_fig = None
             self._current_exchange_rate_canvas = None
 
+
     def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
         """Create a pie chart with the given data.
 
@@ -2231,12 +2235,14 @@ class MainWindow(
         """Create a special model for transactions table with non-editable total column.
 
         Args:
-            data: The table data with color information.
-            headers: Column header names.
-            id_column: Index of the ID column. Defaults to -2 (second-to-last).
+
+        - `data` (`list[list]`): The table data with color information.
+        - `headers` (`list[str]`): Column header names.
+        - `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
 
         Returns:
-            A filterable and sortable model with colored data and non-editable total column.
+
+        - `QSortFilterProxyModel`: A filterable and sortable model with colored data and non-editable total column.
 
         """
         model = QStandardItemModel()
@@ -3437,7 +3443,7 @@ class MainWindow(
         """Show a message when no data is available for the chart."""
         from PySide6.QtWidgets import QLabel
 
-        # Clear existing content
+        # Clear existing content first
         self._clear_layout(layout)
 
         # Create and add label
