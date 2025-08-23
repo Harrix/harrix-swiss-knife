@@ -104,6 +104,7 @@ class OnCombineForAI(ActionBase):
 
     icon = "🤖"
     title = "Combine files for AI"
+    bold_title = True
 
     @ActionBase.handle_exceptions("combining files for AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
