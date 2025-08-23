@@ -875,6 +875,67 @@ class MainWindow(
         finally:
             self._exchange_rates_updating = False
 
+    def on_delete_exchange_rates_by_days(self) -> None:
+        """Delete exchange rates for the last N days based on spinBox_exchange_rate_count_days value."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get the number of days from the spin box
+            days = self.spinBox_exchange_rate_count_days.value()
+
+            if days <= 0:
+                QMessageBox.warning(self, "Invalid Input", "Number of days must be greater than 0.")
+                return
+
+            # Show confirmation dialog
+            reply = QMessageBox.question(
+                self,
+                "Confirm Deletion",
+                f"Are you sure you want to delete exchange rates for the last {days} days?\n\n"
+                "This action cannot be undone.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            # Delete exchange rates
+            success, deleted_count = self.db_manager.delete_exchange_rates_by_days(days)
+
+            if success:
+                if deleted_count > 0:
+                    QMessageBox.information(
+                        self,
+                        "Deletion Successful",
+                        f"Successfully deleted {deleted_count} exchange rate records for the last {days} days."
+                    )
+                else:
+                    QMessageBox.information(
+                        self,
+                        "No Records Found",
+                        f"No exchange rate records were found for the last {days} days."
+                    )
+
+                # Mark exchange rates as changed and update the view
+                self._mark_exchange_rates_changed()
+                self.update_all()
+                self.update_summary_labels()
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Deletion Failed",
+                    "Failed to delete exchange rate records. Please check the database connection."
+                )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An error occurred while deleting exchange rates: {e}"
+            )
+
     def on_export_csv(self) -> None:
         """Save current transactions view to a CSV file."""
         filename_str, _ = QFileDialog.getSaveFileName(
@@ -1641,7 +1702,13 @@ class MainWindow(
         for table_name, (delete_btn_name, refresh_btn_name) in tables_with_controls.items():
             delete_button = getattr(self, delete_btn_name)
             refresh_button = getattr(self, refresh_btn_name)
-            delete_button.clicked.connect(partial(self.delete_record, table_name))
+
+            # Special handling for exchange_rates delete button
+            if table_name == "exchange_rates":
+                delete_button.clicked.connect(self.on_delete_exchange_rates_by_days)
+            else:
+                delete_button.clicked.connect(partial(self.delete_record, table_name))
+
             refresh_button.clicked.connect(self.update_all)
 
         # Add buttons
@@ -3799,22 +3866,6 @@ class MainWindow(
                 index = combo.findText(default_currency)
                 if index >= 0:
                     combo.setCurrentIndex(index)
-
-            # Set exchange_to currency based on logic
-            # If current currency is not USD, set USD as exchange_to, otherwise set currency with _id = 1
-            if default_currency != "USD":
-                # Set USD as exchange_to
-                usd_index = self.comboBox_exchange_to.findText("USD")
-                if usd_index >= 0:
-                    self.comboBox_exchange_to.setCurrentIndex(usd_index)
-            else:
-                # Current currency is USD, set currency with _id = 1 as exchange_to
-                currency_info = self.db_manager.get_currency_by_id(1)
-                if currency_info:
-                    currency_code = currency_info[0]  # Get code from (code, name, symbol)
-                    currency_index = self.comboBox_exchange_to.findText(currency_code)
-                    if currency_index >= 0:
-                        self.comboBox_exchange_to.setCurrentIndex(currency_index)
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")

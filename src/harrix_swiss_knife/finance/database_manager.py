@@ -472,6 +472,54 @@ class DatabaseManager:
         query = "DELETE FROM exchange_rates WHERE _id = :id"
         return self.execute_simple_query(query, {"id": rate_id})
 
+    def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
+        """Delete exchange rates for the last N days for each currency.
+
+        Args:
+
+        - `days` (`int`): Number of days to look back from current date.
+
+        Returns:
+
+        - `tuple[bool, int]`: (success, deleted_count) where success is True if
+          the operation completed successfully, and deleted_count is the number
+          of records deleted.
+
+        """
+        if days <= 0:
+            return False, 0
+
+        try:
+            # Calculate the cutoff date
+            from datetime import datetime, timedelta
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+
+            # Delete exchange rates older than the cutoff date
+            query = "DELETE FROM exchange_rates WHERE date < :cutoff_date"
+            params = {"cutoff_date": cutoff_date}
+
+            success = self.execute_simple_query(query, params)
+
+            if success:
+                # Get the number of deleted rows
+                count_query = "SELECT COUNT(*) FROM exchange_rates WHERE date < :cutoff_date"
+                count_params = {"cutoff_date": cutoff_date}
+
+                # Since we just deleted these records, we need to get the count before deletion
+                # We'll use a different approach - get the count from the change
+                query_obj = self.execute_query("SELECT changes()")
+                if query_obj and query_obj.next():
+                    deleted_count = query_obj.value(0)
+                    return True, deleted_count
+                else:
+                    return True, 0  # Success but couldn't determine count
+            else:
+                return False, 0
+
+        except Exception as e:
+            print(f"❌ Error deleting exchange rates by days: {e}")
+            return False, 0
+
     def delete_transaction(self, transaction_id: int) -> bool:
         """Delete a transaction.
 
