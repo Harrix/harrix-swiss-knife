@@ -1430,6 +1430,53 @@ class MainWindow(
 
     @requires_database()
     def _auto_update_exchange_rates_on_startup(self) -> None:
+        """Automatically update exchange rates on startup.
+
+        Strategy:
+        - If no exchange rates exist: check from first transaction date
+        - If exchange rates exist: check from last exchange rate date
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Check if exchange rates data exists
+            has_exchange_rates = self.db_manager.has_exchange_rates_data()
+
+            if has_exchange_rates:
+                # Exchange rates exist - check from last exchange rate date
+                check_from_first_transaction = False
+                print("🔄 [Startup] Starting exchange rate update from last exchange rate date...")
+            else:
+                # No exchange rates - check from first transaction date
+                check_from_first_transaction = True
+                print("🔄 [Startup] No exchange rates found. Starting update from first transaction date...")
+
+                # Additional check: ensure transactions exist
+                earliest_transaction = self.db_manager.get_earliest_transaction_date()
+                if not earliest_transaction:
+                    print("ℹ️ [Startup] No transactions found. Skipping exchange rate update.")
+                    return
+
+            # Create and start checker thread silently (no dialog)
+            from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
+
+            self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
+                self.db_manager, check_from_first_transaction
+            )
+
+            # Connect signals for silent processing
+            self.startup_exchange_rate_checker.progress_updated.connect(self._on_startup_check_progress_updated)
+            self.startup_exchange_rate_checker.check_completed.connect(self._on_startup_check_completed)
+            self.startup_exchange_rate_checker.check_failed.connect(self._on_startup_check_failed)
+
+            # Start the checker
+            self.startup_exchange_rate_checker.start()
+
+        except Exception as e:
+            print(f"❌ Startup exchange rate check error: {e}")
+
         """Automatically update exchange rates on startup from last exchange rate date."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
@@ -2954,7 +3001,12 @@ class MainWindow(
         total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
         currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
 
-        print(f"🔄 [Startup] Found {len(currencies_to_process)} currencies to process: {currencies_text}")
+        # Determine the strategy used
+        has_exchange_rates = self.db_manager.has_exchange_rates_data() if self.db_manager else False
+        strategy = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
+
+        print(f"🔄 [Startup] Strategy: Update {strategy}")
+        print(f"📊 [Startup] Found {len(currencies_to_process)} currencies to process: {currencies_text}")
         print(f"📊 [Startup] Missing records: {total_missing}, Updates: {total_updates}")
 
         # Start the update process silently
@@ -2987,8 +3039,14 @@ class MainWindow(
     def _on_startup_update_finished_success(self, processed_count: int, total_operations: int):
         """Handle successful completion of startup update (silent)."""
         if processed_count > 0:
+            # Determine the strategy for logging
+            has_exchange_rates = (
+                self.db_manager.has_exchange_rates_data() if self.db_manager else True
+            )  # True because we just added data
+            strategy = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
+
             print(
-                f"✅ [Startup] Successfully processed {processed_count} out of {total_operations} exchange rate operations"
+                f"✅ [Startup] Successfully processed {processed_count} out of {total_operations} exchange rate operations ({strategy})"
             )
 
             # Mark exchange rates as changed to trigger reload if tab is active
@@ -3427,7 +3485,13 @@ class MainWindow(
     def _start_startup_exchange_rate_update(self, currencies_to_process: list):
         """Start the exchange rate update process for startup (silent)."""
         try:
-            print(f"🔄 [Startup] Starting exchange rate update for {len(currencies_to_process)} currencies...")
+            # Determine the strategy for logging
+            has_exchange_rates = self.db_manager.has_exchange_rates_data() if self.db_manager else False
+            strategy = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
+
+            print(
+                f"🔄 [Startup] Starting exchange rate update for {len(currencies_to_process)} currencies ({strategy})..."
+            )
 
             # Create and start worker thread (no dialog)
             self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)

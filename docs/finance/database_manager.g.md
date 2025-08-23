@@ -69,6 +69,7 @@ lang: en
   - [⚙️ Method `get_today_expenses_in_currency`](#%EF%B8%8F-method-get_today_expenses_in_currency)
   - [⚙️ Method `get_transactions_chart_data`](#%EF%B8%8F-method-get_transactions_chart_data)
   - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate)
+  - [⚙️ Method `has_exchange_rates_data`](#%EF%B8%8F-method-has_exchange_rates_data)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
   - [⚙️ Method `set_last_exchange_rates_update_date`](#%EF%B8%8F-method-set_last_exchange_rates_update_date)
@@ -1691,6 +1692,19 @@ class DatabaseManager:
                 return 1.0
 
         return 1.0
+
+    def has_exchange_rates_data(self) -> bool:
+        """Check if there are any exchange rate records in the database.
+
+        Returns:
+        - bool: True if exchange rates exist, False otherwise.
+        """
+        try:
+            rows = self.get_rows("SELECT COUNT(*) FROM exchange_rates")
+            return rows[0][0] > 0 if rows else False
+        except Exception as e:
+            print(f"Error checking exchange rates data: {e}")
+            return False
 
     def is_database_open(self) -> bool:
         """Check if the database connection is open.
@@ -4450,6 +4464,33 @@ def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) ->
                 return 1.0
 
         return 1.0
+```
+
+</details>
+
+### ⚙️ Method `has_exchange_rates_data`
+
+```python
+def has_exchange_rates_data(self) -> bool
+```
+
+Check if there are any exchange rate records in the database.
+
+Returns:
+
+- bool: True if exchange rates exist, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def has_exchange_rates_data(self) -> bool:
+        try:
+            rows = self.get_rows("SELECT COUNT(*) FROM exchange_rates")
+            return rows[0][0] > 0 if rows else False
+        except Exception as e:
+            print(f"Error checking exchange rates data: {e}")
+            return False
 ```
 
 </details>

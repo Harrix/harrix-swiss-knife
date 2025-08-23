@@ -1609,6 +1609,19 @@ class DatabaseManager:
 
         return 1.0
 
+    def has_exchange_rates_data(self) -> bool:
+        """Check if there are any exchange rate records in the database.
+
+        Returns:
+        - bool: True if exchange rates exist, False otherwise.
+        """
+        try:
+            rows = self.get_rows("SELECT COUNT(*) FROM exchange_rates")
+            return rows[0][0] > 0 if rows else False
+        except Exception as e:
+            print(f"Error checking exchange rates data: {e}")
+            return False
+
     def is_database_open(self) -> bool:
         """Check if the database connection is open.
 
