@@ -10,6 +10,93 @@ from datetime import datetime, timedelta
 from PySide6.QtCore import QThread, Signal
 
 
+class ExchangeRateAnalysisWorker(QThread):
+    """Worker thread for analyzing missing exchange rate records."""
+
+    # Signals
+    progress_updated = Signal(str)  # Progress message
+    currency_analyzed = Signal(str, int, int)  # currency_code, missing_count, existing_count
+    finished_success = Signal(list)  # List of (currency_id, currency_code, records_dict)
+    finished_error = Signal(str)  # Error message
+
+    def __init__(self, db_manager, currencies, earliest_date, today):
+        super().__init__()
+        self.db_manager = db_manager
+        self.currencies = currencies
+        self.earliest_date = earliest_date
+        self.today = today
+        self.should_stop = False
+
+    def run(self):
+        """Main worker execution for analysis."""
+        try:
+            currencies_to_process = []
+            total_currencies = len(self.currencies)
+
+            self.progress_updated.emit(f"🔍 Analyzing {total_currencies} currencies for missing exchange rates...")
+
+            for index, (currency_id, currency_code, currency_name, currency_symbol) in enumerate(self.currencies):
+                if self.should_stop:
+                    break
+
+                self.progress_updated.emit(f"🔍 Analyzing {currency_code} ({index + 1}/{total_currencies})...")
+
+                # Get ALL missing dates in the entire range
+                missing_dates = []
+
+                # Check each date in the range from earliest transaction to today
+                current_date = self.earliest_date
+                dates_checked = 0
+
+                while current_date <= self.today:
+                    if self.should_stop:
+                        break
+
+                    date_str = current_date.strftime("%Y-%m-%d")
+
+                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                        missing_dates.append(date_str)
+
+                    current_date += timedelta(days=1)
+                    dates_checked += 1
+
+                    # Update progress every 100 dates
+                    if dates_checked % 100 == 0:
+                        self.progress_updated.emit(
+                            f"🔍 {currency_code}: Checked {dates_checked} dates, found {len(missing_dates)} missing..."
+                        )
+
+                if self.should_stop:
+                    break
+
+                # Get the last two existing records for updates
+                last_two_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
+
+                # Emit analysis result for this currency
+                self.currency_analyzed.emit(currency_code, len(missing_dates), len(last_two_records))
+
+                # Only add to processing list if there are missing dates or records to update
+                if missing_dates or last_two_records:
+                    records_to_process = {"missing_dates": missing_dates, "existing_records": last_two_records}
+                    currencies_to_process.append((currency_id, currency_code, records_to_process))
+
+                    self.progress_updated.emit(
+                        f"📊 {currency_code}: {len(missing_dates)} missing + {len(last_two_records)} to update"
+                    )
+                else:
+                    self.progress_updated.emit(f"✅ {currency_code}: All records up to date")
+
+            if not self.should_stop:
+                self.finished_success.emit(currencies_to_process)
+
+        except Exception as e:
+            self.finished_error.emit(f"Analysis error: {e}")
+
+    def stop(self):
+        """Request worker to stop."""
+        self.should_stop = True
+
+
 class ExchangeRateUpdateWorker(QThread):
     """Worker thread for updating and adding exchange rate records from yfinance."""
 

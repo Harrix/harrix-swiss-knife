@@ -95,15 +95,17 @@ lang: en
   - [⚙️ Method `_mark_exchange_rates_changed`](#%EF%B8%8F-method-_mark_exchange_rates_changed)
   - [⚙️ Method `_mark_transactions_changed`](#%EF%B8%8F-method-_mark_transactions_changed)
   - [⚙️ Method `_on_account_double_clicked`](#%EF%B8%8F-method-_on_account_double_clicked)
+  - [⚙️ Method `_on_analysis_finished_error`](#%EF%B8%8F-method-_on_analysis_finished_error)
+  - [⚙️ Method `_on_analysis_finished_success`](#%EF%B8%8F-method-_on_analysis_finished_success)
+  - [⚙️ Method `_on_analysis_progress_updated`](#%EF%B8%8F-method-_on_analysis_progress_updated)
   - [⚙️ Method `_on_autocomplete_selected`](#%EF%B8%8F-method-_on_autocomplete_selected)
+  - [⚙️ Method `_on_currency_analyzed`](#%EF%B8%8F-method-_on_currency_analyzed)
   - [⚙️ Method `_on_currency_started`](#%EF%B8%8F-method-_on_currency_started)
   - [⚙️ Method `_on_progress_updated`](#%EF%B8%8F-method-_on_progress_updated)
   - [⚙️ Method `_on_rate_added`](#%EF%B8%8F-method-_on_rate_added)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_on_update_finished_error`](#%EF%B8%8F-method-_on_update_finished_error)
-  - [⚙️ Method `_on_update_finished_error`](#%EF%B8%8F-method-_on_update_finished_error-1)
   - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success)
-  - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success-1)
   - [⚙️ Method `_populate_form_from_description`](#%EF%B8%8F-method-_populate_form_from_description)
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
@@ -116,6 +118,7 @@ lang: en
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
   - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
+  - [⚙️ Method `_start_exchange_rate_update`](#%EF%B8%8F-method-_start_exchange_rate_update)
   - [⚙️ Method `_transform_transaction_data`](#%EF%B8%8F-method-_transform_transaction_data)
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
@@ -179,8 +182,9 @@ class MainWindow(
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
 
-        # Initialize worker thread reference
+        # Initialize worker thread references
         self.exchange_rate_worker: ExchangeRateUpdateWorker | None = None
+        self.analysis_worker: ExchangeRateAnalysisWorker | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -361,9 +365,17 @@ class MainWindow(
             self.exchange_rate_worker.stop()
             self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
 
-        # Close progress dialog if open
+        # Stop analysis worker if running
+        if hasattr(self, "analysis_worker") and self.analysis_worker is not None and self.analysis_worker.isRunning():
+            self.analysis_worker.stop()
+            self.analysis_worker.wait(3000)  # Wait up to 3 seconds
+
+        # Close progress dialogs if open
         if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
             self.progress_dialog.close()
+
+        if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+            self.analysis_progress_dialog.close()
 
         # Dispose Models
         self._dispose_models()
@@ -1071,7 +1083,7 @@ class MainWindow(
             return
 
         try:
-            # Check if worker is already running (with proper initialization check)
+            # Check if worker is already running
             if (
                 hasattr(self, "exchange_rate_worker")
                 and self.exchange_rate_worker is not None
@@ -1089,166 +1101,74 @@ class MainWindow(
                 else:
                     return
 
+            # Check if analysis worker is already running
+            if (
+                hasattr(self, "analysis_worker")
+                and self.analysis_worker is not None
+                and self.analysis_worker.isRunning()
+            ):
+                reply = QMessageBox.question(
+                    self,
+                    "Analysis in Progress",
+                    "Exchange rate analysis is already running. Do you want to stop it and start a new one?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.analysis_worker.stop()
+                    self.analysis_worker.wait()
+                else:
+                    return
+
             # Get all currencies except USD (base currency)
             currencies = self.db_manager.get_currencies_except_usd()
             if not currencies:
                 QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
                 return
 
-            # Calculate which currencies need updates and missing records
-            currencies_to_process = []
+            # Get date range for analysis
             today = datetime.now().date()
-            today_str = today.strftime("%Y-%m-%d")
-
-            print(f"🔍 Checking which currencies need updates and missing records...")
-            print(f"📅 Today's date: {today}")
-
-            # Get the earliest transaction date to determine the start date for checking
             earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
             if earliest_transaction_date:
                 earliest_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
             else:
-                # If no transactions, start from 1 year ago
                 earliest_date = today - timedelta(days=365)
 
-            print(f"📅 Checking range: from {earliest_date} to {today}")
+            print(f"🔍 Starting analysis of exchange rates from {earliest_date} to {today}")
 
-            for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                print(f"🔍 Checking {currency_code}...")
-
-                # Get ALL missing dates in the entire range (not just after last record)
-                missing_dates = []
-
-                # Check each date in the range from earliest transaction to today
-                current_date = earliest_date
-                while current_date <= today:
-                    date_str = current_date.strftime("%Y-%m-%d")
-
-                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
-                        # Record is missing
-                        missing_dates.append(date_str)
-
-                    current_date += timedelta(days=1)
-
-                # Get the last two existing records for updates
-                last_two_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
-
-                # Only process if there are missing dates or records to update
-                if missing_dates or last_two_records:
-                    records_to_process = {"missing_dates": missing_dates, "existing_records": last_two_records}
-                    currencies_to_process.append((currency_id, currency_code, records_to_process))
-
-                    print(
-                        f"📊 {currency_code}: Will add {len(missing_dates)} missing records and update {len(last_two_records)} existing records"
-                    )
-                    if missing_dates:
-                        # Show sample of missing dates
-                        sample_size = min(10, len(missing_dates))
-                        sample_dates = missing_dates[:sample_size]
-                        print(f"    Sample missing dates: {', '.join(sample_dates)}")
-                        if len(missing_dates) > 10:
-                            print(f"    ... and {len(missing_dates) - 10} more dates")
-                        print(f"    Date range: {missing_dates[0]} to {missing_dates[-1]}")
-
-                    if last_two_records:
-                        print(f"    Will update records from: {[record[0] for record in last_two_records]}")
-                else:
-                    print(f"✅ {currency_code}: All records up to date")
-
-            # If no currencies need processing, inform user
-            if not currencies_to_process:
-                QMessageBox.information(
-                    self,
-                    "No Updates Needed",
-                    "All exchange rates are up to date.",
-                )
-                print(f"✅ All exchange rates are up to date.")
-                return
-
-            # Show summary and ask for confirmation
-            total_missing = sum(len(records["missing_dates"]) for _, _, records in currencies_to_process)
-            total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
-            currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
-
-            # Determine if this is initial setup or has significant gaps
-            has_significant_gaps = any(len(records["missing_dates"]) > 50 for _, _, records in currencies_to_process)
-
-            if has_significant_gaps:
-                message_title = "Exchange Rates Update with Historical Gaps"
-                message_text = (
-                    f"Found historical gaps in exchange rate data.\n"
-                    f"Found {len(currencies_to_process)} currencies to process:\n"
-                    f"{currencies_text}\n\n"
-                    f"Missing records to create: {total_missing}\n"
-                    f"Existing records to update: {total_updates}\n"
-                    f"Total operations: {total_missing + total_updates}\n\n"
-                    f"This may take several minutes to download historical data from yfinance.\n"
-                    f"Do you want to proceed?"
-                )
-            else:
-                message_title = "Update Exchange Rates"
-                message_text = (
-                    f"Found {len(currencies_to_process)} currencies to process:\n"
-                    f"{currencies_text}\n\n"
-                    f"Missing records to add: {total_missing}\n"
-                    f"Existing records to update: {total_updates}\n"
-                    f"Total operations: {total_missing + total_updates}\n\n"
-                    f"Do you want to proceed with downloading from yfinance?"
-                )
-
-            reply = QMessageBox.question(
-                self,
-                message_title,
-                message_text,
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            # Create and configure analysis progress dialog
+            self.analysis_progress_dialog = QMessageBox(self)
+            self.analysis_progress_dialog.setWindowTitle("Analyzing Exchange Rates")
+            self.analysis_progress_dialog.setText(
+                f"Analyzing {len(currencies)} currencies for missing exchange rates...\nThis may take a few moments..."
             )
+            self.analysis_progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.analysis_progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
-            if reply != QMessageBox.StandardButton.Yes:
-                return
+            # Connect cancel button for analysis
+            def cancel_analysis():
+                if hasattr(self, "analysis_worker") and self.analysis_worker is not None:
+                    self.analysis_worker.stop()
+                if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+                    self.analysis_progress_dialog.close()
 
-            # Create and configure progress dialog
-            self.progress_dialog = QMessageBox(self)
-            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
+            self.analysis_progress_dialog.buttonClicked.connect(lambda: cancel_analysis())
+            self.analysis_progress_dialog.show()
 
-            if has_significant_gaps:
-                self.progress_dialog.setText(
-                    f"Starting exchange rate update with gap filling for {len(currencies_to_process)} currencies from yfinance...\n"
-                    f"This may take several minutes for historical data."
-                )
-            else:
-                self.progress_dialog.setText(
-                    f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
-                )
+            # Create and start analysis worker thread
+            self.analysis_worker = ExchangeRateAnalysisWorker(self.db_manager, currencies, earliest_date, today)
 
-            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
-            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+            # Connect analysis signals
+            self.analysis_worker.progress_updated.connect(self._on_analysis_progress_updated)
+            self.analysis_worker.currency_analyzed.connect(self._on_currency_analyzed)
+            self.analysis_worker.finished_success.connect(self._on_analysis_finished_success)
+            self.analysis_worker.finished_error.connect(self._on_analysis_finished_error)
 
-            # Connect cancel button
-            def cancel_update():
-                if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker is not None:
-                    self.exchange_rate_worker.stop()
-                if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
-                    self.progress_dialog.close()
-
-            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
-            self.progress_dialog.show()
-
-            # Create and start worker thread
-            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)
-
-            # Connect signals
-            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
-            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
-            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
-            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
-            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
-
-            # Start the worker
-            self.exchange_rate_worker.start()
+            # Start the analysis worker
+            self.analysis_worker.start()
 
         except Exception as e:
-            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
-            print(f"❌ Exchange rate update error: {e}")
+            QMessageBox.critical(self, "Analysis Error", f"Failed to start exchange rate analysis: {e}")
+            print(f"❌ Exchange rate analysis error: {e}")
 
     def on_yesterday(self) -> None:
         """Set yesterday's date in the main date field."""
@@ -3015,6 +2935,88 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
 
+    def _on_analysis_finished_error(self, error_message: str):
+        """Handle analysis error completion."""
+        if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+            self.analysis_progress_dialog.close()
+
+        # Clean up analysis worker reference
+        if hasattr(self, "analysis_worker"):
+            self.analysis_worker = None
+
+        QMessageBox.critical(self, "Analysis Error", f"Failed to analyze exchange rates:\n{error_message}")
+        print(f"❌ {error_message}")
+
+    def _on_analysis_finished_success(self, currencies_to_process: list):
+        """Handle successful analysis completion and start actual update."""
+        # Close analysis dialog
+        if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+            self.analysis_progress_dialog.close()
+
+        # Clean up analysis worker reference
+        if hasattr(self, "analysis_worker"):
+            self.analysis_worker = None
+
+        # If no currencies need processing, inform user
+        if not currencies_to_process:
+            QMessageBox.information(
+                self,
+                "No Updates Needed",
+                "All exchange rates are up to date.",
+            )
+            print("✅ All exchange rates are up to date.")
+            return
+
+        # Show summary and ask for confirmation
+        total_missing = sum(len(records["missing_dates"]) for _, _, records in currencies_to_process)
+        total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
+        currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
+
+        # Determine if this has significant gaps
+        has_significant_gaps = any(len(records["missing_dates"]) > 50 for _, _, records in currencies_to_process)
+
+        if has_significant_gaps:
+            message_title = "Exchange Rates Update with Historical Gaps"
+            message_text = (
+                f"Found historical gaps in exchange rate data.\n"
+                f"Found {len(currencies_to_process)} currencies to process:\n"
+                f"{currencies_text}\n\n"
+                f"Missing records to create: {total_missing}\n"
+                f"Existing records to update: {total_updates}\n"
+                f"Total operations: {total_missing + total_updates}\n\n"
+                f"This may take several minutes to download historical data from yfinance.\n"
+                f"Do you want to proceed?"
+            )
+        else:
+            message_title = "Update Exchange Rates"
+            message_text = (
+                f"Found {len(currencies_to_process)} currencies to process:\n"
+                f"{currencies_text}\n\n"
+                f"Missing records to add: {total_missing}\n"
+                f"Existing records to update: {total_updates}\n"
+                f"Total operations: {total_missing + total_updates}\n\n"
+                f"Do you want to proceed with downloading from yfinance?"
+            )
+
+        reply = QMessageBox.question(
+            self,
+            message_title,
+            message_text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # Start the actual update process
+        self._start_exchange_rate_update(currencies_to_process, has_significant_gaps)
+
+    def _on_analysis_progress_updated(self, message: str):
+        """Handle analysis progress updates."""
+        print(message)
+        if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+            self.analysis_progress_dialog.setText(message)
+
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields."""
         if not text:
@@ -3029,6 +3031,10 @@ class MainWindow(
         # Set focus to amount field and select all text after a short delay
         # This ensures form population is complete before focusing
         QTimer.singleShot(100, self._focus_amount_and_select_text)
+
+    def _on_currency_analyzed(self, currency_code: str, missing_count: int, existing_count: int):
+        """Handle individual currency analysis completion."""
+        print(f"📊 {currency_code}: {missing_count} missing, {existing_count} to update")
 
     def _on_currency_started(self, currency_code: str):
         """Handle currency processing start."""
@@ -3084,14 +3090,6 @@ class MainWindow(
 
     def _on_update_finished_error(self, error_message: str):
         """Handle error completion."""
-        if hasattr(self, "progress_dialog"):
-            self.progress_dialog.close()
-
-        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
-        print(f"❌ {error_message}")
-
-    def _on_update_finished_error(self, error_message: str):
-        """Handle error completion."""
         if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
             self.progress_dialog.close()
 
@@ -3101,28 +3099,6 @@ class MainWindow(
 
         QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
         print(f"❌ {error_message}")
-
-    def _on_update_finished_success(self, processed_count: int, total_operations: int):
-        """Handle successful completion."""
-        if hasattr(self, "progress_dialog"):
-            self.progress_dialog.close()
-
-        if processed_count > 0:
-            message = f"Successfully completed exchange rate update:\n• Processed {processed_count} out of {total_operations} operations from yfinance"
-            QMessageBox.information(self, "Update Complete", message)
-
-            # Mark exchange rates as changed to trigger reload if tab is active
-            self._mark_exchange_rates_changed()
-            # If exchange rates tab is currently active, reload the data
-            current_tab_index = self.tabWidget.currentIndex()
-            if current_tab_index == 4:  # Exchange Rates tab
-                self.load_exchange_rates_table()
-        else:
-            QMessageBox.information(
-                self,
-                "Update Complete",
-                "No exchange rate records were processed.",
-            )
 
     def _on_update_finished_success(self, processed_count: int, total_operations: int):
         """Handle successful completion."""
@@ -3467,6 +3443,53 @@ class MainWindow(
         if action == export_action:
             self.on_export_csv()
 
+    def _start_exchange_rate_update(self, currencies_to_process: list, has_significant_gaps: bool):
+        """Start the actual exchange rate update process."""
+        try:
+            # Create and configure update progress dialog
+            self.progress_dialog = QMessageBox(self)
+            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
+
+            if has_significant_gaps:
+                self.progress_dialog.setText(
+                    f"Starting exchange rate update with gap filling for {len(currencies_to_process)} currencies from yfinance...\n"
+                    f"This may take several minutes for historical data."
+                )
+            else:
+                self.progress_dialog.setText(
+                    f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
+                )
+
+            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+
+            # Connect cancel button for update
+            def cancel_update():
+                if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker is not None:
+                    self.exchange_rate_worker.stop()
+                if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+                    self.progress_dialog.close()
+
+            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
+            self.progress_dialog.show()
+
+            # Create and start update worker thread
+            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)
+
+            # Connect update signals
+            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
+            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
+            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
+            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
+            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
+
+            # Start the update worker
+            self.exchange_rate_worker.start()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
+            print(f"❌ Exchange rate update error: {e}")
+
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors and daily totals.
 
@@ -3702,8 +3725,9 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
 
-        # Initialize worker thread reference
+        # Initialize worker thread references
         self.exchange_rate_worker: ExchangeRateUpdateWorker | None = None
+        self.analysis_worker: ExchangeRateAnalysisWorker | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -3923,9 +3947,17 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             self.exchange_rate_worker.stop()
             self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
 
-        # Close progress dialog if open
+        # Stop analysis worker if running
+        if hasattr(self, "analysis_worker") and self.analysis_worker is not None and self.analysis_worker.isRunning():
+            self.analysis_worker.stop()
+            self.analysis_worker.wait(3000)  # Wait up to 3 seconds
+
+        # Close progress dialogs if open
         if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
             self.progress_dialog.close()
+
+        if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+            self.analysis_progress_dialog.close()
 
         # Dispose Models
         self._dispose_models()
@@ -4946,7 +4978,7 @@ def on_update_exchange_rates(self) -> None:
             return
 
         try:
-            # Check if worker is already running (with proper initialization check)
+            # Check if worker is already running
             if (
                 hasattr(self, "exchange_rate_worker")
                 and self.exchange_rate_worker is not None
@@ -4964,166 +4996,74 @@ def on_update_exchange_rates(self) -> None:
                 else:
                     return
 
+            # Check if analysis worker is already running
+            if (
+                hasattr(self, "analysis_worker")
+                and self.analysis_worker is not None
+                and self.analysis_worker.isRunning()
+            ):
+                reply = QMessageBox.question(
+                    self,
+                    "Analysis in Progress",
+                    "Exchange rate analysis is already running. Do you want to stop it and start a new one?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.analysis_worker.stop()
+                    self.analysis_worker.wait()
+                else:
+                    return
+
             # Get all currencies except USD (base currency)
             currencies = self.db_manager.get_currencies_except_usd()
             if not currencies:
                 QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
                 return
 
-            # Calculate which currencies need updates and missing records
-            currencies_to_process = []
+            # Get date range for analysis
             today = datetime.now().date()
-            today_str = today.strftime("%Y-%m-%d")
-
-            print(f"🔍 Checking which currencies need updates and missing records...")
-            print(f"📅 Today's date: {today}")
-
-            # Get the earliest transaction date to determine the start date for checking
             earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
             if earliest_transaction_date:
                 earliest_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
             else:
-                # If no transactions, start from 1 year ago
                 earliest_date = today - timedelta(days=365)
 
-            print(f"📅 Checking range: from {earliest_date} to {today}")
+            print(f"🔍 Starting analysis of exchange rates from {earliest_date} to {today}")
 
-            for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                print(f"🔍 Checking {currency_code}...")
-
-                # Get ALL missing dates in the entire range (not just after last record)
-                missing_dates = []
-
-                # Check each date in the range from earliest transaction to today
-                current_date = earliest_date
-                while current_date <= today:
-                    date_str = current_date.strftime("%Y-%m-%d")
-
-                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
-                        # Record is missing
-                        missing_dates.append(date_str)
-
-                    current_date += timedelta(days=1)
-
-                # Get the last two existing records for updates
-                last_two_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
-
-                # Only process if there are missing dates or records to update
-                if missing_dates or last_two_records:
-                    records_to_process = {"missing_dates": missing_dates, "existing_records": last_two_records}
-                    currencies_to_process.append((currency_id, currency_code, records_to_process))
-
-                    print(
-                        f"📊 {currency_code}: Will add {len(missing_dates)} missing records and update {len(last_two_records)} existing records"
-                    )
-                    if missing_dates:
-                        # Show sample of missing dates
-                        sample_size = min(10, len(missing_dates))
-                        sample_dates = missing_dates[:sample_size]
-                        print(f"    Sample missing dates: {', '.join(sample_dates)}")
-                        if len(missing_dates) > 10:
-                            print(f"    ... and {len(missing_dates) - 10} more dates")
-                        print(f"    Date range: {missing_dates[0]} to {missing_dates[-1]}")
-
-                    if last_two_records:
-                        print(f"    Will update records from: {[record[0] for record in last_two_records]}")
-                else:
-                    print(f"✅ {currency_code}: All records up to date")
-
-            # If no currencies need processing, inform user
-            if not currencies_to_process:
-                QMessageBox.information(
-                    self,
-                    "No Updates Needed",
-                    "All exchange rates are up to date.",
-                )
-                print(f"✅ All exchange rates are up to date.")
-                return
-
-            # Show summary and ask for confirmation
-            total_missing = sum(len(records["missing_dates"]) for _, _, records in currencies_to_process)
-            total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
-            currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
-
-            # Determine if this is initial setup or has significant gaps
-            has_significant_gaps = any(len(records["missing_dates"]) > 50 for _, _, records in currencies_to_process)
-
-            if has_significant_gaps:
-                message_title = "Exchange Rates Update with Historical Gaps"
-                message_text = (
-                    f"Found historical gaps in exchange rate data.\n"
-                    f"Found {len(currencies_to_process)} currencies to process:\n"
-                    f"{currencies_text}\n\n"
-                    f"Missing records to create: {total_missing}\n"
-                    f"Existing records to update: {total_updates}\n"
-                    f"Total operations: {total_missing + total_updates}\n\n"
-                    f"This may take several minutes to download historical data from yfinance.\n"
-                    f"Do you want to proceed?"
-                )
-            else:
-                message_title = "Update Exchange Rates"
-                message_text = (
-                    f"Found {len(currencies_to_process)} currencies to process:\n"
-                    f"{currencies_text}\n\n"
-                    f"Missing records to add: {total_missing}\n"
-                    f"Existing records to update: {total_updates}\n"
-                    f"Total operations: {total_missing + total_updates}\n\n"
-                    f"Do you want to proceed with downloading from yfinance?"
-                )
-
-            reply = QMessageBox.question(
-                self,
-                message_title,
-                message_text,
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            # Create and configure analysis progress dialog
+            self.analysis_progress_dialog = QMessageBox(self)
+            self.analysis_progress_dialog.setWindowTitle("Analyzing Exchange Rates")
+            self.analysis_progress_dialog.setText(
+                f"Analyzing {len(currencies)} currencies for missing exchange rates...\nThis may take a few moments..."
             )
+            self.analysis_progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.analysis_progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
-            if reply != QMessageBox.StandardButton.Yes:
-                return
+            # Connect cancel button for analysis
+            def cancel_analysis():
+                if hasattr(self, "analysis_worker") and self.analysis_worker is not None:
+                    self.analysis_worker.stop()
+                if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+                    self.analysis_progress_dialog.close()
 
-            # Create and configure progress dialog
-            self.progress_dialog = QMessageBox(self)
-            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
+            self.analysis_progress_dialog.buttonClicked.connect(lambda: cancel_analysis())
+            self.analysis_progress_dialog.show()
 
-            if has_significant_gaps:
-                self.progress_dialog.setText(
-                    f"Starting exchange rate update with gap filling for {len(currencies_to_process)} currencies from yfinance...\n"
-                    f"This may take several minutes for historical data."
-                )
-            else:
-                self.progress_dialog.setText(
-                    f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
-                )
+            # Create and start analysis worker thread
+            self.analysis_worker = ExchangeRateAnalysisWorker(self.db_manager, currencies, earliest_date, today)
 
-            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
-            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+            # Connect analysis signals
+            self.analysis_worker.progress_updated.connect(self._on_analysis_progress_updated)
+            self.analysis_worker.currency_analyzed.connect(self._on_currency_analyzed)
+            self.analysis_worker.finished_success.connect(self._on_analysis_finished_success)
+            self.analysis_worker.finished_error.connect(self._on_analysis_finished_error)
 
-            # Connect cancel button
-            def cancel_update():
-                if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker is not None:
-                    self.exchange_rate_worker.stop()
-                if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
-                    self.progress_dialog.close()
-
-            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
-            self.progress_dialog.show()
-
-            # Create and start worker thread
-            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)
-
-            # Connect signals
-            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
-            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
-            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
-            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
-            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
-
-            # Start the worker
-            self.exchange_rate_worker.start()
+            # Start the analysis worker
+            self.analysis_worker.start()
 
         except Exception as e:
-            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
-            print(f"❌ Exchange rate update error: {e}")
+            QMessageBox.critical(self, "Analysis Error", f"Failed to start exchange rate analysis: {e}")
+            print(f"❌ Exchange rate analysis error: {e}")
 ```
 
 </details>
@@ -7632,6 +7572,130 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
 
 </details>
 
+### ⚙️ Method `_on_analysis_finished_error`
+
+```python
+def _on_analysis_finished_error(self, error_message: str)
+```
+
+Handle analysis error completion.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_analysis_finished_error(self, error_message: str):
+        if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+            self.analysis_progress_dialog.close()
+
+        # Clean up analysis worker reference
+        if hasattr(self, "analysis_worker"):
+            self.analysis_worker = None
+
+        QMessageBox.critical(self, "Analysis Error", f"Failed to analyze exchange rates:\n{error_message}")
+        print(f"❌ {error_message}")
+```
+
+</details>
+
+### ⚙️ Method `_on_analysis_finished_success`
+
+```python
+def _on_analysis_finished_success(self, currencies_to_process: list)
+```
+
+Handle successful analysis completion and start actual update.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_analysis_finished_success(self, currencies_to_process: list):
+        # Close analysis dialog
+        if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+            self.analysis_progress_dialog.close()
+
+        # Clean up analysis worker reference
+        if hasattr(self, "analysis_worker"):
+            self.analysis_worker = None
+
+        # If no currencies need processing, inform user
+        if not currencies_to_process:
+            QMessageBox.information(
+                self,
+                "No Updates Needed",
+                "All exchange rates are up to date.",
+            )
+            print("✅ All exchange rates are up to date.")
+            return
+
+        # Show summary and ask for confirmation
+        total_missing = sum(len(records["missing_dates"]) for _, _, records in currencies_to_process)
+        total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
+        currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
+
+        # Determine if this has significant gaps
+        has_significant_gaps = any(len(records["missing_dates"]) > 50 for _, _, records in currencies_to_process)
+
+        if has_significant_gaps:
+            message_title = "Exchange Rates Update with Historical Gaps"
+            message_text = (
+                f"Found historical gaps in exchange rate data.\n"
+                f"Found {len(currencies_to_process)} currencies to process:\n"
+                f"{currencies_text}\n\n"
+                f"Missing records to create: {total_missing}\n"
+                f"Existing records to update: {total_updates}\n"
+                f"Total operations: {total_missing + total_updates}\n\n"
+                f"This may take several minutes to download historical data from yfinance.\n"
+                f"Do you want to proceed?"
+            )
+        else:
+            message_title = "Update Exchange Rates"
+            message_text = (
+                f"Found {len(currencies_to_process)} currencies to process:\n"
+                f"{currencies_text}\n\n"
+                f"Missing records to add: {total_missing}\n"
+                f"Existing records to update: {total_updates}\n"
+                f"Total operations: {total_missing + total_updates}\n\n"
+                f"Do you want to proceed with downloading from yfinance?"
+            )
+
+        reply = QMessageBox.question(
+            self,
+            message_title,
+            message_text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # Start the actual update process
+        self._start_exchange_rate_update(currencies_to_process, has_significant_gaps)
+```
+
+</details>
+
+### ⚙️ Method `_on_analysis_progress_updated`
+
+```python
+def _on_analysis_progress_updated(self, message: str)
+```
+
+Handle analysis progress updates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_analysis_progress_updated(self, message: str):
+        print(message)
+        if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
+            self.analysis_progress_dialog.setText(message)
+```
+
+</details>
+
 ### ⚙️ Method `_on_autocomplete_selected`
 
 ```python
@@ -7657,6 +7721,24 @@ def _on_autocomplete_selected(self, text: str) -> None:
         # Set focus to amount field and select all text after a short delay
         # This ensures form population is complete before focusing
         QTimer.singleShot(100, self._focus_amount_and_select_text)
+```
+
+</details>
+
+### ⚙️ Method `_on_currency_analyzed`
+
+```python
+def _on_currency_analyzed(self, currency_code: str, missing_count: int, existing_count: int)
+```
+
+Handle individual currency analysis completion.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_currency_analyzed(self, currency_code: str, missing_count: int, existing_count: int):
+        print(f"📊 {currency_code}: {missing_count} missing, {existing_count} to update")
 ```
 
 </details>
@@ -7780,28 +7862,6 @@ Handle error completion.
 
 ```python
 def _on_update_finished_error(self, error_message: str):
-        if hasattr(self, "progress_dialog"):
-            self.progress_dialog.close()
-
-        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
-        print(f"❌ {error_message}")
-```
-
-</details>
-
-### ⚙️ Method `_on_update_finished_error`
-
-```python
-def _on_update_finished_error(self, error_message: str)
-```
-
-Handle error completion.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_update_finished_error(self, error_message: str):
         if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
             self.progress_dialog.close()
 
@@ -7811,42 +7871,6 @@ def _on_update_finished_error(self, error_message: str):
 
         QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
         print(f"❌ {error_message}")
-```
-
-</details>
-
-### ⚙️ Method `_on_update_finished_success`
-
-```python
-def _on_update_finished_success(self, processed_count: int, total_operations: int)
-```
-
-Handle successful completion.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_update_finished_success(self, processed_count: int, total_operations: int):
-        if hasattr(self, "progress_dialog"):
-            self.progress_dialog.close()
-
-        if processed_count > 0:
-            message = f"Successfully completed exchange rate update:\n• Processed {processed_count} out of {total_operations} operations from yfinance"
-            QMessageBox.information(self, "Update Complete", message)
-
-            # Mark exchange rates as changed to trigger reload if tab is active
-            self._mark_exchange_rates_changed()
-            # If exchange rates tab is currently active, reload the data
-            current_tab_index = self.tabWidget.currentIndex()
-            if current_tab_index == 4:  # Exchange Rates tab
-                self.load_exchange_rates_table()
-        else:
-            QMessageBox.information(
-                self,
-                "Update Complete",
-                "No exchange rate records were processed.",
-            )
 ```
 
 </details>
@@ -8364,6 +8388,67 @@ def _show_transactions_context_menu(self, position) -> None:
 
         if action == export_action:
             self.on_export_csv()
+```
+
+</details>
+
+### ⚙️ Method `_start_exchange_rate_update`
+
+```python
+def _start_exchange_rate_update(self, currencies_to_process: list, has_significant_gaps: bool)
+```
+
+Start the actual exchange rate update process.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _start_exchange_rate_update(self, currencies_to_process: list, has_significant_gaps: bool):
+        try:
+            # Create and configure update progress dialog
+            self.progress_dialog = QMessageBox(self)
+            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
+
+            if has_significant_gaps:
+                self.progress_dialog.setText(
+                    f"Starting exchange rate update with gap filling for {len(currencies_to_process)} currencies from yfinance...\n"
+                    f"This may take several minutes for historical data."
+                )
+            else:
+                self.progress_dialog.setText(
+                    f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
+                )
+
+            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+
+            # Connect cancel button for update
+            def cancel_update():
+                if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker is not None:
+                    self.exchange_rate_worker.stop()
+                if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+                    self.progress_dialog.close()
+
+            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
+            self.progress_dialog.show()
+
+            # Create and start update worker thread
+            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)
+
+            # Connect update signals
+            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
+            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
+            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
+            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
+            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
+
+            # Start the update worker
+            self.exchange_rate_worker.start()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
+            print(f"❌ Exchange rate update error: {e}")
 ```
 
 </details>
