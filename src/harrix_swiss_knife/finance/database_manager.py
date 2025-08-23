@@ -2145,6 +2145,67 @@ class DatabaseManager:
             result.append(row)
         return result
 
+    def get_currency_exchange_rate_by_date(self, currency_id: int, date: str) -> float:
+        """Get exchange rate for a specific currency on a specific date.
+
+        Args:
+            currency_id (int): Currency ID.
+            date (str): Date in YYYY-MM-DD format.
+
+        Returns:
+            float: Exchange rate (USD to currency) or 1.0 if not found.
+        """
+        try:
+            # Check if currency is USD
+            usd_currency = self.get_currency_by_code("USD")
+            if usd_currency and currency_id == usd_currency[0]:
+                return 1.0
+
+            # Query database for the specific date
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency = :currency_id AND date = :date
+                LIMIT 1
+            """
+            params = {"currency_id": currency_id, "date": date}
+
+            rows = self.get_rows(query, params)
+            if rows and rows[0][0] is not None and rows[0][0] != "":
+                try:
+                    return float(rows[0][0])
+                except (ValueError, TypeError):
+                    return 1.0
+
+            return 1.0
+        except Exception as e:
+            print(f"Error getting currency exchange rate by date: {e}")
+            return 1.0
+
+    def set_default_currency(self, currency_code: str) -> bool:
+        """Set the default currency.
+
+        Args:
+
+        - `currency_code` (`str`): Currency code to set as default.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        # First try to update existing setting
+        update_query = "UPDATE settings SET value = :code WHERE key = 'default_currency'"
+        if self.execute_simple_query(update_query, {"code": currency_code}):
+            # Check if any rows were affected by checking if the setting exists
+            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'default_currency'"
+            rows = self.get_rows(check_query)
+            if rows and rows[0][0] > 0:
+                return True
+
+        # If update didn't affect any rows, insert new setting
+        insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
+        return self.execute_simple_query(insert_query, {"code": currency_code})
+
 
 def _safe_identifier(identifier: str) -> str:
     """Return `identifier` unchanged if it is a valid SQL identifier.

@@ -1758,6 +1758,10 @@ class MainWindow(
         self.dateEdit_exchange_rates_from.dateChanged.connect(self.on_exchange_rates_update)
         self.dateEdit_exchange_rates_to.dateChanged.connect(self.on_exchange_rates_update)
 
+        # Exchange item update signals
+        self.comboBox_exchange_item_update.currentIndexChanged.connect(self.on_exchange_item_update_changed)
+        self.dateEdit_exchange_item_update.dateChanged.connect(self.on_exchange_item_update_changed)
+
         # Report signals
         self.pushButton_generate_report.clicked.connect(self.on_generate_report)
 
@@ -3505,6 +3509,9 @@ class MainWindow(
             # Set date range
             self._set_exchange_rates_date_range()
 
+            # Update exchange rate display
+            self.on_exchange_item_update_changed()
+
             # Mark that initial setup is complete
             self._exchange_rates_initialized = True
 
@@ -3890,6 +3897,37 @@ class MainWindow(
             return False
 
         return True
+
+    def on_exchange_item_update_changed(self) -> None:
+        """Update exchange rate in doubleSpinBox_exchange_item_update when currency or date changes."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get selected currency ID
+            currency_index = self.comboBox_exchange_item_update.currentIndex()
+            if currency_index < 0:
+                self.doubleSpinBox_exchange_item_update.setValue(0.0)
+                return
+
+            currency_id = self.comboBox_exchange_item_update.itemData(currency_index)
+            if currency_id is None:
+                self.doubleSpinBox_exchange_item_update.setValue(0.0)
+                return
+
+            # Get selected date
+            selected_date = self.dateEdit_exchange_item_update.date()
+            date_str = selected_date.toString("yyyy-MM-dd")
+
+            # Get exchange rate from database
+            exchange_rate = self.db_manager.get_currency_exchange_rate_by_date(currency_id, date_str)
+
+            # Update the doubleSpinBox
+            self.doubleSpinBox_exchange_item_update.setValue(exchange_rate)
+
+        except Exception as e:
+            print(f"Error updating exchange item update rate: {e}")
+            self.doubleSpinBox_exchange_item_update.setValue(0.0)
 
 
 if __name__ == "__main__":
