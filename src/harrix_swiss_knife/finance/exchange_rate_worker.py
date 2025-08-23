@@ -10,6 +10,357 @@ from datetime import datetime, timedelta
 from PySide6.QtCore import QThread, Signal
 
 
+class AutoExchangeRateUpdateWorker(QThread):
+    """Worker thread for automatic exchange rate updates on startup."""
+
+    # Signals
+    progress_updated = Signal(str)  # Progress message
+    finished_success = Signal(int)  # Total processed count
+    finished_error = Signal(str)  # Error message
+
+    def __init__(self, db_manager):
+        super().__init__()
+        self.db_manager = db_manager
+        self.should_stop = False
+
+        # Cache for working tickers
+        self.working_tickers = {}
+
+    def run(self):
+        """Main worker execution for automatic updates."""
+        try:
+            from datetime import datetime, timedelta
+
+            import pandas as pd
+            import yfinance as yf
+
+            print("🔄 Starting automatic exchange rate update...")
+
+            # Get last update date
+            last_update_date = self.db_manager.get_last_exchange_rates_update_date()
+            if not last_update_date:
+                print("⚠️ No last update date found, skipping automatic update")
+                self.finished_success.emit(0)
+                return
+
+            # Calculate date range for updates
+            last_update = datetime.strptime(last_update_date, "%Y-%m-%d").date()
+            today = datetime.now().date()
+
+            # Only update if there's at least one day gap
+            if today <= last_update:
+                print(f"✅ Exchange rates are up to date (last update: {last_update_date})")
+                self.finished_success.emit(0)
+                return
+
+            start_date = last_update + timedelta(days=1)
+            print(f"📅 Updating exchange rates from {start_date} to {today}")
+
+            # Get currencies to update (excluding USD)
+            currencies = self.db_manager.get_currencies_except_usd()
+            if not currencies:
+                print("⚠️ No currencies found for update")
+                self.finished_success.emit(0)
+                return
+
+            total_processed = 0
+
+            # Clean invalid exchange rates first
+            print("🧹 Cleaning invalid exchange rates...")
+            cleaned_count = self.db_manager.clean_invalid_exchange_rates()
+            if cleaned_count > 0:
+                print(f"🧹 Cleaned {cleaned_count} invalid records")
+
+            def get_working_ticker_for_currency(currency_code: str) -> tuple[str, bool] | None:
+                """Find and cache the working ticker for a currency."""
+                if currency_code in self.working_tickers:
+                    return self.working_tickers[currency_code]
+
+                # Predefined ticker formats for common currencies
+                predefined_tickers = {
+                    "RUB": {"primary": ["RUBUSD=X", "RUB=X"], "inverse": ["USDRUB=X", "USD/RUB=X"]},
+                    "EUR": {"primary": ["EURUSD=X", "EUR=X"], "inverse": ["USDEUR=X", "USD/EUR=X"]},
+                    "GBP": {"primary": ["GBPUSD=X", "GBP=X"], "inverse": ["USDGBP=X", "USD/GBP=X"]},
+                    "JPY": {"primary": ["JPYUSD=X", "JPY=X"], "inverse": ["USDJPY=X", "USD/JPY=X"]},
+                    "CNY": {"primary": ["CNYUSD=X", "CNY=X"], "inverse": ["USDCNY=X", "USD/CNY=X"]},
+                    "CHF": {"primary": ["CHFUSD=X", "CHF=X"], "inverse": ["USDCHF=X", "USD/CHF=X"]},
+                    "CAD": {"primary": ["CADUSD=X", "CAD=X"], "inverse": ["USDCAD=X", "USD/CAD=X"]},
+                    "AUD": {"primary": ["AUDUSD=X", "AUD=X"], "inverse": ["USDAUD=X", "USD/AUD=X"]},
+                    "NZD": {"primary": ["NZDUSD=X", "NZD=X"], "inverse": ["USDNZD=X", "USD/NZD=X"]},
+                    "SEK": {"primary": ["SEKUSD=X", "SEK=X"], "inverse": ["USDSEK=X", "USD/SEK=X"]},
+                    "NOK": {"primary": ["NOKUSD=X", "NOK=X"], "inverse": ["USDNOK=X", "USD/NOK=X"]},
+                    "DKK": {"primary": ["DKKUSD=X", "DKK=X"], "inverse": ["USDDKK=X", "USD/DKK=X"]},
+                }
+
+                # Get predefined tickers or generate generic ones
+                if currency_code in predefined_tickers:
+                    primary_tickers = predefined_tickers[currency_code]["primary"]
+                    inverse_tickers = predefined_tickers[currency_code]["inverse"]
+                else:
+                    primary_tickers = [f"{currency_code}USD=X", f"{currency_code}=X"]
+                    inverse_tickers = [f"USD{currency_code}=X", f"USD/{currency_code}=X"]
+
+                print(f"🔍 Finding working ticker for {currency_code}...")
+
+                # Test a recent date to find working ticker
+                test_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+                test_start = test_date
+                test_end = (datetime.strptime(test_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+
+                # Try primary tickers first
+                for ticker_symbol in primary_tickers:
+                    if self.should_stop:
+                        return None
+
+                    try:
+                        ticker = yf.Ticker(ticker_symbol)
+                        hist = ticker.history(start=test_start, end=test_end, interval="1d")
+
+                        if not hist.empty and not pd.isna(hist.iloc[0]["Close"]) and hist.iloc[0]["Close"] > 0:
+                            print(f"✅ Found working ticker for {currency_code}: {ticker_symbol}")
+                            result = (ticker_symbol, False)
+                            self.working_tickers[currency_code] = result
+                            return result
+
+                    except Exception:
+                        continue
+
+                # Try inverse tickers if primary failed
+                for ticker_symbol in inverse_tickers:
+                    if self.should_stop:
+                        return None
+
+                    try:
+                        ticker = yf.Ticker(ticker_symbol)
+                        hist = ticker.history(start=test_start, end=test_end, interval="1d")
+
+                        if not hist.empty and not pd.isna(hist.iloc[0]["Close"]) and hist.iloc[0]["Close"] > 0:
+                            print(f"✅ Found working inverse ticker for {currency_code}: {ticker_symbol}")
+                            result = (ticker_symbol, True)
+                            self.working_tickers[currency_code] = result
+                            return result
+
+                    except Exception:
+                        continue
+
+                print(f"❌ No working ticker found for {currency_code}")
+                self.working_tickers[currency_code] = None
+                return None
+
+            def get_bulk_exchange_rates(currency_code: str, dates: list[str]) -> dict[str, float]:
+                """Get exchange rates for multiple dates at once."""
+                if not dates:
+                    return {}
+
+                ticker_info = get_working_ticker_for_currency(currency_code)
+                if not ticker_info:
+                    return {}
+
+                ticker_symbol, is_inverse = ticker_info
+
+                try:
+                    start_date = min(dates)
+                    end_date = max(dates)
+
+                    start_dt = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=2)
+                    end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=2)
+
+                    start_str = start_dt.strftime("%Y-%m-%d")
+                    end_str = end_dt.strftime("%Y-%m-%d")
+
+                    print(f"📥 Downloading data for {currency_code} from {start_date} to {end_date}")
+
+                    ticker = yf.Ticker(ticker_symbol)
+                    hist = ticker.history(start=start_str, end=end_str, interval="1d")
+
+                    if hist.empty:
+                        return {}
+
+                    rates = {}
+                    for date_str in dates:
+                        if self.should_stop:
+                            break
+
+                        try:
+                            target_date_naive = datetime.strptime(date_str, "%Y-%m-%d")
+                            target_date = pd.Timestamp(target_date_naive)
+
+                            hist_index_tz_naive = hist.index
+                            if hasattr(hist_index_tz_naive, "tz") and hist_index_tz_naive.tz is not None:
+                                hist_index_tz_naive = hist_index_tz_naive.tz_localize(None)
+
+                            if target_date in hist_index_tz_naive:
+                                close_price = hist.loc[hist_index_tz_naive == target_date]["Close"].iloc[0]
+                            else:
+                                if len(hist_index_tz_naive) > 0:
+                                    date_diffs = abs(hist_index_tz_naive - target_date)
+                                    closest_idx = date_diffs.argmin()
+                                    close_price = hist.iloc[closest_idx]["Close"]
+                                else:
+                                    continue
+
+                            if pd.isna(close_price) or close_price <= 0:
+                                continue
+
+                            rate = float(close_price)
+
+                            if is_inverse:
+                                currency_to_usd_rate = 1.0 / rate
+                                rates[date_str] = currency_to_usd_rate
+                            else:
+                                rates[date_str] = rate
+
+                        except Exception:
+                            continue
+
+                    return rates
+
+                except Exception:
+                    return {}
+
+            # Process each currency
+            for currency_id, currency_code, _, _ in currencies:
+                if self.should_stop:
+                    break
+
+                print(f"📈 Processing {currency_code}...")
+
+                # Get missing dates from last update to today
+                missing_dates = []
+                current_date = start_date
+
+                while current_date <= today:
+                    date_str = current_date.strftime("%Y-%m-%d")
+                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                        missing_dates.append(date_str)
+                    current_date += timedelta(days=1)
+
+                if not missing_dates:
+                    print(f"✅ {currency_code}: No missing dates")
+                    continue
+
+                print(f"📊 {currency_code}: Found {len(missing_dates)} missing dates")
+
+                # Get bulk rates
+                bulk_rates = get_bulk_exchange_rates(currency_code, missing_dates)
+
+                # Prepare batch data for insertion
+                batch_insert_data = []
+                for date_str in missing_dates:
+                    if self.should_stop:
+                        break
+
+                    new_rate = bulk_rates.get(date_str)
+
+                    # Try fallback rate for weekends/holidays
+                    if new_rate is None:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                        if date_obj.weekday() >= 5:  # Weekend
+                            # Get most recent rate
+                            query = """
+                                SELECT rate FROM exchange_rates
+                                WHERE _id_currency = :currency_id AND date < :date
+                                ORDER BY date DESC LIMIT 1
+                            """
+                            rows = self.db_manager.get_rows(query, {"currency_id": currency_id, "date": date_str})
+                            if rows and rows[0][0]:
+                                new_rate = float(rows[0][0])
+                                print(f"📊 Using fallback rate for {currency_code} on {date_str}: {new_rate:.6f}")
+
+                    if new_rate is not None and new_rate > 0:
+                        batch_insert_data.append((currency_id, new_rate, date_str))
+
+                # Execute batch insert
+                if batch_insert_data:
+                    inserted_count = self.db_manager.add_exchange_rates_batch(batch_insert_data)
+                    total_processed += inserted_count
+                    print(f"✅ {currency_code}: Inserted {inserted_count}/{len(batch_insert_data)} rates")
+
+            # Fill missing rates with previous rates (gap filling)
+            if not self.should_stop:
+                print("🔄 Filling missing exchange rates with previous values...")
+                filled_count = self._fill_missing_rates_from_date(start_date, today)
+                if filled_count > 0:
+                    total_processed += filled_count
+                    print(f"✅ Filled {filled_count} missing rates")
+
+            # Update last update date
+            if not self.should_stop and total_processed > 0:
+                today_str = today.strftime("%Y-%m-%d")
+                if self.db_manager.set_last_exchange_rates_update_date(today_str):
+                    print(f"📅 Updated last update date to {today_str}")
+
+                self.finished_success.emit(total_processed)
+            else:
+                self.finished_success.emit(0)
+
+        except Exception as e:
+            error_msg = f"Automatic exchange rate update error: {e}"
+            print(f"❌ {error_msg}")
+            self.finished_error.emit(error_msg)
+
+    def stop(self):
+        """Request worker to stop."""
+        self.should_stop = True
+
+    def _fill_missing_rates_from_date(self, start_date, end_date) -> int:
+        """Fill missing exchange rates from start_date to end_date."""
+        from datetime import timedelta
+
+        currencies = self.db_manager.get_currencies_except_usd()
+        total_filled = 0
+
+        for currency_id, currency_code, _, _ in currencies:
+            if self.should_stop:
+                break
+
+            # Get all existing rates for this currency in the date range
+            query = """
+                SELECT date, rate FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                AND date BETWEEN :start_date AND :end_date
+                ORDER BY date ASC
+            """
+            rows = self.db_manager.get_rows(
+                query,
+                {
+                    "currency_id": currency_id,
+                    "start_date": start_date.strftime("%Y-%m-%d"),
+                    "end_date": end_date.strftime("%Y-%m-%d"),
+                },
+            )
+
+            if not rows:
+                continue
+
+            existing_rates = {row[0]: row[1] for row in rows}
+
+            # Fill missing dates
+            current_date = start_date
+            last_known_rate = None
+            currency_filled = 0
+
+            while current_date <= end_date:
+                if self.should_stop:
+                    break
+
+                date_str = current_date.strftime("%Y-%m-%d")
+
+                if date_str in existing_rates:
+                    last_known_rate = existing_rates[date_str]
+                elif last_known_rate is not None:
+                    if self.db_manager.add_exchange_rate(currency_id, last_known_rate, date_str):
+                        currency_filled += 1
+                        total_filled += 1
+
+                current_date += timedelta(days=1)
+
+            if currency_filled > 0:
+                print(f"📊 {currency_code}: Filled {currency_filled} gaps")
+
+        return total_filled
+
+
 class ExchangeRateAnalysisWorker(QThread):
     """Worker thread for analyzing missing exchange rate records."""
 

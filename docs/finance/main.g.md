@@ -98,6 +98,9 @@ lang: en
   - [⚙️ Method `_on_analysis_finished_error`](#%EF%B8%8F-method-_on_analysis_finished_error)
   - [⚙️ Method `_on_analysis_finished_success`](#%EF%B8%8F-method-_on_analysis_finished_success)
   - [⚙️ Method `_on_analysis_progress_updated`](#%EF%B8%8F-method-_on_analysis_progress_updated)
+  - [⚙️ Method `_on_auto_update_finished_error`](#%EF%B8%8F-method-_on_auto_update_finished_error)
+  - [⚙️ Method `_on_auto_update_finished_success`](#%EF%B8%8F-method-_on_auto_update_finished_success)
+  - [⚙️ Method `_on_auto_update_progress`](#%EF%B8%8F-method-_on_auto_update_progress)
   - [⚙️ Method `_on_autocomplete_selected`](#%EF%B8%8F-method-_on_autocomplete_selected)
   - [⚙️ Method `_on_currency_analyzed`](#%EF%B8%8F-method-_on_currency_analyzed)
   - [⚙️ Method `_on_currency_started`](#%EF%B8%8F-method-_on_currency_started)
@@ -118,6 +121,7 @@ lang: en
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
   - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
+  - [⚙️ Method `_start_automatic_exchange_rate_update`](#%EF%B8%8F-method-_start_automatic_exchange_rate_update)
   - [⚙️ Method `_start_exchange_rate_update`](#%EF%B8%8F-method-_start_exchange_rate_update)
   - [⚙️ Method `_transform_transaction_data`](#%EF%B8%8F-method-_transform_transaction_data)
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
@@ -185,6 +189,7 @@ class MainWindow(
         # Initialize worker thread references
         self.exchange_rate_worker: ExchangeRateUpdateWorker | None = None
         self.analysis_worker: ExchangeRateAnalysisWorker | None = None
+        self.auto_update_worker: AutoExchangeRateUpdateWorker | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -348,7 +353,7 @@ class MainWindow(
         # Reconnect auto-save signals for the updated table
         self._connect_table_auto_save_signals()
 
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle application close event.
 
         Args:
@@ -357,18 +362,21 @@ class MainWindow(
 
         """
         # Stop any running worker threads
-        if (
-            hasattr(self, "exchange_rate_worker")
-            and self.exchange_rate_worker is not None
-            and self.exchange_rate_worker.isRunning()
-        ):
-            self.exchange_rate_worker.stop()
-            self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
+        workers_to_stop = [
+            ("exchange_rate_worker", "Exchange rate worker"),
+            ("analysis_worker", "Analysis worker"),
+            ("auto_update_worker", "Auto update worker"),
+        ]
 
-        # Stop analysis worker if running
-        if hasattr(self, "analysis_worker") and self.analysis_worker is not None and self.analysis_worker.isRunning():
-            self.analysis_worker.stop()
-            self.analysis_worker.wait(3000)  # Wait up to 3 seconds
+        for worker_attr, worker_name in workers_to_stop:
+            if (
+                hasattr(self, worker_attr)
+                and getattr(self, worker_attr) is not None
+                and getattr(self, worker_attr).isRunning()
+            ):
+                print(f"Stopping {worker_name}...")
+                getattr(self, worker_attr).stop()
+                getattr(self, worker_attr).wait(3000)  # Wait up to 3 seconds
 
         # Close progress dialogs if open
         if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
@@ -2601,6 +2609,11 @@ class MainWindow(
         # Setup exchange rates controls
         self._setup_exchange_rates_controls()
 
+        # Start automatic exchange rate update (добавьте эту строку)
+        QTimer.singleShot(
+            1000, self._start_automatic_exchange_rate_update
+        )  # Запуск через 1 секунду после инициализации
+
     def _load_accounts_table(self) -> None:
         """Load accounts table."""
         accounts_data = self.db_manager.get_all_accounts()
@@ -3016,6 +3029,37 @@ class MainWindow(
         print(message)
         if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
             self.analysis_progress_dialog.setText(message)
+
+    def _on_auto_update_finished_error(self, error_message: str):
+        """Handle auto update error completion."""
+        # Clean up worker reference
+        if hasattr(self, "auto_update_worker"):
+            self.auto_update_worker = None
+
+        print(f"❌ Automatic exchange rate update failed: {error_message}")
+
+    def _on_auto_update_finished_success(self, processed_count: int):
+        """Handle successful auto update completion."""
+        # Clean up worker reference
+        if hasattr(self, "auto_update_worker"):
+            self.auto_update_worker = None
+
+        if processed_count > 0:
+            print(f"✅ Automatic exchange rate update completed: {processed_count} records processed")
+
+            # Mark exchange rates as changed to trigger reload if tab is active
+            self._mark_exchange_rates_changed()
+
+            # If exchange rates tab is currently active, reload the data
+            current_tab_index = self.tabWidget.currentIndex()
+            if current_tab_index == 4:  # Exchange Rates tab
+                self.load_exchange_rates_table()
+        else:
+            print("✅ Automatic exchange rate update completed: No updates needed")
+
+    def _on_auto_update_progress(self, message: str):
+        """Handle auto update progress messages."""
+        print(message)
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields."""
@@ -3443,6 +3487,39 @@ class MainWindow(
         if action == export_action:
             self.on_export_csv()
 
+    def _start_automatic_exchange_rate_update(self) -> None:
+        """Start automatic exchange rate update on startup."""
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Check if auto update worker is already running
+            if (
+                hasattr(self, "auto_update_worker")
+                and self.auto_update_worker is not None
+                and self.auto_update_worker.isRunning()
+            ):
+                return
+
+            print("🚀 Starting automatic exchange rate update...")
+
+            # Create and start auto update worker thread
+            self.auto_update_worker = AutoExchangeRateUpdateWorker(self.db_manager)
+
+            # Connect signals
+            self.auto_update_worker.progress_updated.connect(self._on_auto_update_progress)
+            self.auto_update_worker.finished_success.connect(self._on_auto_update_finished_success)
+            self.auto_update_worker.finished_error.connect(self._on_auto_update_finished_error)
+
+            # Start the worker
+            self.auto_update_worker.start()
+
+        except Exception as e:
+            print(f"❌ Failed to start automatic exchange rate update: {e}")
+
     def _start_exchange_rate_update(self, currencies_to_process: list, has_significant_gaps: bool):
         """Start the actual exchange rate update process."""
         try:
@@ -3728,6 +3805,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Initialize worker thread references
         self.exchange_rate_worker: ExchangeRateUpdateWorker | None = None
         self.analysis_worker: ExchangeRateAnalysisWorker | None = None
+        self.auto_update_worker: AutoExchangeRateUpdateWorker | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -3937,20 +4015,23 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+def closeEvent(self, event: QCloseEvent) -> None:
         # Stop any running worker threads
-        if (
-            hasattr(self, "exchange_rate_worker")
-            and self.exchange_rate_worker is not None
-            and self.exchange_rate_worker.isRunning()
-        ):
-            self.exchange_rate_worker.stop()
-            self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
+        workers_to_stop = [
+            ("exchange_rate_worker", "Exchange rate worker"),
+            ("analysis_worker", "Analysis worker"),
+            ("auto_update_worker", "Auto update worker"),
+        ]
 
-        # Stop analysis worker if running
-        if hasattr(self, "analysis_worker") and self.analysis_worker is not None and self.analysis_worker.isRunning():
-            self.analysis_worker.stop()
-            self.analysis_worker.wait(3000)  # Wait up to 3 seconds
+        for worker_attr, worker_name in workers_to_stop:
+            if (
+                hasattr(self, worker_attr)
+                and getattr(self, worker_attr) is not None
+                and getattr(self, worker_attr).isRunning()
+            ):
+                print(f"Stopping {worker_name}...")
+                getattr(self, worker_attr).stop()
+                getattr(self, worker_attr).wait(3000)  # Wait up to 3 seconds
 
         # Close progress dialogs if open
         if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
@@ -7069,6 +7150,11 @@ def _initial_load(self) -> None:
 
         # Setup exchange rates controls
         self._setup_exchange_rates_controls()
+
+        # Start automatic exchange rate update (добавьте эту строку)
+        QTimer.singleShot(
+            1000, self._start_automatic_exchange_rate_update
+        )  # Запуск через 1 секунду после инициализации
 ```
 
 </details>
@@ -7692,6 +7778,79 @@ def _on_analysis_progress_updated(self, message: str):
         print(message)
         if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
             self.analysis_progress_dialog.setText(message)
+```
+
+</details>
+
+### ⚙️ Method `_on_auto_update_finished_error`
+
+```python
+def _on_auto_update_finished_error(self, error_message: str)
+```
+
+Handle auto update error completion.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_auto_update_finished_error(self, error_message: str):
+        # Clean up worker reference
+        if hasattr(self, "auto_update_worker"):
+            self.auto_update_worker = None
+
+        print(f"❌ Automatic exchange rate update failed: {error_message}")
+```
+
+</details>
+
+### ⚙️ Method `_on_auto_update_finished_success`
+
+```python
+def _on_auto_update_finished_success(self, processed_count: int)
+```
+
+Handle successful auto update completion.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_auto_update_finished_success(self, processed_count: int):
+        # Clean up worker reference
+        if hasattr(self, "auto_update_worker"):
+            self.auto_update_worker = None
+
+        if processed_count > 0:
+            print(f"✅ Automatic exchange rate update completed: {processed_count} records processed")
+
+            # Mark exchange rates as changed to trigger reload if tab is active
+            self._mark_exchange_rates_changed()
+
+            # If exchange rates tab is currently active, reload the data
+            current_tab_index = self.tabWidget.currentIndex()
+            if current_tab_index == 4:  # Exchange Rates tab
+                self.load_exchange_rates_table()
+        else:
+            print("✅ Automatic exchange rate update completed: No updates needed")
+```
+
+</details>
+
+### ⚙️ Method `_on_auto_update_progress`
+
+```python
+def _on_auto_update_progress(self, message: str)
+```
+
+Handle auto update progress messages.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_auto_update_progress(self, message: str):
+        print(message)
 ```
 
 </details>
@@ -8388,6 +8547,53 @@ def _show_transactions_context_menu(self, position) -> None:
 
         if action == export_action:
             self.on_export_csv()
+```
+
+</details>
+
+### ⚙️ Method `_start_automatic_exchange_rate_update`
+
+```python
+def _start_automatic_exchange_rate_update(self) -> None
+```
+
+Start automatic exchange rate update on startup.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _start_automatic_exchange_rate_update(self) -> None:
+        if not self._validate_database_connection():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Check if auto update worker is already running
+            if (
+                hasattr(self, "auto_update_worker")
+                and self.auto_update_worker is not None
+                and self.auto_update_worker.isRunning()
+            ):
+                return
+
+            print("🚀 Starting automatic exchange rate update...")
+
+            # Create and start auto update worker thread
+            self.auto_update_worker = AutoExchangeRateUpdateWorker(self.db_manager)
+
+            # Connect signals
+            self.auto_update_worker.progress_updated.connect(self._on_auto_update_progress)
+            self.auto_update_worker.finished_success.connect(self._on_auto_update_finished_success)
+            self.auto_update_worker.finished_error.connect(self._on_auto_update_finished_error)
+
+            # Start the worker
+            self.auto_update_worker.start()
+
+        except Exception as e:
+            print(f"❌ Failed to start automatic exchange rate update: {e}")
 ```
 
 </details>
