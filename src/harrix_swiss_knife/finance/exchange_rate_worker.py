@@ -36,6 +36,9 @@ class AutoExchangeRateUpdateWorker(QThread):
 
             self.progress_updated.emit("🔄 Starting automatic exchange rate update...")
 
+            # Initialize total_processed at the beginning
+            total_processed = 0
+
             # Get last update date
             last_update_date = self.db_manager.get_last_exchange_rates_update_date()
             if not last_update_date:
