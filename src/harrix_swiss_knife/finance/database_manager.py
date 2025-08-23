@@ -1813,18 +1813,28 @@ class DatabaseManager:
         Returns:
             bool: True if successful, False otherwise.
         """
-        # First try to update existing setting
-        update_query = "UPDATE settings SET value = :date WHERE key = 'last_exchange_rates_update'"
-        if self.execute_simple_query(update_query, {"date": date}):
-            # Check if any rows were affected
-            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'last_exchange_rates_update'"
-            rows = self.get_rows(check_query)
-            if rows and rows[0][0] > 0:
-                return True
+        try:
+            # First try to update existing setting
+            update_query = "UPDATE settings SET value = :date WHERE key = 'last_exchange_rates_update'"
+            if self.execute_simple_query(update_query, {"date": date}):
+                # Check if any rows were affected
+                check_query = "SELECT COUNT(*) FROM settings WHERE key = 'last_exchange_rates_update'"
+                rows = self.get_rows(check_query)
+                if rows and rows[0][0] > 0:
+                    print(f"✅ Updated existing last_exchange_rates_update setting to {date}")
+                    return True
 
-        # If update didn't affect any rows, insert new setting
-        insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
-        return self.execute_simple_query(insert_query, {"date": date})
+            # If update didn't affect any rows, insert new setting
+            insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
+            success = self.execute_simple_query(insert_query, {"date": date})
+            if success:
+                print(f"✅ Created new last_exchange_rates_update setting with date {date}")
+            else:
+                print(f"❌ Failed to create last_exchange_rates_update setting")
+            return success
+        except Exception as e:
+            print(f"❌ Error setting last_exchange_rates_update_date: {e}")
+            return False
 
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.

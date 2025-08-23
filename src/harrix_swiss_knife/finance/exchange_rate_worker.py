@@ -43,6 +43,10 @@ class AutoExchangeRateUpdateWorker(QThread):
             last_update_date = self.db_manager.get_last_exchange_rates_update_date()
             if not last_update_date:
                 self.progress_updated.emit("⚠️ No last update date found, skipping automatic update")
+                # Set today as the last update date for future runs
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                if self.db_manager.set_last_exchange_rates_update_date(today_str):
+                    self.progress_updated.emit(f"📅 Set initial last update date to {today_str}")
                 self.finished_success.emit(0)
                 return
 
@@ -62,6 +66,10 @@ class AutoExchangeRateUpdateWorker(QThread):
             # Only update if there's at least one day gap
             if start_date > today:
                 self.progress_updated.emit(f"✅ Exchange rates are up to date (last update: {last_update_date})")
+                # Even if no updates needed, update the last update date to today
+                today_str = today.strftime("%Y-%m-%d")
+                if self.db_manager.set_last_exchange_rates_update_date(today_str):
+                    self.progress_updated.emit(f"📅 Updated last update date to {today_str}")
                 self.finished_success.emit(0)
                 return
 
@@ -71,6 +79,10 @@ class AutoExchangeRateUpdateWorker(QThread):
             currencies = self.db_manager.get_currencies_except_usd()
             if not currencies:
                 self.progress_updated.emit("⚠️ No currencies found for update")
+                # Still update the last update date
+                today_str = today.strftime("%Y-%m-%d")
+                if self.db_manager.set_last_exchange_rates_update_date(today_str):
+                    self.progress_updated.emit(f"📅 Updated last update date to {today_str}")
                 self.finished_success.emit(0)
                 return
 
@@ -96,6 +108,10 @@ class AutoExchangeRateUpdateWorker(QThread):
 
             if not all_missing_dates:
                 self.progress_updated.emit("✅ No dates to process")
+                # Still update the last update date
+                today_str = today.strftime("%Y-%m-%d")
+                if self.db_manager.set_last_exchange_rates_update_date(today_str):
+                    self.progress_updated.emit(f"📅 Updated last update date to {today_str}")
                 self.finished_success.emit(0)
                 return
 
@@ -326,19 +342,24 @@ class AutoExchangeRateUpdateWorker(QThread):
                     )
 
             # Fill missing rates with previous rates (gap filling) - only for the processed date range
-            if not self.should_stop and total_processed > 0:
+            if not self.should_stop:
                 self.progress_updated.emit("🔄 Filling remaining gaps with previous values...")
                 filled_count = self._fill_missing_rates_from_date(start_date, today)
                 if filled_count > 0:
                     total_processed += filled_count
                     self.progress_updated.emit(f"✅ Filled {filled_count} missing rates")
 
-            # Update last update date ONLY if we processed something successfully
-            if not self.should_stop and total_processed > 0:
+            # Update last update date - ALWAYS update it on successful completion (regardless of total_processed)
+            if not self.should_stop:
                 today_str = today.strftime("%Y-%m-%d")
-                if self.db_manager.set_last_exchange_rates_update_date(today_str):
-                    self.progress_updated.emit(f"📅 Updated last update date to {today_str}")
+                self.progress_updated.emit(f"🔄 Setting last update date to {today_str}...")
 
+                if self.db_manager.set_last_exchange_rates_update_date(today_str):
+                    self.progress_updated.emit(f"✅ Successfully updated last update date to {today_str}")
+                else:
+                    self.progress_updated.emit(f"❌ Failed to update last update date to {today_str}")
+
+            self.progress_updated.emit(f"🎉 Automatic update completed with {total_processed} total operations")
             self.finished_success.emit(total_processed)
 
         except Exception as e:
