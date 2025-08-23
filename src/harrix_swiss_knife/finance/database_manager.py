@@ -2181,6 +2181,55 @@ class DatabaseManager:
             print(f"Error getting currency exchange rate by date: {e}")
             return 1.0
 
+    def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
+        """Update or insert exchange rate for a specific currency and date.
+
+        Args:
+            currency_id (int): Currency ID.
+            date (str): Date in YYYY-MM-DD format.
+            rate (float): Exchange rate (USD to currency).
+
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        try:
+            # Check if currency is USD
+            usd_currency = self.get_currency_by_code("USD")
+            if usd_currency and currency_id == usd_currency[0]:
+                # Don't allow updating USD rate
+                return False
+
+            # Check if rate already exists for this currency and date
+            check_query = """
+                SELECT _id FROM exchange_rates
+                WHERE _id_currency = :currency_id AND date = :date
+                LIMIT 1
+            """
+            check_params = {"currency_id": currency_id, "date": date}
+            existing_rows = self.get_rows(check_query, check_params)
+
+            if existing_rows:
+                # Update existing rate
+                update_query = """
+                    UPDATE exchange_rates
+                    SET rate = :rate
+                    WHERE _id_currency = :currency_id AND date = :date
+                """
+                params = {"currency_id": currency_id, "date": date, "rate": rate}
+                return self.execute_simple_query(update_query, params)
+            else:
+                # Insert new rate
+                insert_query = """
+                    INSERT INTO exchange_rates (_id_currency, date, rate)
+                    VALUES (:currency_id, :date, :rate)
+                """
+                params = {"currency_id": currency_id, "date": date, "rate": rate}
+                return self.execute_simple_query(insert_query, params)
+
+        except Exception as e:
+            print(f"Error updating exchange rate: {e}")
+            return False
+
     def set_default_currency(self, currency_code: str) -> bool:
         """Set the default currency.
 

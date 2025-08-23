@@ -1761,6 +1761,7 @@ class MainWindow(
         # Exchange item update signals
         self.comboBox_exchange_item_update.currentIndexChanged.connect(self.on_exchange_item_update_changed)
         self.dateEdit_exchange_item_update.dateChanged.connect(self.on_exchange_item_update_changed)
+        self.pushButton_exchange_item_update.clicked.connect(self.on_exchange_item_update_button_clicked)
 
         # Report signals
         self.pushButton_generate_report.clicked.connect(self.on_generate_report)
@@ -3928,6 +3929,80 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating exchange item update rate: {e}")
             self.doubleSpinBox_exchange_item_update.setValue(0.0)
+
+    def on_exchange_item_update_button_clicked(self) -> None:
+        """Update exchange rate in database when pushButton_exchange_item_update is clicked."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get selected currency ID
+            currency_index = self.comboBox_exchange_item_update.currentIndex()
+            if currency_index < 0:
+                QMessageBox.warning(self, "Invalid Selection", "Please select a currency.")
+                return
+
+            currency_id = self.comboBox_exchange_item_update.itemData(currency_index)
+            if currency_id is None:
+                QMessageBox.warning(self, "Invalid Selection", "Please select a valid currency.")
+                return
+
+            # Get selected date
+            selected_date = self.dateEdit_exchange_item_update.date()
+            date_str = selected_date.toString("yyyy-MM-dd")
+
+            # Get exchange rate value
+            exchange_rate = self.doubleSpinBox_exchange_item_update.value()
+            if exchange_rate <= 0:
+                QMessageBox.warning(self, "Invalid Rate", "Exchange rate must be greater than 0.")
+                return
+
+            # Get currency info for confirmation dialog
+            currency_text = self.comboBox_exchange_item_update.currentText()
+
+            # Confirm update
+            reply = QMessageBox.question(
+                self,
+                "Confirm Exchange Rate Update",
+                f"Update exchange rate for {currency_text} on {date_str} to {exchange_rate}?\n\n"
+                "This action will overwrite any existing rate for this currency and date.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            # Update exchange rate in database
+            success = self.db_manager.update_exchange_rate(currency_id, date_str, exchange_rate)
+
+            if success:
+                QMessageBox.information(
+                    self,
+                    "Update Successful",
+                    f"Exchange rate for {currency_text} on {date_str} has been updated to {exchange_rate}."
+                )
+                # Clear exchange rate cache to ensure fresh data
+                if hasattr(self.db_manager, '_exchange_rate_cache'):
+                    self.db_manager._exchange_rate_cache.clear()
+                # Update all views
+                self.update_all()
+                self.update_summary_labels()
+                # Update exchange rates chart if on the same currency
+                self.on_exchange_rates_update()
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Update Failed",
+                    "Failed to update exchange rate. Please check the database connection and try again."
+                )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An error occurred while updating exchange rate: {e}"
+            )
 
 
 if __name__ == "__main__":
