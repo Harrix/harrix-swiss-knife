@@ -34,12 +34,12 @@ class AutoExchangeRateUpdateWorker(QThread):
             import pandas as pd
             import yfinance as yf
 
-            print("🔄 Starting automatic exchange rate update...")
+            self.progress_updated.emit("🔄 Starting automatic exchange rate update...")
 
             # Get last update date
             last_update_date = self.db_manager.get_last_exchange_rates_update_date()
             if not last_update_date:
-                print("⚠️ No last update date found, skipping automatic update")
+                self.progress_updated.emit("⚠️ No last update date found, skipping automatic update")
                 self.finished_success.emit(0)
                 return
 
@@ -47,30 +47,58 @@ class AutoExchangeRateUpdateWorker(QThread):
             last_update = datetime.strptime(last_update_date, "%Y-%m-%d").date()
             today = datetime.now().date()
 
+            # Start from the day AFTER last update
+            start_date = last_update + timedelta(days=1)
+
+            # DEBUG: Детальное логирование дат
+            self.progress_updated.emit(f"🔍 DEBUG: last_update_date from DB = {last_update_date}")
+            self.progress_updated.emit(f"🔍 DEBUG: last_update (parsed) = {last_update}")
+            self.progress_updated.emit(f"🔍 DEBUG: today = {today}")
+            self.progress_updated.emit(f"🔍 DEBUG: start_date (should be day after last_update) = {start_date}")
+
             # Only update if there's at least one day gap
-            if today <= last_update:
-                print(f"✅ Exchange rates are up to date (last update: {last_update_date})")
+            if start_date > today:
+                self.progress_updated.emit(f"✅ Exchange rates are up to date (last update: {last_update_date})")
                 self.finished_success.emit(0)
                 return
 
-            start_date = last_update + timedelta(days=1)
-            print(f"📅 Updating exchange rates from {start_date} to {today}")
+            self.progress_updated.emit(f"📅 Updating exchange rates from {start_date} to {today}")
 
             # Get currencies to update (excluding USD)
             currencies = self.db_manager.get_currencies_except_usd()
             if not currencies:
-                print("⚠️ No currencies found for update")
+                self.progress_updated.emit("⚠️ No currencies found for update")
                 self.finished_success.emit(0)
                 return
 
             total_processed = 0
 
             # Clean invalid exchange rates first
-            print("🧹 Cleaning invalid exchange rates...")
+            self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
             cleaned_count = self.db_manager.clean_invalid_exchange_rates()
             if cleaned_count > 0:
-                print(f"🧹 Cleaned {cleaned_count} invalid records")
+                self.progress_updated.emit(f"🧹 Cleaned {cleaned_count} invalid records")
 
+            # Generate all dates that need to be processed
+            all_missing_dates = []
+            current_date = start_date
+
+            self.progress_updated.emit(f"🔍 DEBUG: Generating dates from {start_date} to {today}")
+
+            while current_date <= today:
+                date_str = current_date.strftime("%Y-%m-%d")
+                all_missing_dates.append(date_str)
+                self.progress_updated.emit(f"🔍 DEBUG: Added date to process: {date_str}")
+                current_date += timedelta(days=1)
+
+            if not all_missing_dates:
+                self.progress_updated.emit("✅ No dates to process")
+                self.finished_success.emit(0)
+                return
+
+            self.progress_updated.emit(f"📊 Processing {len(all_missing_dates)} dates: {all_missing_dates}")
+
+            # Define ticker functions (keeping existing implementation)
             def get_working_ticker_for_currency(currency_code: str) -> tuple[str, bool] | None:
                 """Find and cache the working ticker for a currency."""
                 if currency_code in self.working_tickers:
@@ -100,7 +128,7 @@ class AutoExchangeRateUpdateWorker(QThread):
                     primary_tickers = [f"{currency_code}USD=X", f"{currency_code}=X"]
                     inverse_tickers = [f"USD{currency_code}=X", f"USD/{currency_code}=X"]
 
-                print(f"🔍 Finding working ticker for {currency_code}...")
+                self.progress_updated.emit(f"🔍 Finding working ticker for {currency_code}...")
 
                 # Test a recent date to find working ticker
                 test_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
@@ -117,7 +145,7 @@ class AutoExchangeRateUpdateWorker(QThread):
                         hist = ticker.history(start=test_start, end=test_end, interval="1d")
 
                         if not hist.empty and not pd.isna(hist.iloc[0]["Close"]) and hist.iloc[0]["Close"] > 0:
-                            print(f"✅ Found working ticker for {currency_code}: {ticker_symbol}")
+                            self.progress_updated.emit(f"✅ Found working ticker for {currency_code}: {ticker_symbol}")
                             result = (ticker_symbol, False)
                             self.working_tickers[currency_code] = result
                             return result
@@ -135,7 +163,9 @@ class AutoExchangeRateUpdateWorker(QThread):
                         hist = ticker.history(start=test_start, end=test_end, interval="1d")
 
                         if not hist.empty and not pd.isna(hist.iloc[0]["Close"]) and hist.iloc[0]["Close"] > 0:
-                            print(f"✅ Found working inverse ticker for {currency_code}: {ticker_symbol}")
+                            self.progress_updated.emit(
+                                f"✅ Found working inverse ticker for {currency_code}: {ticker_symbol}"
+                            )
                             result = (ticker_symbol, True)
                             self.working_tickers[currency_code] = result
                             return result
@@ -143,7 +173,7 @@ class AutoExchangeRateUpdateWorker(QThread):
                     except Exception:
                         continue
 
-                print(f"❌ No working ticker found for {currency_code}")
+                self.progress_updated.emit(f"❌ No working ticker found for {currency_code}")
                 self.working_tickers[currency_code] = None
                 return None
 
@@ -159,21 +189,24 @@ class AutoExchangeRateUpdateWorker(QThread):
                 ticker_symbol, is_inverse = ticker_info
 
                 try:
-                    start_date = min(dates)
-                    end_date = max(dates)
+                    start_date_str = min(dates)
+                    end_date_str = max(dates)
 
-                    start_dt = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=2)
-                    end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=2)
+                    start_dt = datetime.strptime(start_date_str, "%Y-%m-%d") - timedelta(days=2)
+                    end_dt = datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=2)
 
                     start_str = start_dt.strftime("%Y-%m-%d")
                     end_str = end_dt.strftime("%Y-%m-%d")
 
-                    print(f"📥 Downloading data for {currency_code} from {start_date} to {end_date}")
+                    self.progress_updated.emit(
+                        f"📥 Downloading data for {currency_code} from {start_date_str} to {end_date_str}"
+                    )
 
                     ticker = yf.Ticker(ticker_symbol)
                     hist = ticker.history(start=start_str, end=end_str, interval="1d")
 
                     if hist.empty:
+                        self.progress_updated.emit(f"⚠️ No data received for {currency_code}")
                         return {}
 
                     rates = {}
@@ -210,12 +243,15 @@ class AutoExchangeRateUpdateWorker(QThread):
                             else:
                                 rates[date_str] = rate
 
-                        except Exception:
+                        except Exception as e:
+                            self.progress_updated.emit(f"⚠️ Error processing {date_str} for {currency_code}: {e}")
                             continue
 
+                    self.progress_updated.emit(f"✅ Got {len(rates)} rates for {currency_code}")
                     return rates
 
-                except Exception:
+                except Exception as e:
+                    self.progress_updated.emit(f"❌ Bulk download failed for {currency_code}: {e}")
                     return {}
 
             # Process each currency
@@ -223,23 +259,23 @@ class AutoExchangeRateUpdateWorker(QThread):
                 if self.should_stop:
                     break
 
-                print(f"📈 Processing {currency_code}...")
+                self.progress_updated.emit(f"📈 Processing {currency_code}...")
 
-                # Get missing dates from last update to today
+                # Check which dates are actually missing for this currency
                 missing_dates = []
-                current_date = start_date
-
-                while current_date <= today:
-                    date_str = current_date.strftime("%Y-%m-%d")
-                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                for date_str in all_missing_dates:
+                    exists = self.db_manager.check_exchange_rate_exists(currency_id, date_str)
+                    self.progress_updated.emit(f"🔍 DEBUG: {currency_code} {date_str} exists = {exists}")
+                    if not exists:
                         missing_dates.append(date_str)
-                    current_date += timedelta(days=1)
 
                 if not missing_dates:
-                    print(f"✅ {currency_code}: No missing dates")
+                    self.progress_updated.emit(f"✅ {currency_code}: No missing dates")
                     continue
 
-                print(f"📊 {currency_code}: Found {len(missing_dates)} missing dates")
+                self.progress_updated.emit(
+                    f"📊 {currency_code}: Found {len(missing_dates)} missing dates: {missing_dates}"
+                )
 
                 # Get bulk rates
                 bulk_rates = get_bulk_exchange_rates(currency_code, missing_dates)
@@ -265,38 +301,46 @@ class AutoExchangeRateUpdateWorker(QThread):
                             rows = self.db_manager.get_rows(query, {"currency_id": currency_id, "date": date_str})
                             if rows and rows[0][0]:
                                 new_rate = float(rows[0][0])
-                                print(f"📊 Using fallback rate for {currency_code} on {date_str}: {new_rate:.6f}")
+                                self.progress_updated.emit(
+                                    f"📊 Using fallback rate for {currency_code} on {date_str}: {new_rate:.6f}"
+                                )
 
                     if new_rate is not None and new_rate > 0:
                         batch_insert_data.append((currency_id, new_rate, date_str))
+                        self.progress_updated.emit(
+                            f"✅ Prepared rate for {currency_code} on {date_str}: {new_rate:.6f}"
+                        )
+                    else:
+                        self.progress_updated.emit(f"⚠️ No rate found for {currency_code} on {date_str}")
 
                 # Execute batch insert
                 if batch_insert_data:
+                    self.progress_updated.emit(f"💾 Inserting {len(batch_insert_data)} rates for {currency_code}...")
                     inserted_count = self.db_manager.add_exchange_rates_batch(batch_insert_data)
                     total_processed += inserted_count
-                    print(f"✅ {currency_code}: Inserted {inserted_count}/{len(batch_insert_data)} rates")
+                    self.progress_updated.emit(
+                        f"✅ {currency_code}: Inserted {inserted_count}/{len(batch_insert_data)} rates"
+                    )
 
-            # Fill missing rates with previous rates (gap filling)
-            if not self.should_stop:
-                print("🔄 Filling missing exchange rates with previous values...")
+            # Fill missing rates with previous rates (gap filling) - only for the processed date range
+            if not self.should_stop and total_processed > 0:
+                self.progress_updated.emit("🔄 Filling remaining gaps with previous values...")
                 filled_count = self._fill_missing_rates_from_date(start_date, today)
                 if filled_count > 0:
                     total_processed += filled_count
-                    print(f"✅ Filled {filled_count} missing rates")
+                    self.progress_updated.emit(f"✅ Filled {filled_count} missing rates")
 
-            # Update last update date
+            # Update last update date ONLY if we processed something successfully
             if not self.should_stop and total_processed > 0:
                 today_str = today.strftime("%Y-%m-%d")
                 if self.db_manager.set_last_exchange_rates_update_date(today_str):
-                    print(f"📅 Updated last update date to {today_str}")
+                    self.progress_updated.emit(f"📅 Updated last update date to {today_str}")
 
-                self.finished_success.emit(total_processed)
-            else:
-                self.finished_success.emit(0)
+            self.finished_success.emit(total_processed)
 
         except Exception as e:
             error_msg = f"Automatic exchange rate update error: {e}"
-            print(f"❌ {error_msg}")
+            self.progress_updated.emit(f"❌ {error_msg}")
             self.finished_error.emit(error_msg)
 
     def stop(self):
@@ -305,60 +349,20 @@ class AutoExchangeRateUpdateWorker(QThread):
 
     def _fill_missing_rates_from_date(self, start_date, end_date) -> int:
         """Fill missing exchange rates from start_date to end_date."""
-        from datetime import timedelta
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
 
-        currencies = self.db_manager.get_currencies_except_usd()
-        total_filled = 0
+        self.progress_updated.emit(f"🔄 Filling gaps from {start_date_str} to {end_date_str}")
 
-        for currency_id, currency_code, _, _ in currencies:
-            if self.should_stop:
-                break
+        # Fill missing exchange rates after processing
+        if not self.should_stop:
+            self.progress_updated.emit("🔄 Filling missing exchange rates...")
+            filled_count = self.db_manager.fill_missing_exchange_rates()
+            if filled_count > 0:
+                total_processed += filled_count
+                self.progress_updated.emit(f"✅ Filled {filled_count} missing rates")
 
-            # Get all existing rates for this currency in the date range
-            query = """
-                SELECT date, rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                AND date BETWEEN :start_date AND :end_date
-                ORDER BY date ASC
-            """
-            rows = self.db_manager.get_rows(
-                query,
-                {
-                    "currency_id": currency_id,
-                    "start_date": start_date.strftime("%Y-%m-%d"),
-                    "end_date": end_date.strftime("%Y-%m-%d"),
-                },
-            )
-
-            if not rows:
-                continue
-
-            existing_rates = {row[0]: row[1] for row in rows}
-
-            # Fill missing dates
-            current_date = start_date
-            last_known_rate = None
-            currency_filled = 0
-
-            while current_date <= end_date:
-                if self.should_stop:
-                    break
-
-                date_str = current_date.strftime("%Y-%m-%d")
-
-                if date_str in existing_rates:
-                    last_known_rate = existing_rates[date_str]
-                elif last_known_rate is not None:
-                    if self.db_manager.add_exchange_rate(currency_id, last_known_rate, date_str):
-                        currency_filled += 1
-                        total_filled += 1
-
-                current_date += timedelta(days=1)
-
-            if currency_filled > 0:
-                print(f"📊 {currency_code}: Filled {currency_filled} gaps")
-
-        return total_filled
+        return filled_count
 
 
 class ExchangeRateAnalysisWorker(QThread):

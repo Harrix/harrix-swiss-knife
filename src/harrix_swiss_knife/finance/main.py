@@ -290,11 +290,11 @@ class MainWindow(
                 getattr(self, worker_attr).wait(3000)  # Wait up to 3 seconds
 
         # Close progress dialogs if open
-        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
-            self.progress_dialog.close()
+        dialogs_to_close = ["progress_dialog", "analysis_progress_dialog", "auto_update_progress_dialog"]
 
-        if hasattr(self, "analysis_progress_dialog") and self.analysis_progress_dialog is not None:
-            self.analysis_progress_dialog.close()
+        for dialog_attr in dialogs_to_close:
+            if hasattr(self, dialog_attr) and getattr(self, dialog_attr) is not None:
+                getattr(self, dialog_attr).close()
 
         # Dispose Models
         self._dispose_models()
@@ -2943,6 +2943,10 @@ class MainWindow(
 
     def _on_auto_update_finished_error(self, error_message: str):
         """Handle auto update error completion."""
+        # Close auto update dialog
+        if hasattr(self, "auto_update_progress_dialog") and self.auto_update_progress_dialog is not None:
+            self.auto_update_progress_dialog.close()
+
         # Clean up worker reference
         if hasattr(self, "auto_update_worker"):
             self.auto_update_worker = None
@@ -2951,6 +2955,10 @@ class MainWindow(
 
     def _on_auto_update_finished_success(self, processed_count: int):
         """Handle successful auto update completion."""
+        # Close auto update dialog
+        if hasattr(self, "auto_update_progress_dialog") and self.auto_update_progress_dialog is not None:
+            self.auto_update_progress_dialog.close()
+
         # Clean up worker reference
         if hasattr(self, "auto_update_worker"):
             self.auto_update_worker = None
@@ -2971,6 +2979,9 @@ class MainWindow(
     def _on_auto_update_progress(self, message: str):
         """Handle auto update progress messages."""
         print(message)
+        # Update dialog text
+        if hasattr(self, "auto_update_progress_dialog") and self.auto_update_progress_dialog is not None:
+            self.auto_update_progress_dialog.setText(message)
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields."""
@@ -3416,6 +3427,23 @@ class MainWindow(
                 return
 
             print("🚀 Starting automatic exchange rate update...")
+
+            # Create and configure auto update progress dialog
+            self.auto_update_progress_dialog = QMessageBox(self)
+            self.auto_update_progress_dialog.setWindowTitle("Automatic Exchange Rate Update")
+            self.auto_update_progress_dialog.setText("Starting automatic exchange rate update...")
+            self.auto_update_progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.auto_update_progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+
+            # Connect cancel button for auto update
+            def cancel_auto_update():
+                if hasattr(self, "auto_update_worker") and self.auto_update_worker is not None:
+                    self.auto_update_worker.stop()
+                if hasattr(self, "auto_update_progress_dialog") and self.auto_update_progress_dialog is not None:
+                    self.auto_update_progress_dialog.close()
+
+            self.auto_update_progress_dialog.buttonClicked.connect(lambda: cancel_auto_update())
+            self.auto_update_progress_dialog.show()
 
             # Create and start auto update worker thread
             self.auto_update_worker = AutoExchangeRateUpdateWorker(self.db_manager)

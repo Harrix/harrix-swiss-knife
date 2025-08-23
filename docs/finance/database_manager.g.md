@@ -36,6 +36,7 @@ lang: en
   - [⚙️ Method `execute_query`](#%EF%B8%8F-method-execute_query)
   - [⚙️ Method `execute_simple_query`](#%EF%B8%8F-method-execute_simple_query)
   - [⚙️ Method `fill_missing_exchange_rates`](#%EF%B8%8F-method-fill_missing_exchange_rates)
+  - [⚙️ Method `fill_missing_exchange_rates_in_range`](#%EF%B8%8F-method-fill_missing_exchange_rates_in_range)
   - [⚙️ Method `get_account_balances_in_currency`](#%EF%B8%8F-method-get_account_balances_in_currency)
   - [⚙️ Method `get_account_by_id`](#%EF%B8%8F-method-get_account_by_id)
   - [⚙️ Method `get_all_accounts`](#%EF%B8%8F-method-get_all_accounts)
@@ -764,7 +765,86 @@ class DatabaseManager:
         for currency_id, currency_code, _, _ in currencies:
             print(f"📊 Processing {currency_code}...")
 
-            # Get all existing rates for this currency
+            # Get ALL existing rates for this currency (не только в диапазоне дат)
+            query = """
+                SELECT date, rate FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                ORDER BY date ASC
+            """
+            rows = self.get_rows(query, {"currency_id": currency_id})
+
+            if not rows:
+                print(f"⚠️ No exchange rates found for {currency_code}, skipping")
+                continue
+
+            # Create a map of existing rates
+            existing_rates = {row[0]: row[1] for row in rows}
+            print(f"📈 Found {len(existing_rates)} existing rates for {currency_code}")
+
+            # Fill missing dates from start_date to end_date
+            current_date = start_date
+            last_known_rate = None
+            currency_filled = 0
+
+            # Найти первый доступный курс для инициализации last_known_rate
+            for date_str in sorted(existing_rates.keys()):
+                if datetime.strptime(date_str, "%Y-%m-%d").date() <= current_date:
+                    last_known_rate = existing_rates[date_str]
+                else:
+                    break
+
+            print(f"🔍 Initial rate for {currency_code}: {last_known_rate}")
+
+            while current_date <= end_date:
+                date_str = current_date.strftime("%Y-%m-%d")
+
+                if date_str in existing_rates:
+                    # Update last known rate
+                    last_known_rate = existing_rates[date_str]
+                    print(f"📊 {currency_code} {date_str}: Found existing rate {last_known_rate}")
+                elif last_known_rate is not None:
+                    # Fill missing date with last known rate
+                    print(f"🔍 {currency_code} {date_str}: Missing, trying to fill with {last_known_rate}")
+                    if self.add_exchange_rate(currency_id, last_known_rate, date_str):
+                        currency_filled += 1
+                        total_filled += 1
+                        print(f"✅ {currency_code} {date_str}: Filled with rate {last_known_rate}")
+                    else:
+                        print(f"❌ {currency_code} {date_str}: Failed to add rate")
+                else:
+                    print(f"⚠️ {currency_code} {date_str}: No known rate to use for filling")
+
+                current_date += timedelta(days=1)
+
+            print(f"📈 Filled {currency_filled} missing dates for {currency_code}")
+
+        print(f"🎉 Total filled: {total_filled} exchange rate records")
+        return total_filled
+
+    def fill_missing_exchange_rates_in_range(self, start_date_str: str, end_date_str: str) -> int:
+        """Fill missing exchange rates in specific date range.
+
+        Args:
+            start_date_str: Start date in YYYY-MM-DD format
+            end_date_str: End date in YYYY-MM-DD format
+
+        Returns:
+            int: Number of exchange rates that were filled.
+        """
+        from datetime import datetime, timedelta
+
+        currencies = self.get_currencies_except_usd()
+        total_filled = 0
+
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+        print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
+
+        for currency_id, currency_code, _, _ in currencies:
+            print(f"📊 Processing {currency_code} for range {start_date} to {end_date}...")
+
+            # Get ALL existing rates for this currency (не только в диапазоне)
             query = """
                 SELECT date, rate FROM exchange_rates
                 WHERE _id_currency = :currency_id
@@ -779,9 +859,19 @@ class DatabaseManager:
             # Create a map of existing rates
             existing_rates = {row[0]: row[1] for row in rows}
 
-            # Fill missing dates from start_date to end_date
-            current_date = start_date
+            # Find the most recent rate before start_date for initialization
             last_known_rate = None
+            for date_str in sorted(existing_rates.keys()):
+                rate_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                if rate_date < start_date:
+                    last_known_rate = existing_rates[date_str]
+                elif rate_date >= start_date:
+                    break
+
+            print(f"🔍 Initial rate for {currency_code} before {start_date}: {last_known_rate}")
+
+            # Fill missing dates in the specified range
+            current_date = start_date
             currency_filled = 0
 
             while current_date <= end_date:
@@ -790,18 +880,27 @@ class DatabaseManager:
                 if date_str in existing_rates:
                     # Update last known rate
                     last_known_rate = existing_rates[date_str]
+                    print(f"📊 {currency_code} {date_str}: Found existing rate {last_known_rate}")
                 elif last_known_rate is not None:
-                    # Fill missing date with last known rate
-                    if self.add_exchange_rate(currency_id, last_known_rate, date_str):
-                        currency_filled += 1
-                        total_filled += 1
-                        print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
+                    # Check if this date actually needs filling
+                    if not self.check_exchange_rate_exists(currency_id, date_str):
+                        print(f"🔍 {currency_code} {date_str}: Missing, filling with {last_known_rate}")
+                        if self.add_exchange_rate(currency_id, last_known_rate, date_str):
+                            currency_filled += 1
+                            total_filled += 1
+                            print(f"✅ {currency_code} {date_str}: Filled with rate {last_known_rate}")
+                        else:
+                            print(f"❌ {currency_code} {date_str}: Failed to add rate")
+                    else:
+                        print(f"📊 {currency_code} {date_str}: Already exists, skipping")
+                else:
+                    print(f"⚠️ {currency_code} {date_str}: No known rate to use for filling")
 
                 current_date += timedelta(days=1)
 
-            print(f"  📈 Filled {currency_filled} missing dates for {currency_code}")
+            print(f"📈 Filled {currency_filled} missing dates for {currency_code} in range")
 
-        print(f"🎉 Total filled: {total_filled} exchange rate records")
+        print(f"🎉 Total filled in range: {total_filled} exchange rate records")
         return total_filled
 
     def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]:
@@ -3182,7 +3281,99 @@ def fill_missing_exchange_rates(self) -> int:
         for currency_id, currency_code, _, _ in currencies:
             print(f"📊 Processing {currency_code}...")
 
-            # Get all existing rates for this currency
+            # Get ALL existing rates for this currency (не только в диапазоне дат)
+            query = """
+                SELECT date, rate FROM exchange_rates
+                WHERE _id_currency = :currency_id
+                ORDER BY date ASC
+            """
+            rows = self.get_rows(query, {"currency_id": currency_id})
+
+            if not rows:
+                print(f"⚠️ No exchange rates found for {currency_code}, skipping")
+                continue
+
+            # Create a map of existing rates
+            existing_rates = {row[0]: row[1] for row in rows}
+            print(f"📈 Found {len(existing_rates)} existing rates for {currency_code}")
+
+            # Fill missing dates from start_date to end_date
+            current_date = start_date
+            last_known_rate = None
+            currency_filled = 0
+
+            # Найти первый доступный курс для инициализации last_known_rate
+            for date_str in sorted(existing_rates.keys()):
+                if datetime.strptime(date_str, "%Y-%m-%d").date() <= current_date:
+                    last_known_rate = existing_rates[date_str]
+                else:
+                    break
+
+            print(f"🔍 Initial rate for {currency_code}: {last_known_rate}")
+
+            while current_date <= end_date:
+                date_str = current_date.strftime("%Y-%m-%d")
+
+                if date_str in existing_rates:
+                    # Update last known rate
+                    last_known_rate = existing_rates[date_str]
+                    print(f"📊 {currency_code} {date_str}: Found existing rate {last_known_rate}")
+                elif last_known_rate is not None:
+                    # Fill missing date with last known rate
+                    print(f"🔍 {currency_code} {date_str}: Missing, trying to fill with {last_known_rate}")
+                    if self.add_exchange_rate(currency_id, last_known_rate, date_str):
+                        currency_filled += 1
+                        total_filled += 1
+                        print(f"✅ {currency_code} {date_str}: Filled with rate {last_known_rate}")
+                    else:
+                        print(f"❌ {currency_code} {date_str}: Failed to add rate")
+                else:
+                    print(f"⚠️ {currency_code} {date_str}: No known rate to use for filling")
+
+                current_date += timedelta(days=1)
+
+            print(f"📈 Filled {currency_filled} missing dates for {currency_code}")
+
+        print(f"🎉 Total filled: {total_filled} exchange rate records")
+        return total_filled
+```
+
+</details>
+
+### ⚙️ Method `fill_missing_exchange_rates_in_range`
+
+```python
+def fill_missing_exchange_rates_in_range(self, start_date_str: str, end_date_str: str) -> int
+```
+
+Fill missing exchange rates in specific date range.
+
+Args:
+start_date_str: Start date in YYYY-MM-DD format
+end_date_str: End date in YYYY-MM-DD format
+
+Returns:
+int: Number of exchange rates that were filled.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def fill_missing_exchange_rates_in_range(self, start_date_str: str, end_date_str: str) -> int:
+        from datetime import datetime, timedelta
+
+        currencies = self.get_currencies_except_usd()
+        total_filled = 0
+
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+        print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
+
+        for currency_id, currency_code, _, _ in currencies:
+            print(f"📊 Processing {currency_code} for range {start_date} to {end_date}...")
+
+            # Get ALL existing rates for this currency (не только в диапазоне)
             query = """
                 SELECT date, rate FROM exchange_rates
                 WHERE _id_currency = :currency_id
@@ -3197,9 +3388,19 @@ def fill_missing_exchange_rates(self) -> int:
             # Create a map of existing rates
             existing_rates = {row[0]: row[1] for row in rows}
 
-            # Fill missing dates from start_date to end_date
-            current_date = start_date
+            # Find the most recent rate before start_date for initialization
             last_known_rate = None
+            for date_str in sorted(existing_rates.keys()):
+                rate_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                if rate_date < start_date:
+                    last_known_rate = existing_rates[date_str]
+                elif rate_date >= start_date:
+                    break
+
+            print(f"🔍 Initial rate for {currency_code} before {start_date}: {last_known_rate}")
+
+            # Fill missing dates in the specified range
+            current_date = start_date
             currency_filled = 0
 
             while current_date <= end_date:
@@ -3208,18 +3409,27 @@ def fill_missing_exchange_rates(self) -> int:
                 if date_str in existing_rates:
                     # Update last known rate
                     last_known_rate = existing_rates[date_str]
+                    print(f"📊 {currency_code} {date_str}: Found existing rate {last_known_rate}")
                 elif last_known_rate is not None:
-                    # Fill missing date with last known rate
-                    if self.add_exchange_rate(currency_id, last_known_rate, date_str):
-                        currency_filled += 1
-                        total_filled += 1
-                        print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
+                    # Check if this date actually needs filling
+                    if not self.check_exchange_rate_exists(currency_id, date_str):
+                        print(f"🔍 {currency_code} {date_str}: Missing, filling with {last_known_rate}")
+                        if self.add_exchange_rate(currency_id, last_known_rate, date_str):
+                            currency_filled += 1
+                            total_filled += 1
+                            print(f"✅ {currency_code} {date_str}: Filled with rate {last_known_rate}")
+                        else:
+                            print(f"❌ {currency_code} {date_str}: Failed to add rate")
+                    else:
+                        print(f"📊 {currency_code} {date_str}: Already exists, skipping")
+                else:
+                    print(f"⚠️ {currency_code} {date_str}: No known rate to use for filling")
 
                 current_date += timedelta(days=1)
 
-            print(f"  📈 Filled {currency_filled} missing dates for {currency_code}")
+            print(f"📈 Filled {currency_filled} missing dates for {currency_code} in range")
 
-        print(f"🎉 Total filled: {total_filled} exchange rate records")
+        print(f"🎉 Total filled in range: {total_filled} exchange rate records")
         return total_filled
 ```
 
