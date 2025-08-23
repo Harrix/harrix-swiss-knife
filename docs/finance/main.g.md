@@ -1579,9 +1579,6 @@ class MainWindow(
             # Show dialog (non-blocking)
             self.startup_progress_dialog.show()
 
-            # Disable main window
-            self.setEnabled(False)
-
             # Create and start checker thread
             from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
 
@@ -5884,9 +5881,6 @@ def _auto_update_exchange_rates_on_startup(self) -> None:
 
             # Show dialog (non-blocking)
             self.startup_progress_dialog.show()
-
-            # Disable main window
-            self.setEnabled(False)
 
             # Create and start checker thread
             from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
