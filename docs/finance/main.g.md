@@ -2270,8 +2270,10 @@ class MainWindow(
             # Add value labels for significant points
             if len(transformed_rates) > 1:
                 # Label first and last points
+                first_date = dates[0]
+                last_date = dates[-1]
                 ax.annotate(
-                    f"{transformed_rates[0]:.6f}",
+                    f"{transformed_rates[0]:.6f} ({first_date})",
                     (date_objects[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
@@ -2279,7 +2281,7 @@ class MainWindow(
                 )
 
                 ax.annotate(
-                    f"{transformed_rates[-1]:.6f}",
+                    f"{transformed_rates[-1]:.6f} ({last_date})",
                     (date_objects[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
@@ -2293,8 +2295,9 @@ class MainWindow(
                 max_idx = transformed_rates.index(max_rate)
 
                 if min_idx != 0 and min_idx != len(transformed_rates) - 1:
+                    min_date = dates[min_idx]
                     ax.annotate(
-                        f"{min_rate:.6f}",
+                        f"{min_rate:.6f} ({min_date})",
                         (date_objects[min_idx], min_rate),
                         xytext=(10, -15),
                         textcoords="offset points",
@@ -2302,8 +2305,9 @@ class MainWindow(
                     )
 
                 if max_idx != 0 and max_idx != len(transformed_rates) - 1:
+                    max_date = dates[max_idx]
                     ax.annotate(
-                        f"{max_rate:.6f}",
+                        f"{max_rate:.6f} ({max_date})",
                         (date_objects[max_idx], max_rate),
                         xytext=(10, 15),
                         textcoords="offset points",
@@ -4165,22 +4169,28 @@ class MainWindow(
     def _update_exchange_rates_table(self, data: list[list[Any]]) -> None:
         """Update the exchange rates table with provided data."""
         try:
-            # Find the exchange rates table
-            table_widget = getattr(self, "tableWidget_exchange_rates", None)
-            if table_widget is None:
-                print("❌ Exchange rates table widget not found")
-                return
+            # Transform the data to match the expected format for exchange rates table
+            rates_transformed_data = []
+            for row in data:
+                # Input format: [id, from_code, to_code, rate, date]
+                # Transform: Rate is stored as USD→currency, but display as currency→USD
+                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
+                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
+                color = QColor(240, 255, 255)
+                # Show as currency → USD instead of USD → currency
+                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
+                rates_transformed_data.append(transformed_row)
 
-            # Clear existing data
-            table_widget.setRowCount(0)
+            # Create new model with the filtered data
+            self.models["exchange_rates"] = self._create_colored_table_model(
+                rates_transformed_data, self.table_config["exchange_rates"][2]
+            )
+            self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
 
-            # Populate table with new data
-            for row_index, row_data in enumerate(data):
-                table_widget.insertRow(row_index)
-                for col_index, cell_data in enumerate(row_data):
-                    if col_index < table_widget.columnCount():
-                        item = QTableWidgetItem(str(cell_data))
-                        table_widget.setItem(row_index, col_index, item)
+            # Configure column stretching for exchange rates table
+            rates_header = self.tableView_exchange_rates.horizontalHeader()
+            if rates_header:
+                rates_header.setStretchLastSection(True)
 
             print(f"✅ Updated exchange rates table with {len(data)} records")
 
@@ -7107,8 +7117,10 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
             # Add value labels for significant points
             if len(transformed_rates) > 1:
                 # Label first and last points
+                first_date = dates[0]
+                last_date = dates[-1]
                 ax.annotate(
-                    f"{transformed_rates[0]:.6f}",
+                    f"{transformed_rates[0]:.6f} ({first_date})",
                     (date_objects[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
@@ -7116,7 +7128,7 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                 )
 
                 ax.annotate(
-                    f"{transformed_rates[-1]:.6f}",
+                    f"{transformed_rates[-1]:.6f} ({last_date})",
                     (date_objects[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
@@ -7130,8 +7142,9 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                 max_idx = transformed_rates.index(max_rate)
 
                 if min_idx != 0 and min_idx != len(transformed_rates) - 1:
+                    min_date = dates[min_idx]
                     ax.annotate(
-                        f"{min_rate:.6f}",
+                        f"{min_rate:.6f} ({min_date})",
                         (date_objects[min_idx], min_rate),
                         xytext=(10, -15),
                         textcoords="offset points",
@@ -7139,8 +7152,9 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                     )
 
                 if max_idx != 0 and max_idx != len(transformed_rates) - 1:
+                    max_date = dates[max_idx]
                     ax.annotate(
-                        f"{max_rate:.6f}",
+                        f"{max_rate:.6f} ({max_date})",
                         (date_objects[max_idx], max_rate),
                         xytext=(10, 15),
                         textcoords="offset points",
@@ -9895,22 +9909,28 @@ Update the exchange rates table with provided data.
 ```python
 def _update_exchange_rates_table(self, data: list[list[Any]]) -> None:
         try:
-            # Find the exchange rates table
-            table_widget = getattr(self, "tableWidget_exchange_rates", None)
-            if table_widget is None:
-                print("❌ Exchange rates table widget not found")
-                return
+            # Transform the data to match the expected format for exchange rates table
+            rates_transformed_data = []
+            for row in data:
+                # Input format: [id, from_code, to_code, rate, date]
+                # Transform: Rate is stored as USD→currency, but display as currency→USD
+                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
+                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
+                color = QColor(240, 255, 255)
+                # Show as currency → USD instead of USD → currency
+                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
+                rates_transformed_data.append(transformed_row)
 
-            # Clear existing data
-            table_widget.setRowCount(0)
+            # Create new model with the filtered data
+            self.models["exchange_rates"] = self._create_colored_table_model(
+                rates_transformed_data, self.table_config["exchange_rates"][2]
+            )
+            self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
 
-            # Populate table with new data
-            for row_index, row_data in enumerate(data):
-                table_widget.insertRow(row_index)
-                for col_index, cell_data in enumerate(row_data):
-                    if col_index < table_widget.columnCount():
-                        item = QTableWidgetItem(str(cell_data))
-                        table_widget.setItem(row_index, col_index, item)
+            # Configure column stretching for exchange rates table
+            rates_header = self.tableView_exchange_rates.horizontalHeader()
+            if rates_header:
+                rates_header.setStretchLastSection(True)
 
             print(f"✅ Updated exchange rates table with {len(data)} records")
 

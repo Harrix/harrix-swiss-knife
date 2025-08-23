@@ -1233,6 +1233,8 @@ class Ui_MainWindow(object):
 
         self.doubleSpinBox_exchange_item_update = QDoubleSpinBox(self.groupBox_rate_commands)
         self.doubleSpinBox_exchange_item_update.setObjectName("doubleSpinBox_exchange_item_update")
+        self.doubleSpinBox_exchange_item_update.setDecimals(9)
+        self.doubleSpinBox_exchange_item_update.setMaximum(10000000.000000000000000)
 
         self.horizontalLayout_16.addWidget(self.doubleSpinBox_exchange_item_update)
 
@@ -2877,6 +2879,8 @@ def setupUi(self, MainWindow):
 
         self.doubleSpinBox_exchange_item_update = QDoubleSpinBox(self.groupBox_rate_commands)
         self.doubleSpinBox_exchange_item_update.setObjectName("doubleSpinBox_exchange_item_update")
+        self.doubleSpinBox_exchange_item_update.setDecimals(9)
+        self.doubleSpinBox_exchange_item_update.setMaximum(10000000.000000000000000)
 
         self.horizontalLayout_16.addWidget(self.doubleSpinBox_exchange_item_update)
 
