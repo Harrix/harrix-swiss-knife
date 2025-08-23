@@ -494,19 +494,15 @@ class DatabaseManager:
             from datetime import datetime, timedelta
             cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
 
-            # Delete exchange rates older than the cutoff date
-            query = "DELETE FROM exchange_rates WHERE date < :cutoff_date"
+            # Delete exchange rates from the last N days (including today)
+            query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
             params = {"cutoff_date": cutoff_date}
 
             success = self.execute_simple_query(query, params)
 
             if success:
                 # Get the number of deleted rows
-                count_query = "SELECT COUNT(*) FROM exchange_rates WHERE date < :cutoff_date"
-                count_params = {"cutoff_date": cutoff_date}
-
-                # Since we just deleted these records, we need to get the count before deletion
-                # We'll use a different approach - get the count from the change
+                # Since we just deleted these records, we need to get the count from the change
                 query_obj = self.execute_query("SELECT changes()")
                 if query_obj and query_obj.next():
                     deleted_count = query_obj.value(0)
