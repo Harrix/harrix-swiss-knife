@@ -976,6 +976,9 @@ class MainWindow(
             return
 
         try:
+            # Configuration option: check from first transaction or from last exchange rate
+            check_from_first_transaction = True  # Set to False to check only from last exchange rate
+
             # Get all currencies except USD (base currency)
             currencies = self.db_manager.get_currencies_except_usd()
             if not currencies:
@@ -990,22 +993,37 @@ class MainWindow(
             print(f"🔍 Checking which currencies need updates and missing records...")
             print(f"📅 Today's date: {today}")
 
+            # Determine start date based on configuration
+            if check_from_first_transaction:
+                # Get earliest transaction date
+                earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
+                if not earliest_transaction_date:
+                    QMessageBox.warning(self, "No Transactions", "No transactions found to determine start date.")
+                    return
+
+                global_start_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
+                print(f"📊 Checking from first transaction date: {global_start_date}")
+            else:
+                # Start from last exchange rate date for each currency
+                global_start_date = None
+                print(f"📊 Checking from last exchange rate date for each currency")
+
             for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                # Get the last exchange rate date for this currency
-                last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
+                # Determine start date for this currency
+                if check_from_first_transaction:
+                    # Use global start date from first transaction
+                    start_date = global_start_date
+                else:
+                    # Get the last exchange rate date for this currency
+                    last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
+                    if not last_date_str:
+                        print(f"⚠️ {currency_code}: No exchange rate records found - skipping")
+                        continue
+                    start_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
 
-                if not last_date_str:
-                    print(f"⚠️ {currency_code}: No exchange rate records found - skipping")
-                    continue
-
-                last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
-
-                # Get the last two existing records for updates
-                last_two_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
-
-                # Calculate missing dates from last_date + 1 day to today
+                # Calculate missing dates from start_date to today
                 missing_dates = []
-                current_date = last_date + timedelta(days=1)
+                current_date = start_date
 
                 while current_date <= today:
                     date_str = current_date.strftime("%Y-%m-%d")
@@ -1013,18 +1031,28 @@ class MainWindow(
                         missing_dates.append(date_str)
                     current_date += timedelta(days=1)
 
-                # Combine missing dates and existing records to update
-                records_to_process = {"missing_dates": missing_dates, "existing_records": last_two_records}
+                # Get the last few existing records for potential updates (only if not checking from first transaction)
+                if check_from_first_transaction:
+                    # When checking all history, don't update existing records
+                    last_records = []
+                else:
+                    # Get last 7 days of records for updates
+                    last_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
 
-                if missing_dates or last_two_records:
+                # Combine missing dates and existing records to update
+                records_to_process = {"missing_dates": missing_dates, "existing_records": last_records}
+
+                if missing_dates or last_records:
                     currencies_to_process.append((currency_id, currency_code, records_to_process))
                     print(
-                        f"📊 {currency_code}: Will add {len(missing_dates)} missing records and update {len(last_two_records)} existing records"
+                        f"📊 {currency_code}: Will add {len(missing_dates)} missing records"
+                        + (f" and update {len(last_records)} existing records" if last_records else "")
                     )
                     if missing_dates:
-                        print(f"    Missing dates: {missing_dates[:5]}{'...' if len(missing_dates) > 5 else ''}")
-                    if last_two_records:
-                        print(f"    Will update records from: {[record[0] for record in last_two_records]}")
+                        sample_size = min(5, len(missing_dates))
+                        print(f"    First {sample_size} missing dates: {missing_dates[:sample_size]}")
+                        if len(missing_dates) > 5:
+                            print(f"    ... and {len(missing_dates) - 5} more dates")
 
             # If no currencies need processing, inform user
             if not currencies_to_process:
@@ -1041,14 +1069,18 @@ class MainWindow(
             total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
             currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
 
+            check_mode = "from first transaction" if check_from_first_transaction else "from last exchange rate"
+
             reply = QMessageBox.question(
                 self,
                 "Update Exchange Rates",
+                f"Checking {check_mode}\n\n"
                 f"Found {len(currencies_to_process)} currencies to process:\n"
                 f"{currencies_text}\n\n"
                 f"Missing records to add: {total_missing}\n"
                 f"Existing records to update: {total_updates}\n"
                 f"Total operations: {total_missing + total_updates}\n\n"
+                f"This may take several minutes for large date ranges.\n"
                 f"Do you want to proceed with downloading from yfinance?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
@@ -1074,7 +1106,8 @@ class MainWindow(
             self.progress_dialog = QMessageBox(self)
             self.progress_dialog.setWindowTitle("Updating Exchange Rates")
             self.progress_dialog.setText(
-                f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
+                f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance...\n"
+                f"Mode: Checking {check_mode}"
             )
             self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
             self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)

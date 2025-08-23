@@ -741,7 +741,20 @@ class ChartOperations:
     def _fill_missing_periods_with_zeros(
         self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None
     ) -> list[tuple]:
-        """Fill missing periods with zero values."""
+        """Fill missing periods with zero values.
+
+        Args:
+
+        - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
+        - `period` (`str`): Period type (Days, Months, Years).
+        - `date_from` (`str | None`): Start date string (YYYY-MM-DD).
+        - `date_to` (`str | None`): End date string (YYYY-MM-DD).
+
+        Returns:
+
+        - `list[tuple]`: Data with missing periods filled with zeros.
+
+        """
         if not data:
             return data
 
@@ -751,9 +764,8 @@ class ChartOperations:
         # Determine date range
         if date_from and date_to:
             try:
-                # Создаем timezone-naive datetime объекты
-                start_date = datetime.strptime(date_from, "%Y-%m-%d")
-                end_date = datetime.strptime(date_to, "%Y-%m-%d")
+                start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc)
             except ValueError:
                 return data
         else:
@@ -854,7 +866,19 @@ class ChartOperations:
         return f"Min: {min_val:.2f}{unit_suffix} | Max: {max_val:.2f}{unit_suffix} | Avg: {avg_val:.2f}{unit_suffix}"
 
     def _group_data_by_period(self, rows: list, period: str, value_type: str = "float") -> dict:
-        """Group data by the specified period (Days, Months, Years)."""
+        """Group data by the specified period (Days, Months, Years).
+
+        Args:
+
+        - `rows` (`list`): List of (date_str, value_str) tuples.
+        - `period` (`str`): Grouping period (Days, Months, Years).
+        - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
+
+        Returns:
+
+        - `dict`: Dictionary with datetime keys and aggregated values.
+
+        """
         grouped = defaultdict(float if value_type == "float" else int)
 
         # Regex pattern for YYYY-MM-DD format
@@ -872,8 +896,7 @@ class ChartOperations:
 
             # Safe date parsing with proper error handling
             try:
-                # Создаем timezone-naive datetime объект
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -937,7 +960,7 @@ class ChartOperations:
                 x_values,
                 y_values,
                 color=plot_color,
-                marker=None,
+                marker="o",
                 linestyle="-",
                 linewidth=1,
                 alpha=0.8,
@@ -1131,6 +1154,17 @@ def _fill_missing_periods_with_zeros(self, data: list[tuple], period: str, date_
 
 Fill missing periods with zero values.
 
+Args:
+
+- `data` (`list[tuple]`): Original data as (datetime, value) tuples.
+- `period` (`str`): Period type (Days, Months, Years).
+- `date_from` (`str | None`): Start date string (YYYY-MM-DD).
+- `date_to` (`str | None`): End date string (YYYY-MM-DD).
+
+Returns:
+
+- `list[tuple]`: Data with missing periods filled with zeros.
+
 <details>
 <summary>Code:</summary>
 
@@ -1147,9 +1181,8 @@ def _fill_missing_periods_with_zeros(
         # Determine date range
         if date_from and date_to:
             try:
-                # Создаем timezone-naive datetime объекты
-                start_date = datetime.strptime(date_from, "%Y-%m-%d")
-                end_date = datetime.strptime(date_to, "%Y-%m-%d")
+                start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc)
             except ValueError:
                 return data
         else:
@@ -1284,6 +1317,16 @@ def _group_data_by_period(self, rows: list, period: str, value_type: str = "floa
 
 Group data by the specified period (Days, Months, Years).
 
+Args:
+
+- `rows` (`list`): List of (date_str, value_str) tuples.
+- `period` (`str`): Grouping period (Days, Months, Years).
+- `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
+
+Returns:
+
+- `dict`: Dictionary with datetime keys and aggregated values.
+
 <details>
 <summary>Code:</summary>
 
@@ -1306,8 +1349,7 @@ def _group_data_by_period(self, rows: list, period: str, value_type: str = "floa
 
             # Safe date parsing with proper error handling
             try:
-                # Создаем timezone-naive datetime объект
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -1383,7 +1425,7 @@ def _plot_data(
                 x_values,
                 y_values,
                 color=plot_color,
-                marker=None,
+                marker="o",
                 linestyle="-",
                 linewidth=1,
                 alpha=0.8,
