@@ -28,7 +28,16 @@ from PySide6.QtCore import (
     Signal,
 )
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QCompleter, QDialog, QFileDialog, QMainWindow, QMessageBox, QTableView, QTableWidgetItem
+from PySide6.QtWidgets import (
+    QApplication,
+    QCompleter,
+    QDialog,
+    QFileDialog,
+    QMainWindow,
+    QMessageBox,
+    QTableView,
+    QTableWidgetItem,
+)
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.finance import database_manager, window
@@ -787,6 +796,162 @@ class MainWindow(
         """Clear the description field."""
         self.lineEdit_description.clear()
 
+    def on_delete_exchange_rates_by_days(self) -> None:
+        """Delete exchange rates for the last N days based on spinBox_exchange_rate_count_days value."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get the number of days from the spin box
+            days = self.spinBox_exchange_rate_count_days.value()
+
+            if days <= 0:
+                QMessageBox.warning(self, "Invalid Input", "Number of days must be greater than 0.")
+                return
+
+            # Show confirmation dialog
+            reply = QMessageBox.question(
+                self,
+                "Confirm Deletion",
+                f"Are you sure you want to delete exchange rates for the last {days} days?\n\n"
+                "This action cannot be undone.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            # Delete exchange rates
+            success, deleted_count = self.db_manager.delete_exchange_rates_by_days(days)
+
+            if success:
+                if deleted_count > 0:
+                    QMessageBox.information(
+                        self,
+                        "Deletion Successful",
+                        f"Successfully deleted {deleted_count} exchange rate records for the last {days} days.",
+                    )
+                else:
+                    QMessageBox.information(
+                        self, "No Records Found", f"No exchange rate records were found for the last {days} days."
+                    )
+
+                # Mark exchange rates as changed and update the view
+                self._mark_exchange_rates_changed()
+                self.update_all()
+                self.update_summary_labels()
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Deletion Failed",
+                    "Failed to delete exchange rate records. Please check the database connection.",
+                )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while deleting exchange rates: {e}")
+
+    def on_exchange_item_update_button_clicked(self) -> None:
+        """Update exchange rate in database when pushButton_exchange_item_update is clicked."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get selected currency ID
+            currency_index = self.comboBox_exchange_item_update.currentIndex()
+            if currency_index < 0:
+                QMessageBox.warning(self, "Invalid Selection", "Please select a currency.")
+                return
+
+            currency_id = self.comboBox_exchange_item_update.itemData(currency_index)
+            if currency_id is None:
+                QMessageBox.warning(self, "Invalid Selection", "Please select a valid currency.")
+                return
+
+            # Get selected date
+            selected_date = self.dateEdit_exchange_item_update.date()
+            date_str = selected_date.toString("yyyy-MM-dd")
+
+            # Get exchange rate value
+            exchange_rate = self.doubleSpinBox_exchange_item_update.value()
+            if exchange_rate <= 0:
+                QMessageBox.warning(self, "Invalid Rate", "Exchange rate must be greater than 0.")
+                return
+
+            # Get currency info for confirmation dialog
+            currency_text = self.comboBox_exchange_item_update.currentText()
+
+            # Confirm update
+            reply = QMessageBox.question(
+                self,
+                "Confirm Exchange Rate Update",
+                f"Update exchange rate for {currency_text} on {date_str} to {exchange_rate}?\n\n"
+                "This action will overwrite any existing rate for this currency and date.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            # Update exchange rate in database
+            success = self.db_manager.update_exchange_rate(currency_id, date_str, exchange_rate)
+
+            if success:
+                QMessageBox.information(
+                    self,
+                    "Update Successful",
+                    f"Exchange rate for {currency_text} on {date_str} has been updated to {exchange_rate}.",
+                )
+                # Clear exchange rate cache to ensure fresh data
+                if hasattr(self.db_manager, "_exchange_rate_cache"):
+                    self.db_manager._exchange_rate_cache.clear()
+                # Update all views
+                self.update_all()
+                self.update_summary_labels()
+                # Update exchange rates chart if on the same currency
+                self.on_exchange_rates_update()
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Update Failed",
+                    "Failed to update exchange rate. Please check the database connection and try again.",
+                )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while updating exchange rate: {e}")
+
+    def on_exchange_item_update_changed(self) -> None:
+        """Update exchange rate in doubleSpinBox_exchange_item_update when currency or date changes."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get selected currency ID
+            currency_index = self.comboBox_exchange_item_update.currentIndex()
+            if currency_index < 0:
+                self.doubleSpinBox_exchange_item_update.setValue(0.0)
+                return
+
+            currency_id = self.comboBox_exchange_item_update.itemData(currency_index)
+            if currency_id is None:
+                self.doubleSpinBox_exchange_item_update.setValue(0.0)
+                return
+
+            # Get selected date
+            selected_date = self.dateEdit_exchange_item_update.date()
+            date_str = selected_date.toString("yyyy-MM-dd")
+
+            # Get exchange rate from database
+            exchange_rate = self.db_manager.get_currency_exchange_rate_by_date(currency_id, date_str)
+
+            # Update the doubleSpinBox
+            self.doubleSpinBox_exchange_item_update.setValue(exchange_rate)
+
+        except Exception as e:
+            print(f"Error updating exchange item update rate: {e}")
+            self.doubleSpinBox_exchange_item_update.setValue(0.0)
+
     def on_exchange_rates_all_time(self) -> None:
         """Set date range to all available data."""
         self._set_exchange_rates_date_range()
@@ -875,67 +1040,6 @@ class MainWindow(
         finally:
             self._exchange_rates_updating = False
 
-    def on_delete_exchange_rates_by_days(self) -> None:
-        """Delete exchange rates for the last N days based on spinBox_exchange_rate_count_days value."""
-        if not self._validate_database_connection():
-            return
-
-        try:
-            # Get the number of days from the spin box
-            days = self.spinBox_exchange_rate_count_days.value()
-
-            if days <= 0:
-                QMessageBox.warning(self, "Invalid Input", "Number of days must be greater than 0.")
-                return
-
-            # Show confirmation dialog
-            reply = QMessageBox.question(
-                self,
-                "Confirm Deletion",
-                f"Are you sure you want to delete exchange rates for the last {days} days?\n\n"
-                "This action cannot be undone.",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
-
-            if reply != QMessageBox.StandardButton.Yes:
-                return
-
-            # Delete exchange rates
-            success, deleted_count = self.db_manager.delete_exchange_rates_by_days(days)
-
-            if success:
-                if deleted_count > 0:
-                    QMessageBox.information(
-                        self,
-                        "Deletion Successful",
-                        f"Successfully deleted {deleted_count} exchange rate records for the last {days} days."
-                    )
-                else:
-                    QMessageBox.information(
-                        self,
-                        "No Records Found",
-                        f"No exchange rate records were found for the last {days} days."
-                    )
-
-                # Mark exchange rates as changed and update the view
-                self._mark_exchange_rates_changed()
-                self.update_all()
-                self.update_summary_labels()
-            else:
-                QMessageBox.warning(
-                    self,
-                    "Deletion Failed",
-                    "Failed to delete exchange rate records. Please check the database connection."
-                )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Error",
-                f"An error occurred while deleting exchange rates: {e}"
-            )
-
     def on_export_csv(self) -> None:
         """Save current transactions view to a CSV file."""
         filename_str, _ = QFileDialog.getSaveFileName(
@@ -963,6 +1067,83 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
+
+    def on_filter_exchange_rates_apply(self) -> None:
+        """Apply filter to exchange rates based on selected criteria."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get filter criteria
+            currency_id = None
+            currency_index = self.comboBox_exchange_rates_filter_currency.currentIndex()
+
+            # Check if "All currencies" is selected (index 0)
+            if currency_index > 0:
+                currency_id = self.comboBox_exchange_rates_filter_currency.itemData(currency_index)
+
+            # Get date range
+            date_from = self.dateEdit_filter_exchange_rates_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_filter_exchange_rates_to.date().toString("yyyy-MM-dd")
+
+            # Validate date range
+            if self.dateEdit_filter_exchange_rates_from.date() > self.dateEdit_filter_exchange_rates_to.date():
+                QMessageBox.warning(self, "Invalid Date Range", "Start date cannot be after end date.")
+                return
+
+            # Get filtered data
+            filtered_data = self.db_manager.get_filtered_exchange_rates(
+                currency_id=currency_id, date_from=date_from, date_to=date_to, limit=self.count_exchange_rates_to_show
+            )
+
+            # Update table
+            self._update_exchange_rates_table(filtered_data)
+
+            # Show information about filter results
+            filter_info = []
+            if currency_id is not None:
+                currency_text = self.comboBox_exchange_rates_filter_currency.currentText()
+                filter_info.append(f"Currency: {currency_text}")
+            else:
+                filter_info.append("Currency: All currencies")
+
+            filter_info.append(f"Date range: {date_from} to {date_to}")
+            filter_info.append(f"Records found: {len(filtered_data)}")
+
+            QMessageBox.information(
+                self, "Filter Applied", "Exchange rates filter has been applied.\n\n" + "\n".join(filter_info)
+            )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Filter Error", f"An error occurred while applying filter: {e}")
+
+    def on_filter_exchange_rates_clear(self) -> None:
+        """Clear exchange rates filter and show default number of records."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Reset filter controls to default values
+            self.comboBox_exchange_rates_filter_currency.setCurrentIndex(0)  # "All currencies"
+
+            # Reset date range to match main date controls
+            self.dateEdit_filter_exchange_rates_from.setDate(self.dateEdit_exchange_rates_from.date())
+            self.dateEdit_filter_exchange_rates_to.setDate(self.dateEdit_exchange_rates_to.date())
+
+            # Get unfiltered data with default limit
+            unfiltered_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
+
+            # Update table
+            self._update_exchange_rates_table(unfiltered_data)
+
+            QMessageBox.information(
+                self,
+                "Filter Cleared",
+                f"Exchange rates filter has been cleared.\nShowing {len(unfiltered_data)} most recent records.",
+            )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Clear Filter Error", f"An error occurred while clearing filter: {e}")
 
     @requires_database()
     def on_generate_report(self) -> None:
@@ -3885,219 +4066,6 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
 
-    def _validate_database_connection(self) -> bool:
-        """Validate database connection.
-
-        Returns:
-
-        - `bool`: True if connection is valid, False otherwise.
-
-        """
-        if not self.db_manager:
-            print("Database manager is None")
-            return False
-
-        if not self.db_manager.is_database_open():
-            print("Database connection is not open")
-            return False
-
-        return True
-
-    def on_exchange_item_update_changed(self) -> None:
-        """Update exchange rate in doubleSpinBox_exchange_item_update when currency or date changes."""
-        if not self._validate_database_connection():
-            return
-
-        try:
-            # Get selected currency ID
-            currency_index = self.comboBox_exchange_item_update.currentIndex()
-            if currency_index < 0:
-                self.doubleSpinBox_exchange_item_update.setValue(0.0)
-                return
-
-            currency_id = self.comboBox_exchange_item_update.itemData(currency_index)
-            if currency_id is None:
-                self.doubleSpinBox_exchange_item_update.setValue(0.0)
-                return
-
-            # Get selected date
-            selected_date = self.dateEdit_exchange_item_update.date()
-            date_str = selected_date.toString("yyyy-MM-dd")
-
-            # Get exchange rate from database
-            exchange_rate = self.db_manager.get_currency_exchange_rate_by_date(currency_id, date_str)
-
-            # Update the doubleSpinBox
-            self.doubleSpinBox_exchange_item_update.setValue(exchange_rate)
-
-        except Exception as e:
-            print(f"Error updating exchange item update rate: {e}")
-            self.doubleSpinBox_exchange_item_update.setValue(0.0)
-
-    def on_exchange_item_update_button_clicked(self) -> None:
-        """Update exchange rate in database when pushButton_exchange_item_update is clicked."""
-        if not self._validate_database_connection():
-            return
-
-        try:
-            # Get selected currency ID
-            currency_index = self.comboBox_exchange_item_update.currentIndex()
-            if currency_index < 0:
-                QMessageBox.warning(self, "Invalid Selection", "Please select a currency.")
-                return
-
-            currency_id = self.comboBox_exchange_item_update.itemData(currency_index)
-            if currency_id is None:
-                QMessageBox.warning(self, "Invalid Selection", "Please select a valid currency.")
-                return
-
-            # Get selected date
-            selected_date = self.dateEdit_exchange_item_update.date()
-            date_str = selected_date.toString("yyyy-MM-dd")
-
-            # Get exchange rate value
-            exchange_rate = self.doubleSpinBox_exchange_item_update.value()
-            if exchange_rate <= 0:
-                QMessageBox.warning(self, "Invalid Rate", "Exchange rate must be greater than 0.")
-                return
-
-            # Get currency info for confirmation dialog
-            currency_text = self.comboBox_exchange_item_update.currentText()
-
-            # Confirm update
-            reply = QMessageBox.question(
-                self,
-                "Confirm Exchange Rate Update",
-                f"Update exchange rate for {currency_text} on {date_str} to {exchange_rate}?\n\n"
-                "This action will overwrite any existing rate for this currency and date.",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
-
-            if reply != QMessageBox.StandardButton.Yes:
-                return
-
-            # Update exchange rate in database
-            success = self.db_manager.update_exchange_rate(currency_id, date_str, exchange_rate)
-
-            if success:
-                QMessageBox.information(
-                    self,
-                    "Update Successful",
-                    f"Exchange rate for {currency_text} on {date_str} has been updated to {exchange_rate}."
-                )
-                # Clear exchange rate cache to ensure fresh data
-                if hasattr(self.db_manager, '_exchange_rate_cache'):
-                    self.db_manager._exchange_rate_cache.clear()
-                # Update all views
-                self.update_all()
-                self.update_summary_labels()
-                # Update exchange rates chart if on the same currency
-                self.on_exchange_rates_update()
-            else:
-                QMessageBox.warning(
-                    self,
-                    "Update Failed",
-                    "Failed to update exchange rate. Please check the database connection and try again."
-                )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Error",
-                f"An error occurred while updating exchange rate: {e}"
-            )
-
-    def on_filter_exchange_rates_apply(self) -> None:
-        """Apply filter to exchange rates based on selected criteria."""
-        if not self._validate_database_connection():
-            return
-
-        try:
-            # Get filter criteria
-            currency_id = None
-            currency_index = self.comboBox_exchange_rates_filter_currency.currentIndex()
-
-            # Check if "All currencies" is selected (index 0)
-            if currency_index > 0:
-                currency_id = self.comboBox_exchange_rates_filter_currency.itemData(currency_index)
-
-            # Get date range
-            date_from = self.dateEdit_filter_exchange_rates_from.date().toString("yyyy-MM-dd")
-            date_to = self.dateEdit_filter_exchange_rates_to.date().toString("yyyy-MM-dd")
-
-            # Validate date range
-            if self.dateEdit_filter_exchange_rates_from.date() > self.dateEdit_filter_exchange_rates_to.date():
-                QMessageBox.warning(self, "Invalid Date Range", "Start date cannot be after end date.")
-                return
-
-            # Get filtered data
-            filtered_data = self.db_manager.get_filtered_exchange_rates(
-                currency_id=currency_id,
-                date_from=date_from,
-                date_to=date_to,
-                limit=self.count_exchange_rates_to_show
-            )
-
-            # Update table
-            self._update_exchange_rates_table(filtered_data)
-
-            # Show information about filter results
-            filter_info = []
-            if currency_id is not None:
-                currency_text = self.comboBox_exchange_rates_filter_currency.currentText()
-                filter_info.append(f"Currency: {currency_text}")
-            else:
-                filter_info.append("Currency: All currencies")
-
-            filter_info.append(f"Date range: {date_from} to {date_to}")
-            filter_info.append(f"Records found: {len(filtered_data)}")
-
-            QMessageBox.information(
-                self,
-                "Filter Applied",
-                "Exchange rates filter has been applied.\n\n" + "\n".join(filter_info)
-            )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Filter Error",
-                f"An error occurred while applying filter: {e}"
-            )
-
-    def on_filter_exchange_rates_clear(self) -> None:
-        """Clear exchange rates filter and show default number of records."""
-        if not self._validate_database_connection():
-            return
-
-        try:
-            # Reset filter controls to default values
-            self.comboBox_exchange_rates_filter_currency.setCurrentIndex(0)  # "All currencies"
-
-            # Reset date range to match main date controls
-            self.dateEdit_filter_exchange_rates_from.setDate(self.dateEdit_exchange_rates_from.date())
-            self.dateEdit_filter_exchange_rates_to.setDate(self.dateEdit_exchange_rates_to.date())
-
-            # Get unfiltered data with default limit
-            unfiltered_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
-
-            # Update table
-            self._update_exchange_rates_table(unfiltered_data)
-
-            QMessageBox.information(
-                self,
-                "Filter Cleared",
-                f"Exchange rates filter has been cleared.\nShowing {len(unfiltered_data)} most recent records."
-            )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Clear Filter Error",
-                f"An error occurred while clearing filter: {e}"
-            )
-
     def _update_exchange_rates_table(self, data: list[list[Any]]) -> None:
         """Update the exchange rates table with provided data."""
         try:
@@ -4122,6 +4090,24 @@ class MainWindow(
 
         except Exception as e:
             print(f"❌ Error updating exchange rates table: {e}")
+
+    def _validate_database_connection(self) -> bool:
+        """Validate database connection.
+
+        Returns:
+
+        - `bool`: True if connection is valid, False otherwise.
+
+        """
+        if not self.db_manager:
+            print("Database manager is None")
+            return False
+
+        if not self.db_manager.is_database_open():
+            print("Database connection is not open")
+            return False
+
+        return True
 
 
 if __name__ == "__main__":

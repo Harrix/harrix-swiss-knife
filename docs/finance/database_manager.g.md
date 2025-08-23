@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `delete_currency`](#%EF%B8%8F-method-delete_currency)
   - [⚙️ Method `delete_currency_exchange`](#%EF%B8%8F-method-delete_currency_exchange)
   - [⚙️ Method `delete_exchange_rate`](#%EF%B8%8F-method-delete_exchange_rate)
+  - [⚙️ Method `delete_exchange_rates_by_days`](#%EF%B8%8F-method-delete_exchange_rates_by_days)
   - [⚙️ Method `delete_transaction`](#%EF%B8%8F-method-delete_transaction)
   - [⚙️ Method `execute_query`](#%EF%B8%8F-method-execute_query)
   - [⚙️ Method `execute_simple_query`](#%EF%B8%8F-method-execute_simple_query)
@@ -48,6 +49,7 @@ lang: en
   - [⚙️ Method `get_currencies_except_usd`](#%EF%B8%8F-method-get_currencies_except_usd)
   - [⚙️ Method `get_currency_by_code`](#%EF%B8%8F-method-get_currency_by_code)
   - [⚙️ Method `get_currency_by_id`](#%EF%B8%8F-method-get_currency_by_id)
+  - [⚙️ Method `get_currency_exchange_rate_by_date`](#%EF%B8%8F-method-get_currency_exchange_rate_by_date)
   - [⚙️ Method `get_currency_subdivision`](#%EF%B8%8F-method-get_currency_subdivision)
   - [⚙️ Method `get_currency_subdivision_by_code`](#%EF%B8%8F-method-get_currency_subdivision_by_code)
   - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
@@ -56,6 +58,7 @@ lang: en
   - [⚙️ Method `get_earliest_financial_date`](#%EF%B8%8F-method-get_earliest_financial_date)
   - [⚙️ Method `get_earliest_transaction_date`](#%EF%B8%8F-method-get_earliest_transaction_date)
   - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate)
+  - [⚙️ Method `get_filtered_exchange_rates`](#%EF%B8%8F-method-get_filtered_exchange_rates)
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
@@ -72,12 +75,14 @@ lang: en
   - [⚙️ Method `has_exchange_rates_data`](#%EF%B8%8F-method-has_exchange_rates_data)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
+  - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency-1)
   - [⚙️ Method `set_last_exchange_rates_update_date`](#%EF%B8%8F-method-set_last_exchange_rates_update_date)
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `update_account`](#%EF%B8%8F-method-update_account)
   - [⚙️ Method `update_category`](#%EF%B8%8F-method-update_category)
   - [⚙️ Method `update_currency`](#%EF%B8%8F-method-update_currency)
   - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate)
+  - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate-1)
   - [⚙️ Method `update_transaction`](#%EF%B8%8F-method-update_transaction)
   - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
   - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
@@ -555,6 +560,51 @@ class DatabaseManager:
         """
         query = "DELETE FROM exchange_rates WHERE _id = :id"
         return self.execute_simple_query(query, {"id": rate_id})
+
+    def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
+        """Delete exchange rates for the last N days for each currency.
+
+        Args:
+
+        - `days` (`int`): Number of days to look back from current date.
+
+        Returns:
+
+        - `tuple[bool, int]`: (success, deleted_count) where success is True if
+          the operation completed successfully, and deleted_count is the number
+          of records deleted.
+
+        """
+        if days <= 0:
+            return False, 0
+
+        try:
+            # Calculate the cutoff date
+            from datetime import datetime, timedelta
+
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+            # Delete exchange rates from the last N days (including today)
+            query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
+            params = {"cutoff_date": cutoff_date}
+
+            success = self.execute_simple_query(query, params)
+
+            if success:
+                # Get the number of deleted rows
+                # Since we just deleted these records, we need to get the count from the change
+                query_obj = self.execute_query("SELECT changes()")
+                if query_obj and query_obj.next():
+                    deleted_count = query_obj.value(0)
+                    return True, deleted_count
+                else:
+                    return True, 0  # Success but couldn't determine count
+            else:
+                return False, 0
+
+        except Exception as e:
+            print(f"❌ Error deleting exchange rates by days: {e}")
+            return False, 0
 
     def delete_transaction(self, transaction_id: int) -> bool:
         """Delete a transaction.
@@ -1049,6 +1099,42 @@ class DatabaseManager:
         rows = self.get_rows("SELECT code, name, symbol FROM currencies WHERE _id = :id", {"id": currency_id})
         return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
 
+    def get_currency_exchange_rate_by_date(self, currency_id: int, date: str) -> float:
+        """Get exchange rate for a specific currency on a specific date.
+
+        Args:
+            currency_id (int): Currency ID.
+            date (str): Date in YYYY-MM-DD format.
+
+        Returns:
+            float: Exchange rate (USD to currency) or 1.0 if not found.
+        """
+        try:
+            # Check if currency is USD
+            usd_currency = self.get_currency_by_code("USD")
+            if usd_currency and currency_id == usd_currency[0]:
+                return 1.0
+
+            # Query database for the specific date
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency = :currency_id AND date = :date
+                LIMIT 1
+            """
+            params = {"currency_id": currency_id, "date": date}
+
+            rows = self.get_rows(query, params)
+            if rows and rows[0][0] is not None and rows[0][0] != "":
+                try:
+                    return float(rows[0][0])
+                except (ValueError, TypeError):
+                    return 1.0
+
+            return 1.0
+        except Exception as e:
+            print(f"Error getting currency exchange rate by date: {e}")
+            return 1.0
+
     def get_currency_subdivision(self, currency_id: int) -> int:
         """Get subdivision value for a currency.
 
@@ -1193,6 +1279,75 @@ class DatabaseManager:
                 # from_currency → USD → to_currency = (1/from_usd_rate) * to_usd_rate
                 return to_usd_rate / from_usd_rate
             return 1.0
+
+    def get_filtered_exchange_rates(
+        self,
+        currency_id: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        limit: int | None = None,
+    ) -> list[list[Any]]:
+        """Get filtered exchange rates with currency information.
+
+        Args:
+            currency_id (int | None): Currency ID to filter by. None for all currencies.
+            date_from (str | None): Start date in YYYY-MM-DD format. None for no start date filter.
+            date_to (str | None): End date in YYYY-MM-DD format. None for no end date filter.
+            limit (int | None): Maximum number of records to return. None for all records.
+
+        Returns:
+            list[list[Any]]: List of filtered exchange rate records.
+        """
+        query = """
+            SELECT er._id, 'USD', c.code, er.rate, er.date
+            FROM exchange_rates er
+            JOIN currencies c ON er._id_currency = c._id
+        """
+
+        conditions = []
+        params = {}
+
+        if currency_id is not None:
+            conditions.append("er._id_currency = :currency_id")
+            params["currency_id"] = currency_id
+
+        if date_from is not None:
+            conditions.append("er.date >= :date_from")
+            params["date_from"] = date_from
+
+        if date_to is not None:
+            conditions.append("er.date <= :date_to")
+            params["date_to"] = date_to
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY er.date DESC, er._id DESC"
+
+        if limit is not None:
+            query += f" LIMIT {limit}"
+
+        try:
+            query_obj = self.execute_query(query, params)
+            if not query_obj:
+                return []
+
+            rows = self._rows_from_query(query_obj)
+
+            # Ensure rates are float type
+            for row in rows:
+                if len(row) >= 4 and row[3] is not None and row[3] != "":
+                    try:
+                        row[3] = float(row[3])
+                    except (ValueError, TypeError):
+                        row[3] = 0.0
+                else:
+                    row[3] = 0.0
+
+            return rows
+        except Exception as e:
+            print(f"❌ Error getting filtered exchange rates: {e}")
+            return []
 
     def get_filtered_transactions(
         self,
@@ -1741,6 +1896,31 @@ class DatabaseManager:
         insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
         return self.execute_simple_query(insert_query, {"code": currency_code})
 
+    def set_default_currency(self, currency_code: str) -> bool:
+        """Set the default currency.
+
+        Args:
+
+        - `currency_code` (`str`): Currency code to set as default.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        # First try to update existing setting
+        update_query = "UPDATE settings SET value = :code WHERE key = 'default_currency'"
+        if self.execute_simple_query(update_query, {"code": currency_code}):
+            # Check if any rows were affected by checking if the setting exists
+            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'default_currency'"
+            rows = self.get_rows(check_query)
+            if rows and rows[0][0] > 0:
+                return True
+
+        # If update didn't affect any rows, insert new setting
+        insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
+        return self.execute_simple_query(insert_query, {"code": currency_code})
+
     def set_last_exchange_rates_update_date(self, date: str) -> bool:
         """Set the last date when exchange rates were updated.
 
@@ -1896,6 +2076,55 @@ class DatabaseManager:
                 result.clear()
                 return True
             return False
+        except Exception as e:
+            print(f"Error updating exchange rate: {e}")
+            return False
+
+    def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
+        """Update or insert exchange rate for a specific currency and date.
+
+        Args:
+            currency_id (int): Currency ID.
+            date (str): Date in YYYY-MM-DD format.
+            rate (float): Exchange rate (USD to currency).
+
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        try:
+            # Check if currency is USD
+            usd_currency = self.get_currency_by_code("USD")
+            if usd_currency and currency_id == usd_currency[0]:
+                # Don't allow updating USD rate
+                return False
+
+            # Check if rate already exists for this currency and date
+            check_query = """
+                SELECT _id FROM exchange_rates
+                WHERE _id_currency = :currency_id AND date = :date
+                LIMIT 1
+            """
+            check_params = {"currency_id": currency_id, "date": date}
+            existing_rows = self.get_rows(check_query, check_params)
+
+            if existing_rows:
+                # Update existing rate
+                update_query = """
+                    UPDATE exchange_rates
+                    SET rate = :rate
+                    WHERE _id_currency = :currency_id AND date = :date
+                """
+                params = {"currency_id": currency_id, "date": date, "rate": rate}
+                return self.execute_simple_query(update_query, params)
+            else:
+                # Insert new rate
+                insert_query = """
+                    INSERT INTO exchange_rates (_id_currency, date, rate)
+                    VALUES (:currency_id, :date, :rate)
+                """
+                params = {"currency_id": currency_id, "date": date, "rate": rate}
+                return self.execute_simple_query(insert_query, params)
+
         except Exception as e:
             print(f"Error updating exchange rate: {e}")
             return False
@@ -2866,6 +3095,63 @@ def delete_exchange_rate(self, rate_id: int) -> bool:
 
 </details>
 
+### ⚙️ Method `delete_exchange_rates_by_days`
+
+```python
+def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]
+```
+
+Delete exchange rates for the last N days for each currency.
+
+Args:
+
+- `days` (`int`): Number of days to look back from current date.
+
+Returns:
+
+- `tuple[bool, int]`: (success, deleted_count) where success is True if
+  the operation completed successfully, and deleted_count is the number
+  of records deleted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
+        if days <= 0:
+            return False, 0
+
+        try:
+            # Calculate the cutoff date
+            from datetime import datetime, timedelta
+
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+            # Delete exchange rates from the last N days (including today)
+            query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
+            params = {"cutoff_date": cutoff_date}
+
+            success = self.execute_simple_query(query, params)
+
+            if success:
+                # Get the number of deleted rows
+                # Since we just deleted these records, we need to get the count from the change
+                query_obj = self.execute_query("SELECT changes()")
+                if query_obj and query_obj.next():
+                    deleted_count = query_obj.value(0)
+                    return True, deleted_count
+                else:
+                    return True, 0  # Success but couldn't determine count
+            else:
+                return False, 0
+
+        except Exception as e:
+            print(f"❌ Error deleting exchange rates by days: {e}")
+            return False, 0
+```
+
+</details>
+
 ### ⚙️ Method `delete_transaction`
 
 ```python
@@ -3564,6 +3850,55 @@ def get_currency_by_id(self, currency_id: int) -> tuple[str, str, str] | None:
 
 </details>
 
+### ⚙️ Method `get_currency_exchange_rate_by_date`
+
+```python
+def get_currency_exchange_rate_by_date(self, currency_id: int, date: str) -> float
+```
+
+Get exchange rate for a specific currency on a specific date.
+
+Args:
+currency_id (int): Currency ID.
+date (str): Date in YYYY-MM-DD format.
+
+Returns:
+float: Exchange rate (USD to currency) or 1.0 if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_currency_exchange_rate_by_date(self, currency_id: int, date: str) -> float:
+        try:
+            # Check if currency is USD
+            usd_currency = self.get_currency_by_code("USD")
+            if usd_currency and currency_id == usd_currency[0]:
+                return 1.0
+
+            # Query database for the specific date
+            query = """
+                SELECT rate FROM exchange_rates
+                WHERE _id_currency = :currency_id AND date = :date
+                LIMIT 1
+            """
+            params = {"currency_id": currency_id, "date": date}
+
+            rows = self.get_rows(query, params)
+            if rows and rows[0][0] is not None and rows[0][0] != "":
+                try:
+                    return float(rows[0][0])
+                except (ValueError, TypeError):
+                    return 1.0
+
+            return 1.0
+        except Exception as e:
+            print(f"Error getting currency exchange rate by date: {e}")
+            return 1.0
+```
+
+</details>
+
 ### ⚙️ Method `get_currency_subdivision`
 
 ```python
@@ -3804,6 +4139,88 @@ def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: st
                 # from_currency → USD → to_currency = (1/from_usd_rate) * to_usd_rate
                 return to_usd_rate / from_usd_rate
             return 1.0
+```
+
+</details>
+
+### ⚙️ Method `get_filtered_exchange_rates`
+
+```python
+def get_filtered_exchange_rates(self, currency_id: int | None = None, date_from: str | None = None, date_to: str | None = None, limit: int | None = None) -> list[list[Any]]
+```
+
+Get filtered exchange rates with currency information.
+
+Args:
+currency_id (int | None): Currency ID to filter by. None for all currencies.
+date_from (str | None): Start date in YYYY-MM-DD format. None for no start date filter.
+date_to (str | None): End date in YYYY-MM-DD format. None for no end date filter.
+limit (int | None): Maximum number of records to return. None for all records.
+
+Returns:
+list[list[Any]]: List of filtered exchange rate records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_filtered_exchange_rates(
+        self,
+        currency_id: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        limit: int | None = None,
+    ) -> list[list[Any]]:
+        query = """
+            SELECT er._id, 'USD', c.code, er.rate, er.date
+            FROM exchange_rates er
+            JOIN currencies c ON er._id_currency = c._id
+        """
+
+        conditions = []
+        params = {}
+
+        if currency_id is not None:
+            conditions.append("er._id_currency = :currency_id")
+            params["currency_id"] = currency_id
+
+        if date_from is not None:
+            conditions.append("er.date >= :date_from")
+            params["date_from"] = date_from
+
+        if date_to is not None:
+            conditions.append("er.date <= :date_to")
+            params["date_to"] = date_to
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY er.date DESC, er._id DESC"
+
+        if limit is not None:
+            query += f" LIMIT {limit}"
+
+        try:
+            query_obj = self.execute_query(query, params)
+            if not query_obj:
+                return []
+
+            rows = self._rows_from_query(query_obj)
+
+            # Ensure rates are float type
+            for row in rows:
+                if len(row) >= 4 and row[3] is not None and row[3] != "":
+                    try:
+                        row[3] = float(row[3])
+                    except (ValueError, TypeError):
+                        row[3] = 0.0
+                else:
+                    row[3] = 0.0
+
+            return rows
+        except Exception as e:
+            print(f"❌ Error getting filtered exchange rates: {e}")
+            return []
 ```
 
 </details>
@@ -4554,6 +4971,43 @@ def set_default_currency(self, currency_code: str) -> bool:
 
 </details>
 
+### ⚙️ Method `set_default_currency`
+
+```python
+def set_default_currency(self, currency_code: str) -> bool
+```
+
+Set the default currency.
+
+Args:
+
+- `currency_code` (`str`): Currency code to set as default.
+
+Returns:
+
+- `bool`: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_default_currency(self, currency_code: str) -> bool:
+        # First try to update existing setting
+        update_query = "UPDATE settings SET value = :code WHERE key = 'default_currency'"
+        if self.execute_simple_query(update_query, {"code": currency_code}):
+            # Check if any rows were affected by checking if the setting exists
+            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'default_currency'"
+            rows = self.get_rows(check_query)
+            if rows and rows[0][0] > 0:
+                return True
+
+        # If update didn't affect any rows, insert new setting
+        insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
+        return self.execute_simple_query(insert_query, {"code": currency_code})
+```
+
+</details>
+
 ### ⚙️ Method `set_last_exchange_rates_update_date`
 
 ```python
@@ -4780,6 +5234,68 @@ def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> 
                 result.clear()
                 return True
             return False
+        except Exception as e:
+            print(f"Error updating exchange rate: {e}")
+            return False
+```
+
+</details>
+
+### ⚙️ Method `update_exchange_rate`
+
+```python
+def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool
+```
+
+Update or insert exchange rate for a specific currency and date.
+
+Args:
+currency_id (int): Currency ID.
+date (str): Date in YYYY-MM-DD format.
+rate (float): Exchange rate (USD to currency).
+
+Returns:
+bool: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
+        try:
+            # Check if currency is USD
+            usd_currency = self.get_currency_by_code("USD")
+            if usd_currency and currency_id == usd_currency[0]:
+                # Don't allow updating USD rate
+                return False
+
+            # Check if rate already exists for this currency and date
+            check_query = """
+                SELECT _id FROM exchange_rates
+                WHERE _id_currency = :currency_id AND date = :date
+                LIMIT 1
+            """
+            check_params = {"currency_id": currency_id, "date": date}
+            existing_rows = self.get_rows(check_query, check_params)
+
+            if existing_rows:
+                # Update existing rate
+                update_query = """
+                    UPDATE exchange_rates
+                    SET rate = :rate
+                    WHERE _id_currency = :currency_id AND date = :date
+                """
+                params = {"currency_id": currency_id, "date": date, "rate": rate}
+                return self.execute_simple_query(update_query, params)
+            else:
+                # Insert new rate
+                insert_query = """
+                    INSERT INTO exchange_rates (_id_currency, date, rate)
+                    VALUES (:currency_id, :date, :rate)
+                """
+                params = {"currency_id": currency_id, "date": date, "rate": rate}
+                return self.execute_simple_query(insert_query, params)
+
         except Exception as e:
             print(f"Error updating exchange rate: {e}")
             return False
