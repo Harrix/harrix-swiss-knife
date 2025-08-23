@@ -25,6 +25,7 @@
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/recover.sql",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/database_manager.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/exchange_rate_worker.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/exchange_rate_checker_worker.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/mixins.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/main.py"
       ]
@@ -36,6 +37,7 @@
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/recover.sql",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/database_manager.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/exchange_rate_worker.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/exchange_rate_checker_worker.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/mixins.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/main.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/window.py"
