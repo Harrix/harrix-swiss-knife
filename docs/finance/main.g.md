@@ -56,6 +56,7 @@ lang: en
   - [⚙️ Method `update_summary_labels`](#%EF%B8%8F-method-update_summary_labels)
   - [⚙️ Method `_auto_update_exchange_rates_on_startup`](#%EF%B8%8F-method-_auto_update_exchange_rates_on_startup)
   - [⚙️ Method `_calculate_daily_expenses`](#%EF%B8%8F-method-_calculate_daily_expenses)
+  - [⚙️ Method `_cleanup_startup_dialog`](#%EF%B8%8F-method-_cleanup_startup_dialog)
   - [⚙️ Method `_clear_account_form`](#%EF%B8%8F-method-_clear_account_form)
   - [⚙️ Method `_clear_all_forms`](#%EF%B8%8F-method-_clear_all_forms)
   - [⚙️ Method `_clear_category_form`](#%EF%B8%8F-method-_clear_category_form)
@@ -107,6 +108,7 @@ lang: en
   - [⚙️ Method `_on_startup_check_failed`](#%EF%B8%8F-method-_on_startup_check_failed)
   - [⚙️ Method `_on_startup_check_progress_updated`](#%EF%B8%8F-method-_on_startup_check_progress_updated)
   - [⚙️ Method `_on_startup_currency_started`](#%EF%B8%8F-method-_on_startup_currency_started)
+  - [⚙️ Method `_on_startup_dialog_cancelled`](#%EF%B8%8F-method-_on_startup_dialog_cancelled)
   - [⚙️ Method `_on_startup_progress_updated`](#%EF%B8%8F-method-_on_startup_progress_updated)
   - [⚙️ Method `_on_startup_rate_added`](#%EF%B8%8F-method-_on_startup_rate_added)
   - [⚙️ Method `_on_startup_update_finished_error`](#%EF%B8%8F-method-_on_startup_update_finished_error)
@@ -384,6 +386,9 @@ class MainWindow(
 
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.close()
+
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.close()
 
         # Dispose Models
         self._dispose_models()
@@ -1527,7 +1532,7 @@ class MainWindow(
 
     @requires_database()
     def _auto_update_exchange_rates_on_startup(self) -> None:
-        """Automatically update exchange rates on startup.
+        """Automatically update exchange rates on startup with modal dialog.
 
         Strategy:
         - If no exchange rates exist: check from first transaction date
@@ -1544,10 +1549,12 @@ class MainWindow(
             if has_exchange_rates:
                 # Exchange rates exist - check from last exchange rate date
                 check_from_first_transaction = False
+                strategy_text = "from last exchange rate date"
                 print("🔄 [Startup] Starting exchange rate update from last exchange rate date...")
             else:
                 # No exchange rates - check from first transaction date
                 check_from_first_transaction = True
+                strategy_text = "from first transaction date"
                 print("🔄 [Startup] No exchange rates found. Starting update from first transaction date...")
 
                 # Additional check: ensure transactions exist
@@ -1556,14 +1563,33 @@ class MainWindow(
                     print("ℹ️ [Startup] No transactions found. Skipping exchange rate update.")
                     return
 
-            # Create and start checker thread silently (no dialog)
+            # Create modal progress dialog
+            self.startup_progress_dialog = QMessageBox(self)
+            self.startup_progress_dialog.setWindowTitle("Loading Exchange Rates")
+            self.startup_progress_dialog.setText(f"Checking exchange rates {strategy_text}...\nPlease wait...")
+            self.startup_progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.startup_progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+
+            # Make dialog modal to block main window
+            self.startup_progress_dialog.setModal(True)
+
+            # Connect cancel button
+            self.startup_progress_dialog.buttonClicked.connect(self._on_startup_dialog_cancelled)
+
+            # Show dialog (non-blocking)
+            self.startup_progress_dialog.show()
+
+            # Disable main window
+            self.setEnabled(False)
+
+            # Create and start checker thread
             from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
 
             self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
                 self.db_manager, check_from_first_transaction
             )
 
-            # Connect signals for silent processing
+            # Connect signals
             self.startup_exchange_rate_checker.progress_updated.connect(self._on_startup_check_progress_updated)
             self.startup_exchange_rate_checker.check_completed.connect(self._on_startup_check_completed)
             self.startup_exchange_rate_checker.check_failed.connect(self._on_startup_check_failed)
@@ -1573,35 +1599,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"❌ Startup exchange rate check error: {e}")
-
-        """Automatically update exchange rates on startup from last exchange rate date."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Configuration: check from last exchange rate (not from first transaction)
-            check_from_first_transaction = False
-
-            print("🔄 Starting automatic exchange rate update on startup...")
-
-            # Create and start checker thread silently (no dialog)
-            from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
-
-            self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
-                self.db_manager, check_from_first_transaction
-            )
-
-            # Connect signals for silent processing
-            self.startup_exchange_rate_checker.progress_updated.connect(self._on_startup_check_progress_updated)
-            self.startup_exchange_rate_checker.check_completed.connect(self._on_startup_check_completed)
-            self.startup_exchange_rate_checker.check_failed.connect(self._on_startup_check_failed)
-
-            # Start the checker
-            self.startup_exchange_rate_checker.start()
-
-        except Exception as e:
-            print(f"❌ Startup exchange rate check error: {e}")
+            self._cleanup_startup_dialog()
 
     def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
         """Calculate daily expenses from transaction data.
@@ -1641,6 +1639,20 @@ class MainWindow(
                     daily_expenses[date] = amount
 
         return daily_expenses
+
+    def _cleanup_startup_dialog(self):
+        """Clean up startup dialog and re-enable main window."""
+        # Close dialog if exists
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.close()
+            delattr(self, "startup_progress_dialog")
+
+        # Re-enable main window
+        self.setEnabled(True)
+
+        # Ensure main window gets focus back
+        self.activateWindow()
+        self.raise_()
 
     def _clear_account_form(self) -> None:
         """Clear the account addition form."""
@@ -2247,9 +2259,9 @@ class MainWindow(
         # Setup exchange rates controls
         self._setup_exchange_rates_controls()
 
-        # Start automatic exchange rate update from last exchange rate date
+        # Start automatic exchange rate update with modal dialog
         # Use QTimer to delay startup update to ensure all initialization is complete
-        QTimer.singleShot(2000, self._auto_update_exchange_rates_on_startup)  # 2 second delay
+        QTimer.singleShot(1000, self._auto_update_exchange_rates_on_startup)  # 1 second delay
 
     def _focus_amount_and_select_text(self) -> None:
         """Set focus to amount field and select all text."""
@@ -3088,9 +3100,15 @@ class MainWindow(
 
     def _on_startup_check_completed(self, currencies_to_process: list):
         """Handle successful completion of startup exchange rate check."""
-        # If no currencies need processing, do nothing
+        # If no currencies need processing, cleanup and exit
         if not currencies_to_process:
             print("✅ [Startup] All exchange rates are up to date.")
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText("✅ All exchange rates are up to date!")
+                # Auto-close after 1 second
+                QTimer.singleShot(1000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
             return
 
         # Calculate totals
@@ -3106,35 +3124,92 @@ class MainWindow(
         print(f"📊 [Startup] Found {len(currencies_to_process)} currencies to process: {currencies_text}")
         print(f"📊 [Startup] Missing records: {total_missing}, Updates: {total_updates}")
 
-        # Start the update process silently
+        # Update dialog text
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.setText(
+                f"Downloading exchange rates {strategy}...\n"
+                f"Processing {len(currencies_to_process)} currencies: {currencies_text}\n"
+                f"Total operations: {total_missing + total_updates}"
+            )
+
+        # Start the update process
         self._start_startup_exchange_rate_update(currencies_to_process)
 
     def _on_startup_check_failed(self, error_message: str):
-        """Handle startup check failure (silent)."""
+        """Handle startup check failure."""
         print(f"❌ [Startup] Check failed: {error_message}")
 
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.setText(f"❌ Check failed:\n{error_message}")
+            # Auto-close after 3 seconds
+            QTimer.singleShot(3000, self._cleanup_startup_dialog)
+        else:
+            self._cleanup_startup_dialog()
+
     def _on_startup_check_progress_updated(self, message: str):
-        """Handle progress updates from startup checker worker (silent)."""
+        """Handle progress updates from startup checker worker."""
         print(f"[Startup] {message}")
+        if hasattr(self, "startup_progress_dialog"):
+            # Update dialog text with current progress
+            self.startup_progress_dialog.setText(f"Checking exchange rates...\n{message}")
 
     def _on_startup_currency_started(self, currency_code: str):
-        """Handle currency processing start for startup (silent)."""
+        """Handle currency processing start for startup."""
         print(f"[Startup] Processing {currency_code}...")
+        if hasattr(self, "startup_progress_dialog"):
+            current_text = self.startup_progress_dialog.text()
+            lines = current_text.split("\n")
+            if len(lines) >= 2:
+                main_info = "\n".join(lines[:3])  # Keep first 3 lines
+                self.startup_progress_dialog.setText(f"{main_info}\n\n🔄 Processing {currency_code}...")
+
+    def _on_startup_dialog_cancelled(self):
+        """Handle cancel button click in startup dialog."""
+        print("🚫 [Startup] User cancelled exchange rate update")
+
+        # Stop checker if running
+        if hasattr(self, "startup_exchange_rate_checker") and self.startup_exchange_rate_checker.isRunning():
+            self.startup_exchange_rate_checker.stop()
+            self.startup_exchange_rate_checker.wait(2000)  # Wait up to 2 seconds
+
+        # Stop worker if running
+        if hasattr(self, "startup_exchange_rate_worker") and self.startup_exchange_rate_worker.isRunning():
+            self.startup_exchange_rate_worker.stop()
+            self.startup_exchange_rate_worker.wait(2000)  # Wait up to 2 seconds
+
+        self._cleanup_startup_dialog()
 
     def _on_startup_progress_updated(self, message: str):
-        """Handle progress updates from startup worker (silent)."""
+        """Handle progress updates from startup worker."""
         print(f"[Startup] {message}")
+        if hasattr(self, "startup_progress_dialog"):
+            # Keep the main info and update with current progress
+            current_text = self.startup_progress_dialog.text()
+            # Extract the first two lines (main info) and add current progress
+            lines = current_text.split("\n")
+            if len(lines) >= 2:
+                main_info = "\n".join(lines[:3])  # Keep first 3 lines
+                self.startup_progress_dialog.setText(f"{main_info}\n\n{message}")
+            else:
+                self.startup_progress_dialog.setText(f"Downloading exchange rates...\n{message}")
 
     def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str):
-        """Handle successful rate addition for startup (silent)."""
+        """Handle successful rate addition for startup."""
         print(f"✅ [Startup] Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
 
     def _on_startup_update_finished_error(self, error_message: str):
-        """Handle error completion of startup update (silent)."""
+        """Handle error completion of startup update."""
         print(f"❌ [Startup] Update failed: {error_message}")
 
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.setText(f"❌ Update failed:\n{error_message}")
+            # Auto-close after 4 seconds
+            QTimer.singleShot(4000, self._cleanup_startup_dialog)
+        else:
+            self._cleanup_startup_dialog()
+
     def _on_startup_update_finished_success(self, processed_count: int, total_operations: int):
-        """Handle successful completion of startup update (silent)."""
+        """Handle successful completion of startup update."""
         if processed_count > 0:
             # Determine the strategy for logging
             has_exchange_rates = (
@@ -3146,6 +3221,18 @@ class MainWindow(
                 f"✅ [Startup] Successfully processed {processed_count} out of {total_operations} exchange rate operations ({strategy})"
             )
 
+            # Update dialog with success message
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText(
+                    f"✅ Exchange rates updated successfully!\n"
+                    f"Processed {processed_count} out of {total_operations} operations\n"
+                    f"Strategy: {strategy}"
+                )
+                # Auto-close after 2 seconds
+                QTimer.singleShot(2000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
+
             # Mark exchange rates as changed to trigger reload if tab is active
             self._mark_exchange_rates_changed()
             # If exchange rates tab is currently active, reload the data
@@ -3154,6 +3241,13 @@ class MainWindow(
                 self.load_exchange_rates_table()
         else:
             print("ℹ️ [Startup] No exchange rate records were processed")
+
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText("ℹ️ No exchange rate records were processed")
+                # Auto-close after 2 seconds
+                QTimer.singleShot(2000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
@@ -3580,7 +3674,7 @@ class MainWindow(
             print(f"❌ Exchange rate update error: {e}")
 
     def _start_startup_exchange_rate_update(self, currencies_to_process: list):
-        """Start the exchange rate update process for startup (silent)."""
+        """Start the exchange rate update process for startup."""
         try:
             # Determine the strategy for logging
             has_exchange_rates = self.db_manager.has_exchange_rates_data() if self.db_manager else False
@@ -3590,10 +3684,10 @@ class MainWindow(
                 f"🔄 [Startup] Starting exchange rate update for {len(currencies_to_process)} currencies ({strategy})..."
             )
 
-            # Create and start worker thread (no dialog)
+            # Create and start worker thread
             self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)
 
-            # Connect signals for silent processing
+            # Connect signals
             self.startup_exchange_rate_worker.progress_updated.connect(self._on_startup_progress_updated)
             self.startup_exchange_rate_worker.currency_started.connect(self._on_startup_currency_started)
             self.startup_exchange_rate_worker.rates_added.connect(self._on_startup_rate_added)
@@ -3605,6 +3699,12 @@ class MainWindow(
 
         except Exception as e:
             print(f"❌ [Startup] Exchange rate update error: {e}")
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText(f"❌ Update error:\n{e}")
+                # Auto-close after 3 seconds
+                QTimer.singleShot(3000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors and daily totals.
@@ -4075,6 +4175,9 @@ def closeEvent(self, event: QCloseEvent) -> None:
 
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.close()
+
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.close()
 
         # Dispose Models
         self._dispose_models()
@@ -5729,7 +5832,7 @@ def update_summary_labels(self) -> None:
 def _auto_update_exchange_rates_on_startup(self) -> None
 ```
 
-Automatically update exchange rates on startup.
+Automatically update exchange rates on startup with modal dialog.
 
 Strategy:
 
@@ -5752,10 +5855,12 @@ def _auto_update_exchange_rates_on_startup(self) -> None:
             if has_exchange_rates:
                 # Exchange rates exist - check from last exchange rate date
                 check_from_first_transaction = False
+                strategy_text = "from last exchange rate date"
                 print("🔄 [Startup] Starting exchange rate update from last exchange rate date...")
             else:
                 # No exchange rates - check from first transaction date
                 check_from_first_transaction = True
+                strategy_text = "from first transaction date"
                 print("🔄 [Startup] No exchange rates found. Starting update from first transaction date...")
 
                 # Additional check: ensure transactions exist
@@ -5764,14 +5869,33 @@ def _auto_update_exchange_rates_on_startup(self) -> None:
                     print("ℹ️ [Startup] No transactions found. Skipping exchange rate update.")
                     return
 
-            # Create and start checker thread silently (no dialog)
+            # Create modal progress dialog
+            self.startup_progress_dialog = QMessageBox(self)
+            self.startup_progress_dialog.setWindowTitle("Loading Exchange Rates")
+            self.startup_progress_dialog.setText(f"Checking exchange rates {strategy_text}...\nPlease wait...")
+            self.startup_progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.startup_progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+
+            # Make dialog modal to block main window
+            self.startup_progress_dialog.setModal(True)
+
+            # Connect cancel button
+            self.startup_progress_dialog.buttonClicked.connect(self._on_startup_dialog_cancelled)
+
+            # Show dialog (non-blocking)
+            self.startup_progress_dialog.show()
+
+            # Disable main window
+            self.setEnabled(False)
+
+            # Create and start checker thread
             from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
 
             self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
                 self.db_manager, check_from_first_transaction
             )
 
-            # Connect signals for silent processing
+            # Connect signals
             self.startup_exchange_rate_checker.progress_updated.connect(self._on_startup_check_progress_updated)
             self.startup_exchange_rate_checker.check_completed.connect(self._on_startup_check_completed)
             self.startup_exchange_rate_checker.check_failed.connect(self._on_startup_check_failed)
@@ -5781,35 +5905,7 @@ def _auto_update_exchange_rates_on_startup(self) -> None:
 
         except Exception as e:
             print(f"❌ Startup exchange rate check error: {e}")
-
-        """Automatically update exchange rates on startup from last exchange rate date."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Configuration: check from last exchange rate (not from first transaction)
-            check_from_first_transaction = False
-
-            print("🔄 Starting automatic exchange rate update on startup...")
-
-            # Create and start checker thread silently (no dialog)
-            from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
-
-            self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
-                self.db_manager, check_from_first_transaction
-            )
-
-            # Connect signals for silent processing
-            self.startup_exchange_rate_checker.progress_updated.connect(self._on_startup_check_progress_updated)
-            self.startup_exchange_rate_checker.check_completed.connect(self._on_startup_check_completed)
-            self.startup_exchange_rate_checker.check_failed.connect(self._on_startup_check_failed)
-
-            # Start the checker
-            self.startup_exchange_rate_checker.start()
-
-        except Exception as e:
-            print(f"❌ Startup exchange rate check error: {e}")
+            self._cleanup_startup_dialog()
 ```
 
 </details>
@@ -5861,6 +5957,34 @@ def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
                     daily_expenses[date] = amount
 
         return daily_expenses
+```
+
+</details>
+
+### ⚙️ Method `_cleanup_startup_dialog`
+
+```python
+def _cleanup_startup_dialog(self)
+```
+
+Clean up startup dialog and re-enable main window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _cleanup_startup_dialog(self):
+        # Close dialog if exists
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.close()
+            delattr(self, "startup_progress_dialog")
+
+        # Re-enable main window
+        self.setEnabled(True)
+
+        # Ensure main window gets focus back
+        self.activateWindow()
+        self.raise_()
 ```
 
 </details>
@@ -6680,9 +6804,9 @@ def _finish_window_initialization(self) -> None:
         # Setup exchange rates controls
         self._setup_exchange_rates_controls()
 
-        # Start automatic exchange rate update from last exchange rate date
+        # Start automatic exchange rate update with modal dialog
         # Use QTimer to delay startup update to ensure all initialization is complete
-        QTimer.singleShot(2000, self._auto_update_exchange_rates_on_startup)  # 2 second delay
+        QTimer.singleShot(1000, self._auto_update_exchange_rates_on_startup)  # 1 second delay
 ```
 
 </details>
@@ -7957,9 +8081,15 @@ Handle successful completion of startup exchange rate check.
 
 ```python
 def _on_startup_check_completed(self, currencies_to_process: list):
-        # If no currencies need processing, do nothing
+        # If no currencies need processing, cleanup and exit
         if not currencies_to_process:
             print("✅ [Startup] All exchange rates are up to date.")
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText("✅ All exchange rates are up to date!")
+                # Auto-close after 1 second
+                QTimer.singleShot(1000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
             return
 
         # Calculate totals
@@ -7975,7 +8105,15 @@ def _on_startup_check_completed(self, currencies_to_process: list):
         print(f"📊 [Startup] Found {len(currencies_to_process)} currencies to process: {currencies_text}")
         print(f"📊 [Startup] Missing records: {total_missing}, Updates: {total_updates}")
 
-        # Start the update process silently
+        # Update dialog text
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.setText(
+                f"Downloading exchange rates {strategy}...\n"
+                f"Processing {len(currencies_to_process)} currencies: {currencies_text}\n"
+                f"Total operations: {total_missing + total_updates}"
+            )
+
+        # Start the update process
         self._start_startup_exchange_rate_update(currencies_to_process)
 ```
 
@@ -7987,7 +8125,7 @@ def _on_startup_check_completed(self, currencies_to_process: list):
 def _on_startup_check_failed(self, error_message: str)
 ```
 
-Handle startup check failure (silent).
+Handle startup check failure.
 
 <details>
 <summary>Code:</summary>
@@ -7995,6 +8133,13 @@ Handle startup check failure (silent).
 ```python
 def _on_startup_check_failed(self, error_message: str):
         print(f"❌ [Startup] Check failed: {error_message}")
+
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.setText(f"❌ Check failed:\n{error_message}")
+            # Auto-close after 3 seconds
+            QTimer.singleShot(3000, self._cleanup_startup_dialog)
+        else:
+            self._cleanup_startup_dialog()
 ```
 
 </details>
@@ -8005,7 +8150,7 @@ def _on_startup_check_failed(self, error_message: str):
 def _on_startup_check_progress_updated(self, message: str)
 ```
 
-Handle progress updates from startup checker worker (silent).
+Handle progress updates from startup checker worker.
 
 <details>
 <summary>Code:</summary>
@@ -8013,6 +8158,9 @@ Handle progress updates from startup checker worker (silent).
 ```python
 def _on_startup_check_progress_updated(self, message: str):
         print(f"[Startup] {message}")
+        if hasattr(self, "startup_progress_dialog"):
+            # Update dialog text with current progress
+            self.startup_progress_dialog.setText(f"Checking exchange rates...\n{message}")
 ```
 
 </details>
@@ -8023,7 +8171,7 @@ def _on_startup_check_progress_updated(self, message: str):
 def _on_startup_currency_started(self, currency_code: str)
 ```
 
-Handle currency processing start for startup (silent).
+Handle currency processing start for startup.
 
 <details>
 <summary>Code:</summary>
@@ -8031,6 +8179,42 @@ Handle currency processing start for startup (silent).
 ```python
 def _on_startup_currency_started(self, currency_code: str):
         print(f"[Startup] Processing {currency_code}...")
+        if hasattr(self, "startup_progress_dialog"):
+            current_text = self.startup_progress_dialog.text()
+            lines = current_text.split("\n")
+            if len(lines) >= 2:
+                main_info = "\n".join(lines[:3])  # Keep first 3 lines
+                self.startup_progress_dialog.setText(f"{main_info}\n\n🔄 Processing {currency_code}...")
+```
+
+</details>
+
+### ⚙️ Method `_on_startup_dialog_cancelled`
+
+```python
+def _on_startup_dialog_cancelled(self)
+```
+
+Handle cancel button click in startup dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_startup_dialog_cancelled(self):
+        print("🚫 [Startup] User cancelled exchange rate update")
+
+        # Stop checker if running
+        if hasattr(self, "startup_exchange_rate_checker") and self.startup_exchange_rate_checker.isRunning():
+            self.startup_exchange_rate_checker.stop()
+            self.startup_exchange_rate_checker.wait(2000)  # Wait up to 2 seconds
+
+        # Stop worker if running
+        if hasattr(self, "startup_exchange_rate_worker") and self.startup_exchange_rate_worker.isRunning():
+            self.startup_exchange_rate_worker.stop()
+            self.startup_exchange_rate_worker.wait(2000)  # Wait up to 2 seconds
+
+        self._cleanup_startup_dialog()
 ```
 
 </details>
@@ -8041,7 +8225,7 @@ def _on_startup_currency_started(self, currency_code: str):
 def _on_startup_progress_updated(self, message: str)
 ```
 
-Handle progress updates from startup worker (silent).
+Handle progress updates from startup worker.
 
 <details>
 <summary>Code:</summary>
@@ -8049,6 +8233,16 @@ Handle progress updates from startup worker (silent).
 ```python
 def _on_startup_progress_updated(self, message: str):
         print(f"[Startup] {message}")
+        if hasattr(self, "startup_progress_dialog"):
+            # Keep the main info and update with current progress
+            current_text = self.startup_progress_dialog.text()
+            # Extract the first two lines (main info) and add current progress
+            lines = current_text.split("\n")
+            if len(lines) >= 2:
+                main_info = "\n".join(lines[:3])  # Keep first 3 lines
+                self.startup_progress_dialog.setText(f"{main_info}\n\n{message}")
+            else:
+                self.startup_progress_dialog.setText(f"Downloading exchange rates...\n{message}")
 ```
 
 </details>
@@ -8059,7 +8253,7 @@ def _on_startup_progress_updated(self, message: str):
 def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str)
 ```
 
-Handle successful rate addition for startup (silent).
+Handle successful rate addition for startup.
 
 <details>
 <summary>Code:</summary>
@@ -8077,7 +8271,7 @@ def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str)
 def _on_startup_update_finished_error(self, error_message: str)
 ```
 
-Handle error completion of startup update (silent).
+Handle error completion of startup update.
 
 <details>
 <summary>Code:</summary>
@@ -8085,6 +8279,13 @@ Handle error completion of startup update (silent).
 ```python
 def _on_startup_update_finished_error(self, error_message: str):
         print(f"❌ [Startup] Update failed: {error_message}")
+
+        if hasattr(self, "startup_progress_dialog"):
+            self.startup_progress_dialog.setText(f"❌ Update failed:\n{error_message}")
+            # Auto-close after 4 seconds
+            QTimer.singleShot(4000, self._cleanup_startup_dialog)
+        else:
+            self._cleanup_startup_dialog()
 ```
 
 </details>
@@ -8095,7 +8296,7 @@ def _on_startup_update_finished_error(self, error_message: str):
 def _on_startup_update_finished_success(self, processed_count: int, total_operations: int)
 ```
 
-Handle successful completion of startup update (silent).
+Handle successful completion of startup update.
 
 <details>
 <summary>Code:</summary>
@@ -8113,6 +8314,18 @@ def _on_startup_update_finished_success(self, processed_count: int, total_operat
                 f"✅ [Startup] Successfully processed {processed_count} out of {total_operations} exchange rate operations ({strategy})"
             )
 
+            # Update dialog with success message
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText(
+                    f"✅ Exchange rates updated successfully!\n"
+                    f"Processed {processed_count} out of {total_operations} operations\n"
+                    f"Strategy: {strategy}"
+                )
+                # Auto-close after 2 seconds
+                QTimer.singleShot(2000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
+
             # Mark exchange rates as changed to trigger reload if tab is active
             self._mark_exchange_rates_changed()
             # If exchange rates tab is currently active, reload the data
@@ -8121,6 +8334,13 @@ def _on_startup_update_finished_success(self, processed_count: int, total_operat
                 self.load_exchange_rates_table()
         else:
             print("ℹ️ [Startup] No exchange rate records were processed")
+
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText("ℹ️ No exchange rate records were processed")
+                # Auto-close after 2 seconds
+                QTimer.singleShot(2000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
 ```
 
 </details>
@@ -8769,7 +8989,7 @@ def _start_exchange_rate_update(self, currencies_to_process: list):
 def _start_startup_exchange_rate_update(self, currencies_to_process: list)
 ```
 
-Start the exchange rate update process for startup (silent).
+Start the exchange rate update process for startup.
 
 <details>
 <summary>Code:</summary>
@@ -8785,10 +9005,10 @@ def _start_startup_exchange_rate_update(self, currencies_to_process: list):
                 f"🔄 [Startup] Starting exchange rate update for {len(currencies_to_process)} currencies ({strategy})..."
             )
 
-            # Create and start worker thread (no dialog)
+            # Create and start worker thread
             self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)
 
-            # Connect signals for silent processing
+            # Connect signals
             self.startup_exchange_rate_worker.progress_updated.connect(self._on_startup_progress_updated)
             self.startup_exchange_rate_worker.currency_started.connect(self._on_startup_currency_started)
             self.startup_exchange_rate_worker.rates_added.connect(self._on_startup_rate_added)
@@ -8800,6 +9020,12 @@ def _start_startup_exchange_rate_update(self, currencies_to_process: list):
 
         except Exception as e:
             print(f"❌ [Startup] Exchange rate update error: {e}")
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText(f"❌ Update error:\n{e}")
+                # Auto-close after 3 seconds
+                QTimer.singleShot(3000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
 ```
 
 </details>
