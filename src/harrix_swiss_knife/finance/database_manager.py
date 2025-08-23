@@ -215,68 +215,6 @@ class DatabaseManager:
         }
         return self.execute_simple_query(query, params)
 
-    def add_exchange_rates_batch(self, exchange_rates_data: list[tuple[int, float, str]]) -> int:
-        """Add multiple exchange rates in a single transaction.
-
-        Args:
-            exchange_rates_data: List of tuples (currency_id, rate, date)
-
-        Returns:
-            int: Number of successfully inserted records
-        """
-        if not exchange_rates_data:
-            return 0
-
-        try:
-            # Prepare batch insert query
-            query = """INSERT INTO exchange_rates (_id_currency, rate, date)
-                    VALUES (?, ?, ?)"""
-
-            # Convert to the format expected by executemany
-            batch_data = [(currency_id, rate, date) for currency_id, rate, date in exchange_rates_data]
-
-            # Use Qt's batch execution
-            sql_query = self._create_query()
-            sql_query.prepare(query)
-
-            # Execute batch insert
-            success_count = 0
-            batch_size = 1000  # Process in batches of 1000
-
-            for i in range(0, len(batch_data), batch_size):
-                batch = batch_data[i : i + batch_size]
-
-                # Clear previous bindings
-                sql_query.clear()
-                sql_query.prepare(query)
-
-                # Bind batch data
-                currency_ids = [item[0] for item in batch]
-                rates = [item[1] for item in batch]
-                dates = [item[2] for item in batch]
-
-                sql_query.addBindValue(currency_ids)
-                sql_query.addBindValue(rates)
-                sql_query.addBindValue(dates)
-
-                if sql_query.execBatch():
-                    success_count += len(batch)
-                    print(f"✅ Batch inserted {len(batch)} exchange rates (total: {success_count})")
-                else:
-                    error_msg = sql_query.lastError().text() if sql_query.lastError().isValid() else "Unknown error"
-                    print(f"❌ Batch insert failed: {error_msg}")
-                    # Try individual inserts for this batch as fallback
-                    for currency_id, rate, date in batch:
-                        if self.add_exchange_rate(currency_id, rate, date):
-                            success_count += 1
-
-            sql_query.clear()
-            return success_count
-
-        except Exception as e:
-            print(f"❌ Error in batch exchange rate insert: {e}")
-            return 0
-
     def add_transaction(
         self,
         amount: float,
@@ -680,7 +618,7 @@ class DatabaseManager:
         for currency_id, currency_code, _, _ in currencies:
             print(f"📊 Processing {currency_code}...")
 
-            # Get ALL existing rates for this currency (не только в диапазоне дат)
+            # Get all existing rates for this currency
             query = """
                 SELECT date, rate FROM exchange_rates
                 WHERE _id_currency = :currency_id
@@ -694,128 +632,30 @@ class DatabaseManager:
 
             # Create a map of existing rates
             existing_rates = {row[0]: row[1] for row in rows}
-            print(f"📈 Found {len(existing_rates)} existing rates for {currency_code}")
 
             # Fill missing dates from start_date to end_date
             current_date = start_date
             last_known_rate = None
             currency_filled = 0
 
-            # Найти первый доступный курс для инициализации last_known_rate
-            for date_str in sorted(existing_rates.keys()):
-                if datetime.strptime(date_str, "%Y-%m-%d").date() <= current_date:
-                    last_known_rate = existing_rates[date_str]
-                else:
-                    break
-
-            print(f"🔍 Initial rate for {currency_code}: {last_known_rate}")
-
             while current_date <= end_date:
                 date_str = current_date.strftime("%Y-%m-%d")
 
                 if date_str in existing_rates:
                     # Update last known rate
                     last_known_rate = existing_rates[date_str]
-                    print(f"📊 {currency_code} {date_str}: Found existing rate {last_known_rate}")
                 elif last_known_rate is not None:
                     # Fill missing date with last known rate
-                    print(f"🔍 {currency_code} {date_str}: Missing, trying to fill with {last_known_rate}")
                     if self.add_exchange_rate(currency_id, last_known_rate, date_str):
                         currency_filled += 1
                         total_filled += 1
-                        print(f"✅ {currency_code} {date_str}: Filled with rate {last_known_rate}")
-                    else:
-                        print(f"❌ {currency_code} {date_str}: Failed to add rate")
-                else:
-                    print(f"⚠️ {currency_code} {date_str}: No known rate to use for filling")
+                        print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
 
                 current_date += timedelta(days=1)
 
-            print(f"📈 Filled {currency_filled} missing dates for {currency_code}")
+            print(f"  📈 Filled {currency_filled} missing dates for {currency_code}")
 
         print(f"🎉 Total filled: {total_filled} exchange rate records")
-        return total_filled
-
-    def fill_missing_exchange_rates_in_range(self, start_date_str: str, end_date_str: str) -> int:
-        """Fill missing exchange rates in specific date range.
-
-        Args:
-            start_date_str: Start date in YYYY-MM-DD format
-            end_date_str: End date in YYYY-MM-DD format
-
-        Returns:
-            int: Number of exchange rates that were filled.
-        """
-        from datetime import datetime, timedelta
-
-        currencies = self.get_currencies_except_usd()
-        total_filled = 0
-
-        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-
-        print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
-
-        for currency_id, currency_code, _, _ in currencies:
-            print(f"📊 Processing {currency_code} for range {start_date} to {end_date}...")
-
-            # Get ALL existing rates for this currency (не только в диапазоне)
-            query = """
-                SELECT date, rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                ORDER BY date ASC
-            """
-            rows = self.get_rows(query, {"currency_id": currency_id})
-
-            if not rows:
-                print(f"⚠️ No exchange rates found for {currency_code}, skipping")
-                continue
-
-            # Create a map of existing rates
-            existing_rates = {row[0]: row[1] for row in rows}
-
-            # Find the most recent rate before start_date for initialization
-            last_known_rate = None
-            for date_str in sorted(existing_rates.keys()):
-                rate_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-                if rate_date < start_date:
-                    last_known_rate = existing_rates[date_str]
-                elif rate_date >= start_date:
-                    break
-
-            print(f"🔍 Initial rate for {currency_code} before {start_date}: {last_known_rate}")
-
-            # Fill missing dates in the specified range
-            current_date = start_date
-            currency_filled = 0
-
-            while current_date <= end_date:
-                date_str = current_date.strftime("%Y-%m-%d")
-
-                if date_str in existing_rates:
-                    # Update last known rate
-                    last_known_rate = existing_rates[date_str]
-                    print(f"📊 {currency_code} {date_str}: Found existing rate {last_known_rate}")
-                elif last_known_rate is not None:
-                    # Check if this date actually needs filling
-                    if not self.check_exchange_rate_exists(currency_id, date_str):
-                        print(f"🔍 {currency_code} {date_str}: Missing, filling with {last_known_rate}")
-                        if self.add_exchange_rate(currency_id, last_known_rate, date_str):
-                            currency_filled += 1
-                            total_filled += 1
-                            print(f"✅ {currency_code} {date_str}: Filled with rate {last_known_rate}")
-                        else:
-                            print(f"❌ {currency_code} {date_str}: Failed to add rate")
-                    else:
-                        print(f"📊 {currency_code} {date_str}: Already exists, skipping")
-                else:
-                    print(f"⚠️ {currency_code} {date_str}: No known rate to use for filling")
-
-                current_date += timedelta(days=1)
-
-            print(f"📈 Filled {currency_filled} missing dates for {currency_code} in range")
-
-        print(f"🎉 Total filled in range: {total_filled} exchange rate records")
         return total_filled
 
     def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]:
@@ -1813,28 +1653,18 @@ class DatabaseManager:
         Returns:
             bool: True if successful, False otherwise.
         """
-        try:
-            # First try to update existing setting
-            update_query = "UPDATE settings SET value = :date WHERE key = 'last_exchange_rates_update'"
-            if self.execute_simple_query(update_query, {"date": date}):
-                # Check if any rows were affected
-                check_query = "SELECT COUNT(*) FROM settings WHERE key = 'last_exchange_rates_update'"
-                rows = self.get_rows(check_query)
-                if rows and rows[0][0] > 0:
-                    print(f"✅ Updated existing last_exchange_rates_update setting to {date}")
-                    return True
+        # First try to update existing setting
+        update_query = "UPDATE settings SET value = :date WHERE key = 'last_exchange_rates_update'"
+        if self.execute_simple_query(update_query, {"date": date}):
+            # Check if any rows were affected
+            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'last_exchange_rates_update'"
+            rows = self.get_rows(check_query)
+            if rows and rows[0][0] > 0:
+                return True
 
-            # If update didn't affect any rows, insert new setting
-            insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
-            success = self.execute_simple_query(insert_query, {"date": date})
-            if success:
-                print(f"✅ Created new last_exchange_rates_update setting with date {date}")
-            else:
-                print(f"❌ Failed to create last_exchange_rates_update setting")
-            return success
-        except Exception as e:
-            print(f"❌ Error setting last_exchange_rates_update_date: {e}")
-            return False
+        # If update didn't affect any rows, insert new setting
+        insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
+        return self.execute_simple_query(insert_query, {"date": date})
 
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
