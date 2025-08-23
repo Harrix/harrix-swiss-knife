@@ -1800,7 +1800,7 @@
                  </size>
                 </property>
                 <property name="title">
-                 <string>Filter</string>
+                 <string>Filter For Table</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_6">
                  <item>

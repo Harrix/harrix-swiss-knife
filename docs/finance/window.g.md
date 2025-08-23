@@ -142,7 +142,7 @@ class Ui_MainWindow(object):
         )
         self.label_exchange_item_update_2.setText(QCoreApplication.translate("MainWindow", "new rate", None))
         self.pushButton_exchange_item_update.setText(QCoreApplication.translate("MainWindow", "Update Rate", None))
-        self.groupBox_filter_2.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
+        self.groupBox_filter_2.setTitle(QCoreApplication.translate("MainWindow", "Filter For Table", None))
         self.label_filter_currency_2.setText(QCoreApplication.translate("MainWindow", "Currency:", None))
         self.label_filter_date_2.setText(QCoreApplication.translate("MainWindow", "Date:", None))
         self.dateEdit_filter_exchange_rates_from.setDisplayFormat(
@@ -1771,7 +1771,7 @@ def retranslateUi(self, MainWindow):
         )
         self.label_exchange_item_update_2.setText(QCoreApplication.translate("MainWindow", "new rate", None))
         self.pushButton_exchange_item_update.setText(QCoreApplication.translate("MainWindow", "Update Rate", None))
-        self.groupBox_filter_2.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
+        self.groupBox_filter_2.setTitle(QCoreApplication.translate("MainWindow", "Filter For Table", None))
         self.label_filter_currency_2.setText(QCoreApplication.translate("MainWindow", "Currency:", None))
         self.label_filter_date_2.setText(QCoreApplication.translate("MainWindow", "Date:", None))
         self.dateEdit_filter_exchange_rates_from.setDisplayFormat(
