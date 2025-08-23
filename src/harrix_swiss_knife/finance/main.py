@@ -2175,7 +2175,6 @@ class MainWindow(
             if len(transformed_rates) > 1:
                 # Label first and last points
                 first_date = dates[0]
-                last_date = dates[-1]
                 ax.annotate(
                     f"{transformed_rates[0]:.6f} ({first_date})",
                     (date_objects[0], transformed_rates[0]),
@@ -2184,8 +2183,9 @@ class MainWindow(
                     bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7),
                 )
 
+                # Label last point without date (only rate)
                 ax.annotate(
-                    f"{transformed_rates[-1]:.6f} ({last_date})",
+                    f"{transformed_rates[-1]:.6f}",
                     (date_objects[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
