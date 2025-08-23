@@ -911,6 +911,75 @@ class DatabaseManager:
 
         return rows
 
+    def get_filtered_exchange_rates(
+        self,
+        currency_id: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        limit: int | None = None,
+    ) -> list[list[Any]]:
+        """Get filtered exchange rates with currency information.
+
+        Args:
+            currency_id (int | None): Currency ID to filter by. None for all currencies.
+            date_from (str | None): Start date in YYYY-MM-DD format. None for no start date filter.
+            date_to (str | None): End date in YYYY-MM-DD format. None for no end date filter.
+            limit (int | None): Maximum number of records to return. None for all records.
+
+        Returns:
+            list[list[Any]]: List of filtered exchange rate records.
+        """
+        query = """
+            SELECT er._id, 'USD', c.code, er.rate, er.date
+            FROM exchange_rates er
+            JOIN currencies c ON er._id_currency = c._id
+        """
+
+        conditions = []
+        params = {}
+
+        if currency_id is not None:
+            conditions.append("er._id_currency = :currency_id")
+            params["currency_id"] = currency_id
+
+        if date_from is not None:
+            conditions.append("er.date >= :date_from")
+            params["date_from"] = date_from
+
+        if date_to is not None:
+            conditions.append("er.date <= :date_to")
+            params["date_to"] = date_to
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY er.date DESC, er._id DESC"
+
+        if limit is not None:
+            query += f" LIMIT {limit}"
+
+        try:
+            query_obj = self.execute_query(query, params)
+            if not query_obj:
+                return []
+
+            rows = self._rows_from_query(query_obj)
+
+            # Ensure rates are float type
+            for row in rows:
+                if len(row) >= 4 and row[3] is not None and row[3] != "":
+                    try:
+                        row[3] = float(row[3])
+                    except (ValueError, TypeError):
+                        row[3] = 0.0
+                else:
+                    row[3] = 0.0
+
+            return rows
+        except Exception as e:
+            print(f"❌ Error getting filtered exchange rates: {e}")
+            return []
+
     def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
         """Get all transactions with category and currency information.
 

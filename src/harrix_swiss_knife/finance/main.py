@@ -28,7 +28,7 @@ from PySide6.QtCore import (
     Signal,
 )
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QCompleter, QDialog, QFileDialog, QMainWindow, QMessageBox, QTableView
+from PySide6.QtWidgets import QApplication, QCompleter, QDialog, QFileDialog, QMainWindow, QMessageBox, QTableView, QTableWidgetItem
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.finance import database_manager, window
@@ -1762,6 +1762,10 @@ class MainWindow(
         self.comboBox_exchange_item_update.currentIndexChanged.connect(self.on_exchange_item_update_changed)
         self.dateEdit_exchange_item_update.dateChanged.connect(self.on_exchange_item_update_changed)
         self.pushButton_exchange_item_update.clicked.connect(self.on_exchange_item_update_button_clicked)
+
+        # Exchange rates filter signals
+        self.pushButton_filter_exchange_rates_apply.clicked.connect(self.on_filter_exchange_rates_apply)
+        self.pushButton_filter_exchange_rates_clear.clicked.connect(self.on_filter_exchange_rates_clear)
 
         # Report signals
         self.pushButton_generate_report.clicked.connect(self.on_generate_report)
@@ -4003,6 +4007,121 @@ class MainWindow(
                 "Error",
                 f"An error occurred while updating exchange rate: {e}"
             )
+
+    def on_filter_exchange_rates_apply(self) -> None:
+        """Apply filter to exchange rates based on selected criteria."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Get filter criteria
+            currency_id = None
+            currency_index = self.comboBox_exchange_rates_filter_currency.currentIndex()
+
+            # Check if "All currencies" is selected (index 0)
+            if currency_index > 0:
+                currency_id = self.comboBox_exchange_rates_filter_currency.itemData(currency_index)
+
+            # Get date range
+            date_from = self.dateEdit_filter_exchange_rates_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_filter_exchange_rates_to.date().toString("yyyy-MM-dd")
+
+            # Validate date range
+            if self.dateEdit_filter_exchange_rates_from.date() > self.dateEdit_filter_exchange_rates_to.date():
+                QMessageBox.warning(self, "Invalid Date Range", "Start date cannot be after end date.")
+                return
+
+            # Get filtered data
+            filtered_data = self.db_manager.get_filtered_exchange_rates(
+                currency_id=currency_id,
+                date_from=date_from,
+                date_to=date_to,
+                limit=self.count_exchange_rates_to_show
+            )
+
+            # Update table
+            self._update_exchange_rates_table(filtered_data)
+
+            # Show information about filter results
+            filter_info = []
+            if currency_id is not None:
+                currency_text = self.comboBox_exchange_rates_filter_currency.currentText()
+                filter_info.append(f"Currency: {currency_text}")
+            else:
+                filter_info.append("Currency: All currencies")
+
+            filter_info.append(f"Date range: {date_from} to {date_to}")
+            filter_info.append(f"Records found: {len(filtered_data)}")
+
+            QMessageBox.information(
+                self,
+                "Filter Applied",
+                "Exchange rates filter has been applied.\n\n" + "\n".join(filter_info)
+            )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Filter Error",
+                f"An error occurred while applying filter: {e}"
+            )
+
+    def on_filter_exchange_rates_clear(self) -> None:
+        """Clear exchange rates filter and show default number of records."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            # Reset filter controls to default values
+            self.comboBox_exchange_rates_filter_currency.setCurrentIndex(0)  # "All currencies"
+
+            # Reset date range to match main date controls
+            self.dateEdit_filter_exchange_rates_from.setDate(self.dateEdit_exchange_rates_from.date())
+            self.dateEdit_filter_exchange_rates_to.setDate(self.dateEdit_exchange_rates_to.date())
+
+            # Get unfiltered data with default limit
+            unfiltered_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
+
+            # Update table
+            self._update_exchange_rates_table(unfiltered_data)
+
+            QMessageBox.information(
+                self,
+                "Filter Cleared",
+                f"Exchange rates filter has been cleared.\nShowing {len(unfiltered_data)} most recent records."
+            )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Clear Filter Error",
+                f"An error occurred while clearing filter: {e}"
+            )
+
+    def _update_exchange_rates_table(self, data: list[list[Any]]) -> None:
+        """Update the exchange rates table with provided data."""
+        try:
+            # Find the exchange rates table
+            table_widget = getattr(self, "tableWidget_exchange_rates", None)
+            if table_widget is None:
+                print("❌ Exchange rates table widget not found")
+                return
+
+            # Clear existing data
+            table_widget.setRowCount(0)
+
+            # Populate table with new data
+            for row_index, row_data in enumerate(data):
+                table_widget.insertRow(row_index)
+                for col_index, cell_data in enumerate(row_data):
+                    if col_index < table_widget.columnCount():
+                        item = QTableWidgetItem(str(cell_data))
+                        table_widget.setItem(row_index, col_index, item)
+
+            print(f"✅ Updated exchange rates table with {len(data)} records")
+
+        except Exception as e:
+            print(f"❌ Error updating exchange rates table: {e}")
 
 
 if __name__ == "__main__":
