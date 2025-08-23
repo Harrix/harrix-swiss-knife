@@ -3406,6 +3406,17 @@ class MainWindow(
             if default_index >= 0:
                 self.comboBox_exchange_rates_currency.setCurrentIndex(default_index)
 
+            # Fill filter currency combo box with the same data
+            self.comboBox_exchange_rates_filter_currency.clear()
+            self.comboBox_exchange_rates_filter_currency.addItem("")  # All currencies option
+            for currency in currencies:
+                currency_id, code, name, symbol = currency
+                # Skip USD currency
+                if code.upper() == "USD":
+                    continue
+                display_text = f"{code} - {name}"
+                self.comboBox_exchange_rates_filter_currency.addItem(display_text, currency_id)
+
             # Set date range
             self._set_exchange_rates_date_range()
 
