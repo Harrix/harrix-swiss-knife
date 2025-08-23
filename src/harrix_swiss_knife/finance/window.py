@@ -184,7 +184,6 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_rates_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
         self.pushButton_exchange_rates_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_exchange_rates_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
-        self.pushButton_exchange_rates_update.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_exchange_rates),
             QCoreApplication.translate("MainWindow", "Exchange Rates", None),
@@ -1256,11 +1255,6 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_rates_all_time.setObjectName("pushButton_exchange_rates_all_time")
 
         self.horizontalLayout_exchange_rates_controls.addWidget(self.pushButton_exchange_rates_all_time)
-
-        self.pushButton_exchange_rates_update = QPushButton(self.frame_exchange_rates_controls)
-        self.pushButton_exchange_rates_update.setObjectName("pushButton_exchange_rates_update")
-
-        self.horizontalLayout_exchange_rates_controls.addWidget(self.pushButton_exchange_rates_update)
 
         self.horizontalSpacer_food_stats = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
