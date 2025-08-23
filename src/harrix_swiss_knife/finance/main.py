@@ -2174,8 +2174,10 @@ class MainWindow(
             # Add value labels for significant points
             if len(transformed_rates) > 1:
                 # Label first and last points
+                first_date = dates[0]
+                last_date = dates[-1]
                 ax.annotate(
-                    f"{transformed_rates[0]:.6f}",
+                    f"{transformed_rates[0]:.6f} ({first_date})",
                     (date_objects[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
@@ -2183,7 +2185,7 @@ class MainWindow(
                 )
 
                 ax.annotate(
-                    f"{transformed_rates[-1]:.6f}",
+                    f"{transformed_rates[-1]:.6f} ({last_date})",
                     (date_objects[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
@@ -2197,8 +2199,9 @@ class MainWindow(
                 max_idx = transformed_rates.index(max_rate)
 
                 if min_idx != 0 and min_idx != len(transformed_rates) - 1:
+                    min_date = dates[min_idx]
                     ax.annotate(
-                        f"{min_rate:.6f}",
+                        f"{min_rate:.6f} ({min_date})",
                         (date_objects[min_idx], min_rate),
                         xytext=(10, -15),
                         textcoords="offset points",
@@ -2206,8 +2209,9 @@ class MainWindow(
                     )
 
                 if max_idx != 0 and max_idx != len(transformed_rates) - 1:
+                    max_date = dates[max_idx]
                     ax.annotate(
-                        f"{max_rate:.6f}",
+                        f"{max_rate:.6f} ({max_date})",
                         (date_objects[max_idx], max_rate),
                         xytext=(10, 15),
                         textcoords="offset points",
