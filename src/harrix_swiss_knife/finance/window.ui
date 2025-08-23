@@ -1764,7 +1764,14 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QDoubleSpinBox" name="doubleSpinBox_exchange_item_update"/>
+                    <widget class="QDoubleSpinBox" name="doubleSpinBox_exchange_item_update">
+                     <property name="decimals">
+                      <number>9</number>
+                     </property>
+                     <property name="maximum">
+                      <double>10000000.000000000000000</double>
+                     </property>
+                    </widget>
                    </item>
                    <item>
                     <widget class="QPushButton" name="pushButton_exchange_item_update">
