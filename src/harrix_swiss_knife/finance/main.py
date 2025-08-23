@@ -33,6 +33,7 @@ from PySide6.QtWidgets import QApplication, QCompleter, QDialog, QFileDialog, QM
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.finance import database_manager, window
 from harrix_swiss_knife.finance.account_edit_dialog import AccountEditDialog
+from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
 from harrix_swiss_knife.finance.exchange_rate_worker import ExchangeRateUpdateWorker
 from harrix_swiss_knife.finance.mixins import (
     AutoSaveOperations,
@@ -255,22 +256,28 @@ class MainWindow(
         # Reconnect auto-save signals for the updated table
         self._connect_table_auto_save_signals()
 
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle application close event.
 
         Args:
-
         - `event` (`QCloseEvent`): The close event.
-
         """
         # Stop any running worker threads
         if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
             self.exchange_rate_worker.stop()
             self.exchange_rate_worker.wait(3000)  # Wait up to 3 seconds
 
-        # Close progress dialog if open
+        # Stop checker thread if running
+        if hasattr(self, "exchange_rate_checker") and self.exchange_rate_checker.isRunning():
+            self.exchange_rate_checker.stop()
+            self.exchange_rate_checker.wait(3000)  # Wait up to 3 seconds
+
+        # Close progress dialogs if open
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
+
+        if hasattr(self, "check_progress_dialog"):
+            self.check_progress_dialog.close()
 
         # Dispose Models
         self._dispose_models()
@@ -979,121 +986,19 @@ class MainWindow(
             # Configuration option: check from first transaction or from last exchange rate
             check_from_first_transaction = True  # Set to False to check only from last exchange rate
 
-            # Get all currencies except USD (base currency)
-            currencies = self.db_manager.get_currencies_except_usd()
-            if not currencies:
-                QMessageBox.warning(self, "No Currencies", "No currencies found except USD.")
-                return
-
-            # Calculate which currencies need updates and missing records
-            currencies_to_process = []
-            today = datetime.now().date()
-            today_str = today.strftime("%Y-%m-%d")
-
-            print(f"🔍 Checking which currencies need updates and missing records...")
-            print(f"📅 Today's date: {today}")
-
-            # Determine start date based on configuration
-            if check_from_first_transaction:
-                # Get earliest transaction date
-                earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
-                if not earliest_transaction_date:
-                    QMessageBox.warning(self, "No Transactions", "No transactions found to determine start date.")
-                    return
-
-                global_start_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
-                print(f"📊 Checking from first transaction date: {global_start_date}")
-            else:
-                # Start from last exchange rate date for each currency
-                global_start_date = None
-                print(f"📊 Checking from last exchange rate date for each currency")
-
-            for currency_id, currency_code, currency_name, currency_symbol in currencies:
-                # Determine start date for this currency
-                if check_from_first_transaction:
-                    # Use global start date from first transaction
-                    start_date = global_start_date
-                else:
-                    # Get the last exchange rate date for this currency
-                    last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
-                    if not last_date_str:
-                        print(f"⚠️ {currency_code}: No exchange rate records found - skipping")
-                        continue
-                    start_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
-
-                # Calculate missing dates from start_date to today
-                missing_dates = []
-                current_date = start_date
-
-                while current_date <= today:
-                    date_str = current_date.strftime("%Y-%m-%d")
-                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
-                        missing_dates.append(date_str)
-                    current_date += timedelta(days=1)
-
-                # Get the last few existing records for potential updates (only if not checking from first transaction)
-                if check_from_first_transaction:
-                    # When checking all history, don't update existing records
-                    last_records = []
-                else:
-                    # Get last 7 days of records for updates
-                    last_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
-
-                # Combine missing dates and existing records to update
-                records_to_process = {"missing_dates": missing_dates, "existing_records": last_records}
-
-                if missing_dates or last_records:
-                    currencies_to_process.append((currency_id, currency_code, records_to_process))
-                    print(
-                        f"📊 {currency_code}: Will add {len(missing_dates)} missing records"
-                        + (f" and update {len(last_records)} existing records" if last_records else "")
-                    )
-                    if missing_dates:
-                        sample_size = min(5, len(missing_dates))
-                        print(f"    First {sample_size} missing dates: {missing_dates[:sample_size]}")
-                        if len(missing_dates) > 5:
-                            print(f"    ... and {len(missing_dates) - 5} more dates")
-
-            # If no currencies need processing, inform user
-            if not currencies_to_process:
-                QMessageBox.information(
-                    self,
-                    "No Updates Needed",
-                    "All exchange rates are up to date.",
+            # Check if checker is already running
+            if hasattr(self, "exchange_rate_checker") and self.exchange_rate_checker.isRunning():
+                QMessageBox.warning(
+                    self, "Check in Progress", "Exchange rate check is already running. Please wait for it to complete."
                 )
-                print(f"✅ All exchange rates are up to date.")
                 return
 
-            # Show summary and ask for confirmation
-            total_missing = sum(len(records["missing_dates"]) for _, _, records in currencies_to_process)
-            total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
-            currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
-
-            check_mode = "from first transaction" if check_from_first_transaction else "from last exchange rate"
-
-            reply = QMessageBox.question(
-                self,
-                "Update Exchange Rates",
-                f"Checking {check_mode}\n\n"
-                f"Found {len(currencies_to_process)} currencies to process:\n"
-                f"{currencies_text}\n\n"
-                f"Missing records to add: {total_missing}\n"
-                f"Existing records to update: {total_updates}\n"
-                f"Total operations: {total_missing + total_updates}\n\n"
-                f"This may take several minutes for large date ranges.\n"
-                f"Do you want to proceed with downloading from yfinance?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-
-            if reply != QMessageBox.StandardButton.Yes:
-                return
-
-            # Check if worker is already running
+            # Check if updater is already running
             if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
                 reply = QMessageBox.question(
                     self,
                     "Update in Progress",
-                    "Exchange rate update is already running. Do you want to stop it and start a new one?",
+                    "Exchange rate update is already running. Do you want to stop it and start a new check?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 )
                 if reply == QMessageBox.StandardButton.Yes:
@@ -1102,41 +1007,44 @@ class MainWindow(
                 else:
                     return
 
-            # Create and configure progress dialog
-            self.progress_dialog = QMessageBox(self)
-            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
-            self.progress_dialog.setText(
-                f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance...\n"
-                f"Mode: Checking {check_mode}"
+            # Create and configure check progress dialog
+            self.check_progress_dialog = QMessageBox(self)
+            self.check_progress_dialog.setWindowTitle("Checking Exchange Rates")
+            check_mode = "from first transaction" if check_from_first_transaction else "from last exchange rate"
+            self.check_progress_dialog.setText(
+                f"Checking exchange rates {check_mode}...\nThis may take a few moments for large date ranges."
             )
-            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
-            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+            self.check_progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.check_progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
-            # Connect cancel button
-            def cancel_update():
-                if hasattr(self, "exchange_rate_worker"):
-                    self.exchange_rate_worker.stop()
-                self.progress_dialog.close()
+            # Connect cancel button for checker
+            def cancel_check():
+                if hasattr(self, "exchange_rate_checker"):
+                    self.exchange_rate_checker.stop()
+                self.check_progress_dialog.close()
 
-            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
-            self.progress_dialog.show()
+            self.check_progress_dialog.buttonClicked.connect(lambda: cancel_check())
+            self.check_progress_dialog.show()
 
-            # Create and start worker thread
-            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)
+            # Import the checker worker
+            from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
 
-            # Connect signals
-            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
-            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
-            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
-            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
-            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
+            # Create and start checker thread
+            self.exchange_rate_checker = ExchangeRateCheckerWorker(self.db_manager, check_from_first_transaction)
 
-            # Start the worker
-            self.exchange_rate_worker.start()
+            # Connect checker signals
+            self.exchange_rate_checker.progress_updated.connect(self._on_check_progress_updated)
+            self.exchange_rate_checker.check_completed.connect(self._on_check_completed)
+            self.exchange_rate_checker.check_failed.connect(self._on_check_failed)
+
+            # Start the checker
+            self.exchange_rate_checker.start()
 
         except Exception as e:
-            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
-            print(f"❌ Exchange rate update error: {e}")
+            if hasattr(self, "check_progress_dialog"):
+                self.check_progress_dialog.close()
+            QMessageBox.critical(self, "Check Error", f"Failed to start exchange rate check: {e}")
+            print(f"❌ Exchange rate check error: {e}")
 
     def on_yesterday(self) -> None:
         """Set yesterday's date in the main date field."""
@@ -2916,6 +2824,65 @@ class MainWindow(
         # This ensures form population is complete before focusing
         QTimer.singleShot(100, self._focus_amount_and_select_text)
 
+    def _on_check_completed(self, currencies_to_process: list):
+        """Handle successful completion of exchange rate check."""
+        if hasattr(self, "check_progress_dialog"):
+            self.check_progress_dialog.close()
+
+        # If no currencies need processing, inform user
+        if not currencies_to_process:
+            QMessageBox.information(
+                self,
+                "No Updates Needed",
+                "All exchange rates are up to date.",
+            )
+            print("✅ All exchange rates are up to date.")
+            return
+
+        # Calculate totals
+        total_missing = sum(len(records["missing_dates"]) for _, _, records in currencies_to_process)
+        total_updates = sum(len(records["existing_records"]) for _, _, records in currencies_to_process)
+        currencies_text = ", ".join([curr[1] for curr in currencies_to_process])
+
+        # Determine check mode for display
+        check_from_first_transaction = getattr(self.exchange_rate_checker, "check_from_first_transaction", True)
+        check_mode = "from first transaction" if check_from_first_transaction else "from last exchange rate"
+
+        # Show summary and ask for confirmation
+        reply = QMessageBox.question(
+            self,
+            "Update Exchange Rates",
+            f"Check completed ({check_mode})\n\n"
+            f"Found {len(currencies_to_process)} currencies to process:\n"
+            f"{currencies_text}\n\n"
+            f"Missing records to add: {total_missing}\n"
+            f"Existing records to update: {total_updates}\n"
+            f"Total operations: {total_missing + total_updates}\n\n"
+            f"This may take several minutes for large date ranges.\n"
+            f"Do you want to proceed with downloading from yfinance?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # Start the update process
+        self._start_exchange_rate_update(currencies_to_process)
+
+    def _on_check_failed(self, error_message: str):
+        """Handle check failure."""
+        if hasattr(self, "check_progress_dialog"):
+            self.check_progress_dialog.close()
+
+        QMessageBox.critical(self, "Check Failed", f"Failed to check exchange rates:\n{error_message}")
+        print(f"❌ Check failed: {error_message}")
+
+    def _on_check_progress_updated(self, message: str):
+        """Handle progress updates from checker worker."""
+        print(message)
+        if hasattr(self, "check_progress_dialog"):
+            self.check_progress_dialog.setText(message)
+
     def _on_currency_started(self, currency_code: str):
         """Handle currency processing start."""
         if hasattr(self, "progress_dialog"):
@@ -3314,6 +3281,46 @@ class MainWindow(
 
         if action == export_action:
             self.on_export_csv()
+
+    def _start_exchange_rate_update(self, currencies_to_process: list):
+        """Start the exchange rate update process after check is complete."""
+        try:
+            # Create and configure update progress dialog
+            self.progress_dialog = QMessageBox(self)
+            self.progress_dialog.setWindowTitle("Updating Exchange Rates")
+            self.progress_dialog.setText(
+                f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
+            )
+            self.progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
+            self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+
+            # Connect cancel button for updater
+            def cancel_update():
+                if hasattr(self, "exchange_rate_worker"):
+                    self.exchange_rate_worker.stop()
+                self.progress_dialog.close()
+
+            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
+            self.progress_dialog.show()
+
+            # Create and start worker thread
+            self.exchange_rate_worker = ExchangeRateUpdateWorker(self.db_manager, currencies_to_process)
+
+            # Connect signals
+            self.exchange_rate_worker.progress_updated.connect(self._on_progress_updated)
+            self.exchange_rate_worker.currency_started.connect(self._on_currency_started)
+            self.exchange_rate_worker.rates_added.connect(self._on_rate_added)
+            self.exchange_rate_worker.finished_success.connect(self._on_update_finished_success)
+            self.exchange_rate_worker.finished_error.connect(self._on_update_finished_error)
+
+            # Start the worker
+            self.exchange_rate_worker.start()
+
+        except Exception as e:
+            if hasattr(self, "progress_dialog"):
+                self.progress_dialog.close()
+            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
+            print(f"❌ Exchange rate update error: {e}")
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors and daily totals.
