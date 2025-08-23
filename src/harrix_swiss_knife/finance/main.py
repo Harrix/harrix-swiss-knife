@@ -3499,6 +3499,9 @@ class MainWindow(
                 display_text = f"{code} - {name}"
                 self.comboBox_exchange_item_update.addItem(display_text, currency_id)
 
+            # Set dateEdit_exchange_item_update to today's date
+            self.dateEdit_exchange_item_update.setDate(QDate.currentDate())
+
             # Set date range
             self._set_exchange_rates_date_range()
 
