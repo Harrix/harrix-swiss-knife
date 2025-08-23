@@ -3352,7 +3352,12 @@ class MainWindow(
                 self.dateEdit_exchange_rates_from.setDate(start_date)
 
             # Set end date to current date
-            self.dateEdit_exchange_rates_to.setDate(QDate.currentDate())
+            end_date = QDate.currentDate()
+            self.dateEdit_exchange_rates_to.setDate(end_date)
+
+            # Set filter date edits to match the main date edits
+            self.dateEdit_filter_exchange_rates_from.setDate(start_date)
+            self.dateEdit_filter_exchange_rates_to.setDate(end_date)
 
         except Exception as e:
             print(f"Error setting exchange rates date range: {e}")
