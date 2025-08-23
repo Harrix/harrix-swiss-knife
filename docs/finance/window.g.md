@@ -1187,12 +1187,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_15.addWidget(self.label)
 
-        self.spinBox = QSpinBox(self.groupBox_rate_commands)
-        self.spinBox.setObjectName("spinBox")
-        self.spinBox.setMaximum(100000)
-        self.spinBox.setValue(1)
+        self.spinBox_exchange_rate_count_days = QSpinBox(self.groupBox_rate_commands)
+        self.spinBox_exchange_rate_count_days.setObjectName("spinBox_exchange_rate_count_days")
+        self.spinBox_exchange_rate_count_days.setMaximum(100000)
+        self.spinBox_exchange_rate_count_days.setValue(1)
 
-        self.horizontalLayout_15.addWidget(self.spinBox)
+        self.horizontalLayout_15.addWidget(self.spinBox_exchange_rate_count_days)
 
         self.label_2 = QLabel(self.groupBox_rate_commands)
         self.label_2.setObjectName("label_2")
@@ -2831,12 +2831,12 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_15.addWidget(self.label)
 
-        self.spinBox = QSpinBox(self.groupBox_rate_commands)
-        self.spinBox.setObjectName("spinBox")
-        self.spinBox.setMaximum(100000)
-        self.spinBox.setValue(1)
+        self.spinBox_exchange_rate_count_days = QSpinBox(self.groupBox_rate_commands)
+        self.spinBox_exchange_rate_count_days.setObjectName("spinBox_exchange_rate_count_days")
+        self.spinBox_exchange_rate_count_days.setMaximum(100000)
+        self.spinBox_exchange_rate_count_days.setValue(1)
 
-        self.horizontalLayout_15.addWidget(self.spinBox)
+        self.horizontalLayout_15.addWidget(self.spinBox_exchange_rate_count_days)
 
         self.label_2 = QLabel(self.groupBox_rate_commands)
         self.label_2.setObjectName("label_2")

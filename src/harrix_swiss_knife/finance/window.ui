@@ -1707,7 +1707,7 @@
                       </widget>
                      </item>
                      <item>
-                      <widget class="QSpinBox" name="spinBox">
+                      <widget class="QSpinBox" name="spinBox_exchange_rate_count_days">
                        <property name="maximum">
                         <number>100000</number>
                        </property>
