@@ -489,11 +489,11 @@ class ExchangeRatesOperations:
                 min_index = transformed_rates.index(min_rate)
                 max_index = transformed_rates.index(max_rate)
 
-                # Plot min point in red
-                ax.scatter(date_objects[min_index], min_rate, color="red", s=100, zorder=5, marker="o")
+                                # Plot min point in red
+                ax.scatter(date_objects[min_index], min_rate, color="red", s=30, zorder=5, marker="o")
 
                 # Plot max point in green
-                ax.scatter(date_objects[max_index], max_rate, color="green", s=100, zorder=5, marker="o")
+                ax.scatter(date_objects[max_index], max_rate, color="green", s=30, zorder=5, marker="o")
 
             # Customize plot
             ax.set_xlabel("Date", fontsize=12)
@@ -547,7 +547,6 @@ class ExchangeRatesOperations:
                         bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
                         fontsize=10,
                         color="red",
-                        fontweight="bold",
                     )
 
                 # Label maximum rate point
@@ -558,10 +557,9 @@ class ExchangeRatesOperations:
                         xy=(date_objects[max_index], max_rate),
                         xytext=(10, 20),
                         textcoords="offset points",
-                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                        bbox=dict(boxstyle="round,pad=3", facecolor="white", alpha=0.9),
                         fontsize=10,
                         color="green",
-                        fontweight="bold",
                     )
 
             # Add the canvas to the layout
