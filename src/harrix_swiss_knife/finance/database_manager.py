@@ -1432,14 +1432,7 @@ class DatabaseManager:
         )
         return rows[0][0] if rows and rows[0][0] else None
 
-    def get_last_exchange_rates_update_date(self) -> str | None:
-        """Get the last date when exchange rates were updated.
 
-        Returns:
-            str | None: Last update date in YYYY-MM-DD format or None if never updated.
-        """
-        rows = self.get_rows("SELECT value FROM settings WHERE key = 'last_exchange_rates_update'")
-        return rows[0][0] if rows else None
 
     def get_last_two_exchange_rate_records(self, currency_id: int) -> list[tuple[str, float]]:
         """Get the last two exchange rate records for a currency.
@@ -1817,27 +1810,7 @@ class DatabaseManager:
         insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :id)"
         return self.execute_simple_query(insert_query, {"id": currency_id})
 
-    def set_last_exchange_rates_update_date(self, date: str) -> bool:
-        """Set the last date when exchange rates were updated.
 
-        Args:
-            date (str): Date in YYYY-MM-DD format.
-
-        Returns:
-            bool: True if successful, False otherwise.
-        """
-        # First try to update existing setting
-        update_query = "UPDATE settings SET value = :date WHERE key = 'last_exchange_rates_update'"
-        if self.execute_simple_query(update_query, {"date": date}):
-            # Check if any rows were affected
-            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'last_exchange_rates_update'"
-            rows = self.get_rows(check_query)
-            if rows and rows[0][0] > 0:
-                return True
-
-        # If update didn't affect any rows, insert new setting
-        insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
-        return self.execute_simple_query(insert_query, {"date": date})
 
     def should_update_exchange_rates(self) -> bool:
         """Check if exchange rates need to be updated based on today's date.
