@@ -528,7 +528,7 @@ class ExchangeRatesOperations:
 
                 last_date = dates[-1]
                 ax.annotate(
-                    f"{transformed_rates[-1]:.6f} ({last_date})",
+                    f"{transformed_rates[-1]:.6f}",
                     xy=(date_objects[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
