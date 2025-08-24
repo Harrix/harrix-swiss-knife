@@ -489,7 +489,7 @@ class ExchangeRatesOperations:
                 min_index = transformed_rates.index(min_rate)
                 max_index = transformed_rates.index(max_rate)
 
-                                # Plot min point in red
+                # Plot min point in red
                 ax.scatter(date_objects[min_index], min_rate, color="red", s=5, zorder=5, marker="o")
 
                 # Plot max point in green
