@@ -3752,6 +3752,16 @@ class MainWindow(
         self.pushButton_description_clear.setText("🧹")
         self.pushButton_show_all_records.setText("📊 Show All Records")
 
+        # Set emoji for exchange rate buttons
+        self.pushButton_exchange_update.setText(f"🔄 {self.pushButton_exchange_update.text()}")
+        self.pushButton_rates_delete.setText(f"🗑️ {self.pushButton_rates_delete.text()}")
+        self.pushButton_exchange_item_update.setText(f"✏️ {self.pushButton_exchange_item_update.text()}")
+        self.pushButton_filter_exchange_rates_clear.setText(f"🧹 {self.pushButton_filter_exchange_rates_clear.text()}")
+        self.pushButton_filter_exchange_rates_apply.setText(f"✔️ {self.pushButton_filter_exchange_rates_apply.text()}")
+        self.pushButton_exchange_rates_last_month.setText(f"📅 {self.pushButton_exchange_rates_last_month.text()}")
+        self.pushButton_exchange_rates_last_year.setText(f"📅 {self.pushButton_exchange_rates_last_year.text()}")
+        self.pushButton_exchange_rates_all_time.setText(f"📊 {self.pushButton_exchange_rates_all_time.text()}")
+
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
