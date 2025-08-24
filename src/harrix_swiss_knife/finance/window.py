@@ -119,6 +119,9 @@ class Ui_MainWindow(object):
         self.groupBox_account_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_accounts_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_accounts_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
+        self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", "Balance", None))
+        self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
+        self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
@@ -610,8 +613,8 @@ class Ui_MainWindow(object):
         self.frame_accounts.setMaximumSize(QSize(300, 16777215))
         self.frame_accounts.setFrameShape(QFrame.StyledPanel)
         self.frame_accounts.setFrameShadow(QFrame.Raised)
-        self.verticalLayout_accounts = QVBoxLayout(self.frame_accounts)
-        self.verticalLayout_accounts.setObjectName("verticalLayout_accounts")
+        self.verticalLayout_21 = QVBoxLayout(self.frame_accounts)
+        self.verticalLayout_21.setObjectName("verticalLayout_21")
         self.groupBox_add_account = QGroupBox(self.frame_accounts)
         self.groupBox_add_account.setObjectName("groupBox_add_account")
         self.verticalLayout_add_account = QVBoxLayout(self.groupBox_add_account)
@@ -694,7 +697,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_add)
 
-        self.verticalLayout_accounts.addWidget(self.groupBox_add_account)
+        self.verticalLayout_21.addWidget(self.groupBox_add_account)
 
         self.groupBox_account_commands = QGroupBox(self.frame_accounts)
         self.groupBox_account_commands.setObjectName("groupBox_account_commands")
@@ -714,11 +717,30 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_account_commands.addLayout(self.horizontalLayout_account_commands)
 
-        self.verticalLayout_accounts.addWidget(self.groupBox_account_commands)
+        self.verticalLayout_21.addWidget(self.groupBox_account_commands)
+
+        self.groupBox_balance_accounts = QGroupBox(self.frame_accounts)
+        self.groupBox_balance_accounts.setObjectName("groupBox_balance_accounts")
+        self.groupBox_balance_accounts.setMinimumSize(QSize(0, 100))
+        self.verticalLayout_16 = QVBoxLayout(self.groupBox_balance_accounts)
+        self.verticalLayout_16.setObjectName("verticalLayout_16")
+        self.label_balance_accounts = QLabel(self.groupBox_balance_accounts)
+        self.label_balance_accounts.setObjectName("label_balance_accounts")
+        self.label_balance_accounts.setFont(font2)
+        self.label_balance_accounts.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_16.addWidget(self.label_balance_accounts)
+
+        self.label_balance_account_details = QLabel(self.groupBox_balance_accounts)
+        self.label_balance_account_details.setObjectName("label_balance_account_details")
+
+        self.verticalLayout_16.addWidget(self.label_balance_account_details)
+
+        self.verticalLayout_21.addWidget(self.groupBox_balance_accounts)
 
         self.verticalSpacer_accounts = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_accounts.addItem(self.verticalSpacer_accounts)
+        self.verticalLayout_21.addItem(self.verticalSpacer_accounts)
 
         self.horizontalLayout_accounts.addWidget(self.frame_accounts)
 

@@ -1382,6 +1382,113 @@ class MainWindow(
 
         return daily_expenses
 
+    def _calculate_total_accounts_balance(self) -> tuple[float, str]:
+        """Calculate total balance across all accounts in default currency.
+
+        Returns:
+            tuple[float, str]: (total_balance, formatted_details)
+        """
+        if not self._validate_database_connection() or self.db_manager is None:
+            return 0.0, "Database not available"
+
+        try:
+            # Get default currency info
+            default_currency_code = self.db_manager.get_default_currency()
+            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
+            if not default_currency_info:
+                return 0.0, "Default currency not found"
+
+            default_currency_id = default_currency_info[0]
+            default_currency_symbol = default_currency_info[2]
+            default_subdivision = self.db_manager.get_currency_subdivision(default_currency_id)
+
+            # Get all accounts
+            accounts_data = self.db_manager.get_all_accounts()
+
+            total_balance = 0.0
+            balance_details = []
+            today = datetime.now().strftime("%Y-%m-%d")
+
+            # Group accounts by currency for summary display
+            currency_balances = {}
+
+            for account in accounts_data:
+                account_id, account_name, balance_minor_units, currency_code, is_liquid, is_cash, currency_id = account
+
+                # Convert balance from minor units to major units
+                account_subdivision = self.db_manager.get_currency_subdivision(currency_id)
+                balance_major_units = balance_minor_units / account_subdivision
+
+                if currency_id == default_currency_id:
+                    # Same currency - no conversion needed
+                    total_balance += balance_major_units
+                    if currency_code not in currency_balances:
+                        currency_balances[currency_code] = 0.0
+                    currency_balances[currency_code] += balance_major_units
+                else:
+                    # Different currency - need to convert via USD
+                    # Get exchange rate for today, fallback to latest if not available
+                    exchange_rate = self.db_manager.get_exchange_rate(currency_id, default_currency_id, today)
+                    if exchange_rate == 1.0 and currency_id != default_currency_id:
+                        # Try to get latest rate if today's rate not available
+                        exchange_rate = self.db_manager.get_exchange_rate(currency_id, default_currency_id)
+
+                    # If still no valid rate, skip this account or use 1.0 as fallback
+                    if exchange_rate == 1.0 and currency_id != default_currency_id:
+                        print(f"Warning: No exchange rate found for {currency_code} to {default_currency_code}")
+                        # Use 1.0 as fallback (treat as same currency)
+                        converted_balance = balance_major_units
+                    else:
+                        # Convert to default currency
+                        converted_balance = balance_major_units * exchange_rate
+
+                    total_balance += converted_balance
+
+                    # Group by currency for summary
+                    if currency_code not in currency_balances:
+                        currency_balances[currency_code] = 0.0
+                    currency_balances[currency_code] += balance_major_units
+
+            # Format total balance with proper symbol and subdivision
+            formatted_total = f"{total_balance:.2f}{default_currency_symbol}"
+
+            # Format details by currency (show summary by currency)
+            details_lines = []
+            for currency_code, balance in currency_balances.items():
+                if currency_code == default_currency_code:
+                    # Default currency - show as is
+                    details_lines.append(f"{currency_code}: {balance:,.2f}{default_currency_symbol}")
+                else:
+                    # Other currency - show converted amount
+                    # Get currency info for display
+                    currency_info = self.db_manager.get_currency_by_id(
+                        self.db_manager.get_currency_by_code(currency_code)[0]
+                    )
+                    currency_symbol = currency_info[2] if currency_info else currency_code
+
+                    # Calculate converted amount for this currency
+                    currency_id = self.db_manager.get_currency_by_code(currency_code)[0]
+                    exchange_rate = self.db_manager.get_exchange_rate(currency_id, default_currency_id, today)
+                    if exchange_rate == 1.0 and currency_id != default_currency_id:
+                        exchange_rate = self.db_manager.get_exchange_rate(currency_id, default_currency_id)
+
+                    if exchange_rate == 1.0 and currency_id != default_currency_id:
+                        # No valid exchange rate found
+                        details_lines.append(f"{currency_code}: {balance:,.2f}{currency_symbol} (курс не найден)")
+                    else:
+                        converted_amount = balance * exchange_rate
+                        details_lines.append(
+                            f"{currency_code}: {balance:,.2f}{currency_symbol} → {converted_amount:,.2f}{default_currency_symbol}"
+                        )
+
+            details_text = "\n".join(details_lines)
+
+            return total_balance, details_text
+
+        except Exception as e:
+            print(f"Error calculating total accounts balance: {e}")
+            return 0.0, f"Error: {str(e)}"
+
     def _cleanup_startup_dialog(self):
         """Clean up startup dialog and re-enable main window."""
         # Close dialog if exists
@@ -2409,6 +2516,9 @@ class MainWindow(
             # Connect auto-save signals for loaded tables
             self._connect_table_auto_save_signals()
 
+            # Update accounts balance display
+            self._update_accounts_balance_display()
+
         except Exception as e:
             print(f"Error loading essential tables: {e}")
             QMessageBox.warning(self, "Database Error", f"Failed to load essential tables: {e}")
@@ -3235,6 +3345,30 @@ class MainWindow(
             transformed_data.append(transformed_row)
 
         return transformed_data
+
+    def _update_accounts_balance_display(self) -> None:
+        """Update the display of total accounts balance."""
+        if not self._validate_database_connection():
+            return
+
+        try:
+            total_balance, details = self._calculate_total_accounts_balance()
+
+            # Get default currency symbol for proper display
+            default_currency_code = self.db_manager.get_default_currency()
+            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
+            default_currency_symbol = default_currency_info[2] if default_currency_info else ""
+
+            # Update main balance label with proper currency symbol
+            self.label_balance_accounts.setText(f"{total_balance:,.2f}{default_currency_symbol}")
+
+            # Update details label
+            self.label_balance_account_details.setText(details)
+
+        except Exception as e:
+            print(f"Error updating accounts balance display: {e}")
+            self.label_balance_accounts.setText("Error")
+            self.label_balance_account_details.setText("Failed to load balance")
 
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""

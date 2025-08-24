@@ -1170,28 +1170,27 @@ class DatabaseManager:
         except Exception:
             return 1.0  # Таблица недоступна
 
-        # Остальная логика остается прежней...
         # Get USD currency ID
         usd_currency = self.get_currency_by_code("USD")
         if not usd_currency:
             return 1.0
         usd_currency_id = usd_currency[0]
 
-        # Now rates are stored as USD → currency (e.g., 1 USD = 79.85 RUB)
+        # Rates are stored as currency_to_USD (e.g., 1 RUB = 0.012 USD)
         if from_currency_id == usd_currency_id:
-            # USD to other currency - direct rate from database
-            return self.get_usd_to_currency_rate(to_currency_id, date)
+            # USD to other currency - inverse of stored rate
+            currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)
+            return 1.0 / currency_to_usd_rate if currency_to_usd_rate != 0 else 1.0
         elif to_currency_id == usd_currency_id:
-            # Other currency to USD - inverse of stored rate
-            usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)
-            return 1.0 / usd_rate if usd_rate != 0 else 1.0
+            # Other currency to USD - direct rate from database
+            return self.get_usd_to_currency_rate(from_currency_id, date)
         else:
             # from_currency to to_currency via USD
-            from_usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)  # USD → from_currency
-            to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)  # USD → to_currency
-            if from_usd_rate != 0 and to_usd_rate != 0:
-                # from_currency → USD → to_currency = (1/from_usd_rate) * to_usd_rate
-                return to_usd_rate / from_usd_rate
+            from_currency_to_usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)  # from_currency → USD
+            to_currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)  # to_currency → USD
+            if from_currency_to_usd_rate != 0 and to_currency_to_usd_rate != 0:
+                # from_currency → USD → to_currency = from_currency_to_usd_rate / to_currency_to_usd_rate
+                return from_currency_to_usd_rate / to_currency_to_usd_rate
             return 1.0
 
     def get_filtered_exchange_rates(
@@ -1710,9 +1709,10 @@ class DatabaseManager:
         return [(row[0], float(row[1]) / 100) for row in rows]
 
     def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
-        """Get exchange rate from USD to currency (how many currency units for 1 USD).
+        """Get exchange rate from currency to USD (how many USD for 1 currency unit).
 
         Uses caching to avoid repeated database queries.
+        Note: Despite the method name, this returns currency_to_USD rates.
         """
         # Check if currency is USD
         usd_currency = self.get_currency_by_code("USD")
