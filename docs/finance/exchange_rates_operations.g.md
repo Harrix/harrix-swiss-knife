@@ -507,6 +507,19 @@ class ExchangeRatesOperations:
             # Plot the data
             ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=1)
 
+            # Highlight min and max points
+            if len(transformed_rates) > 1:
+                min_rate = min(transformed_rates)
+                max_rate = max(transformed_rates)
+                min_index = transformed_rates.index(min_rate)
+                max_index = transformed_rates.index(max_rate)
+
+                # Plot min point in red
+                ax.scatter(date_objects[min_index], min_rate, color="red", s=100, zorder=5, marker="o")
+
+                # Plot max point in green
+                ax.scatter(date_objects[max_index], max_rate, color="green", s=100, zorder=5, marker="o")
+
             # Customize plot
             ax.set_xlabel("Date", fontsize=12)
             ax.set_ylabel(f"Exchange Rate ({currency_code} to USD)", fontsize=12)
@@ -521,6 +534,12 @@ class ExchangeRatesOperations:
 
             # Add value labels for significant points
             if len(transformed_rates) > 1:
+                # Find min and max rates and their indices
+                min_rate = min(transformed_rates)
+                max_rate = max(transformed_rates)
+                min_index = transformed_rates.index(min_rate)
+                max_index = transformed_rates.index(max_rate)
+
                 # Label first and last points
                 first_date = dates[0]
                 ax.annotate(
@@ -528,7 +547,7 @@ class ExchangeRatesOperations:
                     xy=(date_objects[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7),
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
                     fontsize=10,
                 )
 
@@ -538,9 +557,37 @@ class ExchangeRatesOperations:
                     xy=(date_objects[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7),
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
                     fontsize=10,
                 )
+
+                # Label minimum rate point
+                if min_index != 0 and min_index != len(transformed_rates) - 1:  # Don't duplicate first/last labels
+                    min_date = dates[min_index]
+                    ax.annotate(
+                        f"MIN: {min_rate:.6f} ({min_date})",
+                        xy=(date_objects[min_index], min_rate),
+                        xytext=(10, -20),
+                        textcoords="offset points",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                        fontsize=10,
+                        color="red",
+                        fontweight="bold",
+                    )
+
+                # Label maximum rate point
+                if max_index != 0 and max_index != len(transformed_rates) - 1:  # Don't duplicate first/last labels
+                    max_date = dates[max_index]
+                    ax.annotate(
+                        f"MAX: {max_rate:.6f} ({max_date})",
+                        xy=(date_objects[max_index], max_rate),
+                        xytext=(10, 20),
+                        textcoords="offset points",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                        fontsize=10,
+                        color="green",
+                        fontweight="bold",
+                    )
 
             # Add the canvas to the layout
             self.verticalLayout_exchange_rates_content.addWidget(canvas)
@@ -1418,6 +1465,19 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
             # Plot the data
             ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=1)
 
+            # Highlight min and max points
+            if len(transformed_rates) > 1:
+                min_rate = min(transformed_rates)
+                max_rate = max(transformed_rates)
+                min_index = transformed_rates.index(min_rate)
+                max_index = transformed_rates.index(max_rate)
+
+                # Plot min point in red
+                ax.scatter(date_objects[min_index], min_rate, color="red", s=100, zorder=5, marker="o")
+
+                # Plot max point in green
+                ax.scatter(date_objects[max_index], max_rate, color="green", s=100, zorder=5, marker="o")
+
             # Customize plot
             ax.set_xlabel("Date", fontsize=12)
             ax.set_ylabel(f"Exchange Rate ({currency_code} to USD)", fontsize=12)
@@ -1432,6 +1492,12 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
 
             # Add value labels for significant points
             if len(transformed_rates) > 1:
+                # Find min and max rates and their indices
+                min_rate = min(transformed_rates)
+                max_rate = max(transformed_rates)
+                min_index = transformed_rates.index(min_rate)
+                max_index = transformed_rates.index(max_rate)
+
                 # Label first and last points
                 first_date = dates[0]
                 ax.annotate(
@@ -1439,7 +1505,7 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                     xy=(date_objects[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7),
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
                     fontsize=10,
                 )
 
@@ -1449,9 +1515,37 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                     xy=(date_objects[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7),
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
                     fontsize=10,
                 )
+
+                # Label minimum rate point
+                if min_index != 0 and min_index != len(transformed_rates) - 1:  # Don't duplicate first/last labels
+                    min_date = dates[min_index]
+                    ax.annotate(
+                        f"MIN: {min_rate:.6f} ({min_date})",
+                        xy=(date_objects[min_index], min_rate),
+                        xytext=(10, -20),
+                        textcoords="offset points",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                        fontsize=10,
+                        color="red",
+                        fontweight="bold",
+                    )
+
+                # Label maximum rate point
+                if max_index != 0 and max_index != len(transformed_rates) - 1:  # Don't duplicate first/last labels
+                    max_date = dates[max_index]
+                    ax.annotate(
+                        f"MAX: {max_rate:.6f} ({max_date})",
+                        xy=(date_objects[max_index], max_rate),
+                        xytext=(10, 20),
+                        textcoords="offset points",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                        fontsize=10,
+                        color="green",
+                        fontweight="bold",
+                    )
 
             # Add the canvas to the layout
             self.verticalLayout_exchange_rates_content.addWidget(canvas)
