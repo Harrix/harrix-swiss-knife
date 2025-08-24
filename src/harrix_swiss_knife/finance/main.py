@@ -3045,6 +3045,14 @@ class MainWindow(
         self.pushButton_exchange_rates_last_year.setText(f"📅 {self.pushButton_exchange_rates_last_year.text()}")
         self.pushButton_exchange_rates_all_time.setText(f"📊 {self.pushButton_exchange_rates_all_time.text()}")
 
+        # Set emoji for additional exchange and currency buttons
+        self.pushButton_exchange_yesterday.setText(f"📅 {self.pushButton_exchange_yesterday.text()}")
+        self.pushButton_calculate_exchange.setText(f"🧮 {self.pushButton_calculate_exchange.text()}")
+        self.pushButton_currency_add.setText(f"➕ {self.pushButton_currency_add.text()}")
+        self.pushButton_set_default_currency.setText(f"⭐ {self.pushButton_set_default_currency.text()}")
+        self.pushButton_currencies_delete.setText(f"🗑️ {self.pushButton_currencies_delete.text()}")
+        self.pushButton_currencies_refresh.setText(f"🔄 {self.pushButton_currencies_refresh.text()}")
+
         # Set emoji for account and category buttons
         self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")
         self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
