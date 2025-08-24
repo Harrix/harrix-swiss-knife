@@ -90,7 +90,8 @@ _Figure 1: Screenshot_
   - ├ Tree view of a folder (ignore hidden folders)
 - **Markdown**
   - 🎬 Get a list of movies, books for web
-  - 👉 Increase heading level
+  - 👈 Heading level: Decrease
+  - 👉 Heading level: Increase
   - ❞ Quotes. Format quotes as Markdown content
   - 💎 ★ Beautify MD and regenerate .g.md in …
   - 💎 Beautify MD in …

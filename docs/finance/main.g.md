@@ -3121,6 +3121,19 @@ class MainWindow(
         self.pushButton_exchange_rates_last_year.setText(f"📅 {self.pushButton_exchange_rates_last_year.text()}")
         self.pushButton_exchange_rates_all_time.setText(f"📊 {self.pushButton_exchange_rates_all_time.text()}")
 
+        # Set emoji for account and category buttons
+        self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")
+        self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
+        self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
+        self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")
+        self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
+        self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
+
+        # Set emoji for exchange buttons
+        self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")
+        self.pushButton_exchange_delete.setText(f"🗑️ {self.pushButton_exchange_delete.text()}")
+        self.pushButton_exchange_refresh.setText(f"🔄 {self.pushButton_exchange_refresh.text()}")
+
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
@@ -7706,6 +7719,19 @@ def _setup_ui(self) -> None:
         self.pushButton_exchange_rates_last_month.setText(f"📅 {self.pushButton_exchange_rates_last_month.text()}")
         self.pushButton_exchange_rates_last_year.setText(f"📅 {self.pushButton_exchange_rates_last_year.text()}")
         self.pushButton_exchange_rates_all_time.setText(f"📊 {self.pushButton_exchange_rates_all_time.text()}")
+
+        # Set emoji for account and category buttons
+        self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")
+        self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
+        self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
+        self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")
+        self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
+        self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
+
+        # Set emoji for exchange buttons
+        self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")
+        self.pushButton_exchange_delete.setText(f"🗑️ {self.pushButton_exchange_delete.text()}")
+        self.pushButton_exchange_refresh.setText(f"🔄 {self.pushButton_exchange_refresh.text()}")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
