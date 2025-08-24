@@ -807,13 +807,7 @@ class DatabaseManager:
             ORDER BY a.name
         """)
 
-        # Convert balances from stored subdivision to actual values
-        for row in rows:
-            if len(row) >= 4 and row[2] is not None and row[3] is not None:  # balance and currency_code
-                currency_code = row[3]
-                subdivision = self.get_currency_subdivision_by_code(currency_code)
-                row[2] = float(row[2]) / subdivision
-
+        # Return raw balance values (in minor units) - conversion will be done in the UI layer
         return rows
 
     def get_all_categories(self) -> list[list[Any]]:
@@ -853,25 +847,11 @@ class DatabaseManager:
             ORDER BY ce.date DESC, ce._id DESC
         """)
 
-        # Convert amounts, rates and fees from stored subdivision to actual values
+        # Return raw values (in minor units) - conversion will be done in the UI layer
+        # Just ensure exchange_rate is float type for consistency
         for row in rows:
-            if len(row) >= 9:
-                # Get currency subdivisions for proper conversion
-                from_currency_code = row[1]
-                to_currency_code = row[2]
-
-                from_subdivision = self.get_currency_subdivision_by_code(from_currency_code)
-                to_subdivision = self.get_currency_subdivision_by_code(to_currency_code)
-
-                # Convert amounts and fees
-                if row[3] is not None:  # amount_from
-                    row[3] = float(row[3]) / from_subdivision
-                if row[4] is not None:  # amount_to
-                    row[4] = float(row[4]) / to_subdivision
-                if row[5] is not None:  # exchange_rate (already stored as REAL)
-                    row[5] = float(row[5])
-                if row[6] is not None:  # fee (in from_currency)
-                    row[6] = float(row[6]) / from_subdivision
+            if len(row) >= 6 and row[5] is not None:  # exchange_rate
+                row[5] = float(row[5])
 
         return rows
 

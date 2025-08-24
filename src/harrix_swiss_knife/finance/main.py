@@ -2338,15 +2338,27 @@ class MainWindow(
         exchanges_transformed_data = []
         for row in exchanges_data:
             # Transform: [id, from_code, to_code, amount_from, amount_to, rate, fee, date, description]
-            # Данные уже конвертированы в get_all_currency_exchanges()
+            # Convert amounts and fees from minor units to major units
+            from_currency_code = row[1]
+            to_currency_code = row[2]
+
+            # Get currency subdivisions for proper conversion
+            from_subdivision = self.db_manager.get_currency_subdivision_by_code(from_currency_code)
+            to_subdivision = self.db_manager.get_currency_subdivision_by_code(to_currency_code)
+
+            # Convert amounts and fees
+            amount_from = float(row[3]) / from_subdivision if row[3] is not None else 0.0
+            amount_to = float(row[4]) / to_subdivision if row[4] is not None else 0.0
+            fee = float(row[6]) / from_subdivision if row[6] is not None else 0.0
+
             color = QColor(255, 240, 255)
             transformed_row = [
                 row[1],  # from_code
                 row[2],  # to_code
-                f"{row[3]:.2f}",  # amount_from (уже конвертировано)
-                f"{row[4]:.2f}",  # amount_to (уже конвертировано)
-                f"{row[5]:.4f}",  # rate (уже конвертировано)
-                f"{row[6]:.2f}",  # fee (уже конвертировано)
+                f"{amount_from:.2f}",  # amount_from (converted)
+                f"{amount_to:.2f}",  # amount_to (converted)
+                f"{row[5]:.4f}",  # rate (already float)
+                f"{fee:.2f}",  # fee (converted)
                 row[7],  # date
                 row[8] or "",  # description
                 row[0],  # id
