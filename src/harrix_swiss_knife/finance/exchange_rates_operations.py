@@ -349,14 +349,20 @@ class ExchangeRatesOperations:
         """Automatically update exchange rates on startup with modal dialog.
 
         Strategy:
-        - If no exchange rates exist: check from first transaction date
-        - If exchange rates exist: check from last exchange rate date
+        - First check if all currencies have today's rates
+        - If yes: skip update
+        - If no: proceed with normal update strategy
         """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
+            # First check if we need to update exchange rates at all
+            if not self.db_manager.should_update_exchange_rates():
+                print("✅ [Startup] Exchange rates are up to date. Skipping update.")
+                return
+
             # Check if exchange rates data exists
             has_exchange_rates = self.db_manager.has_exchange_rates_data()
 

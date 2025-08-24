@@ -77,6 +77,7 @@ lang: en
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency-1)
   - [⚙️ Method `set_last_exchange_rates_update_date`](#%EF%B8%8F-method-set_last_exchange_rates_update_date)
+  - [⚙️ Method `should_update_exchange_rates`](#%EF%B8%8F-method-should_update_exchange_rates)
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `update_account`](#%EF%B8%8F-method-update_account)
   - [⚙️ Method `update_category`](#%EF%B8%8F-method-update_category)
@@ -1942,6 +1943,40 @@ class DatabaseManager:
         # If update didn't affect any rows, insert new setting
         insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
         return self.execute_simple_query(insert_query, {"date": date})
+
+    def should_update_exchange_rates(self) -> bool:
+        """Check if exchange rates need to be updated based on today's date.
+
+        Returns:
+            bool: True if update is needed, False if all currencies have today's rates.
+        """
+        try:
+            from datetime import datetime
+
+            # Get today's date in YYYY-MM-DD format
+            today = datetime.now().strftime("%Y-%m-%d")
+
+            # Get all currencies except USD
+            currencies = self.get_currencies_except_usd()
+
+            if not currencies:
+                # No currencies to check
+                return False
+
+            # Check if each currency has today's rate
+            for currency_id, currency_code, _, _ in currencies:
+                last_date = self.get_last_exchange_rate_date(currency_id)
+                if not last_date or last_date != today:
+                    print(f"📊 [Exchange Rates] {currency_code} needs update (last: {last_date}, today: {today})")
+                    return True
+
+            print(f"✅ [Exchange Rates] All currencies are up to date (last update: {today})")
+            return False
+
+        except Exception as e:
+            print(f"❌ Error checking exchange rates update status: {e}")
+            # In case of error, assume update is needed
+            return True
 
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
@@ -5039,6 +5074,53 @@ def set_last_exchange_rates_update_date(self, date: str) -> bool:
         # If update didn't affect any rows, insert new setting
         insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
         return self.execute_simple_query(insert_query, {"date": date})
+```
+
+</details>
+
+### ⚙️ Method `should_update_exchange_rates`
+
+```python
+def should_update_exchange_rates(self) -> bool
+```
+
+Check if exchange rates need to be updated based on today's date.
+
+Returns:
+bool: True if update is needed, False if all currencies have today's rates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def should_update_exchange_rates(self) -> bool:
+        try:
+            from datetime import datetime
+
+            # Get today's date in YYYY-MM-DD format
+            today = datetime.now().strftime("%Y-%m-%d")
+
+            # Get all currencies except USD
+            currencies = self.get_currencies_except_usd()
+
+            if not currencies:
+                # No currencies to check
+                return False
+
+            # Check if each currency has today's rate
+            for currency_id, currency_code, _, _ in currencies:
+                last_date = self.get_last_exchange_rate_date(currency_id)
+                if not last_date or last_date != today:
+                    print(f"📊 [Exchange Rates] {currency_code} needs update (last: {last_date}, today: {today})")
+                    return True
+
+            print(f"✅ [Exchange Rates] All currencies are up to date (last update: {today})")
+            return False
+
+        except Exception as e:
+            print(f"❌ Error checking exchange rates update status: {e}")
+            # In case of error, assume update is needed
+            return True
 ```
 
 </details>

@@ -1854,6 +1854,40 @@ class DatabaseManager:
         insert_query = "INSERT INTO settings (key, value) VALUES ('last_exchange_rates_update', :date)"
         return self.execute_simple_query(insert_query, {"date": date})
 
+    def should_update_exchange_rates(self) -> bool:
+        """Check if exchange rates need to be updated based on today's date.
+
+        Returns:
+            bool: True if update is needed, False if all currencies have today's rates.
+        """
+        try:
+            from datetime import datetime
+
+            # Get today's date in YYYY-MM-DD format
+            today = datetime.now().strftime("%Y-%m-%d")
+
+            # Get all currencies except USD
+            currencies = self.get_currencies_except_usd()
+
+            if not currencies:
+                # No currencies to check
+                return False
+
+            # Check if each currency has today's rate
+            for currency_id, currency_code, _, _ in currencies:
+                last_date = self.get_last_exchange_rate_date(currency_id)
+                if not last_date or last_date != today:
+                    print(f"📊 [Exchange Rates] {currency_code} needs update (last: {last_date}, today: {today})")
+                    return True
+
+            print(f"✅ [Exchange Rates] All currencies are up to date (last update: {today})")
+            return False
+
+        except Exception as e:
+            print(f"❌ Error checking exchange rates update status: {e}")
+            # In case of error, assume update is needed
+            return True
+
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
 
