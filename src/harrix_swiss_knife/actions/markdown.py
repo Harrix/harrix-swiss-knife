@@ -218,6 +218,31 @@ class OnCheckMdFolder(ActionBase):
         self.show_result()
 
 
+class OnDecreaseHeadingLevelContent(ActionBase):
+    """Decrease the heading level of all headings in Markdown content.
+
+    This action takes Markdown content and decreases the level of all headings
+    by removing one '#' character from each heading, making them one level
+    shallower in the document hierarchy.
+    """
+
+    icon = "👈"
+    title = "Heading level: Decrease"
+
+    @ActionBase.handle_exceptions("decreasing heading level")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        content = self.get_text_textarea(
+            "Markdown content", "Input Markdown content", "# Title\n\nText\n\n## Subtitle\n\nText"
+        )
+        if not content:
+            return
+
+        new_content = h.md.decrease_heading_level_content(content)
+        self.add_line(new_content)
+        self.show_result()
+
+
 class OnDownloadAndReplaceImagesFolder(ActionBase):
     """Download remote images and replace URLs with local references in multiple Markdown files.
 
@@ -349,7 +374,7 @@ class OnIncreaseHeadingLevelContent(ActionBase):
     """
 
     icon = "👉"
-    title = "Increase heading level"
+    title = "Heading level: Increase"
 
     @ActionBase.handle_exceptions("increasing heading level")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

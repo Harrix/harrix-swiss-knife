@@ -101,6 +101,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_items(
             self.menu_md,
             [
+                hsk.md.OnDecreaseHeadingLevelContent,
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
                 hsk.md.OnQuotesFormatAsMarkdownContent,
@@ -248,6 +249,7 @@ def __init__(self) -> None:
         self.add_items(
             self.menu_md,
             [
+                hsk.md.OnDecreaseHeadingLevelContent,
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
                 hsk.md.OnQuotesFormatAsMarkdownContent,

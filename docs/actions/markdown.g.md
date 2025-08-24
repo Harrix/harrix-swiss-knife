@@ -24,43 +24,45 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
-- [🏛️ Class `OnDownloadAndReplaceImagesFolder`](#%EF%B8%8F-class-ondownloadandreplaceimagesfolder)
+- [🏛️ Class `OnDecreaseHeadingLevelContent`](#%EF%B8%8F-class-ondecreaseheadinglevelcontent)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+- [🏛️ Class `OnDownloadAndReplaceImagesFolder`](#%EF%B8%8F-class-ondownloadandreplaceimagesfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
 - [🏛️ Class `OnGenerateShortNoteTocWithLinks`](#%EF%B8%8F-class-ongenerateshortnotetocwithlinks)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-4)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-4)
 - [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
-- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
-- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
+- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
-- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
+- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
-- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
+- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
-- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
+- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
-- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
+- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
-- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
+- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-5)
   - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
   - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
   - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-5)
 - [🏛️ Class `OnQuotesFormatAsMarkdownContent`](#%EF%B8%8F-class-onquotesformatasmarkdowncontent)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
-- [🏛️ Class `OnQuotesGenerateAuthorAndBook`](#%EF%B8%8F-class-onquotesgenerateauthorandbook)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
+- [🏛️ Class `OnQuotesGenerateAuthorAndBook`](#%EF%B8%8F-class-onquotesgenerateauthorandbook)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
 - [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
 
@@ -594,6 +596,69 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
+## 🏛️ Class `OnDecreaseHeadingLevelContent`
+
+```python
+class OnDecreaseHeadingLevelContent(ActionBase)
+```
+
+Decrease the heading level of all headings in Markdown content.
+
+This action takes Markdown content and decreases the level of all headings
+by removing one '#' character from each heading, making them one level
+shallower in the document hierarchy.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnDecreaseHeadingLevelContent(ActionBase):
+
+    icon = "👈"
+    title = "Heading level: Decrease"
+
+    @ActionBase.handle_exceptions("decreasing heading level")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        content = self.get_text_textarea(
+            "Markdown content", "Input Markdown content", "# Title\n\nText\n\n## Subtitle\n\nText"
+        )
+        if not content:
+            return
+
+        new_content = h.md.decrease_heading_level_content(content)
+        self.add_line(new_content)
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        content = self.get_text_textarea(
+            "Markdown content", "Input Markdown content", "# Title\n\nText\n\n## Subtitle\n\nText"
+        )
+        if not content:
+            return
+
+        new_content = h.md.decrease_heading_level_content(content)
+        self.add_line(new_content)
+        self.show_result()
+```
+
+</details>
+
 ## 🏛️ Class `OnDownloadAndReplaceImagesFolder`
 
 ```python
@@ -947,7 +1012,7 @@ deeper in the document hierarchy.
 class OnIncreaseHeadingLevelContent(ActionBase):
 
     icon = "👉"
-    title = "Increase heading level"
+    title = "Heading level: Increase"
 
     @ActionBase.handle_exceptions("increasing heading level")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
