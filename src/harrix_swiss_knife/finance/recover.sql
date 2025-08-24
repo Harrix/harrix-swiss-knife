@@ -78,4 +78,4 @@ INSERT INTO categories (name, type, icon) VALUES ('Transport', 0, "🚗");
 INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Cash', 1, 0, 1, 1);
 INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Bank Account', 1, 0, 1, 0);
 
-INSERT INTO settings (key, value) VALUES ('default_currency', 'RUB');
+INSERT INTO settings (key, value) VALUES ('default_currency', '1');

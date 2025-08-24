@@ -1065,7 +1065,19 @@ class DatabaseManager:
 
         """
         rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
-        return rows[0][0] if rows else "RUB"
+        if not rows:
+            return "RUB"
+
+        # The stored value is now the currency ID as a string
+        stored_value = rows[0][0]
+        try:
+            currency_id = int(stored_value)
+            # Get currency info by ID and return the code
+            currency_info = self.get_currency_by_id(currency_id)
+            return currency_info[0] if currency_info else "RUB"  # [0] is code, [1] is name, [2] is symbol
+        except (ValueError, TypeError):
+            # Fallback to stored value if it's not a valid integer
+            return stored_value if stored_value else "RUB"
 
     def get_default_currency_id(self) -> int:
         """Get the default currency ID.
@@ -1075,9 +1087,20 @@ class DatabaseManager:
         - `int`: Default currency ID or 1 if not found.
 
         """
-        default_code = self.get_default_currency()
-        currency_info = self.get_currency_by_code(default_code)
-        return currency_info[0] if currency_info else 1
+        rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
+        if not rows:
+            return 1
+
+        # The stored value is now the currency ID as a string
+        stored_value = rows[0][0]
+        try:
+            currency_id = int(stored_value)
+            # Verify the currency exists
+            currency_info = self.get_currency_by_id(currency_id)
+            return currency_id if currency_info else 1
+        except (ValueError, TypeError):
+            # Fallback to default if stored value is not a valid integer
+            return 1
 
     def get_earliest_currency_exchange_date(self) -> str | None:
         """Get the earliest date from currency_exchanges table.
@@ -1774,9 +1797,16 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
+        # Get the currency ID from the currency code
+        currency_info = self.get_currency_by_code(currency_code)
+        if not currency_info:
+            return False
+
+        currency_id = str(currency_info[0])  # Convert ID to string for storage
+
         # First try to update existing setting
-        update_query = "UPDATE settings SET value = :code WHERE key = 'default_currency'"
-        if self.execute_simple_query(update_query, {"code": currency_code}):
+        update_query = "UPDATE settings SET value = :id WHERE key = 'default_currency'"
+        if self.execute_simple_query(update_query, {"id": currency_id}):
             # Check if any rows were affected by checking if the setting exists
             check_query = "SELECT COUNT(*) FROM settings WHERE key = 'default_currency'"
             rows = self.get_rows(check_query)
@@ -1784,33 +1814,8 @@ class DatabaseManager:
                 return True
 
         # If update didn't affect any rows, insert new setting
-        insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
-        return self.execute_simple_query(insert_query, {"code": currency_code})
-
-    def set_default_currency(self, currency_code: str) -> bool:
-        """Set the default currency.
-
-        Args:
-
-        - `currency_code` (`str`): Currency code to set as default.
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        # First try to update existing setting
-        update_query = "UPDATE settings SET value = :code WHERE key = 'default_currency'"
-        if self.execute_simple_query(update_query, {"code": currency_code}):
-            # Check if any rows were affected by checking if the setting exists
-            check_query = "SELECT COUNT(*) FROM settings WHERE key = 'default_currency'"
-            rows = self.get_rows(check_query)
-            if rows and rows[0][0] > 0:
-                return True
-
-        # If update didn't affect any rows, insert new setting
-        insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :code)"
-        return self.execute_simple_query(insert_query, {"code": currency_code})
+        insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :id)"
+        return self.execute_simple_query(insert_query, {"id": currency_id})
 
     def set_last_exchange_rates_update_date(self, date: str) -> bool:
         """Set the last date when exchange rates were updated.
@@ -2275,8 +2280,8 @@ class DatabaseManager:
             # Check if default_currency setting exists
             rows = self.get_rows("SELECT COUNT(*) FROM settings WHERE key = 'default_currency'")
             if rows and rows[0][0] == 0:
-                # Insert default currency setting
-                self.execute_simple_query("INSERT INTO settings (key, value) VALUES ('default_currency', 'RUB')")
+                # Insert default currency setting (RUB has ID 1)
+                self.execute_simple_query("INSERT INTO settings (key, value) VALUES ('default_currency', '1')")
                 print("✅ Initialized default currency setting")
         except Exception as e:
             print(f"Warning: Could not initialize default settings: {e}")
