@@ -140,10 +140,6 @@ class AccountEditDialog(QDialog):
         # Buttons
         button_layout = QHBoxLayout()
 
-        self.save_button = QPushButton("Save")
-        self.save_button.clicked.connect(self._on_save)
-        button_layout.addWidget(self.save_button)
-
         self.delete_button = QPushButton("Delete")
         self.delete_button.clicked.connect(self._on_delete)
         self.delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; }")
@@ -152,6 +148,11 @@ class AccountEditDialog(QDialog):
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(self.cancel_button)
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self._on_save)
+        self.save_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        button_layout.addWidget(self.save_button)
 
         layout.addLayout(button_layout)
 
