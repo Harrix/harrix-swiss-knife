@@ -166,6 +166,9 @@ class MainWindow(
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
+        # Flag to prevent data copying during context menu
+        self._context_menu_showing = False
+
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show = 1000
         self.count_exchange_rates_to_show = 1000
@@ -3209,6 +3212,10 @@ class MainWindow(
             current: The current selected index.
             previous: The previously selected index.
         """
+        # Don't copy data if context menu is showing
+        if hasattr(self, '_context_menu_showing') and self._context_menu_showing:
+            return
+
         if not current.isValid():
             return
 
@@ -3696,6 +3703,9 @@ class MainWindow(
         """
         from PySide6.QtWidgets import QMenu
 
+        # Set flag to prevent data copying during context menu
+        self._context_menu_showing = True
+
         context_menu = QMenu(self)
 
         # Get the clicked index
@@ -3722,6 +3732,9 @@ class MainWindow(
         elif 'set_date_action' in locals() and action == set_date_action:
             # This will be handled by the lambda connection above
             pass
+
+        # Reset flag after context menu is closed
+        self._context_menu_showing = False
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors and daily totals.
