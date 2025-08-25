@@ -28,6 +28,7 @@ lang: en
   - [⚙️ Method `on_calculate_exchange`](#%EF%B8%8F-method-on_calculate_exchange)
   - [⚙️ Method `on_category_selection_changed`](#%EF%B8%8F-method-on_category_selection_changed)
   - [⚙️ Method `on_clear_description`](#%EF%B8%8F-method-on_clear_description)
+  - [⚙️ Method `on_copy_categories_as_text`](#%EF%B8%8F-method-on_copy_categories_as_text)
   - [⚙️ Method `on_exchange_item_update_button_clicked`](#%EF%B8%8F-method-on_exchange_item_update_button_clicked)
   - [⚙️ Method `on_exchange_item_update_changed`](#%EF%B8%8F-method-on_exchange_item_update_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
@@ -837,6 +838,38 @@ class MainWindow(
     def on_clear_description(self) -> None:
         """Clear the description field."""
         self.lineEdit_description.clear()
+
+    def on_copy_categories_as_text(self) -> None:
+        """Copy list of categories to clipboard as text."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get all categories
+            categories_data = self.db_manager.get_all_categories()
+
+            if not categories_data:
+                print("No categories found")
+                return
+
+            # Create text representation
+            categories_text = []
+            for row in categories_data:
+                category_name = row[1]  # name column
+                categories_text.append(category_name)
+
+            # Join with newlines
+            clipboard_text = "\n".join(categories_text)
+
+            # Copy to clipboard
+            clipboard = QApplication.clipboard()
+            clipboard.setText(clipboard_text)
+
+            print(f"✅ Copied {len(categories_text)} categories to clipboard")
+
+        except Exception as e:
+            print(f"❌ Error copying categories to clipboard: {e}")
 
     def on_exchange_item_update_button_clicked(self) -> None:
         """Update exchange rate in database when pushButton_exchange_item_update is clicked."""
@@ -1687,6 +1720,9 @@ class MainWindow(
         self.pushButton_account_add.clicked.connect(self.on_add_account)
         self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
+
+        # Copy categories as text button
+        self.pushButton_copy_categories_as_text.clicked.connect(self.on_copy_categories_as_text)
 
         # Filter signals
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
@@ -3283,6 +3319,7 @@ class MainWindow(
         self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")
         self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
         self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
+        self.pushButton_copy_categories_as_text.setText(f"📋 {self.pushButton_copy_categories_as_text.text()}")
 
         # Set emoji for exchange buttons
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")
@@ -4453,6 +4490,52 @@ Clear the description field.
 ```python
 def on_clear_description(self) -> None:
         self.lineEdit_description.clear()
+```
+
+</details>
+
+### ⚙️ Method `on_copy_categories_as_text`
+
+```python
+def on_copy_categories_as_text(self) -> None
+```
+
+Copy list of categories to clipboard as text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_copy_categories_as_text(self) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get all categories
+            categories_data = self.db_manager.get_all_categories()
+
+            if not categories_data:
+                print("No categories found")
+                return
+
+            # Create text representation
+            categories_text = []
+            for row in categories_data:
+                category_name = row[1]  # name column
+                categories_text.append(category_name)
+
+            # Join with newlines
+            clipboard_text = "\n".join(categories_text)
+
+            # Copy to clipboard
+            clipboard = QApplication.clipboard()
+            clipboard.setText(clipboard_text)
+
+            print(f"✅ Copied {len(categories_text)} categories to clipboard")
+
+        except Exception as e:
+            print(f"❌ Error copying categories to clipboard: {e}")
 ```
 
 </details>
@@ -5724,6 +5807,9 @@ def _connect_signals(self) -> None:
         self.pushButton_account_add.clicked.connect(self.on_add_account)
         self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
+
+        # Copy categories as text button
+        self.pushButton_copy_categories_as_text.clicked.connect(self.on_copy_categories_as_text)
 
         # Filter signals
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
@@ -8075,6 +8161,7 @@ def _setup_ui(self) -> None:
         self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")
         self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
         self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
+        self.pushButton_copy_categories_as_text.setText(f"📋 {self.pushButton_copy_categories_as_text.text()}")
 
         # Set emoji for exchange buttons
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")

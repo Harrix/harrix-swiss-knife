@@ -136,6 +136,9 @@ class Ui_MainWindow(object):
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_categories_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_categories_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
+        self.pushButton_copy_categories_as_text.setText(
+            QCoreApplication.translate("MainWindow", "Copy Categories As Text", None)
+        )
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_categories), QCoreApplication.translate("MainWindow", "Categories", None)
         )
@@ -833,6 +836,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_11.addLayout(self.horizontalLayout_20)
 
+        self.pushButton_copy_categories_as_text = QPushButton(self.groupBox_7)
+        self.pushButton_copy_categories_as_text.setObjectName("pushButton_copy_categories_as_text")
+
+        self.verticalLayout_11.addWidget(self.pushButton_copy_categories_as_text)
+
         self.verticalLayout_15.addWidget(self.groupBox_7)
 
         self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
@@ -1477,7 +1485,7 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1161, 778))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 895, 776))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1613,7 +1621,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1969, 747))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1969, 745))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1705,7 +1713,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 2013, 21))
+        self.menuBar.setGeometry(QRect(0, 0, 2013, 22))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")
