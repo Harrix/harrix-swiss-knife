@@ -158,9 +158,9 @@ class AccountEditDialog(QDialog):
             self.is_liquid_check.setChecked(self.account_data.get("is_liquid", True))
             self.is_cash_check.setChecked(self.account_data.get("is_cash", False))
 
-            # Set focus to expression field and select all text
-            self.expression_edit.setFocus()
-            self.expression_edit.selectAll()
+            # Set focus to balance field and select all text
+            self.balance_spin.setFocus()
+            self.balance_spin.selectAll()
 
     def _setup_ui(self):
         """Setup the user interface."""
