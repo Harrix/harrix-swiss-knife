@@ -1730,6 +1730,9 @@ class MainWindow(
         self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
 
+        # Add selection signal for transactions table to copy data to form fields
+        self.tableView_transactions.selectionModel().currentChanged.connect(self._on_transaction_selection_changed)
+
         # Tab change signal
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
 
@@ -2798,6 +2801,85 @@ class MainWindow(
         except Exception as e:
             self._account_edit_dialog_open = False
             QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
+
+    def _on_transaction_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle transaction selection change and copy data to form fields.
+
+        Args:
+            current: The current selected index.
+            previous: The previously selected index.
+        """
+        if not current.isValid():
+            return
+
+        if self.db_manager is None:
+            return
+
+        try:
+            # Get the proxy model and source model
+            proxy_model = self.models["transactions"]
+            if proxy_model is None:
+                return
+
+            source_model = proxy_model.sourceModel()
+            if source_model is None:
+                return
+
+            # Get the row ID from vertical header
+            row_id_item = source_model.verticalHeaderItem(current.row())
+            if row_id_item is None:
+                return
+
+            transaction_id = int(row_id_item.text())
+
+            # Get transaction data from database
+            transaction_data = self.db_manager.get_transaction_by_id(transaction_id)
+            if not transaction_data:
+                return
+
+            # Extract transaction data
+            # transaction_data: [id, amount_cents, description, category_id, currency_id, date, tag]
+            amount_cents = transaction_data[1]
+            description = transaction_data[2]
+            category_id = transaction_data[3]
+            currency_id = transaction_data[4]
+            tag = transaction_data[6]
+
+            # Get category and currency information
+            category_data = self.db_manager.get_category_by_id(category_id)
+            currency_data = self.db_manager.get_currency_by_id(currency_id)
+
+            if not category_data or not currency_data:
+                return
+
+            # Convert amount from minor units to display format
+            amount = self.db_manager.convert_from_minor_units(amount_cents, currency_id)
+
+            # Populate form fields
+            self.lineEdit_description.setText(description)
+            self.doubleSpinBox_amount.setValue(amount)
+
+            # Set currency in comboBox
+            currency_code = currency_data[0]  # currency_code
+            index = self.comboBox_currency.findText(currency_code)
+            if index >= 0:
+                self.comboBox_currency.setCurrentIndex(index)
+
+            # Set category label
+            category_name = category_data[1]  # name
+            category_type = category_data[2]  # type
+            display_text = f"{category_name} ({'Income' if category_type == 1 else 'Expense'})"
+            self.label_category_now.setText(display_text)
+
+            # Select category in listView_categories
+            self._select_category_by_id(category_id)
+
+            # Set tag if exists
+            if tag:
+                self.lineEdit_tag.setText(tag)
+
+        except Exception as e:
+            print(f"Error copying transaction data to form: {e}")
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields."""
