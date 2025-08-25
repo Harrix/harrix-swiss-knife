@@ -3294,6 +3294,9 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 1)
         self.splitter.setStretchFactor(2, 3)
 
+        # Set frame_rates width to 800px
+        self.frame_rates.setFixedWidth(800)
+
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)
         self.doubleSpinBox_exchange_from.setValue(100.0)
@@ -8082,6 +8085,9 @@ def _setup_ui(self) -> None:
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
         self.splitter.setStretchFactor(2, 3)
+
+        # Set frame_rates width to 800px
+        self.frame_rates.setFixedWidth(800)
 
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)

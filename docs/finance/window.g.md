@@ -1149,10 +1149,14 @@ class Ui_MainWindow(object):
         self.tab_exchange_rates.setObjectName("tab_exchange_rates")
         self.horizontalLayout_14 = QHBoxLayout(self.tab_exchange_rates)
         self.horizontalLayout_14.setObjectName("horizontalLayout_14")
-        self.frame_rates = QFrame(self.tab_exchange_rates)
+        self.splitter_exchange_rates = QSplitter(self.tab_exchange_rates)
+        self.splitter_exchange_rates.setObjectName("splitter_exchange_rates")
+        self.splitter_exchange_rates.setOrientation(Qt.Horizontal)
+        self.splitter_exchange_rates.setChildrenCollapsible(False)
+        self.frame_rates = QFrame(self.splitter_exchange_rates)
         self.frame_rates.setObjectName("frame_rates")
-        self.frame_rates.setMinimumSize(QSize(800, 0))
-        self.frame_rates.setMaximumSize(QSize(300, 16777215))
+        self.frame_rates.setMinimumSize(QSize(300, 0))
+        self.frame_rates.setMaximumSize(QSize(16777215, 16777215))
         self.frame_rates.setFrameShape(QFrame.StyledPanel)
         self.frame_rates.setFrameShadow(QFrame.Raised)
         self.verticalLayout_14 = QVBoxLayout(self.frame_rates)
@@ -1181,16 +1185,16 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update.setFont(font3)
         self.pushButton_exchange_update.setStyleSheet(
             "QPushButton {\n"
-            "                              background-color: #C1ECDD;\n"
-            "                              border: 1px solid #7DB68A;\n"
-            "                              border-radius: 4px;\n"
-            "                              }\n"
-            "                              QPushButton:hover {\n"
-            "                              background-color: #D1F5E8;\n"
-            "                              }\n"
-            "                              QPushButton:pressed {\n"
-            "                              background-color: #A8E0C7;\n"
-            "                              }"
+            "                                            background-color: #C1ECDD;\n"
+            "                                            border: 1px solid #7DB68A;\n"
+            "                                            border-radius: 4px;\n"
+            "                                            }\n"
+            "                                            QPushButton:hover {\n"
+            "                                            background-color: #D1F5E8;\n"
+            "                                            }\n"
+            "                                            QPushButton:pressed {\n"
+            "                                            background-color: #A8E0C7;\n"
+            "                                            }"
         )
 
         self.verticalLayout_13.addWidget(self.pushButton_exchange_update)
@@ -1360,11 +1364,13 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_14.addWidget(self.tableView_exchange_rates)
 
-        self.horizontalLayout_14.addWidget(self.frame_rates)
-
-        self.verticalLayout_12 = QVBoxLayout()
+        self.splitter_exchange_rates.addWidget(self.frame_rates)
+        self.widget_exchange_rates_right = QWidget(self.splitter_exchange_rates)
+        self.widget_exchange_rates_right.setObjectName("widget_exchange_rates_right")
+        self.verticalLayout_12 = QVBoxLayout(self.widget_exchange_rates_right)
         self.verticalLayout_12.setObjectName("verticalLayout_12")
-        self.frame_exchange_rates_controls = QFrame(self.tab_exchange_rates)
+        self.verticalLayout_12.setContentsMargins(0, 0, 0, 0)
+        self.frame_exchange_rates_controls = QFrame(self.widget_exchange_rates_right)
         self.frame_exchange_rates_controls.setObjectName("frame_exchange_rates_controls")
         self.frame_exchange_rates_controls.setMaximumSize(QSize(16777215, 80))
         self.frame_exchange_rates_controls.setFrameShape(QFrame.StyledPanel)
@@ -1424,7 +1430,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_12.addWidget(self.frame_exchange_rates_controls)
 
-        self.scrollArea_xchange_rates = QScrollArea(self.tab_exchange_rates)
+        self.scrollArea_xchange_rates = QScrollArea(self.widget_exchange_rates_right)
         self.scrollArea_xchange_rates.setObjectName("scrollArea_xchange_rates")
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
@@ -1436,7 +1442,9 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_12.addWidget(self.scrollArea_xchange_rates)
 
-        self.horizontalLayout_14.addLayout(self.verticalLayout_12)
+        self.splitter_exchange_rates.addWidget(self.widget_exchange_rates_right)
+
+        self.horizontalLayout_14.addWidget(self.splitter_exchange_rates)
 
         self.tabWidget.addTab(self.tab_exchange_rates, "")
         self.tab_charts = QWidget()
@@ -2817,10 +2825,14 @@ def setupUi(self, MainWindow):
         self.tab_exchange_rates.setObjectName("tab_exchange_rates")
         self.horizontalLayout_14 = QHBoxLayout(self.tab_exchange_rates)
         self.horizontalLayout_14.setObjectName("horizontalLayout_14")
-        self.frame_rates = QFrame(self.tab_exchange_rates)
+        self.splitter_exchange_rates = QSplitter(self.tab_exchange_rates)
+        self.splitter_exchange_rates.setObjectName("splitter_exchange_rates")
+        self.splitter_exchange_rates.setOrientation(Qt.Horizontal)
+        self.splitter_exchange_rates.setChildrenCollapsible(False)
+        self.frame_rates = QFrame(self.splitter_exchange_rates)
         self.frame_rates.setObjectName("frame_rates")
-        self.frame_rates.setMinimumSize(QSize(800, 0))
-        self.frame_rates.setMaximumSize(QSize(300, 16777215))
+        self.frame_rates.setMinimumSize(QSize(300, 0))
+        self.frame_rates.setMaximumSize(QSize(16777215, 16777215))
         self.frame_rates.setFrameShape(QFrame.StyledPanel)
         self.frame_rates.setFrameShadow(QFrame.Raised)
         self.verticalLayout_14 = QVBoxLayout(self.frame_rates)
@@ -2849,16 +2861,16 @@ def setupUi(self, MainWindow):
         self.pushButton_exchange_update.setFont(font3)
         self.pushButton_exchange_update.setStyleSheet(
             "QPushButton {\n"
-            "                              background-color: #C1ECDD;\n"
-            "                              border: 1px solid #7DB68A;\n"
-            "                              border-radius: 4px;\n"
-            "                              }\n"
-            "                              QPushButton:hover {\n"
-            "                              background-color: #D1F5E8;\n"
-            "                              }\n"
-            "                              QPushButton:pressed {\n"
-            "                              background-color: #A8E0C7;\n"
-            "                              }"
+            "                                            background-color: #C1ECDD;\n"
+            "                                            border: 1px solid #7DB68A;\n"
+            "                                            border-radius: 4px;\n"
+            "                                            }\n"
+            "                                            QPushButton:hover {\n"
+            "                                            background-color: #D1F5E8;\n"
+            "                                            }\n"
+            "                                            QPushButton:pressed {\n"
+            "                                            background-color: #A8E0C7;\n"
+            "                                            }"
         )
 
         self.verticalLayout_13.addWidget(self.pushButton_exchange_update)
@@ -3028,11 +3040,13 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_14.addWidget(self.tableView_exchange_rates)
 
-        self.horizontalLayout_14.addWidget(self.frame_rates)
-
-        self.verticalLayout_12 = QVBoxLayout()
+        self.splitter_exchange_rates.addWidget(self.frame_rates)
+        self.widget_exchange_rates_right = QWidget(self.splitter_exchange_rates)
+        self.widget_exchange_rates_right.setObjectName("widget_exchange_rates_right")
+        self.verticalLayout_12 = QVBoxLayout(self.widget_exchange_rates_right)
         self.verticalLayout_12.setObjectName("verticalLayout_12")
-        self.frame_exchange_rates_controls = QFrame(self.tab_exchange_rates)
+        self.verticalLayout_12.setContentsMargins(0, 0, 0, 0)
+        self.frame_exchange_rates_controls = QFrame(self.widget_exchange_rates_right)
         self.frame_exchange_rates_controls.setObjectName("frame_exchange_rates_controls")
         self.frame_exchange_rates_controls.setMaximumSize(QSize(16777215, 80))
         self.frame_exchange_rates_controls.setFrameShape(QFrame.StyledPanel)
@@ -3092,7 +3106,7 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_12.addWidget(self.frame_exchange_rates_controls)
 
-        self.scrollArea_xchange_rates = QScrollArea(self.tab_exchange_rates)
+        self.scrollArea_xchange_rates = QScrollArea(self.widget_exchange_rates_right)
         self.scrollArea_xchange_rates.setObjectName("scrollArea_xchange_rates")
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
@@ -3104,7 +3118,9 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_12.addWidget(self.scrollArea_xchange_rates)
 
-        self.horizontalLayout_14.addLayout(self.verticalLayout_12)
+        self.splitter_exchange_rates.addWidget(self.widget_exchange_rates_right)
+
+        self.horizontalLayout_14.addWidget(self.splitter_exchange_rates)
 
         self.tabWidget.addTab(self.tab_exchange_rates, "")
         self.tab_charts = QWidget()
