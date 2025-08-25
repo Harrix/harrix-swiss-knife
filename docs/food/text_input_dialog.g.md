@@ -31,7 +31,7 @@ in a simple text format, which will be parsed according to specific rules.
 
 Attributes:
 
-- `text_edit` (`QTextEdit`): Text area for entering food information.
+- `text_edit` (`QPlainTextEdit`): Text area for entering food information.
 - `accepted_text` (`str | None`): The text that was accepted by the user.
 
 <details>
@@ -87,7 +87,7 @@ class TextInputDialog(QDialog):
         layout.addWidget(description)
 
         # Add text edit
-        self.text_edit = QTextEdit()
+        self.text_edit = QPlainTextEdit()
         self.text_edit.setPlaceholderText(
             "Enter your food items here...\nExample:\n100 200 Apple\n150 Coffee\nCoffee 100 portion\nWater 250"
         )
@@ -197,7 +197,7 @@ def _setup_ui(self) -> None:
         layout.addWidget(description)
 
         # Add text edit
-        self.text_edit = QTextEdit()
+        self.text_edit = QPlainTextEdit()
         self.text_edit.setPlaceholderText(
             "Enter your food items here...\nExample:\n100 200 Apple\n150 Coffee\nCoffee 100 portion\nWater 250"
         )

@@ -46,6 +46,7 @@ lang: en
   - [⚙️ Method `get_all_transactions`](#%EF%B8%8F-method-get_all_transactions)
   - [⚙️ Method `get_categories_by_type`](#%EF%B8%8F-method-get_categories_by_type)
   - [⚙️ Method `get_categories_with_icons_by_type`](#%EF%B8%8F-method-get_categories_with_icons_by_type)
+  - [⚙️ Method `get_category_by_id`](#%EF%B8%8F-method-get_category_by_id)
   - [⚙️ Method `get_currencies_except_usd`](#%EF%B8%8F-method-get_currencies_except_usd)
   - [⚙️ Method `get_currency_by_code`](#%EF%B8%8F-method-get_currency_by_code)
   - [⚙️ Method `get_currency_by_id`](#%EF%B8%8F-method-get_currency_by_id)
@@ -69,6 +70,7 @@ lang: en
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
   - [⚙️ Method `get_today_expenses_in_currency`](#%EF%B8%8F-method-get_today_expenses_in_currency)
+  - [⚙️ Method `get_transaction_by_id`](#%EF%B8%8F-method-get_transaction_by_id)
   - [⚙️ Method `get_transactions_chart_data`](#%EF%B8%8F-method-get_transactions_chart_data)
   - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate)
   - [⚙️ Method `has_exchange_rates_data`](#%EF%B8%8F-method-has_exchange_rates_data)
@@ -1037,6 +1039,22 @@ class DatabaseManager:
         )
         return [(row[0], row[1]) for row in rows]
 
+    def get_category_by_id(self, category_id: int) -> list[Any] | None:
+        """Get category by ID.
+
+        Args:
+
+        - `category_id` (`int`): The category ID to retrieve.
+
+        Returns:
+
+        - `list[Any] | None`: Category data [_id, name, type, icon] or None if not found.
+
+        """
+        query = "SELECT _id, name, type, icon FROM categories WHERE _id = :category_id"
+        rows = self.get_rows(query, {"category_id": category_id})
+        return rows[0] if rows else None
+
     def get_currencies_except_usd(self) -> list[list[Any]]:
         """Get all currencies except USD (which is the base currency).
 
@@ -1733,6 +1751,27 @@ class DatabaseManager:
         today = datetime.now().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
+
+    def get_transaction_by_id(self, transaction_id: int) -> list[Any] | None:
+        """Get transaction by ID with category and currency information.
+
+        Args:
+
+        - `transaction_id` (`int`): The transaction ID to retrieve.
+
+        Returns:
+
+        - `list[Any] | None`: Transaction data [id, amount, description, category_id, currency_id, date, tag] or None if not found.
+
+        """
+        query = """
+            SELECT t._id, t.amount, t.description, t._id_categories, t._id_currencies, t.date, t.tag
+            FROM transactions t
+            WHERE t._id = :transaction_id
+        """
+
+        rows = self.get_rows(query, {"transaction_id": transaction_id})
+        return rows[0] if rows else None
 
     def get_transactions_chart_data(
         self,
@@ -3740,6 +3779,34 @@ def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[st
 
 </details>
 
+### ⚙️ Method `get_category_by_id`
+
+```python
+def get_category_by_id(self, category_id: int) -> list[Any] | None
+```
+
+Get category by ID.
+
+Args:
+
+- `category_id` (`int`): The category ID to retrieve.
+
+Returns:
+
+- `list[Any] | None`: Category data [_id, name, type, icon] or None if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_category_by_id(self, category_id: int) -> list[Any] | None:
+        query = "SELECT _id, name, type, icon FROM categories WHERE _id = :category_id"
+        rows = self.get_rows(query, {"category_id": category_id})
+        return rows[0] if rows else None
+```
+
+</details>
+
 ### ⚙️ Method `get_currencies_except_usd`
 
 ```python
@@ -4717,6 +4784,39 @@ def get_today_expenses_in_currency(self, currency_id: int) -> float:
         today = datetime.now().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
+```
+
+</details>
+
+### ⚙️ Method `get_transaction_by_id`
+
+```python
+def get_transaction_by_id(self, transaction_id: int) -> list[Any] | None
+```
+
+Get transaction by ID with category and currency information.
+
+Args:
+
+- `transaction_id` (`int`): The transaction ID to retrieve.
+
+Returns:
+
+- `list[Any] | None`: Transaction data [id, amount, description, category_id, currency_id, date, tag] or None if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_transaction_by_id(self, transaction_id: int) -> list[Any] | None:
+        query = """
+            SELECT t._id, t.amount, t.description, t._id_categories, t._id_currencies, t.date, t.tag
+            FROM transactions t
+            WHERE t._id = :transaction_id
+        """
+
+        rows = self.get_rows(query, {"transaction_id": transaction_id})
+        return rows[0] if rows else None
 ```
 
 </details>

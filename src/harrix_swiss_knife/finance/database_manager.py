@@ -820,22 +820,6 @@ class DatabaseManager:
         """
         return self.get_rows("SELECT _id, name, type, icon FROM categories ORDER BY type, name")
 
-    def get_category_by_id(self, category_id: int) -> list[Any] | None:
-        """Get category by ID.
-
-        Args:
-
-        - `category_id` (`int`): The category ID to retrieve.
-
-        Returns:
-
-        - `list[Any] | None`: Category data [_id, name, type, icon] or None if not found.
-
-        """
-        query = "SELECT _id, name, type, icon FROM categories WHERE _id = :category_id"
-        rows = self.get_rows(query, {"category_id": category_id})
-        return rows[0] if rows else None
-
     def get_all_currencies(self) -> list[list[Any]]:
         """Get all currencies.
 
@@ -934,27 +918,6 @@ class DatabaseManager:
 
         return self.get_rows(query)
 
-    def get_transaction_by_id(self, transaction_id: int) -> list[Any] | None:
-        """Get transaction by ID with category and currency information.
-
-        Args:
-
-        - `transaction_id` (`int`): The transaction ID to retrieve.
-
-        Returns:
-
-        - `list[Any] | None`: Transaction data [id, amount, description, category_id, currency_id, date, tag] or None if not found.
-
-        """
-        query = """
-            SELECT t._id, t.amount, t.description, t._id_categories, t._id_currencies, t.date, t.tag
-            FROM transactions t
-            WHERE t._id = :transaction_id
-        """
-
-        rows = self.get_rows(query, {"transaction_id": transaction_id})
-        return rows[0] if rows else None
-
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
 
@@ -986,6 +949,22 @@ class DatabaseManager:
             "SELECT name, icon FROM categories WHERE type = :type ORDER BY name", {"type": category_type}
         )
         return [(row[0], row[1]) for row in rows]
+
+    def get_category_by_id(self, category_id: int) -> list[Any] | None:
+        """Get category by ID.
+
+        Args:
+
+        - `category_id` (`int`): The category ID to retrieve.
+
+        Returns:
+
+        - `list[Any] | None`: Category data [_id, name, type, icon] or None if not found.
+
+        """
+        query = "SELECT _id, name, type, icon FROM categories WHERE _id = :category_id"
+        rows = self.get_rows(query, {"category_id": category_id})
+        return rows[0] if rows else None
 
     def get_currencies_except_usd(self) -> list[list[Any]]:
         """Get all currencies except USD (which is the base currency).
@@ -1683,6 +1662,27 @@ class DatabaseManager:
         today = datetime.now().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
+
+    def get_transaction_by_id(self, transaction_id: int) -> list[Any] | None:
+        """Get transaction by ID with category and currency information.
+
+        Args:
+
+        - `transaction_id` (`int`): The transaction ID to retrieve.
+
+        Returns:
+
+        - `list[Any] | None`: Transaction data [id, amount, description, category_id, currency_id, date, tag] or None if not found.
+
+        """
+        query = """
+            SELECT t._id, t.amount, t.description, t._id_categories, t._id_currencies, t.date, t.tag
+            FROM transactions t
+            WHERE t._id = :transaction_id
+        """
+
+        rows = self.get_rows(query, {"transaction_id": transaction_id})
+        return rows[0] if rows else None
 
     def get_transactions_chart_data(
         self,
