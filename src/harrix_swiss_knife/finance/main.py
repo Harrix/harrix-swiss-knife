@@ -2673,7 +2673,6 @@ class MainWindow(
                         # Restore column widths after update
                         self._restore_table_column_widths(self.tableView_accounts, column_widths)
 
-                        QMessageBox.information(self, "Success", "Account updated successfully")
                         return  # Exit the method to prevent reopening the dialog
                     QMessageBox.warning(self, "Error", "Failed to update account")
 
