@@ -37,6 +37,8 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QTableView,
     QTableWidgetItem,
+    QStyledItemDelegate,
+    QComboBox,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -57,6 +59,42 @@ from harrix_swiss_knife.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.finance.text_parser import TextParser
 
 config = h.dev.load_config("config/config.json")
+
+
+class CategoryComboBoxDelegate(QStyledItemDelegate):
+    """Delegate for category column in transactions table with dropdown list."""
+
+    def __init__(self, parent=None, categories=None):
+        super().__init__(parent)
+        self.categories = categories or []
+
+    def createEditor(self, parent, option, index):
+        """Create a combo box editor for the category column."""
+        combo = QComboBox(parent)
+        combo.setEditable(False)
+
+        # Add categories to combo box
+        for category in self.categories:
+            combo.addItem(category)
+
+        return combo
+
+    def setEditorData(self, editor, index):
+        """Set the current value in the editor."""
+        current_value = index.data()
+        if current_value:
+            # Find the exact value in the combo box
+            index_in_combo = editor.findText(current_value)
+            if index_in_combo >= 0:
+                editor.setCurrentIndex(index_in_combo)
+
+    def setModelData(self, editor, model, index):
+        """Set the data from the editor back to the model."""
+        selected_text = editor.currentText()
+        if selected_text:
+            # Check if this is an income category and add suffix if needed
+            # This logic should match the logic used in _save_transaction_data
+            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
 
 
 class MainWindow(
@@ -116,6 +154,9 @@ class MainWindow(
             "currency_exchanges": None,
             "exchange_rates": None,
         }
+
+        # Category delegate for transactions table
+        self.category_delegate = None
 
         # Chart configuration
         self.max_count_points_in_charts = 40
@@ -232,6 +273,14 @@ class MainWindow(
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Set up category delegate for the Category column (index 2)
+        categories = self._get_categories_for_delegate()
+        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
+        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Enable editing for the Category column
+        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Column stretching setup (like in show_tables)
         self.tableView_transactions.resizeColumnsToContents()
@@ -2648,6 +2697,14 @@ class MainWindow(
         )
         self.tableView_transactions.setModel(self.models["transactions"])
 
+        # Set up category delegate for the Category column (index 2)
+        categories = self._get_categories_for_delegate()
+        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
+        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Enable editing for the Category column
+        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
+
         # Connect selection signal for transactions table to copy data to form fields
         # This must be done after the model is set
         self.tableView_transactions.selectionModel().currentChanged.connect(self._on_transaction_selection_changed)
@@ -3436,6 +3493,29 @@ class MainWindow(
         QWidget.setTabOrder(self.pushButton_refresh, self.pushButton_clear_filter)
         QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_apply_filter)
         QWidget.setTabOrder(self.pushButton_apply_filter, self.pushButton_description_clear)
+
+    def _get_categories_for_delegate(self) -> list[str]:
+        """Get list of category names for the delegate dropdown."""
+        if self.db_manager is None:
+            return []
+
+        try:
+            categories = self.db_manager.get_all_categories()
+            category_names = []
+            for category in categories:
+                name = category[1]  # category name is at index 1
+                category_type = category[2]  # category type is at index 2
+
+                # Add "(Income)" suffix for income categories (type == 1)
+                if category_type == 1:
+                    name += " (Income)"
+
+                category_names.append(name)
+
+            return category_names
+        except Exception as e:
+            print(f"Error getting categories for delegate: {e}")
+            return []
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
