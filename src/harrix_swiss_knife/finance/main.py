@@ -1731,7 +1731,7 @@ class MainWindow(
         self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
 
         # Add selection signal for transactions table to copy data to form fields
-        self.tableView_transactions.selectionModel().currentChanged.connect(self._on_transaction_selection_changed)
+        # This will be connected after the model is set in _load_transactions_table
 
         # Tab change signal
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
@@ -2647,6 +2647,10 @@ class MainWindow(
             transactions_transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Connect selection signal for transactions table to copy data to form fields
+        # This must be done after the model is set
+        self.tableView_transactions.selectionModel().currentChanged.connect(self._on_transaction_selection_changed)
 
         # Special handling for transactions table - column stretching setup
         header = self.tableView_transactions.horizontalHeader()
