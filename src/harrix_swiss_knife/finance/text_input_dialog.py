@@ -6,7 +6,7 @@ which will be parsed and converted to transaction records.
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QTextEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QPlainTextEdit, QVBoxLayout, QWidget
 
 
 class TextInputDialog(QDialog):
@@ -17,7 +17,7 @@ class TextInputDialog(QDialog):
 
     Attributes:
 
-    - `text_edit` (`QTextEdit`): Text area for entering purchase information.
+    - `text_edit` (`QPlainTextEdit`): Text area for entering purchase information.
     - `accepted_text` (`str | None`): The text that was accepted by the user.
 
     """
@@ -71,7 +71,7 @@ class TextInputDialog(QDialog):
         layout.addWidget(description)
 
         # Add text edit
-        self.text_edit = QTextEdit()
+        self.text_edit = QPlainTextEdit()
         self.text_edit.setPlaceholderText(
             "Enter your purchases here...\nExample:\nSugar-free Cola 'From Store'\tFood\t99 ₽\nMilk Cocktail 'Wonder'\tFood\t65 ₽"
         )

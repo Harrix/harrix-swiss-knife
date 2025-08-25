@@ -6,7 +6,7 @@ which will be parsed and converted to food log records.
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QTextEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QPlainTextEdit, QVBoxLayout, QWidget
 
 
 class TextInputDialog(QDialog):
@@ -17,7 +17,7 @@ class TextInputDialog(QDialog):
 
     Attributes:
 
-    - `text_edit` (`QTextEdit`): Text area for entering food information.
+    - `text_edit` (`QPlainTextEdit`): Text area for entering food information.
     - `accepted_text` (`str | None`): The text that was accepted by the user.
 
     """
@@ -69,7 +69,7 @@ class TextInputDialog(QDialog):
         layout.addWidget(description)
 
         # Add text edit
-        self.text_edit = QTextEdit()
+        self.text_edit = QPlainTextEdit()
         self.text_edit.setPlaceholderText(
             "Enter your food items here...\nExample:\n100 200 Apple\n150 Coffee\nCoffee 100 portion\nWater 250"
         )
