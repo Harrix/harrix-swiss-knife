@@ -3505,6 +3505,11 @@ class MainWindow(
             for category in categories:
                 name = category[1]  # category name is at index 1
                 category_type = category[2]  # category type is at index 2
+                icon = category[3]  # category icon is at index 3
+
+                # Add emoji prefix if icon exists
+                if icon:
+                    name = f"{icon} {name}"
 
                 # Add "(Income)" suffix for income categories (type == 1)
                 if category_type == 1:
@@ -3671,6 +3676,7 @@ class MainWindow(
             date = row[5]
             tag = row[6]
             category_type = row[7]
+            icon = row[8]  # category icon
 
             # Convert amount from minor units to display format using currency subdivision
             if self.db_manager:
@@ -3690,10 +3696,12 @@ class MainWindow(
 
             color = self.date_colors[date_to_color_index[date]]
 
-            # Add "(Income)" suffix for income categories
+            # Add emoji prefix and "(Income)" suffix for income categories
             display_category_name = category_name
+            if icon:
+                display_category_name = f"{icon} {category_name}"
             if category_type == 1:  # Income category
-                display_category_name = f"{category_name} (Income)"
+                display_category_name = f"{display_category_name} (Income)"
 
             # Determine if this is the first transaction for this date
             is_first_of_day = date not in dates_with_totals
