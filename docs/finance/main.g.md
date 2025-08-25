@@ -2452,7 +2452,7 @@ class MainWindow(
                 # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] -> [name, balance, currency, liquid, cash, id, color]
                 currency_id = row[6]  # currency_id
                 balance = self.db_manager.convert_from_minor_units(row[2], currency_id)
-                liquid_str = "👍" if row[4] == 1 else "👎"
+                liquid_str = "👍" if row[4] == 1 else "⛔"
                 cash_str = "💵" if row[5] == 1 else "💳"
                 transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
                 accounts_transformed_data.append(transformed_row)
@@ -2751,7 +2751,6 @@ class MainWindow(
                         # Restore column widths after update
                         self._restore_table_column_widths(self.tableView_accounts, column_widths)
 
-                        QMessageBox.information(self, "Success", "Account updated successfully")
                         return  # Exit the method to prevent reopening the dialog
                     QMessageBox.warning(self, "Error", "Failed to update account")
 
@@ -6749,7 +6748,7 @@ def _load_accounts_table(self) -> None:
                 # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] -> [name, balance, currency, liquid, cash, id, color]
                 currency_id = row[6]  # currency_id
                 balance = self.db_manager.convert_from_minor_units(row[2], currency_id)
-                liquid_str = "👍" if row[4] == 1 else "👎"
+                liquid_str = "👍" if row[4] == 1 else "⛔"
                 cash_str = "💵" if row[5] == 1 else "💳"
                 transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
                 accounts_transformed_data.append(transformed_row)
@@ -7185,7 +7184,6 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
                         # Restore column widths after update
                         self._restore_table_column_widths(self.tableView_accounts, column_widths)
 
-                        QMessageBox.information(self, "Success", "Account updated successfully")
                         return  # Exit the method to prevent reopening the dialog
                     QMessageBox.warning(self, "Error", "Failed to update account")
 

@@ -14,7 +14,9 @@ lang: en
 - [🏛️ Class `AccountEditDialog`](#%EF%B8%8F-class-accounteditdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_result`](#%EF%B8%8F-method-get_result)
+  - [⚙️ Method `_evaluate_expression`](#%EF%B8%8F-method-_evaluate_expression)
   - [⚙️ Method `_on_delete`](#%EF%B8%8F-method-_on_delete)
+  - [⚙️ Method `_on_expression_changed`](#%EF%B8%8F-method-_on_expression_changed)
   - [⚙️ Method `_on_save`](#%EF%B8%8F-method-_on_save)
   - [⚙️ Method `_populate_data`](#%EF%B8%8F-method-_populate_data)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
@@ -51,7 +53,7 @@ class AccountEditDialog(QDialog):
 
         self.setWindowTitle("Edit Account")
         self.setModal(True)
-        self.setFixedSize(400, 300)
+        self.setFixedSize(400, 350)
 
         self._setup_ui()
         self._populate_data()
@@ -64,6 +66,42 @@ class AccountEditDialog(QDialog):
 
         """
         return self.result_data
+
+    def _evaluate_expression(self, expression: str) -> float:
+        """Safely evaluate a mathematical expression.
+
+        Args:
+            expression: String containing mathematical expression.
+
+        Returns:
+            Calculated result as float.
+
+        Raises:
+            ValueError: If expression is invalid or contains unsafe operations.
+        """
+        # Remove all whitespace
+        expression = expression.replace(" ", "")
+
+        # Only allow safe characters: numbers, operators, parentheses, decimal points
+        if not re.match(r"^[0-9+\-*/().]+$", expression):
+            raise ValueError("Expression contains invalid characters")
+
+        # Check for balanced parentheses
+        if expression.count("(") != expression.count(")"):
+            raise ValueError("Unbalanced parentheses")
+
+        # Check for division by zero
+        if "/0" in expression or "/0." in expression:
+            raise ValueError("Division by zero")
+
+        try:
+            # Use eval with a restricted namespace for safety
+            result = eval(expression, {"__builtins__": {}}, {})
+            if not isinstance(result, (int, float)):
+                raise ValueError("Expression does not evaluate to a number")
+            return float(result)
+        except Exception as e:
+            raise ValueError(f"Invalid expression: {str(e)}")
 
     def _on_delete(self):
         """Handle delete button click."""
@@ -78,12 +116,35 @@ class AccountEditDialog(QDialog):
             self.result_data = {"action": "delete", "id": self.account_data.get("id")}
             self.accept()
 
+    def _on_expression_changed(self):
+        """Handle expression field changes and update balance."""
+        expression = self.expression_edit.text().strip()
+        if not expression:
+            return
+
+        try:
+            result = self._evaluate_expression(expression)
+            self.balance_spin.setValue(result)
+        except ValueError as e:
+            # Don't show error for partial expressions, only for invalid ones
+            pass
+
     def _on_save(self):
         """Handle save button click."""
         name = self.name_edit.text().strip()
         if not name:
             QMessageBox.warning(self, "Error", "Account name cannot be empty")
             return
+
+        # Check if expression field has content and try to evaluate it
+        expression = self.expression_edit.text().strip()
+        if expression:
+            try:
+                calculated_balance = self._evaluate_expression(expression)
+                self.balance_spin.setValue(calculated_balance)
+            except ValueError as e:
+                QMessageBox.warning(self, "Error", f"Invalid expression: {str(e)}")
+                return
 
         self.result_data = {
             "action": "save",
@@ -110,9 +171,9 @@ class AccountEditDialog(QDialog):
             self.is_liquid_check.setChecked(self.account_data.get("is_liquid", True))
             self.is_cash_check.setChecked(self.account_data.get("is_cash", False))
 
-            # Set focus to balance field and select all text
-            self.balance_spin.setFocus()
-            self.balance_spin.selectAll()
+            # Set focus to expression field and select all text
+            self.expression_edit.setFocus()
+            self.expression_edit.selectAll()
 
     def _setup_ui(self):
         """Setup the user interface."""
@@ -134,6 +195,15 @@ class AccountEditDialog(QDialog):
         balance_layout.addWidget(self.balance_spin)
         layout.addLayout(balance_layout)
 
+        # Expression field for calculating balance
+        expression_layout = QHBoxLayout()
+        expression_layout.addWidget(QLabel("Expression:"))
+        self.expression_edit = QLineEdit()
+        self.expression_edit.setPlaceholderText("e.g., 3*200+100*3")
+        self.expression_edit.textChanged.connect(self._on_expression_changed)
+        expression_layout.addWidget(self.expression_edit)
+        layout.addLayout(expression_layout)
+
         # Currency
         currency_layout = QHBoxLayout()
         currency_layout.addWidget(QLabel("Currency:"))
@@ -153,10 +223,6 @@ class AccountEditDialog(QDialog):
         # Buttons
         button_layout = QHBoxLayout()
 
-        self.save_button = QPushButton("Save")
-        self.save_button.clicked.connect(self._on_save)
-        button_layout.addWidget(self.save_button)
-
         self.delete_button = QPushButton("Delete")
         self.delete_button.clicked.connect(self._on_delete)
         self.delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; }")
@@ -165,6 +231,11 @@ class AccountEditDialog(QDialog):
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(self.cancel_button)
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self._on_save)
+        self.save_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        button_layout.addWidget(self.save_button)
 
         layout.addLayout(button_layout)
 
@@ -198,7 +269,7 @@ def __init__(self, parent=None, account_data=None, currencies=None):
 
         self.setWindowTitle("Edit Account")
         self.setModal(True)
-        self.setFixedSize(400, 300)
+        self.setFixedSize(400, 350)
 
         self._setup_ui()
         self._populate_data()
@@ -223,6 +294,55 @@ Dictionary with action and data.
 ```python
 def get_result(self):
         return self.result_data
+```
+
+</details>
+
+### ⚙️ Method `_evaluate_expression`
+
+```python
+def _evaluate_expression(self, expression: str) -> float
+```
+
+Safely evaluate a mathematical expression.
+
+Args:
+expression: String containing mathematical expression.
+
+Returns:
+Calculated result as float.
+
+Raises:
+ValueError: If expression is invalid or contains unsafe operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _evaluate_expression(self, expression: str) -> float:
+        # Remove all whitespace
+        expression = expression.replace(" ", "")
+
+        # Only allow safe characters: numbers, operators, parentheses, decimal points
+        if not re.match(r"^[0-9+\-*/().]+$", expression):
+            raise ValueError("Expression contains invalid characters")
+
+        # Check for balanced parentheses
+        if expression.count("(") != expression.count(")"):
+            raise ValueError("Unbalanced parentheses")
+
+        # Check for division by zero
+        if "/0" in expression or "/0." in expression:
+            raise ValueError("Division by zero")
+
+        try:
+            # Use eval with a restricted namespace for safety
+            result = eval(expression, {"__builtins__": {}}, {})
+            if not isinstance(result, (int, float)):
+                raise ValueError("Expression does not evaluate to a number")
+            return float(result)
+        except Exception as e:
+            raise ValueError(f"Invalid expression: {str(e)}")
 ```
 
 </details>
@@ -254,6 +374,33 @@ def _on_delete(self):
 
 </details>
 
+### ⚙️ Method `_on_expression_changed`
+
+```python
+def _on_expression_changed(self)
+```
+
+Handle expression field changes and update balance.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_expression_changed(self):
+        expression = self.expression_edit.text().strip()
+        if not expression:
+            return
+
+        try:
+            result = self._evaluate_expression(expression)
+            self.balance_spin.setValue(result)
+        except ValueError as e:
+            # Don't show error for partial expressions, only for invalid ones
+            pass
+```
+
+</details>
+
 ### ⚙️ Method `_on_save`
 
 ```python
@@ -271,6 +418,16 @@ def _on_save(self):
         if not name:
             QMessageBox.warning(self, "Error", "Account name cannot be empty")
             return
+
+        # Check if expression field has content and try to evaluate it
+        expression = self.expression_edit.text().strip()
+        if expression:
+            try:
+                calculated_balance = self._evaluate_expression(expression)
+                self.balance_spin.setValue(calculated_balance)
+            except ValueError as e:
+                QMessageBox.warning(self, "Error", f"Invalid expression: {str(e)}")
+                return
 
         self.result_data = {
             "action": "save",
@@ -311,9 +468,9 @@ def _populate_data(self):
             self.is_liquid_check.setChecked(self.account_data.get("is_liquid", True))
             self.is_cash_check.setChecked(self.account_data.get("is_cash", False))
 
-            # Set focus to balance field and select all text
-            self.balance_spin.setFocus()
-            self.balance_spin.selectAll()
+            # Set focus to expression field and select all text
+            self.expression_edit.setFocus()
+            self.expression_edit.selectAll()
 ```
 
 </details>
@@ -349,6 +506,15 @@ def _setup_ui(self):
         balance_layout.addWidget(self.balance_spin)
         layout.addLayout(balance_layout)
 
+        # Expression field for calculating balance
+        expression_layout = QHBoxLayout()
+        expression_layout.addWidget(QLabel("Expression:"))
+        self.expression_edit = QLineEdit()
+        self.expression_edit.setPlaceholderText("e.g., 3*200+100*3")
+        self.expression_edit.textChanged.connect(self._on_expression_changed)
+        expression_layout.addWidget(self.expression_edit)
+        layout.addLayout(expression_layout)
+
         # Currency
         currency_layout = QHBoxLayout()
         currency_layout.addWidget(QLabel("Currency:"))
@@ -368,10 +534,6 @@ def _setup_ui(self):
         # Buttons
         button_layout = QHBoxLayout()
 
-        self.save_button = QPushButton("Save")
-        self.save_button.clicked.connect(self._on_save)
-        button_layout.addWidget(self.save_button)
-
         self.delete_button = QPushButton("Delete")
         self.delete_button.clicked.connect(self._on_delete)
         self.delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; }")
@@ -380,6 +542,11 @@ def _setup_ui(self):
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(self.cancel_button)
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self._on_save)
+        self.save_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        button_layout.addWidget(self.save_button)
 
         layout.addLayout(button_layout)
 
