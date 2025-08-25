@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QStyledItemDelegate,
     QComboBox,
+    QMenu,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -1084,6 +1085,62 @@ class MainWindow(
         yesterday = QDate.currentDate().addDays(-1)
         self.dateEdit.setDate(yesterday)
 
+    def _show_yesterday_context_menu(self, position) -> None:
+        """Show context menu for yesterday button with date options."""
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+
+    def _set_date_from_table(self, date_value: str) -> None:
+        """Set the date from table row to the main dateEdit field.
+
+        Args:
+            date_value: Date string from the table (format: yyyy-MM-dd)
+        """
+        try:
+            # Parse the date string and set it in dateEdit
+            from PySide6.QtCore import QDate
+            date_obj = QDate.fromString(date_value, "yyyy-MM-dd")
+            if date_obj.isValid():
+                self.dateEdit.setDate(date_obj)
+            else:
+                print(f"❌ Invalid date format: {date_value}")
+        except Exception as e:
+            print(f"❌ Error setting date from table: {e}")
+
+    def _set_today_date_in_main(self) -> None:
+        """Set today's date in the main date field."""
+        today = QDate.currentDate()
+        self.dateEdit.setDate(today)
+
+    def _add_one_day_to_main(self) -> None:
+        """Add one day to the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit.setDate(new_date)
+
+    def _subtract_one_day_from_main(self) -> None:
+        """Subtract one day from the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit.setDate(new_date)
+
     def on_yesterday_exchange(self) -> None:
         """Set yesterday's date in the exchange date field."""
         yesterday = QDate.currentDate().addDays(-1)
@@ -1688,6 +1745,10 @@ class MainWindow(
         self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
+
+        # Add context menu for yesterday button
+        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
 
         # Delete and refresh buttons for all tables
         tables_with_controls = {
@@ -3636,12 +3697,31 @@ class MainWindow(
         from PySide6.QtWidgets import QMenu
 
         context_menu = QMenu(self)
+
+        # Get the clicked index
+        index = self.tableView_transactions.indexAt(position)
+        if index.isValid():
+            # Get the date from the Date column (index 4)
+            date_index = self.tableView_transactions.model().index(index.row(), 4)
+            if date_index.isValid():
+                date_value = self.tableView_transactions.model().data(date_index)
+                if date_value:
+                    # Add menu item to set this date in dateEdit
+                    set_date_action = context_menu.addAction("📅 Set this date in main field")
+                    set_date_action.triggered.connect(lambda: self._set_date_from_table(date_value))
+
+                    # Add separator
+                    context_menu.addSeparator()
+
         export_action = context_menu.addAction("Export to CSV")
 
         action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
 
         if action == export_action:
             self.on_export_csv()
+        elif 'set_date_action' in locals() and action == set_date_action:
+            # This will be handled by the lambda connection above
+            pass
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors and daily totals.
