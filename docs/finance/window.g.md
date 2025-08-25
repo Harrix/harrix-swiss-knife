@@ -46,6 +46,7 @@ class Ui_MainWindow(object):
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
+        self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
         self.radioButton.setText(QCoreApplication.translate("MainWindow", "All", None))
@@ -357,7 +358,7 @@ class Ui_MainWindow(object):
 
         self.groupBox_commands = QGroupBox(self.frame)
         self.groupBox_commands.setObjectName("groupBox_commands")
-        self.groupBox_commands.setMinimumSize(QSize(0, 0))
+        self.groupBox_commands.setMinimumSize(QSize(0, 1))
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_commands)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.horizontalLayout_8 = QHBoxLayout()
@@ -373,13 +374,22 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_8.addWidget(self.pushButton_show_all_records)
 
+        self.verticalLayout_2.addLayout(self.horizontalLayout_8)
+
+        self.horizontalLayout_26 = QHBoxLayout()
+        self.horizontalLayout_26.setObjectName("horizontalLayout_26")
+        self.pushButton_add_as_text = QPushButton(self.groupBox_commands)
+        self.pushButton_add_as_text.setObjectName("pushButton_add_as_text")
+
+        self.horizontalLayout_26.addWidget(self.pushButton_add_as_text)
+
         self.pushButton_refresh = QPushButton(self.groupBox_commands)
         self.pushButton_refresh.setObjectName("pushButton_refresh")
         self.pushButton_refresh.setMinimumSize(QSize(80, 0))
 
-        self.horizontalLayout_8.addWidget(self.pushButton_refresh)
+        self.horizontalLayout_26.addWidget(self.pushButton_refresh)
 
-        self.verticalLayout_2.addLayout(self.horizontalLayout_8)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_26)
 
         self.verticalLayout_5.addWidget(self.groupBox_commands)
 
@@ -1715,6 +1725,7 @@ def retranslateUi(self, MainWindow):
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
+        self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
         self.radioButton.setText(QCoreApplication.translate("MainWindow", "All", None))
@@ -2041,7 +2052,7 @@ def setupUi(self, MainWindow):
 
         self.groupBox_commands = QGroupBox(self.frame)
         self.groupBox_commands.setObjectName("groupBox_commands")
-        self.groupBox_commands.setMinimumSize(QSize(0, 0))
+        self.groupBox_commands.setMinimumSize(QSize(0, 1))
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_commands)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.horizontalLayout_8 = QHBoxLayout()
@@ -2057,13 +2068,22 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_8.addWidget(self.pushButton_show_all_records)
 
+        self.verticalLayout_2.addLayout(self.horizontalLayout_8)
+
+        self.horizontalLayout_26 = QHBoxLayout()
+        self.horizontalLayout_26.setObjectName("horizontalLayout_26")
+        self.pushButton_add_as_text = QPushButton(self.groupBox_commands)
+        self.pushButton_add_as_text.setObjectName("pushButton_add_as_text")
+
+        self.horizontalLayout_26.addWidget(self.pushButton_add_as_text)
+
         self.pushButton_refresh = QPushButton(self.groupBox_commands)
         self.pushButton_refresh.setObjectName("pushButton_refresh")
         self.pushButton_refresh.setMinimumSize(QSize(80, 0))
 
-        self.horizontalLayout_8.addWidget(self.pushButton_refresh)
+        self.horizontalLayout_26.addWidget(self.pushButton_refresh)
 
-        self.verticalLayout_2.addLayout(self.horizontalLayout_8)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_26)
 
         self.verticalLayout_5.addWidget(self.groupBox_commands)
 

@@ -21,6 +21,7 @@ lang: en
   - [⚙️ Method `generate_pastel_colors_mathematical`](#%EF%B8%8F-method-generate_pastel_colors_mathematical)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `on_add_account`](#%EF%B8%8F-method-on_add_account)
+  - [⚙️ Method `on_add_as_text`](#%EF%B8%8F-method-on_add_as_text)
   - [⚙️ Method `on_add_category`](#%EF%B8%8F-method-on_add_category)
   - [⚙️ Method `on_add_currency`](#%EF%B8%8F-method-on_add_currency)
   - [⚙️ Method `on_add_exchange`](#%EF%B8%8F-method-on_add_exchange)
@@ -75,6 +76,7 @@ lang: en
   - [⚙️ Method `_generate_currency_analysis_report`](#%EF%B8%8F-method-_generate_currency_analysis_report)
   - [⚙️ Method `_generate_income_vs_expenses_report`](#%EF%B8%8F-method-_generate_income_vs_expenses_report)
   - [⚙️ Method `_generate_monthly_summary_report`](#%EF%B8%8F-method-_generate_monthly_summary_report)
+  - [⚙️ Method `_get_or_create_category`](#%EF%B8%8F-method-_get_or_create_category)
   - [⚙️ Method `_init_chart_controls`](#%EF%B8%8F-method-_init_chart_controls)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
@@ -110,6 +112,7 @@ lang: en
   - [⚙️ Method `_on_update_finished_error`](#%EF%B8%8F-method-_on_update_finished_error)
   - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success)
   - [⚙️ Method `_populate_form_from_description`](#%EF%B8%8F-method-_populate_form_from_description)
+  - [⚙️ Method `_process_text_input`](#%EF%B8%8F-method-_process_text_input)
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
   - [⚙️ Method `_select_category_by_id`](#%EF%B8%8F-method-_select_category_by_id)
@@ -598,6 +601,21 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add account: {e}")
 
+    def on_add_as_text(self) -> None:
+        """Open text input dialog and process entered purchases."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Error", "Database connection not available")
+            return
+
+        # Create and show the text input dialog
+        dialog = TextInputDialog(self)
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            text = dialog.get_text()
+            if text:
+                self._process_text_input(text)
+
     @requires_database()
     def on_add_category(self) -> None:
         """Add a new category using database manager."""
@@ -842,7 +860,9 @@ class MainWindow(
     def on_copy_categories_as_text(self) -> None:
         """Copy list of categories to clipboard as text."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            QMessageBox.warning(
+                self, "Database Error", "❌ Database manager is not initialized. Please try again later."
+            )
             return
 
         try:
@@ -850,7 +870,7 @@ class MainWindow(
             categories_data = self.db_manager.get_all_categories()
 
             if not categories_data:
-                print("No categories found")
+                QMessageBox.information(self, "No Categories", "No categories found in the database.")
                 return
 
             # Create text representation
@@ -866,10 +886,15 @@ class MainWindow(
             clipboard = QApplication.clipboard()
             clipboard.setText(clipboard_text)
 
-            print(f"✅ Copied {len(categories_text)} categories to clipboard")
+            # Show success message to user
+            QMessageBox.information(
+                self,
+                "Categories Copied",
+                f"✅ Successfully copied {len(categories_text)} categories to clipboard:\n\n{clipboard_text}",
+            )
 
         except Exception as e:
-            print(f"❌ Error copying categories to clipboard: {e}")
+            QMessageBox.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{str(e)}")
 
     def on_exchange_item_update_button_clicked(self) -> None:
         """Update exchange rate in database when pushButton_exchange_item_update is clicked."""
@@ -1690,6 +1715,7 @@ class MainWindow(
         """Connect UI signals to their handlers."""
         # Main transaction signals
         self.pushButton_add.clicked.connect(self.on_add_transaction)
+        self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
 
@@ -2376,6 +2402,46 @@ class MainWindow(
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+
+    def _get_or_create_category(self, category_name: str) -> int | None:
+        """Get existing category ID or create new one.
+
+        Args:
+
+        - `category_name` (`str`): Category name.
+
+        Returns:
+
+        - `int | None`: Category ID or None if creation failed.
+
+        """
+        if self.db_manager is None:
+            return None
+
+        try:
+            # Try to find existing category
+            categories = self.db_manager.get_categories_by_type(0)  # 0 = expense
+            if category_name in categories:
+                # Get category ID by name
+                rows = self.db_manager.get_rows(
+                    "SELECT _id FROM categories WHERE name = :name AND type = 0", {"name": category_name}
+                )
+                if rows:
+                    return rows[0][0]
+
+            # Create new category if not exists
+            if self.db_manager.add_category(category_name, 0, ""):  # 0 = expense, empty icon
+                # Get the ID of the newly created category
+                rows = self.db_manager.get_rows(
+                    "SELECT _id FROM categories WHERE name = :name AND type = 0", {"name": category_name}
+                )
+                if rows:
+                    return rows[0][0]
+
+            return None
+        except Exception as e:
+            print(f"Error creating category {category_name}: {e}")
+            return None
 
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
@@ -3171,6 +3237,82 @@ class MainWindow(
         except Exception as e:
             print(f"Error populating form from description: {e}")
 
+    def _process_text_input(self, text: str) -> None:
+        """Process text input and add purchases to database.
+
+        Args:
+
+        - `text` (`str`): Text input to process.
+
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Create parser and parse text
+        parser = TextParser()
+        parsed_items = parser.parse_text(text)
+
+        if not parsed_items:
+            QMessageBox.information(self, "No Items", "No valid purchase items found in the text.")
+            return
+
+        # Get date from dateEdit
+        purchase_date = self.dateEdit.date().toString("yyyy-MM-dd")
+
+        # Get default currency ID
+        default_currency = self.db_manager.get_default_currency()
+        if not default_currency:
+            QMessageBox.warning(self, "Error", "No default currency set")
+            return
+
+        default_currency_id = self.db_manager.get_currency_by_code(default_currency)[0]
+
+        # Add items to database
+        success_count = 0
+        error_count = 0
+        error_messages = []
+
+        for item in parsed_items:
+            try:
+                # Find or create category
+                category_id = self._get_or_create_category(item.category)
+                if not category_id:
+                    error_count += 1
+                    error_messages.append(f"Failed to create category: {item.category}")
+                    continue
+
+                # Add transaction
+                success = self.db_manager.add_transaction(
+                    amount=item.amount,
+                    description=item.name,
+                    category_id=category_id,
+                    currency_id=default_currency_id,
+                    date=purchase_date,
+                    tag="",
+                )
+
+                if success:
+                    success_count += 1
+                else:
+                    error_count += 1
+                    error_messages.append(f"Failed to add: {item.name}")
+            except Exception as e:
+                error_count += 1
+                error_messages.append(f"Error adding {item.name}: {e}")
+
+        # Show results
+        if success_count > 0:
+            self.update_all()
+
+        if error_count > 0:
+            error_text = f"Added {success_count} purchases successfully.\n\nErrors:\n" + "\n".join(error_messages[:10])
+            if len(error_messages) > 10:
+                error_text += f"\n... and {len(error_messages) - 10} more errors"
+            QMessageBox.warning(self, "Results", error_text)
+        else:
+            QMessageBox.information(self, "Success", f"Successfully added {success_count} purchases.")
+
     def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
         """Restore column widths for a table view.
 
@@ -3287,6 +3429,7 @@ class MainWindow(
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")
+        self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
@@ -4162,6 +4305,35 @@ def on_add_account(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_add_as_text`
+
+```python
+def on_add_as_text(self) -> None
+```
+
+Open text input dialog and process entered purchases.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_add_as_text(self) -> None:
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Error", "Database connection not available")
+            return
+
+        # Create and show the text input dialog
+        dialog = TextInputDialog(self)
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            text = dialog.get_text()
+            if text:
+                self._process_text_input(text)
+```
+
+</details>
+
 ### ⚙️ Method `on_add_category`
 
 ```python
@@ -4508,7 +4680,9 @@ Copy list of categories to clipboard as text.
 ```python
 def on_copy_categories_as_text(self) -> None:
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            QMessageBox.warning(
+                self, "Database Error", "❌ Database manager is not initialized. Please try again later."
+            )
             return
 
         try:
@@ -4516,7 +4690,7 @@ def on_copy_categories_as_text(self) -> None:
             categories_data = self.db_manager.get_all_categories()
 
             if not categories_data:
-                print("No categories found")
+                QMessageBox.information(self, "No Categories", "No categories found in the database.")
                 return
 
             # Create text representation
@@ -4532,10 +4706,15 @@ def on_copy_categories_as_text(self) -> None:
             clipboard = QApplication.clipboard()
             clipboard.setText(clipboard_text)
 
-            print(f"✅ Copied {len(categories_text)} categories to clipboard")
+            # Show success message to user
+            QMessageBox.information(
+                self,
+                "Categories Copied",
+                f"✅ Successfully copied {len(categories_text)} categories to clipboard:\n\n{clipboard_text}",
+            )
 
         except Exception as e:
-            print(f"❌ Error copying categories to clipboard: {e}")
+            QMessageBox.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{str(e)}")
 ```
 
 </details>
@@ -5777,6 +5956,7 @@ Connect UI signals to their handlers.
 def _connect_signals(self) -> None:
         # Main transaction signals
         self.pushButton_add.clicked.connect(self.on_add_transaction)
+        self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
 
@@ -6655,6 +6835,58 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+```
+
+</details>
+
+### ⚙️ Method `_get_or_create_category`
+
+```python
+def _get_or_create_category(self, category_name: str) -> int | None
+```
+
+Get existing category ID or create new one.
+
+Args:
+
+- `category_name` (`str`): Category name.
+
+Returns:
+
+- `int | None`: Category ID or None if creation failed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_or_create_category(self, category_name: str) -> int | None:
+        if self.db_manager is None:
+            return None
+
+        try:
+            # Try to find existing category
+            categories = self.db_manager.get_categories_by_type(0)  # 0 = expense
+            if category_name in categories:
+                # Get category ID by name
+                rows = self.db_manager.get_rows(
+                    "SELECT _id FROM categories WHERE name = :name AND type = 0", {"name": category_name}
+                )
+                if rows:
+                    return rows[0][0]
+
+            # Create new category if not exists
+            if self.db_manager.add_category(category_name, 0, ""):  # 0 = expense, empty icon
+                # Get the ID of the newly created category
+                rows = self.db_manager.get_rows(
+                    "SELECT _id FROM categories WHERE name = :name AND type = 0", {"name": category_name}
+                )
+                if rows:
+                    return rows[0][0]
+
+            return None
+        except Exception as e:
+            print(f"Error creating category {category_name}: {e}")
+            return None
 ```
 
 </details>
@@ -7938,6 +8170,94 @@ def _populate_form_from_description(self, description: str) -> None:
 
 </details>
 
+### ⚙️ Method `_process_text_input`
+
+```python
+def _process_text_input(self, text: str) -> None
+```
+
+Process text input and add purchases to database.
+
+Args:
+
+- `text` (`str`): Text input to process.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _process_text_input(self, text: str) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Create parser and parse text
+        parser = TextParser()
+        parsed_items = parser.parse_text(text)
+
+        if not parsed_items:
+            QMessageBox.information(self, "No Items", "No valid purchase items found in the text.")
+            return
+
+        # Get date from dateEdit
+        purchase_date = self.dateEdit.date().toString("yyyy-MM-dd")
+
+        # Get default currency ID
+        default_currency = self.db_manager.get_default_currency()
+        if not default_currency:
+            QMessageBox.warning(self, "Error", "No default currency set")
+            return
+
+        default_currency_id = self.db_manager.get_currency_by_code(default_currency)[0]
+
+        # Add items to database
+        success_count = 0
+        error_count = 0
+        error_messages = []
+
+        for item in parsed_items:
+            try:
+                # Find or create category
+                category_id = self._get_or_create_category(item.category)
+                if not category_id:
+                    error_count += 1
+                    error_messages.append(f"Failed to create category: {item.category}")
+                    continue
+
+                # Add transaction
+                success = self.db_manager.add_transaction(
+                    amount=item.amount,
+                    description=item.name,
+                    category_id=category_id,
+                    currency_id=default_currency_id,
+                    date=purchase_date,
+                    tag="",
+                )
+
+                if success:
+                    success_count += 1
+                else:
+                    error_count += 1
+                    error_messages.append(f"Failed to add: {item.name}")
+            except Exception as e:
+                error_count += 1
+                error_messages.append(f"Error adding {item.name}: {e}")
+
+        # Show results
+        if success_count > 0:
+            self.update_all()
+
+        if error_count > 0:
+            error_text = f"Added {success_count} purchases successfully.\n\nErrors:\n" + "\n".join(error_messages[:10])
+            if len(error_messages) > 10:
+                error_text += f"\n... and {len(error_messages) - 10} more errors"
+            QMessageBox.warning(self, "Results", error_text)
+        else:
+            QMessageBox.information(self, "Success", f"Successfully added {success_count} purchases.")
+```
+
+</details>
+
 ### ⚙️ Method `_restore_table_column_widths`
 
 ```python
@@ -8129,6 +8449,7 @@ def _setup_ui(self) -> None:
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")
+        self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")

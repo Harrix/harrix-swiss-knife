@@ -248,7 +248,7 @@
               <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>0</height>
+                <height>1</height>
                </size>
               </property>
               <property name="title">
@@ -274,6 +274,17 @@
                   <widget class="QPushButton" name="pushButton_show_all_records">
                    <property name="text">
                     <string>Show All Records</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_26">
+                 <item>
+                  <widget class="QPushButton" name="pushButton_add_as_text">
+                   <property name="text">
+                    <string>Add As Text</string>
                    </property>
                   </widget>
                  </item>
