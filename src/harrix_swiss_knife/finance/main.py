@@ -763,7 +763,11 @@ class MainWindow(
     def on_copy_categories_as_text(self) -> None:
         """Copy list of categories to clipboard as text."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            QMessageBox.warning(
+                self,
+                "Database Error",
+                "❌ Database manager is not initialized. Please try again later."
+            )
             return
 
         try:
@@ -771,7 +775,11 @@ class MainWindow(
             categories_data = self.db_manager.get_all_categories()
 
             if not categories_data:
-                print("No categories found")
+                QMessageBox.information(
+                    self,
+                    "No Categories",
+                    "No categories found in the database."
+                )
                 return
 
             # Create text representation
@@ -787,10 +795,19 @@ class MainWindow(
             clipboard = QApplication.clipboard()
             clipboard.setText(clipboard_text)
 
-            print(f"✅ Copied {len(categories_text)} categories to clipboard")
+            # Show success message to user
+            QMessageBox.information(
+                self,
+                "Categories Copied",
+                f"✅ Successfully copied {len(categories_text)} categories to clipboard:\n\n{clipboard_text}"
+            )
 
         except Exception as e:
-            print(f"❌ Error copying categories to clipboard: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"❌ Error copying categories to clipboard:\n\n{str(e)}"
+            )
 
     def on_exchange_item_update_button_clicked(self) -> None:
         """Update exchange rate in database when pushButton_exchange_item_update is clicked."""
