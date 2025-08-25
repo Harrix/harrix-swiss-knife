@@ -2374,7 +2374,7 @@ class MainWindow(
                 # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] -> [name, balance, currency, liquid, cash, id, color]
                 currency_id = row[6]  # currency_id
                 balance = self.db_manager.convert_from_minor_units(row[2], currency_id)
-                liquid_str = "👍" if row[4] == 1 else "👎"
+                liquid_str = "👍" if row[4] == 1 else "⛔"
                 cash_str = "💵" if row[5] == 1 else "💳"
                 transformed_row = [row[1], f"{balance:.2f}", row[3], liquid_str, cash_str, row[0], color]
                 accounts_transformed_data.append(transformed_row)
