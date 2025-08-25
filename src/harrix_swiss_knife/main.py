@@ -178,6 +178,6 @@ if __name__ == "__main__":
 
     # Show main window only if configured to do so
     if show_main_window:
-        main_window_instance.show()
+        main_window_instance.show_window()
 
     sys.exit(app.exec())

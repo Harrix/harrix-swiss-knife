@@ -177,6 +177,12 @@ class MainWindow(QMainWindow):
         # Restart the timer when showing the window
         self.update_timer.start(2000)
 
+    def show_window(self) -> None:
+        """Show the window with proper state and restart timer."""
+        self.show()
+        # Restart the timer when showing the window
+        self.update_timer.start(2000)
+
     def update_output_content(self) -> None:
         """Update the text edit content from the output.txt file.
 
@@ -226,8 +232,9 @@ class MainWindow(QMainWindow):
 
         standard_width = 1920
         if is_standard_aspect and screen_width >= standard_width:
-            # For standard aspect ratios with width >= 1920, maximize window
-            self.showMaximized()
+            # For standard aspect ratios with width >= 1920, set window to maximized state
+            # but don't show it yet - it will be maximized when shown
+            self.setWindowState(Qt.WindowState.WindowMaximized)
         else:
             title_bar_height = 30  # Approximate title bar height
             windows_task_bar_height = 48  # Approximate windows task bar height
