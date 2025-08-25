@@ -222,6 +222,7 @@ class AccountEditDialog(QDialog):
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self._on_save)
         self.save_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        self.save_button.setDefault(True)  # Make Save button the default button
         button_layout.addWidget(self.save_button)
 
         layout.addLayout(button_layout)
