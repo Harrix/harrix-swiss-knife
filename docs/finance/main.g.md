@@ -3460,7 +3460,14 @@ class MainWindow(
                     index = model.index(row, 0)
                     item_data = model.data(index, Qt.ItemDataRole.UserRole)
                     if item_data == category_name:
+                        # Set the current index
                         self.listView_categories.setCurrentIndex(index)
+
+                        # Also try to select the item in the selection model
+                        selection_model = self.listView_categories.selectionModel()
+                        if selection_model:
+                            selection_model.select(index, selection_model.SelectionFlag.Select)
+
                         # Update the category label
                         display_text = model.data(index, Qt.ItemDataRole.DisplayRole)
                         if display_text:
@@ -8537,7 +8544,14 @@ def _select_category_by_id(self, category_id: int) -> None:
                     index = model.index(row, 0)
                     item_data = model.data(index, Qt.ItemDataRole.UserRole)
                     if item_data == category_name:
+                        # Set the current index
                         self.listView_categories.setCurrentIndex(index)
+
+                        # Also try to select the item in the selection model
+                        selection_model = self.listView_categories.selectionModel()
+                        if selection_model:
+                            selection_model.select(index, selection_model.SelectionFlag.Select)
+
                         # Update the category label
                         display_text = model.data(index, Qt.ItemDataRole.DisplayRole)
                         if display_text:
