@@ -2592,7 +2592,7 @@ class MainWindow(
 
         """
         # Prevent multiple dialogs from opening
-        if hasattr(self, '_account_edit_dialog_open') and self._account_edit_dialog_open:
+        if hasattr(self, "_account_edit_dialog_open") and self._account_edit_dialog_open:
             return
 
         if not self._validate_database_connection():
@@ -2637,7 +2637,7 @@ class MainWindow(
             # Get currency codes for dialog
             currencies = [row[1] for row in self.db_manager.get_all_currencies()]
 
-                        # Show edit dialog
+            # Show edit dialog
             self._account_edit_dialog_open = True
             dialog = AccountEditDialog(self, account_dict, currencies)
             result_code = dialog.exec()

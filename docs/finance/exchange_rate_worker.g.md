@@ -285,12 +285,8 @@ class ExchangeRateUpdateWorker(QThread):
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
 
-            # Update last update date
+            # Exchange rates update completed
             if not self.should_stop:
-                today = datetime.now().strftime("%Y-%m-%d")
-                if self.db_manager.set_last_exchange_rates_update_date(today):
-                    self.progress_updated.emit(f"📅 Updated last exchange rates update date to {today}")
-
                 self.finished_success.emit(total_processed, total_operations)
 
         except Exception as e:
@@ -600,12 +596,8 @@ def run(self):
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
 
-            # Update last update date
+            # Exchange rates update completed
             if not self.should_stop:
-                today = datetime.now().strftime("%Y-%m-%d")
-                if self.db_manager.set_last_exchange_rates_update_date(today):
-                    self.progress_updated.emit(f"📅 Updated last exchange rates update date to {today}")
-
                 self.finished_success.emit(total_processed, total_operations)
 
         except Exception as e:

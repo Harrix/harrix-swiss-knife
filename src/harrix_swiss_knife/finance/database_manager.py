@@ -1432,8 +1432,6 @@ class DatabaseManager:
         )
         return rows[0][0] if rows and rows[0][0] else None
 
-
-
     def get_last_two_exchange_rate_records(self, currency_id: int) -> list[tuple[str, float]]:
         """Get the last two exchange rate records for a currency.
 
@@ -1809,8 +1807,6 @@ class DatabaseManager:
         # If update didn't affect any rows, insert new setting
         insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :id)"
         return self.execute_simple_query(insert_query, {"id": currency_id})
-
-
 
     def should_update_exchange_rates(self) -> bool:
         """Check if exchange rates need to be updated based on today's date.

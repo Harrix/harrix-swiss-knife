@@ -211,6 +211,9 @@ class MainWindow(
         self._exchange_rates_initialized = False
         self._exchange_rates_updating = False
 
+        # Dialog state flags
+        self._account_edit_dialog_open = False
+
         # Matplotlib object references
         self._current_exchange_rate_fig = None
         self._current_exchange_rate_canvas = None
@@ -2461,6 +2464,15 @@ class MainWindow(
 
         # Make accounts table non-editable and connect double-click signal
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
+
+        # Disconnect existing signal to prevent multiple connections
+        try:
+            self.tableView_accounts.doubleClicked.disconnect()
+        except RuntimeError:
+            # Signal was not connected, which is fine
+            pass
+
+        # Connect double-click signal
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
 
         # Configure column stretching for accounts table
@@ -2657,6 +2669,10 @@ class MainWindow(
         - `index` (`QModelIndex`): The clicked index.
 
         """
+        # Prevent multiple dialogs from opening
+        if hasattr(self, "_account_edit_dialog_open") and self._account_edit_dialog_open:
+            return
+
         if not self._validate_database_connection():
             return
 
@@ -2700,8 +2716,12 @@ class MainWindow(
             currencies = [row[1] for row in self.db_manager.get_all_currencies()]
 
             # Show edit dialog
+            self._account_edit_dialog_open = True
             dialog = AccountEditDialog(self, account_dict, currencies)
-            if dialog.exec() == QDialog.DialogCode.Accepted:
+            result_code = dialog.exec()
+            self._account_edit_dialog_open = False
+
+            if result_code == QDialog.DialogCode.Accepted:
                 result = dialog.get_result()
 
                 if result["action"] == "save":
@@ -2750,8 +2770,12 @@ class MainWindow(
                         QMessageBox.information(self, "Success", "Account deleted successfully")
                         return  # Exit the method to prevent reopening the dialog
                     QMessageBox.warning(self, "Error", "Failed to delete account")
+            elif result_code == QDialog.DialogCode.Rejected:
+                # Dialog was cancelled, do nothing and return
+                return
 
         except Exception as e:
+            self._account_edit_dialog_open = False
             QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
 
     def _on_autocomplete_selected(self, text: str) -> None:
@@ -3608,6 +3632,9 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Exchange rates initialization flag
         self._exchange_rates_initialized = False
         self._exchange_rates_updating = False
+
+        # Dialog state flags
+        self._account_edit_dialog_open = False
 
         # Matplotlib object references
         self._current_exchange_rate_fig = None
@@ -6734,6 +6761,15 @@ def _load_accounts_table(self) -> None:
 
         # Make accounts table non-editable and connect double-click signal
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
+
+        # Disconnect existing signal to prevent multiple connections
+        try:
+            self.tableView_accounts.doubleClicked.disconnect()
+        except RuntimeError:
+            # Signal was not connected, which is fine
+            pass
+
+        # Connect double-click signal
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
 
         # Configure column stretching for accounts table
@@ -7067,6 +7103,10 @@ Args:
 
 ```python
 def _on_account_double_clicked(self, index: QModelIndex) -> None:
+        # Prevent multiple dialogs from opening
+        if hasattr(self, "_account_edit_dialog_open") and self._account_edit_dialog_open:
+            return
+
         if not self._validate_database_connection():
             return
 
@@ -7110,8 +7150,12 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
             currencies = [row[1] for row in self.db_manager.get_all_currencies()]
 
             # Show edit dialog
+            self._account_edit_dialog_open = True
             dialog = AccountEditDialog(self, account_dict, currencies)
-            if dialog.exec() == QDialog.DialogCode.Accepted:
+            result_code = dialog.exec()
+            self._account_edit_dialog_open = False
+
+            if result_code == QDialog.DialogCode.Accepted:
                 result = dialog.get_result()
 
                 if result["action"] == "save":
@@ -7160,8 +7204,12 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
                         QMessageBox.information(self, "Success", "Account deleted successfully")
                         return  # Exit the method to prevent reopening the dialog
                     QMessageBox.warning(self, "Error", "Failed to delete account")
+            elif result_code == QDialog.DialogCode.Rejected:
+                # Dialog was cancelled, do nothing and return
+                return
 
         except Exception as e:
+            self._account_edit_dialog_open = False
             QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
 ```
 
