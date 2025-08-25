@@ -29,6 +29,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QCompleter,
     QDialog,
