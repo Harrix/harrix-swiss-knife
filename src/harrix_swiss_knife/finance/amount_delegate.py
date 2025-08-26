@@ -63,7 +63,11 @@ class AmountDelegate(QStyledItemDelegate):
             subscript_decimal = ''.join(subscript_map.get(digit, digit) for digit in decimal_part)
 
             # Construct final formatted number with subscript decimals
-            formatted = f"{formatted_integer}.{subscript_decimal}"
+            # Skip decimal part if it's only zeros
+            if decimal_part == '00':
+                formatted = formatted_integer
+            else:
+                formatted = f"{formatted_integer}.{subscript_decimal}"
 
             # Add minus sign back if needed
             if is_negative:
