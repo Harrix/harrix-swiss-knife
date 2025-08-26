@@ -56,11 +56,19 @@ class AmountDelegate(QStyledItemDelegate):
 
             # Convert decimal digits to subscript Unicode characters
             subscript_map = {
-                '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
-                '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉'
+                "0": "₀",
+                "1": "₁",
+                "2": "₂",
+                "3": "₃",
+                "4": "₄",
+                "5": "₅",
+                "6": "₆",
+                "7": "₇",
+                "8": "₈",
+                "9": "₉",
             }
 
-            subscript_decimal = ''.join(subscript_map.get(digit, digit) for digit in decimal_part)
+            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
 
             # Construct final formatted number with subscript decimals
             # Skip decimal part if it's actually zero
@@ -142,7 +150,8 @@ class AmountDelegate(QStyledItemDelegate):
             # Handle cases where the text might already be a formatted number
             # Remove any non-numeric characters except decimal point and minus
             import re
-            clean_text = re.sub(r'[^\d.-]', '', clean_text)
+
+            clean_text = re.sub(r"[^\d.-]", "", clean_text)
 
             value = float(clean_text)
             editor.setValue(value)

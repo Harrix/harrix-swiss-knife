@@ -48,7 +48,7 @@ class AmountDelegate(QStyledItemDelegate):
         return editor
 
     def displayText(self, value, locale):
-        """Format display text with spaces for thousands separator."""
+        """Format display text with spaces for thousands separator and subscript decimals."""
         try:
             # Get the raw text value
             text = str(value)
@@ -81,8 +81,28 @@ class AmountDelegate(QStyledItemDelegate):
                     formatted_integer = " " + formatted_integer
                 formatted_integer = digit + formatted_integer
 
-            # Construct final formatted number
-            formatted = f"{formatted_integer}.{decimal_part}"
+            # Convert decimal digits to subscript Unicode characters
+            subscript_map = {
+                "0": "₀",
+                "1": "₁",
+                "2": "₂",
+                "3": "₃",
+                "4": "₄",
+                "5": "₅",
+                "6": "₆",
+                "7": "₇",
+                "8": "₈",
+                "9": "₉",
+            }
+
+            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
+
+            # Construct final formatted number with subscript decimals
+            # Skip decimal part if it's actually zero
+            if num == int(num):  # Check if the number is actually a whole number
+                formatted = formatted_integer
+            else:
+                formatted = f"{formatted_integer}.{subscript_decimal}"
 
             # Add minus sign back if needed
             if is_negative:
@@ -153,8 +173,14 @@ class AmountDelegate(QStyledItemDelegate):
 
             # Remove spaces and convert to float
             clean_text = text.replace(" ", "")
-            value = float(clean_text)
 
+            # Handle cases where the text might already be a formatted number
+            # Remove any non-numeric characters except decimal point and minus
+            import re
+
+            clean_text = re.sub(r"[^\d.-]", "", clean_text)
+
+            value = float(clean_text)
             editor.setValue(value)
         except (ValueError, TypeError):
             editor.setValue(0.0)
@@ -163,10 +189,12 @@ class AmountDelegate(QStyledItemDelegate):
         """Set data from editor back to model."""
         value = editor.value()
 
-        # Format the value as string without spaces for storage
+        # Format the value as string with 2 decimal places for storage
         formatted_value = f"{value:.2f}"
 
+        # Set both DisplayRole and EditRole to ensure consistency
         model.setData(index, formatted_value, Qt.ItemDataRole.DisplayRole)
+        model.setData(index, formatted_value, Qt.ItemDataRole.EditRole)
 ```
 
 </details>
@@ -218,7 +246,7 @@ def createEditor(self, parent, option, index):
 def displayText(self, value, locale)
 ```
 
-Format display text with spaces for thousands separator.
+Format display text with spaces for thousands separator and subscript decimals.
 
 <details>
 <summary>Code:</summary>
@@ -257,8 +285,28 @@ def displayText(self, value, locale):
                     formatted_integer = " " + formatted_integer
                 formatted_integer = digit + formatted_integer
 
-            # Construct final formatted number
-            formatted = f"{formatted_integer}.{decimal_part}"
+            # Convert decimal digits to subscript Unicode characters
+            subscript_map = {
+                "0": "₀",
+                "1": "₁",
+                "2": "₂",
+                "3": "₃",
+                "4": "₄",
+                "5": "₅",
+                "6": "₆",
+                "7": "₇",
+                "8": "₈",
+                "9": "₉",
+            }
+
+            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
+
+            # Construct final formatted number with subscript decimals
+            # Skip decimal part if it's actually zero
+            if num == int(num):  # Check if the number is actually a whole number
+                formatted = formatted_integer
+            else:
+                formatted = f"{formatted_integer}.{subscript_decimal}"
 
             # Add minus sign back if needed
             if is_negative:
@@ -357,8 +405,14 @@ def setEditorData(self, editor, index):
 
             # Remove spaces and convert to float
             clean_text = text.replace(" ", "")
-            value = float(clean_text)
 
+            # Handle cases where the text might already be a formatted number
+            # Remove any non-numeric characters except decimal point and minus
+            import re
+
+            clean_text = re.sub(r"[^\d.-]", "", clean_text)
+
+            value = float(clean_text)
             editor.setValue(value)
         except (ValueError, TypeError):
             editor.setValue(0.0)
@@ -381,10 +435,12 @@ Set data from editor back to model.
 def setModelData(self, editor, model, index):
         value = editor.value()
 
-        # Format the value as string without spaces for storage
+        # Format the value as string with 2 decimal places for storage
         formatted_value = f"{value:.2f}"
 
+        # Set both DisplayRole and EditRole to ensure consistency
         model.setData(index, formatted_value, Qt.ItemDataRole.DisplayRole)
+        model.setData(index, formatted_value, Qt.ItemDataRole.EditRole)
 ```
 
 </details>

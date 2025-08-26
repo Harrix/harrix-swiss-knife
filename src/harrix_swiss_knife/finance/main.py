@@ -2716,7 +2716,7 @@ class MainWindow(
         self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
 
         self.tableView_exchange.setItemDelegateForColumn(2, self.amount_from_delegate)  # Amount From
-        self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)    # Amount To
+        self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)  # Amount To
 
         # Enable editing for Amount From and Amount To columns
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
