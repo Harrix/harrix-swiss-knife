@@ -267,17 +267,36 @@ class ChartOperations:
         )
 
     def _clear_layout(self, layout: QLayout) -> None:
-        """Clear all widgets from a layout.
+        """Clear all widgets from a layout and properly delete them to avoid stray windows."""
+        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  # local import
 
-        Args:
-
-        - `layout` (`QLayout`): Layout to clear.
-
-        """
         for i in reversed(range(layout.count())):
-            child = layout.takeAt(i).widget()
-            if child:
-                child.setParent(None)
+            item = layout.takeAt(i)
+            if item is None:
+                continue
+
+            w = item.widget()
+            if w is not None:
+                # Если это канвас Matplotlib — закрываем фигуру
+                try:
+                    if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
+                        try:
+                            import matplotlib.pyplot as plt
+                            plt.close(w.figure)
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
+                # Спрятать и корректно удалить виджет
+                w.hide()
+                w.deleteLater()
+                continue
+
+            # Рекурсивно чистим вложенные лайауты
+            child_layout = item.layout()
+            if child_layout is not None:
+                self._clear_layout(child_layout)
 
     def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None:
         """Create and display a chart with given data and configuration.
