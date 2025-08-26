@@ -257,7 +257,9 @@ class MainWindow(
 
         category = self.comboBox_filter_category.currentText() if self.comboBox_filter_category.currentText() else None
         currency = self.comboBox_filter_currency.currentText() if self.comboBox_filter_currency.currentText() else None
-        description_filter = self.lineEdit_filter_description.text().strip() if self.lineEdit_filter_description.text().strip() else None
+        description_filter = (
+            self.lineEdit_filter_description.text().strip() if self.lineEdit_filter_description.text().strip() else None
+        )
 
         use_date_filter = self.checkBox_use_date_filter.isChecked()
         date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
@@ -1763,7 +1765,7 @@ class MainWindow(
         self.radioButton_2.clicked.connect(self.apply_filter)
         self.radioButton_3.clicked.connect(self.apply_filter)
 
-                # Auto-filter signals for combo boxes
+        # Auto-filter signals for combo boxes
         self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
         self.comboBox_filter_currency.currentTextChanged.connect(lambda _: self.apply_filter())
 
