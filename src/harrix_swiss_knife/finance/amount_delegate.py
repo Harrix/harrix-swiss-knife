@@ -138,8 +138,13 @@ class AmountDelegate(QStyledItemDelegate):
 
             # Remove spaces and convert to float
             clean_text = text.replace(" ", "")
-            value = float(clean_text)
 
+            # Handle cases where the text might already be a formatted number
+            # Remove any non-numeric characters except decimal point and minus
+            import re
+            clean_text = re.sub(r'[^\d.-]', '', clean_text)
+
+            value = float(clean_text)
             editor.setValue(value)
         except (ValueError, TypeError):
             editor.setValue(0.0)
@@ -148,7 +153,9 @@ class AmountDelegate(QStyledItemDelegate):
         """Set data from editor back to model."""
         value = editor.value()
 
-        # Format the value as string without spaces for storage
+        # Format the value as string with 2 decimal places for storage
         formatted_value = f"{value:.2f}"
 
+        # Set both DisplayRole and EditRole to ensure consistency
         model.setData(index, formatted_value, Qt.ItemDataRole.DisplayRole)
+        model.setData(index, formatted_value, Qt.ItemDataRole.EditRole)

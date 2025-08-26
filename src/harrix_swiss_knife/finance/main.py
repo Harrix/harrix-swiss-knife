@@ -2709,6 +2709,18 @@ class MainWindow(
         )
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
+        # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
+        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+
+        self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+        self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+
+        self.tableView_exchange.setItemDelegateForColumn(2, self.amount_from_delegate)  # Amount From
+        self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)    # Amount To
+
+        # Enable editing for Amount From and Amount To columns
+        self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
+
         # Configure column stretching for exchange table
         exchange_header = self.tableView_exchange.horizontalHeader()
         if exchange_header.count() > 0:
