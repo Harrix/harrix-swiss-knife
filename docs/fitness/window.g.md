@@ -848,14 +848,20 @@ class Ui_MainWindow(object):
         self.tab_charts.setObjectName("tab_charts")
         self.horizontalLayout_26 = QHBoxLayout(self.tab_charts)
         self.horizontalLayout_26.setObjectName("horizontalLayout_26")
-        self.verticalLayout_18 = QVBoxLayout()
+        self.splitter_charts = QSplitter(self.tab_charts)
+        self.splitter_charts.setObjectName("splitter_charts")
+        self.splitter_charts.setOrientation(Qt.Horizontal)
+        self.widget_left_panel = QWidget(self.splitter_charts)
+        self.widget_left_panel.setObjectName("widget_left_panel")
+        self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
-        self.label_chart_exercise = QLabel(self.tab_charts)
+        self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
+        self.label_chart_exercise = QLabel(self.widget_left_panel)
         self.label_chart_exercise.setObjectName("label_chart_exercise")
 
         self.verticalLayout_18.addWidget(self.label_chart_exercise)
 
-        self.listView_chart_exercise = QListView(self.tab_charts)
+        self.listView_chart_exercise = QListView(self.widget_left_panel)
         self.listView_chart_exercise.setObjectName("listView_chart_exercise")
         self.listView_chart_exercise.setMinimumSize(QSize(301, 0))
         self.listView_chart_exercise.setMaximumSize(QSize(16777215, 16777215))
@@ -880,12 +886,12 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_18.addWidget(self.listView_chart_exercise)
 
-        self.label_chart_type = QLabel(self.tab_charts)
+        self.label_chart_type = QLabel(self.widget_left_panel)
         self.label_chart_type.setObjectName("label_chart_type")
 
         self.verticalLayout_18.addWidget(self.label_chart_type)
 
-        self.listView_chart_type = QListView(self.tab_charts)
+        self.listView_chart_type = QListView(self.widget_left_panel)
         self.listView_chart_type.setObjectName("listView_chart_type")
         self.listView_chart_type.setMaximumSize(QSize(16777215, 16777215))
         self.listView_chart_type.setStyleSheet(
@@ -909,13 +915,15 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_18.addWidget(self.listView_chart_type)
 
-        self.horizontalLayout_26.addLayout(self.verticalLayout_18)
-
-        self.verticalLayout_20 = QVBoxLayout()
+        self.splitter_charts.addWidget(self.widget_left_panel)
+        self.widget_right_panel = QWidget(self.splitter_charts)
+        self.widget_right_panel.setObjectName("widget_right_panel")
+        self.verticalLayout_20 = QVBoxLayout(self.widget_right_panel)
         self.verticalLayout_20.setObjectName("verticalLayout_20")
+        self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_23 = QHBoxLayout()
         self.horizontalLayout_23.setObjectName("horizontalLayout_23")
-        self.frame_charts_controls = QFrame(self.tab_charts)
+        self.frame_charts_controls = QFrame(self.widget_right_panel)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.StyledPanel)
@@ -1031,7 +1039,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_23.addWidget(self.frame_charts_controls)
 
-        self.label_exercise_avif_4 = QLabel(self.tab_charts)
+        self.label_exercise_avif_4 = QLabel(self.widget_right_panel)
         self.label_exercise_avif_4.setObjectName("label_exercise_avif_4")
         self.label_exercise_avif_4.setMinimumSize(QSize(150, 76))
         self.label_exercise_avif_4.setStyleSheet("border: 1px solid gray;")
@@ -1042,19 +1050,21 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_20.addLayout(self.horizontalLayout_23)
 
-        self.scrollArea_charts = QScrollArea(self.tab_charts)
+        self.scrollArea_charts = QScrollArea(self.widget_right_panel)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1020, 742))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 742))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_20.addWidget(self.scrollArea_charts)
 
-        self.horizontalLayout_26.addLayout(self.verticalLayout_20)
+        self.splitter_charts.addWidget(self.widget_right_panel)
+
+        self.horizontalLayout_26.addWidget(self.splitter_charts)
 
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_4 = QWidget()
@@ -2001,14 +2011,20 @@ def setupUi(self, MainWindow):
         self.tab_charts.setObjectName("tab_charts")
         self.horizontalLayout_26 = QHBoxLayout(self.tab_charts)
         self.horizontalLayout_26.setObjectName("horizontalLayout_26")
-        self.verticalLayout_18 = QVBoxLayout()
+        self.splitter_charts = QSplitter(self.tab_charts)
+        self.splitter_charts.setObjectName("splitter_charts")
+        self.splitter_charts.setOrientation(Qt.Horizontal)
+        self.widget_left_panel = QWidget(self.splitter_charts)
+        self.widget_left_panel.setObjectName("widget_left_panel")
+        self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
-        self.label_chart_exercise = QLabel(self.tab_charts)
+        self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
+        self.label_chart_exercise = QLabel(self.widget_left_panel)
         self.label_chart_exercise.setObjectName("label_chart_exercise")
 
         self.verticalLayout_18.addWidget(self.label_chart_exercise)
 
-        self.listView_chart_exercise = QListView(self.tab_charts)
+        self.listView_chart_exercise = QListView(self.widget_left_panel)
         self.listView_chart_exercise.setObjectName("listView_chart_exercise")
         self.listView_chart_exercise.setMinimumSize(QSize(301, 0))
         self.listView_chart_exercise.setMaximumSize(QSize(16777215, 16777215))
@@ -2033,12 +2049,12 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_18.addWidget(self.listView_chart_exercise)
 
-        self.label_chart_type = QLabel(self.tab_charts)
+        self.label_chart_type = QLabel(self.widget_left_panel)
         self.label_chart_type.setObjectName("label_chart_type")
 
         self.verticalLayout_18.addWidget(self.label_chart_type)
 
-        self.listView_chart_type = QListView(self.tab_charts)
+        self.listView_chart_type = QListView(self.widget_left_panel)
         self.listView_chart_type.setObjectName("listView_chart_type")
         self.listView_chart_type.setMaximumSize(QSize(16777215, 16777215))
         self.listView_chart_type.setStyleSheet(
@@ -2062,13 +2078,15 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_18.addWidget(self.listView_chart_type)
 
-        self.horizontalLayout_26.addLayout(self.verticalLayout_18)
-
-        self.verticalLayout_20 = QVBoxLayout()
+        self.splitter_charts.addWidget(self.widget_left_panel)
+        self.widget_right_panel = QWidget(self.splitter_charts)
+        self.widget_right_panel.setObjectName("widget_right_panel")
+        self.verticalLayout_20 = QVBoxLayout(self.widget_right_panel)
         self.verticalLayout_20.setObjectName("verticalLayout_20")
+        self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_23 = QHBoxLayout()
         self.horizontalLayout_23.setObjectName("horizontalLayout_23")
-        self.frame_charts_controls = QFrame(self.tab_charts)
+        self.frame_charts_controls = QFrame(self.widget_right_panel)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.StyledPanel)
@@ -2184,7 +2202,7 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_23.addWidget(self.frame_charts_controls)
 
-        self.label_exercise_avif_4 = QLabel(self.tab_charts)
+        self.label_exercise_avif_4 = QLabel(self.widget_right_panel)
         self.label_exercise_avif_4.setObjectName("label_exercise_avif_4")
         self.label_exercise_avif_4.setMinimumSize(QSize(150, 76))
         self.label_exercise_avif_4.setStyleSheet("border: 1px solid gray;")
@@ -2195,19 +2213,21 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_20.addLayout(self.horizontalLayout_23)
 
-        self.scrollArea_charts = QScrollArea(self.tab_charts)
+        self.scrollArea_charts = QScrollArea(self.widget_right_panel)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1020, 742))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 742))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_20.addWidget(self.scrollArea_charts)
 
-        self.horizontalLayout_26.addLayout(self.verticalLayout_20)
+        self.splitter_charts.addWidget(self.widget_right_panel)
+
+        self.horizontalLayout_26.addWidget(self.splitter_charts)
 
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_4 = QWidget()

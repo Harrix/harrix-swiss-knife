@@ -702,12 +702,13 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to add weight: {e}")
 
     @requires_database()
-    def on_chart_exercise_changed(self, _index: int = -1) -> None:
-        """Handle chart exercise combobox selection change.
+    def on_chart_exercise_changed(self, current=None, previous=None) -> None:
+        """Handle chart exercise list view selection change.
 
         Args:
 
-        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+        - `current` (`QModelIndex | None`): Current index from ListView signal. Defaults to `None`.
+        - `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
 
         """
         self._update_charts_avif()
@@ -2585,12 +2586,13 @@ class MainWindow(
             print(f"Error updating chart list views: {e}")
 
     @requires_database(is_show_warning=False)
-    def update_chart_type_listview(self, _index: int = -1) -> None:
+    def update_chart_type_listview(self, current=None, previous=None) -> None:
         """Update chart type list view based on selected exercise.
 
         Args:
 
-        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+        - `current` (`QModelIndex | None`): Current index from ListView signal. Defaults to `None`.
+        - `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
 
         """
         if self.db_manager is None:
@@ -5180,20 +5182,21 @@ def on_add_weight(self) -> None:
 ### ⚙️ Method `on_chart_exercise_changed`
 
 ```python
-def on_chart_exercise_changed(self, _index: int = -1) -> None
+def on_chart_exercise_changed(self, current = None, previous = None) -> None
 ```
 
-Handle chart exercise combobox selection change.
+Handle chart exercise list view selection change.
 
 Args:
 
-- `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+- `current` (`QModelIndex | None`): Current index from ListView signal. Defaults to `None`.
+- `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_chart_exercise_changed(self, _index: int = -1) -> None:
+def on_chart_exercise_changed(self, current=None, previous=None) -> None:
         self._update_charts_avif()
 ```
 
@@ -7452,20 +7455,21 @@ def update_chart_comboboxes(self) -> None:
 ### ⚙️ Method `update_chart_type_listview`
 
 ```python
-def update_chart_type_listview(self, _index: int = -1) -> None
+def update_chart_type_listview(self, current = None, previous = None) -> None
 ```
 
 Update chart type list view based on selected exercise.
 
 Args:
 
-- `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+- `current` (`QModelIndex | None`): Current index from ListView signal. Defaults to `None`.
+- `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def update_chart_type_listview(self, _index: int = -1) -> None:
+def update_chart_type_listview(self, current=None, previous=None) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
