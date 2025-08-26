@@ -21,7 +21,7 @@ class AmountDelegate(QStyledItemDelegate):
         return editor
 
     def displayText(self, value, locale):
-        """Format display text with spaces for thousands separator."""
+        """Format display text with spaces for thousands separator and subscript decimals."""
         try:
             # Get the raw text value
             text = str(value)
@@ -54,8 +54,16 @@ class AmountDelegate(QStyledItemDelegate):
                     formatted_integer = " " + formatted_integer
                 formatted_integer = digit + formatted_integer
 
-            # Construct final formatted number
-            formatted = f"{formatted_integer}.{decimal_part}"
+            # Convert decimal digits to subscript Unicode characters
+            subscript_map = {
+                '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+                '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉'
+            }
+
+            subscript_decimal = ''.join(subscript_map.get(digit, digit) for digit in decimal_part)
+
+            # Construct final formatted number with subscript decimals
+            formatted = f"{formatted_integer}.{subscript_decimal}"
 
             # Add minus sign back if needed
             if is_negative:
