@@ -291,6 +291,10 @@ class MainWindow(
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
 
+        # Set up amount delegate for the Total per day column (index 6)
+        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
+
         # Enable editing for the Category column
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
@@ -2766,6 +2770,10 @@ class MainWindow(
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+
+        # Set up amount delegate for the Total per day column (index 6)
+        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
 
         # Enable editing for the Category and Amount columns
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
