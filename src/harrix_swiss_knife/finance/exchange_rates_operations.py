@@ -13,11 +13,12 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import QDate, QTimer
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QMessageBox, QAbstractItemView
 
 from harrix_swiss_knife.finance.database_manager import DatabaseManager
 from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
 from harrix_swiss_knife.finance.exchange_rate_worker import ExchangeRateUpdateWorker
+from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
 
 
 class ExchangeRatesOperations:
@@ -51,6 +52,13 @@ class ExchangeRatesOperations:
                 rates_transformed_data, self.table_config["exchange_rates"][2]
             )
             self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+
+            # Set up amount delegate for the Rate column (index 2)
+            self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
+            self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
+
+            # Enable editing for the Rate column
+            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
             # Configure column stretching for exchange rates table
             rates_header = self.tableView_exchange_rates.horizontalHeader()
@@ -807,6 +815,13 @@ class ExchangeRatesOperations:
                 rates_transformed_data, self.table_config["exchange_rates"][2]
             )
             self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+
+            # Set up amount delegate for the Rate column (index 2)
+            self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
+            self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
+
+            # Enable editing for the Rate column
+            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
             # Configure column stretching for exchange rates table
             rates_header = self.tableView_exchange_rates.horizontalHeader()
