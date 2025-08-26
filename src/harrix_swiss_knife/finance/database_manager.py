@@ -1285,6 +1285,7 @@ class DatabaseManager:
         currency_code: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
+        description_filter: str | None = None,
     ) -> list[list[Any]]:
         """Get filtered transactions.
 
@@ -1295,6 +1296,7 @@ class DatabaseManager:
         - `currency_code` (`str | None`): Filter by currency code. Defaults to `None`.
         - `date_from` (`str | None`): Filter from date. Defaults to `None`.
         - `date_to` (`str | None`): Filter to date. Defaults to `None`.
+        - `description_filter` (`str | None`): Filter by description substring (case insensitive). Defaults to `None`.
 
         Returns:
 
@@ -1320,6 +1322,10 @@ class DatabaseManager:
             conditions.append("t.date BETWEEN :date_from AND :date_to")
             params["date_from"] = date_from
             params["date_to"] = date_to
+
+        if description_filter:
+            conditions.append("LOWER(t.description) LIKE :description_filter")
+            params["description_filter"] = f"%{description_filter.lower()}%"
 
         query_text = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
