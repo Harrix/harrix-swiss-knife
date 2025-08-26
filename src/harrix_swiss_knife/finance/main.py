@@ -2920,11 +2920,17 @@ class MainWindow(
         if not text:
             return
 
+        # Save current date before populating form
+        current_date = self.dateEdit.date()
+
         # Set the selected text
         self.lineEdit_description.setText(text)
 
         # Try to populate other fields based on the selected description
         self._populate_form_from_description(text)
+
+        # Restore the original date
+        self.dateEdit.setDate(current_date)
 
         # Set focus to amount field and select all text after a short delay
         # This ensures form population is complete before focusing
