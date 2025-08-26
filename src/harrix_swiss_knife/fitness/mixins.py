@@ -311,6 +311,9 @@ class ChartOperations:
                 data, chart_config.get("period", "Days"), chart_config.get("date_from"), chart_config.get("date_to")
             )
 
+        # Filter data to start from first non-zero element
+        data = self._filter_to_first_nonzero(data)
+
         # Create matplotlib figure
         fig = Figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
@@ -356,6 +359,35 @@ class ChartOperations:
         fig.tight_layout()
         layout.addWidget(canvas)
         canvas.draw()
+
+    def _filter_to_first_nonzero(self, data: list[tuple]) -> list[tuple]:
+        """Filter data to start from the first non-zero element.
+
+        Args:
+
+        - `data` (`list[tuple]`): Chart data as list of (x, y) tuples.
+
+        Returns:
+
+        - `list[tuple]`: Filtered data starting from first non-zero element.
+
+        """
+        if not data:
+            return data
+
+        # Find the index of the first non-zero element
+        first_nonzero_index = None
+        for i, (x, y) in enumerate(data):
+            if y != 0:
+                first_nonzero_index = i
+                break
+
+        # If no non-zero elements found, return original data
+        if first_nonzero_index is None:
+            return data
+
+        # Return data starting from the first non-zero element
+        return data[first_nonzero_index:]
 
     def _fill_missing_periods_with_zeros(
         self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None
