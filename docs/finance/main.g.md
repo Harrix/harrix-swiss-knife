@@ -474,6 +474,12 @@ class MainWindow(
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
 
+        # Set up amount delegate for the Amount column (index 1)
+        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+
+        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+
         # Enable editing for the Category column
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
@@ -2944,7 +2950,13 @@ class MainWindow(
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
 
-        # Enable editing for the Category column
+        # Set up amount delegate for the Amount column (index 1)
+        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+
+        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+
+        # Enable editing for the Category and Amount columns
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Connect selection signal for transactions table to copy data to form fields
@@ -4331,6 +4343,12 @@ def apply_filter(self) -> None:
         categories = self._get_categories_for_delegate()
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Set up amount delegate for the Amount column (index 1)
+        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+
+        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
 
         # Enable editing for the Category column
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
@@ -7804,7 +7822,13 @@ def _load_transactions_table(self) -> None:
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
 
-        # Enable editing for the Category column
+        # Set up amount delegate for the Amount column (index 1)
+        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+
+        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+
+        # Enable editing for the Category and Amount columns
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Connect selection signal for transactions table to copy data to form fields
