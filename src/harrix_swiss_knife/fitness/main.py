@@ -4091,6 +4091,9 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 3)  # tableView gets more space
 
+        # Set width for charts left panel (verticalLayout_18)
+        self.widget_left_panel.setFixedWidth(300)
+
         # Initialize calories spinboxes
         self.doubleSpinBox_calories_per_unit.setDecimals(1)
         self.doubleSpinBox_calories_per_unit.setMinimum(0.0)
