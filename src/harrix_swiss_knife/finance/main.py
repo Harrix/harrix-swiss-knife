@@ -2599,6 +2599,10 @@ class MainWindow(
         )
         self.tableView_accounts.setModel(self.models["accounts"])
 
+        # Set up amount delegate for the Balance column (index 1)
+        self.accounts_balance_delegate = AmountDelegate(self.tableView_accounts, self.db_manager)
+        self.tableView_accounts.setItemDelegateForColumn(1, self.accounts_balance_delegate)
+
         # Make accounts table non-editable and connect double-click signal
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
 
