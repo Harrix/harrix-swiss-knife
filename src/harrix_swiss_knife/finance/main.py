@@ -3405,7 +3405,6 @@ class MainWindow(
             # Always restore the original date
             self.dateEdit.setDate(current_date)
 
-
     def _process_text_input(self, text: str) -> None:
         """Process text input and add purchases to database.
 

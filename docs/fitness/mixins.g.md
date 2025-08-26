@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `_clear_layout`](#%EF%B8%8F-method-_clear_layout)
   - [⚙️ Method `_create_chart`](#%EF%B8%8F-method-_create_chart)
   - [⚙️ Method `_fill_missing_periods_with_zeros`](#%EF%B8%8F-method-_fill_missing_periods_with_zeros)
+  - [⚙️ Method `_filter_to_first_nonzero`](#%EF%B8%8F-method-_filter_to_first_nonzero)
   - [⚙️ Method `_format_chart_x_axis`](#%EF%B8%8F-method-_format_chart_x_axis)
   - [⚙️ Method `_format_default_stats`](#%EF%B8%8F-method-_format_default_stats)
   - [⚙️ Method `_group_data_by_period`](#%EF%B8%8F-method-_group_data_by_period)
@@ -598,6 +599,9 @@ class ChartOperations:
                 data, chart_config.get("period", "Days"), chart_config.get("date_from"), chart_config.get("date_to")
             )
 
+        # Filter data to start from first non-zero element
+        data = self._filter_to_first_nonzero(data)
+
         # Create matplotlib figure
         fig = Figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
@@ -717,6 +721,35 @@ class ChartOperations:
                 current_date += timedelta(days=1)
 
         return result
+
+    def _filter_to_first_nonzero(self, data: list[tuple]) -> list[tuple]:
+        """Filter data to start from the first non-zero element.
+
+        Args:
+
+        - `data` (`list[tuple]`): Chart data as list of (x, y) tuples.
+
+        Returns:
+
+        - `list[tuple]`: Filtered data starting from first non-zero element.
+
+        """
+        if not data:
+            return data
+
+        # Find the index of the first non-zero element
+        first_nonzero_index = None
+        for i, (x, y) in enumerate(data):
+            if y != 0:
+                first_nonzero_index = i
+                break
+
+        # If no non-zero elements found, return original data
+        if first_nonzero_index is None:
+            return data
+
+        # Return data starting from the first non-zero element
+        return data[first_nonzero_index:]
 
     def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
         """Format x-axis for charts based on period and data range.
@@ -1107,6 +1140,9 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
                 data, chart_config.get("period", "Days"), chart_config.get("date_from"), chart_config.get("date_to")
             )
 
+        # Filter data to start from first non-zero element
+        data = self._filter_to_first_nonzero(data)
+
         # Create matplotlib figure
         fig = Figure(figsize=(12, 6), dpi=100)
         canvas = FigureCanvas(fig)
@@ -1238,6 +1274,47 @@ def _fill_missing_periods_with_zeros(
                 current_date += timedelta(days=1)
 
         return result
+```
+
+</details>
+
+### ⚙️ Method `_filter_to_first_nonzero`
+
+```python
+def _filter_to_first_nonzero(self, data: list[tuple]) -> list[tuple]
+```
+
+Filter data to start from the first non-zero element.
+
+Args:
+
+- `data` (`list[tuple]`): Chart data as list of (x, y) tuples.
+
+Returns:
+
+- `list[tuple]`: Filtered data starting from first non-zero element.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _filter_to_first_nonzero(self, data: list[tuple]) -> list[tuple]:
+        if not data:
+            return data
+
+        # Find the index of the first non-zero element
+        first_nonzero_index = None
+        for i, (x, y) in enumerate(data):
+            if y != 0:
+                first_nonzero_index = i
+                break
+
+        # If no non-zero elements found, return original data
+        if first_nonzero_index is None:
+            return data
+
+        # Return data starting from the first non-zero element
+        return data[first_nonzero_index:]
 ```
 
 </details>

@@ -25,6 +25,7 @@ lang: en
   - [⚙️ Method `on_add_type`](#%EF%B8%8F-method-on_add_type)
   - [⚙️ Method `on_add_weight`](#%EF%B8%8F-method-on_add_weight)
   - [⚙️ Method `on_chart_exercise_changed`](#%EF%B8%8F-method-on_chart_exercise_changed)
+  - [⚙️ Method `on_chart_type_changed`](#%EF%B8%8F-method-on_chart_type_changed)
   - [⚙️ Method `on_check_steps`](#%EF%B8%8F-method-on_check_steps)
   - [⚙️ Method `on_compare_last_months`](#%EF%B8%8F-method-on_compare_last_months)
   - [⚙️ Method `on_compare_same_months`](#%EF%B8%8F-method-on_compare_same_months)
@@ -32,6 +33,7 @@ lang: en
   - [⚙️ Method `on_exercise_selection_changed`](#%EF%B8%8F-method-on_exercise_selection_changed)
   - [⚙️ Method `on_exercise_selection_changed_list`](#%EF%B8%8F-method-on_exercise_selection_changed_list)
   - [⚙️ Method `on_exercise_type_changed`](#%EF%B8%8F-method-on_exercise_type_changed)
+  - [⚙️ Method `on_exercise_type_changed`](#%EF%B8%8F-method-on_exercise_type_changed-1)
   - [⚙️ Method `on_exercise_type_selection_changed`](#%EF%B8%8F-method-on_exercise_type_selection_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_process_selection_changed`](#%EF%B8%8F-method-on_process_selection_changed)
@@ -712,6 +714,20 @@ class MainWindow(
 
         """
         self._update_charts_avif()
+        # Auto-update chart when exercise changes
+        self.update_exercise_chart()
+
+    def on_chart_type_changed(self, current=None, previous=None) -> None:
+        """Handle chart type list view selection change.
+
+        Args:
+
+        - `current` (`QModelIndex | None`): Current index from ListView signal. Defaults to `None`.
+        - `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
+
+        """
+        # Auto-update chart when type changes
+        self.update_exercise_chart()
 
     @requires_database()
     def on_check_steps(self) -> None:
@@ -1473,6 +1489,20 @@ class MainWindow(
         # Move focus to spinBox_count and select all text
         if exercise:  # Only if exercise was successfully selected
             QTimer.singleShot(0, self._focus_and_select_spinbox_count)
+
+    def on_exercise_type_changed(self, _index: int = -1) -> None:
+        """Handle exercise type combobox selection change.
+
+        Args:
+
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+
+        """
+        # Set today's date when exercise type is selected
+        from datetime import date
+
+        today = date.today()
+        self.dateEdit.setDate(today)
 
     def on_exercise_type_changed(self, _index: int = -1) -> None:
         """Handle exercise type combobox selection change and sync with statistics.
@@ -2618,6 +2648,15 @@ class MainWindow(
                         type_model.appendRow(item)
 
             self.listView_chart_type.setModel(type_model)
+
+            # Connect signals for chart type selection (disconnect first to avoid duplicates)
+            selection_model = self.listView_chart_type.selectionModel()
+            if selection_model:
+                try:
+                    selection_model.currentChanged.disconnect()
+                except TypeError:
+                    pass  # No connections exist
+                selection_model.currentChanged.connect(self.on_chart_type_changed)
 
             # Select first item by default (All types)
             if type_model.rowCount() > 0:
@@ -4162,6 +4201,9 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 3)  # tableView gets more space
 
+        # Set width for charts left panel (verticalLayout_18)
+        self.widget_left_panel.setFixedWidth(300)
+
         # Initialize calories spinboxes
         self.doubleSpinBox_calories_per_unit.setDecimals(1)
         self.doubleSpinBox_calories_per_unit.setMinimum(0.0)
@@ -5198,6 +5240,32 @@ Args:
 ```python
 def on_chart_exercise_changed(self, current=None, previous=None) -> None:
         self._update_charts_avif()
+        # Auto-update chart when exercise changes
+        self.update_exercise_chart()
+```
+
+</details>
+
+### ⚙️ Method `on_chart_type_changed`
+
+```python
+def on_chart_type_changed(self, current = None, previous = None) -> None
+```
+
+Handle chart type list view selection change.
+
+Args:
+
+- `current` (`QModelIndex | None`): Current index from ListView signal. Defaults to `None`.
+- `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_chart_type_changed(self, current=None, previous=None) -> None:
+        # Auto-update chart when type changes
+        self.update_exercise_chart()
 ```
 
 </details>
@@ -6036,6 +6104,32 @@ def on_exercise_selection_changed_list(self) -> None:
         # Move focus to spinBox_count and select all text
         if exercise:  # Only if exercise was successfully selected
             QTimer.singleShot(0, self._focus_and_select_spinbox_count)
+```
+
+</details>
+
+### ⚙️ Method `on_exercise_type_changed`
+
+```python
+def on_exercise_type_changed(self, _index: int = -1) -> None
+```
+
+Handle exercise type combobox selection change.
+
+Args:
+
+- `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_exercise_type_changed(self, _index: int = -1) -> None:
+        # Set today's date when exercise type is selected
+        from datetime import date
+
+        today = date.today()
+        self.dateEdit.setDate(today)
 ```
 
 </details>
@@ -7493,6 +7587,15 @@ def update_chart_type_listview(self, current=None, previous=None) -> None:
                         type_model.appendRow(item)
 
             self.listView_chart_type.setModel(type_model)
+
+            # Connect signals for chart type selection (disconnect first to avoid duplicates)
+            selection_model = self.listView_chart_type.selectionModel()
+            if selection_model:
+                try:
+                    selection_model.currentChanged.disconnect()
+                except TypeError:
+                    pass  # No connections exist
+                selection_model.currentChanged.connect(self.on_chart_type_changed)
 
             # Select first item by default (All types)
             if type_model.rowCount() > 0:
@@ -9637,6 +9740,9 @@ def _setup_ui(self) -> None:
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 3)  # tableView gets more space
+
+        # Set width for charts left panel (verticalLayout_18)
+        self.widget_left_panel.setFixedWidth(300)
 
         # Initialize calories spinboxes
         self.doubleSpinBox_calories_per_unit.setDecimals(1)

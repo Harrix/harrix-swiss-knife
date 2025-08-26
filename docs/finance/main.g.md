@@ -3155,7 +3155,7 @@ class MainWindow(
         # Try to populate other fields based on the selected description
         self._populate_form_from_description(text)
 
-        # Restore the original date
+        # Restore the original date (this is redundant now, but kept for safety)
         self.dateEdit.setDate(current_date)
 
         # Set focus to amount field and select all text after a short delay
@@ -3545,6 +3545,9 @@ class MainWindow(
         if self.db_manager is None:
             return
 
+        # Save current date before populating form
+        current_date = self.dateEdit.date()
+
         try:
             # Get the most recent transaction with this description
             query = """
@@ -3587,6 +3590,9 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error populating form from description: {e}")
+        finally:
+            # Always restore the original date
+            self.dateEdit.setDate(current_date)
 
     def _process_text_input(self, text: str) -> None:
         """Process text input and add purchases to database.
@@ -8132,7 +8138,7 @@ def _on_autocomplete_selected(self, text: str) -> None:
         # Try to populate other fields based on the selected description
         self._populate_form_from_description(text)
 
-        # Restore the original date
+        # Restore the original date (this is redundant now, but kept for safety)
         self.dateEdit.setDate(current_date)
 
         # Set focus to amount field and select all text after a short delay
@@ -8799,6 +8805,9 @@ def _populate_form_from_description(self, description: str) -> None:
         if self.db_manager is None:
             return
 
+        # Save current date before populating form
+        current_date = self.dateEdit.date()
+
         try:
             # Get the most recent transaction with this description
             query = """
@@ -8841,6 +8850,9 @@ def _populate_form_from_description(self, description: str) -> None:
 
         except Exception as e:
             print(f"Error populating form from description: {e}")
+        finally:
+            # Always restore the original date
+            self.dateEdit.setDate(current_date)
 ```
 
 </details>
