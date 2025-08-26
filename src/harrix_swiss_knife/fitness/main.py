@@ -641,8 +641,9 @@ class MainWindow(
 
         """
         self._update_charts_avif()
-        # Auto-update chart when exercise changes
-        self.update_exercise_chart()
+        # Auto-update chart when exercise changes (only if not during initialization)
+        if hasattr(self, "_charts_initialized"):
+            self.update_exercise_chart()
 
     def on_chart_type_changed(self, current=None, previous=None) -> None:
         """Handle chart type list view selection change.
@@ -653,8 +654,9 @@ class MainWindow(
         - `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
 
         """
-        # Auto-update chart when type changes
-        self.update_exercise_chart()
+        # Auto-update chart when type changes (only if not during initialization)
+        if hasattr(self, "_charts_initialized"):
+            self.update_exercise_chart()
 
     @requires_database()
     def on_check_steps(self) -> None:
@@ -1242,19 +1244,6 @@ class MainWindow(
         """
         self._update_types_avif()
 
-    def on_exercise_type_changed(self, _index: int = -1) -> None:
-        """Handle exercise type combobox selection change.
-
-        Args:
-
-        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
-
-        """
-        # Set today's date when exercise type is selected
-        from datetime import date
-        today = date.today()
-        self.dateEdit.setDate(today)
-
     def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when exercise selection changes in the table."""
         index = self.tableView_exercises.currentIndex()
@@ -1429,6 +1418,20 @@ class MainWindow(
         # Move focus to spinBox_count and select all text
         if exercise:  # Only if exercise was successfully selected
             QTimer.singleShot(0, self._focus_and_select_spinbox_count)
+
+    def on_exercise_type_changed(self, _index: int = -1) -> None:
+        """Handle exercise type combobox selection change.
+
+        Args:
+
+        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
+
+        """
+        # Set today's date when exercise type is selected
+        from datetime import date
+
+        today = date.today()
+        self.dateEdit.setDate(today)
 
     def on_exercise_type_changed(self, _index: int = -1) -> None:
         """Handle exercise type combobox selection change and sync with statistics.
