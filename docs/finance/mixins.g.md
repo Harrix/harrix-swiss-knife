@@ -277,8 +277,20 @@ class AutoSaveOperations:
             QMessageBox.warning(None, "Validation Error", "Description cannot be empty")
             return
 
-        # Remove "(Income)" suffix if present for database lookup
-        clean_category_name = category_name.replace(" (Income)", "")
+        # Remove emoji prefix and "(Income)" suffix if present for database lookup
+        clean_category_name = category_name
+        # Remove emoji prefix (emoji is typically at the start, followed by a space)
+        if (
+            clean_category_name
+            and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        ):
+            # Find first letter/number character (skip emoji)
+            for i, char in enumerate(clean_category_name):
+                if char in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
+                    clean_category_name = clean_category_name[i:].lstrip()
+                    break
+        # Remove "(Income)" suffix
+        clean_category_name = clean_category_name.replace(" (Income)", "")
 
         # Get category ID
         cat_id = self.db_manager.get_id("categories", "name", clean_category_name)
@@ -595,8 +607,20 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
             QMessageBox.warning(None, "Validation Error", "Description cannot be empty")
             return
 
-        # Remove "(Income)" suffix if present for database lookup
-        clean_category_name = category_name.replace(" (Income)", "")
+        # Remove emoji prefix and "(Income)" suffix if present for database lookup
+        clean_category_name = category_name
+        # Remove emoji prefix (emoji is typically at the start, followed by a space)
+        if (
+            clean_category_name
+            and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        ):
+            # Find first letter/number character (skip emoji)
+            for i, char in enumerate(clean_category_name):
+                if char in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
+                    clean_category_name = clean_category_name[i:].lstrip()
+                    break
+        # Remove "(Income)" suffix
+        clean_category_name = clean_category_name.replace(" (Income)", "")
 
         # Get category ID
         cat_id = self.db_manager.get_id("categories", "name", clean_category_name)

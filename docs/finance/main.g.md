@@ -11,8 +11,13 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+- [🏛️ Class `CategoryComboBoxDelegate`](#%EF%B8%8F-class-categorycomboboxdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
+  - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
+  - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
+- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
@@ -51,6 +56,7 @@ lang: en
   - [⚙️ Method `update_charts`](#%EF%B8%8F-method-update_charts)
   - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
   - [⚙️ Method `update_summary_labels`](#%EF%B8%8F-method-update_summary_labels)
+  - [⚙️ Method `_add_one_day_to_main`](#%EF%B8%8F-method-_add_one_day_to_main)
   - [⚙️ Method `_calculate_daily_expenses`](#%EF%B8%8F-method-_calculate_daily_expenses)
   - [⚙️ Method `_calculate_total_accounts_balance`](#%EF%B8%8F-method-_calculate_total_accounts_balance)
   - [⚙️ Method `_cleanup_startup_dialog`](#%EF%B8%8F-method-_cleanup_startup_dialog)
@@ -76,6 +82,7 @@ lang: en
   - [⚙️ Method `_generate_currency_analysis_report`](#%EF%B8%8F-method-_generate_currency_analysis_report)
   - [⚙️ Method `_generate_income_vs_expenses_report`](#%EF%B8%8F-method-_generate_income_vs_expenses_report)
   - [⚙️ Method `_generate_monthly_summary_report`](#%EF%B8%8F-method-_generate_monthly_summary_report)
+  - [⚙️ Method `_get_categories_for_delegate`](#%EF%B8%8F-method-_get_categories_for_delegate)
   - [⚙️ Method `_get_or_create_category`](#%EF%B8%8F-method-_get_or_create_category)
   - [⚙️ Method `_init_chart_controls`](#%EF%B8%8F-method-_init_chart_controls)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
@@ -117,17 +124,159 @@ lang: en
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
   - [⚙️ Method `_select_category_by_id`](#%EF%B8%8F-method-_select_category_by_id)
+  - [⚙️ Method `_set_date_from_table`](#%EF%B8%8F-method-_set_date_from_table)
+  - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
   - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
   - [⚙️ Method `_setup_tab_order`](#%EF%B8%8F-method-_setup_tab_order)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
   - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
+  - [⚙️ Method `_show_yesterday_context_menu`](#%EF%B8%8F-method-_show_yesterday_context_menu)
+  - [⚙️ Method `_subtract_one_day_from_main`](#%EF%B8%8F-method-_subtract_one_day_from_main)
   - [⚙️ Method `_transform_transaction_data`](#%EF%B8%8F-method-_transform_transaction_data)
   - [⚙️ Method `_update_accounts_balance_display`](#%EF%B8%8F-method-_update_accounts_balance_display)
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
+
+</details>
+
+## 🏛️ Class `CategoryComboBoxDelegate`
+
+```python
+class CategoryComboBoxDelegate(QStyledItemDelegate)
+```
+
+Delegate for category column in transactions table with dropdown list.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class CategoryComboBoxDelegate(QStyledItemDelegate):
+
+    def __init__(self, parent=None, categories=None):
+        super().__init__(parent)
+        self.categories = categories or []
+
+    def createEditor(self, parent, option, index):
+        """Create a combo box editor for the category column."""
+        combo = QComboBox(parent)
+        combo.setEditable(False)
+
+        # Add categories to combo box
+        for category in self.categories:
+            combo.addItem(category)
+
+        return combo
+
+    def setEditorData(self, editor, index):
+        """Set the current value in the editor."""
+        current_value = index.data()
+        if current_value:
+            # Find the exact value in the combo box
+            index_in_combo = editor.findText(current_value)
+            if index_in_combo >= 0:
+                editor.setCurrentIndex(index_in_combo)
+
+    def setModelData(self, editor, model, index):
+        """Set the data from the editor back to the model."""
+        selected_text = editor.currentText()
+        if selected_text:
+            # Check if this is an income category and add suffix if needed
+            # This logic should match the logic used in _save_transaction_data
+            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent = None, categories = None)
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent=None, categories=None):
+        super().__init__(parent)
+        self.categories = categories or []
+```
+
+</details>
+
+### ⚙️ Method `createEditor`
+
+```python
+def createEditor(self, parent, option, index)
+```
+
+Create a combo box editor for the category column.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def createEditor(self, parent, option, index):
+        combo = QComboBox(parent)
+        combo.setEditable(False)
+
+        # Add categories to combo box
+        for category in self.categories:
+            combo.addItem(category)
+
+        return combo
+```
+
+</details>
+
+### ⚙️ Method `setEditorData`
+
+```python
+def setEditorData(self, editor, index)
+```
+
+Set the current value in the editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setEditorData(self, editor, index):
+        current_value = index.data()
+        if current_value:
+            # Find the exact value in the combo box
+            index_in_combo = editor.findText(current_value)
+            if index_in_combo >= 0:
+                editor.setCurrentIndex(index_in_combo)
+```
+
+</details>
+
+### ⚙️ Method `setModelData`
+
+```python
+def setModelData(self, editor, model, index)
+```
+
+Set the data from the editor back to the model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setModelData(self, editor, model, index):
+        selected_text = editor.currentText()
+        if selected_text:
+            # Check if this is an income category and add suffix if needed
+            # This logic should match the logic used in _save_transaction_data
+            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
+```
 
 </details>
 
@@ -198,11 +347,17 @@ class MainWindow(
             "exchange_rates": None,
         }
 
+        # Category delegate for transactions table
+        self.category_delegate = None
+
         # Chart configuration
         self.max_count_points_in_charts = 40
 
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
+
+        # Initialize mouse button tracking
+        self._right_click_in_progress = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show = 1000
@@ -313,6 +468,14 @@ class MainWindow(
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Set up category delegate for the Category column (index 2)
+        categories = self._get_categories_for_delegate()
+        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
+        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Enable editing for the Category column
+        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Column stretching setup (like in show_tables)
         self.tableView_transactions.resizeColumnsToContents()
@@ -468,21 +631,26 @@ class MainWindow(
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
     def eventFilter(self, obj, event) -> bool:
-        """Event filter for handling Enter key in doubleSpinBox_amount.
+        """Event filter for handling mouse and key events."""
+        from PySide6.QtCore import QEvent, QTimer
+        from PySide6.QtGui import QKeyEvent, QMouseEvent
 
-        Args:
+        # Track right mouse button on the table's viewport to suppress data copy on right-click
+        if obj == self.tableView_transactions.viewport():
+            if event.type() == QEvent.Type.MouseButtonPress:
+                mouse_event = QMouseEvent(event)
+                if mouse_event.button() == Qt.MouseButton.RightButton:
+                    self._right_click_in_progress = True
+                else:
+                    self._right_click_in_progress = False
 
-        - `obj`: The object that generated the event.
-        - `event`: The event that occurred.
+            elif event.type() == QEvent.Type.MouseButtonRelease:
+                mouse_event = QMouseEvent(event)
+                if mouse_event.button() == Qt.MouseButton.RightButton:
+                    # Reset the flag shortly after release to allow context menu to process
+                    QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
 
-        Returns:
-
-        - `bool`: True if event was handled, False otherwise.
-
-        """
-        from PySide6.QtCore import QEvent
-        from PySide6.QtGui import QKeyEvent
-
+        # Handle Enter key to add transaction quickly
         if (
             (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
             or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
@@ -490,9 +658,10 @@ class MainWindow(
             or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
         ):
             key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
+            if key_event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 self.on_add_transaction()
                 return True
+
         return super().eventFilter(obj, event)
 
     def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
@@ -1483,6 +1652,12 @@ class MainWindow(
             self.label_daily_balance.setText("0.00₽")
             self.label_today_expense.setText("0.00₽")
 
+    def _add_one_day_to_main(self) -> None:
+        """Add one day to the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit.setDate(new_date)
+
     def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
         """Calculate daily expenses from transaction data.
 
@@ -1720,6 +1895,10 @@ class MainWindow(
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
 
+        # Add context menu for yesterday button
+        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
+
         # Delete and refresh buttons for all tables
         tables_with_controls = {
             "transactions": ("pushButton_delete", "pushButton_refresh"),
@@ -1810,6 +1989,9 @@ class MainWindow(
         # Add context menu for transactions table
         self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
+
+        # Install event filter to track mouse events on transactions table
+        self.tableView_transactions.viewport().installEventFilter(self)
 
         # Add selection signal for transactions table to copy data to form fields
         # This will be connected after the model is set in _load_transactions_table
@@ -2407,6 +2589,34 @@ class MainWindow(
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
+    def _get_categories_for_delegate(self) -> list[str]:
+        """Get list of category names for the delegate dropdown."""
+        if self.db_manager is None:
+            return []
+
+        try:
+            categories = self.db_manager.get_all_categories()
+            category_names = []
+            for category in categories:
+                name = category[1]  # category name is at index 1
+                category_type = category[2]  # category type is at index 2
+                icon = category[3]  # category icon is at index 3
+
+                # Add emoji prefix if icon exists
+                if icon:
+                    name = f"{icon} {name}"
+
+                # Add "(Income)" suffix for income categories (type == 1)
+                if category_type == 1:
+                    name += " (Income)"
+
+                category_names.append(name)
+
+            return category_names
+        except Exception as e:
+            print(f"Error getting categories for delegate: {e}")
+            return []
+
     def _get_or_create_category(self, category_name: str) -> int | None:
         """Get existing category ID or create new one.
 
@@ -2728,6 +2938,14 @@ class MainWindow(
             transactions_transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Set up category delegate for the Category column (index 2)
+        categories = self._get_categories_for_delegate()
+        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
+        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Enable editing for the Category column
+        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Connect selection signal for transactions table to copy data to form fields
         # This must be done after the model is set
@@ -3171,6 +3389,10 @@ class MainWindow(
             current: The current selected index.
             previous: The previously selected index.
         """
+        # Don't copy data if right click is in progress
+        if hasattr(self, "_right_click_in_progress") and self._right_click_in_progress:
+            return
+
         if not current.isValid():
             return
 
@@ -3477,6 +3699,29 @@ class MainWindow(
         except Exception as e:
             print(f"Error selecting category by ID: {e}")
 
+    def _set_date_from_table(self, date_value: str) -> None:
+        """Set the date from table row to the main dateEdit field.
+
+        Args:
+            date_value: Date string from the table (format: yyyy-MM-dd)
+        """
+        try:
+            # Parse the date string and set it in dateEdit
+            from PySide6.QtCore import QDate
+
+            date_obj = QDate.fromString(date_value, "yyyy-MM-dd")
+            if date_obj.isValid():
+                self.dateEdit.setDate(date_obj)
+            else:
+                print(f"❌ Invalid date format: {date_value}")
+        except Exception as e:
+            print(f"❌ Error setting date from table: {e}")
+
+    def _set_today_date_in_main(self) -> None:
+        """Set today's date in the main date field."""
+        today = QDate.currentDate()
+        self.dateEdit.setDate(today)
+
     def _setup_autocomplete(self) -> None:
         """Setup autocomplete functionality for description input."""
         # Create completer
@@ -3631,12 +3876,59 @@ class MainWindow(
         from PySide6.QtWidgets import QMenu
 
         context_menu = QMenu(self)
+
+        # Get the clicked index
+        index = self.tableView_transactions.indexAt(position)
+        if index.isValid():
+            # Get the date from the Date column (index 4)
+            date_index = self.tableView_transactions.model().index(index.row(), 4)
+            if date_index.isValid():
+                date_value = self.tableView_transactions.model().data(date_index)
+                if date_value:
+                    # Add menu item to set this date in dateEdit
+                    set_date_action = context_menu.addAction("📅 Set this date in main field")
+                    set_date_action.triggered.connect(lambda: self._set_date_from_table(date_value))
+
+                    # Add separator
+                    context_menu.addSeparator()
+
         export_action = context_menu.addAction("Export to CSV")
 
         action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
 
         if action == export_action:
             self.on_export_csv()
+        elif "set_date_action" in locals() and action == set_date_action:
+            # This will be handled by the lambda connection above
+            pass
+
+    def _show_yesterday_context_menu(self, position) -> None:
+        """Show context menu for yesterday button with date options."""
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+
+    def _subtract_one_day_from_main(self) -> None:
+        """Subtract one day from the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit.setDate(new_date)
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors and daily totals.
@@ -3672,6 +3964,7 @@ class MainWindow(
             date = row[5]
             tag = row[6]
             category_type = row[7]
+            icon = row[8]  # category icon
 
             # Convert amount from minor units to display format using currency subdivision
             if self.db_manager:
@@ -3691,10 +3984,12 @@ class MainWindow(
 
             color = self.date_colors[date_to_color_index[date]]
 
-            # Add "(Income)" suffix for income categories
+            # Add emoji prefix and "(Income)" suffix for income categories
             display_category_name = category_name
+            if icon:
+                display_category_name = f"{icon} {category_name}"
             if category_type == 1:  # Income category
-                display_category_name = f"{category_name} (Income)"
+                display_category_name = f"{display_category_name} (Income)"
 
             # Determine if this is the first transaction for this date
             is_first_of_day = date not in dates_with_totals
@@ -3891,11 +4186,17 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             "exchange_rates": None,
         }
 
+        # Category delegate for transactions table
+        self.category_delegate = None
+
         # Chart configuration
         self.max_count_points_in_charts = 40
 
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
+
+        # Initialize mouse button tracking
+        self._right_click_in_progress = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show = 1000
@@ -4019,6 +4320,14 @@ def apply_filter(self) -> None:
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Set up category delegate for the Category column (index 2)
+        categories = self._get_categories_for_delegate()
+        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
+        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Enable editing for the Category column
+        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Column stretching setup (like in show_tables)
         self.tableView_transactions.resizeColumnsToContents()
@@ -4221,25 +4530,32 @@ def delete_record(self, table_name: str) -> None:
 def eventFilter(self, obj, event) -> bool
 ```
 
-Event filter for handling Enter key in doubleSpinBox_amount.
-
-Args:
-
-- `obj`: The object that generated the event.
-- `event`: The event that occurred.
-
-Returns:
-
-- `bool`: True if event was handled, False otherwise.
+Event filter for handling mouse and key events.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def eventFilter(self, obj, event) -> bool:
-        from PySide6.QtCore import QEvent
-        from PySide6.QtGui import QKeyEvent
+        from PySide6.QtCore import QEvent, QTimer
+        from PySide6.QtGui import QKeyEvent, QMouseEvent
 
+        # Track right mouse button on the table's viewport to suppress data copy on right-click
+        if obj == self.tableView_transactions.viewport():
+            if event.type() == QEvent.Type.MouseButtonPress:
+                mouse_event = QMouseEvent(event)
+                if mouse_event.button() == Qt.MouseButton.RightButton:
+                    self._right_click_in_progress = True
+                else:
+                    self._right_click_in_progress = False
+
+            elif event.type() == QEvent.Type.MouseButtonRelease:
+                mouse_event = QMouseEvent(event)
+                if mouse_event.button() == Qt.MouseButton.RightButton:
+                    # Reset the flag shortly after release to allow context menu to process
+                    QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
+
+        # Handle Enter key to add transaction quickly
         if (
             (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
             or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
@@ -4247,9 +4563,10 @@ def eventFilter(self, obj, event) -> bool:
             or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
         ):
             key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
+            if key_event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 self.on_add_transaction()
                 return True
+
         return super().eventFilter(obj, event)
 ```
 
@@ -5683,6 +6000,26 @@ def update_summary_labels(self) -> None:
 
 </details>
 
+### ⚙️ Method `_add_one_day_to_main`
+
+```python
+def _add_one_day_to_main(self) -> None
+```
+
+Add one day to the current date in main date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_one_day_to_main(self) -> None:
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit.setDate(new_date)
+```
+
+</details>
+
 ### ⚙️ Method `_calculate_daily_expenses`
 
 ```python
@@ -6054,6 +6391,10 @@ def _connect_signals(self) -> None:
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
 
+        # Add context menu for yesterday button
+        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
+
         # Delete and refresh buttons for all tables
         tables_with_controls = {
             "transactions": ("pushButton_delete", "pushButton_refresh"),
@@ -6144,6 +6485,9 @@ def _connect_signals(self) -> None:
         # Add context menu for transactions table
         self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
+
+        # Install event filter to track mouse events on transactions table
+        self.tableView_transactions.viewport().installEventFilter(self)
 
         # Add selection signal for transactions table to copy data to form fields
         # This will be connected after the model is set in _load_transactions_table
@@ -6936,6 +7280,48 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
 
 </details>
 
+### ⚙️ Method `_get_categories_for_delegate`
+
+```python
+def _get_categories_for_delegate(self) -> list[str]
+```
+
+Get list of category names for the delegate dropdown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_categories_for_delegate(self) -> list[str]:
+        if self.db_manager is None:
+            return []
+
+        try:
+            categories = self.db_manager.get_all_categories()
+            category_names = []
+            for category in categories:
+                name = category[1]  # category name is at index 1
+                category_type = category[2]  # category type is at index 2
+                icon = category[3]  # category icon is at index 3
+
+                # Add emoji prefix if icon exists
+                if icon:
+                    name = f"{icon} {name}"
+
+                # Add "(Income)" suffix for income categories (type == 1)
+                if category_type == 1:
+                    name += " (Income)"
+
+                category_names.append(name)
+
+            return category_names
+        except Exception as e:
+            print(f"Error getting categories for delegate: {e}")
+            return []
+```
+
+</details>
+
 ### ⚙️ Method `_get_or_create_category`
 
 ```python
@@ -7406,6 +7792,14 @@ def _load_transactions_table(self) -> None:
             transactions_transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Set up category delegate for the Category column (index 2)
+        categories = self._get_categories_for_delegate()
+        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
+        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Enable editing for the Category column
+        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Connect selection signal for transactions table to copy data to form fields
         # This must be done after the model is set
@@ -8165,6 +8559,10 @@ previous: The previously selected index.
 
 ```python
 def _on_transaction_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        # Don't copy data if right click is in progress
+        if hasattr(self, "_right_click_in_progress") and self._right_click_in_progress:
+            return
+
         if not current.isValid():
             return
 
@@ -8564,6 +8962,56 @@ def _select_category_by_id(self, category_id: int) -> None:
 
 </details>
 
+### ⚙️ Method `_set_date_from_table`
+
+```python
+def _set_date_from_table(self, date_value: str) -> None
+```
+
+Set the date from table row to the main dateEdit field.
+
+Args:
+date_value: Date string from the table (format: yyyy-MM-dd)
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_date_from_table(self, date_value: str) -> None:
+        try:
+            # Parse the date string and set it in dateEdit
+            from PySide6.QtCore import QDate
+
+            date_obj = QDate.fromString(date_value, "yyyy-MM-dd")
+            if date_obj.isValid():
+                self.dateEdit.setDate(date_obj)
+            else:
+                print(f"❌ Invalid date format: {date_value}")
+        except Exception as e:
+            print(f"❌ Error setting date from table: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_set_today_date_in_main`
+
+```python
+def _set_today_date_in_main(self) -> None
+```
+
+Set today's date in the main date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_today_date_in_main(self) -> None:
+        today = QDate.currentDate()
+        self.dateEdit.setDate(today)
+```
+
+</details>
+
 ### ⚙️ Method `_setup_autocomplete`
 
 ```python
@@ -8797,12 +9245,87 @@ def _show_transactions_context_menu(self, position) -> None:
         from PySide6.QtWidgets import QMenu
 
         context_menu = QMenu(self)
+
+        # Get the clicked index
+        index = self.tableView_transactions.indexAt(position)
+        if index.isValid():
+            # Get the date from the Date column (index 4)
+            date_index = self.tableView_transactions.model().index(index.row(), 4)
+            if date_index.isValid():
+                date_value = self.tableView_transactions.model().data(date_index)
+                if date_value:
+                    # Add menu item to set this date in dateEdit
+                    set_date_action = context_menu.addAction("📅 Set this date in main field")
+                    set_date_action.triggered.connect(lambda: self._set_date_from_table(date_value))
+
+                    # Add separator
+                    context_menu.addSeparator()
+
         export_action = context_menu.addAction("Export to CSV")
 
         action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
 
         if action == export_action:
             self.on_export_csv()
+        elif "set_date_action" in locals() and action == set_date_action:
+            # This will be handled by the lambda connection above
+            pass
+```
+
+</details>
+
+### ⚙️ Method `_show_yesterday_context_menu`
+
+```python
+def _show_yesterday_context_menu(self, position) -> None
+```
+
+Show context menu for yesterday button with date options.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_yesterday_context_menu(self, position) -> None:
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+```
+
+</details>
+
+### ⚙️ Method `_subtract_one_day_from_main`
+
+```python
+def _subtract_one_day_from_main(self) -> None
+```
+
+Subtract one day from the current date in main date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _subtract_one_day_from_main(self) -> None:
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit.setDate(new_date)
 ```
 
 </details>
@@ -8850,6 +9373,7 @@ def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
             date = row[5]
             tag = row[6]
             category_type = row[7]
+            icon = row[8]  # category icon
 
             # Convert amount from minor units to display format using currency subdivision
             if self.db_manager:
@@ -8869,10 +9393,12 @@ def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
 
             color = self.date_colors[date_to_color_index[date]]
 
-            # Add "(Income)" suffix for income categories
+            # Add emoji prefix and "(Income)" suffix for income categories
             display_category_name = category_name
+            if icon:
+                display_category_name = f"{icon} {category_name}"
             if category_type == 1:  # Income category
-                display_category_name = f"{category_name} (Income)"
+                display_category_name = f"{display_category_name} (Income)"
 
             # Determine if this is the first transaction for this date
             is_first_of_day = date not in dates_with_totals

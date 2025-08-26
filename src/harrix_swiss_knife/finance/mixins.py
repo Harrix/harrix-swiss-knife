@@ -259,7 +259,10 @@ class AutoSaveOperations:
         # Remove emoji prefix and "(Income)" suffix if present for database lookup
         clean_category_name = category_name
         # Remove emoji prefix (emoji is typically at the start, followed by a space)
-        if clean_category_name and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
+        if (
+            clean_category_name
+            and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        ):
             # Find first letter/number character (skip emoji)
             for i, char in enumerate(clean_category_name):
                 if char in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":

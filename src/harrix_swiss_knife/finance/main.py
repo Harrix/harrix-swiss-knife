@@ -31,16 +31,16 @@ from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStanda
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QComboBox,
     QCompleter,
     QDialog,
     QFileDialog,
     QMainWindow,
+    QMenu,
     QMessageBox,
+    QStyledItemDelegate,
     QTableView,
     QTableWidgetItem,
-    QStyledItemDelegate,
-    QComboBox,
-    QMenu,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -166,8 +166,8 @@ class MainWindow(
         # Generate pastel colors for date-based coloring
         self.date_colors = self.generate_pastel_colors_mathematical(50)
 
-        # Flag to prevent data copying during context menu
-        self._context_menu_showing = False
+        # Initialize mouse button tracking
+        self._right_click_in_progress = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show = 1000
@@ -441,21 +441,26 @@ class MainWindow(
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
     def eventFilter(self, obj, event) -> bool:
-        """Event filter for handling Enter key in doubleSpinBox_amount.
+        """Event filter for handling mouse and key events."""
+        from PySide6.QtCore import QEvent, QTimer
+        from PySide6.QtGui import QKeyEvent, QMouseEvent
 
-        Args:
+        # Track right mouse button on the table's viewport to suppress data copy on right-click
+        if obj == self.tableView_transactions.viewport():
+            if event.type() == QEvent.Type.MouseButtonPress:
+                mouse_event = QMouseEvent(event)
+                if mouse_event.button() == Qt.MouseButton.RightButton:
+                    self._right_click_in_progress = True
+                else:
+                    self._right_click_in_progress = False
 
-        - `obj`: The object that generated the event.
-        - `event`: The event that occurred.
+            elif event.type() == QEvent.Type.MouseButtonRelease:
+                mouse_event = QMouseEvent(event)
+                if mouse_event.button() == Qt.MouseButton.RightButton:
+                    # Reset the flag shortly after release to allow context menu to process
+                    QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
 
-        Returns:
-
-        - `bool`: True if event was handled, False otherwise.
-
-        """
-        from PySide6.QtCore import QEvent
-        from PySide6.QtGui import QKeyEvent
-
+        # Handle Enter key to add transaction quickly
         if (
             (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
             or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
@@ -463,9 +468,10 @@ class MainWindow(
             or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
         ):
             key_event = QKeyEvent(event)
-            if key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter:
+            if key_event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 self.on_add_transaction()
                 return True
+
         return super().eventFilter(obj, event)
 
     def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
@@ -1088,62 +1094,6 @@ class MainWindow(
         yesterday = QDate.currentDate().addDays(-1)
         self.dateEdit.setDate(yesterday)
 
-    def _show_yesterday_context_menu(self, position) -> None:
-        """Show context menu for yesterday button with date options."""
-        context_menu = QMenu(self)
-
-        # Today's date
-        today_action = context_menu.addAction("📅 Today's date")
-        today_action.triggered.connect(self._set_today_date_in_main)
-
-        # Add separator
-        context_menu.addSeparator()
-
-        # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")
-        plus_one_action.triggered.connect(self._add_one_day_to_main)
-
-        # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
-        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
-
-        # Show context menu at cursor position
-        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
-
-    def _set_date_from_table(self, date_value: str) -> None:
-        """Set the date from table row to the main dateEdit field.
-
-        Args:
-            date_value: Date string from the table (format: yyyy-MM-dd)
-        """
-        try:
-            # Parse the date string and set it in dateEdit
-            from PySide6.QtCore import QDate
-            date_obj = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
-                self.dateEdit.setDate(date_obj)
-            else:
-                print(f"❌ Invalid date format: {date_value}")
-        except Exception as e:
-            print(f"❌ Error setting date from table: {e}")
-
-    def _set_today_date_in_main(self) -> None:
-        """Set today's date in the main date field."""
-        today = QDate.currentDate()
-        self.dateEdit.setDate(today)
-
-    def _add_one_day_to_main(self) -> None:
-        """Add one day to the current date in main date field."""
-        current_date = self.dateEdit.date()
-        new_date = current_date.addDays(1)
-        self.dateEdit.setDate(new_date)
-
-    def _subtract_one_day_from_main(self) -> None:
-        """Subtract one day from the current date in main date field."""
-        current_date = self.dateEdit.date()
-        new_date = current_date.addDays(-1)
-        self.dateEdit.setDate(new_date)
-
     def on_yesterday_exchange(self) -> None:
         """Set yesterday's date in the exchange date field."""
         yesterday = QDate.currentDate().addDays(-1)
@@ -1512,6 +1462,12 @@ class MainWindow(
             self.label_daily_balance.setText("0.00₽")
             self.label_today_expense.setText("0.00₽")
 
+    def _add_one_day_to_main(self) -> None:
+        """Add one day to the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit.setDate(new_date)
+
     def _calculate_daily_expenses(self, rows: list[list[Any]]) -> dict[str, float]:
         """Calculate daily expenses from transaction data.
 
@@ -1843,6 +1799,9 @@ class MainWindow(
         # Add context menu for transactions table
         self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
+
+        # Install event filter to track mouse events on transactions table
+        self.tableView_transactions.viewport().installEventFilter(self)
 
         # Add selection signal for transactions table to copy data to form fields
         # This will be connected after the model is set in _load_transactions_table
@@ -2439,6 +2398,34 @@ class MainWindow(
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+
+    def _get_categories_for_delegate(self) -> list[str]:
+        """Get list of category names for the delegate dropdown."""
+        if self.db_manager is None:
+            return []
+
+        try:
+            categories = self.db_manager.get_all_categories()
+            category_names = []
+            for category in categories:
+                name = category[1]  # category name is at index 1
+                category_type = category[2]  # category type is at index 2
+                icon = category[3]  # category icon is at index 3
+
+                # Add emoji prefix if icon exists
+                if icon:
+                    name = f"{icon} {name}"
+
+                # Add "(Income)" suffix for income categories (type == 1)
+                if category_type == 1:
+                    name += " (Income)"
+
+                category_names.append(name)
+
+            return category_names
+        except Exception as e:
+            print(f"Error getting categories for delegate: {e}")
+            return []
 
     def _get_or_create_category(self, category_name: str) -> int | None:
         """Get existing category ID or create new one.
@@ -3212,8 +3199,8 @@ class MainWindow(
             current: The current selected index.
             previous: The previously selected index.
         """
-        # Don't copy data if context menu is showing
-        if hasattr(self, '_context_menu_showing') and self._context_menu_showing:
+        # Don't copy data if right click is in progress
+        if hasattr(self, "_right_click_in_progress") and self._right_click_in_progress:
             return
 
         if not current.isValid():
@@ -3522,6 +3509,29 @@ class MainWindow(
         except Exception as e:
             print(f"Error selecting category by ID: {e}")
 
+    def _set_date_from_table(self, date_value: str) -> None:
+        """Set the date from table row to the main dateEdit field.
+
+        Args:
+            date_value: Date string from the table (format: yyyy-MM-dd)
+        """
+        try:
+            # Parse the date string and set it in dateEdit
+            from PySide6.QtCore import QDate
+
+            date_obj = QDate.fromString(date_value, "yyyy-MM-dd")
+            if date_obj.isValid():
+                self.dateEdit.setDate(date_obj)
+            else:
+                print(f"❌ Invalid date format: {date_value}")
+        except Exception as e:
+            print(f"❌ Error setting date from table: {e}")
+
+    def _set_today_date_in_main(self) -> None:
+        """Set today's date in the main date field."""
+        today = QDate.currentDate()
+        self.dateEdit.setDate(today)
+
     def _setup_autocomplete(self) -> None:
         """Setup autocomplete functionality for description input."""
         # Create completer
@@ -3562,34 +3572,6 @@ class MainWindow(
         QWidget.setTabOrder(self.pushButton_refresh, self.pushButton_clear_filter)
         QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_apply_filter)
         QWidget.setTabOrder(self.pushButton_apply_filter, self.pushButton_description_clear)
-
-    def _get_categories_for_delegate(self) -> list[str]:
-        """Get list of category names for the delegate dropdown."""
-        if self.db_manager is None:
-            return []
-
-        try:
-            categories = self.db_manager.get_all_categories()
-            category_names = []
-            for category in categories:
-                name = category[1]  # category name is at index 1
-                category_type = category[2]  # category type is at index 2
-                icon = category[3]  # category icon is at index 3
-
-                # Add emoji prefix if icon exists
-                if icon:
-                    name = f"{icon} {name}"
-
-                # Add "(Income)" suffix for income categories (type == 1)
-                if category_type == 1:
-                    name += " (Income)"
-
-                category_names.append(name)
-
-            return category_names
-        except Exception as e:
-            print(f"Error getting categories for delegate: {e}")
-            return []
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
@@ -3703,9 +3685,6 @@ class MainWindow(
         """
         from PySide6.QtWidgets import QMenu
 
-        # Set flag to prevent data copying during context menu
-        self._context_menu_showing = True
-
         context_menu = QMenu(self)
 
         # Get the clicked index
@@ -3729,12 +3708,37 @@ class MainWindow(
 
         if action == export_action:
             self.on_export_csv()
-        elif 'set_date_action' in locals() and action == set_date_action:
+        elif "set_date_action" in locals() and action == set_date_action:
             # This will be handled by the lambda connection above
             pass
 
-        # Reset flag after context menu is closed
-        self._context_menu_showing = False
+    def _show_yesterday_context_menu(self, position) -> None:
+        """Show context menu for yesterday button with date options."""
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+
+    def _subtract_one_day_from_main(self) -> None:
+        """Subtract one day from the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit.setDate(new_date)
 
     def _transform_transaction_data(self, rows: list[list[Any]]) -> list[list[Any]]:
         """Transform transaction data for display with colors and daily totals.
