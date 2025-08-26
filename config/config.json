@@ -28,7 +28,10 @@
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/exchange_rate_checker_worker.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/exchange_rates_operations.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/mixins.py",
-        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/main.py"
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/main.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/account_edit_dialog.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/text_input_dialog.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/text_parser.py"
       ]
     },
     {
@@ -42,6 +45,9 @@
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/exchange_rates_operations.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/mixins.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/main.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/account_edit_dialog.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/text_input_dialog.py",
+        "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/text_parser.py",
         "C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/finance/window.py"
       ]
     },
