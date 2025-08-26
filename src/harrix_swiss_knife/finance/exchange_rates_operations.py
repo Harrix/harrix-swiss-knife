@@ -57,8 +57,8 @@ class ExchangeRatesOperations:
             self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
             self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
 
-            # Enable editing for the Rate column
-            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
+            # Disable editing for the Rate column
+            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
             # Configure column stretching for exchange rates table
             rates_header = self.tableView_exchange_rates.horizontalHeader()
@@ -820,8 +820,8 @@ class ExchangeRatesOperations:
             self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
             self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
 
-            # Enable editing for the Rate column
-            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
+            # Disable editing for the Rate column
+            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
             # Configure column stretching for exchange rates table
             rates_header = self.tableView_exchange_rates.horizontalHeader()
