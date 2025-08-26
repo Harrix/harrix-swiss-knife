@@ -12,12 +12,8 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 
-import matplotlib
-matplotlib.use('QtAgg')  # Ensure Qt backend is used, not tkinter or other backends
-
 import matplotlib.dates as mdates
-
-from matplotlib.axes import Axes
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
@@ -254,7 +250,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`Axes`): Matplotlib axes object.
+        - `ax` (`plt.Axes`): Matplotlib axes object.
         - `stats_text` (`str`): Statistics text to display.
         - `color` (`str`): Background color of the statistics box. Defaults to `"lightgray"`.
 
@@ -314,9 +310,6 @@ class ChartOperations:
             data = self._fill_missing_periods_with_zeros(
                 data, chart_config.get("period", "Days"), chart_config.get("date_from"), chart_config.get("date_to")
             )
-
-        # Filter data to start from first non-zero element
-        data = self._filter_to_first_nonzero(data)
 
         # Create matplotlib figure
         fig = Figure(figsize=(12, 6), dpi=100)
@@ -438,41 +431,12 @@ class ChartOperations:
 
         return result
 
-    def _filter_to_first_nonzero(self, data: list[tuple]) -> list[tuple]:
-        """Filter data to start from the first non-zero element.
-
-        Args:
-
-        - `data` (`list[tuple]`): Chart data as list of (x, y) tuples.
-
-        Returns:
-
-        - `list[tuple]`: Filtered data starting from first non-zero element.
-
-        """
-        if not data:
-            return data
-
-        # Find the index of the first non-zero element
-        first_nonzero_index = None
-        for i, (x, y) in enumerate(data):
-            if y != 0:
-                first_nonzero_index = i
-                break
-
-        # If no non-zero elements found, return original data
-        if first_nonzero_index is None:
-            return data
-
-        # Return data starting from the first non-zero element
-        return data[first_nonzero_index:]
-
     def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
         """Format x-axis for charts based on period and data range.
 
         Args:
 
-        - `ax` (`Axes`): Matplotlib axes object.
+        - `ax` (`plt.Axes`): Matplotlib axes object.
         - `dates` (`list`): List of datetime objects.
         - `period` (`str`): Time period for formatting.
 
@@ -502,9 +466,7 @@ class ChartOperations:
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
 
         # Rotate date labels for better readability
-        for label in ax.xaxis.get_majorticklabels():
-            label.set_rotation(45)
-            label.set_ha("right")
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
     def _format_default_stats(self, values: list, unit: str = "") -> str:
         """Format default statistics text.
@@ -649,7 +611,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`Axes`): Matplotlib axes object.
+        - `ax` (`plt.Axes`): Matplotlib axes object.
         - `x_values` (`list`): X-axis values.
         - `y_values` (`list`): Y-axis values.
         - `color` (`str`): Plot color.

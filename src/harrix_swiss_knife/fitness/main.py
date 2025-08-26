@@ -631,32 +631,18 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to add weight: {e}")
 
     @requires_database()
-    def on_chart_exercise_changed(self, current=None, previous=None) -> None:
+    def on_chart_exercise_changed(
+        self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()
+    ) -> None:
         """Handle chart exercise list view selection change.
 
         Args:
 
-        - `current` (`QModelIndex | None`): Current index from ListView signal. Defaults to `None`.
-        - `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
+        - `current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
+        - `previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
 
         """
         self._update_charts_avif()
-        # Auto-update chart when exercise changes (only if not during initialization)
-        if hasattr(self, "_charts_initialized"):
-            self.update_exercise_chart()
-
-    def on_chart_type_changed(self, current=None, previous=None) -> None:
-        """Handle chart type list view selection change.
-
-        Args:
-
-        - `current` (`QModelIndex | None`): Current index from ListView signal. Defaults to `None`.
-        - `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
-
-        """
-        # Auto-update chart when type changes (only if not during initialization)
-        if hasattr(self, "_charts_initialized"):
-            self.update_exercise_chart()
 
     @requires_database()
     def on_check_steps(self) -> None:
@@ -1418,20 +1404,6 @@ class MainWindow(
         # Move focus to spinBox_count and select all text
         if exercise:  # Only if exercise was successfully selected
             QTimer.singleShot(0, self._focus_and_select_spinbox_count)
-
-    def on_exercise_type_changed(self, _index: int = -1) -> None:
-        """Handle exercise type combobox selection change.
-
-        Args:
-
-        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
-
-        """
-        # Set today's date when exercise type is selected
-        from datetime import date
-
-        today = date.today()
-        self.dateEdit.setDate(today)
 
     def on_exercise_type_changed(self, _index: int = -1) -> None:
         """Handle exercise type combobox selection change and sync with statistics.
@@ -2545,13 +2517,15 @@ class MainWindow(
             print(f"Error updating chart list views: {e}")
 
     @requires_database(is_show_warning=False)
-    def update_chart_type_listview(self, current=None, previous=None) -> None:
+    def update_chart_type_listview(
+        self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()
+    ) -> None:
         """Update chart type list view based on selected exercise.
 
         Args:
 
-        - `current` (`QModelIndex | None`): Current index from ListView signal. Defaults to `None`.
-        - `previous` (`QModelIndex | None`): Previous index from ListView signal. Defaults to `None`.
+        - `current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
+        - `previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
 
         """
         if self.db_manager is None:
@@ -2577,15 +2551,6 @@ class MainWindow(
                         type_model.appendRow(item)
 
             self.listView_chart_type.setModel(type_model)
-
-            # Connect signals for chart type selection (disconnect first to avoid duplicates)
-            selection_model = self.listView_chart_type.selectionModel()
-            if selection_model:
-                try:
-                    selection_model.currentChanged.disconnect()
-                except TypeError:
-                    pass  # No connections exist
-                selection_model.currentChanged.connect(self.on_chart_type_changed)
 
             # Select first item by default (All types)
             if type_model.rowCount() > 0:
@@ -3623,7 +3588,7 @@ class MainWindow(
         self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
         self.dateEdit_chart_to.setDate(current_date)
 
-        # Initialize exercise combobox
+        # Initialize exercise and type list views
         self.update_chart_comboboxes()
 
         # Initialize same months comparison combobox
@@ -4129,9 +4094,6 @@ class MainWindow(
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 3)  # tableView gets more space
-
-        # Set width for charts left panel (verticalLayout_18)
-        self.widget_left_panel.setFixedWidth(300)
 
         # Initialize calories spinboxes
         self.doubleSpinBox_calories_per_unit.setDecimals(1)
