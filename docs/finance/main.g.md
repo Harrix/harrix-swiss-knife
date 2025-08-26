@@ -480,6 +480,10 @@ class MainWindow(
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
 
+        # Set up amount delegate for the Total per day column (index 6)
+        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
+
         # Enable editing for the Category column
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
@@ -2784,6 +2788,10 @@ class MainWindow(
         )
         self.tableView_accounts.setModel(self.models["accounts"])
 
+        # Set up amount delegate for the Balance column (index 1)
+        self.accounts_balance_delegate = AmountDelegate(self.tableView_accounts, self.db_manager)
+        self.tableView_accounts.setItemDelegateForColumn(1, self.accounts_balance_delegate)
+
         # Make accounts table non-editable and connect double-click signal
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
 
@@ -2890,6 +2898,18 @@ class MainWindow(
         )
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
+        # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
+        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+
+        self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+        self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+
+        self.tableView_exchange.setItemDelegateForColumn(2, self.amount_from_delegate)  # Amount From
+        self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)  # Amount To
+
+        # Enable editing for Amount From and Amount To columns
+        self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
+
         # Configure column stretching for exchange table
         exchange_header = self.tableView_exchange.horizontalHeader()
         if exchange_header.count() > 0:
@@ -2955,6 +2975,10 @@ class MainWindow(
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+
+        # Set up amount delegate for the Total per day column (index 6)
+        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
 
         # Enable editing for the Category and Amount columns
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
@@ -4349,6 +4373,10 @@ def apply_filter(self) -> None:
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+
+        # Set up amount delegate for the Total per day column (index 6)
+        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
 
         # Enable editing for the Category column
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
@@ -7586,6 +7614,10 @@ def _load_accounts_table(self) -> None:
         )
         self.tableView_accounts.setModel(self.models["accounts"])
 
+        # Set up amount delegate for the Balance column (index 1)
+        self.accounts_balance_delegate = AmountDelegate(self.tableView_accounts, self.db_manager)
+        self.tableView_accounts.setItemDelegateForColumn(1, self.accounts_balance_delegate)
+
         # Make accounts table non-editable and connect double-click signal
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
 
@@ -7734,6 +7766,18 @@ def _load_currency_exchanges_table(self) -> None:
         )
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
+        # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
+        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+
+        self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+        self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+
+        self.tableView_exchange.setItemDelegateForColumn(2, self.amount_from_delegate)  # Amount From
+        self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)  # Amount To
+
+        # Enable editing for Amount From and Amount To columns
+        self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
+
         # Configure column stretching for exchange table
         exchange_header = self.tableView_exchange.horizontalHeader()
         if exchange_header.count() > 0:
@@ -7827,6 +7871,10 @@ def _load_transactions_table(self) -> None:
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+
+        # Set up amount delegate for the Total per day column (index 6)
+        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
 
         # Enable editing for the Category and Amount columns
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)

@@ -54,7 +54,7 @@ lang: en
   - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
   - [⚙️ Method `update_all`](#%EF%B8%8F-method-update_all)
   - [⚙️ Method `update_chart_comboboxes`](#%EF%B8%8F-method-update_chart_comboboxes)
-  - [⚙️ Method `update_chart_type_combobox`](#%EF%B8%8F-method-update_chart_type_combobox)
+  - [⚙️ Method `update_chart_type_listview`](#%EF%B8%8F-method-update_chart_type_listview)
   - [⚙️ Method `update_exercise_chart`](#%EF%B8%8F-method-update_exercise_chart)
   - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
   - [⚙️ Method `update_filter_type_combobox`](#%EF%B8%8F-method-update_filter_type_combobox)
@@ -78,6 +78,8 @@ lang: en
   - [⚙️ Method `_get_exercise_avif_path`](#%EF%B8%8F-method-_get_exercise_avif_path)
   - [⚙️ Method `_get_exercise_name_by_id`](#%EF%B8%8F-method-_get_exercise_name_by_id)
   - [⚙️ Method `_get_last_weight`](#%EF%B8%8F-method-_get_last_weight)
+  - [⚙️ Method `_get_selected_chart_exercise`](#%EF%B8%8F-method-_get_selected_chart_exercise)
+  - [⚙️ Method `_get_selected_chart_type`](#%EF%B8%8F-method-_get_selected_chart_type)
   - [⚙️ Method `_get_selected_exercise_from_statistics_table`](#%EF%B8%8F-method-_get_selected_exercise_from_statistics_table)
   - [⚙️ Method `_get_selected_exercise_from_table`](#%EF%B8%8F-method-_get_selected_exercise_from_table)
   - [⚙️ Method `_get_selected_row_id`](#%EF%B8%8F-method-_get_selected_row_id)
@@ -885,8 +887,8 @@ class MainWindow(
         The current year is highlighted in red, while previous months are shown
         in different shades of blue.
         """
-        exercise = self.comboBox_chart_exercise.currentText()
-        exercise_type = self.comboBox_chart_type.currentText()
+        exercise = self._get_selected_chart_exercise()
+        exercise_type = self._get_selected_chart_type()
         months_count = self.spinBox_compare_last.value()
 
         if not exercise:
@@ -1077,8 +1079,8 @@ class MainWindow(
         for the same month across different years. The current year is highlighted in red,
         while previous years are shown in different colors.
         """
-        exercise = self.comboBox_chart_exercise.currentText()
-        exercise_type = self.comboBox_chart_type.currentText()
+        exercise = self._get_selected_chart_exercise()
+        exercise_type = self._get_selected_chart_type()
         years_count = self.spinBox_compare_last.value()
 
         if not exercise:
@@ -2544,30 +2546,47 @@ class MainWindow(
 
     @requires_database(is_show_warning=False)
     def update_chart_comboboxes(self) -> None:
-        """Update exercise and type comboboxes for charts."""
+        """Update exercise and type list views for charts."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
-            # Update exercise combobox - sort by frequency like in comboBox_type
+            # Update exercise list view - sort by frequency like in comboBox_type
             exercises = self.db_manager.get_exercises_by_frequency(500)
 
-            self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
-            self.comboBox_chart_exercise.clear()
+            # Create model for exercise list view
+            exercise_model = QStandardItemModel()
             if exercises:
-                self.comboBox_chart_exercise.addItems(exercises)
-            self.comboBox_chart_exercise.blockSignals(False)  # noqa: FBT003
+                for exercise in exercises:
+                    item = QStandardItem(exercise)
+                    exercise_model.appendRow(item)
 
-            # Update type combobox
-            self.update_chart_type_combobox()
+            self.listView_chart_exercise.setModel(exercise_model)
+
+            # Connect signals after setting model (disconnect first to avoid duplicates)
+            selection_model = self.listView_chart_exercise.selectionModel()
+            if selection_model:
+                try:
+                    selection_model.currentChanged.disconnect()
+                except TypeError:
+                    pass  # No connections exist
+                selection_model.currentChanged.connect(self.update_chart_type_listview)
+                selection_model.currentChanged.connect(self.on_chart_exercise_changed)
+
+            # Select first item by default
+            if exercise_model.rowCount() > 0:
+                self.listView_chart_exercise.setCurrentIndex(exercise_model.index(0, 0))
+
+            # Update type list view
+            self.update_chart_type_listview()
 
         except Exception as e:
-            print(f"Error updating chart comboboxes: {e}")
+            print(f"Error updating chart list views: {e}")
 
     @requires_database(is_show_warning=False)
-    def update_chart_type_combobox(self, _index: int = -1) -> None:
-        """Update chart type combobox based on selected exercise.
+    def update_chart_type_listview(self, _index: int = -1) -> None:
+        """Update chart type list view based on selected exercise.
 
         Args:
 
@@ -2579,24 +2598,37 @@ class MainWindow(
             return
 
         try:
-            self.comboBox_chart_type.clear()
-            self.comboBox_chart_type.addItem("All types")
+            # Create model for type list view
+            type_model = QStandardItemModel()
 
-            exercise = self.comboBox_chart_exercise.currentText()
+            # Add "All types" option
+            all_types_item = QStandardItem("All types")
+            type_model.appendRow(all_types_item)
+
+            # Get selected exercise from list view
+            exercise = self._get_selected_chart_exercise()
             if exercise:
                 ex_id = self.db_manager.get_id("exercises", "name", exercise)
                 if ex_id is not None:
                     types = self.db_manager.get_exercise_types(ex_id)
-                    self.comboBox_chart_type.addItems(types)
+                    for type_name in types:
+                        item = QStandardItem(type_name)
+                        type_model.appendRow(item)
+
+            self.listView_chart_type.setModel(type_model)
+
+            # Select first item by default (All types)
+            if type_model.rowCount() > 0:
+                self.listView_chart_type.setCurrentIndex(type_model.index(0, 0))
 
         except Exception as e:
-            print(f"Error updating chart type combobox: {e}")
+            print(f"Error updating chart type list view: {e}")
 
     @requires_database()
     def update_exercise_chart(self) -> None:
         """Update the exercise chart using database manager."""
-        exercise = self.comboBox_chart_exercise.currentText()
-        exercise_type = self.comboBox_chart_type.currentText()
+        exercise = self._get_selected_chart_exercise()
+        exercise_type = self._get_selected_chart_type()
         period = self.comboBox_chart_period.currentText()
         date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
         date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
@@ -2642,26 +2674,16 @@ class MainWindow(
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
         if not grouped_data:
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
         # Prepare chart data
         chart_data = list(grouped_data.items())
 
-        # Determine the actual date range for zero filling:
-        # - Start: max of (earliest exercise date, selected from date)
-        # - End: min of (today, selected to date)
-
-        earliest_exercise_date = self.db_manager.get_earliest_exercise_date(
-            exercise_name=exercise, exercise_type=exercise_type if exercise_type != "All types" else None
-        )
-
+        # For exercise chart, respect the selected date range
+        # But don't extend beyond today
         today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
-
-        # Use the later of: earliest exercise date or selected from date
-        chart_date_from = max(earliest_exercise_date, date_from) if earliest_exercise_date else date_from
-
-        # Use the earlier of: today or selected to date
+        chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
         # Build chart title with aggregation type
@@ -2671,40 +2693,31 @@ class MainWindow(
             chart_title += f" - {exercise_type}"
         chart_title += f" ({aggregation_type}, {period})"
 
-        # Define custom statistics formatter
+        # Define custom statistics formatter for exercise with aggregation type
         def format_exercise_stats(values: list) -> str:
             min_val = min(values)
             max_val = max(values)
             avg_val = sum(values) / len(values)
-            unit_suffix = f" {exercise_unit}" if exercise_unit else ""
 
             if use_max_value:
                 # For max values, don't show total (it doesn't make sense)
-                return (
-                    f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
-                    f"Avg: {avg_val:.1f}{unit_suffix}"
-                )
+                return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f}"
             # For sum values, show total
             total_val = sum(values)
-            return (
-                f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
-                f"Avg: {avg_val:.1f}{unit_suffix} | Total: {total_val:.1f}{unit_suffix}"
-            )
+            return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f} | Total: {total_val:.1f}"
 
         # Create chart configuration
-        y_label = f"{aggregation_type} Value ({exercise_unit})" if exercise_unit else f"{aggregation_type} Value"
-
         chart_config = {
             "title": chart_title,
             "xlabel": "Date",
-            "ylabel": y_label,
+            "ylabel": f"{aggregation_type} value ({exercise_unit})" if exercise_unit else f"{aggregation_type} value",
             "color": "blue",
             "show_stats": True,
             "period": period,
             "stats_formatter": format_exercise_stats,
             "fill_zero_periods": True,  # Enable zero filling
-            "date_from": chart_date_from,  # Use calculated start date
-            "date_to": chart_date_to,  # Use calculated end date
+            "date_from": chart_date_from,  # Use selected start date
+            "date_to": chart_date_to,  # Don't go beyond today
         }
 
         self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
@@ -3059,8 +3072,7 @@ class MainWindow(
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-        self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
-        self.comboBox_chart_exercise.currentIndexChanged.connect(self.on_chart_exercise_changed)
+        # Note: ListView chart signals will be connected after models are set in update_chart_comboboxes
 
         # Filter signals
         self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
@@ -3446,6 +3458,24 @@ class MainWindow(
         else:
             return last_weight if last_weight is not None else initial_weight
 
+    def _get_selected_chart_exercise(self) -> str:
+        """Get the currently selected exercise from the chart exercise list view."""
+        current_index = self.listView_chart_exercise.currentIndex()
+        if current_index.isValid():
+            model = self.listView_chart_exercise.model()
+            if model:
+                return model.data(current_index) or ""
+        return ""
+
+    def _get_selected_chart_type(self) -> str:
+        """Get the currently selected type from the chart type list view."""
+        current_index = self.listView_chart_type.currentIndex()
+        if current_index.isValid():
+            model = self.listView_chart_type.model()
+            if model:
+                return model.data(current_index) or ""
+        return ""
+
     def _get_selected_exercise_from_statistics_table(self) -> str | None:
         """Get selected exercise name from statistics table.
 
@@ -3714,9 +3744,15 @@ class MainWindow(
                 rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
                 if rows:
                     exercise_name = rows[0][0]
-                    index = self.comboBox_chart_exercise.findText(exercise_name)
-                    if index >= 0:
-                        self.comboBox_chart_exercise.setCurrentIndex(index)
+                    # Find and select the exercise in the list view
+                    model = self.listView_chart_exercise.model()
+                    if model:
+                        for row in range(model.rowCount()):
+                            if model.data(model.index(row, 0)) == exercise_name:
+                                self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                                # Update type list view after selecting exercise
+                                self.update_chart_type_listview()
+                                break
 
             # Load chart with all time data
             self.set_chart_all_time()
@@ -4286,8 +4322,8 @@ class MainWindow(
             print(f"Error showing record congratulations: {e}")
 
     def _update_charts_avif(self) -> None:
-        """Update AVIF for charts combobox selection."""
-        exercise_name = self.comboBox_chart_exercise.currentText()
+        """Update AVIF for charts list view selection."""
+        exercise_name = self._get_selected_chart_exercise()
         if exercise_name:
             self._load_exercise_avif(exercise_name, "charts")
 
@@ -5360,8 +5396,8 @@ in different shades of blue.
 
 ```python
 def on_compare_last_months(self) -> None:
-        exercise = self.comboBox_chart_exercise.currentText()
-        exercise_type = self.comboBox_chart_type.currentText()
+        exercise = self._get_selected_chart_exercise()
+        exercise_type = self._get_selected_chart_type()
         months_count = self.spinBox_compare_last.value()
 
         if not exercise:
@@ -5564,8 +5600,8 @@ while previous years are shown in different colors.
 
 ```python
 def on_compare_same_months(self) -> None:
-        exercise = self.comboBox_chart_exercise.currentText()
-        exercise_type = self.comboBox_chart_type.currentText()
+        exercise = self._get_selected_chart_exercise()
+        exercise_type = self._get_selected_chart_type()
         years_count = self.spinBox_compare_last.value()
 
         if not exercise:
@@ -7366,7 +7402,7 @@ def update_all(
 def update_chart_comboboxes(self) -> None
 ```
 
-Update exercise and type comboboxes for charts.
+Update exercise and type list views for charts.
 
 <details>
 <summary>Code:</summary>
@@ -7378,31 +7414,48 @@ def update_chart_comboboxes(self) -> None:
             return
 
         try:
-            # Update exercise combobox - sort by frequency like in comboBox_type
+            # Update exercise list view - sort by frequency like in comboBox_type
             exercises = self.db_manager.get_exercises_by_frequency(500)
 
-            self.comboBox_chart_exercise.blockSignals(True)  # noqa: FBT003
-            self.comboBox_chart_exercise.clear()
+            # Create model for exercise list view
+            exercise_model = QStandardItemModel()
             if exercises:
-                self.comboBox_chart_exercise.addItems(exercises)
-            self.comboBox_chart_exercise.blockSignals(False)  # noqa: FBT003
+                for exercise in exercises:
+                    item = QStandardItem(exercise)
+                    exercise_model.appendRow(item)
 
-            # Update type combobox
-            self.update_chart_type_combobox()
+            self.listView_chart_exercise.setModel(exercise_model)
+
+            # Connect signals after setting model (disconnect first to avoid duplicates)
+            selection_model = self.listView_chart_exercise.selectionModel()
+            if selection_model:
+                try:
+                    selection_model.currentChanged.disconnect()
+                except TypeError:
+                    pass  # No connections exist
+                selection_model.currentChanged.connect(self.update_chart_type_listview)
+                selection_model.currentChanged.connect(self.on_chart_exercise_changed)
+
+            # Select first item by default
+            if exercise_model.rowCount() > 0:
+                self.listView_chart_exercise.setCurrentIndex(exercise_model.index(0, 0))
+
+            # Update type list view
+            self.update_chart_type_listview()
 
         except Exception as e:
-            print(f"Error updating chart comboboxes: {e}")
+            print(f"Error updating chart list views: {e}")
 ```
 
 </details>
 
-### ⚙️ Method `update_chart_type_combobox`
+### ⚙️ Method `update_chart_type_listview`
 
 ```python
-def update_chart_type_combobox(self, _index: int = -1) -> None
+def update_chart_type_listview(self, _index: int = -1) -> None
 ```
 
-Update chart type combobox based on selected exercise.
+Update chart type list view based on selected exercise.
 
 Args:
 
@@ -7412,24 +7465,37 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def update_chart_type_combobox(self, _index: int = -1) -> None:
+def update_chart_type_listview(self, _index: int = -1) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
-            self.comboBox_chart_type.clear()
-            self.comboBox_chart_type.addItem("All types")
+            # Create model for type list view
+            type_model = QStandardItemModel()
 
-            exercise = self.comboBox_chart_exercise.currentText()
+            # Add "All types" option
+            all_types_item = QStandardItem("All types")
+            type_model.appendRow(all_types_item)
+
+            # Get selected exercise from list view
+            exercise = self._get_selected_chart_exercise()
             if exercise:
                 ex_id = self.db_manager.get_id("exercises", "name", exercise)
                 if ex_id is not None:
                     types = self.db_manager.get_exercise_types(ex_id)
-                    self.comboBox_chart_type.addItems(types)
+                    for type_name in types:
+                        item = QStandardItem(type_name)
+                        type_model.appendRow(item)
+
+            self.listView_chart_type.setModel(type_model)
+
+            # Select first item by default (All types)
+            if type_model.rowCount() > 0:
+                self.listView_chart_type.setCurrentIndex(type_model.index(0, 0))
 
         except Exception as e:
-            print(f"Error updating chart type combobox: {e}")
+            print(f"Error updating chart type list view: {e}")
 ```
 
 </details>
@@ -7447,8 +7513,8 @@ Update the exercise chart using database manager.
 
 ```python
 def update_exercise_chart(self) -> None:
-        exercise = self.comboBox_chart_exercise.currentText()
-        exercise_type = self.comboBox_chart_type.currentText()
+        exercise = self._get_selected_chart_exercise()
+        exercise_type = self._get_selected_chart_type()
         period = self.comboBox_chart_period.currentText()
         date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
         date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
@@ -7494,26 +7560,16 @@ def update_exercise_chart(self) -> None:
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
         if not grouped_data:
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
         # Prepare chart data
         chart_data = list(grouped_data.items())
 
-        # Determine the actual date range for zero filling:
-        # - Start: max of (earliest exercise date, selected from date)
-        # - End: min of (today, selected to date)
-
-        earliest_exercise_date = self.db_manager.get_earliest_exercise_date(
-            exercise_name=exercise, exercise_type=exercise_type if exercise_type != "All types" else None
-        )
-
+        # For exercise chart, respect the selected date range
+        # But don't extend beyond today
         today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
-
-        # Use the later of: earliest exercise date or selected from date
-        chart_date_from = max(earliest_exercise_date, date_from) if earliest_exercise_date else date_from
-
-        # Use the earlier of: today or selected to date
+        chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
         # Build chart title with aggregation type
@@ -7523,40 +7579,31 @@ def update_exercise_chart(self) -> None:
             chart_title += f" - {exercise_type}"
         chart_title += f" ({aggregation_type}, {period})"
 
-        # Define custom statistics formatter
+        # Define custom statistics formatter for exercise with aggregation type
         def format_exercise_stats(values: list) -> str:
             min_val = min(values)
             max_val = max(values)
             avg_val = sum(values) / len(values)
-            unit_suffix = f" {exercise_unit}" if exercise_unit else ""
 
             if use_max_value:
                 # For max values, don't show total (it doesn't make sense)
-                return (
-                    f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
-                    f"Avg: {avg_val:.1f}{unit_suffix}"
-                )
+                return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f}"
             # For sum values, show total
             total_val = sum(values)
-            return (
-                f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | "
-                f"Avg: {avg_val:.1f}{unit_suffix} | Total: {total_val:.1f}{unit_suffix}"
-            )
+            return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f} | Total: {total_val:.1f}"
 
         # Create chart configuration
-        y_label = f"{aggregation_type} Value ({exercise_unit})" if exercise_unit else f"{aggregation_type} Value"
-
         chart_config = {
             "title": chart_title,
             "xlabel": "Date",
-            "ylabel": y_label,
+            "ylabel": f"{aggregation_type} value ({exercise_unit})" if exercise_unit else f"{aggregation_type} value",
             "color": "blue",
             "show_stats": True,
             "period": period,
             "stats_formatter": format_exercise_stats,
             "fill_zero_periods": True,  # Enable zero filling
-            "date_from": chart_date_from,  # Use calculated start date
-            "date_to": chart_date_to,  # Use calculated end date
+            "date_from": chart_date_from,  # Use selected start date
+            "date_to": chart_date_to,  # Don't go beyond today
         }
 
         self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
@@ -8011,8 +8058,7 @@ def _connect_signals(self) -> None:
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-        self.comboBox_chart_exercise.currentIndexChanged.connect(self.update_chart_type_combobox)
-        self.comboBox_chart_exercise.currentIndexChanged.connect(self.on_chart_exercise_changed)
+        # Note: ListView chart signals will be connected after models are set in update_chart_comboboxes
 
         # Filter signals
         self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
@@ -8577,6 +8623,52 @@ def _get_last_weight(self) -> float:
 
 </details>
 
+### ⚙️ Method `_get_selected_chart_exercise`
+
+```python
+def _get_selected_chart_exercise(self) -> str
+```
+
+Get the currently selected exercise from the chart exercise list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_selected_chart_exercise(self) -> str:
+        current_index = self.listView_chart_exercise.currentIndex()
+        if current_index.isValid():
+            model = self.listView_chart_exercise.model()
+            if model:
+                return model.data(current_index) or ""
+        return ""
+```
+
+</details>
+
+### ⚙️ Method `_get_selected_chart_type`
+
+```python
+def _get_selected_chart_type(self) -> str
+```
+
+Get the currently selected type from the chart type list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_selected_chart_type(self) -> str:
+        current_index = self.listView_chart_type.currentIndex()
+        if current_index.isValid():
+            model = self.listView_chart_type.model()
+            if model:
+                return model.data(current_index) or ""
+        return ""
+```
+
+</details>
+
 ### ⚙️ Method `_get_selected_exercise_from_statistics_table`
 
 ```python
@@ -8988,9 +9080,15 @@ def _load_default_exercise_chart(self) -> None:
                 rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
                 if rows:
                     exercise_name = rows[0][0]
-                    index = self.comboBox_chart_exercise.findText(exercise_name)
-                    if index >= 0:
-                        self.comboBox_chart_exercise.setCurrentIndex(index)
+                    # Find and select the exercise in the list view
+                    model = self.listView_chart_exercise.model()
+                    if model:
+                        for row in range(model.rowCount()):
+                            if model.data(model.index(row, 0)) == exercise_name:
+                                self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                                # Update type list view after selecting exercise
+                                self.update_chart_type_listview()
+                                break
 
             # Load chart with all time data
             self.set_chart_all_time()
@@ -9744,14 +9842,14 @@ def _show_record_congratulations(self, exercise: str, record_info: dict) -> None
 def _update_charts_avif(self) -> None
 ```
 
-Update AVIF for charts combobox selection.
+Update AVIF for charts list view selection.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def _update_charts_avif(self) -> None:
-        exercise_name = self.comboBox_chart_exercise.currentText()
+        exercise_name = self._get_selected_chart_exercise()
         if exercise_name:
             self._load_exercise_avif(exercise_name, "charts")
 ```

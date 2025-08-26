@@ -180,7 +180,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1375, 926)
+        MainWindow.resize(1375, 945)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -875,7 +875,7 @@ class Ui_MainWindow(object):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 758))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 777))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -887,8 +887,73 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_5, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName("tab_charts")
-        self.verticalLayout_18 = QVBoxLayout(self.tab_charts)
+        self.horizontalLayout_26 = QHBoxLayout(self.tab_charts)
+        self.horizontalLayout_26.setObjectName("horizontalLayout_26")
+        self.verticalLayout_18 = QVBoxLayout()
         self.verticalLayout_18.setObjectName("verticalLayout_18")
+        self.label_chart_exercise = QLabel(self.tab_charts)
+        self.label_chart_exercise.setObjectName("label_chart_exercise")
+
+        self.verticalLayout_18.addWidget(self.label_chart_exercise)
+
+        self.listView_chart_exercise = QListView(self.tab_charts)
+        self.listView_chart_exercise.setObjectName("listView_chart_exercise")
+        self.listView_chart_exercise.setMinimumSize(QSize(301, 0))
+        self.listView_chart_exercise.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_chart_exercise.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
+
+        self.verticalLayout_18.addWidget(self.listView_chart_exercise)
+
+        self.label_chart_type = QLabel(self.tab_charts)
+        self.label_chart_type.setObjectName("label_chart_type")
+
+        self.verticalLayout_18.addWidget(self.label_chart_type)
+
+        self.listView_chart_type = QListView(self.tab_charts)
+        self.listView_chart_type.setObjectName("listView_chart_type")
+        self.listView_chart_type.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_chart_type.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
+
+        self.verticalLayout_18.addWidget(self.listView_chart_type)
+
+        self.horizontalLayout_26.addLayout(self.verticalLayout_18)
+
+        self.verticalLayout_20 = QVBoxLayout()
+        self.verticalLayout_20.setObjectName("verticalLayout_20")
         self.horizontalLayout_23 = QHBoxLayout()
         self.horizontalLayout_23.setObjectName("horizontalLayout_23")
         self.frame_charts_controls = QFrame(self.tab_charts)
@@ -900,28 +965,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_charts_controls.setObjectName("verticalLayout_charts_controls")
         self.horizontalLayout_charts_controls_1 = QHBoxLayout()
         self.horizontalLayout_charts_controls_1.setObjectName("horizontalLayout_charts_controls_1")
-        self.label_chart_exercise = QLabel(self.frame_charts_controls)
-        self.label_chart_exercise.setObjectName("label_chart_exercise")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.label_chart_exercise)
-
-        self.comboBox_chart_exercise = QComboBox(self.frame_charts_controls)
-        self.comboBox_chart_exercise.setObjectName("comboBox_chart_exercise")
-        self.comboBox_chart_exercise.setMinimumSize(QSize(201, 0))
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_exercise)
-
-        self.label_chart_type = QLabel(self.frame_charts_controls)
-        self.label_chart_type.setObjectName("label_chart_type")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.label_chart_type)
-
-        self.comboBox_chart_type = QComboBox(self.frame_charts_controls)
-        self.comboBox_chart_type.setObjectName("comboBox_chart_type")
-        self.comboBox_chart_type.setMinimumSize(QSize(251, 0))
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_type)
-
         self.label_chart_period = QLabel(self.frame_charts_controls)
         self.label_chart_period.setObjectName("label_chart_period")
 
@@ -1038,19 +1081,21 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_23.addWidget(self.label_exercise_avif_4)
 
-        self.verticalLayout_18.addLayout(self.horizontalLayout_23)
+        self.verticalLayout_20.addLayout(self.horizontalLayout_23)
 
         self.scrollArea_charts = QScrollArea(self.tab_charts)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1331, 725))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1020, 742))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
-        self.verticalLayout_18.addWidget(self.scrollArea_charts)
+        self.verticalLayout_20.addWidget(self.scrollArea_charts)
+
+        self.horizontalLayout_26.addLayout(self.verticalLayout_20)
 
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_4 = QWidget()
