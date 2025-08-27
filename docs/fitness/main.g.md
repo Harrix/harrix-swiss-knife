@@ -25,6 +25,7 @@ lang: en
   - [⚙️ Method `on_add_type`](#%EF%B8%8F-method-on_add_type)
   - [⚙️ Method `on_add_weight`](#%EF%B8%8F-method-on_add_weight)
   - [⚙️ Method `on_chart_exercise_changed`](#%EF%B8%8F-method-on_chart_exercise_changed)
+  - [⚙️ Method `on_chart_type_changed`](#%EF%B8%8F-method-on_chart_type_changed)
   - [⚙️ Method `on_check_steps`](#%EF%B8%8F-method-on_check_steps)
   - [⚙️ Method `on_compare_last_months`](#%EF%B8%8F-method-on_compare_last_months)
   - [⚙️ Method `on_compare_same_months`](#%EF%B8%8F-method-on_compare_same_months)
@@ -35,6 +36,7 @@ lang: en
   - [⚙️ Method `on_exercise_type_selection_changed`](#%EF%B8%8F-method-on_exercise_type_selection_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_process_selection_changed`](#%EF%B8%8F-method-on_process_selection_changed)
+  - [⚙️ Method `on_radio_button_changed`](#%EF%B8%8F-method-on_radio_button_changed)
   - [⚙️ Method `on_refresh_statistics`](#%EF%B8%8F-method-on_refresh_statistics)
   - [⚙️ Method `on_show_last_exercises`](#%EF%B8%8F-method-on_show_last_exercises)
   - [⚙️ Method `on_statistics_selection_changed`](#%EF%B8%8F-method-on_statistics_selection_changed)
@@ -100,11 +102,13 @@ lang: en
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_on_window_resize`](#%EF%B8%8F-method-_on_window_resize)
   - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
+  - [⚙️ Method `_schedule_chart_update`](#%EF%B8%8F-method-_schedule_chart_update)
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_process_context_menu`](#%EF%B8%8F-method-_show_process_context_menu)
   - [⚙️ Method `_show_record_congratulations`](#%EF%B8%8F-method-_show_record_congratulations)
+  - [⚙️ Method `_update_chart_based_on_radio_button`](#%EF%B8%8F-method-_update_chart_based_on_radio_button)
   - [⚙️ Method `_update_charts_avif`](#%EF%B8%8F-method-_update_charts_avif)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_update_exercises_avif`](#%EF%B8%8F-method-_update_exercises_avif)
@@ -231,6 +235,11 @@ class MainWindow(
 
         # Define colors for different exercises (expanded palette)
         self.exercise_colors = self.generate_pastel_colors_mathematical(50)
+
+        # For charts
+        self._chart_update_timer = QTimer(self)
+        self._chart_update_timer.setSingleShot(True)
+        self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         # Initialize application
         self._init_database()
@@ -714,6 +723,20 @@ class MainWindow(
 
         """
         self._update_charts_avif()
+
+    @requires_database()
+    def on_chart_type_changed(
+        self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()
+    ) -> None:
+        """Handle chart type list view selection change.
+
+        Args:
+
+        - `current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
+        - `previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+
+        """
+        self._schedule_chart_update(50)
 
     @requires_database()
     def on_check_steps(self) -> None:
@@ -1607,6 +1630,13 @@ class MainWindow(
         except Exception as e:
             print(f"Error in process selection changed: {e}")
 
+    def on_radio_button_changed(self) -> None:
+        """Handle radio button selection change in chart type group."""
+        btn = self.sender()
+        if isinstance(btn, QRadioButton) and not btn.isChecked():
+            return
+        self._schedule_chart_update(50)
+
     @requires_database()
     def on_refresh_statistics(self) -> None:
         """Populate the statistics table view with records data using database manager."""
@@ -2174,17 +2204,17 @@ class MainWindow(
     def set_chart_all_time(self) -> None:
         """Set chart date range to all available data using database manager."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
-        self.update_exercise_chart()
+        self._schedule_chart_update(50)
 
     def set_chart_last_month(self) -> None:
         """Set chart date range to last month."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
-        self.update_exercise_chart()
+        self._schedule_chart_update(50)
 
     def set_chart_last_year(self) -> None:
         """Set chart date range to last year."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
-        self.update_exercise_chart()
+        self._schedule_chart_update(50)
 
     def set_today_date(self) -> None:
         """Set today's date in the date edit fields and last weight value.
@@ -2622,6 +2652,15 @@ class MainWindow(
                         type_model.appendRow(item)
 
             self.listView_chart_type.setModel(type_model)
+
+            # Connect signals after setting model
+            selection_model = self.listView_chart_type.selectionModel()
+            if selection_model:
+                try:
+                    selection_model.currentChanged.disconnect()
+                except TypeError:
+                    pass  # No connections exist
+                selection_model.currentChanged.connect(self.on_chart_type_changed)
 
             # Select first item by default (All types)
             if type_model.rowCount() > 0:
@@ -3069,16 +3108,18 @@ class MainWindow(
         self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
         self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
 
-        # Exercise chart signals
-        self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
-        self.pushButton_show_sets_chart.clicked.connect(self.show_sets_chart)
-        self.pushButton_show_kcal.clicked.connect(self.show_kcal_chart)
-        self.pushButton_compare_last.clicked.connect(self.on_compare_last_months)
-        self.pushButton_compare_same_months.clicked.connect(self.on_compare_same_months)
+        # Exercise chart signals - only one update button now
+        self.pushButton_update_chart.clicked.connect(self._update_chart_based_on_radio_button)
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-        # Note: ListView chart signals will be connected after models are set in update_chart_comboboxes
+
+        # Radio button signals for chart type selection
+        self.radioButton_type_of_chart_standart.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_show_sets_chart.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_kcal.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_compare_last.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_compare_same_months.toggled.connect(self.on_radio_button_changed)
 
         # Filter signals
         self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
@@ -3684,6 +3725,9 @@ class MainWindow(
         current_month_index = current_date.month() - 1  # QDate.month() returns 1-12, we need 0-11
         self.comboBox_compare_same_months.setCurrentIndex(current_month_index)
 
+        # Set default radio button
+        self.radioButton_type_of_chart_standart.setChecked(True)
+
     def _init_exercises_list(self) -> None:
         """Initialize the exercises list view with a model and connect signals."""
         self.exercises_list_model = QStandardItemModel()
@@ -4104,6 +4148,20 @@ class MainWindow(
         view.setModel(self.models[model_key])
         view.resizeColumnsToContents()
 
+    def _schedule_chart_update(self, delay_ms: int = 50) -> None:
+        """Schedule a chart update with the specified delay.
+
+        Args:
+            delay_ms (int): Delay in milliseconds before updating the chart.
+        """
+        # Ensure timer exists (defensive programming)
+        if not hasattr(self, "_chart_update_timer") or self._chart_update_timer is None:
+            self._chart_update_timer = QTimer(self)
+            self._chart_update_timer.setSingleShot(True)
+            self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
+
+        self._chart_update_timer.start(delay_ms)
+
     def _select_exercise_in_list(self, exercise_name: str) -> None:
         """Select an exercise in the list view by name.
 
@@ -4148,10 +4206,6 @@ class MainWindow(
         self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
         self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
         self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
-        self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
-        self.pushButton_show_kcal.setText(f"🔥 {self.pushButton_show_kcal.text()}")
-        self.pushButton_compare_last.setText(f"📊 {self.pushButton_compare_last.text()}")
-        self.pushButton_compare_same_months.setText(f"📅 {self.pushButton_compare_same_months.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
@@ -4326,6 +4380,19 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error showing record congratulations: {e}")
+
+    def _update_chart_based_on_radio_button(self) -> None:
+        """Update chart based on selected radio button."""
+        if self.radioButton_type_of_chart_standart.isChecked():
+            self.update_exercise_chart()
+        elif self.radioButton_type_of_chart_show_sets_chart.isChecked():
+            self.show_sets_chart()
+        elif self.radioButton_type_of_chart_kcal.isChecked():
+            self.show_kcal_chart()
+        elif self.radioButton_type_of_chart_compare_last.isChecked():
+            self.on_compare_last_months()
+        elif self.radioButton_type_of_chart_compare_same_months.isChecked():
+            self.on_compare_same_months()
 
     def _update_charts_avif(self) -> None:
         """Update AVIF for charts list view selection."""
@@ -4572,6 +4639,11 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Define colors for different exercises (expanded palette)
         self.exercise_colors = self.generate_pastel_colors_mathematical(50)
+
+        # For charts
+        self._chart_update_timer = QTimer(self)
+        self._chart_update_timer.setSingleShot(True)
+        self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         # Initialize application
         self._init_database()
@@ -5204,6 +5276,31 @@ def on_chart_exercise_changed(
         self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()
     ) -> None:
         self._update_charts_avif()
+```
+
+</details>
+
+### ⚙️ Method `on_chart_type_changed`
+
+```python
+def on_chart_type_changed(self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()) -> None
+```
+
+Handle chart type list view selection change.
+
+Args:
+
+- `current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
+- `previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_chart_type_changed(
+        self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()
+    ) -> None:
+        self._schedule_chart_update(50)
 ```
 
 </details>
@@ -6227,6 +6324,27 @@ def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIn
 
 </details>
 
+### ⚙️ Method `on_radio_button_changed`
+
+```python
+def on_radio_button_changed(self) -> None
+```
+
+Handle radio button selection change in chart type group.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_radio_button_changed(self) -> None:
+        btn = self.sender()
+        if isinstance(btn, QRadioButton) and not btn.isChecked():
+            return
+        self._schedule_chart_update(50)
+```
+
+</details>
+
 ### ⚙️ Method `on_refresh_statistics`
 
 ```python
@@ -6879,7 +6997,7 @@ Set chart date range to all available data using database manager.
 ```python
 def set_chart_all_time(self) -> None:
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
-        self.update_exercise_chart()
+        self._schedule_chart_update(50)
 ```
 
 </details>
@@ -6898,7 +7016,7 @@ Set chart date range to last month.
 ```python
 def set_chart_last_month(self) -> None:
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
-        self.update_exercise_chart()
+        self._schedule_chart_update(50)
 ```
 
 </details>
@@ -6917,7 +7035,7 @@ Set chart date range to last year.
 ```python
 def set_chart_last_year(self) -> None:
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
-        self.update_exercise_chart()
+        self._schedule_chart_update(50)
 ```
 
 </details>
@@ -7502,6 +7620,15 @@ def update_chart_type_listview(
 
             self.listView_chart_type.setModel(type_model)
 
+            # Connect signals after setting model
+            selection_model = self.listView_chart_type.selectionModel()
+            if selection_model:
+                try:
+                    selection_model.currentChanged.disconnect()
+                except TypeError:
+                    pass  # No connections exist
+                selection_model.currentChanged.connect(self.on_chart_type_changed)
+
             # Select first item by default (All types)
             if type_model.rowCount() > 0:
                 self.listView_chart_type.setCurrentIndex(type_model.index(0, 0))
@@ -8061,16 +8188,18 @@ def _connect_signals(self) -> None:
         self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
         self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
 
-        # Exercise chart signals
-        self.pushButton_update_chart.clicked.connect(self.update_exercise_chart)
-        self.pushButton_show_sets_chart.clicked.connect(self.show_sets_chart)
-        self.pushButton_show_kcal.clicked.connect(self.show_kcal_chart)
-        self.pushButton_compare_last.clicked.connect(self.on_compare_last_months)
-        self.pushButton_compare_same_months.clicked.connect(self.on_compare_same_months)
+        # Exercise chart signals - only one update button now
+        self.pushButton_update_chart.clicked.connect(self._update_chart_based_on_radio_button)
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-        # Note: ListView chart signals will be connected after models are set in update_chart_comboboxes
+
+        # Radio button signals for chart type selection
+        self.radioButton_type_of_chart_standart.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_show_sets_chart.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_kcal.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_compare_last.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_compare_same_months.toggled.connect(self.on_radio_button_changed)
 
         # Filter signals
         self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
@@ -8942,6 +9071,9 @@ def _init_exercise_chart_controls(self) -> None:
         # Set current month as default
         current_month_index = current_date.month() - 1  # QDate.month() returns 1-12, we need 0-11
         self.comboBox_compare_same_months.setCurrentIndex(current_month_index)
+
+        # Set default radio button
+        self.radioButton_type_of_chart_standart.setChecked(True)
 ```
 
 </details>
@@ -9561,6 +9693,33 @@ def _refresh_table(
 
 </details>
 
+### ⚙️ Method `_schedule_chart_update`
+
+```python
+def _schedule_chart_update(self, delay_ms: int = 50) -> None
+```
+
+Schedule a chart update with the specified delay.
+
+Args:
+delay_ms (int): Delay in milliseconds before updating the chart.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _schedule_chart_update(self, delay_ms: int = 50) -> None:
+        # Ensure timer exists (defensive programming)
+        if not hasattr(self, "_chart_update_timer") or self._chart_update_timer is None:
+            self._chart_update_timer = QTimer(self)
+            self._chart_update_timer.setSingleShot(True)
+            self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
+
+        self._chart_update_timer.start(delay_ms)
+```
+
+</details>
+
 ### ⚙️ Method `_select_exercise_in_list`
 
 ```python
@@ -9628,10 +9787,6 @@ def _setup_ui(self) -> None:
         self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
         self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
         self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
-        self.pushButton_show_sets_chart.setText(f"📈 {self.pushButton_show_sets_chart.text()}")
-        self.pushButton_show_kcal.setText(f"🔥 {self.pushButton_show_kcal.text()}")
-        self.pushButton_compare_last.setText(f"📊 {self.pushButton_compare_last.text()}")
-        self.pushButton_compare_same_months.setText(f"📅 {self.pushButton_compare_same_months.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
@@ -9844,6 +9999,33 @@ def _show_record_congratulations(self, exercise: str, record_info: dict) -> None
 
         except Exception as e:
             print(f"Error showing record congratulations: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_update_chart_based_on_radio_button`
+
+```python
+def _update_chart_based_on_radio_button(self) -> None
+```
+
+Update chart based on selected radio button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_chart_based_on_radio_button(self) -> None:
+        if self.radioButton_type_of_chart_standart.isChecked():
+            self.update_exercise_chart()
+        elif self.radioButton_type_of_chart_show_sets_chart.isChecked():
+            self.show_sets_chart()
+        elif self.radioButton_type_of_chart_kcal.isChecked():
+            self.show_kcal_chart()
+        elif self.radioButton_type_of_chart_compare_last.isChecked():
+            self.on_compare_last_months()
+        elif self.radioButton_type_of_chart_compare_same_months.isChecked():
+            self.on_compare_same_months()
 ```
 
 </details>

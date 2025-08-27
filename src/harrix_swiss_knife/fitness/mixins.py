@@ -282,6 +282,7 @@ class ChartOperations:
                     if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
                         try:
                             import matplotlib.pyplot as plt
+
                             plt.close(w.figure)
                         except Exception:
                             pass

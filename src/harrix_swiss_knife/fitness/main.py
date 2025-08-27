@@ -33,7 +33,7 @@ from PySide6.QtGui import (
     QStandardItem,
     QStandardItemModel,
 )
-from PySide6.QtWidgets import QApplication, QFileDialog, QListView, QMainWindow, QMessageBox, QTableView
+from PySide6.QtWidgets import QApplication, QFileDialog, QListView, QMainWindow, QMessageBox, QRadioButton, QTableView
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.fitness import database_manager, window
@@ -160,6 +160,11 @@ class MainWindow(
 
         # Define colors for different exercises (expanded palette)
         self.exercise_colors = self.generate_pastel_colors_mathematical(50)
+
+        # For charts
+        self._chart_update_timer = QTimer(self)
+        self._chart_update_timer.setSingleShot(True)
+        self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         # Initialize application
         self._init_database()
@@ -643,7 +648,6 @@ class MainWindow(
 
         """
         self._update_charts_avif()
-        self._update_chart_based_on_radio_button()
 
     @requires_database()
     def on_chart_type_changed(
@@ -657,7 +661,7 @@ class MainWindow(
         - `previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
 
         """
-        self._update_chart_based_on_radio_button()
+        self._schedule_chart_update(50)
 
     @requires_database()
     def on_check_steps(self) -> None:
@@ -1553,7 +1557,10 @@ class MainWindow(
 
     def on_radio_button_changed(self) -> None:
         """Handle radio button selection change in chart type group."""
-        self._update_chart_based_on_radio_button()
+        btn = self.sender()
+        if isinstance(btn, QRadioButton) and not btn.isChecked():
+            return
+        self._schedule_chart_update(50)
 
     @requires_database()
     def on_refresh_statistics(self) -> None:
@@ -2122,17 +2129,17 @@ class MainWindow(
     def set_chart_all_time(self) -> None:
         """Set chart date range to all available data using database manager."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
-        self._update_chart_based_on_radio_button()
+        self._schedule_chart_update(50)
 
     def set_chart_last_month(self) -> None:
         """Set chart date range to last month."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
-        self._update_chart_based_on_radio_button()
+        self._schedule_chart_update(50)
 
     def set_chart_last_year(self) -> None:
         """Set chart date range to last year."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
-        self._update_chart_based_on_radio_button()
+        self._schedule_chart_update(50)
 
     def set_today_date(self) -> None:
         """Set today's date in the date edit fields and last weight value.
@@ -4065,6 +4072,20 @@ class MainWindow(
         self.models[model_key] = self._create_table_model(rows, headers)
         view.setModel(self.models[model_key])
         view.resizeColumnsToContents()
+
+    def _schedule_chart_update(self, delay_ms: int = 50) -> None:
+        """Schedule a chart update with the specified delay.
+
+        Args:
+            delay_ms (int): Delay in milliseconds before updating the chart.
+        """
+        # Ensure timer exists (defensive programming)
+        if not hasattr(self, "_chart_update_timer") or self._chart_update_timer is None:
+            self._chart_update_timer = QTimer(self)
+            self._chart_update_timer.setSingleShot(True)
+            self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
+
+        self._chart_update_timer.start(delay_ms)
 
     def _select_exercise_in_list(self, exercise_name: str) -> None:
         """Select an exercise in the list view by name.
