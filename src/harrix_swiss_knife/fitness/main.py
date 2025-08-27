@@ -3095,6 +3095,18 @@ class MainWindow(
         self.tableView_statistics.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_statistics.customContextMenuRequested.connect(self._show_statistics_context_menu)
 
+        # Add context menu for exercises table
+        self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
+
+        # Add context menu for exercise types table
+        self.tableView_exercise_types.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_exercise_types.customContextMenuRequested.connect(self._show_exercise_types_context_menu)
+
+        # Add context menu for weight table
+        self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_weight.customContextMenuRequested.connect(self._show_weight_context_menu)
+
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
 
@@ -4261,6 +4273,63 @@ class MainWindow(
         export_action = context_menu.addAction("📤 Export to CSV")
 
         action = context_menu.exec(self.tableView_statistics.mapToGlobal(position))
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+
+    def _show_exercises_context_menu(self, position) -> None:
+        """Show context menu for exercises table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        action = context_menu.exec(self.tableView_exercises.mapToGlobal(position))
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+
+    def _show_exercise_types_context_menu(self, position) -> None:
+        """Show context menu for exercise types table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        action = context_menu.exec(self.tableView_exercise_types.mapToGlobal(position))
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+
+    def _show_weight_context_menu(self, position) -> None:
+        """Show context menu for weight table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        action = context_menu.exec(self.tableView_weight.mapToGlobal(position))
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
