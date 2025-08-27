@@ -1398,13 +1398,12 @@ class MainWindow(
                     if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                         self.spinBox_count.setValue(0)
 
-                        # For Steps exercise, if current date is today, set it to yesterday
-                        # since steps are recorded for the previous day
+                        # For Steps exercise, set date to first day without records
                         current_date = self.dateEdit.date()
                         today = QDate.currentDate()
                         if current_date == today:
-                            yesterday = today.addDays(-1)
-                            self.dateEdit.setDate(yesterday)
+                            first_empty_date = self._get_first_day_without_steps_record(ex_id)
+                            self.dateEdit.setDate(first_empty_date)
                     else:  # Other exercises - use last value
                         try:
                             value = int(float(last_value))
@@ -1415,13 +1414,12 @@ class MainWindow(
                 elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                     self.spinBox_count.setValue(0)
 
-                    # For Steps exercise, if current date is today, set it to yesterday
-                    # since steps are recorded for the previous day
+                    # For Steps exercise, set date to first day without records
                     current_date = self.dateEdit.date()
                     today = QDate.currentDate()
                     if current_date == today:
-                        yesterday = today.addDays(-1)
-                        self.dateEdit.setDate(yesterday)
+                        first_empty_date = self._get_first_day_without_steps_record(ex_id)
+                        self.dateEdit.setDate(first_empty_date)
 
             except Exception as e:
                 print(f"Error getting last exercise record for '{exercise}': {e}")
@@ -3386,6 +3384,35 @@ class MainWindow(
             self.spinBox_count.selectAll()
         except Exception as e:
             print(f"Error focusing spinBox_count: {e}")
+
+    def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
+        """Get the first day without Steps records (next day after last record).
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID for Steps.
+
+        Returns:
+
+        - `QDate`: The first day without Steps records.
+        """
+        if self.db_manager is None:
+            return QDate.currentDate()
+
+        # Get the last date when Steps were recorded
+        last_date_str = self.db_manager.get_last_exercise_date(exercise_id)
+
+        if last_date_str:
+            try:
+                # Parse the last date and add one day
+                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+                if last_date.isValid():
+                    return last_date.addDays(1)
+            except Exception:
+                pass
+
+        # If no last date found or parsing failed, return today
+        return QDate.currentDate()
 
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
