@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QTableView,
     QWidget,
@@ -799,6 +800,45 @@ class MainWindow(
         yesterday = QDate.currentDate().addDays(-1)
         self.dateEdit_food.setDate(yesterday)
 
+    def _show_food_yesterday_context_menu(self, position) -> None:
+        """Show context menu for food yesterday button with date options."""
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_food)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_food)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_food)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_food_yesterday.mapToGlobal(position))
+
+    def _set_today_date_in_food(self) -> None:
+        """Set today's date in the food date field."""
+        today = QDate.currentDate()
+        self.dateEdit_food.setDate(today)
+
+    def _add_one_day_to_food(self) -> None:
+        """Add one day to the current date in food date field."""
+        current_date = self.dateEdit_food.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit_food.setDate(new_date)
+
+    def _subtract_one_day_from_food(self) -> None:
+        """Subtract one day from the current date in food date field."""
+        current_date = self.dateEdit_food.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit_food.setDate(new_date)
+
     def set_today_date(self) -> None:
         """Set today's date in the food date edit field."""
         today_qdate = QDate.currentDate()
@@ -1185,6 +1225,11 @@ class MainWindow(
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
+
+        # Add context menu for food yesterday button
+        self.pushButton_food_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_food_yesterday.customContextMenuRequested.connect(self._show_food_yesterday_context_menu)
+
         self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
         self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
         self.pushButton_check.clicked.connect(self.on_check_problematic_records)
