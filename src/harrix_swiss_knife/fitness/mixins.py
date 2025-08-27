@@ -354,6 +354,9 @@ class ChartOperations:
         ax.set_title(chart_config.get("title", "Chart"), fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
 
+        # Set Y-axis limits to start from non-zero value
+        self._set_y_axis_limits(ax, y_values)
+
         # Format x-axis if dates
         if x_values and isinstance(x_values[0], datetime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
@@ -737,6 +740,44 @@ class ChartOperations:
         label = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(label)
+
+    def _set_y_axis_limits(self, ax: Axes, y_values: list) -> None:
+        """Set Y-axis limits to start from a non-zero value for better data visualization.
+
+        Args:
+
+        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `y_values` (`list`): Y-axis values.
+
+        """
+        if not y_values:
+            return
+
+        # Filter out zero and None values for limit calculation
+        non_zero_values = [y for y in y_values if y is not None and y != 0]
+
+        if not non_zero_values:
+            return
+
+        min_val = min(non_zero_values)
+        max_val = max(non_zero_values)
+
+        if min_val == max_val:
+            # If all values are the same, create a reasonable range around the value
+            center = min_val
+            margin = abs(center) * 0.1 if center != 0 else 1
+            ax.set_ylim(center - margin, center + margin)
+        else:
+            # Calculate range and add padding
+            value_range = max_val - min_val
+            padding = value_range * 0.1  # 10% padding
+
+            # Set lower limit: don't go below 0 for positive values,
+            # but allow some space below the minimum
+            lower_limit = max(0, min_val - padding) if min_val > 0 else min_val - padding
+            upper_limit = max_val + padding
+
+            ax.set_ylim(lower_limit, upper_limit)
 
 
 class DateOperations:
