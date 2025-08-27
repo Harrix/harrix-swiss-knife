@@ -446,6 +446,9 @@ class MainWindow(
 
         category = self.comboBox_filter_category.currentText() if self.comboBox_filter_category.currentText() else None
         currency = self.comboBox_filter_currency.currentText() if self.comboBox_filter_currency.currentText() else None
+        description_filter = (
+            self.lineEdit_filter_description.text().strip() if self.lineEdit_filter_description.text().strip() else None
+        )
 
         use_date_filter = self.checkBox_use_date_filter.isChecked()
         date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
@@ -458,6 +461,7 @@ class MainWindow(
             currency_code=currency,
             date_from=date_from,
             date_to=date_to,
+            description_filter=description_filter,
         )
 
         # Transform data for display
@@ -515,6 +519,7 @@ class MainWindow(
         self.radioButton.setChecked(True)  # All
         self.comboBox_filter_category.setCurrentIndex(0)
         self.comboBox_filter_currency.setCurrentIndex(0)
+        self.lineEdit_filter_description.clear()
         self.checkBox_use_date_filter.setChecked(False)
 
         current_date = QDateTime.currentDateTime().date()
@@ -4346,6 +4351,9 @@ def apply_filter(self) -> None:
 
         category = self.comboBox_filter_category.currentText() if self.comboBox_filter_category.currentText() else None
         currency = self.comboBox_filter_currency.currentText() if self.comboBox_filter_currency.currentText() else None
+        description_filter = (
+            self.lineEdit_filter_description.text().strip() if self.lineEdit_filter_description.text().strip() else None
+        )
 
         use_date_filter = self.checkBox_use_date_filter.isChecked()
         date_from = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
@@ -4358,6 +4366,7 @@ def apply_filter(self) -> None:
             currency_code=currency,
             date_from=date_from,
             date_to=date_to,
+            description_filter=description_filter,
         )
 
         # Transform data for display
@@ -4429,6 +4438,7 @@ def clear_filter(self) -> None:
         self.radioButton.setChecked(True)  # All
         self.comboBox_filter_category.setCurrentIndex(0)
         self.comboBox_filter_currency.setCurrentIndex(0)
+        self.lineEdit_filter_description.clear()
         self.checkBox_use_date_filter.setChecked(False)
 
         current_date = QDateTime.currentDateTime().date()

@@ -1374,6 +1374,7 @@ class DatabaseManager:
         currency_code: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
+        description_filter: str | None = None,
     ) -> list[list[Any]]:
         """Get filtered transactions.
 
@@ -1384,6 +1385,7 @@ class DatabaseManager:
         - `currency_code` (`str | None`): Filter by currency code. Defaults to `None`.
         - `date_from` (`str | None`): Filter from date. Defaults to `None`.
         - `date_to` (`str | None`): Filter to date. Defaults to `None`.
+        - `description_filter` (`str | None`): Filter by description substring (case insensitive). Defaults to `None`.
 
         Returns:
 
@@ -1409,6 +1411,10 @@ class DatabaseManager:
             conditions.append("t.date BETWEEN :date_from AND :date_to")
             params["date_from"] = date_from
             params["date_to"] = date_to
+
+        if description_filter:
+            conditions.append("LOWER(t.description) LIKE :description_filter")
+            params["description_filter"] = f"%{description_filter.lower()}%"
 
         query_text = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
@@ -4283,7 +4289,7 @@ def get_filtered_exchange_rates(
 ### ⚙️ Method `get_filtered_transactions`
 
 ```python
-def get_filtered_transactions(self, category_type: int | None = None, category_name: str | None = None, currency_code: str | None = None, date_from: str | None = None, date_to: str | None = None) -> list[list[Any]]
+def get_filtered_transactions(self, category_type: int | None = None, category_name: str | None = None, currency_code: str | None = None, date_from: str | None = None, date_to: str | None = None, description_filter: str | None = None) -> list[list[Any]]
 ```
 
 Get filtered transactions.
@@ -4295,6 +4301,7 @@ Args:
 - `currency_code` (`str | None`): Filter by currency code. Defaults to `None`.
 - `date_from` (`str | None`): Filter from date. Defaults to `None`.
 - `date_to` (`str | None`): Filter to date. Defaults to `None`.
+- `description_filter` (`str | None`): Filter by description substring (case insensitive). Defaults to `None`.
 
 Returns:
 
@@ -4311,6 +4318,7 @@ def get_filtered_transactions(
         currency_code: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
+        description_filter: str | None = None,
     ) -> list[list[Any]]:
         conditions: list[str] = []
         params: dict[str, str | int] = {}
@@ -4331,6 +4339,10 @@ def get_filtered_transactions(
             conditions.append("t.date BETWEEN :date_from AND :date_to")
             params["date_from"] = date_from
             params["date_to"] = date_to
+
+        if description_filter:
+            conditions.append("LOWER(t.description) LIKE :description_filter")
+            params["description_filter"] = f"%{description_filter.lower()}%"
 
         query_text = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,

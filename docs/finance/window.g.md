@@ -52,6 +52,7 @@ class Ui_MainWindow(object):
         self.radioButton.setText(QCoreApplication.translate("MainWindow", "All", None))
         self.radioButton_2.setText(QCoreApplication.translate("MainWindow", "Expense", None))
         self.radioButton_3.setText(QCoreApplication.translate("MainWindow", "Income", None))
+        self.label_filter_description.setText(QCoreApplication.translate("MainWindow", "Description:", None))
         self.label_filter_category.setText(QCoreApplication.translate("MainWindow", "Category:", None))
         self.label_filter_currency.setText(QCoreApplication.translate("MainWindow", "Currency:", None))
         self.label_filter_date.setText(QCoreApplication.translate("MainWindow", "Date:", None))
@@ -221,7 +222,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(2013, 946)
+        MainWindow.resize(2005, 917)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -395,7 +396,7 @@ class Ui_MainWindow(object):
 
         self.groupBox_filter = QGroupBox(self.frame)
         self.groupBox_filter.setObjectName("groupBox_filter")
-        self.groupBox_filter.setMinimumSize(QSize(0, 0))
+        self.groupBox_filter.setMinimumSize(QSize(0, 1))
         self.verticalLayout_4 = QVBoxLayout(self.groupBox_filter)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.horizontalLayout_5 = QHBoxLayout()
@@ -417,6 +418,27 @@ class Ui_MainWindow(object):
         self.horizontalLayout_5.addWidget(self.radioButton_3)
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_5)
+
+        self.horizontalLayout_27 = QHBoxLayout()
+        self.horizontalLayout_27.setObjectName("horizontalLayout_27")
+        self.label_filter_description = QLabel(self.groupBox_filter)
+        self.label_filter_description.setObjectName("label_filter_description")
+        self.label_filter_description.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_27.addWidget(self.label_filter_description)
+
+        self.lineEdit_filter_description = QLineEdit(self.groupBox_filter)
+        self.lineEdit_filter_description.setObjectName("lineEdit_filter_description")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_filter_description.sizePolicy().hasHeightForWidth())
+        self.lineEdit_filter_description.setSizePolicy(sizePolicy)
+        self.lineEdit_filter_description.setMinimumSize(QSize(191, 0))
+
+        self.horizontalLayout_27.addWidget(self.lineEdit_filter_description)
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_27)
 
         self.horizontalLayout_9 = QHBoxLayout()
         self.horizontalLayout_9.setObjectName("horizontalLayout_9")
@@ -1453,7 +1475,7 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 895, 776))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 891, 749))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1589,7 +1611,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1969, 745))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1961, 718))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1681,7 +1703,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 2013, 22))
+        self.menuBar.setGeometry(QRect(0, 0, 2005, 21))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")
@@ -1731,6 +1753,7 @@ def retranslateUi(self, MainWindow):
         self.radioButton.setText(QCoreApplication.translate("MainWindow", "All", None))
         self.radioButton_2.setText(QCoreApplication.translate("MainWindow", "Expense", None))
         self.radioButton_3.setText(QCoreApplication.translate("MainWindow", "Income", None))
+        self.label_filter_description.setText(QCoreApplication.translate("MainWindow", "Description:", None))
         self.label_filter_category.setText(QCoreApplication.translate("MainWindow", "Category:", None))
         self.label_filter_currency.setText(QCoreApplication.translate("MainWindow", "Currency:", None))
         self.label_filter_date.setText(QCoreApplication.translate("MainWindow", "Date:", None))
@@ -1915,7 +1938,7 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(2013, 946)
+        MainWindow.resize(2005, 917)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -2089,7 +2112,7 @@ def setupUi(self, MainWindow):
 
         self.groupBox_filter = QGroupBox(self.frame)
         self.groupBox_filter.setObjectName("groupBox_filter")
-        self.groupBox_filter.setMinimumSize(QSize(0, 0))
+        self.groupBox_filter.setMinimumSize(QSize(0, 1))
         self.verticalLayout_4 = QVBoxLayout(self.groupBox_filter)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.horizontalLayout_5 = QHBoxLayout()
@@ -2111,6 +2134,27 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_5.addWidget(self.radioButton_3)
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_5)
+
+        self.horizontalLayout_27 = QHBoxLayout()
+        self.horizontalLayout_27.setObjectName("horizontalLayout_27")
+        self.label_filter_description = QLabel(self.groupBox_filter)
+        self.label_filter_description.setObjectName("label_filter_description")
+        self.label_filter_description.setMinimumSize(QSize(61, 0))
+
+        self.horizontalLayout_27.addWidget(self.label_filter_description)
+
+        self.lineEdit_filter_description = QLineEdit(self.groupBox_filter)
+        self.lineEdit_filter_description.setObjectName("lineEdit_filter_description")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_filter_description.sizePolicy().hasHeightForWidth())
+        self.lineEdit_filter_description.setSizePolicy(sizePolicy)
+        self.lineEdit_filter_description.setMinimumSize(QSize(191, 0))
+
+        self.horizontalLayout_27.addWidget(self.lineEdit_filter_description)
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_27)
 
         self.horizontalLayout_9 = QHBoxLayout()
         self.horizontalLayout_9.setObjectName("horizontalLayout_9")
@@ -3147,7 +3191,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 895, 776))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 891, 749))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -3283,7 +3327,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1969, 745))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1961, 718))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -3375,7 +3419,7 @@ def setupUi(self, MainWindow):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 2013, 22))
+        self.menuBar.setGeometry(QRect(0, 0, 2005, 21))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")
