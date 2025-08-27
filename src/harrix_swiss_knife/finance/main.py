@@ -3756,7 +3756,7 @@ class MainWindow(
                     # Add separator
                     context_menu.addSeparator()
 
-        export_action = context_menu.addAction("Export to CSV")
+        export_action = context_menu.addAction("📤 Export to CSV")
 
         action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
 
