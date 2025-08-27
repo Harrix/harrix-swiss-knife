@@ -852,6 +852,8 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
 
         if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
 
@@ -954,6 +956,8 @@ class MainWindow(
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         if not monthly_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
@@ -1046,6 +1050,8 @@ class MainWindow(
         years_count = self.spinBox_compare_last.value()
 
         if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
 
@@ -1170,6 +1176,8 @@ class MainWindow(
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         if not yearly_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
@@ -2228,6 +2236,8 @@ class MainWindow(
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
         if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No calories data to display")
             return
 
@@ -2310,6 +2320,8 @@ class MainWindow(
             grouped_data = self._group_data_by_period(rows, period, value_type="int")
 
         if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
             return
 
@@ -2616,6 +2628,8 @@ class MainWindow(
         use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
         if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
 
@@ -2645,6 +2659,8 @@ class MainWindow(
                 continue
 
         if not datetime_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
             return
 
@@ -2655,6 +2671,8 @@ class MainWindow(
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
         if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
