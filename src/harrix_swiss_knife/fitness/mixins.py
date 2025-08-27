@@ -728,19 +728,6 @@ class ChartOperations:
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
 
-    def _show_no_data_label(self, layout: QLayout, text: str) -> None:
-        """Show a 'no data' label in the layout.
-
-        Args:
-
-        - `layout` (`QLayout`): Layout to add the label to.
-        - `text` (`str`): Text to display.
-
-        """
-        label = QLabel(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
-
     def _set_y_axis_limits(self, ax: Axes, y_values: list) -> None:
         """Set Y-axis limits to start from a non-zero value for better data visualization.
 
@@ -778,6 +765,19 @@ class ChartOperations:
             upper_limit = max_val + padding
 
             ax.set_ylim(lower_limit, upper_limit)
+
+    def _show_no_data_label(self, layout: QLayout, text: str) -> None:
+        """Show a 'no data' label in the layout.
+
+        Args:
+
+        - `layout` (`QLayout`): Layout to add the label to.
+        - `text` (`str`): Text to display.
+
+        """
+        label = QLabel(text)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
 
 
 class DateOperations:

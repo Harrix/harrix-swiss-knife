@@ -63,6 +63,7 @@ lang: en
   - [⚙️ Method `update_sets_count_today`](#%EF%B8%8F-method-update_sets_count_today)
   - [⚙️ Method `update_statistics_exercise_combobox`](#%EF%B8%8F-method-update_statistics_exercise_combobox)
   - [⚙️ Method `update_weight_chart`](#%EF%B8%8F-method-update_weight_chart)
+  - [⚙️ Method `_add_one_day_to_main`](#%EF%B8%8F-method-_add_one_day_to_main)
   - [⚙️ Method `_adjust_process_table_columns`](#%EF%B8%8F-method-_adjust_process_table_columns)
   - [⚙️ Method `_check_for_new_records`](#%EF%B8%8F-method-_check_for_new_records)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
@@ -104,10 +105,13 @@ lang: en
   - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
   - [⚙️ Method `_schedule_chart_update`](#%EF%B8%8F-method-_schedule_chart_update)
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
+  - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_process_context_menu`](#%EF%B8%8F-method-_show_process_context_menu)
   - [⚙️ Method `_show_record_congratulations`](#%EF%B8%8F-method-_show_record_congratulations)
+  - [⚙️ Method `_show_yesterday_context_menu`](#%EF%B8%8F-method-_show_yesterday_context_menu)
+  - [⚙️ Method `_subtract_one_day_from_main`](#%EF%B8%8F-method-_subtract_one_day_from_main)
   - [⚙️ Method `_update_chart_based_on_radio_button`](#%EF%B8%8F-method-_update_chart_based_on_radio_button)
   - [⚙️ Method `_update_charts_avif`](#%EF%B8%8F-method-_update_charts_avif)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
@@ -2977,6 +2981,12 @@ class MainWindow(
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
 
+    def _add_one_day_to_main(self) -> None:
+        """Add one day to the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit.setDate(new_date)
+
     def _adjust_process_table_columns(self) -> None:
         """Adjust process table column widths proportionally to window size."""
         if not hasattr(self, "tableView_process") or not self.tableView_process.model():
@@ -3091,6 +3101,10 @@ class MainWindow(
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
+
+        # Add context menu for yesterday button
+        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
 
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
@@ -4183,6 +4197,11 @@ class MainWindow(
                     selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
                 break
 
+    def _set_today_date_in_main(self) -> None:
+        """Set today's date in the main date field."""
+        today = QDate.currentDate()
+        self.dateEdit.setDate(today)
+
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         # Set emoji for buttons
@@ -4380,6 +4399,34 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error showing record congratulations: {e}")
+
+    def _show_yesterday_context_menu(self, position) -> None:
+        """Show context menu for yesterday button with date options."""
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+
+    def _subtract_one_day_from_main(self) -> None:
+        """Subtract one day from the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit.setDate(new_date)
 
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
@@ -8021,6 +8068,26 @@ def update_weight_chart(self) -> None:
 
 </details>
 
+### ⚙️ Method `_add_one_day_to_main`
+
+```python
+def _add_one_day_to_main(self) -> None
+```
+
+Add one day to the current date in main date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_one_day_to_main(self) -> None:
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit.setDate(new_date)
+```
+
+</details>
+
 ### ⚙️ Method `_adjust_process_table_columns`
 
 ```python
@@ -8171,6 +8238,10 @@ def _connect_signals(self) -> None:
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
+
+        # Add context menu for yesterday button
+        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
 
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
@@ -9753,6 +9824,25 @@ def _select_exercise_in_list(self, exercise_name: str) -> None:
 
 </details>
 
+### ⚙️ Method `_set_today_date_in_main`
+
+```python
+def _set_today_date_in_main(self) -> None
+```
+
+Set today's date in the main date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_today_date_in_main(self) -> None:
+        today = QDate.currentDate()
+        self.dateEdit.setDate(today)
+```
+
+</details>
+
 ### ⚙️ Method `_setup_ui`
 
 ```python
@@ -9999,6 +10089,62 @@ def _show_record_congratulations(self, exercise: str, record_info: dict) -> None
 
         except Exception as e:
             print(f"Error showing record congratulations: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_show_yesterday_context_menu`
+
+```python
+def _show_yesterday_context_menu(self, position) -> None
+```
+
+Show context menu for yesterday button with date options.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_yesterday_context_menu(self, position) -> None:
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+```
+
+</details>
+
+### ⚙️ Method `_subtract_one_day_from_main`
+
+```python
+def _subtract_one_day_from_main(self) -> None
+```
+
+Subtract one day from the current date in main date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _subtract_one_day_from_main(self) -> None:
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit.setDate(new_date)
 ```
 
 </details>

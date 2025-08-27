@@ -42,6 +42,7 @@ lang: en
   - [⚙️ Method `update_food_calories_today`](#%EF%B8%8F-method-update_food_calories_today)
   - [⚙️ Method `update_food_data`](#%EF%B8%8F-method-update_food_data)
   - [⚙️ Method `_add_food_item_from_log_record`](#%EF%B8%8F-method-_add_food_item_from_log_record)
+  - [⚙️ Method `_add_one_day_to_food`](#%EF%B8%8F-method-_add_one_day_to_food)
   - [⚙️ Method `_adjust_food_log_table_columns`](#%EF%B8%8F-method-_adjust_food_log_table_columns)
   - [⚙️ Method `_adjust_kcal_per_day_table_columns`](#%EF%B8%8F-method-_adjust_kcal_per_day_table_columns)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
@@ -70,11 +71,14 @@ lang: en
   - [⚙️ Method `_process_food_item_selection`](#%EF%B8%8F-method-_process_food_item_selection)
   - [⚙️ Method `_process_text_input`](#%EF%B8%8F-method-_process_text_input)
   - [⚙️ Method `_reconnect_context_menu`](#%EF%B8%8F-method-_reconnect_context_menu)
+  - [⚙️ Method `_set_today_date_in_food`](#%EF%B8%8F-method-_set_today_date_in_food)
   - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_all_food_items`](#%EF%B8%8F-method-_show_all_food_items)
   - [⚙️ Method `_show_food_log_context_menu`](#%EF%B8%8F-method-_show_food_log_context_menu)
+  - [⚙️ Method `_show_food_yesterday_context_menu`](#%EF%B8%8F-method-_show_food_yesterday_context_menu)
+  - [⚙️ Method `_subtract_one_day_from_food`](#%EF%B8%8F-method-_subtract_one_day_from_food)
   - [⚙️ Method `_update_add_button_appearance`](#%EF%B8%8F-method-_update_add_button_appearance)
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_drinks_chart`](#%EF%B8%8F-method-_update_drinks_chart)
@@ -1167,6 +1171,12 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to add food item: {e}")
             print(f"Error adding food item from log record: {e}")
 
+    def _add_one_day_to_food(self) -> None:
+        """Add one day to the current date in food date field."""
+        current_date = self.dateEdit_food.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit_food.setDate(new_date)
+
     def _adjust_food_log_table_columns(self) -> None:
         """Adjust food log table column widths proportionally to window size."""
         if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
@@ -1241,6 +1251,11 @@ class MainWindow(
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
+
+        # Add context menu for food yesterday button
+        self.pushButton_food_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_food_yesterday.customContextMenuRequested.connect(self._show_food_yesterday_context_menu)
+
         self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
         self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
         self.pushButton_check.clicked.connect(self.on_check_problematic_records)
@@ -2268,6 +2283,11 @@ class MainWindow(
         """Reconnect the context menu signal after deletion."""
         self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
 
+    def _set_today_date_in_food(self) -> None:
+        """Set today's date in the food date field."""
+        today = QDate.currentDate()
+        self.dateEdit_food.setDate(today)
+
     def _setup_autocomplete(self) -> None:
         """Setup autocomplete functionality for food name input."""
         from PySide6.QtCore import Qt
@@ -2455,6 +2475,34 @@ class MainWindow(
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
+
+    def _show_food_yesterday_context_menu(self, position) -> None:
+        """Show context menu for food yesterday button with date options."""
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_food)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_food)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_food)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_food_yesterday.mapToGlobal(position))
+
+    def _subtract_one_day_from_food(self) -> None:
+        """Subtract one day from the current date in food date field."""
+        current_date = self.dateEdit_food.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit_food.setDate(new_date)
 
     def _update_add_button_appearance(self) -> None:
         """Update the appearance of the add button based on whether it's a drink or food."""
@@ -4494,6 +4542,26 @@ def _add_food_item_from_log_record(self, include_weight: bool = True) -> None:
 
 </details>
 
+### ⚙️ Method `_add_one_day_to_food`
+
+```python
+def _add_one_day_to_food(self) -> None
+```
+
+Add one day to the current date in food date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_one_day_to_food(self) -> None:
+        current_date = self.dateEdit_food.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit_food.setDate(new_date)
+```
+
+</details>
+
 ### ⚙️ Method `_adjust_food_log_table_columns`
 
 ```python
@@ -4606,6 +4674,11 @@ def _connect_signals(self) -> None:
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
+
+        # Add context menu for food yesterday button
+        self.pushButton_food_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_food_yesterday.customContextMenuRequested.connect(self._show_food_yesterday_context_menu)
+
         self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
         self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
         self.pushButton_check.clicked.connect(self.on_check_problematic_records)
@@ -5958,6 +6031,25 @@ def _reconnect_context_menu(self) -> None:
 
 </details>
 
+### ⚙️ Method `_set_today_date_in_food`
+
+```python
+def _set_today_date_in_food(self) -> None
+```
+
+Set today's date in the food date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_today_date_in_food(self) -> None:
+        today = QDate.currentDate()
+        self.dateEdit_food.setDate(today)
+```
+
+</details>
+
 ### ⚙️ Method `_setup_autocomplete`
 
 ```python
@@ -6211,6 +6303,62 @@ def _show_food_log_context_menu(self, position) -> None:
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
+```
+
+</details>
+
+### ⚙️ Method `_show_food_yesterday_context_menu`
+
+```python
+def _show_food_yesterday_context_menu(self, position) -> None
+```
+
+Show context menu for food yesterday button with date options.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_food_yesterday_context_menu(self, position) -> None:
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_food)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_food)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_food)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_food_yesterday.mapToGlobal(position))
+```
+
+</details>
+
+### ⚙️ Method `_subtract_one_day_from_food`
+
+```python
+def _subtract_one_day_from_food(self) -> None
+```
+
+Subtract one day from the current date in food date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _subtract_one_day_from_food(self) -> None:
+        current_date = self.dateEdit_food.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit_food.setDate(new_date)
 ```
 
 </details>

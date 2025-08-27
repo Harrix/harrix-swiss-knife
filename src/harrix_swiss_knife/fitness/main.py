@@ -33,7 +33,16 @@ from PySide6.QtGui import (
     QStandardItem,
     QStandardItemModel,
 )
-from PySide6.QtWidgets import QApplication, QFileDialog, QListView, QMainWindow, QMenu, QMessageBox, QRadioButton, QTableView
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QListView,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QRadioButton,
+    QTableView,
+)
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.fitness import database_manager, window
@@ -2183,45 +2192,6 @@ class MainWindow(
         yesterday = QDate.currentDate().addDays(-1)
         self.dateEdit.setDate(yesterday)
 
-    def _show_yesterday_context_menu(self, position) -> None:
-        """Show context menu for yesterday button with date options."""
-        context_menu = QMenu(self)
-
-        # Today's date
-        today_action = context_menu.addAction("📅 Today's date")
-        today_action.triggered.connect(self._set_today_date_in_main)
-
-        # Add separator
-        context_menu.addSeparator()
-
-        # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")
-        plus_one_action.triggered.connect(self._add_one_day_to_main)
-
-        # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
-        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
-
-        # Show context menu at cursor position
-        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
-
-    def _set_today_date_in_main(self) -> None:
-        """Set today's date in the main date field."""
-        today = QDate.currentDate()
-        self.dateEdit.setDate(today)
-
-    def _add_one_day_to_main(self) -> None:
-        """Add one day to the current date in main date field."""
-        current_date = self.dateEdit.date()
-        new_date = current_date.addDays(1)
-        self.dateEdit.setDate(new_date)
-
-    def _subtract_one_day_from_main(self) -> None:
-        """Subtract one day from the current date in main date field."""
-        current_date = self.dateEdit.date()
-        new_date = current_date.addDays(-1)
-        self.dateEdit.setDate(new_date)
-
     @requires_database()
     def show_kcal_chart(self) -> None:
         """Show chart of total calories using database manager."""
@@ -2940,6 +2910,12 @@ class MainWindow(
         fig.tight_layout()
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
+
+    def _add_one_day_to_main(self) -> None:
+        """Add one day to the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit.setDate(new_date)
 
     def _adjust_process_table_columns(self) -> None:
         """Adjust process table column widths proportionally to window size."""
@@ -4151,6 +4127,11 @@ class MainWindow(
                     selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
                 break
 
+    def _set_today_date_in_main(self) -> None:
+        """Set today's date in the main date field."""
+        today = QDate.currentDate()
+        self.dateEdit.setDate(today)
+
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         # Set emoji for buttons
@@ -4348,6 +4329,34 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error showing record congratulations: {e}")
+
+    def _show_yesterday_context_menu(self, position) -> None:
+        """Show context menu for yesterday button with date options."""
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+
+    def _subtract_one_day_from_main(self) -> None:
+        """Subtract one day from the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit.setDate(new_date)
 
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
