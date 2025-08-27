@@ -3403,35 +3403,6 @@ class MainWindow(
         except Exception as e:
             print(f"Error focusing spinBox_count: {e}")
 
-    def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
-        """Get the first day without Steps records (next day after last record).
-
-        Args:
-
-        - `exercise_id` (`int`): Exercise ID for Steps.
-
-        Returns:
-
-        - `QDate`: The first day without Steps records.
-        """
-        if self.db_manager is None:
-            return QDate.currentDate()
-
-        # Get the last date when Steps were recorded
-        last_date_str = self.db_manager.get_last_exercise_date(exercise_id)
-
-        if last_date_str:
-            try:
-                # Parse the last date and add one day
-                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
-                if last_date.isValid():
-                    return last_date.addDays(1)
-            except Exception:
-                pass
-
-        # If no last date found or parsing failed, return today
-        return QDate.currentDate()
-
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
 
@@ -3489,6 +3460,35 @@ class MainWindow(
             return None
 
         return self.db_manager.get_exercise_name_by_id(exercise_id)
+
+    def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
+        """Get the first day without Steps records (next day after last record).
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID for Steps.
+
+        Returns:
+
+        - `QDate`: The first day without Steps records.
+        """
+        if self.db_manager is None:
+            return QDate.currentDate()
+
+        # Get the last date when Steps were recorded
+        last_date_str = self.db_manager.get_last_exercise_date(exercise_id)
+
+        if last_date_str:
+            try:
+                # Parse the last date and add one day
+                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+                if last_date.isValid():
+                    return last_date.addDays(1)
+            except Exception:
+                pass
+
+        # If no last date found or parsing failed, return today
+        return QDate.currentDate()
 
     def _get_last_weight(self) -> float:
         """Get the last recorded weight value from database.

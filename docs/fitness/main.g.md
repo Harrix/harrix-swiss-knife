@@ -80,6 +80,7 @@ lang: en
   - [⚙️ Method `_get_current_selected_exercise`](#%EF%B8%8F-method-_get_current_selected_exercise)
   - [⚙️ Method `_get_exercise_avif_path`](#%EF%B8%8F-method-_get_exercise_avif_path)
   - [⚙️ Method `_get_exercise_name_by_id`](#%EF%B8%8F-method-_get_exercise_name_by_id)
+  - [⚙️ Method `_get_first_day_without_steps_record`](#%EF%B8%8F-method-_get_first_day_without_steps_record)
   - [⚙️ Method `_get_last_weight`](#%EF%B8%8F-method-_get_last_weight)
   - [⚙️ Method `_get_selected_chart_exercise`](#%EF%B8%8F-method-_get_selected_chart_exercise)
   - [⚙️ Method `_get_selected_chart_type`](#%EF%B8%8F-method-_get_selected_chart_type)
@@ -926,6 +927,8 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
 
         if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
 
@@ -1028,6 +1031,8 @@ class MainWindow(
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         if not monthly_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
@@ -1120,6 +1125,8 @@ class MainWindow(
         years_count = self.spinBox_compare_last.value()
 
         if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
 
@@ -1244,6 +1251,8 @@ class MainWindow(
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         if not yearly_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
@@ -1472,13 +1481,12 @@ class MainWindow(
                     if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                         self.spinBox_count.setValue(0)
 
-                        # For Steps exercise, if current date is today, set it to yesterday
-                        # since steps are recorded for the previous day
+                        # For Steps exercise, set date to first day without records
                         current_date = self.dateEdit.date()
                         today = QDate.currentDate()
                         if current_date == today:
-                            yesterday = today.addDays(-1)
-                            self.dateEdit.setDate(yesterday)
+                            first_empty_date = self._get_first_day_without_steps_record(ex_id)
+                            self.dateEdit.setDate(first_empty_date)
                     else:  # Other exercises - use last value
                         try:
                             value = int(float(last_value))
@@ -1489,13 +1497,12 @@ class MainWindow(
                 elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                     self.spinBox_count.setValue(0)
 
-                    # For Steps exercise, if current date is today, set it to yesterday
-                    # since steps are recorded for the previous day
+                    # For Steps exercise, set date to first day without records
                     current_date = self.dateEdit.date()
                     today = QDate.currentDate()
                     if current_date == today:
-                        yesterday = today.addDays(-1)
-                        self.dateEdit.setDate(yesterday)
+                        first_empty_date = self._get_first_day_without_steps_record(ex_id)
+                        self.dateEdit.setDate(first_empty_date)
 
             except Exception as e:
                 print(f"Error getting last exercise record for '{exercise}': {e}")
@@ -2304,6 +2311,8 @@ class MainWindow(
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
         if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No calories data to display")
             return
 
@@ -2386,6 +2395,8 @@ class MainWindow(
             grouped_data = self._group_data_by_period(rows, period, value_type="int")
 
         if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
             return
 
@@ -2692,6 +2703,8 @@ class MainWindow(
         use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
         if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
 
@@ -2721,6 +2734,8 @@ class MainWindow(
                 continue
 
         if not datetime_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
             return
 
@@ -2731,6 +2746,8 @@ class MainWindow(
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
         if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
@@ -3518,6 +3535,35 @@ class MainWindow(
             return None
 
         return self.db_manager.get_exercise_name_by_id(exercise_id)
+
+    def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
+        """Get the first day without Steps records (next day after last record).
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID for Steps.
+
+        Returns:
+
+        - `QDate`: The first day without Steps records.
+        """
+        if self.db_manager is None:
+            return QDate.currentDate()
+
+        # Get the last date when Steps were recorded
+        last_date_str = self.db_manager.get_last_exercise_date(exercise_id)
+
+        if last_date_str:
+            try:
+                # Parse the last date and add one day
+                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+                if last_date.isValid():
+                    return last_date.addDays(1)
+            except Exception:
+                pass
+
+        # If no last date found or parsing failed, return today
+        return QDate.currentDate()
 
     def _get_last_weight(self) -> float:
         """Get the last recorded weight value from database.
@@ -5659,6 +5705,8 @@ def on_compare_last_months(self) -> None:
         months_count = self.spinBox_compare_last.value()
 
         if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
 
@@ -5761,6 +5809,8 @@ def on_compare_last_months(self) -> None:
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         if not monthly_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
@@ -5865,6 +5915,8 @@ def on_compare_same_months(self) -> None:
         years_count = self.spinBox_compare_last.value()
 
         if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
 
@@ -5989,6 +6041,8 @@ def on_compare_same_months(self) -> None:
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         if not yearly_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
@@ -6257,13 +6311,12 @@ def on_exercise_selection_changed_list(self) -> None:
                     if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                         self.spinBox_count.setValue(0)
 
-                        # For Steps exercise, if current date is today, set it to yesterday
-                        # since steps are recorded for the previous day
+                        # For Steps exercise, set date to first day without records
                         current_date = self.dateEdit.date()
                         today = QDate.currentDate()
                         if current_date == today:
-                            yesterday = today.addDays(-1)
-                            self.dateEdit.setDate(yesterday)
+                            first_empty_date = self._get_first_day_without_steps_record(ex_id)
+                            self.dateEdit.setDate(first_empty_date)
                     else:  # Other exercises - use last value
                         try:
                             value = int(float(last_value))
@@ -6274,13 +6327,12 @@ def on_exercise_selection_changed_list(self) -> None:
                 elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                     self.spinBox_count.setValue(0)
 
-                    # For Steps exercise, if current date is today, set it to yesterday
-                    # since steps are recorded for the previous day
+                    # For Steps exercise, set date to first day without records
                     current_date = self.dateEdit.date()
                     today = QDate.currentDate()
                     if current_date == today:
-                        yesterday = today.addDays(-1)
-                        self.dateEdit.setDate(yesterday)
+                        first_empty_date = self._get_first_day_without_steps_record(ex_id)
+                        self.dateEdit.setDate(first_empty_date)
 
             except Exception as e:
                 print(f"Error getting last exercise record for '{exercise}': {e}")
@@ -7350,6 +7402,8 @@ def show_kcal_chart(self) -> None:
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
         if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No calories data to display")
             return
 
@@ -7445,6 +7499,8 @@ def show_sets_chart(self) -> None:
             grouped_data = self._group_data_by_period(rows, period, value_type="int")
 
         if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
             return
 
@@ -7816,6 +7872,8 @@ def update_exercise_chart(self) -> None:
         use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
         if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
 
@@ -7845,6 +7903,8 @@ def update_exercise_chart(self) -> None:
                 continue
 
         if not datetime_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
             return
 
@@ -7855,6 +7915,8 @@ def update_exercise_chart(self) -> None:
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
         if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
 
@@ -8920,6 +8982,48 @@ def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
             return None
 
         return self.db_manager.get_exercise_name_by_id(exercise_id)
+```
+
+</details>
+
+### ⚙️ Method `_get_first_day_without_steps_record`
+
+```python
+def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate
+```
+
+Get the first day without Steps records (next day after last record).
+
+Args:
+
+- `exercise_id` (`int`): Exercise ID for Steps.
+
+Returns:
+
+- `QDate`: The first day without Steps records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
+        if self.db_manager is None:
+            return QDate.currentDate()
+
+        # Get the last date when Steps were recorded
+        last_date_str = self.db_manager.get_last_exercise_date(exercise_id)
+
+        if last_date_str:
+            try:
+                # Parse the last date and add one day
+                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+                if last_date.isValid():
+                    return last_date.addDays(1)
+            except Exception:
+                pass
+
+        # If no last date found or parsing failed, return today
+        return QDate.currentDate()
 ```
 
 </details>
