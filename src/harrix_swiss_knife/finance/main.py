@@ -3581,25 +3581,6 @@ class MainWindow(
         except Exception as e:
             print(f"❌ Error setting date from table: {e}")
 
-    def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
-        """Set the date from table row + 1 day to the main dateEdit field.
-
-        Args:
-            date_value: Date string from the table (format: yyyy-MM-dd)
-        """
-        try:
-            # Parse the date string, add 1 day and set it in dateEdit
-            from PySide6.QtCore import QDate
-
-            date_obj = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
-                new_date = date_obj.addDays(1)
-                self.dateEdit.setDate(new_date)
-            else:
-                print(f"❌ Invalid date format: {date_value}")
-        except Exception as e:
-            print(f"❌ Error setting date from table + 1 day: {e}")
-
     def _set_date_from_table_minus_one_day(self, date_value: str) -> None:
         """Set the date from table row - 1 day to the main dateEdit field.
 
@@ -3618,6 +3599,25 @@ class MainWindow(
                 print(f"❌ Invalid date format: {date_value}")
         except Exception as e:
             print(f"❌ Error setting date from table - 1 day: {e}")
+
+    def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
+        """Set the date from table row + 1 day to the main dateEdit field.
+
+        Args:
+            date_value: Date string from the table (format: yyyy-MM-dd)
+        """
+        try:
+            # Parse the date string, add 1 day and set it in dateEdit
+            from PySide6.QtCore import QDate
+
+            date_obj = QDate.fromString(date_value, "yyyy-MM-dd")
+            if date_obj.isValid():
+                new_date = date_obj.addDays(1)
+                self.dateEdit.setDate(new_date)
+            else:
+                print(f"❌ Invalid date format: {date_value}")
+        except Exception as e:
+            print(f"❌ Error setting date from table + 1 day: {e}")
 
     def _set_today_date_in_main(self) -> None:
         """Set today's date in the main date field."""
@@ -3718,6 +3718,9 @@ class MainWindow(
         # Set frame_rates width to 800px
         self.frame_rates.setFixedWidth(800)
 
+        # Set tab_charts width to 300px (affects verticalLayout_18)
+        self.tab_charts.setFixedWidth(300)
+
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)
         self.doubleSpinBox_exchange_from.setValue(100.0)
@@ -3793,11 +3796,15 @@ class MainWindow(
 
                     # Add menu item to set this date + 1 day in dateEdit
                     set_date_plus_one_action = context_menu.addAction("📅 Set this date + 1 day in main field")
-                    set_date_plus_one_action.triggered.connect(lambda: self._set_date_from_table_plus_one_day(date_value))
+                    set_date_plus_one_action.triggered.connect(
+                        lambda: self._set_date_from_table_plus_one_day(date_value)
+                    )
 
                     # Add menu item to set this date - 1 day in dateEdit
                     set_date_minus_one_action = context_menu.addAction("📅 Set this date - 1 day in main field")
-                    set_date_minus_one_action.triggered.connect(lambda: self._set_date_from_table_minus_one_day(date_value))
+                    set_date_minus_one_action.triggered.connect(
+                        lambda: self._set_date_from_table_minus_one_day(date_value)
+                    )
 
                     # Add separator
                     context_menu.addSeparator()

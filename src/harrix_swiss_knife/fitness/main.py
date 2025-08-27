@@ -4229,6 +4229,44 @@ class MainWindow(
                 window_height,
             )
 
+    def _show_exercise_types_context_menu(self, position) -> None:
+        """Show context menu for exercise types table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        action = context_menu.exec(self.tableView_exercise_types.mapToGlobal(position))
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+
+    def _show_exercises_context_menu(self, position) -> None:
+        """Show context menu for exercises table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        action = context_menu.exec(self.tableView_exercises.mapToGlobal(position))
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+
     def _show_process_context_menu(self, position) -> None:
         """Show context menu for process table.
 
@@ -4258,82 +4296,6 @@ class MainWindow(
                 context_menu.close()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
-
-    def _show_statistics_context_menu(self, position) -> None:
-        """Show context menu for statistics table.
-
-        Args:
-
-        - `position`: Position where context menu should appear.
-
-        """
-        from PySide6.QtWidgets import QMenu
-
-        context_menu = QMenu(self)
-        export_action = context_menu.addAction("📤 Export to CSV")
-
-        action = context_menu.exec(self.tableView_statistics.mapToGlobal(position))
-
-        if action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
-            self.on_export_csv()
-
-    def _show_exercises_context_menu(self, position) -> None:
-        """Show context menu for exercises table.
-
-        Args:
-
-        - `position`: Position where context menu should appear.
-
-        """
-        from PySide6.QtWidgets import QMenu
-
-        context_menu = QMenu(self)
-        export_action = context_menu.addAction("📤 Export to CSV")
-
-        action = context_menu.exec(self.tableView_exercises.mapToGlobal(position))
-
-        if action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
-            self.on_export_csv()
-
-    def _show_exercise_types_context_menu(self, position) -> None:
-        """Show context menu for exercise types table.
-
-        Args:
-
-        - `position`: Position where context menu should appear.
-
-        """
-        from PySide6.QtWidgets import QMenu
-
-        context_menu = QMenu(self)
-        export_action = context_menu.addAction("📤 Export to CSV")
-
-        action = context_menu.exec(self.tableView_exercise_types.mapToGlobal(position))
-
-        if action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
-            self.on_export_csv()
-
-    def _show_weight_context_menu(self, position) -> None:
-        """Show context menu for weight table.
-
-        Args:
-
-        - `position`: Position where context menu should appear.
-
-        """
-        from PySide6.QtWidgets import QMenu
-
-        context_menu = QMenu(self)
-        export_action = context_menu.addAction("📤 Export to CSV")
-
-        action = context_menu.exec(self.tableView_weight.mapToGlobal(position))
-
-        if action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
-            self.on_export_csv()
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
@@ -4430,6 +4392,44 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error showing record congratulations: {e}")
+
+    def _show_statistics_context_menu(self, position) -> None:
+        """Show context menu for statistics table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        action = context_menu.exec(self.tableView_statistics.mapToGlobal(position))
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+
+    def _show_weight_context_menu(self, position) -> None:
+        """Show context menu for weight table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        action = context_menu.exec(self.tableView_weight.mapToGlobal(position))
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
 
     def _show_yesterday_context_menu(self, position) -> None:
         """Show context menu for yesterday button with date options."""
