@@ -902,6 +902,7 @@ class Ui_MainWindow(object):
         self.splitter_charts.setOrientation(Qt.Horizontal)
         self.widget_left_panel = QWidget(self.splitter_charts)
         self.widget_left_panel.setObjectName("widget_left_panel")
+        self.widget_left_panel.setMinimumWidth(300)
         self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
