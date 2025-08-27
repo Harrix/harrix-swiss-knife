@@ -995,7 +995,9 @@ class MainWindow(
 
                     # Format label with month and year and final value
                     month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                    label_text = f"{month_year}: {last_y:.1f}"
+                    # Format number without .0 for whole numbers
+                    value_str = f"{last_y:.1f}".rstrip('0').rstrip('.')
+                    label_text = f"{month_year}: {value_str}"
 
                     ax.annotate(
                         label_text,
@@ -1211,7 +1213,9 @@ class MainWindow(
 
                     # Format label with month and year and final value
                     month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                    label_text = f"{month_year}: {last_y:.1f}"
+                    # Format number without .0 for whole numbers
+                    value_str = f"{last_y:.1f}".rstrip('0').rstrip('.')
+                    label_text = f"{month_year}: {value_str}"
 
                     ax.annotate(
                         label_text,
