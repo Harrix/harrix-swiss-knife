@@ -3091,6 +3091,10 @@ class MainWindow(
         self.tableView_process.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_process.customContextMenuRequested.connect(self._show_process_context_menu)
 
+        # Add context menu for statistics table
+        self.tableView_statistics.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_statistics.customContextMenuRequested.connect(self._show_statistics_context_menu)
+
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
 
@@ -4224,11 +4228,16 @@ class MainWindow(
         from PySide6.QtWidgets import QMenu
 
         context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+        context_menu.addSeparator()
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
         action = context_menu.exec(self.tableView_process.mapToGlobal(position))
 
-        if action == delete_action:
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+        elif action == delete_action:
             # Check that a row is selected
             if self.tableView_process.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
@@ -4237,6 +4246,25 @@ class MainWindow(
                 context_menu.close()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
+
+    def _show_statistics_context_menu(self, position) -> None:
+        """Show context menu for statistics table.
+
+        Args:
+
+        - `position`: Position where context menu should appear.
+
+        """
+        from PySide6.QtWidgets import QMenu
+
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        action = context_menu.exec(self.tableView_statistics.mapToGlobal(position))
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
