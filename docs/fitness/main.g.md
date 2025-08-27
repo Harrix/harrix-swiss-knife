@@ -1063,9 +1063,11 @@ class MainWindow(
                     last_x = x_values[-1]
                     last_y = y_values[-1]
 
-                    # Format label with month and year
+                    # Format label with month and year and final value
                     month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                    label_text = month_year
+                    # Format number without .0 for whole numbers
+                    value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                    label_text = f"{month_year}: {value_str}"
 
                     ax.annotate(
                         label_text,
@@ -1279,9 +1281,11 @@ class MainWindow(
                     last_x = x_values[-1]
                     last_y = y_values[-1]
 
-                    # Format label with month and year
+                    # Format label with month and year and final value
                     month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                    label_text = month_year
+                    # Format number without .0 for whole numbers
+                    value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                    label_text = f"{month_year}: {value_str}"
 
                     ax.annotate(
                         label_text,
@@ -5695,9 +5699,11 @@ def on_compare_last_months(self) -> None:
                     last_x = x_values[-1]
                     last_y = y_values[-1]
 
-                    # Format label with month and year
+                    # Format label with month and year and final value
                     month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                    label_text = month_year
+                    # Format number without .0 for whole numbers
+                    value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                    label_text = f"{month_year}: {value_str}"
 
                     ax.annotate(
                         label_text,
@@ -5923,9 +5929,11 @@ def on_compare_same_months(self) -> None:
                     last_x = x_values[-1]
                     last_y = y_values[-1]
 
-                    # Format label with month and year
+                    # Format label with month and year and final value
                     month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                    label_text = month_year
+                    # Format number without .0 for whole numbers
+                    value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                    label_text = f"{month_year}: {value_str}"
 
                     ax.annotate(
                         label_text,
