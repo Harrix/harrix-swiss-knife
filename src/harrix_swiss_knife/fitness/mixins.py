@@ -404,16 +404,23 @@ class ChartOperations:
         data_dict = {item[0]: item[1] for item in data}
 
         # Determine date range
+        # Always start from the first actual data point to avoid leading zeros
+        actual_start_date = min(item[0] for item in data)
+        actual_end_date = max(item[0] for item in data)
+
         if date_from and date_to:
             try:
-                start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-                end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                user_start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                user_end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                # Use the later of actual start date or user start date to avoid leading zeros
+                start_date = max(actual_start_date, user_start_date)
+                end_date = min(actual_end_date, user_end_date)
             except ValueError:
                 return data
         else:
-            # Use data range if no explicit dates provided
-            start_date = min(item[0] for item in data)
-            end_date = max(item[0] for item in data)
+            # Use actual data range
+            start_date = actual_start_date
+            end_date = actual_end_date
 
         # Generate all periods in the range
         result = []
