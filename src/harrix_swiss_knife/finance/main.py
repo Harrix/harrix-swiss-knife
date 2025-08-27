@@ -3476,7 +3476,11 @@ class MainWindow(
 
         # Show results
         if success_count > 0:
+            # Save current date before update_all
+            current_date = self.dateEdit.date()
             self.update_all()
+            # Restore the original date
+            self.dateEdit.setDate(current_date)
 
         if error_count > 0:
             error_text = f"Added {success_count} purchases successfully.\n\nErrors:\n" + "\n".join(error_messages[:10])
