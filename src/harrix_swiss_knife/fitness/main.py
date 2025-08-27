@@ -33,7 +33,7 @@ from PySide6.QtGui import (
     QStandardItem,
     QStandardItemModel,
 )
-from PySide6.QtWidgets import QApplication, QFileDialog, QListView, QMainWindow, QMessageBox, QRadioButton, QTableView
+from PySide6.QtWidgets import QApplication, QFileDialog, QListView, QMainWindow, QMenu, QMessageBox, QRadioButton, QTableView
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.fitness import database_manager, window
@@ -2183,6 +2183,45 @@ class MainWindow(
         yesterday = QDate.currentDate().addDays(-1)
         self.dateEdit.setDate(yesterday)
 
+    def _show_yesterday_context_menu(self, position) -> None:
+        """Show context menu for yesterday button with date options."""
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
+        # Show context menu at cursor position
+        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+
+    def _set_today_date_in_main(self) -> None:
+        """Set today's date in the main date field."""
+        today = QDate.currentDate()
+        self.dateEdit.setDate(today)
+
+    def _add_one_day_to_main(self) -> None:
+        """Add one day to the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit.setDate(new_date)
+
+    def _subtract_one_day_from_main(self) -> None:
+        """Subtract one day from the current date in main date field."""
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit.setDate(new_date)
+
     @requires_database()
     def show_kcal_chart(self) -> None:
         """Show chart of total calories using database manager."""
@@ -3016,6 +3055,10 @@ class MainWindow(
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
+
+        # Add context menu for yesterday button
+        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
 
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
