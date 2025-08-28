@@ -48,6 +48,7 @@ lang: en
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `update_food_item`](#%EF%B8%8F-method-update_food_item)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
+  - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
   - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
   - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
   - [⚙️ Method `_iter_query`](#%EF%B8%8F-method-_iter_query)
@@ -1087,6 +1088,37 @@ class DatabaseManager:
             "name": name,
             "name_en": name_en,
             "is_drink": 1 if is_drink else 0,
+        }
+        return self.execute_simple_query(query, params)
+
+    def update_food_log_weight_and_calories(
+        self,
+        record_id: int,
+        weight: float | None,
+        calories_per_100g: float | None,
+    ) -> bool:
+        """Update only weight and calories_per_100g for a food log record.
+
+        Args:
+
+        - `record_id` (`int`): Record ID.
+        - `weight` (`float | None`): Weight in grams.
+        - `calories_per_100g` (`float | None`): Calories per 100g.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = """
+            UPDATE food_log
+            SET weight = :weight, calories_per_100g = :calories_per_100g
+            WHERE _id = :id
+        """
+        params = {
+            "id": record_id,
+            "weight": weight,
+            "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
 
@@ -2640,6 +2672,49 @@ def update_food_log_record(
             "name": name,
             "name_en": name_en,
             "is_drink": 1 if is_drink else 0,
+        }
+        return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_food_log_weight_and_calories`
+
+```python
+def update_food_log_weight_and_calories(self, record_id: int, weight: float | None, calories_per_100g: float | None) -> bool
+```
+
+Update only weight and calories_per_100g for a food log record.
+
+Args:
+
+- `record_id` (`int`): Record ID.
+- `weight` (`float | None`): Weight in grams.
+- `calories_per_100g` (`float | None`): Calories per 100g.
+
+Returns:
+
+- `bool`: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_food_log_weight_and_calories(
+        self,
+        record_id: int,
+        weight: float | None,
+        calories_per_100g: float | None,
+    ) -> bool:
+        query = """
+            UPDATE food_log
+            SET weight = :weight, calories_per_100g = :calories_per_100g
+            WHERE _id = :id
+        """
+        params = {
+            "id": record_id,
+            "weight": weight,
+            "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
 ```

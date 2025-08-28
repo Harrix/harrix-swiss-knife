@@ -2366,107 +2366,6 @@ class MainWindow(
             for i in range(self.food_items_list_model.rowCount()):
                 self.listView_food_items.setRowHidden(i, False)
 
-    def _swap_weight_and_calories_per_100g(self) -> None:
-        """Swap weight and calories per 100g values in the selected row."""
-        if not self._validate_database_connection():
-            QMessageBox.warning(self, "Error", "Database connection not available")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get the selected row data from the table model
-            proxy_model = self.models["food_log"]
-            if proxy_model is None:
-                return
-            source_model = proxy_model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return
-
-            current_index = self.tableView_food_log.currentIndex()
-            if not current_index.isValid():
-                QMessageBox.warning(self, "Error", "No row selected")
-                return
-
-            row = current_index.row()
-
-            # Get data from the table model directly
-            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
-            weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
-            calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
-
-            # Parse values, handle empty strings and convert to float
-            try:
-                weight = float(weight_str) if weight_str and weight_str.strip() != "" else 0.0
-            except (ValueError, TypeError):
-                weight = 0.0
-
-            try:
-                calories_per_100g = float(calories_per_100g_str) if calories_per_100g_str and calories_per_100g_str.strip() != "" else 0.0
-            except (ValueError, TypeError):
-                calories_per_100g = 0.0
-
-            # Check if both values are 0 (no point in swapping)
-            if weight == 0.0 and calories_per_100g == 0.0:
-                QMessageBox.information(self, "Information", "Both weight and calories per 100g are 0. No swapping needed.")
-                return
-
-            # Check if portion_calories exists and might affect display
-            portion_calories_str = source_model.item(row, 4).text() if source_model.item(row, 4) else "0"
-            try:
-                portion_calories = float(portion_calories_str) if portion_calories_str and portion_calories_str.strip() != "" else 0.0
-            except (ValueError, TypeError):
-                portion_calories = 0.0
-
-            # Warn user if portion_calories might affect display
-            if portion_calories > 0:
-                result = QMessageBox.question(
-                    self,
-                    "Portion Calories Warning",
-                    f"This record has portion calories ({portion_calories}), which might affect how calories per 100g are displayed. Continue with swap?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if result == QMessageBox.StandardButton.No:
-                    return
-
-            # Swap the values
-            new_weight = calories_per_100g
-            new_calories_per_100g = weight
-
-            # Show information about the swap
-            print(f"🔄 Swapping values: weight={weight} -> {new_weight}, calories_per_100g={calories_per_100g} -> {new_calories_per_100g}")
-
-            # Update the table model
-            source_model.item(row, 2).setText(str(new_weight))
-            source_model.item(row, 3).setText(str(new_calories_per_100g))
-
-            # Update calculated calories column if both values are available
-            if new_weight > 0 and new_calories_per_100g > 0:
-                calculated_calories = (new_weight * new_calories_per_100g) / 100
-                source_model.item(row, 5).setText(f"{calculated_calories:.1f}")
-                print(f"🔄 Updated calculated calories: {calculated_calories:.1f}")
-
-            # Get the row ID for database update
-            row_id = source_model.verticalHeaderItem(row).text()
-            if row_id:
-                # Update the database
-                success = self.db_manager.update_food_log_weight_and_calories(
-                    int(row_id), new_weight, new_calories_per_100g
-                )
-                if success:
-                    print(f"✅ Successfully swapped weight and calories for row {row_id}")
-                    # Refresh the table to show updated calculated calories
-                    self.update_food_data()
-                else:
-                    print(f"❌ Failed to update database for row {row_id}")
-                    QMessageBox.warning(self, "Error", "Failed to update database")
-
-        except Exception as e:
-            print(f"Error swapping weight and calories: {e}")
-            QMessageBox.warning(self, "Error", f"Failed to swap weight and calories: {e}")
-
     def _show_food_log_context_menu(self, position) -> None:
         """Show context menu for food log table.
 
@@ -2554,6 +2453,117 @@ class MainWindow(
         current_date = self.dateEdit_food.date()
         new_date = current_date.addDays(-1)
         self.dateEdit_food.setDate(new_date)
+
+    def _swap_weight_and_calories_per_100g(self) -> None:
+        """Swap weight and calories per 100g values in the selected row."""
+        if not self._validate_database_connection():
+            QMessageBox.warning(self, "Error", "Database connection not available")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Get the selected row data from the table model
+            proxy_model = self.models["food_log"]
+            if proxy_model is None:
+                return
+            source_model = proxy_model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return
+
+            current_index = self.tableView_food_log.currentIndex()
+            if not current_index.isValid():
+                QMessageBox.warning(self, "Error", "No row selected")
+                return
+
+            row = current_index.row()
+
+            # Get data from the table model directly
+            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+            weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
+            calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
+
+            # Parse values, handle empty strings and convert to float
+            try:
+                weight = float(weight_str) if weight_str and weight_str.strip() != "" else 0.0
+            except (ValueError, TypeError):
+                weight = 0.0
+
+            try:
+                calories_per_100g = (
+                    float(calories_per_100g_str)
+                    if calories_per_100g_str and calories_per_100g_str.strip() != ""
+                    else 0.0
+                )
+            except (ValueError, TypeError):
+                calories_per_100g = 0.0
+
+            # Check if both values are 0 (no point in swapping)
+            if weight == 0.0 and calories_per_100g == 0.0:
+                QMessageBox.information(
+                    self, "Information", "Both weight and calories per 100g are 0. No swapping needed."
+                )
+                return
+
+            # Check if portion_calories exists and might affect display
+            portion_calories_str = source_model.item(row, 4).text() if source_model.item(row, 4) else "0"
+            try:
+                portion_calories = (
+                    float(portion_calories_str) if portion_calories_str and portion_calories_str.strip() != "" else 0.0
+                )
+            except (ValueError, TypeError):
+                portion_calories = 0.0
+
+            # Warn user if portion_calories might affect display
+            if portion_calories > 0:
+                result = QMessageBox.question(
+                    self,
+                    "Portion Calories Warning",
+                    f"This record has portion calories ({portion_calories}), which might affect how calories per 100g are displayed. Continue with swap?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if result == QMessageBox.StandardButton.No:
+                    return
+
+            # Swap the values
+            new_weight = calories_per_100g
+            new_calories_per_100g = weight
+
+            # Show information about the swap
+            print(
+                f"🔄 Swapping values: weight={weight} -> {new_weight}, calories_per_100g={calories_per_100g} -> {new_calories_per_100g}"
+            )
+
+            # Update the table model
+            source_model.item(row, 2).setText(str(new_weight))
+            source_model.item(row, 3).setText(str(new_calories_per_100g))
+
+            # Update calculated calories column if both values are available
+            if new_weight > 0 and new_calories_per_100g > 0:
+                calculated_calories = (new_weight * new_calories_per_100g) / 100
+                source_model.item(row, 5).setText(f"{calculated_calories:.1f}")
+                print(f"🔄 Updated calculated calories: {calculated_calories:.1f}")
+
+            # Get the row ID for database update
+            row_id = source_model.verticalHeaderItem(row).text()
+            if row_id:
+                # Update the database
+                success = self.db_manager.update_food_log_weight_and_calories(
+                    int(row_id), new_weight, new_calories_per_100g
+                )
+                if success:
+                    print(f"✅ Successfully swapped weight and calories for row {row_id}")
+                    # Refresh the table to show updated calculated calories
+                    self.update_food_data()
+                else:
+                    print(f"❌ Failed to update database for row {row_id}")
+                    QMessageBox.warning(self, "Error", "Failed to update database")
+
+        except Exception as e:
+            print(f"Error swapping weight and calories: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to swap weight and calories: {e}")
 
     def _update_add_button_appearance(self) -> None:
         """Update the appearance of the add button based on whether it's a drink or food."""

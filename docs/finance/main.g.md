@@ -4004,12 +4004,22 @@ class MainWindow(
                     # Add separator
                     context_menu.addSeparator()
 
+        # Add separator before export action
+        context_menu.addSeparator()
+
+        # Delete action
+        delete_action = context_menu.addAction("🗑 Delete selected row")
+
         export_action = context_menu.addAction("📤 Export to CSV")
 
         action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
 
         if action == export_action:
             self.on_export_csv()
+        elif action == delete_action:
+            print("🔧 Context menu: Delete action triggered")
+            # Perform the deletion
+            self.delete_record("transactions")
         elif "set_date_action" in locals() and action == set_date_action:
             # This will be handled by the lambda connection above
             pass
@@ -9515,12 +9525,22 @@ def _show_transactions_context_menu(self, position) -> None:
                     # Add separator
                     context_menu.addSeparator()
 
+        # Add separator before export action
+        context_menu.addSeparator()
+
+        # Delete action
+        delete_action = context_menu.addAction("🗑 Delete selected row")
+
         export_action = context_menu.addAction("📤 Export to CSV")
 
         action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
 
         if action == export_action:
             self.on_export_csv()
+        elif action == delete_action:
+            print("🔧 Context menu: Delete action triggered")
+            # Perform the deletion
+            self.delete_record("transactions")
         elif "set_date_action" in locals() and action == set_date_action:
             # This will be handled by the lambda connection above
             pass
