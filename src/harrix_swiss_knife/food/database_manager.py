@@ -1040,6 +1040,37 @@ class DatabaseManager:
         }
         return self.execute_simple_query(query, params)
 
+    def update_food_log_weight_and_calories(
+        self,
+        record_id: int,
+        weight: float | None,
+        calories_per_100g: float | None,
+    ) -> bool:
+        """Update only weight and calories_per_100g for a food log record.
+
+        Args:
+
+        - `record_id` (`int`): Record ID.
+        - `weight` (`float | None`): Weight in grams.
+        - `calories_per_100g` (`float | None`): Calories per 100g.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = """
+            UPDATE food_log
+            SET weight = :weight, calories_per_100g = :calories_per_100g
+            WHERE _id = :id
+        """
+        params = {
+            "id": record_id,
+            "weight": weight,
+            "calories_per_100g": calories_per_100g,
+        }
+        return self.execute_simple_query(query, params)
+
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.
 
