@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1296</width>
+    <width>1428</width>
     <height>897</height>
    </rect>
   </property>
@@ -1693,14 +1693,11 @@
        <attribute name="title">
         <string>Exchange Rates</string>
        </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_14">
+       <layout class="QHBoxLayout" name="horizontalLayout_28">
         <item>
-         <widget class="QSplitter" name="splitter_exchange_rates">
+         <widget class="QSplitter" name="splitter_6">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="childrenCollapsible">
-           <bool>false</bool>
           </property>
           <widget class="QFrame" name="frame_rates">
            <property name="minimumSize">
@@ -2189,7 +2186,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>616</width>
+                 <width>627</width>
                  <height>729</height>
                 </rect>
                </property>
@@ -2207,227 +2204,231 @@
        <attribute name="title">
         <string>Charts</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_18">
+       <layout class="QHBoxLayout" name="horizontalLayout_14">
         <item>
-         <widget class="QFrame" name="frame_charts_controls">
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>120</height>
-           </size>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_charts_controls">
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_1">
+         <layout class="QVBoxLayout" name="verticalLayout_18">
+          <item>
+           <widget class="QFrame" name="frame_charts_controls">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>120</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_charts_controls">
              <item>
-              <widget class="QLabel" name="label_chart_category">
-               <property name="text">
-                <string>Category:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QComboBox" name="comboBox_chart_category">
-               <property name="minimumSize">
-                <size>
-                 <width>201</width>
-                 <height>0</height>
-                </size>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_chart_type">
-               <property name="text">
-                <string>Type:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QComboBox" name="comboBox_chart_type">
-               <property name="minimumSize">
-                <size>
-                 <width>151</width>
-                 <height>0</height>
-                </size>
-               </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_1">
                <item>
-                <property name="text">
-                 <string>All</string>
-                </property>
+                <widget class="QLabel" name="label_chart_category">
+                 <property name="text">
+                  <string>Category:</string>
+                 </property>
+                </widget>
                </item>
                <item>
-                <property name="text">
-                 <string>Income</string>
-                </property>
+                <widget class="QComboBox" name="comboBox_chart_category">
+                 <property name="minimumSize">
+                  <size>
+                   <width>201</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item>
-                <property name="text">
-                 <string>Expense</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_chart_period">
-               <property name="text">
-                <string>Period:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QComboBox" name="comboBox_chart_period">
-               <item>
-                <property name="text">
-                 <string>Days</string>
-                </property>
+                <widget class="QLabel" name="label_chart_type">
+                 <property name="text">
+                  <string>Type:</string>
+                 </property>
+                </widget>
                </item>
                <item>
-                <property name="text">
-                 <string>Months</string>
-                </property>
+                <widget class="QComboBox" name="comboBox_chart_type">
+                 <property name="minimumSize">
+                  <size>
+                   <width>151</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>All</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Income</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Expense</string>
+                  </property>
+                 </item>
+                </widget>
                </item>
                <item>
-                <property name="text">
-                 <string>Years</string>
-                </property>
+                <widget class="QLabel" name="label_chart_period">
+                 <property name="text">
+                  <string>Period:</string>
+                 </property>
+                </widget>
                </item>
-              </widget>
+               <item>
+                <widget class="QComboBox" name="comboBox_chart_period">
+                 <item>
+                  <property name="text">
+                   <string>Days</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Months</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Years</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_update_chart">
+                 <property name="text">
+                  <string>Update Chart</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_charts">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_pie_chart">
+                 <property name="text">
+                  <string>Pie Chart</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_balance_chart">
+                 <property name="text">
+                  <string>Balance Chart</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
-              <widget class="QPushButton" name="pushButton_update_chart">
-               <property name="text">
-                <string>Update Chart</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_charts">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_pie_chart">
-               <property name="text">
-                <string>Pie Chart</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_balance_chart">
-               <property name="text">
-                <string>Balance Chart</string>
-               </property>
-              </widget>
+              <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_2">
+               <item>
+                <widget class="QLabel" name="label_chart_from">
+                 <property name="text">
+                  <string>From:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QDateEdit" name="dateEdit_chart_from">
+                 <property name="displayFormat">
+                  <string>yyyy-MM-dd</string>
+                 </property>
+                 <property name="calendarPopup">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_chart_to">
+                 <property name="text">
+                  <string>To:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QDateEdit" name="dateEdit_chart_to">
+                 <property name="displayFormat">
+                  <string>yyyy-MM-dd</string>
+                 </property>
+                 <property name="calendarPopup">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_chart_last_month">
+                 <property name="text">
+                  <string>Last Month</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_chart_last_year">
+                 <property name="text">
+                  <string>Last Year</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_chart_all_time">
+                 <property name="text">
+                  <string>All Time</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_charts_2">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
              </item>
             </layout>
-           </item>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_2">
-             <item>
-              <widget class="QLabel" name="label_chart_from">
-               <property name="text">
-                <string>From:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QDateEdit" name="dateEdit_chart_from">
-               <property name="displayFormat">
-                <string>yyyy-MM-dd</string>
-               </property>
-               <property name="calendarPopup">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_chart_to">
-               <property name="text">
-                <string>To:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QDateEdit" name="dateEdit_chart_to">
-               <property name="displayFormat">
-                <string>yyyy-MM-dd</string>
-               </property>
-               <property name="calendarPopup">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_chart_last_month">
-               <property name="text">
-                <string>Last Month</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_chart_last_year">
-               <property name="text">
-                <string>Last Year</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_chart_all_time">
-               <property name="text">
-                <string>All Time</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_charts_2">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QScrollArea" name="scrollArea_charts">
-          <property name="widgetResizable">
-           <bool>true</bool>
-          </property>
-          <widget class="QWidget" name="scrollAreaWidgetContents_charts">
-           <property name="geometry">
-            <rect>
-             <x>0</x>
-             <y>0</y>
-             <width>1252</width>
-             <height>698</height>
-            </rect>
-           </property>
-           <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>
-          </widget>
-         </widget>
+           </widget>
+          </item>
+          <item>
+           <widget class="QScrollArea" name="scrollArea_charts">
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContents_charts">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>1382</width>
+               <height>696</height>
+              </rect>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>
+            </widget>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -2437,156 +2438,159 @@
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
-         <widget class="QFrame" name="frame_5">
-          <property name="minimumSize">
-           <size>
-            <width>300</width>
-            <height>0</height>
-           </size>
+         <widget class="QSplitter" name="splitter_5">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
           </property>
-          <property name="maximumSize">
-           <size>
-            <width>300</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_7">
-           <item>
-            <widget class="QGroupBox" name="groupBox_10">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="title">
-              <string>Generate Report</string>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_19">
-              <item>
-               <widget class="QComboBox" name="comboBox_report_type">
-                <item>
+          <widget class="QFrame" name="frame_5">
+           <property name="minimumSize">
+            <size>
+             <width>300</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_7">
+            <item>
+             <widget class="QGroupBox" name="groupBox_10">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="title">
+               <string>Generate Report</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_19">
+               <item>
+                <widget class="QComboBox" name="comboBox_report_type">
+                 <item>
+                  <property name="text">
+                   <string>Monthly Summary</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Category Analysis</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Currency Analysis</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Account Balances</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Income vs Expenses</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_generate_report">
                  <property name="text">
-                  <string>Monthly Summary</string>
+                  <string>Generate Report</string>
                  </property>
-                </item>
-                <item>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_summary">
+              <property name="title">
+               <string>Quick Summary</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_summary">
+               <item>
+                <widget class="QLabel" name="label_total_income">
+                 <property name="styleSheet">
+                  <string notr="true">color: #4CAF50; font-weight: bold;</string>
+                 </property>
                  <property name="text">
-                  <string>Category Analysis</string>
+                  <string>Total Income: 0.00₽</string>
                  </property>
-                </item>
-                <item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_total_expenses">
+                 <property name="styleSheet">
+                  <string notr="true">color: red; font-weight: bold;</string>
+                 </property>
                  <property name="text">
-                  <string>Currency Analysis</string>
+                  <string>Total Expenses: 0.00₽</string>
                  </property>
-                </item>
-                <item>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_daily_balance">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>100</height>
+               </size>
+              </property>
+              <property name="title">
+               <string>Today's Balance</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_17">
+               <item>
+                <widget class="QLabel" name="label_daily_balance">
+                 <property name="font">
+                  <font>
+                   <pointsize>20</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
                  <property name="text">
-                  <string>Account Balances</string>
+                  <string>0.00₽</string>
                  </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Income vs Expenses</string>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
                  </property>
-                </item>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButton_generate_report">
-                <property name="text">
-                 <string>Generate Report</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="groupBox_summary">
-             <property name="title">
-              <string>Quick Summary</string>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_summary">
-              <item>
-               <widget class="QLabel" name="label_total_income">
-                <property name="styleSheet">
-                 <string notr="true">color: #4CAF50; font-weight: bold;</string>
-                </property>
-                <property name="text">
-                 <string>Total Income: 0.00₽</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_total_expenses">
-                <property name="styleSheet">
-                 <string notr="true">color: red; font-weight: bold;</string>
-                </property>
-                <property name="text">
-                 <string>Total Expenses: 0.00₽</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="groupBox_daily_balance">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>100</height>
-              </size>
-             </property>
-             <property name="title">
-              <string>Today's Balance</string>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_17">
-              <item>
-               <widget class="QLabel" name="label_daily_balance">
-                <property name="font">
-                 <font>
-                  <pointsize>20</pointsize>
-                  <weight>75</weight>
-                  <bold>true</bold>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>0.00₽</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <spacer name="verticalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_4">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QTableView" name="tableView_reports"/>
          </widget>
-        </item>
-        <item>
-         <widget class="QTableView" name="tableView_reports"/>
         </item>
        </layout>
       </widget>
@@ -2599,7 +2603,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1296</width>
+     <width>1428</width>
      <height>21</height>
     </rect>
    </property>
