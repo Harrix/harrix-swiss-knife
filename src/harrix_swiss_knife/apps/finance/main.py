@@ -44,13 +44,13 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
-from harrix_swiss_knife.finance import database_manager, window
-from harrix_swiss_knife.finance.account_edit_dialog import AccountEditDialog
-from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
-from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
-from harrix_swiss_knife.finance.exchange_rate_worker import ExchangeRateUpdateWorker
-from harrix_swiss_knife.finance.exchange_rates_operations import ExchangeRatesOperations
-from harrix_swiss_knife.finance.mixins import (
+from harrix_swiss_knife.apps.finance import database_manager, window
+from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
+from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
+from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
+from harrix_swiss_knife.apps.finance.exchange_rate_worker import ExchangeRateUpdateWorker
+from harrix_swiss_knife.apps.finance.exchange_rates_operations import ExchangeRatesOperations
+from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
     ChartOperations,
     DateOperations,
@@ -58,8 +58,8 @@ from harrix_swiss_knife.finance.mixins import (
     ValidationOperations,
     requires_database,
 )
-from harrix_swiss_knife.finance.text_input_dialog import TextInputDialog
-from harrix_swiss_knife.finance.text_parser import TextParser
+from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
+from harrix_swiss_knife.apps.finance.text_parser import TextParser
 
 config = h.dev.load_config("config/config.json")
 
@@ -290,7 +290,7 @@ class MainWindow(
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
-        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
@@ -2715,7 +2715,7 @@ class MainWindow(
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
         # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
-        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
 
         self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
         self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
@@ -2787,7 +2787,7 @@ class MainWindow(
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
-        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)

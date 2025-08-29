@@ -45,8 +45,8 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
-from harrix_swiss_knife.fitness import database_manager, window
-from harrix_swiss_knife.fitness.mixins import (
+from harrix_swiss_knife.apps.fitness import database_manager, window
+from harrix_swiss_knife.apps.fitness.mixins import (
     AutoSaveOperations,
     ChartOperations,
     DateOperations,

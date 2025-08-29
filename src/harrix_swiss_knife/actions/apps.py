@@ -5,9 +5,9 @@ from typing import Any
 from shiboken6 import isValid
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.finance import main as finance_main
-from harrix_swiss_knife.fitness import main as fitness_main
-from harrix_swiss_knife.food import main as food_main
+from harrix_swiss_knife.apps.finance import main as finance_main
+from harrix_swiss_knife.apps.fitness import main as fitness_main
+from harrix_swiss_knife.apps.food import main as food_main
 
 
 class OnFinance(ActionBase):

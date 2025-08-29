@@ -481,7 +481,7 @@ class MainWindow(
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
-        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
@@ -2906,7 +2906,7 @@ class MainWindow(
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
         # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
-        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
 
         self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
         self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
@@ -2978,7 +2978,7 @@ class MainWindow(
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
-        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
@@ -4459,7 +4459,7 @@ def apply_filter(self) -> None:
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
-        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
@@ -7858,7 +7858,7 @@ def _load_currency_exchanges_table(self) -> None:
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
         # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
-        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
 
         self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
         self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
@@ -7958,7 +7958,7 @@ def _load_transactions_table(self) -> None:
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
-        from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
+        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)

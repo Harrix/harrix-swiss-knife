@@ -15,10 +15,10 @@ from PySide6.QtCore import QDate, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QAbstractItemView, QMessageBox
 
-from harrix_swiss_knife.finance.amount_delegate import AmountDelegate
-from harrix_swiss_knife.finance.database_manager import DatabaseManager
-from harrix_swiss_knife.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
-from harrix_swiss_knife.finance.exchange_rate_worker import ExchangeRateUpdateWorker
+from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
+from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
+from harrix_swiss_knife.apps.finance.exchange_rate_worker import ExchangeRateUpdateWorker
 
 
 class ExchangeRatesOperations:
