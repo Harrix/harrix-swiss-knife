@@ -264,7 +264,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(2005, 917)
+        MainWindow.resize(1360, 908)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -640,9 +640,12 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_transactions, "")
         self.tab_accounts = QWidget()
         self.tab_accounts.setObjectName("tab_accounts")
-        self.horizontalLayout_accounts = QHBoxLayout(self.tab_accounts)
-        self.horizontalLayout_accounts.setObjectName("horizontalLayout_accounts")
-        self.frame_accounts = QFrame(self.tab_accounts)
+        self.verticalLayout_22 = QVBoxLayout(self.tab_accounts)
+        self.verticalLayout_22.setObjectName("verticalLayout_22")
+        self.splitter_2 = QSplitter(self.tab_accounts)
+        self.splitter_2.setObjectName("splitter_2")
+        self.splitter_2.setOrientation(Qt.Horizontal)
+        self.frame_accounts = QFrame(self.splitter_2)
         self.frame_accounts.setObjectName("frame_accounts")
         self.frame_accounts.setMinimumSize(QSize(300, 0))
         self.frame_accounts.setMaximumSize(QSize(300, 16777215))
@@ -777,12 +780,12 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_21.addItem(self.verticalSpacer_accounts)
 
-        self.horizontalLayout_accounts.addWidget(self.frame_accounts)
-
-        self.tableView_accounts = QTableView(self.tab_accounts)
+        self.splitter_2.addWidget(self.frame_accounts)
+        self.tableView_accounts = QTableView(self.splitter_2)
         self.tableView_accounts.setObjectName("tableView_accounts")
+        self.splitter_2.addWidget(self.tableView_accounts)
 
-        self.horizontalLayout_accounts.addWidget(self.tableView_accounts)
+        self.verticalLayout_22.addWidget(self.splitter_2)
 
         self.tabWidget.addTab(self.tab_accounts, "")
         self.tab_categories = QWidget()
@@ -1517,7 +1520,7 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 891, 749))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 616, 740))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1653,7 +1656,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1961, 718))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1316, 709))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1745,7 +1748,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 2005, 21))
+        self.menuBar.setGeometry(QRect(0, 0, 1360, 21))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")
