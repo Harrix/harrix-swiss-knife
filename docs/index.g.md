@@ -161,6 +161,7 @@ Install the following software:
    Alternatively, instead of the two previous commands, run `Dev` → `Install/Update global NPM packages`.
 
 5. Download required executables:
+
    - **ffmpeg.exe**: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
    - **libavif executables** (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
 
@@ -191,9 +192,9 @@ CLI commands after installation:
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
 - `ruff check` — lint the project's Python files.
 - `ruff check --fix` — lint and fix the project's Python files.
-- `pyside6-uic src/harrix_swiss_knife/fitness/window.ui -o src/harrix_swiss_knife/fitness/window.py` — convert Fitness UI file to PY class.
-- `pyside6-uic src/harrix_swiss_knife/food/window.ui -o src/harrix_swiss_knife/food/window.py` — convert Food UI file to PY class.
-- `pyside6-uic src/harrix_swiss_knife/finance/window.ui -o src/harrix_swiss_knife/finance/window.py` — convert Finance UI file to PY class.
+- `pyside6-uic src/harrix_swiss_knife/apps/fitness/window.ui -o src/harrix_swiss_knife/apps/fitness/window.py` — convert Fitness UI file to PY class.
+- `pyside6-uic src/harrix_swiss_knife/apps/food/window.ui -o src/harrix_swiss_knife/apps/food/window.py` — convert Food UI file to PY class.
+- `pyside6-uic src/harrix_swiss_knife/apps/finance/window.ui -o src/harrix_swiss_knife/apps/finance/window.py` — convert Finance UI file to PY class.
 - `isort .` — sort imports.
 - `ruff format` — format the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.

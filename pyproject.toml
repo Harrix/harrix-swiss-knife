@@ -74,9 +74,9 @@ lint.ignore = [
 line-length = 120
 exclude = [
     "src/harrix_swiss_knife/resources_rc.py",
-    "src/harrix_swiss_knife/fitness/window.py",
-    "src/harrix_swiss_knife/food/window.py",
-    "src/harrix_swiss_knife/finance/window.py",
+    "src/harrix_swiss_knife/apps/fitness/window.py",
+    "src/harrix_swiss_knife/apps/food/window.py",
+    "src/harrix_swiss_knife/apps/finance/window.py",
 ]
 
 # Disable specific checks in test files:
