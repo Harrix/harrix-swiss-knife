@@ -164,8 +164,8 @@
   "start_pattern_py_projects": "python-project-",
   "sqlite_fitness": "D:/Dropbox/Databases/fitness.db",
   "sqlite_finance": "D:/Dropbox/Databases/finance.db",
-  "vscode_workspace_articles": "D:/Dropbox/_Temp/_VS Code Workspaces/_content__harrix-dev.code-workspace",
-  "vscode_workspace_notes": "D:/Dropbox/_Temp/_VS Code Workspaces/Notes.code-workspace",
+  "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
+  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
   "show_main_window_on_startup": false,
   "compact_mode": false
 }
