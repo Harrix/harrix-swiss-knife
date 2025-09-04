@@ -138,13 +138,13 @@ Install the following software:
 1. Clone project:
 
    ```shell
-   mkdir C:/GitHub
-   cd C:/GitHub
+   mkdir D:/GitHub
+   cd D:/GitHub
    git clone https://github.com/Harrix/harrix-pylib.git
    git clone https://github.com/Harrix/harrix-swiss-knife.git
    ```
 
-2. Open the folder `C:/GitHub/harrix-swiss-knife` in Cursor (or VSCode).
+2. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode).
 
 3. Open a terminal `Ctrl` + `` ` ``.
 
@@ -161,20 +161,21 @@ Install the following software:
    Alternatively, instead of the two previous commands, run `Dev` → `Install/Update global NPM packages`.
 
 5. Download required executables:
+
    - **ffmpeg.exe**: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
    - **libavif executables** (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
 
-   Copy all executables to the project folder `C:/GitHub/harrix-swiss-knife`.
+   Copy all executables to the project folder `D:/GitHub/harrix-swiss-knife`.
 
 6. Run the application:
-   Open `src\harrix_swiss_knife\main.py` and run (or run `C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
+   Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
 
 ### Running from command line
 
 After installation, you can run the script from terminal:
 
 ```shell
-c:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe c:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
+D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
 
 ## ⚙️ Development
@@ -375,7 +376,7 @@ pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resou
 To create a desktop shortcut, use the following path:
 
 ```shell
-C:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe C:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
+D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
 
 ## 📄 License
