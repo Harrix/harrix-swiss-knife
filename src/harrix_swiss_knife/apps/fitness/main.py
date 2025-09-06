@@ -3737,6 +3737,9 @@ class MainWindow(
         # Set default radio button
         self.radioButton_type_of_chart_compare_last.setChecked(True)
 
+        # Set default value for compare last spinbox
+        self.spinBox_compare_last.setValue(12)
+
     def _init_exercises_list(self) -> None:
         """Initialize the exercises list view with a model and connect signals."""
         self.exercises_list_model = QStandardItemModel()
