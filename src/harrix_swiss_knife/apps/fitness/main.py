@@ -3735,7 +3735,7 @@ class MainWindow(
         self.comboBox_compare_same_months.setCurrentIndex(current_month_index)
 
         # Set default radio button
-        self.radioButton_type_of_chart_standart.setChecked(True)
+        self.radioButton_type_of_chart_compare_last.setChecked(True)
 
     def _init_exercises_list(self) -> None:
         """Initialize the exercises list view with a model and connect signals."""
