@@ -91,11 +91,12 @@ class OnOpenImages(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         path = h.dev.get_project_root() / "temp/images"
-        if path.exists():
-            h.file.open_file_or_folder(path)
-            result = f"Folder `{path}` is opened."
+        if not path.exists():
+            path.mkdir(parents=True)
+            result = f"Folder `{path}` is created and opened."
         else:
-            result = f"❌ Folder `{path}` is not exist."
+            result = f"Folder `{path}` is opened."
+        h.file.open_file_or_folder(path)
         self.add_line(result)
 
 
@@ -114,11 +115,12 @@ class OnOpenOptimizedImages(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         path = h.dev.get_project_root() / "temp/optimized_images"
-        if path.exists():
-            h.file.open_file_or_folder(path)
-            result = f"Folder `{path}` is opened."
+        if not path.exists():
+            path.mkdir(parents=True)
+            result = f"Folder `{path}` is created and opened."
         else:
-            result = f"❌ Folder `{path}` is not exist."
+            result = f"Folder `{path}` is opened."
+        h.file.open_file_or_folder(path)
         self.add_line(result)
 
 
