@@ -1024,9 +1024,14 @@ async function main() {
       return;
     }
 
+    console.log(`📁 Found ${files.length} files to process`);
+
     for (const file of files) {
+      console.log(`🔄 Processing file: ${file}`);
       await processImage(file, { imagesFolder, outputFolder, quality, convertPngToAvif, maxSize });
     }
+
+    console.log(`✅ All files processed successfully`);
   });
 }
 
@@ -1086,17 +1091,43 @@ async function processPngCompareSize(filePath, file, quality, outputFilePathAvif
     console.log(`   PNG: ${(pngSize / 1024).toFixed(2)} KB`);
     console.log(`   AVIF: ${(avifSize / 1024).toFixed(2)} KB`);
 
+    let chosenExtension;
     if (pngSize <= avifSize) {
       // Keep PNG
       fs.writeFileSync(outputFilePathPng, pngQuantBuffer);
       console.log(`✅ File ${file} kept as PNG (smaller size)`);
-      return ".png";
+      chosenExtension = ".png";
     } else {
       // Keep AVIF
       fs.writeFileSync(outputFilePathAvif, avifBuffer);
       console.log(`✅ File ${file} converted to AVIF (smaller size)`);
-      return ".avif";
+      chosenExtension = ".avif";
     }
+
+    // Step 4: Create optimization results JSON file for Python code
+    const fileName = path.parse(file).name;
+    const resultsFile = path.join(path.dirname(outputFilePathPng), "optimization_results.json");
+
+    // Read existing results or create new object
+    let results = {};
+    if (fs.existsSync(resultsFile)) {
+      try {
+        const existingData = fs.readFileSync(resultsFile, "utf8");
+        results = JSON.parse(existingData);
+      } catch (parseError) {
+        console.log(`⚠️ Could not parse existing results file, creating new one`);
+        results = {};
+      }
+    }
+
+    // Add current file result
+    results[fileName] = chosenExtension;
+
+    // Write updated results
+    fs.writeFileSync(resultsFile, JSON.stringify(results, null, 2));
+    console.log(`📝 Updated optimization results: ${fileName} -> ${chosenExtension}`);
+
+    return chosenExtension;
   } catch (error) {
     console.error(`❌ Error while processing file ${file}:`, error);
     return ".png"; // Default to PNG on error
