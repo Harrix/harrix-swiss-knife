@@ -3798,20 +3798,34 @@ class MainWindow(
             # Set period to Months
             self.comboBox_chart_period.setCurrentText("Months")
 
-            # Try to set exercise with _id = self.id_steps
+            # Try to get the last executed exercise from process table
             if self._validate_database_connection():
-                rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
-                if rows:
-                    exercise_name = rows[0][0]
-                    # Find and select the exercise in the list view
+                last_exercise_name = self.db_manager.get_last_executed_exercise()
+
+                if last_exercise_name:
+                    # Find and select the last executed exercise in the list view
                     model = self.listView_chart_exercise.model()
                     if model:
                         for row in range(model.rowCount()):
-                            if model.data(model.index(row, 0)) == exercise_name:
+                            if model.data(model.index(row, 0)) == last_exercise_name:
                                 self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
                                 # Update type list view after selecting exercise
                                 self.update_chart_type_listview()
                                 break
+                else:
+                    # Fallback to Steps exercise if no records found
+                    rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
+                    if rows:
+                        exercise_name = rows[0][0]
+                        # Find and select the exercise in the list view
+                        model = self.listView_chart_exercise.model()
+                        if model:
+                            for row in range(model.rowCount()):
+                                if model.data(model.index(row, 0)) == exercise_name:
+                                    self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                                    # Update type list view after selecting exercise
+                                    self.update_chart_type_listview()
+                                    break
 
             # Load chart with all time data
             self.set_chart_all_time()
