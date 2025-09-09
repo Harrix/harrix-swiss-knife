@@ -61,12 +61,12 @@ class DragDropFileDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # Title label
-        title_label = QLabel("Выберите файлы для обработки")
+        title_label = QLabel("Select files for processing")
         title_label.setStyleSheet("font-size: 14px; font-weight: bold; margin: 10px;")
         layout.addWidget(title_label)
 
         # Drag and drop area
-        self.drop_area = QLabel("Перетащите файлы сюда или нажмите кнопку 'Выбрать файлы'")
+        self.drop_area = QLabel("Drag files here or click 'Select Files' button")
         self.drop_area.setStyleSheet("""
             QLabel {
                 border: 2px dashed #aaa;
@@ -94,11 +94,11 @@ class DragDropFileDialog(QDialog):
         # Buttons layout
         buttons_layout = QHBoxLayout()
 
-        self.select_files_btn = QPushButton("Выбрать файлы")
+        self.select_files_btn = QPushButton("Select Files")
         self.select_files_btn.clicked.connect(self.select_files)
         buttons_layout.addWidget(self.select_files_btn)
 
-        self.clear_btn = QPushButton("Очистить")
+        self.clear_btn = QPushButton("Clear")
         self.clear_btn.clicked.connect(self.clear_files)
         buttons_layout.addWidget(self.clear_btn)
 
@@ -164,12 +164,12 @@ class DragDropFileDialog(QDialog):
     def select_files(self):
         """Open standard file dialog to select files."""
         filenames, _ = QFileDialog.getOpenFileNames(
-            self, "Выберите файлы", self.default_path, self.filter_
+            self, "Select Files", self.default_path, self.filter_
         )
         if filenames:
             self.add_files(filenames)
 
-    def add_files(self, file_paths):
+    def add_files(self, file_paths: list[str]):
         """Add files to the selection."""
         for file_path in file_paths:
             if file_path not in self.selected_files:
@@ -181,7 +181,7 @@ class DragDropFileDialog(QDialog):
         self.selected_files.clear()
         self.files_list.clear()
 
-    def get_selected_files(self):
+    def get_selected_files(self) -> list[str]:
         """Get list of selected file paths."""
         return self.selected_files
 
