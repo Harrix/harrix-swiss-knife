@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any, Concatenate, NoReturn, ParamSpec, TypeVar
 
 import harrix_pylib as h
-from PySide6.QtCore import QThread, Signal
-from PySide6.QtGui import QClipboard, QFont, QGuiApplication
+from PySide6.QtCore import QThread, Signal, Qt
+from PySide6.QtGui import QClipboard, QFont, QGuiApplication, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -38,6 +38,152 @@ from harrix_swiss_knife import toast_countdown_notification, toast_notification
 P = ParamSpec("P")
 R = TypeVar("R")
 SelfT = TypeVar("SelfT")
+
+
+class DragDropFileDialog(QDialog):
+    """Custom dialog with drag-and-drop support for file selection."""
+
+    def __init__(self, title: str, default_path: str, filter_: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setModal(True)
+        self.setAcceptDrops(True)
+        self.setMinimumSize(500, 300)
+
+        self.default_path = default_path
+        self.filter_ = filter_
+        self.selected_files = []
+
+        self.setup_ui()
+
+    def setup_ui(self):
+        """Setup the user interface."""
+        layout = QVBoxLayout(self)
+
+        # Title label
+        title_label = QLabel("Выберите файлы для обработки")
+        title_label.setStyleSheet("font-size: 14px; font-weight: bold; margin: 10px;")
+        layout.addWidget(title_label)
+
+        # Drag and drop area
+        self.drop_area = QLabel("Перетащите файлы сюда или нажмите кнопку 'Выбрать файлы'")
+        self.drop_area.setStyleSheet("""
+            QLabel {
+                border: 2px dashed #aaa;
+                border-radius: 10px;
+                padding: 40px;
+                text-align: center;
+                background-color: #f9f9f9;
+                color: #666;
+                font-size: 12px;
+            }
+            QLabel:hover {
+                border-color: #007acc;
+                background-color: #f0f8ff;
+            }
+        """)
+        self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.drop_area.setMinimumHeight(150)
+        layout.addWidget(self.drop_area)
+
+        # Selected files list
+        self.files_list = QListWidget()
+        self.files_list.setMaximumHeight(100)
+        layout.addWidget(self.files_list)
+
+        # Buttons layout
+        buttons_layout = QHBoxLayout()
+
+        self.select_files_btn = QPushButton("Выбрать файлы")
+        self.select_files_btn.clicked.connect(self.select_files)
+        buttons_layout.addWidget(self.select_files_btn)
+
+        self.clear_btn = QPushButton("Очистить")
+        self.clear_btn.clicked.connect(self.clear_files)
+        buttons_layout.addWidget(self.clear_btn)
+
+        buttons_layout.addStretch()
+
+        # Dialog buttons
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        buttons_layout.addWidget(self.button_box)
+
+        layout.addLayout(buttons_layout)
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        """Handle drag enter event."""
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            self.drop_area.setStyleSheet("""
+                QLabel {
+                    border: 2px dashed #007acc;
+                    border-radius: 10px;
+                    padding: 40px;
+                    text-align: center;
+                    background-color: #e6f3ff;
+                    color: #007acc;
+                    font-size: 12px;
+                }
+            """)
+        else:
+            event.ignore()
+
+    def dragLeaveEvent(self, event):
+        """Handle drag leave event."""
+        self.drop_area.setStyleSheet("""
+            QLabel {
+                border: 2px dashed #aaa;
+                border-radius: 10px;
+                padding: 40px;
+                text-align: center;
+                background-color: #f9f9f9;
+                color: #666;
+                font-size: 12px;
+            }
+        """)
+
+    def dropEvent(self, event: QDropEvent):
+        """Handle drop event."""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            files = []
+            for url in urls:
+                if url.isLocalFile():
+                    file_path = url.toLocalFile()
+                    files.append(file_path)
+
+            self.add_files(files)
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def select_files(self):
+        """Open standard file dialog to select files."""
+        filenames, _ = QFileDialog.getOpenFileNames(
+            self, "Выберите файлы", self.default_path, self.filter_
+        )
+        if filenames:
+            self.add_files(filenames)
+
+    def add_files(self, file_paths):
+        """Add files to the selection."""
+        for file_path in file_paths:
+            if file_path not in self.selected_files:
+                self.selected_files.append(file_path)
+                self.files_list.addItem(file_path)
+
+    def clear_files(self):
+        """Clear all selected files."""
+        self.selected_files.clear()
+        self.files_list.clear()
+
+    def get_selected_files(self):
+        """Get list of selected file paths."""
+        return self.selected_files
 
 
 class ActionBase:
@@ -346,7 +492,7 @@ class ActionBase:
         return Path(filename)
 
     def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
-        """Open a dialog to select multiple files to open.
+        """Open a dialog to select multiple files to open with drag-and-drop support.
 
         Args:
 
@@ -359,11 +505,16 @@ class ActionBase:
         - `list[Path] | None`: The selected files as a list of `Path` objects, or `None` if no files are selected.
 
         """
-        filenames, _ = QFileDialog.getOpenFileNames(None, title, default_path, filter_)
-        if not filenames:
+        dialog = DragDropFileDialog(title, default_path, filter_)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            filenames = dialog.get_selected_files()
+            if not filenames:
+                self.add_line("❌ No files were selected.")
+                return None
+            return [Path(filename) for filename in filenames]
+        else:
             self.add_line("❌ No files were selected.")
             return None
-        return [Path(filename) for filename in filenames]
 
     def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Open a dialog to specify a filename for saving.
