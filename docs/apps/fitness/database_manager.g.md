@@ -48,6 +48,7 @@ lang: en
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
   - [⚙️ Method `get_kcal_chart_data`](#%EF%B8%8F-method-get_kcal_chart_data)
+  - [⚙️ Method `get_last_executed_exercise`](#%EF%B8%8F-method-get_last_executed_exercise)
   - [⚙️ Method `get_last_exercise_date`](#%EF%B8%8F-method-get_last_exercise_date)
   - [⚙️ Method `get_last_exercise_dates`](#%EF%B8%8F-method-get_last_exercise_dates)
   - [⚙️ Method `get_last_exercise_record`](#%EF%B8%8F-method-get_last_exercise_record)
@@ -1056,6 +1057,25 @@ class DatabaseManager:
         """
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(row[0], float(row[1])) for row in rows]
+
+    def get_last_executed_exercise(self) -> str | None:
+        """Get the name of the last executed exercise from the process table.
+
+        Returns:
+
+        - `str | None`: Name of the last executed exercise or None if no records found.
+
+        """
+        query = """
+            SELECT e.name
+            FROM process p
+            LEFT JOIN exercises e ON p._id_exercises = e._id
+            ORDER BY p.date DESC, p._id DESC
+            LIMIT 1
+        """
+
+        rows = self.get_rows(query)
+        return rows[0][0] if rows else None
 
     def get_last_exercise_date(self, exercise_id: int) -> str | None:
         """Get the date of the last recorded exercise (regardless of type).
@@ -2926,6 +2946,37 @@ def get_kcal_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, f
         """
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(row[0], float(row[1])) for row in rows]
+```
+
+</details>
+
+### ⚙️ Method `get_last_executed_exercise`
+
+```python
+def get_last_executed_exercise(self) -> str | None
+```
+
+Get the name of the last executed exercise from the process table.
+
+Returns:
+
+- `str | None`: Name of the last executed exercise or None if no records found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_last_executed_exercise(self) -> str | None:
+        query = """
+            SELECT e.name
+            FROM process p
+            LEFT JOIN exercises e ON p._id_exercises = e._id
+            ORDER BY p.date DESC, p._id DESC
+            LIMIT 1
+        """
+
+        rows = self.get_rows(query)
+        return rows[0][0] if rows else None
 ```
 
 </details>

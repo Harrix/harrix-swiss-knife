@@ -106,6 +106,7 @@ lang: en
   - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
   - [⚙️ Method `_schedule_chart_update`](#%EF%B8%8F-method-_schedule_chart_update)
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
+  - [⚙️ Method `_select_last_executed_exercise`](#%EF%B8%8F-method-_select_last_executed_exercise)
   - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
@@ -2134,6 +2135,7 @@ class MainWindow(
         elif index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
+            self._select_last_executed_exercise()
             self._update_charts_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
@@ -3810,7 +3812,10 @@ class MainWindow(
         self.comboBox_compare_same_months.setCurrentIndex(current_month_index)
 
         # Set default radio button
-        self.radioButton_type_of_chart_standart.setChecked(True)
+        self.radioButton_type_of_chart_compare_last.setChecked(True)
+
+        # Set default value for compare last spinbox
+        self.spinBox_compare_last.setValue(12)
 
     def _init_exercises_list(self) -> None:
         """Initialize the exercises list view with a model and connect signals."""
@@ -3873,20 +3878,34 @@ class MainWindow(
             # Set period to Months
             self.comboBox_chart_period.setCurrentText("Months")
 
-            # Try to set exercise with _id = self.id_steps
+            # Try to get the last executed exercise from process table
             if self._validate_database_connection():
-                rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
-                if rows:
-                    exercise_name = rows[0][0]
-                    # Find and select the exercise in the list view
+                last_exercise_name = self.db_manager.get_last_executed_exercise()
+
+                if last_exercise_name:
+                    # Find and select the last executed exercise in the list view
                     model = self.listView_chart_exercise.model()
                     if model:
                         for row in range(model.rowCount()):
-                            if model.data(model.index(row, 0)) == exercise_name:
+                            if model.data(model.index(row, 0)) == last_exercise_name:
                                 self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
                                 # Update type list view after selecting exercise
                                 self.update_chart_type_listview()
                                 break
+                else:
+                    # Fallback to Steps exercise if no records found
+                    rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
+                    if rows:
+                        exercise_name = rows[0][0]
+                        # Find and select the exercise in the list view
+                        model = self.listView_chart_exercise.model()
+                        if model:
+                            for row in range(model.rowCount()):
+                                if model.data(model.index(row, 0)) == exercise_name:
+                                    self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                                    # Update type list view after selecting exercise
+                                    self.update_chart_type_listview()
+                                    break
 
             # Load chart with all time data
             self.set_chart_all_time()
@@ -4266,6 +4285,31 @@ class MainWindow(
                 if selection_model:
                     selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
                 break
+
+    def _select_last_executed_exercise(self) -> None:
+        """Select the last executed exercise in the chart exercise list view."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        if not self._validate_database_connection():
+            return
+
+        try:
+            last_exercise_name = self.db_manager.get_last_executed_exercise()
+
+            if last_exercise_name:
+                # Find and select the last executed exercise in the list view
+                model = self.listView_chart_exercise.model()
+                if model:
+                    for row in range(model.rowCount()):
+                        if model.data(model.index(row, 0)) == last_exercise_name:
+                            self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                            # Update type list view after selecting exercise
+                            self.update_chart_type_listview()
+                            break
+        except Exception as e:
+            print(f"Error selecting last executed exercise: {e}")
 
     def _set_today_date_in_main(self) -> None:
         """Set today's date in the main date field."""
@@ -7078,6 +7122,7 @@ def on_tab_changed(self, index: int) -> None:
         elif index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
+            self._select_last_executed_exercise()
             self._update_charts_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
@@ -9373,7 +9418,10 @@ def _init_exercise_chart_controls(self) -> None:
         self.comboBox_compare_same_months.setCurrentIndex(current_month_index)
 
         # Set default radio button
-        self.radioButton_type_of_chart_standart.setChecked(True)
+        self.radioButton_type_of_chart_compare_last.setChecked(True)
+
+        # Set default value for compare last spinbox
+        self.spinBox_compare_last.setValue(12)
 ```
 
 </details>
@@ -9519,20 +9567,34 @@ def _load_default_exercise_chart(self) -> None:
             # Set period to Months
             self.comboBox_chart_period.setCurrentText("Months")
 
-            # Try to set exercise with _id = self.id_steps
+            # Try to get the last executed exercise from process table
             if self._validate_database_connection():
-                rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
-                if rows:
-                    exercise_name = rows[0][0]
-                    # Find and select the exercise in the list view
+                last_exercise_name = self.db_manager.get_last_executed_exercise()
+
+                if last_exercise_name:
+                    # Find and select the last executed exercise in the list view
                     model = self.listView_chart_exercise.model()
                     if model:
                         for row in range(model.rowCount()):
-                            if model.data(model.index(row, 0)) == exercise_name:
+                            if model.data(model.index(row, 0)) == last_exercise_name:
                                 self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
                                 # Update type list view after selecting exercise
                                 self.update_chart_type_listview()
                                 break
+                else:
+                    # Fallback to Steps exercise if no records found
+                    rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
+                    if rows:
+                        exercise_name = rows[0][0]
+                        # Find and select the exercise in the list view
+                        model = self.listView_chart_exercise.model()
+                        if model:
+                            for row in range(model.rowCount()):
+                                if model.data(model.index(row, 0)) == exercise_name:
+                                    self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                                    # Update type list view after selecting exercise
+                                    self.update_chart_type_listview()
+                                    break
 
             # Load chart with all time data
             self.set_chart_all_time()
@@ -10049,6 +10111,45 @@ def _select_exercise_in_list(self, exercise_name: str) -> None:
                 if selection_model:
                     selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
                 break
+```
+
+</details>
+
+### ⚙️ Method `_select_last_executed_exercise`
+
+```python
+def _select_last_executed_exercise(self) -> None
+```
+
+Select the last executed exercise in the chart exercise list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _select_last_executed_exercise(self) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        if not self._validate_database_connection():
+            return
+
+        try:
+            last_exercise_name = self.db_manager.get_last_executed_exercise()
+
+            if last_exercise_name:
+                # Find and select the last executed exercise in the list view
+                model = self.listView_chart_exercise.model()
+                if model:
+                    for row in range(model.rowCount()):
+                        if model.data(model.index(row, 0)) == last_exercise_name:
+                            self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                            # Update type list view after selecting exercise
+                            self.update_chart_type_listview()
+                            break
+        except Exception as e:
+            print(f"Error selecting last executed exercise: {e}")
 ```
 
 </details>

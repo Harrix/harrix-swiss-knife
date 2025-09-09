@@ -991,6 +991,25 @@ class DatabaseManager:
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(row[0], float(row[1])) for row in rows]
 
+    def get_last_executed_exercise(self) -> str | None:
+        """Get the name of the last executed exercise from the process table.
+
+        Returns:
+
+        - `str | None`: Name of the last executed exercise or None if no records found.
+
+        """
+        query = """
+            SELECT e.name
+            FROM process p
+            LEFT JOIN exercises e ON p._id_exercises = e._id
+            ORDER BY p.date DESC, p._id DESC
+            LIMIT 1
+        """
+
+        rows = self.get_rows(query)
+        return rows[0][0] if rows else None
+
     def get_last_exercise_date(self, exercise_id: int) -> str | None:
         """Get the date of the last recorded exercise (regardless of type).
 
@@ -1035,25 +1054,6 @@ class DatabaseManager:
 
         rows = self.get_rows(query)
         return [(row[0], row[1]) for row in rows]
-
-    def get_last_executed_exercise(self) -> str | None:
-        """Get the name of the last executed exercise from the process table.
-
-        Returns:
-
-        - `str | None`: Name of the last executed exercise or None if no records found.
-
-        """
-        query = """
-            SELECT e.name
-            FROM process p
-            LEFT JOIN exercises e ON p._id_exercises = e._id
-            ORDER BY p.date DESC, p._id DESC
-            LIMIT 1
-        """
-
-        rows = self.get_rows(query)
-        return rows[0][0] if rows else None
 
     def get_last_exercise_record(self, exercise_id: int) -> tuple[str, str] | None:
         """Get the last recorded type and value for a specific exercise.

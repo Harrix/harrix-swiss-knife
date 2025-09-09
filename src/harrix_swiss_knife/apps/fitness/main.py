@@ -3834,31 +3834,6 @@ class MainWindow(
             # Load chart with all time data
             self.set_chart_all_time()
 
-    def _select_last_executed_exercise(self) -> None:
-        """Select the last executed exercise in the chart exercise list view."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        if not self._validate_database_connection():
-            return
-
-        try:
-            last_exercise_name = self.db_manager.get_last_executed_exercise()
-
-            if last_exercise_name:
-                # Find and select the last executed exercise in the list view
-                model = self.listView_chart_exercise.model()
-                if model:
-                    for row in range(model.rowCount()):
-                        if model.data(model.index(row, 0)) == last_exercise_name:
-                            self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                            # Update type list view after selecting exercise
-                            self.update_chart_type_listview()
-                            break
-        except Exception as e:
-            print(f"Error selecting last executed exercise: {e}")
-
     def _load_default_statistics(self) -> None:
         """Load default statistics on first visit to statistics tab."""
         if not hasattr(self, "_statistics_initialized"):
@@ -4234,6 +4209,31 @@ class MainWindow(
                 if selection_model:
                     selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
                 break
+
+    def _select_last_executed_exercise(self) -> None:
+        """Select the last executed exercise in the chart exercise list view."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        if not self._validate_database_connection():
+            return
+
+        try:
+            last_exercise_name = self.db_manager.get_last_executed_exercise()
+
+            if last_exercise_name:
+                # Find and select the last executed exercise in the list view
+                model = self.listView_chart_exercise.model()
+                if model:
+                    for row in range(model.rowCount()):
+                        if model.data(model.index(row, 0)) == last_exercise_name:
+                            self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                            # Update type list view after selecting exercise
+                            self.update_chart_type_listview()
+                            break
+        except Exception as e:
+            print(f"Error selecting last executed exercise: {e}")
 
     def _set_today_date_in_main(self) -> None:
         """Set today's date in the main date field."""
