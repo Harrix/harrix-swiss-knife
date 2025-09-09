@@ -100,6 +100,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnDownloadAndReplaceImagesFolder,
                 hsk.md.OnGenerateShortNoteTocWithLinks,
                 hsk.md.OnOptimizeImagesFolder,
+                hsk.md.OnOptimizeSelectedImages,
                 hsk.md.OnQuotesGenerateAuthorAndBook,
                 hsk.md.OnSortSections,
             ],

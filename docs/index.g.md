@@ -99,6 +99,7 @@ _Figure 1: Screenshot_
   - 📥 Download images in …
   - 📑 Generate a short version with only TOC
   - ⚖️ Optimize images in MD in …
+  - 🖼️ Optimize selected images in MD
   - ❞ Quotes. Add author and title
   - 📶 Sort sections in one MD
 - **New Markdown**

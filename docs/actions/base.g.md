@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `get_existing_directory`](#%EF%B8%8F-method-get_existing_directory)
   - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option)
   - [⚙️ Method `get_open_filename`](#%EF%B8%8F-method-get_open_filename)
+  - [⚙️ Method `get_open_filenames`](#%EF%B8%8F-method-get_open_filenames)
   - [⚙️ Method `get_save_filename`](#%EF%B8%8F-method-get_save_filename)
   - [⚙️ Method `get_text_input`](#%EF%B8%8F-method-get_text_input)
   - [⚙️ Method `get_text_input_with_auto`](#%EF%B8%8F-method-get_text_input_with_auto)
@@ -351,6 +352,26 @@ class ActionBase:
             self.add_line("❌ No file was selected.")
             return None
         return Path(filename)
+
+    def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
+        """Open a dialog to select multiple files to open.
+
+        Args:
+
+        - `title` (`str`): The title of the dialog window.
+        - `default_path` (`str`): The initial directory displayed in the dialog.
+        - `filter_` (`str`): Filter for the types of files to display.
+
+        Returns:
+
+        - `list[Path] | None`: The selected files as a list of `Path` objects, or `None` if no files are selected.
+
+        """
+        filenames, _ = QFileDialog.getOpenFileNames(None, title, default_path, filter_)
+        if not filenames:
+            self.add_line("❌ No files were selected.")
+            return None
+        return [Path(filename) for filename in filenames]
 
     def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Open a dialog to specify a filename for saving.
@@ -1276,6 +1297,38 @@ def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path
             self.add_line("❌ No file was selected.")
             return None
         return Path(filename)
+```
+
+</details>
+
+### ⚙️ Method `get_open_filenames`
+
+```python
+def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None
+```
+
+Open a dialog to select multiple files to open.
+
+Args:
+
+- `title` (`str`): The title of the dialog window.
+- `default_path` (`str`): The initial directory displayed in the dialog.
+- `filter_` (`str`): Filter for the types of files to display.
+
+Returns:
+
+- `list[Path] | None`: The selected files as a list of `Path` objects, or `None` if no files are selected.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
+        filenames, _ = QFileDialog.getOpenFileNames(None, title, default_path, filter_)
+        if not filenames:
+            self.add_line("❌ No files were selected.")
+            return None
+        return [Path(filename) for filename in filenames]
 ```
 
 </details>
