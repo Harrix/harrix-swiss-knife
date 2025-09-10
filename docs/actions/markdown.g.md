@@ -1385,7 +1385,7 @@ Optimize images in Markdown files with PNG/AVIF size comparison.
 ```python
 class OnOptimizeImagesFolder(ActionBase):
 
-    icon = "⚖️"
+    icon = "🖼️"
     title = "Optimize images in MD in …"
 
     @ActionBase.handle_exceptions("optimizing images with size comparison")
@@ -1986,6 +1986,7 @@ class OnOptimizeSelectedImages(ActionBase):
 
     icon = "🖼️"
     title = "Optimize selected images in MD"
+    bold_title = True
 
     @ActionBase.handle_exceptions("optimizing selected images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
