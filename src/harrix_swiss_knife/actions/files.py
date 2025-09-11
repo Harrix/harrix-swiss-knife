@@ -133,10 +133,21 @@ class OnCombineForAI(ActionBase):
             return
 
         # Get files and base folder from the selected combination
-        files = selected_combo["files"]
+        all_files = selected_combo["files"]
         base_folder = selected_combo["base_folder"]
 
-        self.add_line(h.file.collect_text_files_to_markdown(files, base_folder))
+        # Show file selection dialog with checkboxes (all files selected by default)
+        selected_files = self.get_checkbox_selection(
+            "Select files to combine",
+            f"Choose files from '{selected_name}' to combine:",
+            all_files,
+            default_selected=all_files,  # All files selected by default
+        )
+
+        if not selected_files:
+            return
+
+        self.add_line(h.file.collect_text_files_to_markdown(selected_files, base_folder))
         self.show_result()
 
 
