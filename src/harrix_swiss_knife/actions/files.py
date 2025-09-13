@@ -10,72 +10,6 @@ import harrix_pylib as h
 from harrix_swiss_knife.actions.base import ActionBase
 
 
-def _expand_path_patterns(paths: list[str]) -> list[str]:
-    """Expand path patterns to actual file paths.
-
-    This function processes a list of paths that may contain:
-    - Direct file paths (returned as-is)
-    - Directory paths (all files recursively)
-    - Glob patterns (e.g., *.py, **/*.py)
-
-    Args:
-        paths: List of paths that may be files, directories, or glob patterns
-
-    Returns:
-        List of actual file paths
-    """
-    expanded_paths = []
-
-    for path in paths:
-        path = path.strip()
-        if not path:
-            continue
-
-        # Check if it's a glob pattern (contains * or ?)
-        if '*' in path or '?' in path:
-            # Use glob to find matching files
-            matches = glob.glob(path, recursive=True)
-            expanded_paths.extend(matches)
-        elif os.path.isfile(path):
-            # It's a direct file path
-            expanded_paths.append(path)
-        elif os.path.isdir(path):
-            # It's a directory, find all files recursively
-            for root, dirs, files in os.walk(path):
-                for file in files:
-                    expanded_paths.append(os.path.join(root, file))
-        else:
-            # Path doesn't exist, but might be a glob pattern that didn't match
-            # Try glob anyway in case it's a pattern
-            matches = glob.glob(path, recursive=True)
-            if matches:
-                expanded_paths.extend(matches)
-
-    return expanded_paths
-
-
-def _filter_files_by_extension(files: list[str], extensions: list[str] | None = None) -> list[str]:
-    """Filter files by extension.
-
-    Args:
-        files: List of file paths
-        extensions: List of extensions to include (e.g., ['.py', '.md']). If None, includes all files.
-
-    Returns:
-        Filtered list of file paths
-    """
-    if not extensions:
-        return files
-
-    filtered_files = []
-    for file_path in files:
-        file_ext = Path(file_path).suffix.lower()
-        if file_ext in [ext.lower() for ext in extensions]:
-            filtered_files.append(file_path)
-
-    return filtered_files
-
-
 class OnAllFilesToParentFolder(ActionBase):
     """Move and flatten files from nested directories.
 
@@ -731,3 +665,69 @@ class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
+
+
+def _expand_path_patterns(paths: list[str]) -> list[str]:
+    """Expand path patterns to actual file paths.
+
+    This function processes a list of paths that may contain:
+    - Direct file paths (returned as-is)
+    - Directory paths (all files recursively)
+    - Glob patterns (e.g., *.py, **/*.py)
+
+    Args:
+        paths: List of paths that may be files, directories, or glob patterns
+
+    Returns:
+        List of actual file paths
+    """
+    expanded_paths = []
+
+    for path in paths:
+        path = path.strip()
+        if not path:
+            continue
+
+        # Check if it's a glob pattern (contains * or ?)
+        if "*" in path or "?" in path:
+            # Use glob to find matching files
+            matches = glob.glob(path, recursive=True)
+            expanded_paths.extend(matches)
+        elif os.path.isfile(path):
+            # It's a direct file path
+            expanded_paths.append(path)
+        elif os.path.isdir(path):
+            # It's a directory, find all files recursively
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    expanded_paths.append(os.path.join(root, file))
+        else:
+            # Path doesn't exist, but might be a glob pattern that didn't match
+            # Try glob anyway in case it's a pattern
+            matches = glob.glob(path, recursive=True)
+            if matches:
+                expanded_paths.extend(matches)
+
+    return expanded_paths
+
+
+def _filter_files_by_extension(files: list[str], extensions: list[str] | None = None) -> list[str]:
+    """Filter files by extension.
+
+    Args:
+        files: List of file paths
+        extensions: List of extensions to include (e.g., ['.py', '.md']). If None, includes all files.
+
+    Returns:
+        Filtered list of file paths
+    """
+    if not extensions:
+        return files
+
+    filtered_files = []
+    for file_path in files:
+        file_ext = Path(file_path).suffix.lower()
+        if file_ext in [ext.lower() for ext in extensions]:
+            filtered_files.append(file_path)
+
+    return filtered_files
