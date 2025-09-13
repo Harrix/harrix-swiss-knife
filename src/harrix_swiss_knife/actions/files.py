@@ -1,10 +1,79 @@
 """Actions for file operations and management of directory structures."""
 
+import glob
+import os
+from pathlib import Path
 from typing import Any
 
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
+
+
+def _expand_path_patterns(paths: list[str]) -> list[str]:
+    """Expand path patterns to actual file paths.
+
+    This function processes a list of paths that may contain:
+    - Direct file paths (returned as-is)
+    - Directory paths (all files recursively)
+    - Glob patterns (e.g., *.py, **/*.py)
+
+    Args:
+        paths: List of paths that may be files, directories, or glob patterns
+
+    Returns:
+        List of actual file paths
+    """
+    expanded_paths = []
+
+    for path in paths:
+        path = path.strip()
+        if not path:
+            continue
+
+        # Check if it's a glob pattern (contains * or ?)
+        if '*' in path or '?' in path:
+            # Use glob to find matching files
+            matches = glob.glob(path, recursive=True)
+            expanded_paths.extend(matches)
+        elif os.path.isfile(path):
+            # It's a direct file path
+            expanded_paths.append(path)
+        elif os.path.isdir(path):
+            # It's a directory, find all files recursively
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    expanded_paths.append(os.path.join(root, file))
+        else:
+            # Path doesn't exist, but might be a glob pattern that didn't match
+            # Try glob anyway in case it's a pattern
+            matches = glob.glob(path, recursive=True)
+            if matches:
+                expanded_paths.extend(matches)
+
+    return expanded_paths
+
+
+def _filter_files_by_extension(files: list[str], extensions: list[str] | None = None) -> list[str]:
+    """Filter files by extension.
+
+    Args:
+        files: List of file paths
+        extensions: List of extensions to include (e.g., ['.py', '.md']). If None, includes all files.
+
+    Returns:
+        Filtered list of file paths
+    """
+    if not extensions:
+        return files
+
+    filtered_files = []
+    for file_path in files:
+        file_ext = Path(file_path).suffix.lower()
+        if file_ext in [ext.lower() for ext in extensions]:
+            filtered_files.append(file_path)
+
+    return filtered_files
 
 
 class OnAllFilesToParentFolder(ActionBase):
@@ -100,6 +169,12 @@ class OnCombineForAI(ActionBase):
     This action allows users to select from predefined file combinations configured
     in paths_combine_for_ai. It combines multiple files into a single markdown
     document with proper code fencing, making it suitable for AI analysis and processing.
+
+    Now supports:
+    - Direct file paths (as before)
+    - Directory paths (all files recursively)
+    - Glob patterns (e.g., *.py, **/*.py)
+    - File extension filtering
     """
 
     icon = "🤖"
@@ -133,8 +208,30 @@ class OnCombineForAI(ActionBase):
             return
 
         # Get files and base folder from the selected combination
-        all_files = selected_combo["files"]
+        input_paths = selected_combo["files"]
         base_folder = selected_combo["base_folder"]
+
+        # Check if there are file extensions to filter by
+        file_extensions = selected_combo.get("extensions", None)
+
+        # Expand paths (handle directories, glob patterns, etc.)
+        self.add_line(f"🔵 Expanding paths for '{selected_name}'...")
+        all_files = _expand_path_patterns(input_paths)
+
+        if not all_files:
+            self.add_line("❌ No files found matching the specified paths/patterns")
+            return
+
+        # Filter by extensions if specified
+        if file_extensions:
+            self.add_line(f"🔵 Filtering files by extensions: {', '.join(file_extensions)}")
+            all_files = _filter_files_by_extension(all_files, file_extensions)
+
+        if not all_files:
+            self.add_line(f"❌ No files found with extensions: {', '.join(file_extensions)}")
+            return
+
+        self.add_line(f"✅ Found {len(all_files)} files to combine")
 
         # Show file selection dialog with checkboxes (all files selected by default)
         selected_files = self.get_checkbox_selection(

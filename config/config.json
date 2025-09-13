@@ -92,6 +92,16 @@
         "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/main.py",
         "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/window.py"
       ]
+    },
+    {
+      "name": "harrix-swiss-knife - food folder (*.py)",
+      "base_folder": "D:/GitHub/harrix-swiss-knife",
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/*.py"]
+    },
+    {
+      "name": "harrix-swiss-knife - all Python files in apps",
+      "base_folder": "D:/GitHub/harrix-swiss-knife",
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"]
     }
   ],
   "paths_camera_uploads": [
