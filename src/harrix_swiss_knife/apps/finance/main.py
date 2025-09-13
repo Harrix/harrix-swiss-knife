@@ -481,6 +481,7 @@ class MainWindow(
             (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
             or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
             or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
+            or (obj == self.lineEdit_description and event.type() == QEvent.Type.KeyPress)
             or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
         ):
             key_event = QKeyEvent(event)
@@ -1833,6 +1834,9 @@ class MainWindow(
 
         # Enter key handling for lineEdit_tag
         self.lineEdit_tag.installEventFilter(self)
+
+        # Enter key handling for lineEdit_description
+        self.lineEdit_description.installEventFilter(self)
 
         # Enter key handling for pushButton_add
         self.pushButton_add.installEventFilter(self)
