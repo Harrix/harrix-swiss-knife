@@ -1,7 +1,7 @@
 """Amount delegate for formatting amounts in transactions table."""
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate
 
 
@@ -18,6 +18,10 @@ class AmountDelegate(QStyledItemDelegate):
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
         editor.setGroupSeparatorShown(False)  # No separators in editor
+
+        # Set white background for the editor
+        editor.setStyleSheet("QDoubleSpinBox { background-color: white; }")
+
         return editor
 
     def displayText(self, value, locale):
