@@ -64,6 +64,35 @@ from harrix_swiss_knife.apps.finance.text_parser import TextParser
 config = h.dev.load_config("config/config.json")
 
 
+class DescriptionDelegate(QStyledItemDelegate):
+    """Delegate for description column in transactions table."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def createEditor(self, parent, option, index):
+        """Create a line edit editor for the description column."""
+        from PySide6.QtWidgets import QLineEdit
+        editor = QLineEdit(parent)
+
+        # Set white background for the editor
+        editor.setStyleSheet("QLineEdit { background-color: white; }")
+
+        return editor
+
+    def setEditorData(self, editor, index):
+        """Set the current value in the editor."""
+        current_value = index.data()
+        if current_value:
+            editor.setText(str(current_value))
+
+    def setModelData(self, editor, model, index):
+        """Set the data from the editor back to the model."""
+        text = editor.text()
+        if text:
+            model.setData(index, text, Qt.ItemDataRole.DisplayRole)
+
+
 class CurrencyComboBoxDelegate(QStyledItemDelegate):
     """Delegate for currency column in transactions table with dropdown list."""
 
@@ -276,6 +305,7 @@ class MainWindow(
         }
 
         # Delegates for transactions table
+        self.description_delegate = None
         self.category_delegate = None
         self.currency_delegate = None
         self.date_delegate = None
@@ -403,6 +433,10 @@ class MainWindow(
             transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Set up description delegate for the Description column (index 0)
+        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
 
         # Set up category delegate for the Category column (index 2)
         categories = self._get_categories_for_delegate()
@@ -2953,6 +2987,10 @@ class MainWindow(
             transactions_transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
+
+        # Set up description delegate for the Description column (index 0)
+        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
 
         # Set up category delegate for the Category column (index 2)
         categories = self._get_categories_for_delegate()
