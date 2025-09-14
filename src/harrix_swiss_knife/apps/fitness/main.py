@@ -146,6 +146,9 @@ class MainWindow(
         # Statistics table mode tracking
         self.current_statistics_mode = None  # 'records', 'last_exercises', 'check_steps'
 
+        # Flag to prevent recursive selection changes between list views
+        self._syncing_selection = False
+
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
             "process": (
@@ -657,6 +660,16 @@ class MainWindow(
 
         """
         self._update_charts_avif()
+
+        # Sync selection with exercises list view
+        if not self._syncing_selection:
+            self._syncing_selection = True
+            try:
+                exercise_name = self._get_selected_chart_exercise()
+                if exercise_name:
+                    self._select_exercise_in_list(exercise_name)
+            finally:
+                self._syncing_selection = False
 
     @requires_database()
     def on_chart_type_changed(
@@ -1438,6 +1451,14 @@ class MainWindow(
             self.comboBox_type.setEnabled(False)
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
+
+        # Sync selection with chart exercise list view
+        if not self._syncing_selection and exercise:
+            self._syncing_selection = True
+            try:
+                self._select_exercise_in_chart_list(exercise)
+            finally:
+                self._syncing_selection = False
 
         # Move focus to spinBox_count and select all text
         if exercise:  # Only if exercise was successfully selected
@@ -3523,6 +3544,25 @@ class MainWindow(
             if model:
                 return model.data(current_index) or ""
         return ""
+
+    def _select_exercise_in_chart_list(self, exercise_name: str) -> None:
+        """Select an exercise in the chart exercise list view by name.
+
+        Args:
+            exercise_name (str): Name of the exercise to select.
+        """
+        if not exercise_name:
+            return
+
+        model = self.listView_chart_exercise.model()
+        if not model:
+            return
+
+        # Find the item with the matching exercise name
+        for row in range(model.rowCount()):
+            if model.data(model.index(row, 0)) == exercise_name:
+                self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                break
 
     def _get_selected_chart_type(self) -> str:
         """Get the currently selected type from the chart type list view."""
