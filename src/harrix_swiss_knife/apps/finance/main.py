@@ -64,33 +64,43 @@ from harrix_swiss_knife.apps.finance.text_parser import TextParser
 config = h.dev.load_config("config/config.json")
 
 
-class DescriptionDelegate(QStyledItemDelegate):
-    """Delegate for description column in transactions table."""
+class CategoryComboBoxDelegate(QStyledItemDelegate):
+    """Delegate for category column in transactions table with dropdown list."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, categories=None):
         super().__init__(parent)
+        self.categories = categories or []
 
     def createEditor(self, parent, option, index):
-        """Create a line edit editor for the description column."""
-        from PySide6.QtWidgets import QLineEdit
-        editor = QLineEdit(parent)
+        """Create a combo box editor for the category column."""
+        combo = QComboBox(parent)
+        combo.setEditable(False)
 
         # Set white background for the editor
-        editor.setStyleSheet("QLineEdit { background-color: white; }")
+        combo.setStyleSheet("QComboBox { background-color: white; }")
 
-        return editor
+        # Add categories to combo box
+        for category in self.categories:
+            combo.addItem(category)
+
+        return combo
 
     def setEditorData(self, editor, index):
         """Set the current value in the editor."""
         current_value = index.data()
         if current_value:
-            editor.setText(str(current_value))
+            # Find the exact value in the combo box
+            index_in_combo = editor.findText(current_value)
+            if index_in_combo >= 0:
+                editor.setCurrentIndex(index_in_combo)
 
     def setModelData(self, editor, model, index):
         """Set the data from the editor back to the model."""
-        text = editor.text()
-        if text:
-            model.setData(index, text, Qt.ItemDataRole.DisplayRole)
+        selected_text = editor.currentText()
+        if selected_text:
+            # Check if this is an income category and add suffix if needed
+            # This logic should match the logic used in _save_transaction_data
+            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
 
 
 class CurrencyComboBoxDelegate(QStyledItemDelegate):
@@ -139,6 +149,7 @@ class DateDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         """Create a date editor for the date column."""
         from PySide6.QtWidgets import QDateEdit
+
         editor = QDateEdit(parent)
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
@@ -154,6 +165,7 @@ class DateDelegate(QStyledItemDelegate):
         if current_value:
             try:
                 from datetime import datetime
+
                 date_obj = datetime.strptime(str(current_value), "%Y-%m-%d").date()
                 editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
             except (ValueError, TypeError):
@@ -166,84 +178,34 @@ class DateDelegate(QStyledItemDelegate):
         model.setData(index, date_string, Qt.ItemDataRole.DisplayRole)
 
 
-class TagDelegate(QStyledItemDelegate):
-    """Delegate for tag column in transactions table."""
+class DescriptionDelegate(QStyledItemDelegate):
+    """Delegate for description column in transactions table."""
 
-    def __init__(self, parent=None, tags=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.tags = tags or []
 
     def createEditor(self, parent, option, index):
-        """Create a combo box editor for the tag column."""
-        combo = QComboBox(parent)
-        combo.setEditable(True)
+        """Create a line edit editor for the description column."""
+        from PySide6.QtWidgets import QLineEdit
+
+        editor = QLineEdit(parent)
 
         # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
+        editor.setStyleSheet("QLineEdit { background-color: white; }")
 
-        # Add tags to combo box
-        for tag in self.tags:
-            combo.addItem(tag)
-
-        return combo
+        return editor
 
     def setEditorData(self, editor, index):
         """Set the current value in the editor."""
         current_value = index.data()
         if current_value:
-            # Find the exact value in the combo box
-            index_in_combo = editor.findText(current_value)
-            if index_in_combo >= 0:
-                editor.setCurrentIndex(index_in_combo)
-            else:
-                # If not found, set as current text
-                editor.setCurrentText(current_value)
+            editor.setText(str(current_value))
 
     def setModelData(self, editor, model, index):
         """Set the data from the editor back to the model."""
-        selected_text = editor.currentText()
-        if selected_text:
-            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
-
-
-class CategoryComboBoxDelegate(QStyledItemDelegate):
-    """Delegate for category column in transactions table with dropdown list."""
-
-    def __init__(self, parent=None, categories=None):
-        super().__init__(parent)
-        self.categories = categories or []
-
-    def createEditor(self, parent, option, index):
-        """Create a combo box editor for the category column."""
-        combo = QComboBox(parent)
-        combo.setEditable(False)
-
-        # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
-
-        # Add categories to combo box
-        for category in self.categories:
-            combo.addItem(category)
-
-        return combo
-
-    def setEditorData(self, editor, index):
-        """Set the current value in the editor."""
-        current_value = index.data()
-        if current_value:
-            # Find the exact value in the combo box
-            index_in_combo = editor.findText(current_value)
-            if index_in_combo >= 0:
-                editor.setCurrentIndex(index_in_combo)
-
-    def setModelData(self, editor, model, index):
-        """Set the data from the editor back to the model."""
-        selected_text = editor.currentText()
-        if selected_text:
-            # Check if this is an income category and add suffix if needed
-            # This logic should match the logic used in _save_transaction_data
-            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
-
+        text = editor.text()
+        if text:
+            model.setData(index, text, Qt.ItemDataRole.DisplayRole)
 
 
 class MainWindow(
@@ -2632,24 +2594,6 @@ class MainWindow(
             print(f"Error getting currencies for delegate: {e}")
             return []
 
-    def _get_tags_for_delegate(self) -> list[str]:
-        """Get list of unique tags for the delegate dropdown."""
-        if self.db_manager is None:
-            return []
-
-        try:
-            transactions = self.db_manager.get_all_transactions()
-            tags = set()
-            for transaction in transactions:
-                tag = transaction[6]  # tag is at index 6
-                if tag and tag.strip():
-                    tags.add(tag.strip())
-
-            return sorted(list(tags))
-        except Exception as e:
-            print(f"Error getting tags for delegate: {e}")
-            return []
-
     def _get_or_create_category(self, category_name: str) -> int | None:
         """Get existing category ID or create new one.
 
@@ -2689,6 +2633,24 @@ class MainWindow(
         except Exception as e:
             print(f"Error creating category {category_name}: {e}")
             return None
+
+    def _get_tags_for_delegate(self) -> list[str]:
+        """Get list of unique tags for the delegate dropdown."""
+        if self.db_manager is None:
+            return []
+
+        try:
+            transactions = self.db_manager.get_all_transactions()
+            tags = set()
+            for transaction in transactions:
+                tag = transaction[6]  # tag is at index 6
+                if tag and tag.strip():
+                    tags.add(tag.strip())
+
+            return sorted(list(tags))
+        except Exception as e:
+            print(f"Error getting tags for delegate: {e}")
+            return []
 
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
@@ -4303,6 +4265,46 @@ class MainWindow(
             return False
 
         return True
+
+
+class TagDelegate(QStyledItemDelegate):
+    """Delegate for tag column in transactions table."""
+
+    def __init__(self, parent=None, tags=None):
+        super().__init__(parent)
+        self.tags = tags or []
+
+    def createEditor(self, parent, option, index):
+        """Create a combo box editor for the tag column."""
+        combo = QComboBox(parent)
+        combo.setEditable(True)
+
+        # Set white background for the editor
+        combo.setStyleSheet("QComboBox { background-color: white; }")
+
+        # Add tags to combo box
+        for tag in self.tags:
+            combo.addItem(tag)
+
+        return combo
+
+    def setEditorData(self, editor, index):
+        """Set the current value in the editor."""
+        current_value = index.data()
+        if current_value:
+            # Find the exact value in the combo box
+            index_in_combo = editor.findText(current_value)
+            if index_in_combo >= 0:
+                editor.setCurrentIndex(index_in_combo)
+            else:
+                # If not found, set as current text
+                editor.setCurrentText(current_value)
+
+    def setModelData(self, editor, model, index):
+        """Set the data from the editor back to the model."""
+        selected_text = editor.currentText()
+        if selected_text:
+            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
 
 
 if __name__ == "__main__":

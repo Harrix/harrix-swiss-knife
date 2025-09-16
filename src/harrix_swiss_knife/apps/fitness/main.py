@@ -3545,25 +3545,6 @@ class MainWindow(
                 return model.data(current_index) or ""
         return ""
 
-    def _select_exercise_in_chart_list(self, exercise_name: str) -> None:
-        """Select an exercise in the chart exercise list view by name.
-
-        Args:
-            exercise_name (str): Name of the exercise to select.
-        """
-        if not exercise_name:
-            return
-
-        model = self.listView_chart_exercise.model()
-        if not model:
-            return
-
-        # Find the item with the matching exercise name
-        for row in range(model.rowCount()):
-            if model.data(model.index(row, 0)) == exercise_name:
-                self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                break
-
     def _get_selected_chart_type(self) -> str:
         """Get the currently selected type from the chart type list view."""
         current_index = self.listView_chart_type.currentIndex()
@@ -4228,6 +4209,25 @@ class MainWindow(
             self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         self._chart_update_timer.start(delay_ms)
+
+    def _select_exercise_in_chart_list(self, exercise_name: str) -> None:
+        """Select an exercise in the chart exercise list view by name.
+
+        Args:
+            exercise_name (str): Name of the exercise to select.
+        """
+        if not exercise_name:
+            return
+
+        model = self.listView_chart_exercise.model()
+        if not model:
+            return
+
+        # Find the item with the matching exercise name
+        for row in range(model.rowCount()):
+            if model.data(model.index(row, 0)) == exercise_name:
+                self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
+                break
 
     def _select_exercise_in_list(self, exercise_name: str) -> None:
         """Select an exercise in the list view by name.
