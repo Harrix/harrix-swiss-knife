@@ -16,8 +16,23 @@ lang: en
   - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
   - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
   - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
-- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+- [🏛️ Class `CurrencyComboBoxDelegate`](#%EF%B8%8F-class-currencycomboboxdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor-1)
+  - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata-1)
+  - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata-1)
+- [🏛️ Class `DateDelegate`](#%EF%B8%8F-class-datedelegate)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor-2)
+  - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata-2)
+  - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata-2)
+- [🏛️ Class `DescriptionDelegate`](#%EF%B8%8F-class-descriptiondelegate)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
+  - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor-3)
+  - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata-3)
+  - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata-3)
+- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
   - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
@@ -83,7 +98,9 @@ lang: en
   - [⚙️ Method `_generate_income_vs_expenses_report`](#%EF%B8%8F-method-_generate_income_vs_expenses_report)
   - [⚙️ Method `_generate_monthly_summary_report`](#%EF%B8%8F-method-_generate_monthly_summary_report)
   - [⚙️ Method `_get_categories_for_delegate`](#%EF%B8%8F-method-_get_categories_for_delegate)
+  - [⚙️ Method `_get_currencies_for_delegate`](#%EF%B8%8F-method-_get_currencies_for_delegate)
   - [⚙️ Method `_get_or_create_category`](#%EF%B8%8F-method-_get_or_create_category)
+  - [⚙️ Method `_get_tags_for_delegate`](#%EF%B8%8F-method-_get_tags_for_delegate)
   - [⚙️ Method `_init_chart_controls`](#%EF%B8%8F-method-_init_chart_controls)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
@@ -141,6 +158,11 @@ lang: en
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
+- [🏛️ Class `TagDelegate`](#%EF%B8%8F-class-tagdelegate)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-5)
+  - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor-4)
+  - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata-4)
+  - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata-4)
 
 </details>
 
@@ -166,6 +188,9 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         """Create a combo box editor for the category column."""
         combo = QComboBox(parent)
         combo.setEditable(False)
+
+        # Set white background for the editor
+        combo.setStyleSheet("QComboBox { background-color: white; }")
 
         # Add categories to combo box
         for category in self.categories:
@@ -228,6 +253,9 @@ def createEditor(self, parent, option, index):
         combo = QComboBox(parent)
         combo.setEditable(False)
 
+        # Set white background for the editor
+        combo.setStyleSheet("QComboBox { background-color: white; }")
+
         # Add categories to combo box
         for category in self.categories:
             combo.addItem(category)
@@ -278,6 +306,414 @@ def setModelData(self, editor, model, index):
             # Check if this is an income category and add suffix if needed
             # This logic should match the logic used in _save_transaction_data
             model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
+```
+
+</details>
+
+## 🏛️ Class `CurrencyComboBoxDelegate`
+
+```python
+class CurrencyComboBoxDelegate(QStyledItemDelegate)
+```
+
+Delegate for currency column in transactions table with dropdown list.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class CurrencyComboBoxDelegate(QStyledItemDelegate):
+
+    def __init__(self, parent=None, currencies=None):
+        super().__init__(parent)
+        self.currencies = currencies or []
+
+    def createEditor(self, parent, option, index):
+        """Create a combo box editor for the currency column."""
+        combo = QComboBox(parent)
+        combo.setEditable(False)
+
+        # Set white background for the editor
+        combo.setStyleSheet("QComboBox { background-color: white; }")
+
+        # Add currencies to combo box
+        for currency in self.currencies:
+            combo.addItem(currency)
+
+        return combo
+
+    def setEditorData(self, editor, index):
+        """Set the current value in the editor."""
+        current_value = index.data()
+        if current_value:
+            # Find the exact value in the combo box
+            index_in_combo = editor.findText(current_value)
+            if index_in_combo >= 0:
+                editor.setCurrentIndex(index_in_combo)
+
+    def setModelData(self, editor, model, index):
+        """Set the data from the editor back to the model."""
+        selected_text = editor.currentText()
+        if selected_text:
+            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent = None, currencies = None)
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent=None, currencies=None):
+        super().__init__(parent)
+        self.currencies = currencies or []
+```
+
+</details>
+
+### ⚙️ Method `createEditor`
+
+```python
+def createEditor(self, parent, option, index)
+```
+
+Create a combo box editor for the currency column.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def createEditor(self, parent, option, index):
+        combo = QComboBox(parent)
+        combo.setEditable(False)
+
+        # Set white background for the editor
+        combo.setStyleSheet("QComboBox { background-color: white; }")
+
+        # Add currencies to combo box
+        for currency in self.currencies:
+            combo.addItem(currency)
+
+        return combo
+```
+
+</details>
+
+### ⚙️ Method `setEditorData`
+
+```python
+def setEditorData(self, editor, index)
+```
+
+Set the current value in the editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setEditorData(self, editor, index):
+        current_value = index.data()
+        if current_value:
+            # Find the exact value in the combo box
+            index_in_combo = editor.findText(current_value)
+            if index_in_combo >= 0:
+                editor.setCurrentIndex(index_in_combo)
+```
+
+</details>
+
+### ⚙️ Method `setModelData`
+
+```python
+def setModelData(self, editor, model, index)
+```
+
+Set the data from the editor back to the model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setModelData(self, editor, model, index):
+        selected_text = editor.currentText()
+        if selected_text:
+            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
+```
+
+</details>
+
+## 🏛️ Class `DateDelegate`
+
+```python
+class DateDelegate(QStyledItemDelegate)
+```
+
+Delegate for date column in transactions table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class DateDelegate(QStyledItemDelegate):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def createEditor(self, parent, option, index):
+        """Create a date editor for the date column."""
+        from PySide6.QtWidgets import QDateEdit
+
+        editor = QDateEdit(parent)
+        editor.setCalendarPopup(True)
+        editor.setDate(QDate.currentDate())
+
+        # Set white background for the editor
+        editor.setStyleSheet("QDateEdit { background-color: white; }")
+
+        return editor
+
+    def setEditorData(self, editor, index):
+        """Set the current value in the editor."""
+        current_value = index.data()
+        if current_value:
+            try:
+                from datetime import datetime
+
+                date_obj = datetime.strptime(str(current_value), "%Y-%m-%d").date()
+                editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
+            except (ValueError, TypeError):
+                editor.setDate(QDate.currentDate())
+
+    def setModelData(self, editor, model, index):
+        """Set the data from the editor back to the model."""
+        selected_date = editor.date()
+        date_string = selected_date.toString("yyyy-MM-dd")
+        model.setData(index, date_string, Qt.ItemDataRole.DisplayRole)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent = None)
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent=None):
+        super().__init__(parent)
+```
+
+</details>
+
+### ⚙️ Method `createEditor`
+
+```python
+def createEditor(self, parent, option, index)
+```
+
+Create a date editor for the date column.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def createEditor(self, parent, option, index):
+        from PySide6.QtWidgets import QDateEdit
+
+        editor = QDateEdit(parent)
+        editor.setCalendarPopup(True)
+        editor.setDate(QDate.currentDate())
+
+        # Set white background for the editor
+        editor.setStyleSheet("QDateEdit { background-color: white; }")
+
+        return editor
+```
+
+</details>
+
+### ⚙️ Method `setEditorData`
+
+```python
+def setEditorData(self, editor, index)
+```
+
+Set the current value in the editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setEditorData(self, editor, index):
+        current_value = index.data()
+        if current_value:
+            try:
+                from datetime import datetime
+
+                date_obj = datetime.strptime(str(current_value), "%Y-%m-%d").date()
+                editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
+            except (ValueError, TypeError):
+                editor.setDate(QDate.currentDate())
+```
+
+</details>
+
+### ⚙️ Method `setModelData`
+
+```python
+def setModelData(self, editor, model, index)
+```
+
+Set the data from the editor back to the model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setModelData(self, editor, model, index):
+        selected_date = editor.date()
+        date_string = selected_date.toString("yyyy-MM-dd")
+        model.setData(index, date_string, Qt.ItemDataRole.DisplayRole)
+```
+
+</details>
+
+## 🏛️ Class `DescriptionDelegate`
+
+```python
+class DescriptionDelegate(QStyledItemDelegate)
+```
+
+Delegate for description column in transactions table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class DescriptionDelegate(QStyledItemDelegate):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def createEditor(self, parent, option, index):
+        """Create a line edit editor for the description column."""
+        from PySide6.QtWidgets import QLineEdit
+
+        editor = QLineEdit(parent)
+
+        # Set white background for the editor
+        editor.setStyleSheet("QLineEdit { background-color: white; }")
+
+        return editor
+
+    def setEditorData(self, editor, index):
+        """Set the current value in the editor."""
+        current_value = index.data()
+        if current_value:
+            editor.setText(str(current_value))
+
+    def setModelData(self, editor, model, index):
+        """Set the data from the editor back to the model."""
+        text = editor.text()
+        if text:
+            model.setData(index, text, Qt.ItemDataRole.DisplayRole)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent = None)
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent=None):
+        super().__init__(parent)
+```
+
+</details>
+
+### ⚙️ Method `createEditor`
+
+```python
+def createEditor(self, parent, option, index)
+```
+
+Create a line edit editor for the description column.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def createEditor(self, parent, option, index):
+        from PySide6.QtWidgets import QLineEdit
+
+        editor = QLineEdit(parent)
+
+        # Set white background for the editor
+        editor.setStyleSheet("QLineEdit { background-color: white; }")
+
+        return editor
+```
+
+</details>
+
+### ⚙️ Method `setEditorData`
+
+```python
+def setEditorData(self, editor, index)
+```
+
+Set the current value in the editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setEditorData(self, editor, index):
+        current_value = index.data()
+        if current_value:
+            editor.setText(str(current_value))
+```
+
+</details>
+
+### ⚙️ Method `setModelData`
+
+```python
+def setModelData(self, editor, model, index)
+```
+
+Set the data from the editor back to the model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setModelData(self, editor, model, index):
+        text = editor.text()
+        if text:
+            model.setData(index, text, Qt.ItemDataRole.DisplayRole)
 ```
 
 </details>
@@ -349,8 +785,12 @@ class MainWindow(
             "exchange_rates": None,
         }
 
-        # Category delegate for transactions table
+        # Delegates for transactions table
+        self.description_delegate = None
         self.category_delegate = None
+        self.currency_delegate = None
+        self.date_delegate = None
+        self.tag_delegate = None
 
         # Chart configuration
         self.max_count_points_in_charts = 40
@@ -475,10 +915,28 @@ class MainWindow(
         )
         self.tableView_transactions.setModel(self.models["transactions"])
 
+        # Set up description delegate for the Description column (index 0)
+        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
+
         # Set up category delegate for the Category column (index 2)
         categories = self._get_categories_for_delegate()
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Set up currency delegate for the Currency column (index 3)
+        currencies = self._get_currencies_for_delegate()
+        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
+        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
+
+        # Set up date delegate for the Date column (index 4)
+        self.date_delegate = DateDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
+
+        # Set up tag delegate for the Tag column (index 5)
+        tags = self._get_tags_for_delegate()
+        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
+        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
         from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
@@ -2638,6 +3096,23 @@ class MainWindow(
             print(f"Error getting categories for delegate: {e}")
             return []
 
+    def _get_currencies_for_delegate(self) -> list[str]:
+        """Get list of currency codes for the delegate dropdown."""
+        if self.db_manager is None:
+            return []
+
+        try:
+            currencies = self.db_manager.get_all_currencies()
+            currency_codes = []
+            for currency in currencies:
+                code = currency[1]  # currency code is at index 1
+                currency_codes.append(code)
+
+            return currency_codes
+        except Exception as e:
+            print(f"Error getting currencies for delegate: {e}")
+            return []
+
     def _get_or_create_category(self, category_name: str) -> int | None:
         """Get existing category ID or create new one.
 
@@ -2677,6 +3152,24 @@ class MainWindow(
         except Exception as e:
             print(f"Error creating category {category_name}: {e}")
             return None
+
+    def _get_tags_for_delegate(self) -> list[str]:
+        """Get list of unique tags for the delegate dropdown."""
+        if self.db_manager is None:
+            return []
+
+        try:
+            transactions = self.db_manager.get_all_transactions()
+            tags = set()
+            for transaction in transactions:
+                tag = transaction[6]  # tag is at index 6
+                if tag and tag.strip():
+                    tags.add(tag.strip())
+
+            return sorted(list(tags))
+        except Exception as e:
+            print(f"Error getting tags for delegate: {e}")
+            return []
 
     def _init_chart_controls(self) -> None:
         """Initialize chart controls."""
@@ -2976,10 +3469,28 @@ class MainWindow(
         )
         self.tableView_transactions.setModel(self.models["transactions"])
 
+        # Set up description delegate for the Description column (index 0)
+        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
+
         # Set up category delegate for the Category column (index 2)
         categories = self._get_categories_for_delegate()
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Set up currency delegate for the Currency column (index 3)
+        currencies = self._get_currencies_for_delegate()
+        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
+        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
+
+        # Set up date delegate for the Date column (index 4)
+        self.date_delegate = DateDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
+
+        # Set up tag delegate for the Tag column (index 5)
+        tags = self._get_tags_for_delegate()
+        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
+        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
         from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
@@ -4312,8 +4823,12 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             "exchange_rates": None,
         }
 
-        # Category delegate for transactions table
+        # Delegates for transactions table
+        self.description_delegate = None
         self.category_delegate = None
+        self.currency_delegate = None
+        self.date_delegate = None
+        self.tag_delegate = None
 
         # Chart configuration
         self.max_count_points_in_charts = 40
@@ -4451,10 +4966,28 @@ def apply_filter(self) -> None:
         )
         self.tableView_transactions.setModel(self.models["transactions"])
 
+        # Set up description delegate for the Description column (index 0)
+        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
+
         # Set up category delegate for the Category column (index 2)
         categories = self._get_categories_for_delegate()
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Set up currency delegate for the Currency column (index 3)
+        currencies = self._get_currencies_for_delegate()
+        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
+        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
+
+        # Set up date delegate for the Date column (index 4)
+        self.date_delegate = DateDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
+
+        # Set up tag delegate for the Tag column (index 5)
+        tags = self._get_tags_for_delegate()
+        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
+        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
         from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
@@ -7467,6 +8000,37 @@ def _get_categories_for_delegate(self) -> list[str]:
 
 </details>
 
+### ⚙️ Method `_get_currencies_for_delegate`
+
+```python
+def _get_currencies_for_delegate(self) -> list[str]
+```
+
+Get list of currency codes for the delegate dropdown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_currencies_for_delegate(self) -> list[str]:
+        if self.db_manager is None:
+            return []
+
+        try:
+            currencies = self.db_manager.get_all_currencies()
+            currency_codes = []
+            for currency in currencies:
+                code = currency[1]  # currency code is at index 1
+                currency_codes.append(code)
+
+            return currency_codes
+        except Exception as e:
+            print(f"Error getting currencies for delegate: {e}")
+            return []
+```
+
+</details>
+
 ### ⚙️ Method `_get_or_create_category`
 
 ```python
@@ -7515,6 +8079,38 @@ def _get_or_create_category(self, category_name: str) -> int | None:
         except Exception as e:
             print(f"Error creating category {category_name}: {e}")
             return None
+```
+
+</details>
+
+### ⚙️ Method `_get_tags_for_delegate`
+
+```python
+def _get_tags_for_delegate(self) -> list[str]
+```
+
+Get list of unique tags for the delegate dropdown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_tags_for_delegate(self) -> list[str]:
+        if self.db_manager is None:
+            return []
+
+        try:
+            transactions = self.db_manager.get_all_transactions()
+            tags = set()
+            for transaction in transactions:
+                tag = transaction[6]  # tag is at index 6
+                if tag and tag.strip():
+                    tags.add(tag.strip())
+
+            return sorted(list(tags))
+        except Exception as e:
+            print(f"Error getting tags for delegate: {e}")
+            return []
 ```
 
 </details>
@@ -7954,10 +8550,28 @@ def _load_transactions_table(self) -> None:
         )
         self.tableView_transactions.setModel(self.models["transactions"])
 
+        # Set up description delegate for the Description column (index 0)
+        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
+
         # Set up category delegate for the Category column (index 2)
         categories = self._get_categories_for_delegate()
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
         self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        # Set up currency delegate for the Currency column (index 3)
+        currencies = self._get_currencies_for_delegate()
+        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
+        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
+
+        # Set up date delegate for the Date column (index 4)
+        self.date_delegate = DateDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
+
+        # Set up tag delegate for the Tag column (index 5)
+        tags = self._get_tags_for_delegate()
+        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
+        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
         from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
@@ -9885,6 +10499,152 @@ def _validate_database_connection(self) -> bool:
             return False
 
         return True
+```
+
+</details>
+
+## 🏛️ Class `TagDelegate`
+
+```python
+class TagDelegate(QStyledItemDelegate)
+```
+
+Delegate for tag column in transactions table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class TagDelegate(QStyledItemDelegate):
+
+    def __init__(self, parent=None, tags=None):
+        super().__init__(parent)
+        self.tags = tags or []
+
+    def createEditor(self, parent, option, index):
+        """Create a combo box editor for the tag column."""
+        combo = QComboBox(parent)
+        combo.setEditable(True)
+
+        # Set white background for the editor
+        combo.setStyleSheet("QComboBox { background-color: white; }")
+
+        # Add tags to combo box
+        for tag in self.tags:
+            combo.addItem(tag)
+
+        return combo
+
+    def setEditorData(self, editor, index):
+        """Set the current value in the editor."""
+        current_value = index.data()
+        if current_value:
+            # Find the exact value in the combo box
+            index_in_combo = editor.findText(current_value)
+            if index_in_combo >= 0:
+                editor.setCurrentIndex(index_in_combo)
+            else:
+                # If not found, set as current text
+                editor.setCurrentText(current_value)
+
+    def setModelData(self, editor, model, index):
+        """Set the data from the editor back to the model."""
+        selected_text = editor.currentText()
+        if selected_text:
+            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent = None, tags = None)
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent=None, tags=None):
+        super().__init__(parent)
+        self.tags = tags or []
+```
+
+</details>
+
+### ⚙️ Method `createEditor`
+
+```python
+def createEditor(self, parent, option, index)
+```
+
+Create a combo box editor for the tag column.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def createEditor(self, parent, option, index):
+        combo = QComboBox(parent)
+        combo.setEditable(True)
+
+        # Set white background for the editor
+        combo.setStyleSheet("QComboBox { background-color: white; }")
+
+        # Add tags to combo box
+        for tag in self.tags:
+            combo.addItem(tag)
+
+        return combo
+```
+
+</details>
+
+### ⚙️ Method `setEditorData`
+
+```python
+def setEditorData(self, editor, index)
+```
+
+Set the current value in the editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setEditorData(self, editor, index):
+        current_value = index.data()
+        if current_value:
+            # Find the exact value in the combo box
+            index_in_combo = editor.findText(current_value)
+            if index_in_combo >= 0:
+                editor.setCurrentIndex(index_in_combo)
+            else:
+                # If not found, set as current text
+                editor.setCurrentText(current_value)
+```
+
+</details>
+
+### ⚙️ Method `setModelData`
+
+```python
+def setModelData(self, editor, model, index)
+```
+
+Set the data from the editor back to the model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setModelData(self, editor, model, index):
+        selected_text = editor.currentText()
+        if selected_text:
+            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
 ```
 
 </details>

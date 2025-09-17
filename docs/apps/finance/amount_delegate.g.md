@@ -45,6 +45,10 @@ class AmountDelegate(QStyledItemDelegate):
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
         editor.setGroupSeparatorShown(False)  # No separators in editor
+
+        # Set white background for the editor
+        editor.setStyleSheet("QDoubleSpinBox { background-color: white; }")
+
         return editor
 
     def displayText(self, value, locale):
@@ -235,6 +239,10 @@ def createEditor(self, parent, option, index):
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
         editor.setGroupSeparatorShown(False)  # No separators in editor
+
+        # Set white background for the editor
+        editor.setStyleSheet("QDoubleSpinBox { background-color: white; }")
+
         return editor
 ```
 
