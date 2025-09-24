@@ -345,7 +345,6 @@ class OnCombineForAI(ActionBase):
         file_extensions = selected_combo.get("extensions", None)
 
         # Expand paths (handle directories, glob patterns, etc.)
-        self.add_line(f"🔵 Expanding paths for '{selected_name}'...")
         all_files = _expand_path_patterns(input_paths)
 
         if not all_files:
@@ -354,14 +353,11 @@ class OnCombineForAI(ActionBase):
 
         # Filter by extensions if specified
         if file_extensions:
-            self.add_line(f"🔵 Filtering files by extensions: {', '.join(file_extensions)}")
             all_files = _filter_files_by_extension(all_files, file_extensions)
 
         if not all_files:
             self.add_line(f"❌ No files found with extensions: {', '.join(file_extensions)}")
             return
-
-        self.add_line(f"✅ Found {len(all_files)} files to combine")
 
         # Show file selection dialog with checkboxes (all files selected by default)
         selected_files = self.get_checkbox_selection(
@@ -424,7 +420,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         file_extensions = selected_combo.get("extensions", None)
 
         # Expand paths (handle directories, glob patterns, etc.)
-        self.add_line(f"🔵 Expanding paths for '{selected_name}'...")
         all_files = _expand_path_patterns(input_paths)
 
         if not all_files:
@@ -433,14 +428,11 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         # Filter by extensions if specified
         if file_extensions:
-            self.add_line(f"🔵 Filtering files by extensions: {', '.join(file_extensions)}")
             all_files = _filter_files_by_extension(all_files, file_extensions)
 
         if not all_files:
             self.add_line(f"❌ No files found with extensions: {', '.join(file_extensions)}")
             return
-
-        self.add_line(f"✅ Found {len(all_files)} files to combine")
 
         # Show file selection dialog with checkboxes (all files selected by default)
         selected_files = self.get_checkbox_selection(
