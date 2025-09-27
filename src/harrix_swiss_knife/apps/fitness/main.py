@@ -1276,6 +1276,129 @@ class MainWindow(
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()
 
+        # Add same months recommendations to label_chart_info
+        self._add_same_months_recommendations_to_label(exercise, exercise_type, exercise_unit, yearly_data, years_count)
+
+    def _add_same_months_recommendations_to_label(self, exercise: str, exercise_type: str | None, exercise_unit: str, yearly_data: list, years_count: int) -> None:
+        """Add same months recommendations to label_chart_info.
+
+        Shows information about exercise progress for the same month across different years.
+        """
+        if not yearly_data:
+            self.label_chart_info.setText("")
+            self.label_chart_info.setVisible(False)
+            return
+
+        import calendar
+        from datetime import datetime
+
+        # Find the maximum final value from all years and last year value
+        max_value = 0.0
+        last_year_value = 0.0
+        max_year_index = 0
+        current_year_value = 0.0
+
+        for i, year_data in enumerate(yearly_data):
+            if year_data:
+                # Get the last (final) value from each year's data
+                final_value = year_data[-1][1]  # (day, cumulative_value)
+                if final_value > max_value:
+                    max_value = final_value
+                    max_year_index = i
+                # Last year is the second item (index 1) if it exists
+                if i == 1:
+                    last_year_value = final_value
+                # Current year is the first item (index 0)
+                if i == 0:
+                    current_year_value = final_value
+
+        if max_value <= 0:
+            self.label_chart_info.setText("")
+            self.label_chart_info.setVisible(False)
+            return
+
+        # Get current progress (current year value)
+        current_progress = current_year_value
+
+        # Calculate remaining days in current month
+        today = datetime.now()
+        current_month = today.month
+        current_year = today.year
+        days_in_month = calendar.monthrange(current_year, current_month)[1]
+        remaining_days = days_in_month - today.day
+        total_days_including_current = remaining_days + 1
+
+        # Calculate how much more is needed to reach the max value
+        remaining_to_max = max_value - current_progress
+
+        # Calculate how much more is needed to reach the last year value
+        remaining_to_last_year = 0.0
+        if last_year_value > 0:
+            remaining_to_last_year = last_year_value - current_progress
+
+        # Get unit
+        unit_text = f" {exercise_unit}" if exercise_unit else ""
+
+        # Get selected month name
+        selected_month_name = self.comboBox_compare_same_months.currentText()
+
+        # Build recommendation text with integer values
+        recommendation_text = f"<b>📊 {selected_month_name} Goal Recommendations</b><br><br>"
+        recommendation_text += f"📈 Current {selected_month_name.lower()} progress: <b>{int(current_progress)}{unit_text}</b><br>"
+
+        # Add last year goal information first (only if it's different from max year)
+        if last_year_value > 0 and max_year_index != 1:
+            recommendation_text += f"📅 Last year {selected_month_name.lower()}: <b>{int(last_year_value)}{unit_text}</b><br>"
+            if remaining_to_last_year > 0:
+                recommendation_text += f"📊 Remaining to last year: <b>{int(remaining_to_last_year)}{unit_text}</b><br>"
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_year / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)  # Round up to integer
+                    recommendation_text += (
+                        f"📅 Needed per day for last year ({remaining_days} left): <b>{daily_needed_last_rounded}{unit_text}</b>"
+                    )
+                else:
+                    recommendation_text += "⏰ Month ending - reach last year goal today!"
+            else:
+                recommendation_text += "🎉 Last year goal already achieved!"
+            recommendation_text += "<br>"
+
+        # Add max goal information second
+        recommendation_text += f"🎯 Max {selected_month_name.lower()} over last {years_count} years: <b>{int(max_value)}{unit_text}</b><br>"
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)}{unit_text}</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (1 if daily_needed_including_current % 1 > 0 else 0)  # Round up to integer
+                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+
+            # Add daily goal for max (last)
+            if remaining_days > 0:
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)  # Round up to integer
+                recommendation_text += (
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}{unit_text}</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach max goal today!"
+        else:
+            recommendation_text += "🎉 Max goal already achieved!"
+
+        # Set text and make visible
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setVisible(True)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 11px;
+            line-height: 1.2;
+        """)
+
     def on_exercise_name_changed(self, _index: int = -1) -> None:
         """Handle exercise name combobox selection change.
 
@@ -5040,7 +5163,6 @@ class MainWindow(
         elif self.radioButton_type_of_chart_compare_last.isChecked():
             self.on_compare_last_months()
         elif self.radioButton_type_of_chart_compare_same_months.isChecked():
-            self.label_chart_info.setVisible(False)
             self.on_compare_same_months()
 
     def _update_charts_avif(self) -> None:
