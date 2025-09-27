@@ -3015,6 +3015,9 @@ class MainWindow(
         days_in_month = calendar.monthrange(current_year, current_month)[1]
         remaining_days = days_in_month - today.day
 
+        # Calculate total days including current day
+        total_days_including_current = remaining_days + 1
+
         # Get unit
         unit_text = f" {exercise_unit}" if exercise_unit else ""
 
@@ -3053,6 +3056,12 @@ class MainWindow(
                 recommendation_text += "⏰ Month ending - reach max goal today!"
         else:
             recommendation_text += "🎉 Max goal already achieved!"
+
+        # Add daily goal including current day (second to last)
+        if remaining_to_max > 0 and total_days_including_current > 0:
+            daily_needed_including_current = remaining_to_max / total_days_including_current
+            daily_needed_including_current_rounded = int(daily_needed_including_current) + (1 if daily_needed_including_current % 1 > 0 else 0)  # Round up to integer
+            recommendation_text += f"<br>📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b>"
 
         # Set text and make visible
         self.label_chart_info.setText(recommendation_text)
