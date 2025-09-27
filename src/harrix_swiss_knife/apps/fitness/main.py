@@ -3001,6 +3001,11 @@ class MainWindow(
         # Calculate how much more is needed to reach the max value
         remaining_to_max = max_value - current_progress
 
+        # Calculate how much more is needed to reach the last month value
+        remaining_to_last_month = 0.0
+        if last_month_value > 0:
+            remaining_to_last_month = last_month_value - current_progress
+
         # Calculate remaining days in current month
         current_month = today.month
         current_year = today.year
@@ -3012,24 +3017,39 @@ class MainWindow(
 
         # Build recommendation text with integer values
         recommendation_text = f"<b>📊 Exercise Goal Recommendations</b><br><br>"
-        recommendation_text += f"🎯 Max over last {months_count} months: <b>{int(max_value)}{unit_text}</b><br>"
-        if last_month_value > 0:
-            recommendation_text += f"📅 Last month result: <b>{int(last_month_value)}{unit_text}</b><br>"
         recommendation_text += f"📈 Current progress: <b>{int(current_progress)}{unit_text}</b><br>"
 
-        if remaining_to_max > 0:
-            recommendation_text += f"⬆️ Remaining: <b>{int(remaining_to_max)}{unit_text}</b><br>"
+        # Add last month goal information first
+        if last_month_value > 0:
+            recommendation_text += f"📅 Last month result: <b>{int(last_month_value)}{unit_text}</b><br>"
+            if remaining_to_last_month > 0:
+                recommendation_text += f"📊 Remaining to last month: <b>{int(remaining_to_last_month)}{unit_text}</b><br>"
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_month / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)  # Round up to integer
+                    recommendation_text += (
+                        f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded}{unit_text}</b>"
+                    )
+                else:
+                    recommendation_text += "⏰ Month ending - reach last month goal today!"
+            else:
+                recommendation_text += "🎉 Last month goal already achieved!"
+            recommendation_text += "<br>"
 
+        # Add max goal information second
+        recommendation_text += f"🎯 Max over last {months_count} months: <b>{int(max_value)}{unit_text}</b><br>"
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)}{unit_text}</b><br>"
             if remaining_days > 0:
-                daily_needed = remaining_to_max / remaining_days
-                daily_needed_rounded = int(daily_needed) + (1 if daily_needed % 1 > 0 else 0)  # Round up to integer
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)  # Round up to integer
                 recommendation_text += (
-                    f"📅 Needed per day ({remaining_days} left): <b>{daily_needed_rounded}{unit_text}</b>"
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}{unit_text}</b>"
                 )
             else:
-                recommendation_text += "⏰ Month ending - reach goal today!"
+                recommendation_text += "⏰ Month ending - reach max goal today!"
         else:
-            recommendation_text += "🎉 Goal already achieved!"
+            recommendation_text += "🎉 Max goal already achieved!"
 
         # Set text and make visible
         self.label_chart_info.setText(recommendation_text)
