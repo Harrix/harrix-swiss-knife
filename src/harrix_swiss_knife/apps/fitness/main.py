@@ -2979,11 +2979,14 @@ class MainWindow(
         # Find the maximum final value from all months and last month value
         max_value = 0.0
         last_month_value = 0.0
+        max_month_index = 0
         for i, month_data in enumerate(monthly_data):
             if month_data:
                 # Get the last (final) value from each month's data
                 final_value = month_data[-1][1]  # (day, cumulative_value)
-                max_value = max(max_value, final_value)
+                if final_value > max_value:
+                    max_value = final_value
+                    max_month_index = i
                 # Last month is the second item (index 1) if it exists
                 if i == 1:
                     last_month_value = final_value
@@ -3019,8 +3022,8 @@ class MainWindow(
         recommendation_text = f"<b>📊 Exercise Goal Recommendations</b><br><br>"
         recommendation_text += f"📈 Current progress: <b>{int(current_progress)}{unit_text}</b><br>"
 
-        # Add last month goal information first
-        if last_month_value > 0:
+        # Add last month goal information first (only if it's different from max month)
+        if last_month_value > 0 and max_month_index != 1:
             recommendation_text += f"📅 Last month result: <b>{int(last_month_value)}{unit_text}</b><br>"
             if remaining_to_last_month > 0:
                 recommendation_text += f"📊 Remaining to last month: <b>{int(remaining_to_last_month)}{unit_text}</b><br>"
