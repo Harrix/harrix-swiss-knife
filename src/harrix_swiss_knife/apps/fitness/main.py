@@ -2878,6 +2878,59 @@ class MainWindow(
 
         self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
 
+        # Add exercise recommendations to label_chart_info using the same method as compare_last
+        self._add_exercise_recommendations_to_label_for_standard_chart(exercise, exercise_type, exercise_unit)
+
+    def _add_exercise_recommendations_to_label_for_standard_chart(self, exercise: str, exercise_type: str | None, exercise_unit: str) -> None:
+        """Add exercise recommendations to label_chart_info for standard chart.
+
+        Uses the same logic as compare_last but for the selected exercise.
+        """
+        if self.db_manager is None:
+            self.label_chart_info.setText("")
+            self.label_chart_info.setVisible(False)
+            return
+
+        from datetime import datetime, timedelta
+
+        # Get data for last N months (from spinBox_compare_last) in the same format as compare_last
+        months_count = self.spinBox_compare_last.value()
+        monthly_data = []
+
+        today = datetime.now()
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_start_i = month_date.replace(day=1)
+            if i == 0:  # Current month
+                month_end_i = today
+            else:
+                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
+                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
+
+            # Get exercise data for this month
+            month_data = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=exercise_type if exercise_type != "All types" else None,
+                date_from=month_start_i.strftime("%Y-%m-%d"),
+                date_to=month_end_i.strftime("%Y-%m-%d")
+            )
+
+            # Convert to cumulative data format like in compare_last
+            cumulative_data = []
+            cumulative_value = 0.0
+            for date_str, value_str in month_data:
+                cumulative_value += float(value_str)
+                # Convert date to day number in month
+                day = datetime.strptime(date_str, "%Y-%m-%d").day
+                cumulative_data.append((day, cumulative_value))
+
+            monthly_data.append(cumulative_data)
+
+        # Use the existing function with the same data format
+        self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
+
     @requires_database(is_show_warning=False)
     def update_filter_comboboxes(self) -> None:
         """Refresh `exercise` and `type` combo-boxes in the filter group.
@@ -4847,7 +4900,6 @@ class MainWindow(
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
         if self.radioButton_type_of_chart_standart.isChecked():
-            self.label_chart_info.setVisible(False)
             self.update_exercise_chart()
         elif self.radioButton_type_of_chart_show_sets_chart.isChecked():
             self.show_sets_chart()
