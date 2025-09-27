@@ -47,7 +47,7 @@ class ExchangeRateUpdateWorker(QThread):
             if cleaned_count > 0:
                 self.progress_updated.emit(f"🧹 Cleaned {cleaned_count} invalid exchange rate records")
 
-            def get_yfinance_data_batch(currency_code: str, dates: list[str]) -> dict[str, float]:
+            def get_yfinance_data_batch(currency_code: str, dates: list[str], currency_id: int) -> dict[str, float]:
                 """Get exchange rate data from yfinance for multiple dates at once.
 
                 Returns dictionary mapping date to rate (currency to USD rate).
@@ -66,31 +66,43 @@ class ExchangeRateUpdateWorker(QThread):
 
                 self.progress_updated.emit(f"📊 Fetching {currency_code} rates from {start_date} to {end_date}...")
 
-                # Define ticker configurations
-                special_cases = {
-                    "RUB": {"primary": ["RUBUSD=X", "RUB=X"], "inverse": ["USDRUB=X", "USD/RUB=X"]},
-                    "EUR": {"primary": ["EURUSD=X", "EUR=X"], "inverse": ["USDEUR=X", "USD/EUR=X"]},
-                    "CNY": {"primary": ["CNYUSD=X", "CNY=X"], "inverse": ["USDCNY=X", "USD/CNY=X"]},
-                    "TRY": {"primary": ["TRYUSD=X", "TRY=X"], "inverse": ["USDTRY=X", "USD/TRY=X"]},
-                    "VND": {"primary": ["VNDUSD=X", "VND=X"], "inverse": ["USDVND=X", "USD/VND=X"]},
-                }
+                # Check if currency has a saved ticker
+                saved_ticker = self.db_manager.get_currency_ticker(currency_id)
 
-                # Get ticker lists for this currency
-                if currency_code in special_cases:
-                    primary_list = special_cases[currency_code]["primary"]
-                    inverse_list = special_cases[currency_code]["inverse"]
+                if saved_ticker:
+                    # Use saved ticker
+                    self.progress_updated.emit(f"🔄 Using saved ticker: {saved_ticker}")
+                    ticker_lists = {"primary": [saved_ticker], "inverse": []}
                 else:
-                    # Default ticker formats
-                    primary_list = [
-                        f"{currency_code}USD=X",
-                        f"{currency_code}/USD",
-                        f"{currency_code}USD",
-                    ]
-                    inverse_list = [
-                        f"USD{currency_code}=X",
-                        f"USD/{currency_code}",
-                        f"USD{currency_code}",
-                    ]
+                    # Define ticker configurations for fallback
+                    special_cases = {
+                        "RUB": {"primary": ["RUBUSD=X", "RUB=X"], "inverse": ["USDRUB=X", "USD/RUB=X"]},
+                        "EUR": {"primary": ["EURUSD=X", "EUR=X"], "inverse": ["USDEUR=X", "USD/EUR=X"]},
+                        "CNY": {"primary": ["CNYUSD=X", "CNY=X"], "inverse": ["USDCNY=X", "USD/CNY=X"]},
+                        "TRY": {"primary": ["TRYUSD=X", "TRY=X"], "inverse": ["USDTRY=X", "USD/TRY=X"]},
+                        "VND": {"primary": ["VNDUSD=X", "VND=X"], "inverse": ["USDVND=X", "USD/VND=X"]},
+                    }
+
+                    # Get ticker lists for this currency
+                    if currency_code in special_cases:
+                        ticker_lists = special_cases[currency_code]
+                    else:
+                        # Default ticker formats
+                        ticker_lists = {
+                            "primary": [
+                                f"{currency_code}USD=X",
+                                f"{currency_code}/USD",
+                                f"{currency_code}USD",
+                            ],
+                            "inverse": [
+                                f"USD{currency_code}=X",
+                                f"USD/{currency_code}",
+                                f"USD{currency_code}",
+                            ]
+                        }
+
+                primary_list = ticker_lists["primary"]
+                inverse_list = ticker_lists["inverse"]
 
                 # Try primary tickers first (no inversion needed)
                 for ticker_symbol in primary_list:
@@ -118,6 +130,10 @@ class ExchangeRateUpdateWorker(QThread):
                                 self.progress_updated.emit(
                                     f"✅ Found {len(result)} rates with {ticker_symbol} (primary)"
                                 )
+                                # Save successful ticker if not already saved
+                                if not saved_ticker:
+                                    self.db_manager.update_currency_ticker(currency_id, ticker_symbol)
+                                    self.progress_updated.emit(f"💾 Saved successful ticker: {ticker_symbol}")
                                 return result
 
                     except Exception as e:
@@ -152,6 +168,10 @@ class ExchangeRateUpdateWorker(QThread):
                                 self.progress_updated.emit(
                                     f"✅ Found {len(result)} rates with {ticker_symbol} (inverted)"
                                 )
+                                # Save successful ticker if not already saved
+                                if not saved_ticker:
+                                    self.db_manager.update_currency_ticker(currency_id, ticker_symbol)
+                                    self.progress_updated.emit(f"💾 Saved successful ticker: {ticker_symbol}")
                                 return result
 
                     except Exception as e:
@@ -200,7 +220,7 @@ class ExchangeRateUpdateWorker(QThread):
                 # Batch process missing dates
                 if missing_dates:
                     # Download all missing dates at once
-                    rates_dict = get_yfinance_data_batch(currency_code, missing_dates)
+                    rates_dict = get_yfinance_data_batch(currency_code, missing_dates, currency_id)
 
                     # Prepare batch insert data
                     batch_data = []
@@ -243,7 +263,7 @@ class ExchangeRateUpdateWorker(QThread):
                     if recent_records:
                         # Get dates for batch download
                         update_dates = [date for date, _ in recent_records]
-                        rates_dict = get_yfinance_data_batch(currency_code, update_dates)
+                        rates_dict = get_yfinance_data_batch(currency_code, update_dates, currency_id)
 
                         for date_str, old_rate in recent_records:
                             if self.should_stop:

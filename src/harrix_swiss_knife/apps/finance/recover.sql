@@ -3,7 +3,8 @@ CREATE TABLE "currencies" (
     "code" TEXT NOT NULL UNIQUE,
     "name" TEXT NOT NULL,
     "symbol" TEXT NOT NULL,
-    "subdivision" INTEGER NOT NULL DEFAULT 100
+    "subdivision" INTEGER NOT NULL DEFAULT 100,
+    "ticker" TEXT
 );
 
 CREATE TABLE "settings" (
