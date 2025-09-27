@@ -1286,7 +1286,6 @@ class MainWindow(
         """
         if not yearly_data:
             self.label_chart_info.setText("")
-            self.label_chart_info.setVisible(False)
             return
 
         import calendar
@@ -1314,7 +1313,6 @@ class MainWindow(
 
         if max_value <= 0:
             self.label_chart_info.setText("")
-            self.label_chart_info.setVisible(False)
             return
 
         # Get current progress (current year value)
@@ -1386,9 +1384,8 @@ class MainWindow(
         else:
             recommendation_text += "🎉 Max goal already achieved!"
 
-        # Set text and make visible
+        # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setVisible(True)
         self.label_chart_info.setStyleSheet("""
             margin: 5px 0px;
             padding: 10px;
@@ -2444,7 +2441,6 @@ class MainWindow(
         """
         if self.db_manager is None:
             self.label_chart_info.setText("")
-            self.label_chart_info.setVisible(False)
             return
 
         import calendar
@@ -2490,7 +2486,6 @@ class MainWindow(
 
         if not monthly_calories_data or all(calories == 0 for calories in monthly_calories_data):
             self.label_chart_info.setText("")
-            self.label_chart_info.setVisible(False)
             return
 
         # Find max and last month values
@@ -2553,9 +2548,8 @@ class MainWindow(
         else:
             recommendation_text += "🎉 Max goal already achieved!"
 
-        # Set text and make visible
+        # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setVisible(True)
         self.label_chart_info.setStyleSheet("""
             margin: 5px 0px;
             padding: 10px;
@@ -2657,7 +2651,6 @@ class MainWindow(
         """
         if self.db_manager is None:
             self.label_chart_info.setText("")
-            self.label_chart_info.setVisible(False)
             return
 
         import calendar
@@ -2703,7 +2696,6 @@ class MainWindow(
 
         if not monthly_sets_data or all(sets == 0 for sets in monthly_sets_data):
             self.label_chart_info.setText("")
-            self.label_chart_info.setVisible(False)
             return
 
         # Find max and last month values
@@ -2766,9 +2758,8 @@ class MainWindow(
         else:
             recommendation_text += "🎉 Max goal already achieved!"
 
-        # Set text and make visible
+        # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setVisible(True)
         self.label_chart_info.setStyleSheet("""
             margin: 5px 0px;
             padding: 10px;
@@ -3143,7 +3134,6 @@ class MainWindow(
         """
         if self.db_manager is None:
             self.label_chart_info.setText("")
-            self.label_chart_info.setVisible(False)
             return
 
         from datetime import datetime, timedelta
@@ -3410,7 +3400,6 @@ class MainWindow(
         """
         if not monthly_data:
             self.label_chart_info.setText("")
-            self.label_chart_info.setVisible(False)
             return
 
         import calendar
@@ -3433,7 +3422,6 @@ class MainWindow(
 
         if max_value <= 0:
             self.label_chart_info.setText("")
-            self.label_chart_info.setVisible(False)
             return
 
         # Get current month progress
@@ -3505,9 +3493,8 @@ class MainWindow(
         else:
             recommendation_text += "🎉 Max goal already achieved!"
 
-        # Set text and make visible
+        # Set text
         self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setVisible(True)
         self.label_chart_info.setStyleSheet("""
             margin: 5px 0px;
             padding: 10px;
