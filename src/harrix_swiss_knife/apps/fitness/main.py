@@ -2311,6 +2311,138 @@ class MainWindow(
 
         self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
 
+        # Add calories recommendations to label_chart_info
+        self._add_calories_recommendations_to_label()
+
+    def _add_calories_recommendations_to_label(self) -> None:
+        """Add calories recommendations to label_chart_info.
+
+        Shows information about calories burned for current month, last month, and max month.
+        """
+        if self.db_manager is None:
+            self.label_chart_info.setText("")
+            self.label_chart_info.setVisible(False)
+            return
+
+        import calendar
+        from datetime import datetime, timedelta
+
+        # Get current month data
+        today = datetime.now()
+        current_month = today.month
+        current_year = today.year
+
+        # Calculate date ranges for current month
+        month_start = today.replace(day=1)
+        month_end = today
+
+        # Get calories data for current month
+        current_month_calories = self.db_manager.get_kcal_chart_data(
+            month_start.strftime("%Y-%m-%d"),
+            month_end.strftime("%Y-%m-%d")
+        )
+        current_calories = sum(float(calories) for _, calories in current_month_calories)
+
+        # Get data for last N months (from spinBox_compare_last)
+        months_count = self.spinBox_compare_last.value()
+        monthly_calories_data = []
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_start_i = month_date.replace(day=1)
+            if i == 0:  # Current month
+                month_end_i = today
+            else:
+                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
+                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
+
+            # Get calories data for this month
+            month_calories = self.db_manager.get_kcal_chart_data(
+                month_start_i.strftime("%Y-%m-%d"),
+                month_end_i.strftime("%Y-%m-%d")
+            )
+            month_total = sum(float(calories) for _, calories in month_calories)
+            monthly_calories_data.append(month_total)
+
+        if not monthly_calories_data or all(calories == 0 for calories in monthly_calories_data):
+            self.label_chart_info.setText("")
+            self.label_chart_info.setVisible(False)
+            return
+
+        # Find max and last month values
+        max_calories = max(monthly_calories_data)
+        last_month_calories = monthly_calories_data[1] if len(monthly_calories_data) > 1 else 0
+        max_month_index = monthly_calories_data.index(max_calories)
+
+        # Calculate remaining days
+        days_in_month = calendar.monthrange(current_year, current_month)[1]
+        remaining_days = days_in_month - today.day
+        total_days_including_current = remaining_days + 1
+
+        # Calculate remaining calories needed
+        remaining_to_max = max_calories - current_calories
+        remaining_to_last_month = 0
+        if last_month_calories > 0:
+            remaining_to_last_month = last_month_calories - current_calories
+
+        # Build recommendation text
+        recommendation_text = f"<b>📊 Calories Goal Recommendations</b><br><br>"
+        recommendation_text += f"📈 Current calories this month: <b>{int(current_calories)} kcal</b><br>"
+
+        # Add last month goal information first (only if it's different from max month)
+        if last_month_calories > 0 and max_month_index != 1:
+            recommendation_text += f"📅 Last month calories: <b>{int(last_month_calories)} kcal</b><br>"
+            if remaining_to_last_month > 0:
+                recommendation_text += f"📊 Remaining to last month: <b>{int(remaining_to_last_month)} kcal</b><br>"
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_month / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)
+                    recommendation_text += (
+                        f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded} kcal</b>"
+                    )
+                else:
+                    recommendation_text += "⏰ Month ending - reach last month goal today!"
+            else:
+                recommendation_text += "🎉 Last month goal already achieved!"
+            recommendation_text += "<br>"
+
+        # Add max goal information second
+        recommendation_text += f"🎯 Max calories over last {months_count} months: <b>{int(max_calories)} kcal</b><br>"
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)} kcal</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (1 if daily_needed_including_current % 1 > 0 else 0)
+                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded} kcal</b><br>"
+
+            # Add daily goal for max (last)
+            if remaining_days > 0:
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)
+                recommendation_text += (
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded} kcal</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach max goal today!"
+        else:
+            recommendation_text += "🎉 Max goal already achieved!"
+
+        # Set text and make visible
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setVisible(True)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 11px;
+            line-height: 1.2;
+        """)
+
     @requires_database()
     def show_sets_chart(self) -> None:
         """Show chart of total sets using database manager."""
@@ -4904,7 +5036,6 @@ class MainWindow(
         elif self.radioButton_type_of_chart_show_sets_chart.isChecked():
             self.show_sets_chart()
         elif self.radioButton_type_of_chart_kcal.isChecked():
-            self.label_chart_info.setVisible(False)
             self.show_kcal_chart()
         elif self.radioButton_type_of_chart_compare_last.isChecked():
             self.on_compare_last_months()
