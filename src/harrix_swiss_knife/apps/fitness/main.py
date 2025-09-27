@@ -1279,123 +1279,6 @@ class MainWindow(
         # Add same months recommendations to label_chart_info
         self._add_same_months_recommendations_to_label(exercise, exercise_type, exercise_unit, yearly_data, years_count)
 
-    def _add_same_months_recommendations_to_label(self, exercise: str, exercise_type: str | None, exercise_unit: str, yearly_data: list, years_count: int) -> None:
-        """Add same months recommendations to label_chart_info.
-
-        Shows information about exercise progress for the same month across different years.
-        """
-        if not yearly_data:
-            self.label_chart_info.setText("")
-            return
-
-        import calendar
-        from datetime import datetime
-
-        # Find the maximum final value from all years and last year value
-        max_value = 0.0
-        last_year_value = 0.0
-        max_year_index = 0
-        current_year_value = 0.0
-
-        for i, year_data in enumerate(yearly_data):
-            if year_data:
-                # Get the last (final) value from each year's data
-                final_value = year_data[-1][1]  # (day, cumulative_value)
-                if final_value > max_value:
-                    max_value = final_value
-                    max_year_index = i
-                # Last year is the second item (index 1) if it exists
-                if i == 1:
-                    last_year_value = final_value
-                # Current year is the first item (index 0)
-                if i == 0:
-                    current_year_value = final_value
-
-        if max_value <= 0:
-            self.label_chart_info.setText("")
-            return
-
-        # Get current progress (current year value)
-        current_progress = current_year_value
-
-        # Calculate remaining days in current month
-        today = datetime.now()
-        current_month = today.month
-        current_year = today.year
-        days_in_month = calendar.monthrange(current_year, current_month)[1]
-        remaining_days = days_in_month - today.day
-        total_days_including_current = remaining_days + 1
-
-        # Calculate how much more is needed to reach the max value
-        remaining_to_max = max_value - current_progress
-
-        # Calculate how much more is needed to reach the last year value
-        remaining_to_last_year = 0.0
-        if last_year_value > 0:
-            remaining_to_last_year = last_year_value - current_progress
-
-        # Get unit
-        unit_text = f" {exercise_unit}" if exercise_unit else ""
-
-        # Get selected month name
-        selected_month_name = self.comboBox_compare_same_months.currentText()
-
-        # Build recommendation text with integer values
-        recommendation_text = f"<b>📊 {selected_month_name} Goal Recommendations</b><br><br>"
-        recommendation_text += f"📈 Current {selected_month_name.lower()} progress: <b>{int(current_progress)}{unit_text}</b><br>"
-
-        # Add last year goal information first (only if it's different from max year)
-        if last_year_value > 0 and max_year_index != 1:
-            recommendation_text += f"📅 Last year {selected_month_name.lower()}: <b>{int(last_year_value)}{unit_text}</b><br>"
-            if remaining_to_last_year > 0:
-                recommendation_text += f"📊 Remaining to last year: <b>{int(remaining_to_last_year)}{unit_text}</b><br>"
-                if remaining_days > 0:
-                    daily_needed_last = remaining_to_last_year / remaining_days
-                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)  # Round up to integer
-                    recommendation_text += (
-                        f"📅 Needed per day for last year ({remaining_days} left): <b>{daily_needed_last_rounded}{unit_text}</b>"
-                    )
-                else:
-                    recommendation_text += "⏰ Month ending - reach last year goal today!"
-            else:
-                recommendation_text += "🎉 Last year goal already achieved!"
-            recommendation_text += "<br>"
-
-        # Add max goal information second
-        recommendation_text += f"🎯 Max {selected_month_name.lower()} over last {years_count} years: <b>{int(max_value)}{unit_text}</b><br>"
-        if remaining_to_max > 0:
-            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)}{unit_text}</b><br>"
-
-            # Add daily goal including current day (second to last)
-            if total_days_including_current > 0:
-                daily_needed_including_current = remaining_to_max / total_days_including_current
-                daily_needed_including_current_rounded = int(daily_needed_including_current) + (1 if daily_needed_including_current % 1 > 0 else 0)  # Round up to integer
-                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
-
-            # Add daily goal for max (last)
-            if remaining_days > 0:
-                daily_needed_max = remaining_to_max / remaining_days
-                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)  # Round up to integer
-                recommendation_text += (
-                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}{unit_text}</b>"
-                )
-            else:
-                recommendation_text += "⏰ Month ending - reach max goal today!"
-        else:
-            recommendation_text += "🎉 Max goal already achieved!"
-
-        # Set text
-        self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet("""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
-            border-radius: 5px;
-            font-size: 11px;
-            line-height: 1.2;
-        """)
-
     def on_exercise_name_changed(self, _index: int = -1) -> None:
         """Handle exercise name combobox selection change.
 
@@ -2434,132 +2317,6 @@ class MainWindow(
         # Add calories recommendations to label_chart_info
         self._add_calories_recommendations_to_label()
 
-    def _add_calories_recommendations_to_label(self) -> None:
-        """Add calories recommendations to label_chart_info.
-
-        Shows information about calories burned for current month, last month, and max month.
-        """
-        if self.db_manager is None:
-            self.label_chart_info.setText("")
-            return
-
-        import calendar
-        from datetime import datetime, timedelta
-
-        # Get current month data
-        today = datetime.now()
-        current_month = today.month
-        current_year = today.year
-
-        # Calculate date ranges for current month
-        month_start = today.replace(day=1)
-        month_end = today
-
-        # Get calories data for current month
-        current_month_calories = self.db_manager.get_kcal_chart_data(
-            month_start.strftime("%Y-%m-%d"),
-            month_end.strftime("%Y-%m-%d")
-        )
-        current_calories = sum(float(calories) for _, calories in current_month_calories)
-
-        # Get data for last N months (from spinBox_compare_last)
-        months_count = self.spinBox_compare_last.value()
-        monthly_calories_data = []
-
-        for i in range(months_count):
-            # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
-            month_start_i = month_date.replace(day=1)
-            if i == 0:  # Current month
-                month_end_i = today
-            else:
-                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
-                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
-
-            # Get calories data for this month
-            month_calories = self.db_manager.get_kcal_chart_data(
-                month_start_i.strftime("%Y-%m-%d"),
-                month_end_i.strftime("%Y-%m-%d")
-            )
-            month_total = sum(float(calories) for _, calories in month_calories)
-            monthly_calories_data.append(month_total)
-
-        if not monthly_calories_data or all(calories == 0 for calories in monthly_calories_data):
-            self.label_chart_info.setText("")
-            return
-
-        # Find max and last month values
-        max_calories = max(monthly_calories_data)
-        last_month_calories = monthly_calories_data[1] if len(monthly_calories_data) > 1 else 0
-        max_month_index = monthly_calories_data.index(max_calories)
-
-        # Calculate remaining days
-        days_in_month = calendar.monthrange(current_year, current_month)[1]
-        remaining_days = days_in_month - today.day
-        total_days_including_current = remaining_days + 1
-
-        # Calculate remaining calories needed
-        remaining_to_max = max_calories - current_calories
-        remaining_to_last_month = 0
-        if last_month_calories > 0:
-            remaining_to_last_month = last_month_calories - current_calories
-
-        # Build recommendation text
-        recommendation_text = f"<b>📊 Calories Goal Recommendations</b><br><br>"
-        recommendation_text += f"📈 Current calories this month: <b>{int(current_calories)} kcal</b><br>"
-
-        # Add last month goal information first (only if it's different from max month)
-        if last_month_calories > 0 and max_month_index != 1:
-            recommendation_text += f"📅 Last month calories: <b>{int(last_month_calories)} kcal</b><br>"
-            if remaining_to_last_month > 0:
-                recommendation_text += f"📊 Remaining to last month: <b>{int(remaining_to_last_month)} kcal</b><br>"
-                if remaining_days > 0:
-                    daily_needed_last = remaining_to_last_month / remaining_days
-                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)
-                    recommendation_text += (
-                        f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded} kcal</b>"
-                    )
-                else:
-                    recommendation_text += "⏰ Month ending - reach last month goal today!"
-            else:
-                recommendation_text += "🎉 Last month goal already achieved!"
-            recommendation_text += "<br>"
-
-        # Add max goal information second
-        recommendation_text += f"🎯 Max calories over last {months_count} months: <b>{int(max_calories)} kcal</b><br>"
-        if remaining_to_max > 0:
-            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)} kcal</b><br>"
-
-            # Add daily goal including current day (second to last)
-            if total_days_including_current > 0:
-                daily_needed_including_current = remaining_to_max / total_days_including_current
-                daily_needed_including_current_rounded = int(daily_needed_including_current) + (1 if daily_needed_including_current % 1 > 0 else 0)
-                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded} kcal</b><br>"
-
-            # Add daily goal for max (last)
-            if remaining_days > 0:
-                daily_needed_max = remaining_to_max / remaining_days
-                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)
-                recommendation_text += (
-                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded} kcal</b>"
-                )
-            else:
-                recommendation_text += "⏰ Month ending - reach max goal today!"
-        else:
-            recommendation_text += "🎉 Max goal already achieved!"
-
-        # Set text
-        self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet("""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
-            border-radius: 5px;
-            font-size: 11px;
-            line-height: 1.2;
-        """)
-
     @requires_database()
     def show_sets_chart(self) -> None:
         """Show chart of total sets using database manager."""
@@ -2643,132 +2400,6 @@ class MainWindow(
 
         # Add sets recommendations to label_chart_info
         self._add_sets_recommendations_to_label()
-
-    def _add_sets_recommendations_to_label(self) -> None:
-        """Add sets recommendations to label_chart_info.
-
-        Shows information about sets count for current month, last month, and max month.
-        """
-        if self.db_manager is None:
-            self.label_chart_info.setText("")
-            return
-
-        import calendar
-        from datetime import datetime, timedelta
-
-        # Get current month data
-        today = datetime.now()
-        current_month = today.month
-        current_year = today.year
-
-        # Calculate date ranges for current month
-        month_start = today.replace(day=1)
-        month_end = today
-
-        # Get sets data for current month
-        current_month_sets = self.db_manager.get_sets_chart_data(
-            month_start.strftime("%Y-%m-%d"),
-            month_end.strftime("%Y-%m-%d")
-        )
-        current_sets = sum(int(count) for _, count in current_month_sets)
-
-        # Get data for last N months (from spinBox_compare_last)
-        months_count = self.spinBox_compare_last.value()
-        monthly_sets_data = []
-
-        for i in range(months_count):
-            # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
-            month_start_i = month_date.replace(day=1)
-            if i == 0:  # Current month
-                month_end_i = today
-            else:
-                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
-                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
-
-            # Get sets data for this month
-            month_sets = self.db_manager.get_sets_chart_data(
-                month_start_i.strftime("%Y-%m-%d"),
-                month_end_i.strftime("%Y-%m-%d")
-            )
-            month_total = sum(int(count) for _, count in month_sets)
-            monthly_sets_data.append(month_total)
-
-        if not monthly_sets_data or all(sets == 0 for sets in monthly_sets_data):
-            self.label_chart_info.setText("")
-            return
-
-        # Find max and last month values
-        max_sets = max(monthly_sets_data)
-        last_month_sets = monthly_sets_data[1] if len(monthly_sets_data) > 1 else 0
-        max_month_index = monthly_sets_data.index(max_sets)
-
-        # Calculate remaining days
-        days_in_month = calendar.monthrange(current_year, current_month)[1]
-        remaining_days = days_in_month - today.day
-        total_days_including_current = remaining_days + 1
-
-        # Calculate remaining sets needed
-        remaining_to_max = max_sets - current_sets
-        remaining_to_last_month = 0
-        if last_month_sets > 0:
-            remaining_to_last_month = last_month_sets - current_sets
-
-        # Build recommendation text
-        recommendation_text = f"<b>📊 Sets Goal Recommendations</b><br><br>"
-        recommendation_text += f"📈 Current sets this month: <b>{current_sets}</b><br>"
-
-        # Add last month goal information first (only if it's different from max month)
-        if last_month_sets > 0 and max_month_index != 1:
-            recommendation_text += f"📅 Last month sets: <b>{last_month_sets}</b><br>"
-            if remaining_to_last_month > 0:
-                recommendation_text += f"📊 Remaining to last month: <b>{remaining_to_last_month}</b><br>"
-                if remaining_days > 0:
-                    daily_needed_last = remaining_to_last_month / remaining_days
-                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)
-                    recommendation_text += (
-                        f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded}</b>"
-                    )
-                else:
-                    recommendation_text += "⏰ Month ending - reach last month goal today!"
-            else:
-                recommendation_text += "🎉 Last month goal already achieved!"
-            recommendation_text += "<br>"
-
-        # Add max goal information second
-        recommendation_text += f"🎯 Max sets over last {months_count} months: <b>{max_sets}</b><br>"
-        if remaining_to_max > 0:
-            recommendation_text += f"⬆️ Remaining to max: <b>{remaining_to_max}</b><br>"
-
-            # Add daily goal including current day (second to last)
-            if total_days_including_current > 0:
-                daily_needed_including_current = remaining_to_max / total_days_including_current
-                daily_needed_including_current_rounded = int(daily_needed_including_current) + (1 if daily_needed_including_current % 1 > 0 else 0)
-                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}</b><br>"
-
-            # Add daily goal for max (last)
-            if remaining_days > 0:
-                daily_needed_max = remaining_to_max / remaining_days
-                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)
-                recommendation_text += (
-                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}</b>"
-                )
-            else:
-                recommendation_text += "⏰ Month ending - reach max goal today!"
-        else:
-            recommendation_text += "🎉 Max goal already achieved!"
-
-        # Set text
-        self.label_chart_info.setText(recommendation_text)
-        self.label_chart_info.setStyleSheet("""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
-            border-radius: 5px;
-            font-size: 11px;
-            line-height: 1.2;
-        """)
 
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods."""
@@ -3127,55 +2758,6 @@ class MainWindow(
         # Add exercise recommendations to label_chart_info using the same method as compare_last
         self._add_exercise_recommendations_to_label_for_standard_chart(exercise, exercise_type, exercise_unit)
 
-    def _add_exercise_recommendations_to_label_for_standard_chart(self, exercise: str, exercise_type: str | None, exercise_unit: str) -> None:
-        """Add exercise recommendations to label_chart_info for standard chart.
-
-        Uses the same logic as compare_last but for the selected exercise.
-        """
-        if self.db_manager is None:
-            self.label_chart_info.setText("")
-            return
-
-        from datetime import datetime, timedelta
-
-        # Get data for last N months (from spinBox_compare_last) in the same format as compare_last
-        months_count = self.spinBox_compare_last.value()
-        monthly_data = []
-
-        today = datetime.now()
-
-        for i in range(months_count):
-            # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
-            month_start_i = month_date.replace(day=1)
-            if i == 0:  # Current month
-                month_end_i = today
-            else:
-                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
-                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
-
-            # Get exercise data for this month
-            month_data = self.db_manager.get_exercise_chart_data(
-                exercise_name=exercise,
-                exercise_type=exercise_type if exercise_type != "All types" else None,
-                date_from=month_start_i.strftime("%Y-%m-%d"),
-                date_to=month_end_i.strftime("%Y-%m-%d")
-            )
-
-            # Convert to cumulative data format like in compare_last
-            cumulative_data = []
-            cumulative_value = 0.0
-            for date_str, value_str in month_data:
-                cumulative_value += float(value_str)
-                # Convert date to day number in month
-                day = datetime.strptime(date_str, "%Y-%m-%d").day
-                cumulative_data.append((day, cumulative_value))
-
-            monthly_data.append(cumulative_data)
-
-        # Use the existing function with the same data format
-        self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
-
     @requires_database(is_show_warning=False)
     def update_filter_comboboxes(self) -> None:
         """Refresh `exercise` and `type` combo-boxes in the filter group.
@@ -3386,6 +2968,130 @@ class MainWindow(
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
 
+    def _add_calories_recommendations_to_label(self) -> None:
+        """Add calories recommendations to label_chart_info.
+
+        Shows information about calories burned for current month, last month, and max month.
+        """
+        if self.db_manager is None:
+            self.label_chart_info.setText("")
+            return
+
+        import calendar
+        from datetime import datetime, timedelta
+
+        # Get current month data
+        today = datetime.now()
+        current_month = today.month
+        current_year = today.year
+
+        # Calculate date ranges for current month
+        month_start = today.replace(day=1)
+        month_end = today
+
+        # Get calories data for current month
+        current_month_calories = self.db_manager.get_kcal_chart_data(
+            month_start.strftime("%Y-%m-%d"), month_end.strftime("%Y-%m-%d")
+        )
+        current_calories = sum(float(calories) for _, calories in current_month_calories)
+
+        # Get data for last N months (from spinBox_compare_last)
+        months_count = self.spinBox_compare_last.value()
+        monthly_calories_data = []
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_start_i = month_date.replace(day=1)
+            if i == 0:  # Current month
+                month_end_i = today
+            else:
+                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
+                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
+
+            # Get calories data for this month
+            month_calories = self.db_manager.get_kcal_chart_data(
+                month_start_i.strftime("%Y-%m-%d"), month_end_i.strftime("%Y-%m-%d")
+            )
+            month_total = sum(float(calories) for _, calories in month_calories)
+            monthly_calories_data.append(month_total)
+
+        if not monthly_calories_data or all(calories == 0 for calories in monthly_calories_data):
+            self.label_chart_info.setText("")
+            return
+
+        # Find max and last month values
+        max_calories = max(monthly_calories_data)
+        last_month_calories = monthly_calories_data[1] if len(monthly_calories_data) > 1 else 0
+        max_month_index = monthly_calories_data.index(max_calories)
+
+        # Calculate remaining days
+        days_in_month = calendar.monthrange(current_year, current_month)[1]
+        remaining_days = days_in_month - today.day
+        total_days_including_current = remaining_days + 1
+
+        # Calculate remaining calories needed
+        remaining_to_max = max_calories - current_calories
+        remaining_to_last_month = 0
+        if last_month_calories > 0:
+            remaining_to_last_month = last_month_calories - current_calories
+
+        # Build recommendation text
+        recommendation_text = f"<b>📊 Calories Goal Recommendations</b><br><br>"
+        recommendation_text += f"📈 Current calories this month: <b>{int(current_calories)} kcal</b><br>"
+
+        # Add last month goal information first (only if it's different from max month)
+        if last_month_calories > 0 and max_month_index != 1:
+            recommendation_text += f"📅 Last month calories: <b>{int(last_month_calories)} kcal</b><br>"
+            if remaining_to_last_month > 0:
+                recommendation_text += f"📊 Remaining to last month: <b>{int(remaining_to_last_month)} kcal</b><br>"
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_month / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)
+                    recommendation_text += f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded} kcal</b>"
+                else:
+                    recommendation_text += "⏰ Month ending - reach last month goal today!"
+            else:
+                recommendation_text += "🎉 Last month goal already achieved!"
+            recommendation_text += "<br>"
+
+        # Add max goal information second
+        recommendation_text += f"🎯 Max calories over last {months_count} months: <b>{int(max_calories)} kcal</b><br>"
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)} kcal</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (
+                    1 if daily_needed_including_current % 1 > 0 else 0
+                )
+                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded} kcal</b><br>"
+
+            # Add daily goal for max (last)
+            if remaining_days > 0:
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)
+                recommendation_text += (
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded} kcal</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach max goal today!"
+        else:
+            recommendation_text += "🎉 Max goal already achieved!"
+
+        # Set text
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 11px;
+            line-height: 1.2;
+        """)
+
     def _add_exercise_recommendations_to_label(
         self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str
     ) -> None:
@@ -3457,13 +3163,15 @@ class MainWindow(
         if last_month_value > 0 and max_month_index != 1:
             recommendation_text += f"📅 Last month result: <b>{int(last_month_value)}{unit_text}</b><br>"
             if remaining_to_last_month > 0:
-                recommendation_text += f"📊 Remaining to last month: <b>{int(remaining_to_last_month)}{unit_text}</b><br>"
+                recommendation_text += (
+                    f"📊 Remaining to last month: <b>{int(remaining_to_last_month)}{unit_text}</b><br>"
+                )
                 if remaining_days > 0:
                     daily_needed_last = remaining_to_last_month / remaining_days
-                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)  # Round up to integer
-                    recommendation_text += (
-                        f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded}{unit_text}</b>"
-                    )
+                    daily_needed_last_rounded = int(daily_needed_last) + (
+                        1 if daily_needed_last % 1 > 0 else 0
+                    )  # Round up to integer
+                    recommendation_text += f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded}{unit_text}</b>"
                 else:
                     recommendation_text += "⏰ Month ending - reach last month goal today!"
             else:
@@ -3478,13 +3186,17 @@ class MainWindow(
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
                 daily_needed_including_current = remaining_to_max / total_days_including_current
-                daily_needed_including_current_rounded = int(daily_needed_including_current) + (1 if daily_needed_including_current % 1 > 0 else 0)  # Round up to integer
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (
+                    1 if daily_needed_including_current % 1 > 0 else 0
+                )  # Round up to integer
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
                 daily_needed_max = remaining_to_max / remaining_days
-                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)  # Round up to integer
+                daily_needed_max_rounded = int(daily_needed_max) + (
+                    1 if daily_needed_max % 1 > 0 else 0
+                )  # Round up to integer
                 recommendation_text += (
                     f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}{unit_text}</b>"
                 )
@@ -3505,11 +3217,315 @@ class MainWindow(
             line-height: 1.2;
         """)
 
+    def _add_exercise_recommendations_to_label_for_standard_chart(
+        self, exercise: str, exercise_type: str | None, exercise_unit: str
+    ) -> None:
+        """Add exercise recommendations to label_chart_info for standard chart.
+
+        Uses the same logic as compare_last but for the selected exercise.
+        """
+        if self.db_manager is None:
+            self.label_chart_info.setText("")
+            return
+
+        from datetime import datetime, timedelta
+
+        # Get data for last N months (from spinBox_compare_last) in the same format as compare_last
+        months_count = self.spinBox_compare_last.value()
+        monthly_data = []
+
+        today = datetime.now()
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_start_i = month_date.replace(day=1)
+            if i == 0:  # Current month
+                month_end_i = today
+            else:
+                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
+                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
+
+            # Get exercise data for this month
+            month_data = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=exercise_type if exercise_type != "All types" else None,
+                date_from=month_start_i.strftime("%Y-%m-%d"),
+                date_to=month_end_i.strftime("%Y-%m-%d"),
+            )
+
+            # Convert to cumulative data format like in compare_last
+            cumulative_data = []
+            cumulative_value = 0.0
+            for date_str, value_str in month_data:
+                cumulative_value += float(value_str)
+                # Convert date to day number in month
+                day = datetime.strptime(date_str, "%Y-%m-%d").day
+                cumulative_data.append((day, cumulative_value))
+
+            monthly_data.append(cumulative_data)
+
+        # Use the existing function with the same data format
+        self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
+
     def _add_one_day_to_main(self) -> None:
         """Add one day to the current date in main date field."""
         current_date = self.dateEdit.date()
         new_date = current_date.addDays(1)
         self.dateEdit.setDate(new_date)
+
+    def _add_same_months_recommendations_to_label(
+        self, exercise: str, exercise_type: str | None, exercise_unit: str, yearly_data: list, years_count: int
+    ) -> None:
+        """Add same months recommendations to label_chart_info.
+
+        Shows information about exercise progress for the same month across different years.
+        """
+        if not yearly_data:
+            self.label_chart_info.setText("")
+            return
+
+        import calendar
+        from datetime import datetime
+
+        # Find the maximum final value from all years and last year value
+        max_value = 0.0
+        last_year_value = 0.0
+        max_year_index = 0
+        current_year_value = 0.0
+
+        for i, year_data in enumerate(yearly_data):
+            if year_data:
+                # Get the last (final) value from each year's data
+                final_value = year_data[-1][1]  # (day, cumulative_value)
+                if final_value > max_value:
+                    max_value = final_value
+                    max_year_index = i
+                # Last year is the second item (index 1) if it exists
+                if i == 1:
+                    last_year_value = final_value
+                # Current year is the first item (index 0)
+                if i == 0:
+                    current_year_value = final_value
+
+        if max_value <= 0:
+            self.label_chart_info.setText("")
+            return
+
+        # Get current progress (current year value)
+        current_progress = current_year_value
+
+        # Calculate remaining days in current month
+        today = datetime.now()
+        current_month = today.month
+        current_year = today.year
+        days_in_month = calendar.monthrange(current_year, current_month)[1]
+        remaining_days = days_in_month - today.day
+        total_days_including_current = remaining_days + 1
+
+        # Calculate how much more is needed to reach the max value
+        remaining_to_max = max_value - current_progress
+
+        # Calculate how much more is needed to reach the last year value
+        remaining_to_last_year = 0.0
+        if last_year_value > 0:
+            remaining_to_last_year = last_year_value - current_progress
+
+        # Get unit
+        unit_text = f" {exercise_unit}" if exercise_unit else ""
+
+        # Get selected month name
+        selected_month_name = self.comboBox_compare_same_months.currentText()
+
+        # Build recommendation text with integer values
+        recommendation_text = f"<b>📊 {selected_month_name} Goal Recommendations</b><br><br>"
+        recommendation_text += (
+            f"📈 Current {selected_month_name.lower()} progress: <b>{int(current_progress)}{unit_text}</b><br>"
+        )
+
+        # Add last year goal information first (only if it's different from max year)
+        if last_year_value > 0 and max_year_index != 1:
+            recommendation_text += (
+                f"📅 Last year {selected_month_name.lower()}: <b>{int(last_year_value)}{unit_text}</b><br>"
+            )
+            if remaining_to_last_year > 0:
+                recommendation_text += f"📊 Remaining to last year: <b>{int(remaining_to_last_year)}{unit_text}</b><br>"
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_year / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (
+                        1 if daily_needed_last % 1 > 0 else 0
+                    )  # Round up to integer
+                    recommendation_text += f"📅 Needed per day for last year ({remaining_days} left): <b>{daily_needed_last_rounded}{unit_text}</b>"
+                else:
+                    recommendation_text += "⏰ Month ending - reach last year goal today!"
+            else:
+                recommendation_text += "🎉 Last year goal already achieved!"
+            recommendation_text += "<br>"
+
+        # Add max goal information second
+        recommendation_text += f"🎯 Max {selected_month_name.lower()} over last {years_count} years: <b>{int(max_value)}{unit_text}</b><br>"
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)}{unit_text}</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (
+                    1 if daily_needed_including_current % 1 > 0 else 0
+                )  # Round up to integer
+                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+
+            # Add daily goal for max (last)
+            if remaining_days > 0:
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (
+                    1 if daily_needed_max % 1 > 0 else 0
+                )  # Round up to integer
+                recommendation_text += (
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}{unit_text}</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach max goal today!"
+        else:
+            recommendation_text += "🎉 Max goal already achieved!"
+
+        # Set text
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 11px;
+            line-height: 1.2;
+        """)
+
+    def _add_sets_recommendations_to_label(self) -> None:
+        """Add sets recommendations to label_chart_info.
+
+        Shows information about sets count for current month, last month, and max month.
+        """
+        if self.db_manager is None:
+            self.label_chart_info.setText("")
+            return
+
+        import calendar
+        from datetime import datetime, timedelta
+
+        # Get current month data
+        today = datetime.now()
+        current_month = today.month
+        current_year = today.year
+
+        # Calculate date ranges for current month
+        month_start = today.replace(day=1)
+        month_end = today
+
+        # Get sets data for current month
+        current_month_sets = self.db_manager.get_sets_chart_data(
+            month_start.strftime("%Y-%m-%d"), month_end.strftime("%Y-%m-%d")
+        )
+        current_sets = sum(int(count) for _, count in current_month_sets)
+
+        # Get data for last N months (from spinBox_compare_last)
+        months_count = self.spinBox_compare_last.value()
+        monthly_sets_data = []
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_start_i = month_date.replace(day=1)
+            if i == 0:  # Current month
+                month_end_i = today
+            else:
+                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
+                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
+
+            # Get sets data for this month
+            month_sets = self.db_manager.get_sets_chart_data(
+                month_start_i.strftime("%Y-%m-%d"), month_end_i.strftime("%Y-%m-%d")
+            )
+            month_total = sum(int(count) for _, count in month_sets)
+            monthly_sets_data.append(month_total)
+
+        if not monthly_sets_data or all(sets == 0 for sets in monthly_sets_data):
+            self.label_chart_info.setText("")
+            return
+
+        # Find max and last month values
+        max_sets = max(monthly_sets_data)
+        last_month_sets = monthly_sets_data[1] if len(monthly_sets_data) > 1 else 0
+        max_month_index = monthly_sets_data.index(max_sets)
+
+        # Calculate remaining days
+        days_in_month = calendar.monthrange(current_year, current_month)[1]
+        remaining_days = days_in_month - today.day
+        total_days_including_current = remaining_days + 1
+
+        # Calculate remaining sets needed
+        remaining_to_max = max_sets - current_sets
+        remaining_to_last_month = 0
+        if last_month_sets > 0:
+            remaining_to_last_month = last_month_sets - current_sets
+
+        # Build recommendation text
+        recommendation_text = f"<b>📊 Sets Goal Recommendations</b><br><br>"
+        recommendation_text += f"📈 Current sets this month: <b>{current_sets}</b><br>"
+
+        # Add last month goal information first (only if it's different from max month)
+        if last_month_sets > 0 and max_month_index != 1:
+            recommendation_text += f"📅 Last month sets: <b>{last_month_sets}</b><br>"
+            if remaining_to_last_month > 0:
+                recommendation_text += f"📊 Remaining to last month: <b>{remaining_to_last_month}</b><br>"
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_month / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)
+                    recommendation_text += (
+                        f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded}</b>"
+                    )
+                else:
+                    recommendation_text += "⏰ Month ending - reach last month goal today!"
+            else:
+                recommendation_text += "🎉 Last month goal already achieved!"
+            recommendation_text += "<br>"
+
+        # Add max goal information second
+        recommendation_text += f"🎯 Max sets over last {months_count} months: <b>{max_sets}</b><br>"
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{remaining_to_max}</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (
+                    1 if daily_needed_including_current % 1 > 0 else 0
+                )
+                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}</b><br>"
+
+            # Add daily goal for max (last)
+            if remaining_days > 0:
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)
+                recommendation_text += (
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach max goal today!"
+        else:
+            recommendation_text += "🎉 Max goal already achieved!"
+
+        # Set text
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 11px;
+            line-height: 1.2;
+        """)
 
     def _adjust_process_table_columns(self) -> None:
         """Adjust process table column widths proportionally to window size."""
