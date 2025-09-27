@@ -63,6 +63,7 @@ lang: en
   - [⚙️ Method `update_sets_count_today`](#%EF%B8%8F-method-update_sets_count_today)
   - [⚙️ Method `update_statistics_exercise_combobox`](#%EF%B8%8F-method-update_statistics_exercise_combobox)
   - [⚙️ Method `update_weight_chart`](#%EF%B8%8F-method-update_weight_chart)
+  - [⚙️ Method `_add_exercise_recommendations_to_label`](#%EF%B8%8F-method-_add_exercise_recommendations_to_label)
   - [⚙️ Method `_add_one_day_to_main`](#%EF%B8%8F-method-_add_one_day_to_main)
   - [⚙️ Method `_adjust_process_table_columns`](#%EF%B8%8F-method-_adjust_process_table_columns)
   - [⚙️ Method `_check_for_new_records`](#%EF%B8%8F-method-_check_for_new_records)
@@ -1126,6 +1127,9 @@ class MainWindow(
         fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()
+
+        # Add exercise recommendations to label_chart_info
+        self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
 
     @requires_database()
     def on_compare_same_months(self) -> None:
@@ -3030,6 +3034,88 @@ class MainWindow(
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
 
+    def _add_exercise_recommendations_to_label(
+        self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str
+    ) -> None:
+        """Add exercise recommendations to label_chart_info.
+
+        Args:
+            exercise (str): Name of the selected exercise
+            exercise_type (str | None): Type of the exercise or None
+            monthly_data (list): List of monthly data from on_compare_last_months
+            months_count (int): Number of months to compare
+            exercise_unit (str): Unit of measurement
+        """
+        if not monthly_data:
+            self.label_chart_info.setText("")
+            self.label_chart_info.setVisible(False)
+            return
+
+        import calendar
+        from datetime import datetime
+
+        # Find the maximum final value from all months
+        max_value = 0.0
+        for month_data in monthly_data:
+            if month_data:
+                # Get the last (final) value from each month's data
+                final_value = month_data[-1][1]  # (day, cumulative_value)
+                max_value = max(max_value, final_value)
+
+        if max_value <= 0:
+            self.label_chart_info.setText("")
+            self.label_chart_info.setVisible(False)
+            return
+
+        # Get current month progress
+        today = datetime.now()
+        current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
+        current_progress = current_month_data[-1][1] if current_month_data else 0.0
+
+        # Calculate how much more is needed to reach the max value
+        remaining_to_max = max_value - current_progress
+
+        # Calculate remaining days in current month
+        current_month = today.month
+        current_year = today.year
+        days_in_month = calendar.monthrange(current_year, current_month)[1]
+        remaining_days = days_in_month - today.day
+
+        # Get unit
+        unit_text = f" {exercise_unit}" if exercise_unit else ""
+
+        # Build recommendation text with integer values
+        recommendation_text = f"<b>📊 Exercise Goal Recommendations</b><br><br>"
+        recommendation_text += f"🎯 Max over last {months_count} months: <b>{int(max_value)}{unit_text}</b><br>"
+        recommendation_text += f"📈 Current progress: <b>{int(current_progress)}{unit_text}</b><br>"
+
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining: <b>{int(remaining_to_max)}{unit_text}</b><br>"
+
+            if remaining_days > 0:
+                daily_needed = remaining_to_max / remaining_days
+                daily_needed_rounded = int(daily_needed) + (1 if daily_needed % 1 > 0 else 0)  # Round up to integer
+                recommendation_text += (
+                    f"📅 Needed per day ({remaining_days} left): <b>{daily_needed_rounded}{unit_text}</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach goal today!"
+        else:
+            recommendation_text += "🎉 Goal already achieved!"
+
+        # Set text and make visible
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setVisible(True)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 11px;
+            line-height: 1.2;
+        """)
+
     def _add_one_day_to_main(self) -> None:
         """Add one day to the current date in main date field."""
         current_date = self.dateEdit.date()
@@ -4667,14 +4753,18 @@ class MainWindow(
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
         if self.radioButton_type_of_chart_standart.isChecked():
+            self.label_chart_info.setVisible(False)
             self.update_exercise_chart()
         elif self.radioButton_type_of_chart_show_sets_chart.isChecked():
+            self.label_chart_info.setVisible(False)
             self.show_sets_chart()
         elif self.radioButton_type_of_chart_kcal.isChecked():
+            self.label_chart_info.setVisible(False)
             self.show_kcal_chart()
         elif self.radioButton_type_of_chart_compare_last.isChecked():
             self.on_compare_last_months()
         elif self.radioButton_type_of_chart_compare_same_months.isChecked():
+            self.label_chart_info.setVisible(False)
             self.on_compare_same_months()
 
     def _update_charts_avif(self) -> None:
@@ -5987,6 +6077,9 @@ def on_compare_last_months(self) -> None:
         fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()
+
+        # Add exercise recommendations to label_chart_info
+        self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
 ```
 
 </details>
@@ -8342,6 +8435,101 @@ def update_weight_chart(self) -> None:
         fig.tight_layout()
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
+```
+
+</details>
+
+### ⚙️ Method `_add_exercise_recommendations_to_label`
+
+```python
+def _add_exercise_recommendations_to_label(self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str) -> None
+```
+
+Add exercise recommendations to label_chart_info.
+
+Args:
+exercise (str): Name of the selected exercise
+exercise_type (str | None): Type of the exercise or None
+monthly_data (list): List of monthly data from on_compare_last_months
+months_count (int): Number of months to compare
+exercise_unit (str): Unit of measurement
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_exercise_recommendations_to_label(
+        self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str
+    ) -> None:
+        if not monthly_data:
+            self.label_chart_info.setText("")
+            self.label_chart_info.setVisible(False)
+            return
+
+        import calendar
+        from datetime import datetime
+
+        # Find the maximum final value from all months
+        max_value = 0.0
+        for month_data in monthly_data:
+            if month_data:
+                # Get the last (final) value from each month's data
+                final_value = month_data[-1][1]  # (day, cumulative_value)
+                max_value = max(max_value, final_value)
+
+        if max_value <= 0:
+            self.label_chart_info.setText("")
+            self.label_chart_info.setVisible(False)
+            return
+
+        # Get current month progress
+        today = datetime.now()
+        current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
+        current_progress = current_month_data[-1][1] if current_month_data else 0.0
+
+        # Calculate how much more is needed to reach the max value
+        remaining_to_max = max_value - current_progress
+
+        # Calculate remaining days in current month
+        current_month = today.month
+        current_year = today.year
+        days_in_month = calendar.monthrange(current_year, current_month)[1]
+        remaining_days = days_in_month - today.day
+
+        # Get unit
+        unit_text = f" {exercise_unit}" if exercise_unit else ""
+
+        # Build recommendation text with integer values
+        recommendation_text = f"<b>📊 Exercise Goal Recommendations</b><br><br>"
+        recommendation_text += f"🎯 Max over last {months_count} months: <b>{int(max_value)}{unit_text}</b><br>"
+        recommendation_text += f"📈 Current progress: <b>{int(current_progress)}{unit_text}</b><br>"
+
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining: <b>{int(remaining_to_max)}{unit_text}</b><br>"
+
+            if remaining_days > 0:
+                daily_needed = remaining_to_max / remaining_days
+                daily_needed_rounded = int(daily_needed) + (1 if daily_needed % 1 > 0 else 0)  # Round up to integer
+                recommendation_text += (
+                    f"📅 Needed per day ({remaining_days} left): <b>{daily_needed_rounded}{unit_text}</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach goal today!"
+        else:
+            recommendation_text += "🎉 Goal already achieved!"
+
+        # Set text and make visible
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setVisible(True)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 11px;
+            line-height: 1.2;
+        """)
 ```
 
 </details>
@@ -10716,14 +10904,18 @@ Update chart based on selected radio button.
 ```python
 def _update_chart_based_on_radio_button(self) -> None:
         if self.radioButton_type_of_chart_standart.isChecked():
+            self.label_chart_info.setVisible(False)
             self.update_exercise_chart()
         elif self.radioButton_type_of_chart_show_sets_chart.isChecked():
+            self.label_chart_info.setVisible(False)
             self.show_sets_chart()
         elif self.radioButton_type_of_chart_kcal.isChecked():
+            self.label_chart_info.setVisible(False)
             self.show_kcal_chart()
         elif self.radioButton_type_of_chart_compare_last.isChecked():
             self.on_compare_last_months()
         elif self.radioButton_type_of_chart_compare_same_months.isChecked():
+            self.label_chart_info.setVisible(False)
             self.on_compare_same_months()
 ```
 

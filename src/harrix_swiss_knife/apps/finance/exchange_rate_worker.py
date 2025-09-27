@@ -98,7 +98,7 @@ class ExchangeRateUpdateWorker(QThread):
                                 f"USD{currency_code}=X",
                                 f"USD/{currency_code}",
                                 f"USD{currency_code}",
-                            ]
+                            ],
                         }
 
                 primary_list = ticker_lists["primary"]

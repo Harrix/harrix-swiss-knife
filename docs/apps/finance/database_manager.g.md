@@ -53,6 +53,7 @@ lang: en
   - [⚙️ Method `get_currency_exchange_rate_by_date`](#%EF%B8%8F-method-get_currency_exchange_rate_by_date)
   - [⚙️ Method `get_currency_subdivision`](#%EF%B8%8F-method-get_currency_subdivision)
   - [⚙️ Method `get_currency_subdivision_by_code`](#%EF%B8%8F-method-get_currency_subdivision_by_code)
+  - [⚙️ Method `get_currency_ticker`](#%EF%B8%8F-method-get_currency_ticker)
   - [⚙️ Method `get_default_currency`](#%EF%B8%8F-method-get_default_currency)
   - [⚙️ Method `get_default_currency_id`](#%EF%B8%8F-method-get_default_currency_id)
   - [⚙️ Method `get_earliest_currency_exchange_date`](#%EF%B8%8F-method-get_earliest_currency_exchange_date)
@@ -81,6 +82,7 @@ lang: en
   - [⚙️ Method `update_account`](#%EF%B8%8F-method-update_account)
   - [⚙️ Method `update_category`](#%EF%B8%8F-method-update_category)
   - [⚙️ Method `update_currency`](#%EF%B8%8F-method-update_currency)
+  - [⚙️ Method `update_currency_ticker`](#%EF%B8%8F-method-update_currency_ticker)
   - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate)
   - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate-1)
   - [⚙️ Method `update_transaction`](#%EF%B8%8F-method-update_transaction)
@@ -1161,6 +1163,20 @@ class DatabaseManager:
         rows = self.get_rows("SELECT subdivision FROM currencies WHERE code = :code", {"code": currency_code})
         return rows[0][0] if rows else 100
 
+    def get_currency_ticker(self, currency_id: int) -> str | None:
+        """Get currency ticker by ID.
+
+        Args:
+            currency_id (int): Currency ID.
+
+        Returns:
+            str | None: Currency ticker or None if not found or empty.
+        """
+        rows = self.get_rows("SELECT ticker FROM currencies WHERE _id = :id", {"id": currency_id})
+        if rows and rows[0][0] and rows[0][0].strip():
+            return rows[0][0].strip()
+        return None
+
     def get_default_currency(self) -> str:
         """Get the default currency code.
 
@@ -2082,6 +2098,25 @@ class DatabaseManager:
             "id": currency_id,
         }
         return self.execute_simple_query(query, params)
+
+    def update_currency_ticker(self, currency_id: int, ticker: str) -> bool:
+        """Update currency ticker.
+
+        Args:
+            currency_id (int): Currency ID.
+            ticker (str): New ticker value.
+
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        try:
+            query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
+            params = {"ticker": ticker, "id": currency_id}
+            self.execute_query(query, params)
+            return True
+        except Exception as e:
+            print(f"Error updating currency ticker: {e}")
+            return False
 
     def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> bool:
         """Update an existing exchange rate record.
@@ -3992,6 +4027,33 @@ def get_currency_subdivision_by_code(self, currency_code: str) -> int:
 
 </details>
 
+### ⚙️ Method `get_currency_ticker`
+
+```python
+def get_currency_ticker(self, currency_id: int) -> str | None
+```
+
+Get currency ticker by ID.
+
+Args:
+currency_id (int): Currency ID.
+
+Returns:
+str | None: Currency ticker or None if not found or empty.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_currency_ticker(self, currency_id: int) -> str | None:
+        rows = self.get_rows("SELECT ticker FROM currencies WHERE _id = :id", {"id": currency_id})
+        if rows and rows[0][0] and rows[0][0].strip():
+            return rows[0][0].strip()
+        return None
+```
+
+</details>
+
 ### ⚙️ Method `get_default_currency`
 
 ```python
@@ -5257,6 +5319,38 @@ def update_currency(self, currency_id: int, code: str, name: str, symbol: str) -
             "id": currency_id,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_currency_ticker`
+
+```python
+def update_currency_ticker(self, currency_id: int, ticker: str) -> bool
+```
+
+Update currency ticker.
+
+Args:
+currency_id (int): Currency ID.
+ticker (str): New ticker value.
+
+Returns:
+bool: True if successful, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_currency_ticker(self, currency_id: int, ticker: str) -> bool:
+        try:
+            query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
+            params = {"ticker": ticker, "id": currency_id}
+            self.execute_query(query, params)
+            return True
+        except Exception as e:
+            print(f"Error updating currency ticker: {e}")
+            return False
 ```
 
 </details>

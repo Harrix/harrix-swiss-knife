@@ -1006,39 +1006,6 @@ class DatabaseManager:
         rows = self.get_rows("SELECT code, name, symbol FROM currencies WHERE _id = :id", {"id": currency_id})
         return (rows[0][0], rows[0][1], rows[0][2]) if rows else None
 
-    def get_currency_ticker(self, currency_id: int) -> str | None:
-        """Get currency ticker by ID.
-
-        Args:
-            currency_id (int): Currency ID.
-
-        Returns:
-            str | None: Currency ticker or None if not found or empty.
-        """
-        rows = self.get_rows("SELECT ticker FROM currencies WHERE _id = :id", {"id": currency_id})
-        if rows and rows[0][0] and rows[0][0].strip():
-            return rows[0][0].strip()
-        return None
-
-    def update_currency_ticker(self, currency_id: int, ticker: str) -> bool:
-        """Update currency ticker.
-
-        Args:
-            currency_id (int): Currency ID.
-            ticker (str): New ticker value.
-
-        Returns:
-            bool: True if successful, False otherwise.
-        """
-        try:
-            query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
-            params = {"ticker": ticker, "id": currency_id}
-            self.execute_query(query, params)
-            return True
-        except Exception as e:
-            print(f"Error updating currency ticker: {e}")
-            return False
-
     def get_currency_exchange_rate_by_date(self, currency_id: int, date: str) -> float:
         """Get exchange rate for a specific currency on a specific date.
 
@@ -1104,6 +1071,20 @@ class DatabaseManager:
         """
         rows = self.get_rows("SELECT subdivision FROM currencies WHERE code = :code", {"code": currency_code})
         return rows[0][0] if rows else 100
+
+    def get_currency_ticker(self, currency_id: int) -> str | None:
+        """Get currency ticker by ID.
+
+        Args:
+            currency_id (int): Currency ID.
+
+        Returns:
+            str | None: Currency ticker or None if not found or empty.
+        """
+        rows = self.get_rows("SELECT ticker FROM currencies WHERE _id = :id", {"id": currency_id})
+        if rows and rows[0][0] and rows[0][0].strip():
+            return rows[0][0].strip()
+        return None
 
     def get_default_currency(self) -> str:
         """Get the default currency code.
@@ -2026,6 +2007,25 @@ class DatabaseManager:
             "id": currency_id,
         }
         return self.execute_simple_query(query, params)
+
+    def update_currency_ticker(self, currency_id: int, ticker: str) -> bool:
+        """Update currency ticker.
+
+        Args:
+            currency_id (int): Currency ID.
+            ticker (str): New ticker value.
+
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        try:
+            query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
+            params = {"ticker": ticker, "id": currency_id}
+            self.execute_query(query, params)
+            return True
+        except Exception as e:
+            print(f"Error updating currency ticker: {e}")
+            return False
 
     def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> bool:
         """Update an existing exchange rate record.

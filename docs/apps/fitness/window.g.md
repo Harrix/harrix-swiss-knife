@@ -130,6 +130,7 @@ class Ui_MainWindow(object):
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
+        self.label_chart_info.setText("")
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
@@ -146,7 +147,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1375, 945)
+        MainWindow.resize(1375, 978)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -159,14 +160,14 @@ class Ui_MainWindow(object):
         self.horizontalLayout_main.setObjectName("horizontalLayout_main")
         self.splitter = QSplitter(self.tab)
         self.splitter.setObjectName("splitter")
-        self.splitter.setOrientation(Qt.Horizontal)
+        self.splitter.setOrientation(Qt.Orientation.Horizontal)
         self.splitter.setChildrenCollapsible(False)
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName("frame")
         self.frame.setMinimumSize(QSize(350, 0))
         self.frame.setMaximumSize(QSize(16777215, 16777215))
-        self.frame.setFrameShape(QFrame.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Raised)
+        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.groupBox = QGroupBox(self.frame)
@@ -198,7 +199,9 @@ class Ui_MainWindow(object):
             "                                          background-color: lightgreen;\n"
             "                                          }"
         )
-        self.spinBox_count.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.spinBox_count.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.spinBox_count.setMaximum(1000000)
         self.spinBox_count.setValue(100)
 
@@ -222,7 +225,9 @@ class Ui_MainWindow(object):
         self.dateEdit = QDateEdit(self.groupBox)
         self.dateEdit.setObjectName("dateEdit")
         self.dateEdit.setMinimumSize(QSize(191, 0))
-        self.dateEdit.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit.setCalendarPopup(True)
 
         self.horizontalLayout_13.addWidget(self.dateEdit)
@@ -262,7 +267,7 @@ class Ui_MainWindow(object):
         self.label_exercise_avif.setMinimumSize(QSize(0, 150))
         self.label_exercise_avif.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif.setScaledContents(False)
-        self.label_exercise_avif.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_3.addWidget(self.label_exercise_avif)
 
@@ -352,7 +357,9 @@ class Ui_MainWindow(object):
         self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_from.setObjectName("dateEdit_filter_from")
         self.dateEdit_filter_from.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_from.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_from.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_filter_from.setCalendarPopup(True)
 
         self.horizontalLayout_11.addWidget(self.dateEdit_filter_from)
@@ -364,14 +371,18 @@ class Ui_MainWindow(object):
         self.label_filter_to = QLabel(self.groupBox_filter)
         self.label_filter_to.setObjectName("label_filter_to")
         self.label_filter_to.setMinimumSize(QSize(61, 0))
-        self.label_filter_to.setAlignment(Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
+        self.label_filter_to.setAlignment(
+            Qt.AlignmentFlag.AlignLeading | Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
 
         self.horizontalLayout_12.addWidget(self.label_filter_to)
 
         self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_to.setObjectName("dateEdit_filter_to")
         self.dateEdit_filter_to.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_to.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_to.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_filter_to.setCalendarPopup(True)
 
         self.horizontalLayout_12.addWidget(self.dateEdit_filter_to)
@@ -410,7 +421,7 @@ class Ui_MainWindow(object):
         font1.setPointSize(50)
         font1.setBold(True)
         self.label_count_sets_today.setFont(font1)
-        self.label_count_sets_today.setAlignment(Qt.AlignCenter)
+        self.label_count_sets_today.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_17.addWidget(self.label_count_sets_today)
 
@@ -469,7 +480,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.splitter_2 = QSplitter(self.tab_2)
         self.splitter_2.setObjectName("splitter_2")
-        self.splitter_2.setOrientation(Qt.Horizontal)
+        self.splitter_2.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_2.setChildrenCollapsible(False)
         self.widget_top = QWidget(self.splitter_2)
         self.widget_top.setObjectName("widget_top")
@@ -480,8 +491,8 @@ class Ui_MainWindow(object):
         self.frame_2.setObjectName("frame_2")
         self.frame_2.setMinimumSize(QSize(250, 0))
         self.frame_2.setMaximumSize(QSize(250, 16777215))
-        self.frame_2.setFrameShape(QFrame.StyledPanel)
-        self.frame_2.setFrameShadow(QFrame.Raised)
+        self.frame_2.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_2.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_15 = QVBoxLayout(self.frame_2)
         self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.groupBox_2 = QGroupBox(self.frame_2)
@@ -584,7 +595,7 @@ class Ui_MainWindow(object):
         self.label_exercise_avif_2.setMinimumSize(QSize(0, 150))
         self.label_exercise_avif_2.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif_2.setScaledContents(False)
-        self.label_exercise_avif_2.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_15.addWidget(self.label_exercise_avif_2)
 
@@ -609,8 +620,8 @@ class Ui_MainWindow(object):
         self.frame_3.setObjectName("frame_3")
         self.frame_3.setMinimumSize(QSize(250, 0))
         self.frame_3.setMaximumSize(QSize(250, 16777215))
-        self.frame_3.setFrameShape(QFrame.StyledPanel)
-        self.frame_3.setFrameShadow(QFrame.Raised)
+        self.frame_3.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_3.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_12 = QVBoxLayout(self.frame_3)
         self.verticalLayout_12.setObjectName("verticalLayout_12")
         self.groupBox_3 = QGroupBox(self.frame_3)
@@ -686,7 +697,7 @@ class Ui_MainWindow(object):
         self.label_exercise_avif_3.setMinimumSize(QSize(0, 150))
         self.label_exercise_avif_3.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif_3.setScaledContents(False)
-        self.label_exercise_avif_3.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_12.addWidget(self.label_exercise_avif_3)
 
@@ -714,8 +725,8 @@ class Ui_MainWindow(object):
         self.frame_4.setObjectName("frame_4")
         self.frame_4.setMinimumSize(QSize(250, 0))
         self.frame_4.setMaximumSize(QSize(250, 16777215))
-        self.frame_4.setFrameShape(QFrame.StyledPanel)
-        self.frame_4.setFrameShadow(QFrame.Raised)
+        self.frame_4.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_4.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_9 = QVBoxLayout(self.frame_4)
         self.verticalLayout_9.setObjectName("verticalLayout_9")
         self.groupBox_4 = QGroupBox(self.frame_4)
@@ -732,7 +743,9 @@ class Ui_MainWindow(object):
         self.dateEdit_weight = QDateEdit(self.groupBox_4)
         self.dateEdit_weight.setObjectName("dateEdit_weight")
         self.dateEdit_weight.setMinimumSize(QSize(191, 0))
-        self.dateEdit_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_weight.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_weight.setCalendarPopup(True)
 
         self.verticalLayout_7.addWidget(self.dateEdit_weight)
@@ -784,8 +797,8 @@ class Ui_MainWindow(object):
         self.frame_weight_controls = QFrame(self.tab_5)
         self.frame_weight_controls.setObjectName("frame_weight_controls")
         self.frame_weight_controls.setMaximumSize(QSize(16777215, 80))
-        self.frame_weight_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_weight_controls.setFrameShadow(QFrame.Raised)
+        self.frame_weight_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_weight_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.horizontalLayout_weight_controls = QHBoxLayout(self.frame_weight_controls)
         self.horizontalLayout_weight_controls.setObjectName("horizontalLayout_weight_controls")
         self.label_weight_from = QLabel(self.frame_weight_controls)
@@ -841,7 +854,7 @@ class Ui_MainWindow(object):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 777))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 793))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -857,10 +870,9 @@ class Ui_MainWindow(object):
         self.horizontalLayout_26.setObjectName("horizontalLayout_26")
         self.splitter_charts = QSplitter(self.tab_charts)
         self.splitter_charts.setObjectName("splitter_charts")
-        self.splitter_charts.setOrientation(Qt.Horizontal)
+        self.splitter_charts.setOrientation(Qt.Orientation.Horizontal)
         self.widget_left_panel = QWidget(self.splitter_charts)
         self.widget_left_panel.setObjectName("widget_left_panel")
-        self.widget_left_panel.setMinimumWidth(300)
         self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
@@ -968,8 +980,8 @@ class Ui_MainWindow(object):
         self.frame_charts_controls = QFrame(self.widget_right_panel)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
-        self.frame_charts_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_charts_controls.setFrameShadow(QFrame.Raised)
+        self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_charts_controls = QVBoxLayout(self.frame_charts_controls)
         self.verticalLayout_charts_controls.setObjectName("verticalLayout_charts_controls")
         self.horizontalLayout_charts_controls_1 = QHBoxLayout()
@@ -1071,7 +1083,7 @@ class Ui_MainWindow(object):
         self.label_exercise_avif_4.setMinimumSize(QSize(150, 76))
         self.label_exercise_avif_4.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif_4.setScaledContents(False)
-        self.label_exercise_avif_4.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_23.addWidget(self.label_exercise_avif_4)
 
@@ -1082,12 +1094,17 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 742))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1008, 735))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_20.addWidget(self.scrollArea_charts)
+
+        self.label_chart_info = QLabel(self.widget_right_panel)
+        self.label_chart_info.setObjectName("label_chart_info")
+
+        self.verticalLayout_20.addWidget(self.label_chart_info)
 
         self.splitter_charts.addWidget(self.widget_right_panel)
 
@@ -1102,8 +1119,8 @@ class Ui_MainWindow(object):
         self.frame_5.setObjectName("frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
         self.frame_5.setMaximumSize(QSize(300, 16777215))
-        self.frame_5.setFrameShape(QFrame.StyledPanel)
-        self.frame_5.setFrameShadow(QFrame.Raised)
+        self.frame_5.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_5.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_16 = QVBoxLayout(self.frame_5)
         self.verticalLayout_16.setObjectName("verticalLayout_16")
         self.groupBox_10 = QGroupBox(self.frame_5)
@@ -1155,7 +1172,7 @@ class Ui_MainWindow(object):
         self.label_exercise_avif_5.setMinimumSize(QSize(0, 150))
         self.label_exercise_avif_5.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif_5.setScaledContents(False)
-        self.label_exercise_avif_5.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif_5.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_16.addWidget(self.label_exercise_avif_5)
 
@@ -1177,7 +1194,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1375, 21))
+        self.menuBar.setGeometry(QRect(0, 0, 1375, 33))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")
@@ -1305,6 +1322,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
         self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
+        self.label_chart_info.setText("")
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
         )
@@ -1336,7 +1354,7 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1375, 945)
+        MainWindow.resize(1375, 978)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -1349,14 +1367,14 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_main.setObjectName("horizontalLayout_main")
         self.splitter = QSplitter(self.tab)
         self.splitter.setObjectName("splitter")
-        self.splitter.setOrientation(Qt.Horizontal)
+        self.splitter.setOrientation(Qt.Orientation.Horizontal)
         self.splitter.setChildrenCollapsible(False)
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName("frame")
         self.frame.setMinimumSize(QSize(350, 0))
         self.frame.setMaximumSize(QSize(16777215, 16777215))
-        self.frame.setFrameShape(QFrame.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Raised)
+        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.groupBox = QGroupBox(self.frame)
@@ -1388,7 +1406,9 @@ def setupUi(self, MainWindow):
             "                                          background-color: lightgreen;\n"
             "                                          }"
         )
-        self.spinBox_count.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.spinBox_count.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.spinBox_count.setMaximum(1000000)
         self.spinBox_count.setValue(100)
 
@@ -1412,7 +1432,9 @@ def setupUi(self, MainWindow):
         self.dateEdit = QDateEdit(self.groupBox)
         self.dateEdit.setObjectName("dateEdit")
         self.dateEdit.setMinimumSize(QSize(191, 0))
-        self.dateEdit.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit.setCalendarPopup(True)
 
         self.horizontalLayout_13.addWidget(self.dateEdit)
@@ -1452,7 +1474,7 @@ def setupUi(self, MainWindow):
         self.label_exercise_avif.setMinimumSize(QSize(0, 150))
         self.label_exercise_avif.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif.setScaledContents(False)
-        self.label_exercise_avif.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_3.addWidget(self.label_exercise_avif)
 
@@ -1542,7 +1564,9 @@ def setupUi(self, MainWindow):
         self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_from.setObjectName("dateEdit_filter_from")
         self.dateEdit_filter_from.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_from.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_from.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_filter_from.setCalendarPopup(True)
 
         self.horizontalLayout_11.addWidget(self.dateEdit_filter_from)
@@ -1554,14 +1578,18 @@ def setupUi(self, MainWindow):
         self.label_filter_to = QLabel(self.groupBox_filter)
         self.label_filter_to.setObjectName("label_filter_to")
         self.label_filter_to.setMinimumSize(QSize(61, 0))
-        self.label_filter_to.setAlignment(Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
+        self.label_filter_to.setAlignment(
+            Qt.AlignmentFlag.AlignLeading | Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
 
         self.horizontalLayout_12.addWidget(self.label_filter_to)
 
         self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_to.setObjectName("dateEdit_filter_to")
         self.dateEdit_filter_to.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_to.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_to.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_filter_to.setCalendarPopup(True)
 
         self.horizontalLayout_12.addWidget(self.dateEdit_filter_to)
@@ -1600,7 +1628,7 @@ def setupUi(self, MainWindow):
         font1.setPointSize(50)
         font1.setBold(True)
         self.label_count_sets_today.setFont(font1)
-        self.label_count_sets_today.setAlignment(Qt.AlignCenter)
+        self.label_count_sets_today.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_17.addWidget(self.label_count_sets_today)
 
@@ -1659,7 +1687,7 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.splitter_2 = QSplitter(self.tab_2)
         self.splitter_2.setObjectName("splitter_2")
-        self.splitter_2.setOrientation(Qt.Horizontal)
+        self.splitter_2.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_2.setChildrenCollapsible(False)
         self.widget_top = QWidget(self.splitter_2)
         self.widget_top.setObjectName("widget_top")
@@ -1670,8 +1698,8 @@ def setupUi(self, MainWindow):
         self.frame_2.setObjectName("frame_2")
         self.frame_2.setMinimumSize(QSize(250, 0))
         self.frame_2.setMaximumSize(QSize(250, 16777215))
-        self.frame_2.setFrameShape(QFrame.StyledPanel)
-        self.frame_2.setFrameShadow(QFrame.Raised)
+        self.frame_2.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_2.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_15 = QVBoxLayout(self.frame_2)
         self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.groupBox_2 = QGroupBox(self.frame_2)
@@ -1774,7 +1802,7 @@ def setupUi(self, MainWindow):
         self.label_exercise_avif_2.setMinimumSize(QSize(0, 150))
         self.label_exercise_avif_2.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif_2.setScaledContents(False)
-        self.label_exercise_avif_2.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_15.addWidget(self.label_exercise_avif_2)
 
@@ -1799,8 +1827,8 @@ def setupUi(self, MainWindow):
         self.frame_3.setObjectName("frame_3")
         self.frame_3.setMinimumSize(QSize(250, 0))
         self.frame_3.setMaximumSize(QSize(250, 16777215))
-        self.frame_3.setFrameShape(QFrame.StyledPanel)
-        self.frame_3.setFrameShadow(QFrame.Raised)
+        self.frame_3.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_3.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_12 = QVBoxLayout(self.frame_3)
         self.verticalLayout_12.setObjectName("verticalLayout_12")
         self.groupBox_3 = QGroupBox(self.frame_3)
@@ -1876,7 +1904,7 @@ def setupUi(self, MainWindow):
         self.label_exercise_avif_3.setMinimumSize(QSize(0, 150))
         self.label_exercise_avif_3.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif_3.setScaledContents(False)
-        self.label_exercise_avif_3.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_12.addWidget(self.label_exercise_avif_3)
 
@@ -1904,8 +1932,8 @@ def setupUi(self, MainWindow):
         self.frame_4.setObjectName("frame_4")
         self.frame_4.setMinimumSize(QSize(250, 0))
         self.frame_4.setMaximumSize(QSize(250, 16777215))
-        self.frame_4.setFrameShape(QFrame.StyledPanel)
-        self.frame_4.setFrameShadow(QFrame.Raised)
+        self.frame_4.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_4.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_9 = QVBoxLayout(self.frame_4)
         self.verticalLayout_9.setObjectName("verticalLayout_9")
         self.groupBox_4 = QGroupBox(self.frame_4)
@@ -1922,7 +1950,9 @@ def setupUi(self, MainWindow):
         self.dateEdit_weight = QDateEdit(self.groupBox_4)
         self.dateEdit_weight.setObjectName("dateEdit_weight")
         self.dateEdit_weight.setMinimumSize(QSize(191, 0))
-        self.dateEdit_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_weight.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_weight.setCalendarPopup(True)
 
         self.verticalLayout_7.addWidget(self.dateEdit_weight)
@@ -1974,8 +2004,8 @@ def setupUi(self, MainWindow):
         self.frame_weight_controls = QFrame(self.tab_5)
         self.frame_weight_controls.setObjectName("frame_weight_controls")
         self.frame_weight_controls.setMaximumSize(QSize(16777215, 80))
-        self.frame_weight_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_weight_controls.setFrameShadow(QFrame.Raised)
+        self.frame_weight_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_weight_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.horizontalLayout_weight_controls = QHBoxLayout(self.frame_weight_controls)
         self.horizontalLayout_weight_controls.setObjectName("horizontalLayout_weight_controls")
         self.label_weight_from = QLabel(self.frame_weight_controls)
@@ -2031,7 +2061,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 777))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 793))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -2047,10 +2077,9 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_26.setObjectName("horizontalLayout_26")
         self.splitter_charts = QSplitter(self.tab_charts)
         self.splitter_charts.setObjectName("splitter_charts")
-        self.splitter_charts.setOrientation(Qt.Horizontal)
+        self.splitter_charts.setOrientation(Qt.Orientation.Horizontal)
         self.widget_left_panel = QWidget(self.splitter_charts)
         self.widget_left_panel.setObjectName("widget_left_panel")
-        self.widget_left_panel.setMinimumWidth(300)
         self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
@@ -2158,8 +2187,8 @@ def setupUi(self, MainWindow):
         self.frame_charts_controls = QFrame(self.widget_right_panel)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
-        self.frame_charts_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_charts_controls.setFrameShadow(QFrame.Raised)
+        self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_charts_controls = QVBoxLayout(self.frame_charts_controls)
         self.verticalLayout_charts_controls.setObjectName("verticalLayout_charts_controls")
         self.horizontalLayout_charts_controls_1 = QHBoxLayout()
@@ -2261,7 +2290,7 @@ def setupUi(self, MainWindow):
         self.label_exercise_avif_4.setMinimumSize(QSize(150, 76))
         self.label_exercise_avif_4.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif_4.setScaledContents(False)
-        self.label_exercise_avif_4.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_23.addWidget(self.label_exercise_avif_4)
 
@@ -2272,12 +2301,17 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 742))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1008, 735))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_20.addWidget(self.scrollArea_charts)
+
+        self.label_chart_info = QLabel(self.widget_right_panel)
+        self.label_chart_info.setObjectName("label_chart_info")
+
+        self.verticalLayout_20.addWidget(self.label_chart_info)
 
         self.splitter_charts.addWidget(self.widget_right_panel)
 
@@ -2292,8 +2326,8 @@ def setupUi(self, MainWindow):
         self.frame_5.setObjectName("frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
         self.frame_5.setMaximumSize(QSize(300, 16777215))
-        self.frame_5.setFrameShape(QFrame.StyledPanel)
-        self.frame_5.setFrameShadow(QFrame.Raised)
+        self.frame_5.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_5.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_16 = QVBoxLayout(self.frame_5)
         self.verticalLayout_16.setObjectName("verticalLayout_16")
         self.groupBox_10 = QGroupBox(self.frame_5)
@@ -2345,7 +2379,7 @@ def setupUi(self, MainWindow):
         self.label_exercise_avif_5.setMinimumSize(QSize(0, 150))
         self.label_exercise_avif_5.setStyleSheet("border: 1px solid gray;")
         self.label_exercise_avif_5.setScaledContents(False)
-        self.label_exercise_avif_5.setAlignment(Qt.AlignCenter)
+        self.label_exercise_avif_5.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_16.addWidget(self.label_exercise_avif_5)
 
@@ -2367,7 +2401,7 @@ def setupUi(self, MainWindow):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1375, 21))
+        self.menuBar.setGeometry(QRect(0, 0, 1375, 33))
         MainWindow.setMenuBar(self.menuBar)
         self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName("mainToolBar")
