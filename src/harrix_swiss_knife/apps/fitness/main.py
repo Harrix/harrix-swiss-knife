@@ -3046,6 +3046,14 @@ class MainWindow(
         recommendation_text += f"🎯 Max over last {months_count} months: <b>{int(max_value)}{unit_text}</b><br>"
         if remaining_to_max > 0:
             recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)}{unit_text}</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (1 if daily_needed_including_current % 1 > 0 else 0)  # Round up to integer
+                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+
+            # Add daily goal for max (last)
             if remaining_days > 0:
                 daily_needed_max = remaining_to_max / remaining_days
                 daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)  # Round up to integer
@@ -3056,12 +3064,6 @@ class MainWindow(
                 recommendation_text += "⏰ Month ending - reach max goal today!"
         else:
             recommendation_text += "🎉 Max goal already achieved!"
-
-        # Add daily goal including current day (second to last)
-        if remaining_to_max > 0 and total_days_including_current > 0:
-            daily_needed_including_current = remaining_to_max / total_days_including_current
-            daily_needed_including_current_rounded = int(daily_needed_including_current) + (1 if daily_needed_including_current % 1 > 0 else 0)  # Round up to integer
-            recommendation_text += f"<br>📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b>"
 
         # Set text and make visible
         self.label_chart_info.setText(recommendation_text)
