@@ -2976,13 +2976,17 @@ class MainWindow(
         import calendar
         from datetime import datetime
 
-        # Find the maximum final value from all months
+        # Find the maximum final value from all months and last month value
         max_value = 0.0
-        for month_data in monthly_data:
+        last_month_value = 0.0
+        for i, month_data in enumerate(monthly_data):
             if month_data:
                 # Get the last (final) value from each month's data
                 final_value = month_data[-1][1]  # (day, cumulative_value)
                 max_value = max(max_value, final_value)
+                # Last month is the second item (index 1) if it exists
+                if i == 1:
+                    last_month_value = final_value
 
         if max_value <= 0:
             self.label_chart_info.setText("")
@@ -3009,6 +3013,8 @@ class MainWindow(
         # Build recommendation text with integer values
         recommendation_text = f"<b>📊 Exercise Goal Recommendations</b><br><br>"
         recommendation_text += f"🎯 Max over last {months_count} months: <b>{int(max_value)}{unit_text}</b><br>"
+        if last_month_value > 0:
+            recommendation_text += f"📅 Last month result: <b>{int(last_month_value)}{unit_text}</b><br>"
         recommendation_text += f"📈 Current progress: <b>{int(current_progress)}{unit_text}</b><br>"
 
         if remaining_to_max > 0:
