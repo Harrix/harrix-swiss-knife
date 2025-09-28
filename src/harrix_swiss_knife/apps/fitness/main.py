@@ -3173,9 +3173,8 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
-                # Calculate remaining plus today's progress
-                remaining_plus_today = remaining_to_max + calories_today
-                daily_needed_including_current = remaining_plus_today / total_days_including_current
+                # Calculate daily needed based on remaining amount
+                daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
@@ -3326,9 +3325,8 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
-                # Calculate remaining plus today's progress
-                remaining_plus_today = remaining_to_max + today_progress
-                daily_needed_including_current = remaining_plus_today / total_days_including_current
+                # Calculate daily needed based on remaining amount
+                daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
@@ -3540,9 +3538,8 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
-                # Calculate remaining plus today's progress
-                remaining_plus_today = remaining_to_max + today_progress
-                daily_needed_including_current = remaining_plus_today / total_days_including_current
+                # Calculate daily needed based on remaining amount
+                daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
@@ -3680,9 +3677,8 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
-                # Calculate remaining plus today's progress
-                remaining_plus_today = remaining_to_max + sets_today
-                daily_needed_including_current = remaining_plus_today / total_days_including_current
+                # Calculate daily needed based on remaining amount
+                daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
