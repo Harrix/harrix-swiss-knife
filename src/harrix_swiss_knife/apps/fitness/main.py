@@ -857,7 +857,7 @@ class MainWindow(
 
         Creates a chart showing cumulative exercise values for the selected exercise
         over the last N months (where N is determined by spinBox_compare_last).
-        The current year is highlighted in red, while previous months are shown
+        The current month is highlighted in red, while previous months are shown
         in different shades of blue.
         """
         exercise = self._get_selected_chart_exercise()
@@ -865,7 +865,7 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
 
         if not exercise:
-            # Clear existing chart before showing no data message
+            # Clear chart before showing message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
@@ -877,15 +877,14 @@ class MainWindow(
         # Get exercise unit for Y-axis label
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        # Calculate date ranges for each month
-        today = datetime.now()  # Use local time instead of UTC
+        # Use local time for current date
+        today = datetime.now()
 
-        # Get data for each month
         monthly_data = []
         colors = []
         labels = []
 
-        # Define a color palette for different months (excluding red for current month)
+        # Color palette for non-current months
         color_palette = [
             "blue",
             "green",
@@ -906,20 +905,22 @@ class MainWindow(
         ]
 
         for i in range(months_count):
-            # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            # Compute approximate month start/end
+            # Note: month stepping is approximate (30 days), kept to match original logic
+            month_date = today.replace(day=1) - timedelta(days=i * 30)
             month_start = month_date.replace(day=1)
-            if i == 0:  # Current month
+            if i == 0:
                 month_end = today
             else:
-                month_end = month_start.replace(day=28) + timedelta(days=4)
-                month_end = month_end.replace(day=1) - timedelta(days=1)
+                # End of previous month: go to next month, step back one day
+                temp = month_start.replace(day=28) + timedelta(days=4)
+                month_end = temp.replace(day=1) - timedelta(days=1)
 
-            # Format dates for database query
+            # Format for DB
             date_from = month_start.strftime("%Y-%m-%d")
             date_to = month_end.strftime("%Y-%m-%d")
 
-            # Get exercise data for this month
+            # Query data
             rows = self.db_manager.get_exercise_chart_data(
                 exercise_name=exercise,
                 exercise_type=exercise_type if exercise_type != "All types" else None,
@@ -927,49 +928,43 @@ class MainWindow(
                 date_to=date_to,
             )
 
+            # Build cumulative data for this month
+            cumulative_data = []
             if rows:
-                # Convert to datetime objects and calculate cumulative values
-                cumulative_data = []
                 cumulative_value = 0.0
-
                 for date_str, value_str in rows:
                     try:
                         date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                         value = float(value_str)
                         cumulative_value += value
-
-                        # Calculate day of month (1-31) for x-axis
+                        # Use day of month for X axis
                         day_of_month = date_obj.day
                         cumulative_data.append((day_of_month, cumulative_value))
                     except (ValueError, TypeError):
                         continue
 
+                # Extend horizontally to the end-of-visualization day (cosmetic)
                 if cumulative_data:
-                    # Extend the line horizontally to the end of the month if needed
-                    last_day = cumulative_data[-1][0] if cumulative_data else 1
-                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
-
-                    # For current month, extend to today or end of month, whichever is earlier
+                    last_day = cumulative_data[-1][0]
+                    last_value = cumulative_data[-1][1]
                     max_day = min(today.day, 31) if i == 0 else 31
-
-                    # Add horizontal extension if needed
                     if last_day < max_day:
                         cumulative_data.append((max_day, last_value))
 
-                    monthly_data.append(cumulative_data)
+            # IMPORTANT: append month entry even if it is empty
+            monthly_data.append(cumulative_data)
 
-                    # Determine color based on whether it's current month or not
-                    if i == 0:  # Current month
-                        colors.append("red")  # Current month in red
-                        labels.append(f"{month_start.strftime('%B %Y')} (Current)")
-                    else:
-                        # Use different colors from palette for other months
-                        color_index = (i - 1) % len(color_palette)  # -1 because current month uses red
-                        colors.append(color_palette[color_index])
-                        labels.append(f"{month_start.strftime('%B %Y')}")
+            # Build label/color for every month regardless of data presence
+            if i == 0:
+                colors.append("red")
+                labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+            else:
+                color_index = (i - 1) % len(color_palette)
+                colors.append(color_palette[color_index])
+                labels.append(f"{month_start.strftime('%B %Y')}")
 
-        if not monthly_data:
-            # Clear existing chart before showing no data message
+        # If all months are empty, there is nothing to display
+        if all(len(d) == 0 for d in monthly_data):
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
@@ -982,69 +977,66 @@ class MainWindow(
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 
-        # Plot each month's data
-        # First, plot all non-current months (to ensure current month appears on top)
+        # Plot non-current months first
         current_month_data = None
         current_month_color = None
         current_month_label = None
 
         for i, (data, color, label) in enumerate(zip(monthly_data, colors, labels, strict=False)):
-            if data:
-                x_values = [item[0] for item in data]
-                y_values = [item[1] for item in data]
+            if not data:
+                continue
 
-                # Check if this is the current month (red line)
-                if i == 0:  # Current month
-                    # Store current month data to plot last
-                    current_month_data = (x_values, y_values)
-                    current_month_color = color
-                    current_month_label = label
-                    continue
+            x_values = [item[0] for item in data]
+            y_values = [item[1] for item in data]
 
-                # Plot non-current months first
-                line_style = "--"  # Dashed for non-current months
-                line_width = 2
-                max_points = 10
+            if i == 0:
+                # Defer current month (draw on top)
+                current_month_data = (x_values, y_values)
+                current_month_color = color
+                current_month_label = label
+                continue
 
-                ax.plot(
-                    x_values,
-                    y_values,
-                    color=color,
-                    linestyle=line_style,
-                    linewidth=line_width,
+            # Plot non-current months
+            line_style = "--"
+            line_width = 2
+            max_points = 10
+
+            ax.plot(
+                x_values,
+                y_values,
+                color=color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=label,
+                marker="o" if len(x_values) <= max_points else None,
+                markersize=4,
+            )
+
+            # Annotate last point
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+                month_year = label.replace(" (Current)", "")
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
+
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
                     alpha=0.8,
-                    label=label,
-                    marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
-                    markersize=4,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                 )
 
-                # Add value labels for the last point of each line
-                if x_values and y_values:
-                    last_x = x_values[-1]
-                    last_y = y_values[-1]
-
-                    # Format label with month and year and final value
-                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                    # Format number without .0 for whole numbers
-                    value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
-                    label_text = f"{month_year}: {value_str}"
-
-                    ax.annotate(
-                        label_text,
-                        (last_x, last_y),
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-                    )
-
-        # Now plot the current month last (so it appears on top)
+        # Plot current month last to appear on top
         if current_month_data:
             x_values, y_values = current_month_data
-            line_style = "-"  # Solid for current month
-            line_width = 3  # Thicker for current month
+            line_style = "-"
+            line_width = 3
             max_points = 10
 
             ax.plot(
@@ -1055,18 +1047,15 @@ class MainWindow(
                 linewidth=line_width,
                 alpha=0.8,
                 label=current_month_label,
-                marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
+                marker="o" if len(x_values) <= max_points else None,
                 markersize=4,
             )
 
-            # Add value labels for the last point of current month line
+            # Annotate last point for current month
             if x_values and y_values:
                 last_x = x_values[-1]
                 last_y = y_values[-1]
-
-                # Format label with month and year and final value
-                month_year = current_month_label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                # Format number without .0 for whole numbers
+                month_year = current_month_label.replace(" (Current)", "")
                 value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
                 label_text = f"{month_year}: {value_str}"
 
@@ -1086,7 +1075,6 @@ class MainWindow(
         y_label = f"Cumulative Value ({exercise_unit})" if exercise_unit else "Cumulative Value"
         ax.set_ylabel(y_label, fontsize=12)
 
-        # Build title
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
             chart_title += f" - {exercise_type}"
@@ -1096,15 +1084,15 @@ class MainWindow(
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=10)
 
-        # Set x-axis to show days 1-31
+        # X axis range and ticks
         ax.set_xlim(1, 31)
-        ax.set_xticks(range(1, 32, 2))  # Show every other day for readability
+        ax.set_xticks(range(1, 32, 2))
 
         fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()
 
-        # Add exercise recommendations to label_chart_info
+        # Add recommendations based on prepared monthly_data
         self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
 
     @requires_database()
@@ -3270,7 +3258,7 @@ class MainWindow(
                     exercise_name=exercise,
                     exercise_type=exercise_type,
                     date_from=today.strftime("%Y-%m-%d"),
-                    date_to=today.strftime("%Y-%m-%d")
+                    date_to=today.strftime("%Y-%m-%d"),
                 )
                 today_progress = sum(float(value) for _, value in today_data)
             else:
@@ -3479,7 +3467,7 @@ class MainWindow(
                     exercise_name=exercise,
                     exercise_type=exercise_type,
                     date_from=today.strftime("%Y-%m-%d"),
-                    date_to=today.strftime("%Y-%m-%d")
+                    date_to=today.strftime("%Y-%m-%d"),
                 )
                 today_progress = sum(float(value) for _, value in today_data)
             else:
@@ -4861,22 +4849,6 @@ class MainWindow(
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
-    def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
-        """Handle double-click on exercises list to open statistics tab.
-
-        Args:
-
-        - `index` (`QModelIndex`): Index of the double-clicked item.
-
-        """
-        # Find the statistics tab index
-        for i in range(self.tabWidget.count()):
-            tab_widget = self.tabWidget.widget(i)
-            if tab_widget and tab_widget.objectName() == "tab_4":
-                # Switch to statistics tab
-                self.tabWidget.setCurrentIndex(i)
-                break
-
     def _on_chart_info_double_clicked(self, event) -> None:
         """Handle double-click on chart info label to copy text to clipboard.
 
@@ -4885,9 +4857,9 @@ class MainWindow(
         - `event`: Mouse event (ignored, we just need the double-click signal).
 
         """
-        from PySide6.QtWidgets import QApplication
         from PySide6.QtCore import QMimeData
         from PySide6.QtGui import QTextDocument
+        from PySide6.QtWidgets import QApplication
 
         # Get the text from the label
         html_text = self.label_chart_info.text()
@@ -4903,6 +4875,22 @@ class MainWindow(
 
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
+
+    def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double-click on exercises list to open statistics tab.
+
+        Args:
+
+        - `index` (`QModelIndex`): Index of the double-clicked item.
+
+        """
+        # Find the statistics tab index
+        for i in range(self.tabWidget.count()):
+            tab_widget = self.tabWidget.widget(i)
+            if tab_widget and tab_widget.objectName() == "tab_4":
+                # Switch to statistics tab
+                self.tabWidget.setCurrentIndex(i)
+                break
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
