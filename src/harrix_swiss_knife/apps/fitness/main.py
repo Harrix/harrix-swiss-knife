@@ -983,14 +983,27 @@ class MainWindow(
         ax = fig.add_subplot(111)
 
         # Plot each month's data
+        # First, plot all non-current months (to ensure current month appears on top)
+        current_month_data = None
+        current_month_color = None
+        current_month_label = None
+
         for i, (data, color, label) in enumerate(zip(monthly_data, colors, labels, strict=False)):
             if data:
                 x_values = [item[0] for item in data]
                 y_values = [item[1] for item in data]
 
-                # Plot with different line styles for better distinction
-                line_style = "-" if i == 0 else "--"  # Solid for current month, dashed for others
-                line_width = 3 if i == 0 else 2  # Thicker for current month
+                # Check if this is the current month (red line)
+                if i == 0:  # Current month
+                    # Store current month data to plot last
+                    current_month_data = (x_values, y_values)
+                    current_month_color = color
+                    current_month_label = label
+                    continue
+
+                # Plot non-current months first
+                line_style = "--"  # Dashed for non-current months
+                line_width = 2
                 max_points = 10
 
                 ax.plot(
@@ -1026,6 +1039,47 @@ class MainWindow(
                         alpha=0.8,
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
+
+        # Now plot the current month last (so it appears on top)
+        if current_month_data:
+            x_values, y_values = current_month_data
+            line_style = "-"  # Solid for current month
+            line_width = 3  # Thicker for current month
+            max_points = 10
+
+            ax.plot(
+                x_values,
+                y_values,
+                color=current_month_color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=current_month_label,
+                marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
+                markersize=4,
+            )
+
+            # Add value labels for the last point of current month line
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+
+                # Format label with month and year and final value
+                month_year = current_month_label.replace(" (Current)", "")  # Remove "(Current)" suffix
+                # Format number without .0 for whole numbers
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
+
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                )
 
         # Customize plot
         ax.set_xlabel("Day of Month", fontsize=12)
@@ -1206,16 +1260,29 @@ class MainWindow(
         ax = fig.add_subplot(111)
 
         # Plot each year's data
+        # First, plot all non-current years (to ensure current year appears on top)
+        current_year_data = None
+        current_year_color = None
+        current_year_label = None
+
         for _i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
             if data:
                 x_values = [item[0] for item in data]
                 y_values = [item[1] for item in data]
 
-                # Plot with different line styles for better distinction
                 # Check if this is the current year by looking at the label
                 is_current_year = "(Current)" in label
-                line_style = "-" if is_current_year else "--"  # Solid for current year, dashed for others
-                line_width = 3 if is_current_year else 2  # Thicker for current year
+
+                if is_current_year:
+                    # Store current year data to plot last
+                    current_year_data = (x_values, y_values)
+                    current_year_color = color
+                    current_year_label = label
+                    continue
+
+                # Plot non-current years first
+                line_style = "--"  # Dashed for non-current years
+                line_width = 2
                 max_points = 10
 
                 ax.plot(
@@ -1251,6 +1318,47 @@ class MainWindow(
                         alpha=0.8,
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
+
+        # Now plot the current year last (so it appears on top)
+        if current_year_data:
+            x_values, y_values = current_year_data
+            line_style = "-"  # Solid for current year
+            line_width = 3  # Thicker for current year
+            max_points = 10
+
+            ax.plot(
+                x_values,
+                y_values,
+                color=current_year_color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=current_year_label,
+                marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
+                markersize=4,
+            )
+
+            # Add value labels for the last point of current year line
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+
+                # Format label with month and year and final value
+                month_year = current_year_label.replace(" (Current)", "")  # Remove "(Current)" suffix
+                # Format number without .0 for whole numbers
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
+
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                )
 
         # Customize plot
         ax.set_xlabel("Day of Month", fontsize=12)
