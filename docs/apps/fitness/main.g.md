@@ -105,6 +105,7 @@ lang: en
   - [⚙️ Method `_load_initial_avifs`](#%EF%B8%8F-method-_load_initial_avifs)
   - [⚙️ Method `_mark_exercises_changed`](#%EF%B8%8F-method-_mark_exercises_changed)
   - [⚙️ Method `_next_avif_frame`](#%EF%B8%8F-method-_next_avif_frame)
+  - [⚙️ Method `_on_chart_info_double_clicked`](#%EF%B8%8F-method-_on_chart_info_double_clicked)
   - [⚙️ Method `_on_exercises_list_double_clicked`](#%EF%B8%8F-method-_on_exercises_list_double_clicked)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_on_window_resize`](#%EF%B8%8F-method-_on_window_resize)
@@ -939,7 +940,7 @@ class MainWindow(
 
         Creates a chart showing cumulative exercise values for the selected exercise
         over the last N months (where N is determined by spinBox_compare_last).
-        The current year is highlighted in red, while previous months are shown
+        The current month is highlighted in red, while previous months are shown
         in different shades of blue.
         """
         exercise = self._get_selected_chart_exercise()
@@ -947,7 +948,7 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
 
         if not exercise:
-            # Clear existing chart before showing no data message
+            # Clear chart before showing message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
@@ -959,15 +960,14 @@ class MainWindow(
         # Get exercise unit for Y-axis label
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        # Calculate date ranges for each month
-        today = datetime.now()  # Use local time instead of UTC
+        # Use local time for current date
+        today = datetime.now()
 
-        # Get data for each month
         monthly_data = []
         colors = []
         labels = []
 
-        # Define a color palette for different months (excluding red for current month)
+        # Color palette for non-current months
         color_palette = [
             "blue",
             "green",
@@ -988,20 +988,22 @@ class MainWindow(
         ]
 
         for i in range(months_count):
-            # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            # Compute approximate month start/end
+            # Note: month stepping is approximate (30 days), kept to match original logic
+            month_date = today.replace(day=1) - timedelta(days=i * 30)
             month_start = month_date.replace(day=1)
-            if i == 0:  # Current month
+            if i == 0:
                 month_end = today
             else:
-                month_end = month_start.replace(day=28) + timedelta(days=4)
-                month_end = month_end.replace(day=1) - timedelta(days=1)
+                # End of previous month: go to next month, step back one day
+                temp = month_start.replace(day=28) + timedelta(days=4)
+                month_end = temp.replace(day=1) - timedelta(days=1)
 
-            # Format dates for database query
+            # Format for DB
             date_from = month_start.strftime("%Y-%m-%d")
             date_to = month_end.strftime("%Y-%m-%d")
 
-            # Get exercise data for this month
+            # Query data
             rows = self.db_manager.get_exercise_chart_data(
                 exercise_name=exercise,
                 exercise_type=exercise_type if exercise_type != "All types" else None,
@@ -1009,49 +1011,43 @@ class MainWindow(
                 date_to=date_to,
             )
 
+            # Build cumulative data for this month
+            cumulative_data = []
             if rows:
-                # Convert to datetime objects and calculate cumulative values
-                cumulative_data = []
                 cumulative_value = 0.0
-
                 for date_str, value_str in rows:
                     try:
                         date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                         value = float(value_str)
                         cumulative_value += value
-
-                        # Calculate day of month (1-31) for x-axis
+                        # Use day of month for X axis
                         day_of_month = date_obj.day
                         cumulative_data.append((day_of_month, cumulative_value))
                     except (ValueError, TypeError):
                         continue
 
+                # Extend horizontally to the end-of-visualization day (cosmetic)
                 if cumulative_data:
-                    # Extend the line horizontally to the end of the month if needed
-                    last_day = cumulative_data[-1][0] if cumulative_data else 1
-                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
-
-                    # For current month, extend to today or end of month, whichever is earlier
+                    last_day = cumulative_data[-1][0]
+                    last_value = cumulative_data[-1][1]
                     max_day = min(today.day, 31) if i == 0 else 31
-
-                    # Add horizontal extension if needed
                     if last_day < max_day:
                         cumulative_data.append((max_day, last_value))
 
-                    monthly_data.append(cumulative_data)
+            # IMPORTANT: append month entry even if it is empty
+            monthly_data.append(cumulative_data)
 
-                    # Determine color based on whether it's current month or not
-                    if i == 0:  # Current month
-                        colors.append("red")  # Current month in red
-                        labels.append(f"{month_start.strftime('%B %Y')} (Current)")
-                    else:
-                        # Use different colors from palette for other months
-                        color_index = (i - 1) % len(color_palette)  # -1 because current month uses red
-                        colors.append(color_palette[color_index])
-                        labels.append(f"{month_start.strftime('%B %Y')}")
+            # Build label/color for every month regardless of data presence
+            if i == 0:
+                colors.append("red")
+                labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+            else:
+                color_index = (i - 1) % len(color_palette)
+                colors.append(color_palette[color_index])
+                labels.append(f"{month_start.strftime('%B %Y')}")
 
-        if not monthly_data:
-            # Clear existing chart before showing no data message
+        # If all months are empty, there is nothing to display
+        if all(len(d) == 0 for d in monthly_data):
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
@@ -1064,57 +1060,104 @@ class MainWindow(
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 
-        # Plot each month's data
+        # Plot non-current months first
+        current_month_data = None
+        current_month_color = None
+        current_month_label = None
+
         for i, (data, color, label) in enumerate(zip(monthly_data, colors, labels, strict=False)):
-            if data:
-                x_values = [item[0] for item in data]
-                y_values = [item[1] for item in data]
+            if not data:
+                continue
 
-                # Plot with different line styles for better distinction
-                line_style = "-" if i == 0 else "--"  # Solid for current month, dashed for others
-                line_width = 3 if i == 0 else 2  # Thicker for current month
-                max_points = 10
+            x_values = [item[0] for item in data]
+            y_values = [item[1] for item in data]
 
-                ax.plot(
-                    x_values,
-                    y_values,
-                    color=color,
-                    linestyle=line_style,
-                    linewidth=line_width,
+            if i == 0:
+                # Defer current month (draw on top)
+                current_month_data = (x_values, y_values)
+                current_month_color = color
+                current_month_label = label
+                continue
+
+            # Plot non-current months
+            line_style = "--"
+            line_width = 2
+            max_points = 10
+
+            ax.plot(
+                x_values,
+                y_values,
+                color=color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=label,
+                marker="o" if len(x_values) <= max_points else None,
+                markersize=4,
+            )
+
+            # Annotate last point
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+                month_year = label.replace(" (Current)", "")
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
+
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
                     alpha=0.8,
-                    label=label,
-                    marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
-                    markersize=4,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                 )
 
-                # Add value labels for the last point of each line
-                if x_values and y_values:
-                    last_x = x_values[-1]
-                    last_y = y_values[-1]
+        # Plot current month last to appear on top
+        if current_month_data:
+            x_values, y_values = current_month_data
+            line_style = "-"
+            line_width = 3
+            max_points = 10
 
-                    # Format label with month and year and final value
-                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                    # Format number without .0 for whole numbers
-                    value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
-                    label_text = f"{month_year}: {value_str}"
+            ax.plot(
+                x_values,
+                y_values,
+                color=current_month_color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=current_month_label,
+                marker="o" if len(x_values) <= max_points else None,
+                markersize=4,
+            )
 
-                    ax.annotate(
-                        label_text,
-                        (last_x, last_y),
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-                    )
+            # Annotate last point for current month
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+                month_year = current_month_label.replace(" (Current)", "")
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
+
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                )
 
         # Customize plot
         ax.set_xlabel("Day of Month", fontsize=12)
         y_label = f"Cumulative Value ({exercise_unit})" if exercise_unit else "Cumulative Value"
         ax.set_ylabel(y_label, fontsize=12)
 
-        # Build title
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
             chart_title += f" - {exercise_type}"
@@ -1124,15 +1167,15 @@ class MainWindow(
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=10)
 
-        # Set x-axis to show days 1-31
+        # X axis range and ticks
         ax.set_xlim(1, 31)
-        ax.set_xticks(range(1, 32, 2))  # Show every other day for readability
+        ax.set_xticks(range(1, 32, 2))
 
         fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()
 
-        # Add exercise recommendations to label_chart_info
+        # Add recommendations based on prepared monthly_data
         self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
 
     @requires_database()
@@ -1288,16 +1331,29 @@ class MainWindow(
         ax = fig.add_subplot(111)
 
         # Plot each year's data
+        # First, plot all non-current years (to ensure current year appears on top)
+        current_year_data = None
+        current_year_color = None
+        current_year_label = None
+
         for _i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
             if data:
                 x_values = [item[0] for item in data]
                 y_values = [item[1] for item in data]
 
-                # Plot with different line styles for better distinction
                 # Check if this is the current year by looking at the label
                 is_current_year = "(Current)" in label
-                line_style = "-" if is_current_year else "--"  # Solid for current year, dashed for others
-                line_width = 3 if is_current_year else 2  # Thicker for current year
+
+                if is_current_year:
+                    # Store current year data to plot last
+                    current_year_data = (x_values, y_values)
+                    current_year_color = color
+                    current_year_label = label
+                    continue
+
+                # Plot non-current years first
+                line_style = "--"  # Dashed for non-current years
+                line_width = 2
                 max_points = 10
 
                 ax.plot(
@@ -1333,6 +1389,47 @@ class MainWindow(
                         alpha=0.8,
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
+
+        # Now plot the current year last (so it appears on top)
+        if current_year_data:
+            x_values, y_values = current_year_data
+            line_style = "-"  # Solid for current year
+            line_width = 3  # Thicker for current year
+            max_points = 10
+
+            ax.plot(
+                x_values,
+                y_values,
+                color=current_year_color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=current_year_label,
+                marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
+                markersize=4,
+            )
+
+            # Add value labels for the last point of current year line
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+
+                # Format label with month and year and final value
+                month_year = current_year_label.replace(" (Current)", "")  # Remove "(Current)" suffix
+                # Format number without .0 for whole numbers
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
+
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                )
 
         # Customize plot
         ax.set_xlabel("Day of Month", fontsize=12)
@@ -3077,6 +3174,9 @@ class MainWindow(
         )
         current_calories = sum(float(calories) for _, calories in current_month_calories)
 
+        # Get calories for today
+        calories_today = self.db_manager.get_kcal_today()
+
         # Get data for last N months (from spinBox_compare_last)
         months_count = self.spinBox_compare_last.value()
         monthly_calories_data = []
@@ -3144,11 +3244,19 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
                 daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded} kcal</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - calories_today
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)} kcal</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (burned {int(calories_today)} kcal)<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -3170,7 +3278,7 @@ class MainWindow(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.2;
         """)
 
@@ -3208,7 +3316,8 @@ class MainWindow(
                 if i == 1:
                     last_month_value = final_value
 
-        if max_value <= 0:
+        # Only clear if there's no data at all across all months
+        if max_value <= 0 and not any(month_data for month_data in monthly_data):
             self.label_chart_info.setText("")
             return
 
@@ -3216,6 +3325,27 @@ class MainWindow(
         today = datetime.now()
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
+
+        # Get today's progress for this specific exercise
+        # We need to get the exercise ID first
+        exercise_id = None
+        if self.db_manager:
+            exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+
+        today_progress = 0.0
+        if exercise_id:
+            # For exercises with types, we need to filter by type
+            if exercise_type and exercise_type != "All types":
+                # Get today's data for this specific exercise and type
+                today_data = self.db_manager.get_exercise_chart_data(
+                    exercise_name=exercise,
+                    exercise_type=exercise_type,
+                    date_from=today.strftime("%Y-%m-%d"),
+                    date_to=today.strftime("%Y-%m-%d"),
+                )
+                today_progress = sum(float(value) for _, value in today_data)
+            else:
+                today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
         # Calculate how much more is needed to reach the max value
         remaining_to_max = max_value - current_progress
@@ -3267,11 +3397,19 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
                 daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - today_progress
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)}{unit_text}</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(today_progress)}{unit_text})<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -3295,7 +3433,7 @@ class MainWindow(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.2;
         """)
 
@@ -3397,6 +3535,27 @@ class MainWindow(
         # Get current progress (current year value)
         current_progress = current_year_value
 
+        # Get today's progress for this specific exercise
+        # We need to get the exercise ID first
+        exercise_id = None
+        if self.db_manager:
+            exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+
+        today_progress = 0.0
+        if exercise_id:
+            # For exercises with types, we need to filter by type
+            if exercise_type and exercise_type != "All types":
+                # Get today's data for this specific exercise and type
+                today_data = self.db_manager.get_exercise_chart_data(
+                    exercise_name=exercise,
+                    exercise_type=exercise_type,
+                    date_from=today.strftime("%Y-%m-%d"),
+                    date_to=today.strftime("%Y-%m-%d"),
+                )
+                today_progress = sum(float(value) for _, value in today_data)
+            else:
+                today_progress = self.db_manager.get_exercise_total_today(exercise_id)
+
         # Calculate remaining days in current month
         today = datetime.now()
         current_month = today.month
@@ -3451,11 +3610,19 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
                 daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - today_progress
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)}{unit_text}</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(today_progress)}{unit_text})<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -3479,7 +3646,7 @@ class MainWindow(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.2;
         """)
 
@@ -3509,6 +3676,9 @@ class MainWindow(
             month_start.strftime("%Y-%m-%d"), month_end.strftime("%Y-%m-%d")
         )
         current_sets = sum(int(count) for _, count in current_month_sets)
+
+        # Get sets count for today
+        sets_today = self.db_manager.get_sets_count_today()
 
         # Get data for last N months (from spinBox_compare_last)
         months_count = self.spinBox_compare_last.value()
@@ -3579,11 +3749,19 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
                 daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - sets_today
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)} sets</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(sets_today)} sets)<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -3605,7 +3783,7 @@ class MainWindow(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.2;
         """)
 
@@ -3785,6 +3963,9 @@ class MainWindow(
 
         # Add context menu for exercises table
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+
+        # Add double-click handler for chart info label to copy text to clipboard
+        self.label_chart_info.mouseDoubleClickEvent = self._on_chart_info_double_clicked
         self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
 
         # Add context menu for exercise types table
@@ -4750,6 +4931,33 @@ class MainWindow(
         label_widget = label_widgets.get(label_key)
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
+
+    def _on_chart_info_double_clicked(self, event) -> None:
+        """Handle double-click on chart info label to copy text to clipboard.
+
+        Args:
+
+        - `event`: Mouse event (ignored, we just need the double-click signal).
+
+        """
+        from PySide6.QtCore import QMimeData
+        from PySide6.QtGui import QTextDocument
+        from PySide6.QtWidgets import QApplication
+
+        # Get the text from the label
+        html_text = self.label_chart_info.text()
+        if html_text.strip():  # Only copy if there's actual text
+            # Convert HTML to plain text
+            doc = QTextDocument()
+            doc.setHtml(html_text)
+            plain_text = doc.toPlainText()
+
+            # Create clipboard data
+            clipboard = QApplication.clipboard()
+            clipboard.setText(plain_text)
+
+            # Optional: Show a brief notification (you can remove this if not needed)
+            # You could add a toast notification here if you have one
 
     def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on exercises list to open statistics tab.
@@ -6363,7 +6571,7 @@ Show comparison chart of exercise progress over the last few months.
 
 Creates a chart showing cumulative exercise values for the selected exercise
 over the last N months (where N is determined by spinBox_compare_last).
-The current year is highlighted in red, while previous months are shown
+The current month is highlighted in red, while previous months are shown
 in different shades of blue.
 
 <details>
@@ -6376,7 +6584,7 @@ def on_compare_last_months(self) -> None:
         months_count = self.spinBox_compare_last.value()
 
         if not exercise:
-            # Clear existing chart before showing no data message
+            # Clear chart before showing message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
             return
@@ -6388,15 +6596,14 @@ def on_compare_last_months(self) -> None:
         # Get exercise unit for Y-axis label
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-        # Calculate date ranges for each month
-        today = datetime.now()  # Use local time instead of UTC
+        # Use local time for current date
+        today = datetime.now()
 
-        # Get data for each month
         monthly_data = []
         colors = []
         labels = []
 
-        # Define a color palette for different months (excluding red for current month)
+        # Color palette for non-current months
         color_palette = [
             "blue",
             "green",
@@ -6417,20 +6624,22 @@ def on_compare_last_months(self) -> None:
         ]
 
         for i in range(months_count):
-            # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            # Compute approximate month start/end
+            # Note: month stepping is approximate (30 days), kept to match original logic
+            month_date = today.replace(day=1) - timedelta(days=i * 30)
             month_start = month_date.replace(day=1)
-            if i == 0:  # Current month
+            if i == 0:
                 month_end = today
             else:
-                month_end = month_start.replace(day=28) + timedelta(days=4)
-                month_end = month_end.replace(day=1) - timedelta(days=1)
+                # End of previous month: go to next month, step back one day
+                temp = month_start.replace(day=28) + timedelta(days=4)
+                month_end = temp.replace(day=1) - timedelta(days=1)
 
-            # Format dates for database query
+            # Format for DB
             date_from = month_start.strftime("%Y-%m-%d")
             date_to = month_end.strftime("%Y-%m-%d")
 
-            # Get exercise data for this month
+            # Query data
             rows = self.db_manager.get_exercise_chart_data(
                 exercise_name=exercise,
                 exercise_type=exercise_type if exercise_type != "All types" else None,
@@ -6438,49 +6647,43 @@ def on_compare_last_months(self) -> None:
                 date_to=date_to,
             )
 
+            # Build cumulative data for this month
+            cumulative_data = []
             if rows:
-                # Convert to datetime objects and calculate cumulative values
-                cumulative_data = []
                 cumulative_value = 0.0
-
                 for date_str, value_str in rows:
                     try:
                         date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                         value = float(value_str)
                         cumulative_value += value
-
-                        # Calculate day of month (1-31) for x-axis
+                        # Use day of month for X axis
                         day_of_month = date_obj.day
                         cumulative_data.append((day_of_month, cumulative_value))
                     except (ValueError, TypeError):
                         continue
 
+                # Extend horizontally to the end-of-visualization day (cosmetic)
                 if cumulative_data:
-                    # Extend the line horizontally to the end of the month if needed
-                    last_day = cumulative_data[-1][0] if cumulative_data else 1
-                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
-
-                    # For current month, extend to today or end of month, whichever is earlier
+                    last_day = cumulative_data[-1][0]
+                    last_value = cumulative_data[-1][1]
                     max_day = min(today.day, 31) if i == 0 else 31
-
-                    # Add horizontal extension if needed
                     if last_day < max_day:
                         cumulative_data.append((max_day, last_value))
 
-                    monthly_data.append(cumulative_data)
+            # IMPORTANT: append month entry even if it is empty
+            monthly_data.append(cumulative_data)
 
-                    # Determine color based on whether it's current month or not
-                    if i == 0:  # Current month
-                        colors.append("red")  # Current month in red
-                        labels.append(f"{month_start.strftime('%B %Y')} (Current)")
-                    else:
-                        # Use different colors from palette for other months
-                        color_index = (i - 1) % len(color_palette)  # -1 because current month uses red
-                        colors.append(color_palette[color_index])
-                        labels.append(f"{month_start.strftime('%B %Y')}")
+            # Build label/color for every month regardless of data presence
+            if i == 0:
+                colors.append("red")
+                labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+            else:
+                color_index = (i - 1) % len(color_palette)
+                colors.append(color_palette[color_index])
+                labels.append(f"{month_start.strftime('%B %Y')}")
 
-        if not monthly_data:
-            # Clear existing chart before showing no data message
+        # If all months are empty, there is nothing to display
+        if all(len(d) == 0 for d in monthly_data):
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             return
@@ -6493,57 +6696,104 @@ def on_compare_last_months(self) -> None:
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111)
 
-        # Plot each month's data
+        # Plot non-current months first
+        current_month_data = None
+        current_month_color = None
+        current_month_label = None
+
         for i, (data, color, label) in enumerate(zip(monthly_data, colors, labels, strict=False)):
-            if data:
-                x_values = [item[0] for item in data]
-                y_values = [item[1] for item in data]
+            if not data:
+                continue
 
-                # Plot with different line styles for better distinction
-                line_style = "-" if i == 0 else "--"  # Solid for current month, dashed for others
-                line_width = 3 if i == 0 else 2  # Thicker for current month
-                max_points = 10
+            x_values = [item[0] for item in data]
+            y_values = [item[1] for item in data]
 
-                ax.plot(
-                    x_values,
-                    y_values,
-                    color=color,
-                    linestyle=line_style,
-                    linewidth=line_width,
+            if i == 0:
+                # Defer current month (draw on top)
+                current_month_data = (x_values, y_values)
+                current_month_color = color
+                current_month_label = label
+                continue
+
+            # Plot non-current months
+            line_style = "--"
+            line_width = 2
+            max_points = 10
+
+            ax.plot(
+                x_values,
+                y_values,
+                color=color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=label,
+                marker="o" if len(x_values) <= max_points else None,
+                markersize=4,
+            )
+
+            # Annotate last point
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+                month_year = label.replace(" (Current)", "")
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
+
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
                     alpha=0.8,
-                    label=label,
-                    marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
-                    markersize=4,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                 )
 
-                # Add value labels for the last point of each line
-                if x_values and y_values:
-                    last_x = x_values[-1]
-                    last_y = y_values[-1]
+        # Plot current month last to appear on top
+        if current_month_data:
+            x_values, y_values = current_month_data
+            line_style = "-"
+            line_width = 3
+            max_points = 10
 
-                    # Format label with month and year and final value
-                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
-                    # Format number without .0 for whole numbers
-                    value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
-                    label_text = f"{month_year}: {value_str}"
+            ax.plot(
+                x_values,
+                y_values,
+                color=current_month_color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=current_month_label,
+                marker="o" if len(x_values) <= max_points else None,
+                markersize=4,
+            )
 
-                    ax.annotate(
-                        label_text,
-                        (last_x, last_y),
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-                    )
+            # Annotate last point for current month
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+                month_year = current_month_label.replace(" (Current)", "")
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
+
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                )
 
         # Customize plot
         ax.set_xlabel("Day of Month", fontsize=12)
         y_label = f"Cumulative Value ({exercise_unit})" if exercise_unit else "Cumulative Value"
         ax.set_ylabel(y_label, fontsize=12)
 
-        # Build title
         chart_title = f"{exercise}"
         if exercise_type and exercise_type != "All types":
             chart_title += f" - {exercise_type}"
@@ -6553,15 +6803,15 @@ def on_compare_last_months(self) -> None:
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=10)
 
-        # Set x-axis to show days 1-31
+        # X axis range and ticks
         ax.set_xlim(1, 31)
-        ax.set_xticks(range(1, 32, 2))  # Show every other day for readability
+        ax.set_xticks(range(1, 32, 2))
 
         fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()
 
-        # Add exercise recommendations to label_chart_info
+        # Add recommendations based on prepared monthly_data
         self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
 ```
 
@@ -6729,16 +6979,29 @@ def on_compare_same_months(self) -> None:
         ax = fig.add_subplot(111)
 
         # Plot each year's data
+        # First, plot all non-current years (to ensure current year appears on top)
+        current_year_data = None
+        current_year_color = None
+        current_year_label = None
+
         for _i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
             if data:
                 x_values = [item[0] for item in data]
                 y_values = [item[1] for item in data]
 
-                # Plot with different line styles for better distinction
                 # Check if this is the current year by looking at the label
                 is_current_year = "(Current)" in label
-                line_style = "-" if is_current_year else "--"  # Solid for current year, dashed for others
-                line_width = 3 if is_current_year else 2  # Thicker for current year
+
+                if is_current_year:
+                    # Store current year data to plot last
+                    current_year_data = (x_values, y_values)
+                    current_year_color = color
+                    current_year_label = label
+                    continue
+
+                # Plot non-current years first
+                line_style = "--"  # Dashed for non-current years
+                line_width = 2
                 max_points = 10
 
                 ax.plot(
@@ -6774,6 +7037,47 @@ def on_compare_same_months(self) -> None:
                         alpha=0.8,
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
+
+        # Now plot the current year last (so it appears on top)
+        if current_year_data:
+            x_values, y_values = current_year_data
+            line_style = "-"  # Solid for current year
+            line_width = 3  # Thicker for current year
+            max_points = 10
+
+            ax.plot(
+                x_values,
+                y_values,
+                color=current_year_color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=current_year_label,
+                marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
+                markersize=4,
+            )
+
+            # Add value labels for the last point of current year line
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+
+                # Format label with month and year and final value
+                month_year = current_year_label.replace(" (Current)", "")  # Remove "(Current)" suffix
+                # Format number without .0 for whole numbers
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
+
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                )
 
         # Customize plot
         ax.set_xlabel("Day of Month", fontsize=12)
@@ -8971,6 +9275,9 @@ def _add_calories_recommendations_to_label(self) -> None:
         )
         current_calories = sum(float(calories) for _, calories in current_month_calories)
 
+        # Get calories for today
+        calories_today = self.db_manager.get_kcal_today()
+
         # Get data for last N months (from spinBox_compare_last)
         months_count = self.spinBox_compare_last.value()
         monthly_calories_data = []
@@ -9038,11 +9345,19 @@ def _add_calories_recommendations_to_label(self) -> None:
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
                 daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded} kcal</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - calories_today
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)} kcal</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (burned {int(calories_today)} kcal)<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -9064,7 +9379,7 @@ def _add_calories_recommendations_to_label(self) -> None:
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.2;
         """)
 ```
@@ -9115,7 +9430,8 @@ def _add_exercise_recommendations_to_label(
                 if i == 1:
                     last_month_value = final_value
 
-        if max_value <= 0:
+        # Only clear if there's no data at all across all months
+        if max_value <= 0 and not any(month_data for month_data in monthly_data):
             self.label_chart_info.setText("")
             return
 
@@ -9123,6 +9439,27 @@ def _add_exercise_recommendations_to_label(
         today = datetime.now()
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
+
+        # Get today's progress for this specific exercise
+        # We need to get the exercise ID first
+        exercise_id = None
+        if self.db_manager:
+            exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+
+        today_progress = 0.0
+        if exercise_id:
+            # For exercises with types, we need to filter by type
+            if exercise_type and exercise_type != "All types":
+                # Get today's data for this specific exercise and type
+                today_data = self.db_manager.get_exercise_chart_data(
+                    exercise_name=exercise,
+                    exercise_type=exercise_type,
+                    date_from=today.strftime("%Y-%m-%d"),
+                    date_to=today.strftime("%Y-%m-%d"),
+                )
+                today_progress = sum(float(value) for _, value in today_data)
+            else:
+                today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
         # Calculate how much more is needed to reach the max value
         remaining_to_max = max_value - current_progress
@@ -9174,11 +9511,19 @@ def _add_exercise_recommendations_to_label(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
                 daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - today_progress
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)}{unit_text}</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(today_progress)}{unit_text})<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -9202,7 +9547,7 @@ def _add_exercise_recommendations_to_label(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.2;
         """)
 ```
@@ -9344,6 +9689,27 @@ def _add_same_months_recommendations_to_label(
         # Get current progress (current year value)
         current_progress = current_year_value
 
+        # Get today's progress for this specific exercise
+        # We need to get the exercise ID first
+        exercise_id = None
+        if self.db_manager:
+            exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+
+        today_progress = 0.0
+        if exercise_id:
+            # For exercises with types, we need to filter by type
+            if exercise_type and exercise_type != "All types":
+                # Get today's data for this specific exercise and type
+                today_data = self.db_manager.get_exercise_chart_data(
+                    exercise_name=exercise,
+                    exercise_type=exercise_type,
+                    date_from=today.strftime("%Y-%m-%d"),
+                    date_to=today.strftime("%Y-%m-%d"),
+                )
+                today_progress = sum(float(value) for _, value in today_data)
+            else:
+                today_progress = self.db_manager.get_exercise_total_today(exercise_id)
+
         # Calculate remaining days in current month
         today = datetime.now()
         current_month = today.month
@@ -9398,11 +9764,19 @@ def _add_same_months_recommendations_to_label(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
                 daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - today_progress
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)}{unit_text}</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(today_progress)}{unit_text})<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -9426,7 +9800,7 @@ def _add_same_months_recommendations_to_label(
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.2;
         """)
 ```
@@ -9469,6 +9843,9 @@ def _add_sets_recommendations_to_label(self) -> None:
             month_start.strftime("%Y-%m-%d"), month_end.strftime("%Y-%m-%d")
         )
         current_sets = sum(int(count) for _, count in current_month_sets)
+
+        # Get sets count for today
+        sets_today = self.db_manager.get_sets_count_today()
 
         # Get data for last N months (from spinBox_compare_last)
         months_count = self.spinBox_compare_last.value()
@@ -9539,11 +9916,19 @@ def _add_sets_recommendations_to_label(self) -> None:
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
                 daily_needed_including_current = remaining_to_max / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - sets_today
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)} sets</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(sets_today)} sets)<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -9565,7 +9950,7 @@ def _add_sets_recommendations_to_label(self) -> None:
             background-color: #F8F9FA;
             border: 1px solid #E9ECEF;
             border-radius: 5px;
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.2;
         """)
 ```
@@ -9784,6 +10169,9 @@ def _connect_signals(self) -> None:
 
         # Add context menu for exercises table
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+
+        # Add double-click handler for chart info label to copy text to clipboard
+        self.label_chart_info.mouseDoubleClickEvent = self._on_chart_info_double_clicked
         self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
 
         # Add context menu for exercise types table
@@ -11176,6 +11564,42 @@ def _next_avif_frame(self, label_key: str) -> None:
         label_widget = label_widgets.get(label_key)
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
+```
+
+</details>
+
+### ⚙️ Method `_on_chart_info_double_clicked`
+
+```python
+def _on_chart_info_double_clicked(self, event) -> None
+```
+
+Handle double-click on chart info label to copy text to clipboard.
+
+Args:
+
+- `event`: Mouse event (ignored, we just need the double-click signal).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_chart_info_double_clicked(self, event) -> None:
+        from PySide6.QtCore import QMimeData
+        from PySide6.QtGui import QTextDocument
+        from PySide6.QtWidgets import QApplication
+
+        # Get the text from the label
+        html_text = self.label_chart_info.text()
+        if html_text.strip():  # Only copy if there's actual text
+            # Convert HTML to plain text
+            doc = QTextDocument()
+            doc.setHtml(html_text)
+            plain_text = doc.toPlainText()
+
+            # Create clipboard data
+            clipboard = QApplication.clipboard()
+            clipboard.setText(plain_text)
 ```
 
 </details>

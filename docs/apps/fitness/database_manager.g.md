@@ -48,6 +48,7 @@ lang: en
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
   - [⚙️ Method `get_kcal_chart_data`](#%EF%B8%8F-method-get_kcal_chart_data)
+  - [⚙️ Method `get_kcal_today`](#%EF%B8%8F-method-get_kcal_today)
   - [⚙️ Method `get_last_executed_exercise`](#%EF%B8%8F-method-get_last_executed_exercise)
   - [⚙️ Method `get_last_exercise_date`](#%EF%B8%8F-method-get_last_exercise_date)
   - [⚙️ Method `get_last_exercise_dates`](#%EF%B8%8F-method-get_last_exercise_dates)
@@ -1057,6 +1058,32 @@ class DatabaseManager:
         """
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(row[0], float(row[1])) for row in rows]
+
+    def get_kcal_today(self) -> float:
+        """Get the total calories burned today.
+
+        Returns:
+
+        - `float`: Total calories burned today, or 0.0 if no records found.
+
+        """
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        query = """
+            SELECT SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+            WHERE p.date = :today
+            AND p.date IS NOT NULL
+            AND e.calories_per_unit > 0
+        """
+        rows = self.get_rows(query, {"today": today})
+        if rows and rows[0][0] is not None:
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return 0.0
+        return 0.0
 
     def get_last_executed_exercise(self) -> str | None:
         """Get the name of the last executed exercise from the process table.
@@ -2946,6 +2973,44 @@ def get_kcal_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, f
         """
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(row[0], float(row[1])) for row in rows]
+```
+
+</details>
+
+### ⚙️ Method `get_kcal_today`
+
+```python
+def get_kcal_today(self) -> float
+```
+
+Get the total calories burned today.
+
+Returns:
+
+- `float`: Total calories burned today, or 0.0 if no records found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_kcal_today(self) -> float:
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        query = """
+            SELECT SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
+            FROM process p
+            JOIN exercises e ON p._id_exercises = e._id
+            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
+            WHERE p.date = :today
+            AND p.date IS NOT NULL
+            AND e.calories_per_unit > 0
+        """
+        rows = self.get_rows(query, {"today": today})
+        if rows and rows[0][0] is not None:
+            try:
+                return float(rows[0][0])
+            except (ValueError, TypeError):
+                return 0.0
+        return 0.0
 ```
 
 </details>
