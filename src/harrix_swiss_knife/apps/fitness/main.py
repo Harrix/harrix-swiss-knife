@@ -4890,13 +4890,19 @@ class MainWindow(
         """
         from PySide6.QtWidgets import QApplication
         from PySide6.QtCore import QMimeData
+        from PySide6.QtGui import QTextDocument
 
         # Get the text from the label
-        text = self.label_chart_info.text()
-        if text.strip():  # Only copy if there's actual text
+        html_text = self.label_chart_info.text()
+        if html_text.strip():  # Only copy if there's actual text
+            # Convert HTML to plain text
+            doc = QTextDocument()
+            doc.setHtml(html_text)
+            plain_text = doc.toPlainText()
+
             # Create clipboard data
             clipboard = QApplication.clipboard()
-            clipboard.setText(text)
+            clipboard.setText(plain_text)
 
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
