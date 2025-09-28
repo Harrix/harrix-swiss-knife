@@ -3245,7 +3245,8 @@ class MainWindow(
                 if i == 1:
                     last_month_value = final_value
 
-        if max_value <= 0:
+        # Only clear if there's no data at all across all months
+        if max_value <= 0 and not any(month_data for month_data in monthly_data):
             self.label_chart_info.setText("")
             return
 
