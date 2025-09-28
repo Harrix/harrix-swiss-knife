@@ -3103,6 +3103,9 @@ class MainWindow(
         )
         current_calories = sum(float(calories) for _, calories in current_month_calories)
 
+        # Get calories for today
+        calories_today = self.db_manager.get_kcal_today()
+
         # Get data for last N months (from spinBox_compare_last)
         months_count = self.spinBox_compare_last.value()
         monthly_calories_data = []
@@ -3170,11 +3173,20 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
-                daily_needed_including_current = remaining_to_max / total_days_including_current
+                # Calculate remaining plus today's progress
+                remaining_plus_today = remaining_to_max + calories_today
+                daily_needed_including_current = remaining_plus_today / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded} kcal</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - calories_today
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)} kcal</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (burned {int(calories_today)} kcal)<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -3243,6 +3255,27 @@ class MainWindow(
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
+        # Get today's progress for this specific exercise
+        # We need to get the exercise ID first
+        exercise_id = None
+        if self.db_manager:
+            exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+
+        today_progress = 0.0
+        if exercise_id:
+            # For exercises with types, we need to filter by type
+            if exercise_type and exercise_type != "All types":
+                # Get today's data for this specific exercise and type
+                today_data = self.db_manager.get_exercise_chart_data(
+                    exercise_name=exercise,
+                    exercise_type=exercise_type,
+                    date_from=today.strftime("%Y-%m-%d"),
+                    date_to=today.strftime("%Y-%m-%d")
+                )
+                today_progress = sum(float(value) for _, value in today_data)
+            else:
+                today_progress = self.db_manager.get_exercise_total_today(exercise_id)
+
         # Calculate how much more is needed to reach the max value
         remaining_to_max = max_value - current_progress
 
@@ -3293,11 +3326,20 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
-                daily_needed_including_current = remaining_to_max / total_days_including_current
+                # Calculate remaining plus today's progress
+                remaining_plus_today = remaining_to_max + today_progress
+                daily_needed_including_current = remaining_plus_today / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - today_progress
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)}{unit_text}</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(today_progress)}{unit_text})<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -3423,6 +3465,27 @@ class MainWindow(
         # Get current progress (current year value)
         current_progress = current_year_value
 
+        # Get today's progress for this specific exercise
+        # We need to get the exercise ID first
+        exercise_id = None
+        if self.db_manager:
+            exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+
+        today_progress = 0.0
+        if exercise_id:
+            # For exercises with types, we need to filter by type
+            if exercise_type and exercise_type != "All types":
+                # Get today's data for this specific exercise and type
+                today_data = self.db_manager.get_exercise_chart_data(
+                    exercise_name=exercise,
+                    exercise_type=exercise_type,
+                    date_from=today.strftime("%Y-%m-%d"),
+                    date_to=today.strftime("%Y-%m-%d")
+                )
+                today_progress = sum(float(value) for _, value in today_data)
+            else:
+                today_progress = self.db_manager.get_exercise_total_today(exercise_id)
+
         # Calculate remaining days in current month
         today = datetime.now()
         current_month = today.month
@@ -3477,11 +3540,20 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
-                daily_needed_including_current = remaining_to_max / total_days_including_current
+                # Calculate remaining plus today's progress
+                remaining_plus_today = remaining_to_max + today_progress
+                daily_needed_including_current = remaining_plus_today / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - today_progress
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)}{unit_text}</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(today_progress)}{unit_text})<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
@@ -3535,6 +3607,9 @@ class MainWindow(
             month_start.strftime("%Y-%m-%d"), month_end.strftime("%Y-%m-%d")
         )
         current_sets = sum(int(count) for _, count in current_month_sets)
+
+        # Get sets count for today
+        sets_today = self.db_manager.get_sets_count_today()
 
         # Get data for last N months (from spinBox_compare_last)
         months_count = self.spinBox_compare_last.value()
@@ -3605,11 +3680,20 @@ class MainWindow(
 
             # Add daily goal including current day (second to last)
             if total_days_including_current > 0:
-                daily_needed_including_current = remaining_to_max / total_days_including_current
+                # Calculate remaining plus today's progress
+                remaining_plus_today = remaining_to_max + sets_today
+                daily_needed_including_current = remaining_plus_today / total_days_including_current
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
                 recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}</b><br>"
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - sets_today
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)} sets</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(sets_today)} sets)<br>"
 
             # Add daily goal for max (last)
             if remaining_days > 0:
