@@ -3895,6 +3895,9 @@ class MainWindow(
 
         # Add context menu for exercises table
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+
+        # Add double-click handler for chart info label to copy text to clipboard
+        self.label_chart_info.mouseDoubleClickEvent = self._on_chart_info_double_clicked
         self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
 
         # Add context menu for exercise types table
@@ -4876,6 +4879,27 @@ class MainWindow(
                 # Switch to statistics tab
                 self.tabWidget.setCurrentIndex(i)
                 break
+
+    def _on_chart_info_double_clicked(self, event) -> None:
+        """Handle double-click on chart info label to copy text to clipboard.
+
+        Args:
+
+        - `event`: Mouse event (ignored, we just need the double-click signal).
+
+        """
+        from PySide6.QtWidgets import QApplication
+        from PySide6.QtCore import QMimeData
+
+        # Get the text from the label
+        text = self.label_chart_info.text()
+        if text.strip():  # Only copy if there's actual text
+            # Create clipboard data
+            clipboard = QApplication.clipboard()
+            clipboard.setText(text)
+
+            # Optional: Show a brief notification (you can remove this if not needed)
+            # You could add a toast notification here if you have one
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
