@@ -23,32 +23,7 @@
       "base_folder": "D:/GitHub/harrix-swiss-knife",
       "files": [
         "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/recover.sql",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/database_manager.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/exchange_rate_worker.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/exchange_rate_checker_worker.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/exchange_rates_operations.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/mixins.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/main.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/account_edit_dialog.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/text_input_dialog.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/text_parser.py"
-      ]
-    },
-    {
-      "name": "harrix-swiss-knife - finance with design",
-      "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/recover.sql",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/database_manager.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/exchange_rate_worker.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/exchange_rate_checker_worker.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/exchange_rates_operations.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/mixins.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/main.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/account_edit_dialog.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/text_input_dialog.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/text_parser.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/window.py"
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/*.py"
       ]
     },
     {
@@ -56,20 +31,7 @@
       "base_folder": "D:/GitHub/harrix-swiss-knife",
       "files": [
         "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/recover.sql",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/database_manager.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/mixins.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/main.py"
-      ]
-    },
-    {
-      "name": "harrix-swiss-knife - food with design",
-      "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/recover.sql",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/database_manager.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/mixins.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/main.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/window.py"
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/*.py"
       ]
     },
     {
@@ -77,26 +39,8 @@
       "base_folder": "D:/GitHub/harrix-swiss-knife",
       "files": [
         "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/recover.sql",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/database_manager.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/mixins.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/main.py"
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/*.py"
       ]
-    },
-    {
-      "name": "harrix-swiss-knife - fitness with design",
-      "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/recover.sql",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/database_manager.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/mixins.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/main.py",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/window.py"
-      ]
-    },
-    {
-      "name": "harrix-swiss-knife - food folder (*.py)",
-      "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/*.py"]
     },
     {
       "name": "harrix-swiss-knife - all Python files in apps",
