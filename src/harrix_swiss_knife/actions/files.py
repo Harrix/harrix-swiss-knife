@@ -190,14 +190,20 @@ class OnCombineForAI(ActionBase):
         if not selected_folder:
             return
 
-        # Find all files recursively in the selected folder
+        # Find all files recursively in the selected folder, filtering ignored paths
         all_files = []
         for root, dirs, files in os.walk(selected_folder):
+            # Filter out ignored directories
+            dirs[:] = [d for d in dirs if not h.file.should_ignore_path(Path(root) / d)]
+
             for file in files:
-                all_files.append(os.path.join(root, file))
+                file_path = Path(root) / file
+                # Check if the file should be ignored
+                if not h.file.should_ignore_path(file_path):
+                    all_files.append(str(file_path))
 
         if not all_files:
-            self.add_line("❌ No files found in the selected folder")
+            self.add_line("❌ No files found in the selected folder (after filtering ignored paths)")
             return
 
         # Show file selection dialog with checkboxes (all files selected by default)
@@ -713,7 +719,7 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
         paths: List of paths that may be files, directories, or glob patterns
 
     Returns:
-        List of actual file paths
+        List of actual file paths (filtered to exclude ignored paths)
     """
     expanded_paths = []
 
@@ -726,21 +732,34 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
         if "*" in path or "?" in path:
             # Use glob to find matching files
             matches = glob.glob(path, recursive=True)
-            expanded_paths.extend(matches)
+            # Filter out ignored paths
+            for match in matches:
+                if not h.file.should_ignore_path(Path(match)):
+                    expanded_paths.append(match)
         elif os.path.isfile(path):
-            # It's a direct file path
-            expanded_paths.append(path)
+            # It's a direct file path - check if it should be ignored
+            if not h.file.should_ignore_path(Path(path)):
+                expanded_paths.append(path)
         elif os.path.isdir(path):
             # It's a directory, find all files recursively
             for root, dirs, files in os.walk(path):
+                # Filter out ignored directories
+                dirs[:] = [d for d in dirs if not h.file.should_ignore_path(Path(root) / d)]
+
                 for file in files:
-                    expanded_paths.append(os.path.join(root, file))
+                    file_path = Path(root) / file
+                    # Check if the file should be ignored
+                    if not h.file.should_ignore_path(file_path):
+                        expanded_paths.append(str(file_path))
         else:
             # Path doesn't exist, but might be a glob pattern that didn't match
             # Try glob anyway in case it's a pattern
             matches = glob.glob(path, recursive=True)
             if matches:
-                expanded_paths.extend(matches)
+                # Filter out ignored paths
+                for match in matches:
+                    if not h.file.should_ignore_path(Path(match)):
+                        expanded_paths.append(match)
 
     return expanded_paths
 
