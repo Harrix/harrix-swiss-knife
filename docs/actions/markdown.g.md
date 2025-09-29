@@ -2009,6 +2009,7 @@ class OnOptimizeSelectedImages(ActionBase):
 
         Returns:
         - `Path | None`: Path to the Markdown file if found, None otherwise.
+
         """
         parent_dir = image_dir.parent
         md_files = list(parent_dir.glob("*.md"))
@@ -2068,6 +2069,7 @@ class OnOptimizeSelectedImages(ActionBase):
 
         Returns:
         - `str`: The updated Markdown content with references to optimized images.
+
         """
         yaml_md, content_md = h.md.split_yaml_content(markdown_text)
 
@@ -2106,6 +2108,7 @@ class OnOptimizeSelectedImages(ActionBase):
 
         Returns:
         - `str`: The processed Markdown line, with image references updated if needed.
+
         """
         result_line = markdown_line
         should_process = True
@@ -2220,6 +2223,7 @@ class OnOptimizeSelectedImages(ActionBase):
 
         Returns:
         - `str`: Status message indicating the result of the operation.
+
         """
         try:
             with Path.open(md_file, encoding="utf-8") as f:

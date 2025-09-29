@@ -455,6 +455,7 @@ class ExchangeRatesOperations:
             currency_id: ID of the currency
             date_from: Start date in yyyy-MM-dd format
             date_to: End date in yyyy-MM-dd format
+
         """
         if not self._validate_database_connection():
             return
@@ -620,6 +621,7 @@ class ExchangeRatesOperations:
 
         Returns:
             List of tuples (date, rate) sorted by date
+
         """
         if not self._validate_database_connection():
             return []

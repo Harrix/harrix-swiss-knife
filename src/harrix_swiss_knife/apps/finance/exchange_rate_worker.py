@@ -4,7 +4,6 @@ This module contains the ExchangeRateUpdateWorker class that handles
 background updates of exchange rates from various data sources.
 """
 
-
 from PySide6.QtCore import QThread, Signal
 
 

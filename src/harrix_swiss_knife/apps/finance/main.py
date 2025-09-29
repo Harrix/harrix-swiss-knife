@@ -16,15 +16,7 @@ from typing import Any
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import (
-    QDate,
-    QDateTime,
-    QModelIndex,
-    QSortFilterProxyModel,
-    QStringListModel,
-    Qt,
-    QTimer,
-)
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, QStringListModel, Qt, QTimer
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -4007,7 +3999,11 @@ class MainWindow(
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
-        elif ("set_date_action" in locals() and action == set_date_action) or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action) or ("set_date_minus_one_action" in locals() and action == set_date_minus_one_action):
+        elif (
+            ("set_date_action" in locals() and action == set_date_action)
+            or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action)
+            or ("set_date_minus_one_action" in locals() and action == set_date_minus_one_action)
+        ):
             # This will be handled by the lambda connection above
             pass
 

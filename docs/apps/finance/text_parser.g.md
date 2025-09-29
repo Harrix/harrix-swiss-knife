@@ -68,7 +68,6 @@ class TextParser:
 
     def __init__(self) -> None:
         """Initialize the text parser."""
-        pass
 
     def parse_text(self, text: str) -> list[ParsedPurchaseItem]:
         """Parse text input and convert to purchase items.
@@ -183,7 +182,6 @@ Initialize the text parser.
 
 ```python
 def __init__(self) -> None:
-        pass
 ```
 
 </details>

@@ -10,56 +10,6 @@ import harrix_pylib as h
 from harrix_swiss_knife.actions.base import ActionBase
 
 
-def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str) -> str:
-    """Safely collect text files to markdown, skipping files that can't be decoded as text.
-
-    This function wraps h.file.collect_text_files_to_markdown and handles UnicodeDecodeError
-    exceptions by skipping files that can't be decoded as text (e.g., binary files).
-
-    Args:
-        file_paths: List of file paths to process
-        base_folder: Base folder path for relative path calculation
-
-    Returns:
-        Markdown string with successfully processed files
-
-    """
-    try:
-        return h.file.collect_text_files_to_markdown(file_paths, base_folder)
-    except UnicodeDecodeError:
-        # If we get a UnicodeDecodeError, it means one of the files is not a text file
-        # We need to process files one by one and skip the problematic ones
-        result_lines = []
-        processed_files = []
-        skipped_files = []
-
-        for file_path in file_paths:
-            try:
-                # Try to read the file to check if it's a text file
-                with open(file_path, encoding="utf-8") as f:
-                    f.read(1)  # Try to read at least one character
-                processed_files.append(file_path)
-            except UnicodeDecodeError:
-                # This file is not a text file, skip it
-                skipped_files.append(file_path)
-                continue
-            except Exception:
-                # Other errors, also skip
-                skipped_files.append(file_path)
-                continue
-
-        if skipped_files:
-            result_lines.append(f"⚠️ Skipped {len(skipped_files)} non-text files: {', '.join(skipped_files)}")
-
-        if processed_files:
-            # Process only the text files
-            result_lines.append(h.file.collect_text_files_to_markdown(processed_files, base_folder))
-        else:
-            result_lines.append("❌ No text files found to process")
-
-        return "\n".join(result_lines)
-
-
 class OnAllFilesToParentFolder(ActionBase):
     """Move and flatten files from nested directories.
 
@@ -836,3 +786,53 @@ def _filter_files_by_extension(files: list[str], extensions: list[str] | None = 
             filtered_files.append(file_path)
 
     return filtered_files
+
+
+def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str) -> str:
+    """Safely collect text files to markdown, skipping files that can't be decoded as text.
+
+    This function wraps h.file.collect_text_files_to_markdown and handles UnicodeDecodeError
+    exceptions by skipping files that can't be decoded as text (e.g., binary files).
+
+    Args:
+        file_paths: List of file paths to process
+        base_folder: Base folder path for relative path calculation
+
+    Returns:
+        Markdown string with successfully processed files
+
+    """
+    try:
+        return h.file.collect_text_files_to_markdown(file_paths, base_folder)
+    except UnicodeDecodeError:
+        # If we get a UnicodeDecodeError, it means one of the files is not a text file
+        # We need to process files one by one and skip the problematic ones
+        result_lines = []
+        processed_files = []
+        skipped_files = []
+
+        for file_path in file_paths:
+            try:
+                # Try to read the file to check if it's a text file
+                with open(file_path, encoding="utf-8") as f:
+                    f.read(1)  # Try to read at least one character
+                processed_files.append(file_path)
+            except UnicodeDecodeError:
+                # This file is not a text file, skip it
+                skipped_files.append(file_path)
+                continue
+            except Exception:
+                # Other errors, also skip
+                skipped_files.append(file_path)
+                continue
+
+        if skipped_files:
+            result_lines.append(f"⚠️ Skipped {len(skipped_files)} non-text files: {', '.join(skipped_files)}")
+
+        if processed_files:
+            # Process only the text files
+            result_lines.append(h.file.collect_text_files_to_markdown(processed_files, base_folder))
+        else:
+            result_lines.append("❌ No text files found to process")
+
+        return "\n".join(result_lines)

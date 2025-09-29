@@ -324,6 +324,7 @@ class ExchangeRateUpdateWorker(QThread):
 
         Returns:
             Number of successfully inserted records
+
         """
         try:
             success_count = 0

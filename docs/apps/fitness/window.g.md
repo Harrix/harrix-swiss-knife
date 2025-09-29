@@ -139,6 +139,9 @@ class Ui_MainWindow(object):
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
         self.pushButton_check_steps.setText(QCoreApplication.translate("MainWindow", "Check steps", None))
+        self.pushButton_exercise_goal_recommendations.setText(
+            QCoreApplication.translate("MainWindow", "Exercise Goal Recommendations", None)
+        )
         self.label_exercise_avif_5.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
@@ -1094,7 +1097,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1008, 735))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1005, 735))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1166,6 +1169,11 @@ class Ui_MainWindow(object):
         self.pushButton_check_steps.setObjectName("pushButton_check_steps")
 
         self.verticalLayout_16.addWidget(self.pushButton_check_steps)
+
+        self.pushButton_exercise_goal_recommendations = QPushButton(self.frame_5)
+        self.pushButton_exercise_goal_recommendations.setObjectName("pushButton_exercise_goal_recommendations")
+
+        self.verticalLayout_16.addWidget(self.pushButton_exercise_goal_recommendations)
 
         self.label_exercise_avif_5 = QLabel(self.frame_5)
         self.label_exercise_avif_5.setObjectName("label_exercise_avif_5")
@@ -1331,6 +1339,9 @@ def retranslateUi(self, MainWindow):
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
         self.pushButton_last_exercises.setText(QCoreApplication.translate("MainWindow", "Last exercises", None))
         self.pushButton_check_steps.setText(QCoreApplication.translate("MainWindow", "Check steps", None))
+        self.pushButton_exercise_goal_recommendations.setText(
+            QCoreApplication.translate("MainWindow", "Exercise Goal Recommendations", None)
+        )
         self.label_exercise_avif_5.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
@@ -2301,7 +2312,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1008, 735))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1005, 735))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -2373,6 +2384,11 @@ def setupUi(self, MainWindow):
         self.pushButton_check_steps.setObjectName("pushButton_check_steps")
 
         self.verticalLayout_16.addWidget(self.pushButton_check_steps)
+
+        self.pushButton_exercise_goal_recommendations = QPushButton(self.frame_5)
+        self.pushButton_exercise_goal_recommendations.setObjectName("pushButton_exercise_goal_recommendations")
+
+        self.verticalLayout_16.addWidget(self.pushButton_exercise_goal_recommendations)
 
         self.label_exercise_avif_5 = QLabel(self.frame_5)
         self.label_exercise_avif_5.setObjectName("label_exercise_avif_5")

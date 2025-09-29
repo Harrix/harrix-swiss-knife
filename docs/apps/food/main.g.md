@@ -1057,6 +1057,7 @@ class MainWindow(
         Args:
             include_weight (bool): If True, includes the weight from the log record.
                                 If False, sets weight to zero.
+
         """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
@@ -2431,6 +2432,7 @@ class MainWindow(
 
         Args:
             position: Position where context menu should appear.
+
         """
         from PySide6.QtWidgets import QMenu
 

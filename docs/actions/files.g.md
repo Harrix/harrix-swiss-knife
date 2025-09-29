@@ -21,6 +21,7 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
 - [🏛️ Class `OnCombineForAI`](#%EF%B8%8F-class-oncombineforai)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+  - [⚙️ Method `_handle_folder_selection`](#%EF%B8%8F-method-_handle_folder_selection)
 - [🏛️ Class `OnExtractZipArchives`](#%EF%B8%8F-class-onextractziparchives)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
@@ -54,6 +55,7 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
 - [🔧 Function `_expand_path_patterns`](#-function-_expand_path_patterns)
 - [🔧 Function `_filter_files_by_extension`](#-function-_filter_files_by_extension)
+- [🔧 Function `_safe_collect_text_files_to_markdown`](#-function-_safe_collect_text_files_to_markdown)
 
 </details>
 
@@ -316,19 +318,22 @@ class OnCombineForAI(ActionBase):
         """Execute the code. Main method for the action."""
         # Get list of available combinations from config
         combinations = self.config.get("paths_combine_for_ai", [])
-        if not combinations:
-            self.add_line("❌ No file combinations configured in paths_combine_for_ai")
-            return
 
-        # Extract names for selection
-        combination_names = [combo["name"] for combo in combinations]
+        # Add folder selection option
+        folder_selection_option = "📁 Choose folder"
+        combination_names = [combo["name"] for combo in combinations] + [folder_selection_option]
 
-        # Let user select a combination
+        # Let user select a combination or folder
         selected_name = self.get_choice_from_list(
             "Select file combination", "Choose a file combination to combine:", combination_names
         )
 
         if not selected_name:
+            return
+
+        # Handle folder selection
+        if selected_name == folder_selection_option:
+            self._handle_folder_selection()
             return
 
         # Find the selected combination
@@ -370,7 +375,48 @@ class OnCombineForAI(ActionBase):
         if not selected_files:
             return
 
-        self.add_line(h.file.collect_text_files_to_markdown(selected_files, base_folder))
+        self.add_line(_safe_collect_text_files_to_markdown(selected_files, base_folder))
+        self.show_result()
+
+    def _handle_folder_selection(self) -> None:
+        """Handle folder selection and process all files in the selected folder."""
+        # Get default path from config or use current directory
+        default_path = self.config.get("path_github", str(Path.cwd()))
+
+        # Let user select a folder
+        selected_folder = self.get_existing_directory("Выбрать папку", default_path)
+        if not selected_folder:
+            return
+
+        # Find all files recursively in the selected folder, filtering ignored paths
+        all_files = []
+        for root, dirs, files in os.walk(selected_folder):
+            # Filter out ignored directories
+            dirs[:] = [d for d in dirs if not h.file.should_ignore_path(Path(root) / d)]
+
+            for file in files:
+                file_path = Path(root) / file
+                # Check if the file should be ignored
+                if not h.file.should_ignore_path(file_path):
+                    all_files.append(str(file_path))
+
+        if not all_files:
+            self.add_line("❌ No files found in the selected folder (after filtering ignored paths)")
+            return
+
+        # Show file selection dialog with checkboxes (all files selected by default)
+        selected_files = self.get_checkbox_selection(
+            "Select files to combine",
+            f"Choose files from '{selected_folder}' to combine:",
+            all_files,
+            default_selected=all_files,  # All files selected by default
+        )
+
+        if not selected_files:
+            return
+
+        # Use the selected folder as base folder
+        self.add_line(_safe_collect_text_files_to_markdown(selected_files, str(selected_folder)))
         self.show_result()
 ```
 
@@ -391,19 +437,22 @@ Execute the code. Main method for the action.
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         # Get list of available combinations from config
         combinations = self.config.get("paths_combine_for_ai", [])
-        if not combinations:
-            self.add_line("❌ No file combinations configured in paths_combine_for_ai")
-            return
 
-        # Extract names for selection
-        combination_names = [combo["name"] for combo in combinations]
+        # Add folder selection option
+        folder_selection_option = "📁 Choose folder"
+        combination_names = [combo["name"] for combo in combinations] + [folder_selection_option]
 
-        # Let user select a combination
+        # Let user select a combination or folder
         selected_name = self.get_choice_from_list(
             "Select file combination", "Choose a file combination to combine:", combination_names
         )
 
         if not selected_name:
+            return
+
+        # Handle folder selection
+        if selected_name == folder_selection_option:
+            self._handle_folder_selection()
             return
 
         # Find the selected combination
@@ -445,7 +494,62 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if not selected_files:
             return
 
-        self.add_line(h.file.collect_text_files_to_markdown(selected_files, base_folder))
+        self.add_line(_safe_collect_text_files_to_markdown(selected_files, base_folder))
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `_handle_folder_selection`
+
+```python
+def _handle_folder_selection(self) -> None
+```
+
+Handle folder selection and process all files in the selected folder.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _handle_folder_selection(self) -> None:
+        # Get default path from config or use current directory
+        default_path = self.config.get("path_github", str(Path.cwd()))
+
+        # Let user select a folder
+        selected_folder = self.get_existing_directory("Выбрать папку", default_path)
+        if not selected_folder:
+            return
+
+        # Find all files recursively in the selected folder, filtering ignored paths
+        all_files = []
+        for root, dirs, files in os.walk(selected_folder):
+            # Filter out ignored directories
+            dirs[:] = [d for d in dirs if not h.file.should_ignore_path(Path(root) / d)]
+
+            for file in files:
+                file_path = Path(root) / file
+                # Check if the file should be ignored
+                if not h.file.should_ignore_path(file_path):
+                    all_files.append(str(file_path))
+
+        if not all_files:
+            self.add_line("❌ No files found in the selected folder (after filtering ignored paths)")
+            return
+
+        # Show file selection dialog with checkboxes (all files selected by default)
+        selected_files = self.get_checkbox_selection(
+            "Select files to combine",
+            f"Choose files from '{selected_folder}' to combine:",
+            all_files,
+            default_selected=all_files,  # All files selected by default
+        )
+
+        if not selected_files:
+            return
+
+        # Use the selected folder as base folder
+        self.add_line(_safe_collect_text_files_to_markdown(selected_files, str(selected_folder)))
         self.show_result()
 ```
 
@@ -1658,7 +1762,7 @@ Args:
 paths: List of paths that may be files, directories, or glob patterns
 
 Returns:
-List of actual file paths
+List of actual file paths (filtered to exclude ignored paths)
 
 <details>
 <summary>Code:</summary>
@@ -1676,21 +1780,34 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
         if "*" in path or "?" in path:
             # Use glob to find matching files
             matches = glob.glob(path, recursive=True)
-            expanded_paths.extend(matches)
+            # Filter out ignored paths
+            for match in matches:
+                if not h.file.should_ignore_path(Path(match)):
+                    expanded_paths.append(match)
         elif os.path.isfile(path):
-            # It's a direct file path
-            expanded_paths.append(path)
+            # It's a direct file path - check if it should be ignored
+            if not h.file.should_ignore_path(Path(path)):
+                expanded_paths.append(path)
         elif os.path.isdir(path):
             # It's a directory, find all files recursively
             for root, dirs, files in os.walk(path):
+                # Filter out ignored directories
+                dirs[:] = [d for d in dirs if not h.file.should_ignore_path(Path(root) / d)]
+
                 for file in files:
-                    expanded_paths.append(os.path.join(root, file))
+                    file_path = Path(root) / file
+                    # Check if the file should be ignored
+                    if not h.file.should_ignore_path(file_path):
+                        expanded_paths.append(str(file_path))
         else:
             # Path doesn't exist, but might be a glob pattern that didn't match
             # Try glob anyway in case it's a pattern
             matches = glob.glob(path, recursive=True)
             if matches:
-                expanded_paths.extend(matches)
+                # Filter out ignored paths
+                for match in matches:
+                    if not h.file.should_ignore_path(Path(match)):
+                        expanded_paths.append(match)
 
     return expanded_paths
 ```
@@ -1727,6 +1844,67 @@ def _filter_files_by_extension(files: list[str], extensions: list[str] | None = 
             filtered_files.append(file_path)
 
     return filtered_files
+```
+
+</details>
+
+## 🔧 Function `_safe_collect_text_files_to_markdown`
+
+```python
+def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str) -> str
+```
+
+Safely collect text files to markdown, skipping files that can't be decoded as text.
+
+This function wraps h.file.collect_text_files_to_markdown and handles UnicodeDecodeError
+exceptions by skipping files that can't be decoded as text (e.g., binary files).
+
+Args:
+file_paths: List of file paths to process
+base_folder: Base folder path for relative path calculation
+
+Returns:
+Markdown string with successfully processed files
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str) -> str:
+    try:
+        return h.file.collect_text_files_to_markdown(file_paths, base_folder)
+    except UnicodeDecodeError:
+        # If we get a UnicodeDecodeError, it means one of the files is not a text file
+        # We need to process files one by one and skip the problematic ones
+        result_lines = []
+        processed_files = []
+        skipped_files = []
+
+        for file_path in file_paths:
+            try:
+                # Try to read the file to check if it's a text file
+                with open(file_path, encoding="utf-8") as f:
+                    f.read(1)  # Try to read at least one character
+                processed_files.append(file_path)
+            except UnicodeDecodeError:
+                # This file is not a text file, skip it
+                skipped_files.append(file_path)
+                continue
+            except Exception:
+                # Other errors, also skip
+                skipped_files.append(file_path)
+                continue
+
+        if skipped_files:
+            result_lines.append(f"⚠️ Skipped {len(skipped_files)} non-text files: {', '.join(skipped_files)}")
+
+        if processed_files:
+            # Process only the text files
+            result_lines.append(h.file.collect_text_files_to_markdown(processed_files, base_folder))
+        else:
+            result_lines.append("❌ No text files found to process")
+
+        return "\n".join(result_lines)
 ```
 
 </details>

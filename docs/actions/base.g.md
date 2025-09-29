@@ -384,9 +384,8 @@ class ActionBase:
                 self.add_line("❌ No files were selected.")
                 return None
             return [Path(filename) for filename in filenames]
-        else:
-            self.add_line("❌ No files were selected.")
-            return None
+        self.add_line("❌ No files were selected.")
+        return None
 
     def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Open a dialog to specify a filename for saving.
@@ -1346,9 +1345,8 @@ def get_open_filenames(self, title: str, default_path: str, filter_: str) -> lis
                 self.add_line("❌ No files were selected.")
                 return None
             return [Path(filename) for filename in filenames]
-        else:
-            self.add_line("❌ No files were selected.")
-            return None
+        self.add_line("❌ No files were selected.")
+        return None
 ```
 
 </details>

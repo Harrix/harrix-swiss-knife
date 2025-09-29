@@ -78,6 +78,7 @@ class AccountEditDialog(QDialog):
 
         Raises:
             ValueError: If expression is invalid or contains unsafe operations.
+
         """
         # Remove all whitespace
         expression = expression.replace(" ", "")
@@ -101,7 +102,7 @@ class AccountEditDialog(QDialog):
                 raise ValueError("Expression does not evaluate to a number")
             return float(result)
         except Exception as e:
-            raise ValueError(f"Invalid expression: {str(e)}")
+            raise ValueError(f"Invalid expression: {e!s}")
 
     def _on_delete(self):
         """Handle delete button click."""
@@ -125,7 +126,7 @@ class AccountEditDialog(QDialog):
         try:
             result = self._evaluate_expression(expression)
             self.balance_spin.setValue(result)
-        except ValueError as e:
+        except ValueError:
             # Don't show error for partial expressions, only for invalid ones
             pass
 
@@ -143,7 +144,7 @@ class AccountEditDialog(QDialog):
                 calculated_balance = self._evaluate_expression(expression)
                 self.balance_spin.setValue(calculated_balance)
             except ValueError as e:
-                QMessageBox.warning(self, "Error", f"Invalid expression: {str(e)}")
+                QMessageBox.warning(self, "Error", f"Invalid expression: {e!s}")
                 return
 
         self.result_data = {
@@ -343,7 +344,7 @@ def _evaluate_expression(self, expression: str) -> float:
                 raise ValueError("Expression does not evaluate to a number")
             return float(result)
         except Exception as e:
-            raise ValueError(f"Invalid expression: {str(e)}")
+            raise ValueError(f"Invalid expression: {e!s}")
 ```
 
 </details>
@@ -395,7 +396,7 @@ def _on_expression_changed(self):
         try:
             result = self._evaluate_expression(expression)
             self.balance_spin.setValue(result)
-        except ValueError as e:
+        except ValueError:
             # Don't show error for partial expressions, only for invalid ones
             pass
 ```
@@ -427,7 +428,7 @@ def _on_save(self):
                 calculated_balance = self._evaluate_expression(expression)
                 self.balance_spin.setValue(calculated_balance)
             except ValueError as e:
-                QMessageBox.warning(self, "Error", f"Invalid expression: {str(e)}")
+                QMessageBox.warning(self, "Error", f"Invalid expression: {e!s}")
                 return
 
         self.result_data = {
