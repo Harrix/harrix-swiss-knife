@@ -2219,7 +2219,7 @@ class MainWindow(
                         # No data for this exercise
                         table_data.append([
                             exercise_name, exercise_unit or "", "0", "No data", "No data",
-                            "N/A", "N/A", "N/A", "N/A", False  # No data rows get red background
+                            "N/A", "N/A", "N/A", "N/A", 2  # Dark red - no data
                         ])
                         continue
 
@@ -2228,11 +2228,14 @@ class MainWindow(
                         exercise_name, monthly_data, months_count, exercise_unit
                     )
 
-                    # Determine if exercise has achieved all goals (both last month and max goals)
-                    has_achieved_all_goals = (
-                        recommendations['remaining_to_last_month'] <= 0 and
-                        recommendations['remaining_to_max'] <= 0
-                    )
+                    # Determine exercise status for color coding
+                    # 0 = green (all goals achieved), 1 = orange (incomplete goals), 2 = dark red (no data)
+                    if recommendations['last_month_value'] <= 0 and recommendations['max_value'] <= 0:
+                        color_priority = 2  # Dark red - no data
+                    elif recommendations['remaining_to_last_month'] <= 0 and recommendations['remaining_to_max'] <= 0:
+                        color_priority = 0  # Green - all goals achieved
+                    else:
+                        color_priority = 1  # Orange - incomplete goals
 
                     # Add row to table data with color information
                     table_data.append([
@@ -2245,7 +2248,7 @@ class MainWindow(
                         f"{int(recommendations['remaining_to_max'])}{unit_text}" if recommendations['remaining_to_max'] > 0 else "✅",
                         f"{int(recommendations['daily_needed_last_month'])}{unit_text}" if recommendations['daily_needed_last_month'] > 0 else "✅",
                         f"{int(recommendations['daily_needed_max'])}{unit_text}" if recommendations['daily_needed_max'] > 0 else "✅",
-                        has_achieved_all_goals  # Add color flag as last element
+                        color_priority  # Add color priority as last element
                     ])
 
                 except Exception as e:
@@ -2253,9 +2256,12 @@ class MainWindow(
                     # Add error row
                     table_data.append([
                         exercise_name, "Error", "Error", "Error", "Error",
-                        "Error", "Error", "Error", "Error", False  # Error rows get red background
+                        "Error", "Error", "Error", "Error", 2  # Dark red - error
                     ])
                     continue
+
+            # Sort table data by color priority: green (0), orange (1), dark red (2)
+            table_data.sort(key=lambda x: x[-1])
 
             # Create and populate model
             model = QStandardItemModel()
@@ -2267,15 +2273,19 @@ class MainWindow(
 
             for row_data in table_data:
                 items = []
-                has_achieved_all_goals = row_data[-1]  # Get color flag from last element
+                color_priority = row_data[-1]  # Get color priority from last element
 
-                # Create items for display columns only (exclude the color flag)
-                for col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color flag)
+                # Create items for display columns only (exclude the color priority)
+                for col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color priority)
                     item = QStandardItem(str(value))
 
-                    # Set red background for exercises that haven't achieved all goals
-                    if not has_achieved_all_goals:
-                        item.setBackground(QBrush(QColor(255, 200, 200)))  # Light red background
+                    # Apply color based on priority
+                    if color_priority == 0:  # Green - all goals achieved
+                        item.setBackground(QBrush(QColor(200, 255, 200)))  # Light green background
+                    elif color_priority == 1:  # Orange - incomplete goals
+                        item.setBackground(QBrush(QColor(255, 200, 150)))  # Light orange background
+                    elif color_priority == 2:  # Dark red - no data or error
+                        item.setBackground(QBrush(QColor(255, 150, 150)))  # Dark red background
 
                     items.append(item)
                 model.appendRow(items)
@@ -2298,8 +2308,8 @@ class MainWindow(
             for i in range(header.count() - 1):
                 self.tableView_statistics.setColumnWidth(i, 120)
 
-            # Enable alternating row colors
-            self.tableView_statistics.setAlternatingRowColors(True)
+            # Disable alternating row colors since we have custom color coding
+            self.tableView_statistics.setAlternatingRowColors(False)
 
             # Update statistics AVIF
             self._update_statistics_avif()
