@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 
 
 class TestRadioButtons(QMainWindow):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Test Radio Buttons")
         self.setGeometry(100, 100, 400, 300)
@@ -77,28 +77,28 @@ class TestRadioButtons(QMainWindow):
         # Обновляем расчет
         self.update_calculation()
 
-    def on_radio_changed(self):
-        """Обработчик изменения radio button'ов"""
+    def on_radio_changed(self) -> None:
+        """Обработчик изменения radio button'ов."""
         print(
             f"🔧 Radio button changed: weight={self.radio_weight.isChecked()}, calories={self.radio_calories.isChecked()}"
         )
         self.update_calculation()
 
-    def on_values_changed(self):
-        """Обработчик изменения значений"""
+    def on_values_changed(self) -> None:
+        """Обработчик изменения значений."""
         print(f"🔧 Values changed: weight={self.weight_spin.value()}, calories={self.calories_spin.value()}")
         self.update_calculation()
 
-    def test_calculation(self):
-        """Тестирует расчет при нажатии кнопки"""
+    def test_calculation(self) -> None:
+        """Тестирует расчет при нажатии кнопки."""
         print("🔧 Test button clicked!")
         print(
             f"🔧 Current state: weight={self.weight_spin.value()}, calories={self.calories_spin.value()}, use_weight={self.radio_weight.isChecked()}"
         )
         self.update_calculation()
 
-    def update_calculation(self):
-        """Обновляет расчет калорий"""
+    def update_calculation(self) -> None:
+        """Обновляет расчет калорий."""
         weight = self.weight_spin.value()
         calories = self.calories_spin.value()
         use_weight = self.radio_weight.isChecked()
@@ -123,7 +123,7 @@ class TestRadioButtons(QMainWindow):
             print("🔧 Portion mode: no calories specified")
 
 
-def main():
+def main() -> None:
     app = QApplication(sys.argv)
     window = TestRadioButtons()
     window.show()

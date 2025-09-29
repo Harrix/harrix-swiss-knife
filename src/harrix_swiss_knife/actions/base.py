@@ -890,7 +890,7 @@ class ActionBase:
 class DragDropFileDialog(QDialog):
     """Custom dialog with drag-and-drop support for file selection."""
 
-    def __init__(self, title: str, default_path: str, filter_: str, parent=None):
+    def __init__(self, title: str, default_path: str, filter_: str, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setModal(True)
@@ -903,19 +903,19 @@ class DragDropFileDialog(QDialog):
 
         self.setup_ui()
 
-    def add_files(self, file_paths: list[str]):
+    def add_files(self, file_paths: list[str]) -> None:
         """Add files to the selection."""
         for file_path in file_paths:
             if file_path not in self.selected_files:
                 self.selected_files.append(file_path)
                 self.files_list.addItem(file_path)
 
-    def clear_files(self):
+    def clear_files(self) -> None:
         """Clear all selected files."""
         self.selected_files.clear()
         self.files_list.clear()
 
-    def dragEnterEvent(self, event: QDragEnterEvent):
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         """Handle drag enter event."""
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -933,7 +933,7 @@ class DragDropFileDialog(QDialog):
         else:
             event.ignore()
 
-    def dragLeaveEvent(self, event):
+    def dragLeaveEvent(self, event) -> None:
         """Handle drag leave event."""
         self.drop_area.setStyleSheet("""
             QLabel {
@@ -947,7 +947,7 @@ class DragDropFileDialog(QDialog):
             }
         """)
 
-    def dropEvent(self, event: QDropEvent):
+    def dropEvent(self, event: QDropEvent) -> None:
         """Handle drop event."""
         if event.mimeData().hasUrls():
             urls = event.mimeData().urls()
@@ -966,13 +966,13 @@ class DragDropFileDialog(QDialog):
         """Get list of selected file paths."""
         return self.selected_files
 
-    def select_files(self):
+    def select_files(self) -> None:
         """Open standard file dialog to select files."""
         filenames, _ = QFileDialog.getOpenFileNames(self, "Select Files", self.default_path, self.filter_)
         if filenames:
             self.add_files(filenames)
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Setup the user interface."""
         layout = QVBoxLayout(self)
 

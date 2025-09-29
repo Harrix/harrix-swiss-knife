@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 class FoodItemDialog(QDialog):
     """Dialog for editing food item parameters."""
 
-    def __init__(self, parent=None, food_item_data=None):
+    def __init__(self, parent=None, food_item_data=None) -> None:
         """Initialize the dialog.
 
         Args:
@@ -36,7 +36,7 @@ class FoodItemDialog(QDialog):
         self.setup_ui()
         self.setup_data()
 
-    def accept(self):
+    def accept(self) -> None:
         """Handle accept (save) button click."""
         # Validate required fields
         name = self.name_edit.text().strip()
@@ -56,7 +56,7 @@ class FoodItemDialog(QDialog):
 
         super().accept()
 
-    def delete_item(self):
+    def delete_item(self) -> None:
         """Handle delete button click."""
         if not self.food_item_data:
             return
@@ -88,7 +88,7 @@ class FoodItemDialog(QDialog):
             "default_portion_calories": self.default_portion_calories_spinbox.value() or None,
         }
 
-    def setup_data(self):
+    def setup_data(self) -> None:
         """Setup initial data from food_item_data."""
         if self.food_item_data:
             # food_item_data format: [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
@@ -99,7 +99,7 @@ class FoodItemDialog(QDialog):
             self.default_portion_weight_spinbox.setValue(int(self.food_item_data[5]) if self.food_item_data[5] else 0)
             self.default_portion_calories_spinbox.setValue(self.food_item_data[6] if self.food_item_data[6] else 0)
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Setup the user interface."""
         self.setWindowTitle("Edit Food Item")
         self.setModal(True)

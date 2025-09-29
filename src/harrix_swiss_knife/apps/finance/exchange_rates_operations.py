@@ -327,7 +327,7 @@ class ExchangeRatesOperations:
             self.check_progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
             # Connect cancel button for checker
-            def cancel_check():
+            def cancel_check() -> None:
                 if hasattr(self, "exchange_rate_checker"):
                     self.exchange_rate_checker.stop()
                 self.check_progress_dialog.close()
@@ -455,7 +455,7 @@ class ExchangeRatesOperations:
                 self._show_no_data_label(self.verticalLayout_exchange_rates_content, "Currency not found")
                 return
 
-            currency_code, currency_name, currency_symbol = currency_info
+            currency_code, currency_name, _currency_symbol = currency_info
 
             # Get exchange rates data
             rates_data = self._get_exchange_rates_data(currency_id, date_from, date_to)
@@ -536,17 +536,17 @@ class ExchangeRatesOperations:
                     xy=(date_objects[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
                     fontsize=10,
                 )
 
-                last_date = dates[-1]
+                dates[-1]
                 ax.annotate(
                     f"{transformed_rates[-1]:.6f}",
                     xy=(date_objects[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
                     fontsize=10,
                 )
 
@@ -558,7 +558,7 @@ class ExchangeRatesOperations:
                         xy=(date_objects[min_index], min_rate),
                         xytext=(10, -20),
                         textcoords="offset points",
-                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
                         fontsize=10,
                         color="red",
                     )
@@ -571,7 +571,7 @@ class ExchangeRatesOperations:
                         xy=(date_objects[max_index], max_rate),
                         xytext=(10, 20),
                         textcoords="offset points",
-                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
                         fontsize=10,
                         color="green",
                     )
@@ -698,7 +698,7 @@ class ExchangeRatesOperations:
             # Fill exchange item update currency combo box with the same data
             self.comboBox_exchange_item_update.clear()
             for currency in currencies:
-                currency_id, code, name, symbol = currency
+                currency_id, code, name, _symbol = currency
                 # Skip USD currency
                 if code.upper() == "USD":
                     continue
@@ -723,7 +723,7 @@ class ExchangeRatesOperations:
         except Exception as e:
             print(f"Error setting up exchange rates controls: {e}")
 
-    def _start_exchange_rate_update(self, currencies_to_process: list):
+    def _start_exchange_rate_update(self, currencies_to_process: list) -> None:
         """Start the exchange rate update process after check is complete."""
         try:
             # Create and configure update progress dialog
@@ -736,7 +736,7 @@ class ExchangeRatesOperations:
             self.progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
 
             # Connect cancel button for updater
-            def cancel_update():
+            def cancel_update() -> None:
                 if hasattr(self, "exchange_rate_worker"):
                     self.exchange_rate_worker.stop()
                 self.progress_dialog.close()
@@ -763,7 +763,7 @@ class ExchangeRatesOperations:
             QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
             print(f"❌ Exchange rate update error: {e}")
 
-    def _start_startup_exchange_rate_update(self, currencies_to_process: list):
+    def _start_startup_exchange_rate_update(self, currencies_to_process: list) -> None:
         """Start the exchange rate update process for startup."""
         try:
             # Determine the strategy for logging

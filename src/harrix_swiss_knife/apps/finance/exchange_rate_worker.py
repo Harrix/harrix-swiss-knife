@@ -17,13 +17,13 @@ class ExchangeRateUpdateWorker(QThread):
     finished_success = Signal(int, int)  # Total processed count, total operations
     finished_error = Signal(str)  # Error message
 
-    def __init__(self, db_manager, currencies_to_process):
+    def __init__(self, db_manager, currencies_to_process) -> None:
         super().__init__()
         self.db_manager = db_manager
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
         self.should_stop = False
 
-    def run(self):
+    def run(self) -> None:
         """Main worker execution."""
         try:
             # Import required libraries
@@ -289,7 +289,7 @@ class ExchangeRateUpdateWorker(QThread):
         except Exception as e:
             self.finished_error.emit(f"Exchange rate update error: {e}")
 
-    def stop(self):
+    def stop(self) -> None:
         """Request worker to stop."""
         self.should_stop = True
 

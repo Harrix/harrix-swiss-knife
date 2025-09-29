@@ -577,10 +577,7 @@ class DatabaseManager:
             try:
                 date_str = str(row[0]) if row[0] is not None else ""
                 calories_value = row[1]
-                if calories_value is None or calories_value == "":
-                    calories_float = 0.0
-                else:
-                    calories_float = float(calories_value)
+                calories_float = 0.0 if calories_value is None or calories_value == "" else float(calories_value)
                 result.append((date_str, calories_float))
             except (ValueError, TypeError):
                 # Skip invalid rows
@@ -944,9 +941,7 @@ class DatabaseManager:
             "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
         )
 
-        if query and query.next():
-            return True
-        return False
+        return bool(query and query.next())
 
     def update_food_item(
         self,

@@ -2189,7 +2189,7 @@ class MainWindow(
                 color_priority = row_data[-1]  # Get color priority from last element
 
                 # Create items for display columns only (exclude the color priority)
-                for col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color priority)
+                for _col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color priority)
                     item = QStandardItem(str(value))
 
                     # Apply color based on priority
@@ -3985,6 +3985,7 @@ class MainWindow(
 
         Returns:
             dict: Dictionary containing all recommendation values
+
         """
         import calendar
         from datetime import datetime
@@ -3992,14 +3993,11 @@ class MainWindow(
         # Find the maximum final value from all months and last month value
         max_value = 0.0
         last_month_value = 0.0
-        max_month_index = 0
 
         for i, month_data in enumerate(monthly_data):
             if month_data:
                 final_value = month_data[-1][1]
-                if final_value > max_value:
-                    max_value = final_value
-                    max_month_index = i
+                max_value = max(max_value, final_value)
                 # Last month is the second item (index 1) if it exists
                 if i == 1:
                     last_month_value = final_value
@@ -4600,6 +4598,7 @@ class MainWindow(
 
         Returns:
             list: Monthly data in the same format as compare_last
+
         """
         from datetime import datetime, timedelta
 
@@ -5432,10 +5431,7 @@ class MainWindow(
         # Default message uses the spinner value for months when appropriate
         if text is None:
             months = self.spinBox_compare_last.value() if hasattr(self, "spinBox_compare_last") else 0
-            if months > 0:
-                text = f"No data for the last {months} months."
-            else:
-                text = "No data for the selected period."
+            text = f"No data for the last {months} months." if months > 0 else "No data for the selected period."
 
         self.label_chart_info.setText(text)
         self.label_chart_info.setStyleSheet("""

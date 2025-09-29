@@ -285,10 +285,7 @@ class MainWindow(
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             focused_widget = QApplication.focusWidget()
             if (
-                focused_widget == self.doubleSpinBox_food_calories
-                or focused_widget == self.spinBox_food_weight
-                or focused_widget == self.checkBox_food_is_drink
-                or focused_widget == self.pushButton_food_add
+                focused_widget in (self.doubleSpinBox_food_calories, self.spinBox_food_weight, self.checkBox_food_is_drink, self.pushButton_food_add)
             ):
                 self.pushButton_food_add.click()
                 return
@@ -527,7 +524,7 @@ class MainWindow(
         if self._food_item_dialog_open:
             return
 
-        food_item, source_list = self._get_current_selected_food_item()
+        food_item, _source_list = self._get_current_selected_food_item()
         if not food_item:
             return
 
@@ -1393,7 +1390,7 @@ class MainWindow(
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
-        for row_idx, row in enumerate(data):
+        for _row_idx, row in enumerate(data):
             items = []
             row_color = None
 
@@ -1418,7 +1415,7 @@ class MainWindow(
                     pass
 
             # Create items for all columns
-            for col_idx, value in enumerate(row):
+            for _col_idx, value in enumerate(row):
                 item = QStandardItem(str(value) if value is not None else "")
 
                 # Apply row color to all items in the row
@@ -1954,7 +1951,7 @@ class MainWindow(
             if food_item_data:
                 # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                 (
-                    food_id,
+                    _food_id,
                     name,
                     name_en,
                     is_drink,
@@ -1984,7 +1981,7 @@ class MainWindow(
 
                 if food_log_data:
                     # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
-                    name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
+                    _name, _name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
 
                     # Populate form fields
                     self.spinBox_food_weight.setValue(int(weight) if weight else 100)
@@ -2046,7 +2043,7 @@ class MainWindow(
             if food_item_data:
                 # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                 (
-                    food_id,
+                    _food_id,
                     name,
                     name_en,
                     is_drink,

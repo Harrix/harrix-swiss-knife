@@ -13,7 +13,7 @@ class ExchangeRateCheckerWorker(QThread):
     check_completed = Signal(list)  # List of currencies to process
     check_failed = Signal(str)  # Error message
 
-    def __init__(self, db_manager, check_from_first_transaction=True):
+    def __init__(self, db_manager, check_from_first_transaction=True) -> None:
         """Initialize the checker worker.
 
         Args:
@@ -27,7 +27,7 @@ class ExchangeRateCheckerWorker(QThread):
         self.check_from_first_transaction = check_from_first_transaction
         self.should_stop = False
 
-    def run(self):
+    def run(self) -> None:
         """Main worker execution for checking exchange rates."""
         try:
             self.progress_updated.emit("🔍 Starting exchange rates check...")
@@ -62,7 +62,7 @@ class ExchangeRateCheckerWorker(QThread):
 
             # Process each currency
             total_currencies = len(currencies)
-            for idx, (currency_id, currency_code, currency_name, currency_symbol) in enumerate(currencies, 1):
+            for idx, (currency_id, currency_code, _currency_name, _currency_symbol) in enumerate(currencies, 1):
                 if self.should_stop:
                     self.check_failed.emit("Check cancelled by user")
                     return
@@ -133,6 +133,6 @@ class ExchangeRateCheckerWorker(QThread):
         except Exception as e:
             self.check_failed.emit(f"Check error: {e!s}")
 
-    def stop(self):
+    def stop(self) -> None:
         """Request worker to stop."""
         self.should_stop = True

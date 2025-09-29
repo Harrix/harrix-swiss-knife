@@ -1302,9 +1302,7 @@ class DatabaseManager:
             "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
         )
 
-        if query and query.next():
-            return True
-        return False
+        return bool(query and query.next())
 
     def update_exercise(
         self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0

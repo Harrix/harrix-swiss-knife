@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate
 class AmountDelegate(QStyledItemDelegate):
     """Delegate for amount column with custom formatting and editing."""
 
-    def __init__(self, parent=None, db_manager=None):
+    def __init__(self, parent=None, db_manager=None) -> None:
         super().__init__(parent)
         self.db_manager = db_manager
 
@@ -90,7 +90,7 @@ class AmountDelegate(QStyledItemDelegate):
         except Exception:
             return str(value)
 
-    def paint(self, painter, option, index):
+    def paint(self, painter, option, index) -> None:
         """Custom paint method to handle income formatting."""
         try:
             # Get the model and check if this is an income transaction
@@ -142,7 +142,7 @@ class AmountDelegate(QStyledItemDelegate):
             # Fallback to default painting on any error
             super().paint(painter, option, index)
 
-    def setEditorData(self, editor, index):
+    def setEditorData(self, editor, index) -> None:
         """Set data in editor (without spaces)."""
         try:
             # Get the original value without formatting
@@ -162,7 +162,7 @@ class AmountDelegate(QStyledItemDelegate):
         except (ValueError, TypeError):
             editor.setValue(0.0)
 
-    def setModelData(self, editor, model, index):
+    def setModelData(self, editor, model, index) -> None:
         """Set data from editor back to model."""
         value = editor.value()
 

@@ -143,7 +143,8 @@ class AutoSaveOperations:
         try:
             category_type = int(type_str)
             if category_type not in (0, 1):
-                raise ValueError("Type must be 0 or 1")
+                msg = "Type must be 0 or 1"
+                raise ValueError(msg)
         except (ValueError, TypeError):
             QMessageBox.warning(None, "Validation Error", f"Invalid category type: {type_str}")
             return

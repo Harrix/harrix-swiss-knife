@@ -800,7 +800,7 @@ class DatabaseManager:
         - `list[list[Any]]`: List of account records [_id, name, balance, currency_code, is_liquid, is_cash, currency_id].
 
         """
-        rows = self.get_rows("""
+        return self.get_rows("""
             SELECT a._id, a.name, a.balance, c.code, a.is_liquid, a.is_cash, c._id as currency_id
             FROM accounts a
             JOIN currencies c ON a._id_currencies = c._id
@@ -808,7 +808,6 @@ class DatabaseManager:
         """)
 
         # Return raw balance values (in minor units) - conversion will be done in the UI layer
-        return rows
 
     def get_all_categories(self) -> list[list[Any]]:
         """Get all categories.
@@ -1535,7 +1534,7 @@ class DatabaseManager:
 
             rows = self.get_rows(query, {"currency_id": currency_id, "date_from": date_from, "date_to": date_to})
 
-            existing_dates = set(row[0] for row in rows)
+            existing_dates = {row[0] for row in rows}
 
             # Find missing dates
             missing_dates = []
@@ -1925,9 +1924,7 @@ class DatabaseManager:
             "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
         )
 
-        if query and query.next():
-            return True
-        return False
+        return bool(query and query.next())
 
     def update_account(
         self,
