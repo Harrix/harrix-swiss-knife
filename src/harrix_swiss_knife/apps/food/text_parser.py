@@ -6,8 +6,8 @@ to food log records according to specific rules.
 
 from __future__ import annotations
 
+import datetime
 import re
-from datetime import date
 from typing import Any, NamedTuple
 
 from PySide6.QtWidgets import QInputDialog, QWidget
@@ -77,7 +77,7 @@ class TextParser:
         lines = text.strip().split("\n")
         parsed_items = []
         # Use provided default_date or today's date
-        today = default_date or date.today().strftime("%Y-%m-%d")
+        today = default_date or datetime.now(tz=datetime.now().astimezone().tzinfo).date().strftime("%Y-%m-%d")
 
         for line_num, line in enumerate(lines, 1):
             line_new = line.strip()

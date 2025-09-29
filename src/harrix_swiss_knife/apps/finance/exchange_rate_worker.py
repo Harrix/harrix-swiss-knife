@@ -254,7 +254,9 @@ class ExchangeRateUpdateWorker(QThread):
                 # Update existing records (only recent ones, not weekends)
                 if existing_records:
                     # Only update last 7 days of records
-                    recent_cutoff = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+                    recent_cutoff = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=7)).strftime(
+                        "%Y-%m-%d"
+                    )
                     recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
 
                     if recent_records:

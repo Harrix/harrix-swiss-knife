@@ -1552,7 +1552,7 @@ class MainWindow(
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # Для today's balance и expenses также используем упрощенные запросы
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             today_query_income = """
                 SELECT SUM(t.amount) as total
@@ -1667,13 +1667,15 @@ class MainWindow(
             accounts_data = self.db_manager.get_all_accounts()
 
             total_balance = 0.0
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances = {}
 
             for account in accounts_data:
-                _account_id, _account_name, balance_minor_units, currency_code, _is_liquid, _is_cash, currency_id = account
+                _account_id, _account_name, balance_minor_units, currency_code, _is_liquid, _is_cash, currency_id = (
+                    account
+                )
 
                 # Convert balance from minor units to major units
                 account_subdivision = self.db_manager.get_currency_subdivision(currency_id)
@@ -2302,7 +2304,7 @@ class MainWindow(
         currency_code = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date = datetime.now()
+        end_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
         start_date = end_date - timedelta(days=30)
         date_from = start_date.strftime("%Y-%m-%d")
         date_to = end_date.strftime("%Y-%m-%d")
@@ -2425,11 +2427,11 @@ class MainWindow(
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today = datetime.now().strftime("%Y-%m-%d")
+                today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date = datetime.now()
+                end_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
                 start_date = end_date - timedelta(days=days)
                 date_from = start_date.strftime("%Y-%m-%d")
                 date_to = end_date.strftime("%Y-%m-%d")
@@ -2486,7 +2488,7 @@ class MainWindow(
 
         # Get last 12 months
         report_data = []
-        end_date = datetime.now()
+        end_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         for i in range(12):
             # Calculate month start and end

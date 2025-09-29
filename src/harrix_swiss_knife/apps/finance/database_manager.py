@@ -499,7 +499,9 @@ class DatabaseManager:
             # Calculate the cutoff date
             from datetime import datetime, timedelta
 
-            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            cutoff_date = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=days)).strftime(
+                "%Y-%m-%d"
+            )
 
             # Delete exchange rates from the last N days (including today)
             query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
@@ -662,7 +664,7 @@ class DatabaseManager:
             return 0
 
         start_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
-        end_date = datetime.now().date()
+        end_date = datetime.now(tz=datetime.now().astimezone().tzinfo).date()
 
         print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
 
@@ -1687,7 +1689,7 @@ class DatabaseManager:
         - `float`: Today's balance in target currency.
 
         """
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
         total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return total_income - total_expenses
 
@@ -1703,7 +1705,7 @@ class DatabaseManager:
         - `float`: Today's expenses in the specified currency.
 
         """
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
 
@@ -1797,7 +1799,7 @@ class DatabaseManager:
         # Check cache (valid for 5 minutes)
         from datetime import datetime, timedelta
 
-        now = datetime.now()
+        now = datetime.now(tz=datetime.now().astimezone().tzinfo)
         if (
             self._cache_timestamp
             and (now - self._cache_timestamp) < timedelta(minutes=5)
@@ -1903,7 +1905,7 @@ class DatabaseManager:
             from datetime import datetime
 
             # Get today's date in YYYY-MM-DD format
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             # Get all currencies except USD
             currencies = self.get_currencies_except_usd()

@@ -733,7 +733,9 @@ class MainWindow(
 
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
-            yesterday = datetime.now().date() - timedelta(days=1)  # Use local time instead of UTC
+            yesterday = datetime.now(tz=datetime.now().astimezone().tzinfo).date() - timedelta(
+                days=1
+            )  # Use local time instead of UTC
 
             try:
                 first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
@@ -878,7 +880,7 @@ class MainWindow(
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
         # Use local time for current date
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         monthly_data = []
         colors = []
@@ -1127,7 +1129,7 @@ class MainWindow(
         selected_month_index = self.comboBox_compare_same_months.currentIndex()
         selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
 
-        today = datetime.now()  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)  # Use local time instead of UTC
         selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
@@ -1768,7 +1770,9 @@ class MainWindow(
                 return
 
             # Calculate date one year ago
-            one_year_ago = datetime.now() - timedelta(days=365)  # Use local time instead of UTC
+            one_year_ago = datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(
+                days=365
+            )  # Use local time instead of UTC
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Group data by exercise and type combination
@@ -2275,7 +2279,7 @@ class MainWindow(
                 return
 
             # Calculate days ago for each exercise
-            today = datetime.now().date()  # Use local time instead of UTC
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).date()  # Use local time instead of UTC
             table_data = []
 
             for exercise_name, last_date_str in exercise_dates:
@@ -2592,7 +2596,9 @@ class MainWindow(
 
         # For calories chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -2680,7 +2686,9 @@ class MainWindow(
 
         # For sets chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3041,7 +3049,9 @@ class MainWindow(
 
         # For exercise chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3307,7 +3317,7 @@ class MainWindow(
         from datetime import datetime, timedelta
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
         current_year = today.year
 
@@ -3472,7 +3482,7 @@ class MainWindow(
             return
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -3604,7 +3614,7 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
         monthly_data = []
 
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         for i in range(months_count):
             # Calculate start and end of month
@@ -3709,7 +3719,7 @@ class MainWindow(
                 today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
         # Calculate remaining days in current month
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
         current_year = today.year
         days_in_month = calendar.monthrange(current_year, current_month)[1]
@@ -3815,7 +3825,7 @@ class MainWindow(
         from datetime import datetime, timedelta
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
         current_year = today.year
 
@@ -4003,7 +4013,7 @@ class MainWindow(
                     last_month_value = final_value
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -4059,7 +4069,9 @@ class MainWindow(
 
         try:
             # Calculate date one year ago
-            one_year_ago = datetime.now() - timedelta(days=365)  # Use local time instead of UTC
+            one_year_ago = datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(
+                days=365
+            )  # Use local time instead of UTC
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Use database manager method
@@ -4603,7 +4615,7 @@ class MainWindow(
         from datetime import datetime, timedelta
 
         monthly_data = []
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         for i in range(months_count):
             # Calculate start and end of month (same logic as compare_last)

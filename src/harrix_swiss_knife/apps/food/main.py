@@ -284,8 +284,11 @@ class MainWindow(
         # Handle Enter key on various widgets to trigger add button
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             focused_widget = QApplication.focusWidget()
-            if (
-                focused_widget in (self.doubleSpinBox_food_calories, self.spinBox_food_weight, self.checkBox_food_is_drink, self.pushButton_food_add)
+            if focused_widget in (
+                self.doubleSpinBox_food_calories,
+                self.spinBox_food_weight,
+                self.checkBox_food_is_drink,
+                self.pushButton_food_add,
             ):
                 self.pushButton_food_add.click()
                 return
