@@ -1243,9 +1243,7 @@ class MainWindow(
             years_count = self.spinBox_compare_last.value()
             # Tailored message for 'same months' mode:
             selected_month_name = self.comboBox_compare_same_months.currentText()
-            self._set_no_data_info_label(
-                f"No data for {selected_month_name.lower()} in the last {years_count} years."
-            )
+            self._set_no_data_info_label(f"No data for {selected_month_name.lower()} in the last {years_count} years.")
             return
 
         # Clear existing chart
@@ -3218,34 +3216,6 @@ class MainWindow(
             line-height: 1.2;
         """)
 
-    # Add to MainWindow class (near other small helpers)
-    def _set_no_data_info_label(self, text: str | None = None) -> None:
-        """Set a unified 'no data' message into label_chart_info.
-
-        Comments are in English per the request:
-        - This is called whenever a chart has no data for the last N months
-        (or for the selected period in other modes), so the info label does not keep stale content.
-        """
-        # Default message uses the spinner value for months when appropriate
-        if text is None:
-            months = self.spinBox_compare_last.value() if hasattr(self, "spinBox_compare_last") else 0
-            if months > 0:
-                text = f"No data for the last {months} months."
-            else:
-                text = "No data for the selected period."
-
-        self.label_chart_info.setText(text)
-        self.label_chart_info.setStyleSheet("""
-            margin: 5px 0px;
-            padding: 10px;
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
-            border-radius: 5px;
-            font-size: 13px;
-            line-height: 1.2;
-        """)
-
-
     def _add_exercise_recommendations_to_label(
         self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str
     ) -> None:
@@ -3496,9 +3466,7 @@ class MainWindow(
         if max_value <= 0:
             years_count = self.spinBox_compare_last.value()
             selected_month_name = self.comboBox_compare_same_months.currentText()
-            self._set_no_data_info_label(
-                f"No data for {selected_month_name.lower()} in the last {years_count} years."
-            )
+            self._set_no_data_info_label(f"No data for {selected_month_name.lower()} in the last {years_count} years.")
             return
 
         # Get current progress (current year value)
@@ -5102,6 +5070,33 @@ class MainWindow(
                             break
         except Exception as e:
             print(f"Error selecting last executed exercise: {e}")
+
+    # Add to MainWindow class (near other small helpers)
+    def _set_no_data_info_label(self, text: str | None = None) -> None:
+        """Set a unified 'no data' message into label_chart_info.
+
+        Comments are in English per the request:
+        - This is called whenever a chart has no data for the last N months
+        (or for the selected period in other modes), so the info label does not keep stale content.
+        """
+        # Default message uses the spinner value for months when appropriate
+        if text is None:
+            months = self.spinBox_compare_last.value() if hasattr(self, "spinBox_compare_last") else 0
+            if months > 0:
+                text = f"No data for the last {months} months."
+            else:
+                text = "No data for the selected period."
+
+        self.label_chart_info.setText(text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.2;
+        """)
 
     def _set_today_date_in_main(self) -> None:
         """Set today's date in the main date field."""

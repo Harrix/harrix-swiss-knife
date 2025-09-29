@@ -114,6 +114,7 @@ lang: en
   - [⚙️ Method `_select_exercise_in_chart_list`](#%EF%B8%8F-method-_select_exercise_in_chart_list)
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
   - [⚙️ Method `_select_last_executed_exercise`](#%EF%B8%8F-method-_select_last_executed_exercise)
+  - [⚙️ Method `_set_no_data_info_label`](#%EF%B8%8F-method-_set_no_data_info_label)
   - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
@@ -1046,10 +1047,13 @@ class MainWindow(
                 colors.append(color_palette[color_index])
                 labels.append(f"{month_start.strftime('%B %Y')}")
 
-        # If all months are empty, there is nothing to display
+        # In on_compare_last_months, right before the early return where 'all months are empty'
         if all(len(d) == 0 for d in monthly_data):
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            # Explicitly say last N months:
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         # Clear existing chart
@@ -1316,10 +1320,14 @@ class MainWindow(
                         colors.append(color_palette[color_index])
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
+        # In on_compare_same_months, right before early return on 'not yearly_data'
         if not yearly_data:
-            # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            years_count = self.spinBox_compare_last.value()
+            # Tailored message for 'same months' mode:
+            selected_month_name = self.comboBox_compare_same_months.currentText()
+            self._set_no_data_info_label(f"No data for {selected_month_name.lower()} in the last {years_count} years.")
             return
 
         # Clear existing chart
@@ -2442,10 +2450,11 @@ class MainWindow(
         else:
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
+        # In show_kcal_chart, on no grouped_data
         if not grouped_data:
-            # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No calories data to display")
+            self._set_no_data_info_label("No data for the selected period.")
             return
 
         # Prepare chart data
@@ -2529,10 +2538,11 @@ class MainWindow(
         else:
             grouped_data = self._group_data_by_period(rows, period, value_type="int")
 
+        # In show_sets_chart, on no grouped_data
         if not grouped_data:
-            # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
+            self._set_no_data_info_label("No data for the selected period.")
             return
 
         # Prepare chart data
@@ -2871,10 +2881,17 @@ class MainWindow(
             except (ValueError, TypeError):
                 continue
 
+        # In update_exercise_chart, before every 'return' that indicates no data:
         if not datetime_data:
-            # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
+            self._set_no_data_info_label("No data for the selected period.")
+            return
+
+        if not grouped_data:
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            self._set_no_data_info_label("No data for the selected period.")
             return
 
         # Group data by period with aggregation based on checkbox
@@ -3199,7 +3216,8 @@ class MainWindow(
             monthly_calories_data.append(month_total)
 
         if not monthly_calories_data or all(calories == 0 for calories in monthly_calories_data):
-            self.label_chart_info.setText("")
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         # Find max and last month values
@@ -3295,7 +3313,8 @@ class MainWindow(
             exercise_unit (str): Unit of measurement
         """
         if not monthly_data:
-            self.label_chart_info.setText("")
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         import calendar
@@ -3316,9 +3335,9 @@ class MainWindow(
                 if i == 1:
                     last_month_value = final_value
 
-        # Only clear if there's no data at all across all months
         if max_value <= 0 and not any(month_data for month_data in monthly_data):
-            self.label_chart_info.setText("")
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         # Get current month progress
@@ -3529,7 +3548,9 @@ class MainWindow(
                     current_year_value = final_value
 
         if max_value <= 0:
-            self.label_chart_info.setText("")
+            years_count = self.spinBox_compare_last.value()
+            selected_month_name = self.comboBox_compare_same_months.currentText()
+            self._set_no_data_info_label(f"No data for {selected_month_name.lower()} in the last {years_count} years.")
             return
 
         # Get current progress (current year value)
@@ -3702,7 +3723,8 @@ class MainWindow(
             monthly_sets_data.append(month_total)
 
         if not monthly_sets_data or all(sets == 0 for sets in monthly_sets_data):
-            self.label_chart_info.setText("")
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         # Find max and last month values
@@ -5132,6 +5154,33 @@ class MainWindow(
                             break
         except Exception as e:
             print(f"Error selecting last executed exercise: {e}")
+
+    # Add to MainWindow class (near other small helpers)
+    def _set_no_data_info_label(self, text: str | None = None) -> None:
+        """Set a unified 'no data' message into label_chart_info.
+
+        Comments are in English per the request:
+        - This is called whenever a chart has no data for the last N months
+        (or for the selected period in other modes), so the info label does not keep stale content.
+        """
+        # Default message uses the spinner value for months when appropriate
+        if text is None:
+            months = self.spinBox_compare_last.value() if hasattr(self, "spinBox_compare_last") else 0
+            if months > 0:
+                text = f"No data for the last {months} months."
+            else:
+                text = "No data for the selected period."
+
+        self.label_chart_info.setText(text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.2;
+        """)
 
     def _set_today_date_in_main(self) -> None:
         """Set today's date in the main date field."""
@@ -6682,10 +6731,13 @@ def on_compare_last_months(self) -> None:
                 colors.append(color_palette[color_index])
                 labels.append(f"{month_start.strftime('%B %Y')}")
 
-        # If all months are empty, there is nothing to display
+        # In on_compare_last_months, right before the early return where 'all months are empty'
         if all(len(d) == 0 for d in monthly_data):
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            # Explicitly say last N months:
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         # Clear existing chart
@@ -6964,10 +7016,14 @@ def on_compare_same_months(self) -> None:
                         colors.append(color_palette[color_index])
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
+        # In on_compare_same_months, right before early return on 'not yearly_data'
         if not yearly_data:
-            # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            years_count = self.spinBox_compare_last.value()
+            # Tailored message for 'same months' mode:
+            selected_month_name = self.comboBox_compare_same_months.currentText()
+            self._set_no_data_info_label(f"No data for {selected_month_name.lower()} in the last {years_count} years.")
             return
 
         # Clear existing chart
@@ -8391,10 +8447,11 @@ def show_kcal_chart(self) -> None:
         else:
             grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
+        # In show_kcal_chart, on no grouped_data
         if not grouped_data:
-            # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No calories data to display")
+            self._set_no_data_info_label("No data for the selected period.")
             return
 
         # Prepare chart data
@@ -8491,10 +8548,11 @@ def show_sets_chart(self) -> None:
         else:
             grouped_data = self._group_data_by_period(rows, period, value_type="int")
 
+        # In show_sets_chart, on no grouped_data
         if not grouped_data:
-            # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
+            self._set_no_data_info_label("No data for the selected period.")
             return
 
         # Prepare chart data
@@ -8898,10 +8956,17 @@ def update_exercise_chart(self) -> None:
             except (ValueError, TypeError):
                 continue
 
+        # In update_exercise_chart, before every 'return' that indicates no data:
         if not datetime_data:
-            # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
+            self._set_no_data_info_label("No data for the selected period.")
+            return
+
+        if not grouped_data:
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            self._set_no_data_info_label("No data for the selected period.")
             return
 
         # Group data by period with aggregation based on checkbox
@@ -9300,7 +9365,8 @@ def _add_calories_recommendations_to_label(self) -> None:
             monthly_calories_data.append(month_total)
 
         if not monthly_calories_data or all(calories == 0 for calories in monthly_calories_data):
-            self.label_chart_info.setText("")
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         # Find max and last month values
@@ -9409,7 +9475,8 @@ def _add_exercise_recommendations_to_label(
         self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str
     ) -> None:
         if not monthly_data:
-            self.label_chart_info.setText("")
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         import calendar
@@ -9430,9 +9497,9 @@ def _add_exercise_recommendations_to_label(
                 if i == 1:
                     last_month_value = final_value
 
-        # Only clear if there's no data at all across all months
         if max_value <= 0 and not any(month_data for month_data in monthly_data):
-            self.label_chart_info.setText("")
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         # Get current month progress
@@ -9683,7 +9750,9 @@ def _add_same_months_recommendations_to_label(
                     current_year_value = final_value
 
         if max_value <= 0:
-            self.label_chart_info.setText("")
+            years_count = self.spinBox_compare_last.value()
+            selected_month_name = self.comboBox_compare_same_months.currentText()
+            self._set_no_data_info_label(f"No data for {selected_month_name.lower()} in the last {years_count} years.")
             return
 
         # Get current progress (current year value)
@@ -9869,7 +9938,8 @@ def _add_sets_recommendations_to_label(self) -> None:
             monthly_sets_data.append(month_total)
 
         if not monthly_sets_data or all(sets == 0 for sets in monthly_sets_data):
-            self.label_chart_info.setText("")
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
 
         # Find max and last month values
@@ -11874,6 +11944,46 @@ def _select_last_executed_exercise(self) -> None:
                             break
         except Exception as e:
             print(f"Error selecting last executed exercise: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_set_no_data_info_label`
+
+```python
+def _set_no_data_info_label(self, text: str | None = None) -> None
+```
+
+Set a unified 'no data' message into label_chart_info.
+
+Comments are in English per the request:
+
+- This is called whenever a chart has no data for the last N months
+  (or for the selected period in other modes), so the info label does not keep stale content.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_no_data_info_label(self, text: str | None = None) -> None:
+        # Default message uses the spinner value for months when appropriate
+        if text is None:
+            months = self.spinBox_compare_last.value() if hasattr(self, "spinBox_compare_last") else 0
+            if months > 0:
+                text = f"No data for the last {months} months."
+            else:
+                text = "No data for the selected period."
+
+        self.label_chart_info.setText(text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.2;
+        """)
 ```
 
 </details>
