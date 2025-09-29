@@ -16,7 +16,6 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QAbstractItemView, QMessageBox
 
 from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
-from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
 from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
 from harrix_swiss_knife.apps.finance.exchange_rate_worker import ExchangeRateUpdateWorker
 
@@ -431,6 +430,7 @@ class ExchangeRatesOperations:
             currency_id: ID of the currency
             date_from: Start date in yyyy-MM-dd format
             date_to: End date in yyyy-MM-dd format
+
         """
         if not self._validate_database_connection():
             return
@@ -596,6 +596,7 @@ class ExchangeRatesOperations:
 
         Returns:
             List of tuples (date, rate) sorted by date
+
         """
         if not self._validate_database_connection():
             return []

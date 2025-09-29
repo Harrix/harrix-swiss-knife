@@ -22,10 +22,11 @@ def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str
 
     Returns:
         Markdown string with successfully processed files
+
     """
     try:
         return h.file.collect_text_files_to_markdown(file_paths, base_folder)
-    except UnicodeDecodeError as e:
+    except UnicodeDecodeError:
         # If we get a UnicodeDecodeError, it means one of the files is not a text file
         # We need to process files one by one and skip the problematic ones
         result_lines = []
@@ -35,7 +36,7 @@ def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str
         for file_path in file_paths:
             try:
                 # Try to read the file to check if it's a text file
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, encoding="utf-8") as f:
                     f.read(1)  # Try to read at least one character
                 processed_files.append(file_path)
             except UnicodeDecodeError:
@@ -56,7 +57,7 @@ def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str
         else:
             result_lines.append("❌ No text files found to process")
 
-        return '\n'.join(result_lines)
+        return "\n".join(result_lines)
 
 
 class OnAllFilesToParentFolder(ActionBase):
@@ -769,6 +770,7 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
 
     Returns:
         List of actual file paths (filtered to exclude ignored paths)
+
     """
     expanded_paths = []
 
@@ -822,6 +824,7 @@ def _filter_files_by_extension(files: list[str], extensions: list[str] | None = 
 
     Returns:
         Filtered list of file paths
+
     """
     if not extensions:
         return files

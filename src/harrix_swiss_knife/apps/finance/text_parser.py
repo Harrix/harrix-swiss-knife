@@ -7,7 +7,7 @@ to transaction records according to specific rules.
 from __future__ import annotations
 
 import re
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 
 class ParsedPurchaseItem(NamedTuple):
@@ -38,7 +38,6 @@ class TextParser:
 
     def __init__(self) -> None:
         """Initialize the text parser."""
-        pass
 
     def parse_text(self, text: str) -> list[ParsedPurchaseItem]:
         """Parse text input and convert to purchase items.

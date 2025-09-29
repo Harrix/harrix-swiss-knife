@@ -1,7 +1,7 @@
 """Amount delegate for formatting amounts in transactions table."""
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QFont
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate
 
 

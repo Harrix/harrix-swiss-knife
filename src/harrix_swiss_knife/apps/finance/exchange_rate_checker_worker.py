@@ -20,6 +20,7 @@ class ExchangeRateCheckerWorker(QThread):
             db_manager: Database manager instance
             check_from_first_transaction: If True, check from first transaction;
                                          if False, check from last exchange rate
+
         """
         super().__init__()
         self.db_manager = db_manager
@@ -130,7 +131,7 @@ class ExchangeRateCheckerWorker(QThread):
             self.check_completed.emit(currencies_to_process)
 
         except Exception as e:
-            self.check_failed.emit(f"Check error: {str(e)}")
+            self.check_failed.emit(f"Check error: {e!s}")
 
     def stop(self):
         """Request worker to stop."""

@@ -23,9 +23,7 @@ from PySide6.QtCore import (
     QSortFilterProxyModel,
     QStringListModel,
     Qt,
-    QThread,
     QTimer,
-    Signal,
 )
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
@@ -40,15 +38,12 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QStyledItemDelegate,
     QTableView,
-    QTableWidgetItem,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
-from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
-from harrix_swiss_knife.apps.finance.exchange_rate_worker import ExchangeRateUpdateWorker
 from harrix_swiss_knife.apps.finance.exchange_rates_operations import ExchangeRatesOperations
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
@@ -477,6 +472,7 @@ class MainWindow(
 
         Args:
         - `event` (`QCloseEvent`): The close event.
+
         """
         # Stop any running worker threads
         if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
@@ -1021,7 +1017,7 @@ class MainWindow(
             )
 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{str(e)}")
+            QMessageBox.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
 
     def on_exchange_item_update_button_clicked(self) -> None:
         """Update exchange rate in database when pushButton_exchange_item_update is clicked."""
@@ -1659,6 +1655,7 @@ class MainWindow(
 
         Returns:
             tuple[float, str]: (total_balance, formatted_details)
+
         """
         if not self._validate_database_connection() or self.db_manager is None:
             return 0.0, "Database not available"
@@ -1759,7 +1756,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error calculating total accounts balance: {e}")
-            return 0.0, f"Error: {str(e)}"
+            return 0.0, f"Error: {e!s}"
 
     def _cleanup_startup_dialog(self):
         """Clean up startup dialog and re-enable main window."""
@@ -3010,23 +3007,19 @@ class MainWindow(
     def _mark_categories_changed(self) -> None:
         """Mark that category data has changed and needs refresh."""
         # No specific action needed for categories as they load immediately
-        pass
 
     def _mark_currencies_changed(self) -> None:
         """Mark that currency data has changed and needs refresh."""
         # No specific action needed for currencies as they load immediately
-        pass
 
     def _mark_default_currency_changed(self) -> None:
         """Mark that default currency has changed and needs refresh."""
         # No specific action needed as this affects multiple areas that reload immediately
-        pass
 
     # Lazy loading change markers
     def _mark_transactions_changed(self) -> None:
         """Mark that transaction data has changed and needs refresh."""
         # No specific action needed for transactions as they load immediately
-        pass
 
     def _on_account_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on accounts table.
@@ -3433,6 +3426,7 @@ class MainWindow(
         Args:
             current: The current selected index.
             previous: The previously selected index.
+
         """
         # Don't copy data if right click is in progress
         if hasattr(self, "_right_click_in_progress") and self._right_click_in_progress:
@@ -3759,6 +3753,7 @@ class MainWindow(
 
         Args:
             date_value: Date string from the table (format: yyyy-MM-dd)
+
         """
         try:
             # Parse the date string and set it in dateEdit
@@ -3777,6 +3772,7 @@ class MainWindow(
 
         Args:
             date_value: Date string from the table (format: yyyy-MM-dd)
+
         """
         try:
             # Parse the date string, subtract 1 day and set it in dateEdit
@@ -3796,6 +3792,7 @@ class MainWindow(
 
         Args:
             date_value: Date string from the table (format: yyyy-MM-dd)
+
         """
         try:
             # Parse the date string, add 1 day and set it in dateEdit
@@ -4010,13 +4007,7 @@ class MainWindow(
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
-        elif "set_date_action" in locals() and action == set_date_action:
-            # This will be handled by the lambda connection above
-            pass
-        elif "set_date_plus_one_action" in locals() and action == set_date_plus_one_action:
-            # This will be handled by the lambda connection above
-            pass
-        elif "set_date_minus_one_action" in locals() and action == set_date_minus_one_action:
+        elif ("set_date_action" in locals() and action == set_date_action) or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action) or ("set_date_minus_one_action" in locals() and action == set_date_minus_one_action):
             # This will be handled by the lambda connection above
             pass
 

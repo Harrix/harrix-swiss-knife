@@ -1,11 +1,9 @@
-"""
-Exchange Rate Update Worker module.
+"""Exchange Rate Update Worker module.
 
 This module contains the ExchangeRateUpdateWorker class that handles
 background updates of exchange rates from various data sources.
 """
 
-from datetime import datetime, timedelta
 
 from PySide6.QtCore import QThread, Signal
 
@@ -304,6 +302,7 @@ class ExchangeRateUpdateWorker(QThread):
 
         Returns:
             Number of successfully inserted records
+
         """
         try:
             success_count = 0

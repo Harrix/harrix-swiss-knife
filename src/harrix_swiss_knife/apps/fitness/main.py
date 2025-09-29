@@ -3153,7 +3153,7 @@ class MainWindow(
             remaining_to_last_month = last_month_calories - current_calories
 
         # Build recommendation text
-        recommendation_text = f"<b>📊 Calories Goal Recommendations</b><br><br>"
+        recommendation_text = "<b>📊 Calories Goal Recommendations</b><br><br>"
         recommendation_text += f"📈 Current calories this month: <b>{int(current_calories)} kcal</b><br>"
 
         # Add last month goal information first (only if it's different from max month)
@@ -3227,6 +3227,7 @@ class MainWindow(
             monthly_data (list): List of monthly data from on_compare_last_months
             months_count (int): Number of months to compare
             exercise_unit (str): Unit of measurement
+
         """
         if not monthly_data:
             months_count = self.spinBox_compare_last.value()
@@ -3303,7 +3304,7 @@ class MainWindow(
         unit_text = f" {exercise_unit}" if exercise_unit else ""
 
         # Build recommendation text with integer values
-        recommendation_text = f"<b>📊 Exercise Goal Recommendations</b><br><br>"
+        recommendation_text = "<b>📊 Exercise Goal Recommendations</b><br><br>"
         recommendation_text += f"📈 Current progress: <b>{int(current_progress)}{unit_text}</b><br>"
 
         # Add last month goal information first (only if it's different from max month)
@@ -3660,7 +3661,7 @@ class MainWindow(
             remaining_to_last_month = last_month_sets - current_sets
 
         # Build recommendation text
-        recommendation_text = f"<b>📊 Sets Goal Recommendations</b><br><br>"
+        recommendation_text = "<b>📊 Sets Goal Recommendations</b><br><br>"
         recommendation_text += f"📈 Current sets this month: <b>{current_sets}</b><br>"
 
         # Add last month goal information first (only if it's different from max month)
@@ -4262,6 +4263,7 @@ class MainWindow(
         Returns:
 
         - `QDate`: The first day without Steps records.
+
         """
         if self.db_manager is None:
             return QDate.currentDate()
@@ -4878,7 +4880,6 @@ class MainWindow(
         - `event`: Mouse event (ignored, we just need the double-click signal).
 
         """
-        from PySide6.QtCore import QMimeData
         from PySide6.QtGui import QTextDocument
         from PySide6.QtWidgets import QApplication
 
@@ -4997,6 +4998,7 @@ class MainWindow(
 
         Args:
             delay_ms (int): Delay in milliseconds before updating the chart.
+
         """
         # Ensure timer exists (defensive programming)
         if not hasattr(self, "_chart_update_timer") or self._chart_update_timer is None:
@@ -5011,6 +5013,7 @@ class MainWindow(
 
         Args:
             exercise_name (str): Name of the exercise to select.
+
         """
         if not exercise_name:
             return
