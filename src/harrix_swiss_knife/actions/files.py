@@ -120,19 +120,22 @@ class OnCombineForAI(ActionBase):
         """Execute the code. Main method for the action."""
         # Get list of available combinations from config
         combinations = self.config.get("paths_combine_for_ai", [])
-        if not combinations:
-            self.add_line("❌ No file combinations configured in paths_combine_for_ai")
-            return
 
-        # Extract names for selection
-        combination_names = [combo["name"] for combo in combinations]
+        # Add folder selection option
+        folder_selection_option = "📁 Choose folder"
+        combination_names = [combo["name"] for combo in combinations] + [folder_selection_option]
 
-        # Let user select a combination
+        # Let user select a combination or folder
         selected_name = self.get_choice_from_list(
             "Select file combination", "Choose a file combination to combine:", combination_names
         )
 
         if not selected_name:
+            return
+
+        # Handle folder selection
+        if selected_name == folder_selection_option:
+            self._handle_folder_selection()
             return
 
         # Find the selected combination
@@ -175,6 +178,41 @@ class OnCombineForAI(ActionBase):
             return
 
         self.add_line(h.file.collect_text_files_to_markdown(selected_files, base_folder))
+        self.show_result()
+
+    def _handle_folder_selection(self) -> None:
+        """Handle folder selection and process all files in the selected folder."""
+        # Get default path from config or use current directory
+        default_path = self.config.get("path_github", str(Path.cwd()))
+
+        # Let user select a folder
+        selected_folder = self.get_existing_directory("Выбрать папку", default_path)
+        if not selected_folder:
+            return
+
+        # Find all files recursively in the selected folder
+        all_files = []
+        for root, dirs, files in os.walk(selected_folder):
+            for file in files:
+                all_files.append(os.path.join(root, file))
+
+        if not all_files:
+            self.add_line("❌ No files found in the selected folder")
+            return
+
+        # Show file selection dialog with checkboxes (all files selected by default)
+        selected_files = self.get_checkbox_selection(
+            "Select files to combine",
+            f"Choose files from '{selected_folder}' to combine:",
+            all_files,
+            default_selected=all_files,  # All files selected by default
+        )
+
+        if not selected_files:
+            return
+
+        # Use the selected folder as base folder
+        self.add_line(h.file.collect_text_files_to_markdown(selected_files, str(selected_folder)))
         self.show_result()
 
 
