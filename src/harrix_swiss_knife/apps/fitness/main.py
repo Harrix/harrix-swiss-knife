@@ -2219,7 +2219,7 @@ class MainWindow(
                         # No data for this exercise
                         table_data.append([
                             exercise_name, exercise_unit or "", "0", "No data", "No data",
-                            "N/A", "N/A", "N/A", "N/A"
+                            "N/A", "N/A", "N/A", "N/A", False  # No data rows get red background
                         ])
                         continue
 
@@ -2228,7 +2228,13 @@ class MainWindow(
                         exercise_name, monthly_data, months_count, exercise_unit
                     )
 
-                    # Add row to table data
+                    # Determine if exercise has achieved all goals (both last month and max goals)
+                    has_achieved_all_goals = (
+                        recommendations['remaining_to_last_month'] <= 0 and
+                        recommendations['remaining_to_max'] <= 0
+                    )
+
+                    # Add row to table data with color information
                     table_data.append([
                         exercise_name,
                         exercise_unit or "",
@@ -2238,7 +2244,8 @@ class MainWindow(
                         f"{int(recommendations['remaining_to_last_month'])}{unit_text}" if recommendations['remaining_to_last_month'] > 0 else "✅",
                         f"{int(recommendations['remaining_to_max'])}{unit_text}" if recommendations['remaining_to_max'] > 0 else "✅",
                         f"{int(recommendations['daily_needed_last_month'])}{unit_text}" if recommendations['daily_needed_last_month'] > 0 else "✅",
-                        f"{int(recommendations['daily_needed_max'])}{unit_text}" if recommendations['daily_needed_max'] > 0 else "✅"
+                        f"{int(recommendations['daily_needed_max'])}{unit_text}" if recommendations['daily_needed_max'] > 0 else "✅",
+                        has_achieved_all_goals  # Add color flag as last element
                     ])
 
                 except Exception as e:
@@ -2246,7 +2253,7 @@ class MainWindow(
                     # Add error row
                     table_data.append([
                         exercise_name, "Error", "Error", "Error", "Error",
-                        "Error", "Error", "Error", "Error"
+                        "Error", "Error", "Error", "Error", False  # Error rows get red background
                     ])
                     continue
 
@@ -2260,8 +2267,16 @@ class MainWindow(
 
             for row_data in table_data:
                 items = []
-                for value in row_data:
+                has_achieved_all_goals = row_data[-1]  # Get color flag from last element
+
+                # Create items for display columns only (exclude the color flag)
+                for col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color flag)
                     item = QStandardItem(str(value))
+
+                    # Set red background for exercises that haven't achieved all goals
+                    if not has_achieved_all_goals:
+                        item.setBackground(QBrush(QColor(255, 200, 200)))  # Light red background
+
                     items.append(item)
                 model.appendRow(items)
 
