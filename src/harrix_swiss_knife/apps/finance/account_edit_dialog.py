@@ -22,15 +22,21 @@ from PySide6.QtWidgets import (
 
 
 class AccountEditDialog(QDialog):
-    """Dialog for editing account information."""
+    """Dialog for editing account information.
+
+    This dialog allows users to create, edit, or delete account information
+    including name, balance, currency, and account type settings.
+
+    """
 
     def __init__(self, parent=None, account_data=None, currencies=None) -> None:
         """Initialize the dialog.
 
         Args:
-            parent: Parent widget.
-            account_data: Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash).
-            currencies: List of currency codes.
+
+        - `parent`: Parent widget. Defaults to `None`.
+        - `account_data`: Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash). Defaults to `None`.
+        - `currencies`: List of currency codes. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -49,7 +55,8 @@ class AccountEditDialog(QDialog):
         """Get the dialog result.
 
         Returns:
-            Dictionary with action and data.
+
+        - `dict`: Dictionary with action and data.
 
         """
         return self.result_data
@@ -58,13 +65,16 @@ class AccountEditDialog(QDialog):
         """Safely evaluate a mathematical expression.
 
         Args:
-            expression: String containing mathematical expression.
+
+        - `expression` (`str`): String containing mathematical expression.
 
         Returns:
-            Calculated result as float.
+
+        - `float`: Calculated result as float.
 
         Raises:
-            ValueError: If expression is invalid or contains unsafe operations.
+
+        - `ValueError`: If expression is invalid or contains unsafe operations.
 
         """
         # Remove all whitespace

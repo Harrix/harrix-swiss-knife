@@ -6,14 +6,40 @@ from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate
 
 
 class AmountDelegate(QStyledItemDelegate):
-    """Delegate for amount column with custom formatting and editing."""
+    """Delegate for amount column with custom formatting and editing.
+
+    This delegate provides custom formatting for amount values in the
+    transactions table, including thousands separators, subscript decimals,
+    and special formatting for income transactions.
+
+    """
 
     def __init__(self, parent=None, db_manager=None) -> None:
+        """Initialize the amount delegate.
+
+        Args:
+
+        - `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
+        - `db_manager` (`object`, optional): The database manager instance. Defaults to `None`.
+
+        """
         super().__init__(parent)
         self.db_manager = db_manager
 
     def createEditor(self, parent, option, index):
-        """Create editor for amount editing."""
+        """Create editor for amount editing.
+
+        Args:
+
+        - `parent` (`QWidget`): The parent widget for the editor.
+        - `option` (`QStyleOptionViewItem`): The style options for the item.
+        - `index` (`QModelIndex`): The model index of the item being edited.
+
+        Returns:
+
+        - `QDoubleSpinBox`: A configured double spin box editor for amount input.
+
+        """
         editor = QDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
@@ -25,7 +51,18 @@ class AmountDelegate(QStyledItemDelegate):
         return editor
 
     def displayText(self, value, locale):
-        """Format display text with spaces for thousands separator and subscript decimals."""
+        """Format display text with spaces for thousands separator and subscript decimals.
+
+        Args:
+
+        - `value` (`any`): The value to format for display.
+        - `locale` (`QLocale`): The locale for formatting (unused in this implementation).
+
+        Returns:
+
+        - `str`: The formatted text with spaces as thousands separators and subscript decimal digits.
+
+        """
         try:
             # Get the raw text value
             text = str(value)
@@ -91,7 +128,15 @@ class AmountDelegate(QStyledItemDelegate):
             return str(value)
 
     def paint(self, painter, option, index) -> None:
-        """Custom paint method to handle income formatting."""
+        """Custom paint method to handle income formatting.
+
+        Args:
+
+        - `painter` (`QPainter`): The painter used for drawing.
+        - `option` (`QStyleOptionViewItem`): The style options for the item.
+        - `index` (`QModelIndex`): The model index of the item being painted.
+
+        """
         try:
             # Get the model and check if this is an income transaction
             model = index.model()
@@ -143,7 +188,14 @@ class AmountDelegate(QStyledItemDelegate):
             super().paint(painter, option, index)
 
     def setEditorData(self, editor, index) -> None:
-        """Set data in editor (without spaces)."""
+        """Set data in editor (without spaces).
+
+        Args:
+
+        - `editor` (`QDoubleSpinBox`): The editor widget to set data in.
+        - `index` (`QModelIndex`): The model index containing the data.
+
+        """
         try:
             # Get the original value without formatting
             text = str(index.data(Qt.ItemDataRole.DisplayRole))
@@ -163,7 +215,15 @@ class AmountDelegate(QStyledItemDelegate):
             editor.setValue(0.0)
 
     def setModelData(self, editor, model, index) -> None:
-        """Set data from editor back to model."""
+        """Set data from editor back to model.
+
+        Args:
+
+        - `editor` (`QDoubleSpinBox`): The editor widget containing the edited value.
+        - `model` (`QAbstractItemModel`): The model to update with the new data.
+        - `index` (`QModelIndex`): The model index to update.
+
+        """
         value = editor.value()
 
         # Format the value as string with 2 decimal places for storage
