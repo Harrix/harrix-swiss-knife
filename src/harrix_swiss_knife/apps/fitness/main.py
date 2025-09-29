@@ -2156,6 +2156,267 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
 
+    def on_show_exercise_goal_recommendations(self) -> None:
+        """Show exercise goal recommendations for all exercises in the statistics table.
+
+        This method generates a table showing goal recommendations for each exercise
+        based on the compare_last functionality, displaying how much more is needed
+        to reach previous month's goals and maximum goals over the last N months.
+        """
+        # Set current mode to exercise_goal_recommendations
+        self.current_statistics_mode = "exercise_goal_recommendations"
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
+
+            # Get all exercises from database
+            exercises_data = self.db_manager.get_all_exercises()
+
+            if not exercises_data:
+                # If no exercises, show empty table
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels([
+                    "Exercise", "Unit", "Current Progress", "Last Month Goal",
+                    "Max Goal", "Remaining to Last Month", "Remaining to Max",
+                    "Daily Needed (Last Month)", "Daily Needed (Max)"
+                ])
+                self.tableView_statistics.setModel(empty_model)
+                self.models["statistics"] = None
+
+                # Configure header
+                header = self.tableView_statistics.horizontalHeader()
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+                header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+                for i in range(header.count() - 1):
+                    self.tableView_statistics.setColumnWidth(i, 150)
+
+                self._update_statistics_avif()
+                return
+
+            # Get months count from spinBox_compare_last
+            months_count = self.spinBox_compare_last.value()
+
+            # Generate recommendations for each exercise
+            table_data = []
+
+            for exercise_record in exercises_data:
+                # Extract exercise data from the record [_id, name, unit, is_type_required, calories_per_unit]
+                exercise_name = exercise_record[1]  # name is at index 1
+                exercise_unit = exercise_record[2]  # unit is at index 2
+                unit_text = f" {exercise_unit}" if exercise_unit else ""
+
+                try:
+                    # Get monthly data for this exercise (similar to compare_last logic)
+                    monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
+
+                    if not monthly_data or not any(month_data for month_data in monthly_data):
+                        # No data for this exercise
+                        table_data.append([
+                            exercise_name, exercise_unit or "", "0", "No data", "No data",
+                            "N/A", "N/A", "N/A", "N/A"
+                        ])
+                        continue
+
+                    # Calculate goals and recommendations
+                    recommendations = self._calculate_exercise_recommendations(
+                        exercise_name, monthly_data, months_count, exercise_unit
+                    )
+
+                    # Add row to table data
+                    table_data.append([
+                        exercise_name,
+                        exercise_unit or "",
+                        f"{int(recommendations['current_progress'])}{unit_text}",
+                        f"{int(recommendations['last_month_value'])}{unit_text}" if recommendations['last_month_value'] > 0 else "No data",
+                        f"{int(recommendations['max_value'])}{unit_text}",
+                        f"{int(recommendations['remaining_to_last_month'])}{unit_text}" if recommendations['remaining_to_last_month'] > 0 else "✅",
+                        f"{int(recommendations['remaining_to_max'])}{unit_text}" if recommendations['remaining_to_max'] > 0 else "✅",
+                        f"{int(recommendations['daily_needed_last_month'])}{unit_text}" if recommendations['daily_needed_last_month'] > 0 else "✅",
+                        f"{int(recommendations['daily_needed_max'])}{unit_text}" if recommendations['daily_needed_max'] > 0 else "✅"
+                    ])
+
+                except Exception as e:
+                    print(f"❌ Error processing exercise {exercise_name}: {e}")
+                    # Add error row
+                    table_data.append([
+                        exercise_name, "Error", "Error", "Error", "Error",
+                        "Error", "Error", "Error", "Error"
+                    ])
+                    continue
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels([
+                "Exercise", "Unit", "Current Progress", "Last Month Goal",
+                "Max Goal", "Remaining to Last Month", "Remaining to Max",
+                "Daily Needed (Last Month)", "Daily Needed (Max)"
+            ])
+
+            for row_data in table_data:
+                items = []
+                for value in row_data:
+                    item = QStandardItem(str(value))
+                    items.append(item)
+                model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+            self.models["statistics"] = None
+
+            # Connect selection signal for statistics table
+            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
+
+            # Configure header with mixed approach: interactive + stretch last
+            header = self.tableView_statistics.horizontalHeader()
+            # Set first columns to interactive (resizable)
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            for i in range(header.count() - 1):
+                self.tableView_statistics.setColumnWidth(i, 120)
+
+            # Enable alternating row colors
+            self.tableView_statistics.setAlternatingRowColors(True)
+
+            # Update statistics AVIF
+            self._update_statistics_avif()
+
+            # Trigger initial AVIF load for first row if no selection
+            QTimer.singleShot(100, self._update_statistics_avif)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Exercise Goal Recommendations Error", f"Failed to load exercise goal recommendations: {e}")
+
+    def _get_monthly_data_for_exercise(self, exercise_name: str, months_count: int) -> list:
+        """Get monthly data for a specific exercise using the same logic as compare_last.
+
+        Args:
+            exercise_name (str): Name of the exercise
+            months_count (int): Number of months to analyze
+
+        Returns:
+            list: Monthly data in the same format as compare_last
+        """
+        from datetime import datetime, timedelta
+
+        monthly_data = []
+        today = datetime.now()
+
+        for i in range(months_count):
+            # Calculate start and end of month (same logic as compare_last)
+            month_date = today.replace(day=1) - timedelta(days=i * 30)
+            month_start = month_date.replace(day=1)
+            if i == 0:
+                month_end = today
+            else:
+                temp = month_start.replace(day=28) + timedelta(days=4)
+                month_end = temp.replace(day=1) - timedelta(days=1)
+
+            # Format for DB
+            date_from = month_start.strftime("%Y-%m-%d")
+            date_to = month_end.strftime("%Y-%m-%d")
+
+            # Query data for this exercise (all types)
+            rows = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise_name,
+                exercise_type=None,  # Get all types
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+            # Build cumulative data for this month
+            cumulative_data = []
+            if rows:
+                cumulative_value = 0.0
+                for date_str, value_str in rows:
+                    try:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                        value = float(value_str)
+                        cumulative_value += value
+                        day_of_month = date_obj.day
+                        cumulative_data.append((day_of_month, cumulative_value))
+                    except (ValueError, TypeError):
+                        continue
+
+                # Extend horizontally to the end-of-visualization day
+                if cumulative_data:
+                    last_day = cumulative_data[-1][0]
+                    last_value = cumulative_data[-1][1]
+                    max_day = min(today.day, 31) if i == 0 else 31
+                    if last_day < max_day:
+                        cumulative_data.append((max_day, last_value))
+
+            monthly_data.append(cumulative_data)
+
+        return monthly_data
+
+    def _calculate_exercise_recommendations(self, exercise_name: str, monthly_data: list, months_count: int, exercise_unit: str) -> dict:
+        """Calculate exercise recommendations based on monthly data.
+
+        Args:
+            exercise_name (str): Name of the exercise
+            monthly_data (list): Monthly data from _get_monthly_data_for_exercise
+            months_count (int): Number of months analyzed
+            exercise_unit (str): Unit of measurement
+
+        Returns:
+            dict: Dictionary containing all recommendation values
+        """
+        import calendar
+        from datetime import datetime
+
+        # Find the maximum final value from all months and last month value
+        max_value = 0.0
+        last_month_value = 0.0
+        max_month_index = 0
+
+        for i, month_data in enumerate(monthly_data):
+            if month_data:
+                final_value = month_data[-1][1]
+                if final_value > max_value:
+                    max_value = final_value
+                    max_month_index = i
+                # Last month is the second item (index 1) if it exists
+                if i == 1:
+                    last_month_value = final_value
+
+        # Get current month progress
+        today = datetime.now()
+        current_month_data = monthly_data[0] if monthly_data else []
+        current_progress = current_month_data[-1][1] if current_month_data else 0.0
+
+        # Calculate remaining amounts
+        remaining_to_max = max(0, max_value - current_progress)
+        remaining_to_last_month = max(0, last_month_value - current_progress) if last_month_value > 0 else 0
+
+        # Calculate remaining days in current month
+        current_month = today.month
+        current_year = today.year
+        days_in_month = calendar.monthrange(current_year, current_month)[1]
+        remaining_days = days_in_month - today.day
+
+        # Calculate daily needed amounts
+        daily_needed_max = int(remaining_to_max / remaining_days) + (1 if remaining_to_max % remaining_days > 0 else 0) if remaining_days > 0 else 0
+        daily_needed_last_month = int(remaining_to_last_month / remaining_days) + (1 if remaining_to_last_month % remaining_days > 0 else 0) if remaining_days > 0 else 0
+
+        return {
+            'current_progress': current_progress,
+            'last_month_value': last_month_value,
+            'max_value': max_value,
+            'remaining_to_last_month': remaining_to_last_month,
+            'remaining_to_max': remaining_to_max,
+            'daily_needed_last_month': daily_needed_last_month,
+            'daily_needed_max': daily_needed_max
+        }
+
     def on_statistics_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle statistics table selection change and update AVIF.
 
@@ -3851,6 +4112,7 @@ class MainWindow(
         self.pushButton_check_steps.clicked.connect(self.on_check_steps)
         self.pushButton_export_csv.clicked.connect(self.on_export_csv)
         self.pushButton_show_all_records.clicked.connect(self.on_toggle_show_all_records)
+        self.pushButton_exercise_goal_recommendations.clicked.connect(self.on_show_exercise_goal_recommendations)
 
         # Tab change
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
@@ -5137,6 +5399,7 @@ class MainWindow(
         self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
         self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
         self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
+        self.pushButton_exercise_goal_recommendations.setText(f"🎯 {self.pushButton_exercise_goal_recommendations.text()}")
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
