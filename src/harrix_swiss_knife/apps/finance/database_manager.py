@@ -21,8 +21,7 @@ class DatabaseManager:
 
     Attributes:
 
-    - `db` (`QSqlDatabase`): A live connection object opened on an SQLite
-      database file.
+    - `db` (`QSqlDatabase`): A live connection object opened on an SQLite database file.
     - `connection_name` (`str`): Unique name for this database connection.
 
     """
@@ -36,8 +35,7 @@ class DatabaseManager:
 
         Raises:
 
-        - `ConnectionError`: If the underlying Qt driver fails to open the
-          database.
+        - `ConnectionError`: If the underlying Qt driver fails to open the database.
 
         """
         # Include thread ID to ensure unique connections across threads
@@ -62,7 +60,13 @@ class DatabaseManager:
         self._cache_timestamp = None
 
     def __del__(self) -> None:
-        """Clean up database connection when object is destroyed."""
+        """Clean up database connection when object is destroyed.
+
+        Note:
+
+        - This method attempts to close the database connection and remove it from Qt's database registry.
+
+        """
         try:
             self.close()
         except Exception as e:

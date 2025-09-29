@@ -1,7 +1,4 @@
-"""Account edit dialog.
-
-This module contains a dialog for editing account information.
-"""
+"""Account edit dialog."""
 
 from __future__ import annotations
 
