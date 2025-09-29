@@ -279,7 +279,8 @@ class DatabaseManager:
         """Clean exchange rates with empty or invalid rate values.
 
         Returns:
-        - int: Number of cleaned records
+
+        - `int`: Number of cleaned records.
 
         """
         query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
@@ -645,7 +646,8 @@ class DatabaseManager:
         """Fill missing exchange rates with previous available rates for all date gaps.
 
         Returns:
-            int: Number of exchange rates that were filled.
+
+        - `int`: Number of exchange rates that were filled.
 
         """
         from datetime import datetime, timedelta
@@ -1013,11 +1015,13 @@ class DatabaseManager:
         """Get exchange rate for a specific currency on a specific date.
 
         Args:
-            currency_id (int): Currency ID.
-            date (str): Date in YYYY-MM-DD format.
+
+        - `currency_id` (`int`): Currency ID.
+        - `date` (`str`): Date in YYYY-MM-DD format.
 
         Returns:
-            float: Exchange rate (USD to currency) or 1.0 if not found.
+
+        - `float`: Exchange rate (USD to currency) or 1.0 if not found.
 
         """
         try:
@@ -1080,10 +1084,12 @@ class DatabaseManager:
         """Get currency ticker by ID.
 
         Args:
-            currency_id (int): Currency ID.
+
+        - `currency_id` (`int`): Currency ID.
 
         Returns:
-            str | None: Currency ticker or None if not found or empty.
+
+        - `str | None`: Currency ticker or None if not found or empty.
 
         """
         rows = self.get_rows("SELECT ticker FROM currencies WHERE _id = :id", {"id": currency_id})
@@ -1183,27 +1189,29 @@ class DatabaseManager:
         """Get exchange rate between currencies (both referenced to USD).
 
         Args:
-        - from_currency_id (int): Source currency ID.
-        - to_currency_id (int): Target currency ID.
-        - date (str | None): Date for rate lookup. Uses latest if None.
+
+        - `from_currency_id` (`int`): Source currency ID.
+        - `to_currency_id` (`int`): Target currency ID.
+        - `date` (`str | None`): Date for rate lookup. Uses latest if None.
 
         Returns:
-        - float: Exchange rate or 1.0 if not found/same currency.
+
+        - `float`: Exchange rate or 1.0 if not found/same currency.
 
         """
         if from_currency_id == to_currency_id:
             return 1.0
 
-        # Для избежания загрузки exchange_rates при старте,
-        # возвращаем 1.0 если таблица exchange_rates пуста или недоступна
+        # To avoid loading exchange_rates at startup,
+        # return 1.0 if the exchange_rates table is empty or unavailable
         try:
-            # Быстрая проверка наличия данных в таблице
+            # Quick check for data in the table
             check_query = "SELECT COUNT(*) FROM exchange_rates LIMIT 1"
             rows = self.get_rows(check_query)
             if not rows or rows[0][0] == 0:
-                return 1.0  # Нет данных о курсах
+                return 1.0  # No exchange rate data
         except Exception:
-            return 1.0  # Таблица недоступна
+            return 1.0  # Table unavailable
 
         # Get USD currency ID
         usd_currency = self.get_currency_by_code("USD")
@@ -1237,13 +1245,15 @@ class DatabaseManager:
         """Get filtered exchange rates with currency information.
 
         Args:
-            currency_id (int | None): Currency ID to filter by. None for all currencies.
-            date_from (str | None): Start date in YYYY-MM-DD format. None for no start date filter.
-            date_to (str | None): End date in YYYY-MM-DD format. None for no end date filter.
-            limit (int | None): Maximum number of records to return. None for all records.
+
+        - `currency_id` (`int | None`): Currency ID to filter by. None for all currencies.
+        - `date_from` (`str | None`): Start date in YYYY-MM-DD format. None for no start date filter.
+        - `date_to` (`str | None`): End date in YYYY-MM-DD format. None for no end date filter.
+        - `limit` (`int | None`): Maximum number of records to return. None for all records.
 
         Returns:
-            list[list[Any]]: List of filtered exchange rate records.
+
+        - `list[list[Any]]`: List of filtered exchange rate records.
 
         """
         query = """
@@ -1463,10 +1473,12 @@ class DatabaseManager:
         """Get the last date for which exchange rate exists for a currency.
 
         Args:
-            currency_id (int): Currency ID.
+
+        - `currency_id` (`int`): Currency ID.
 
         Returns:
-            str | None: Last date in YYYY-MM-DD format or None if no rates exist.
+
+        - `str | None`: Last date in YYYY-MM-DD format or None if no rates exist.
 
         """
         rows = self.get_rows(
@@ -1478,10 +1490,12 @@ class DatabaseManager:
         """Get the last two exchange rate records for a currency.
 
         Args:
-            currency_id (int): Currency ID.
+
+        - `currency_id` (`int`): Currency ID.
 
         Returns:
-            list[tuple[str, float]]: List of tuples (date, rate) for the last two records, sorted by date.
+
+        - `list[tuple[str, float]]`: List of tuples (date, rate) for the last two records, sorted by date.
 
         """
         rows = self.get_rows(
@@ -1501,11 +1515,13 @@ class DatabaseManager:
         Checks for missing rates for each day in the date range.
 
         Args:
-            date_from: Start date in YYYY-MM-DD format
-            date_to: End date in YYYY-MM-DD format
+
+        - `date_from` (`str`): Start date in YYYY-MM-DD format.
+        - `date_to` (`str`): End date in YYYY-MM-DD format.
 
         Returns:
-            Dictionary mapping currency_id to list of missing dates
+
+        - `dict[int, list[str]]`: Dictionary mapping currency_id to list of missing dates.
 
         """
         from datetime import datetime, timedelta
@@ -1525,7 +1541,7 @@ class DatabaseManager:
             all_dates.append(current_date.strftime("%Y-%m-%d"))
             current_date += timedelta(days=1)
 
-        print(f"Проверяем курсы валют с {date_from} по {date_to} ({len(all_dates)} дней)")
+        print(f"Checking exchange rates from {date_from} to {date_to} ({len(all_dates)} days)")
 
         for currency_id, currency_code, _, _ in currencies:
             # Get existing dates for this currency
@@ -1553,24 +1569,24 @@ class DatabaseManager:
                 # Show first 10 dates as sample
                 sample_size = min(10, len(missing_dates))
                 sample_dates = missing_dates[:sample_size]
-                print(f"    Первые {sample_size} пропущенных дат: {', '.join(sample_dates)}")
+                print(f"    First {sample_size} missing dates: {', '.join(sample_dates)}")
 
                 if len(missing_dates) > 10:
-                    print(f"    ... и еще {len(missing_dates) - 10} дат")
+                    print(f"    ... and {len(missing_dates) - 10} more dates")
 
                 # Show date ranges for better understanding
                 if len(missing_dates) > 1:
-                    print(f"    Диапазон: с {missing_dates[0]} по {missing_dates[-1]}")
+                    print(f"    Range: from {missing_dates[0]} to {missing_dates[-1]}")
 
                 missing_info[currency_id] = missing_dates
             else:
-                print(f"✅ {currency_code}: все курсы присутствуют")
+                print(f"✅ {currency_code}: all rates present")
 
         if not missing_info:
-            print("✅ Все курсы валют присутствуют в указанном диапазоне дат")
+            print("✅ All exchange rates are present in the specified date range")
         else:
             total_missing = sum(len(dates) for dates in missing_info.values())
-            print(f"\n📈 ИТОГО: {total_missing} пропущенных записей для {len(missing_info)} валют")
+            print(f"\n📈 TOTAL: {total_missing} missing records for {len(missing_info)} currencies")
 
             # Show full list of all missing dates for first currency as example
             if missing_info:
@@ -1578,11 +1594,11 @@ class DatabaseManager:
                 first_currency_code = next(code for id, code, _, _ in currencies if id == first_currency_id)
                 first_missing = missing_info[first_currency_id]
 
-                print(f"\n🔍 ПОЛНЫЙ СПИСОК для {first_currency_code} ({len(first_missing)} дат):")
+                print(f"\n🔍 FULL LIST for {first_currency_code} ({len(first_missing)} dates):")
                 for i, date in enumerate(first_missing, 1):
                     print(f"  {i:4d}. {date}")
-                    if i >= 50:  # Ограничиваем вывод 50 датами
-                        print(f"  ... и еще {len(first_missing) - 50} дат")
+                    if i >= 50:  # Limit output to 50 dates
+                        print(f"  ... and {len(first_missing) - 50} more dates")
                         break
 
         return missing_info
@@ -1822,7 +1838,8 @@ class DatabaseManager:
         """Check if there are any exchange rate records in the database.
 
         Returns:
-        - bool: True if exchange rates exist, False otherwise.
+
+        - `bool`: True if exchange rates exist, False otherwise.
 
         """
         try:
@@ -1878,7 +1895,8 @@ class DatabaseManager:
         """Check if exchange rates need to be updated based on today's date.
 
         Returns:
-            bool: True if update is needed, False if all currencies have today's rates.
+
+        - `bool`: True if update is needed, False if all currencies have today's rates.
 
         """
         try:
@@ -2020,11 +2038,13 @@ class DatabaseManager:
         """Update currency ticker.
 
         Args:
-            currency_id (int): Currency ID.
-            ticker (str): New ticker value.
+
+        - `currency_id` (`int`): Currency ID.
+        - `ticker` (`str`): New ticker value.
 
         Returns:
-            bool: True if successful, False otherwise.
+
+        - `bool`: True if successful, False otherwise.
 
         """
         try:
@@ -2040,12 +2060,14 @@ class DatabaseManager:
         """Update an existing exchange rate record.
 
         Args:
-            currency_id (int): Currency ID.
-            date (str): Date in YYYY-MM-DD format.
-            new_rate (float): New exchange rate value.
+
+        - `currency_id` (`int`): Currency ID.
+        - `date` (`str`): Date in YYYY-MM-DD format.
+        - `new_rate` (`float`): New exchange rate value.
 
         Returns:
-            bool: True if update was successful, False otherwise.
+
+        - `bool`: True if update was successful, False otherwise.
 
         """
         try:
@@ -2069,12 +2091,14 @@ class DatabaseManager:
         """Update or insert exchange rate for a specific currency and date.
 
         Args:
-            currency_id (int): Currency ID.
-            date (str): Date in YYYY-MM-DD format.
-            rate (float): Exchange rate (USD to currency).
+
+        - `currency_id` (`int`): Currency ID.
+        - `date` (`str`): Date in YYYY-MM-DD format.
+        - `rate` (`float`): Exchange rate (USD to currency).
 
         Returns:
-            bool: True if successful, False otherwise.
+
+        - `bool`: True if successful, False otherwise.
 
         """
         try:
@@ -2203,10 +2227,12 @@ class DatabaseManager:
         """Generate SQL for currency conversion via USD.
 
         Args:
-        - currency_id (int): Target currency ID
+
+        - `currency_id` (`int`): Target currency ID.
 
         Returns:
-        - tuple[str, str, dict]: (join_clause, conversion_case, extra_params)
+
+        - `tuple[str, str, dict]`: (join_clause, conversion_case, extra_params).
 
         """
         # Check if there's data in exchange_rates for optimization
