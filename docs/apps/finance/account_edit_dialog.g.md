@@ -31,19 +31,23 @@ class AccountEditDialog(QDialog)
 
 Dialog for editing account information.
 
+This dialog allows users to create, edit, or delete account information
+including name, balance, currency, and account type settings.
+
 <details>
 <summary>Code:</summary>
 
 ```python
 class AccountEditDialog(QDialog):
 
-    def __init__(self, parent=None, account_data=None, currencies=None):
+    def __init__(self, parent=None, account_data=None, currencies=None) -> None:
         """Initialize the dialog.
 
         Args:
-            parent: Parent widget.
-            account_data: Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash).
-            currencies: List of currency codes.
+
+        - `parent`: Parent widget. Defaults to `None`.
+        - `account_data`: Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash). Defaults to `None`.
+        - `currencies`: List of currency codes. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -62,7 +66,8 @@ class AccountEditDialog(QDialog):
         """Get the dialog result.
 
         Returns:
-            Dictionary with action and data.
+
+        - `dict`: Dictionary with action and data.
 
         """
         return self.result_data
@@ -71,13 +76,16 @@ class AccountEditDialog(QDialog):
         """Safely evaluate a mathematical expression.
 
         Args:
-            expression: String containing mathematical expression.
+
+        - `expression` (`str`): String containing mathematical expression.
 
         Returns:
-            Calculated result as float.
+
+        - `float`: Calculated result as float.
 
         Raises:
-            ValueError: If expression is invalid or contains unsafe operations.
+
+        - `ValueError`: If expression is invalid or contains unsafe operations.
 
         """
         # Remove all whitespace
@@ -85,26 +93,31 @@ class AccountEditDialog(QDialog):
 
         # Only allow safe characters: numbers, operators, parentheses, decimal points
         if not re.match(r"^[0-9+\-*/().]+$", expression):
-            raise ValueError("Expression contains invalid characters")
+            msg = "Expression contains invalid characters"
+            raise ValueError(msg)
 
         # Check for balanced parentheses
         if expression.count("(") != expression.count(")"):
-            raise ValueError("Unbalanced parentheses")
+            msg = "Unbalanced parentheses"
+            raise ValueError(msg)
 
         # Check for division by zero
         if "/0" in expression or "/0." in expression:
-            raise ValueError("Division by zero")
+            msg = "Division by zero"
+            raise ValueError(msg)
 
         try:
             # Use eval with a restricted namespace for safety
             result = eval(expression, {"__builtins__": {}}, {})
             if not isinstance(result, (int, float)):
-                raise ValueError("Expression does not evaluate to a number")
+                msg = "Expression does not evaluate to a number"
+                raise ValueError(msg)
             return float(result)
         except Exception as e:
-            raise ValueError(f"Invalid expression: {e!s}")
+            msg = f"Invalid expression: {e!s}"
+            raise ValueError(msg)
 
-    def _on_delete(self):
+    def _on_delete(self) -> None:
         """Handle delete button click."""
         reply = QMessageBox.question(
             self,
@@ -117,7 +130,7 @@ class AccountEditDialog(QDialog):
             self.result_data = {"action": "delete", "id": self.account_data.get("id")}
             self.accept()
 
-    def _on_expression_changed(self):
+    def _on_expression_changed(self) -> None:
         """Handle expression field changes and update balance."""
         expression = self.expression_edit.text().strip()
         if not expression:
@@ -130,7 +143,7 @@ class AccountEditDialog(QDialog):
             # Don't show error for partial expressions, only for invalid ones
             pass
 
-    def _on_save(self):
+    def _on_save(self) -> None:
         """Handle save button click."""
         name = self.name_edit.text().strip()
         if not name:
@@ -158,7 +171,7 @@ class AccountEditDialog(QDialog):
 
         self.accept()
 
-    def _populate_data(self):
+    def _populate_data(self) -> None:
         """Populate the dialog with account data."""
         if self.account_data:
             self.name_edit.setText(self.account_data.get("name", ""))
@@ -176,7 +189,7 @@ class AccountEditDialog(QDialog):
             self.balance_spin.setFocus()
             self.balance_spin.selectAll()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Setup the user interface."""
         layout = QVBoxLayout()
 
@@ -249,21 +262,22 @@ class AccountEditDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent = None, account_data = None, currencies = None)
+def __init__(self, parent = None, account_data = None, currencies = None) -> None
 ```
 
 Initialize the dialog.
 
 Args:
-parent: Parent widget.
-account_data: Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash).
-currencies: List of currency codes.
+
+- `parent`: Parent widget. Defaults to `None`.
+- `account_data`: Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash). Defaults to `None`.
+- `currencies`: List of currency codes. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent=None, account_data=None, currencies=None):
+def __init__(self, parent=None, account_data=None, currencies=None) -> None:
         super().__init__(parent)
         self.account_data = account_data or {}
         self.currencies = currencies or []
@@ -288,7 +302,8 @@ def get_result(self)
 Get the dialog result.
 
 Returns:
-Dictionary with action and data.
+
+- `dict`: Dictionary with action and data.
 
 <details>
 <summary>Code:</summary>
@@ -309,13 +324,16 @@ def _evaluate_expression(self, expression: str) -> float
 Safely evaluate a mathematical expression.
 
 Args:
-expression: String containing mathematical expression.
+
+- `expression` (`str`): String containing mathematical expression.
 
 Returns:
-Calculated result as float.
+
+- `float`: Calculated result as float.
 
 Raises:
-ValueError: If expression is invalid or contains unsafe operations.
+
+- `ValueError`: If expression is invalid or contains unsafe operations.
 
 <details>
 <summary>Code:</summary>
@@ -327,24 +345,29 @@ def _evaluate_expression(self, expression: str) -> float:
 
         # Only allow safe characters: numbers, operators, parentheses, decimal points
         if not re.match(r"^[0-9+\-*/().]+$", expression):
-            raise ValueError("Expression contains invalid characters")
+            msg = "Expression contains invalid characters"
+            raise ValueError(msg)
 
         # Check for balanced parentheses
         if expression.count("(") != expression.count(")"):
-            raise ValueError("Unbalanced parentheses")
+            msg = "Unbalanced parentheses"
+            raise ValueError(msg)
 
         # Check for division by zero
         if "/0" in expression or "/0." in expression:
-            raise ValueError("Division by zero")
+            msg = "Division by zero"
+            raise ValueError(msg)
 
         try:
             # Use eval with a restricted namespace for safety
             result = eval(expression, {"__builtins__": {}}, {})
             if not isinstance(result, (int, float)):
-                raise ValueError("Expression does not evaluate to a number")
+                msg = "Expression does not evaluate to a number"
+                raise ValueError(msg)
             return float(result)
         except Exception as e:
-            raise ValueError(f"Invalid expression: {e!s}")
+            msg = f"Invalid expression: {e!s}"
+            raise ValueError(msg)
 ```
 
 </details>
@@ -352,7 +375,7 @@ def _evaluate_expression(self, expression: str) -> float:
 ### ⚙️ Method `_on_delete`
 
 ```python
-def _on_delete(self)
+def _on_delete(self) -> None
 ```
 
 Handle delete button click.
@@ -361,7 +384,7 @@ Handle delete button click.
 <summary>Code:</summary>
 
 ```python
-def _on_delete(self):
+def _on_delete(self) -> None:
         reply = QMessageBox.question(
             self,
             "Confirm Delete",
@@ -379,7 +402,7 @@ def _on_delete(self):
 ### ⚙️ Method `_on_expression_changed`
 
 ```python
-def _on_expression_changed(self)
+def _on_expression_changed(self) -> None
 ```
 
 Handle expression field changes and update balance.
@@ -388,7 +411,7 @@ Handle expression field changes and update balance.
 <summary>Code:</summary>
 
 ```python
-def _on_expression_changed(self):
+def _on_expression_changed(self) -> None:
         expression = self.expression_edit.text().strip()
         if not expression:
             return
@@ -406,7 +429,7 @@ def _on_expression_changed(self):
 ### ⚙️ Method `_on_save`
 
 ```python
-def _on_save(self)
+def _on_save(self) -> None
 ```
 
 Handle save button click.
@@ -415,7 +438,7 @@ Handle save button click.
 <summary>Code:</summary>
 
 ```python
-def _on_save(self):
+def _on_save(self) -> None:
         name = self.name_edit.text().strip()
         if not name:
             QMessageBox.warning(self, "Error", "Account name cannot be empty")
@@ -448,7 +471,7 @@ def _on_save(self):
 ### ⚙️ Method `_populate_data`
 
 ```python
-def _populate_data(self)
+def _populate_data(self) -> None
 ```
 
 Populate the dialog with account data.
@@ -457,7 +480,7 @@ Populate the dialog with account data.
 <summary>Code:</summary>
 
 ```python
-def _populate_data(self):
+def _populate_data(self) -> None:
         if self.account_data:
             self.name_edit.setText(self.account_data.get("name", ""))
             self.balance_spin.setValue(self.account_data.get("balance", 0.0))
@@ -480,7 +503,7 @@ def _populate_data(self):
 ### ⚙️ Method `_setup_ui`
 
 ```python
-def _setup_ui(self)
+def _setup_ui(self) -> None
 ```
 
 Setup the user interface.
@@ -489,7 +512,7 @@ Setup the user interface.
 <summary>Code:</summary>
 
 ```python
-def _setup_ui(self):
+def _setup_ui(self) -> None:
         layout = QVBoxLayout()
 
         # Account name

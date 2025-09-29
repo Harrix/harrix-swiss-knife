@@ -35,7 +35,7 @@ Dialog for editing food item parameters.
 ```python
 class FoodItemDialog(QDialog):
 
-    def __init__(self, parent=None, food_item_data=None):
+    def __init__(self, parent=None, food_item_data=None) -> None:
         """Initialize the dialog.
 
         Args:
@@ -48,7 +48,7 @@ class FoodItemDialog(QDialog):
         self.setup_ui()
         self.setup_data()
 
-    def accept(self):
+    def accept(self) -> None:
         """Handle accept (save) button click."""
         # Validate required fields
         name = self.name_edit.text().strip()
@@ -68,7 +68,7 @@ class FoodItemDialog(QDialog):
 
         super().accept()
 
-    def delete_item(self):
+    def delete_item(self) -> None:
         """Handle delete button click."""
         if not self.food_item_data:
             return
@@ -100,7 +100,7 @@ class FoodItemDialog(QDialog):
             "default_portion_calories": self.default_portion_calories_spinbox.value() or None,
         }
 
-    def setup_data(self):
+    def setup_data(self) -> None:
         """Setup initial data from food_item_data."""
         if self.food_item_data:
             # food_item_data format: [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
@@ -111,7 +111,7 @@ class FoodItemDialog(QDialog):
             self.default_portion_weight_spinbox.setValue(int(self.food_item_data[5]) if self.food_item_data[5] else 0)
             self.default_portion_calories_spinbox.setValue(self.food_item_data[6] if self.food_item_data[6] else 0)
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Setup the user interface."""
         self.setWindowTitle("Edit Food Item")
         self.setModal(True)
@@ -184,7 +184,7 @@ class FoodItemDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent = None, food_item_data = None)
+def __init__(self, parent = None, food_item_data = None) -> None
 ```
 
 Initialize the dialog.
@@ -197,7 +197,7 @@ food_item_data: Food item data as [id, name, name_en, is_drink, calories_per_100
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent=None, food_item_data=None):
+def __init__(self, parent=None, food_item_data=None) -> None:
         super().__init__(parent)
         self.food_item_data = food_item_data
         self.setup_ui()
@@ -209,7 +209,7 @@ def __init__(self, parent=None, food_item_data=None):
 ### ⚙️ Method `accept`
 
 ```python
-def accept(self)
+def accept(self) -> None
 ```
 
 Handle accept (save) button click.
@@ -218,7 +218,7 @@ Handle accept (save) button click.
 <summary>Code:</summary>
 
 ```python
-def accept(self):
+def accept(self) -> None:
         # Validate required fields
         name = self.name_edit.text().strip()
         if not name:
@@ -243,7 +243,7 @@ def accept(self):
 ### ⚙️ Method `delete_item`
 
 ```python
-def delete_item(self)
+def delete_item(self) -> None
 ```
 
 Handle delete button click.
@@ -252,7 +252,7 @@ Handle delete button click.
 <summary>Code:</summary>
 
 ```python
-def delete_item(self):
+def delete_item(self) -> None:
         if not self.food_item_data:
             return
 
@@ -303,7 +303,7 @@ def get_edited_data(self):
 ### ⚙️ Method `setup_data`
 
 ```python
-def setup_data(self)
+def setup_data(self) -> None
 ```
 
 Setup initial data from food_item_data.
@@ -312,7 +312,7 @@ Setup initial data from food_item_data.
 <summary>Code:</summary>
 
 ```python
-def setup_data(self):
+def setup_data(self) -> None:
         if self.food_item_data:
             # food_item_data format: [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
             self.name_edit.setText(self.food_item_data[1] if self.food_item_data[1] else "")
@@ -328,7 +328,7 @@ def setup_data(self):
 ### ⚙️ Method `setup_ui`
 
 ```python
-def setup_ui(self)
+def setup_ui(self) -> None
 ```
 
 Setup the user interface.
@@ -337,7 +337,7 @@ Setup the user interface.
 <summary>Code:</summary>
 
 ```python
-def setup_ui(self):
+def setup_ui(self) -> None:
         self.setWindowTitle("Edit Food Item")
         self.setModal(True)
         self.resize(400, 300)

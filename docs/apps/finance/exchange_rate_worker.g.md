@@ -40,13 +40,13 @@ class ExchangeRateUpdateWorker(QThread):
     finished_success = Signal(int, int)  # Total processed count, total operations
     finished_error = Signal(str)  # Error message
 
-    def __init__(self, db_manager, currencies_to_process):
+    def __init__(self, db_manager, currencies_to_process) -> None:
         super().__init__()
         self.db_manager = db_manager
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
         self.should_stop = False
 
-    def run(self):
+    def run(self) -> None:
         """Main worker execution."""
         try:
             # Import required libraries
@@ -277,7 +277,9 @@ class ExchangeRateUpdateWorker(QThread):
                 # Update existing records (only recent ones, not weekends)
                 if existing_records:
                     # Only update last 7 days of records
-                    recent_cutoff = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+                    recent_cutoff = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=7)).strftime(
+                        "%Y-%m-%d"
+                    )
                     recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
 
                     if recent_records:
@@ -312,7 +314,7 @@ class ExchangeRateUpdateWorker(QThread):
         except Exception as e:
             self.finished_error.emit(f"Exchange rate update error: {e}")
 
-    def stop(self):
+    def stop(self) -> None:
         """Request worker to stop."""
         self.should_stop = True
 
@@ -349,7 +351,7 @@ class ExchangeRateUpdateWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_manager, currencies_to_process)
+def __init__(self, db_manager, currencies_to_process) -> None
 ```
 
 _No docstring provided._
@@ -358,7 +360,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, db_manager, currencies_to_process):
+def __init__(self, db_manager, currencies_to_process) -> None:
         super().__init__()
         self.db_manager = db_manager
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
@@ -370,7 +372,7 @@ def __init__(self, db_manager, currencies_to_process):
 ### ⚙️ Method `run`
 
 ```python
-def run(self)
+def run(self) -> None
 ```
 
 Main worker execution.
@@ -379,7 +381,7 @@ Main worker execution.
 <summary>Code:</summary>
 
 ```python
-def run(self):
+def run(self) -> None:
         try:
             # Import required libraries
             from datetime import datetime, timedelta
@@ -609,7 +611,9 @@ def run(self):
                 # Update existing records (only recent ones, not weekends)
                 if existing_records:
                     # Only update last 7 days of records
-                    recent_cutoff = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+                    recent_cutoff = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=7)).strftime(
+                        "%Y-%m-%d"
+                    )
                     recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
 
                     if recent_records:
@@ -650,7 +654,7 @@ def run(self):
 ### ⚙️ Method `stop`
 
 ```python
-def stop(self)
+def stop(self) -> None
 ```
 
 Request worker to stop.
@@ -659,7 +663,7 @@ Request worker to stop.
 <summary>Code:</summary>
 
 ```python
-def stop(self):
+def stop(self) -> None:
         self.should_stop = True
 ```
 

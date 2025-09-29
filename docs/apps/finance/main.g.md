@@ -180,7 +180,7 @@ Delegate for category column in transactions table with dropdown list.
 ```python
 class CategoryComboBoxDelegate(QStyledItemDelegate):
 
-    def __init__(self, parent=None, categories=None):
+    def __init__(self, parent=None, categories=None) -> None:
         super().__init__(parent)
         self.categories = categories or []
 
@@ -198,7 +198,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
 
         return combo
 
-    def setEditorData(self, editor, index):
+    def setEditorData(self, editor, index) -> None:
         """Set the current value in the editor."""
         current_value = index.data()
         if current_value:
@@ -207,7 +207,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
             if index_in_combo >= 0:
                 editor.setCurrentIndex(index_in_combo)
 
-    def setModelData(self, editor, model, index):
+    def setModelData(self, editor, model, index) -> None:
         """Set the data from the editor back to the model."""
         selected_text = editor.currentText()
         if selected_text:
@@ -221,7 +221,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent = None, categories = None)
+def __init__(self, parent = None, categories = None) -> None
 ```
 
 _No docstring provided._
@@ -230,7 +230,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent=None, categories=None):
+def __init__(self, parent=None, categories=None) -> None:
         super().__init__(parent)
         self.categories = categories or []
 ```
@@ -268,7 +268,7 @@ def createEditor(self, parent, option, index):
 ### ⚙️ Method `setEditorData`
 
 ```python
-def setEditorData(self, editor, index)
+def setEditorData(self, editor, index) -> None
 ```
 
 Set the current value in the editor.
@@ -277,7 +277,7 @@ Set the current value in the editor.
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor, index):
+def setEditorData(self, editor, index) -> None:
         current_value = index.data()
         if current_value:
             # Find the exact value in the combo box
@@ -291,7 +291,7 @@ def setEditorData(self, editor, index):
 ### ⚙️ Method `setModelData`
 
 ```python
-def setModelData(self, editor, model, index)
+def setModelData(self, editor, model, index) -> None
 ```
 
 Set the data from the editor back to the model.
@@ -300,7 +300,7 @@ Set the data from the editor back to the model.
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor, model, index):
+def setModelData(self, editor, model, index) -> None:
         selected_text = editor.currentText()
         if selected_text:
             # Check if this is an income category and add suffix if needed
@@ -324,7 +324,7 @@ Delegate for currency column in transactions table with dropdown list.
 ```python
 class CurrencyComboBoxDelegate(QStyledItemDelegate):
 
-    def __init__(self, parent=None, currencies=None):
+    def __init__(self, parent=None, currencies=None) -> None:
         super().__init__(parent)
         self.currencies = currencies or []
 
@@ -342,7 +342,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
 
         return combo
 
-    def setEditorData(self, editor, index):
+    def setEditorData(self, editor, index) -> None:
         """Set the current value in the editor."""
         current_value = index.data()
         if current_value:
@@ -351,7 +351,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
             if index_in_combo >= 0:
                 editor.setCurrentIndex(index_in_combo)
 
-    def setModelData(self, editor, model, index):
+    def setModelData(self, editor, model, index) -> None:
         """Set the data from the editor back to the model."""
         selected_text = editor.currentText()
         if selected_text:
@@ -363,7 +363,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent = None, currencies = None)
+def __init__(self, parent = None, currencies = None) -> None
 ```
 
 _No docstring provided._
@@ -372,7 +372,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent=None, currencies=None):
+def __init__(self, parent=None, currencies=None) -> None:
         super().__init__(parent)
         self.currencies = currencies or []
 ```
@@ -410,7 +410,7 @@ def createEditor(self, parent, option, index):
 ### ⚙️ Method `setEditorData`
 
 ```python
-def setEditorData(self, editor, index)
+def setEditorData(self, editor, index) -> None
 ```
 
 Set the current value in the editor.
@@ -419,7 +419,7 @@ Set the current value in the editor.
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor, index):
+def setEditorData(self, editor, index) -> None:
         current_value = index.data()
         if current_value:
             # Find the exact value in the combo box
@@ -433,7 +433,7 @@ def setEditorData(self, editor, index):
 ### ⚙️ Method `setModelData`
 
 ```python
-def setModelData(self, editor, model, index)
+def setModelData(self, editor, model, index) -> None
 ```
 
 Set the data from the editor back to the model.
@@ -442,7 +442,7 @@ Set the data from the editor back to the model.
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor, model, index):
+def setModelData(self, editor, model, index) -> None:
         selected_text = editor.currentText()
         if selected_text:
             model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
@@ -464,7 +464,7 @@ Delegate for date column in transactions table.
 ```python
 class DateDelegate(QStyledItemDelegate):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
     def createEditor(self, parent, option, index):
@@ -480,7 +480,7 @@ class DateDelegate(QStyledItemDelegate):
 
         return editor
 
-    def setEditorData(self, editor, index):
+    def setEditorData(self, editor, index) -> None:
         """Set the current value in the editor."""
         current_value = index.data()
         if current_value:
@@ -492,7 +492,7 @@ class DateDelegate(QStyledItemDelegate):
             except (ValueError, TypeError):
                 editor.setDate(QDate.currentDate())
 
-    def setModelData(self, editor, model, index):
+    def setModelData(self, editor, model, index) -> None:
         """Set the data from the editor back to the model."""
         selected_date = editor.date()
         date_string = selected_date.toString("yyyy-MM-dd")
@@ -504,7 +504,7 @@ class DateDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent = None)
+def __init__(self, parent = None) -> None
 ```
 
 _No docstring provided._
@@ -513,7 +513,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent=None):
+def __init__(self, parent=None) -> None:
         super().__init__(parent)
 ```
 
@@ -549,7 +549,7 @@ def createEditor(self, parent, option, index):
 ### ⚙️ Method `setEditorData`
 
 ```python
-def setEditorData(self, editor, index)
+def setEditorData(self, editor, index) -> None
 ```
 
 Set the current value in the editor.
@@ -558,7 +558,7 @@ Set the current value in the editor.
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor, index):
+def setEditorData(self, editor, index) -> None:
         current_value = index.data()
         if current_value:
             try:
@@ -575,7 +575,7 @@ def setEditorData(self, editor, index):
 ### ⚙️ Method `setModelData`
 
 ```python
-def setModelData(self, editor, model, index)
+def setModelData(self, editor, model, index) -> None
 ```
 
 Set the data from the editor back to the model.
@@ -584,7 +584,7 @@ Set the data from the editor back to the model.
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor, model, index):
+def setModelData(self, editor, model, index) -> None:
         selected_date = editor.date()
         date_string = selected_date.toString("yyyy-MM-dd")
         model.setData(index, date_string, Qt.ItemDataRole.DisplayRole)
@@ -606,7 +606,7 @@ Delegate for description column in transactions table.
 ```python
 class DescriptionDelegate(QStyledItemDelegate):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
     def createEditor(self, parent, option, index):
@@ -620,13 +620,13 @@ class DescriptionDelegate(QStyledItemDelegate):
 
         return editor
 
-    def setEditorData(self, editor, index):
+    def setEditorData(self, editor, index) -> None:
         """Set the current value in the editor."""
         current_value = index.data()
         if current_value:
             editor.setText(str(current_value))
 
-    def setModelData(self, editor, model, index):
+    def setModelData(self, editor, model, index) -> None:
         """Set the data from the editor back to the model."""
         text = editor.text()
         if text:
@@ -638,7 +638,7 @@ class DescriptionDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent = None)
+def __init__(self, parent = None) -> None
 ```
 
 _No docstring provided._
@@ -647,7 +647,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent=None):
+def __init__(self, parent=None) -> None:
         super().__init__(parent)
 ```
 
@@ -681,7 +681,7 @@ def createEditor(self, parent, option, index):
 ### ⚙️ Method `setEditorData`
 
 ```python
-def setEditorData(self, editor, index)
+def setEditorData(self, editor, index) -> None
 ```
 
 Set the current value in the editor.
@@ -690,7 +690,7 @@ Set the current value in the editor.
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor, index):
+def setEditorData(self, editor, index) -> None:
         current_value = index.data()
         if current_value:
             editor.setText(str(current_value))
@@ -701,7 +701,7 @@ def setEditorData(self, editor, index):
 ### ⚙️ Method `setModelData`
 
 ```python
-def setModelData(self, editor, model, index)
+def setModelData(self, editor, model, index) -> None
 ```
 
 Set the data from the editor back to the model.
@@ -710,7 +710,7 @@ Set the data from the editor back to the model.
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor, model, index):
+def setModelData(self, editor, model, index) -> None:
         text = editor.text()
         if text:
             model.setData(index, text, Qt.ItemDataRole.DisplayRole)
@@ -1812,14 +1812,14 @@ class MainWindow(
         balance = 0.0
         balance_data = []
 
-        for date_str, amount in rows:
+        for date_str, _amount in rows:
             # Get transactions for this date
             daily_transactions = self.db_manager.get_transactions_chart_data(
                 default_currency_id, date_from=date_str, date_to=date_str
             )
 
             daily_balance = 0.0
-            for _, daily_amount in daily_transactions:
+            for _, _daily_amount in daily_transactions:
                 # Get category type for each transaction to determine if it's income or expense
                 trans_rows = self.db_manager.get_filtered_transactions(date_from=date_str, date_to=date_str)
                 for trans_row in trans_rows:
@@ -2084,7 +2084,7 @@ class MainWindow(
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # Для today's balance и expenses также используем упрощенные запросы
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             today_query_income = """
                 SELECT SUM(t.amount) as total
@@ -2193,20 +2193,21 @@ class MainWindow(
 
             default_currency_id = default_currency_info[0]
             default_currency_symbol = default_currency_info[2]
-            default_subdivision = self.db_manager.get_currency_subdivision(default_currency_id)
+            self.db_manager.get_currency_subdivision(default_currency_id)
 
             # Get all accounts
             accounts_data = self.db_manager.get_all_accounts()
 
             total_balance = 0.0
-            balance_details = []
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances = {}
 
             for account in accounts_data:
-                account_id, account_name, balance_minor_units, currency_code, is_liquid, is_cash, currency_id = account
+                _account_id, _account_name, balance_minor_units, currency_code, _is_liquid, _is_cash, currency_id = (
+                    account
+                )
 
                 # Convert balance from minor units to major units
                 account_subdivision = self.db_manager.get_currency_subdivision(currency_id)
@@ -2243,7 +2244,6 @@ class MainWindow(
                     currency_balances[currency_code] += balance_major_units
 
             # Format total balance with proper symbol and subdivision
-            formatted_total = f"{total_balance:.2f}{default_currency_symbol}"
 
             # Format details by currency (show summary by currency)
             details_lines = []
@@ -2282,7 +2282,7 @@ class MainWindow(
             print(f"Error calculating total accounts balance: {e}")
             return 0.0, f"Error: {e!s}"
 
-    def _cleanup_startup_dialog(self):
+    def _cleanup_startup_dialog(self) -> None:
         """Clean up startup dialog and re-enable main window."""
         # Close dialog if exists
         if hasattr(self, "startup_progress_dialog"):
@@ -2629,7 +2629,7 @@ class MainWindow(
 
         # Create pie chart
         pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
-        wedges, texts, autotexts = pie_result if len(pie_result) == 3 else (pie_result[0], pie_result[1], [])
+        _wedges, _texts, autotexts = pie_result if len(pie_result) == 3 else (pie_result[0], pie_result[1], [])
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
@@ -2836,7 +2836,7 @@ class MainWindow(
         currency_code = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date = datetime.now()
+        end_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
         start_date = end_date - timedelta(days=30)
         date_from = start_date.strftime("%Y-%m-%d")
         date_to = end_date.strftime("%Y-%m-%d")
@@ -2904,7 +2904,7 @@ class MainWindow(
 
         report_data = []
         for currency_row in currencies:
-            currency_id = currency_row[0]
+            currency_row[0]
             currency_code = currency_row[1]
 
             # Count transactions in this currency
@@ -2959,11 +2959,11 @@ class MainWindow(
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today = datetime.now().strftime("%Y-%m-%d")
+                today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date = datetime.now()
+                end_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
                 start_date = end_date - timedelta(days=days)
                 date_from = start_date.strftime("%Y-%m-%d")
                 date_to = end_date.strftime("%Y-%m-%d")
@@ -3020,7 +3020,7 @@ class MainWindow(
 
         # Get last 12 months
         report_data = []
-        end_date = datetime.now()
+        end_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         for i in range(12):
             # Calculate month start and end
@@ -3168,7 +3168,7 @@ class MainWindow(
                 if tag and tag.strip():
                     tags.add(tag.strip())
 
-            return sorted(list(tags))
+            return sorted(tags)
         except Exception as e:
             print(f"Error getting tags for delegate: {e}")
             return []
@@ -3682,7 +3682,7 @@ class MainWindow(
         # This ensures form population is complete before focusing
         QTimer.singleShot(100, self._focus_amount_and_select_text)
 
-    def _on_check_completed(self, currencies_to_process: list):
+    def _on_check_completed(self, currencies_to_process: list) -> None:
         """Handle successful completion of exchange rate check."""
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.close()
@@ -3727,7 +3727,7 @@ class MainWindow(
         # Start the update process
         self._start_exchange_rate_update(currencies_to_process)
 
-    def _on_check_failed(self, error_message: str):
+    def _on_check_failed(self, error_message: str) -> None:
         """Handle check failure."""
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.close()
@@ -3735,28 +3735,28 @@ class MainWindow(
         QMessageBox.critical(self, "Check Failed", f"Failed to check exchange rates:\n{error_message}")
         print(f"❌ Check failed: {error_message}")
 
-    def _on_check_progress_updated(self, message: str):
+    def _on_check_progress_updated(self, message: str) -> None:
         """Handle progress updates from checker worker."""
         print(message)
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.setText(message)
 
-    def _on_currency_started(self, currency_code: str):
+    def _on_currency_started(self, currency_code: str) -> None:
         """Handle currency processing start."""
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.setText(f"Processing {currency_code}...")
 
-    def _on_progress_updated(self, message: str):
+    def _on_progress_updated(self, message: str) -> None:
         """Handle progress updates from worker."""
         print(message)
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.setText(message)
 
-    def _on_rate_added(self, currency_code: str, rate: float, date_str: str):
+    def _on_rate_added(self, currency_code: str, rate: float, date_str: str) -> None:
         """Handle successful rate addition."""
         print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
 
-    def _on_startup_check_completed(self, currencies_to_process: list):
+    def _on_startup_check_completed(self, currencies_to_process: list) -> None:
         """Handle successful completion of startup exchange rate check."""
         # If no currencies need processing, cleanup and exit
         if not currencies_to_process:
@@ -3793,7 +3793,7 @@ class MainWindow(
         # Start the update process
         self._start_startup_exchange_rate_update(currencies_to_process)
 
-    def _on_startup_check_failed(self, error_message: str):
+    def _on_startup_check_failed(self, error_message: str) -> None:
         """Handle startup check failure."""
         print(f"❌ [Startup] Check failed: {error_message}")
 
@@ -3804,14 +3804,14 @@ class MainWindow(
         else:
             self._cleanup_startup_dialog()
 
-    def _on_startup_check_progress_updated(self, message: str):
+    def _on_startup_check_progress_updated(self, message: str) -> None:
         """Handle progress updates from startup checker worker."""
         print(f"[Startup] {message}")
         if hasattr(self, "startup_progress_dialog"):
             # Update dialog text with current progress
             self.startup_progress_dialog.setText(f"Checking exchange rates...\n{message}")
 
-    def _on_startup_currency_started(self, currency_code: str):
+    def _on_startup_currency_started(self, currency_code: str) -> None:
         """Handle currency processing start for startup."""
         print(f"[Startup] Processing {currency_code}...")
         if hasattr(self, "startup_progress_dialog"):
@@ -3821,7 +3821,7 @@ class MainWindow(
                 main_info = "\n".join(lines[:3])  # Keep first 3 lines
                 self.startup_progress_dialog.setText(f"{main_info}\n\n🔄 Processing {currency_code}...")
 
-    def _on_startup_dialog_cancelled(self):
+    def _on_startup_dialog_cancelled(self) -> None:
         """Handle cancel button click in startup dialog."""
         print("🚫 [Startup] User cancelled exchange rate update")
 
@@ -3837,7 +3837,7 @@ class MainWindow(
 
         self._cleanup_startup_dialog()
 
-    def _on_startup_progress_updated(self, message: str):
+    def _on_startup_progress_updated(self, message: str) -> None:
         """Handle progress updates from startup worker."""
         print(f"[Startup] {message}")
         if hasattr(self, "startup_progress_dialog"):
@@ -3851,11 +3851,11 @@ class MainWindow(
             else:
                 self.startup_progress_dialog.setText(f"Downloading exchange rates...\n{message}")
 
-    def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str):
+    def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str) -> None:
         """Handle successful rate addition for startup."""
         print(f"✅ [Startup] Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
 
-    def _on_startup_update_finished_error(self, error_message: str):
+    def _on_startup_update_finished_error(self, error_message: str) -> None:
         """Handle error completion of startup update."""
         print(f"❌ [Startup] Update failed: {error_message}")
 
@@ -3866,7 +3866,7 @@ class MainWindow(
         else:
             self._cleanup_startup_dialog()
 
-    def _on_startup_update_finished_success(self, processed_count: int, total_operations: int):
+    def _on_startup_update_finished_success(self, processed_count: int, total_operations: int) -> None:
         """Handle successful completion of startup update."""
         if processed_count > 0:
             # Determine the strategy for logging
@@ -4028,7 +4028,7 @@ class MainWindow(
         except Exception as e:
             print(f"Error copying transaction data to form: {e}")
 
-    def _on_update_finished_error(self, error_message: str):
+    def _on_update_finished_error(self, error_message: str) -> None:
         """Handle error completion."""
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
@@ -4036,7 +4036,7 @@ class MainWindow(
         QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
         print(f"❌ {error_message}")
 
-    def _on_update_finished_success(self, processed_count: int, total_operations: int):
+    def _on_update_finished_success(self, processed_count: int, total_operations: int) -> None:
         """Handle successful completion."""
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
@@ -6262,14 +6262,14 @@ def show_balance_chart(self) -> None:
         balance = 0.0
         balance_data = []
 
-        for date_str, amount in rows:
+        for date_str, _amount in rows:
             # Get transactions for this date
             daily_transactions = self.db_manager.get_transactions_chart_data(
                 default_currency_id, date_from=date_str, date_to=date_str
             )
 
             daily_balance = 0.0
-            for _, daily_amount in daily_transactions:
+            for _, _daily_amount in daily_transactions:
                 # Get category type for each transaction to determine if it's income or expense
                 trans_rows = self.db_manager.get_filtered_transactions(date_from=date_str, date_to=date_str)
                 for trans_row in trans_rows:
@@ -6627,7 +6627,7 @@ def update_summary_labels(self) -> None:
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # Для today's balance и expenses также используем упрощенные запросы
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             today_query_income = """
                 SELECT SUM(t.amount) as total
@@ -6774,20 +6774,21 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
 
             default_currency_id = default_currency_info[0]
             default_currency_symbol = default_currency_info[2]
-            default_subdivision = self.db_manager.get_currency_subdivision(default_currency_id)
+            self.db_manager.get_currency_subdivision(default_currency_id)
 
             # Get all accounts
             accounts_data = self.db_manager.get_all_accounts()
 
             total_balance = 0.0
-            balance_details = []
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances = {}
 
             for account in accounts_data:
-                account_id, account_name, balance_minor_units, currency_code, is_liquid, is_cash, currency_id = account
+                _account_id, _account_name, balance_minor_units, currency_code, _is_liquid, _is_cash, currency_id = (
+                    account
+                )
 
                 # Convert balance from minor units to major units
                 account_subdivision = self.db_manager.get_currency_subdivision(currency_id)
@@ -6824,7 +6825,6 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
                     currency_balances[currency_code] += balance_major_units
 
             # Format total balance with proper symbol and subdivision
-            formatted_total = f"{total_balance:.2f}{default_currency_symbol}"
 
             # Format details by currency (show summary by currency)
             details_lines = []
@@ -6869,7 +6869,7 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
 ### ⚙️ Method `_cleanup_startup_dialog`
 
 ```python
-def _cleanup_startup_dialog(self)
+def _cleanup_startup_dialog(self) -> None
 ```
 
 Clean up startup dialog and re-enable main window.
@@ -6878,7 +6878,7 @@ Clean up startup dialog and re-enable main window.
 <summary>Code:</summary>
 
 ```python
-def _cleanup_startup_dialog(self):
+def _cleanup_startup_dialog(self) -> None:
         # Close dialog if exists
         if hasattr(self, "startup_progress_dialog"):
             self.startup_progress_dialog.close()
@@ -7372,7 +7372,7 @@ def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
 
         # Create pie chart
         pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
-        wedges, texts, autotexts = pie_result if len(pie_result) == 3 else (pie_result[0], pie_result[1], [])
+        _wedges, _texts, autotexts = pie_result if len(pie_result) == 3 else (pie_result[0], pie_result[1], [])
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
@@ -7683,7 +7683,7 @@ def _generate_category_analysis_report(self, currency_id: int) -> None:
         currency_code = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date = datetime.now()
+        end_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
         start_date = end_date - timedelta(days=30)
         date_from = start_date.strftime("%Y-%m-%d")
         date_to = end_date.strftime("%Y-%m-%d")
@@ -7765,7 +7765,7 @@ def _generate_currency_analysis_report(self) -> None:
 
         report_data = []
         for currency_row in currencies:
-            currency_id = currency_row[0]
+            currency_row[0]
             currency_code = currency_row[1]
 
             # Count transactions in this currency
@@ -7832,11 +7832,11 @@ def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today = datetime.now().strftime("%Y-%m-%d")
+                today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date = datetime.now()
+                end_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
                 start_date = end_date - timedelta(days=days)
                 date_from = start_date.strftime("%Y-%m-%d")
                 date_to = end_date.strftime("%Y-%m-%d")
@@ -7905,7 +7905,7 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
 
         # Get last 12 months
         report_data = []
-        end_date = datetime.now()
+        end_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         for i in range(12):
             # Calculate month start and end
@@ -8107,7 +8107,7 @@ def _get_tags_for_delegate(self) -> list[str]:
                 if tag and tag.strip():
                     tags.add(tag.strip())
 
-            return sorted(list(tags))
+            return sorted(tags)
         except Exception as e:
             print(f"Error getting tags for delegate: {e}")
             return []
@@ -8844,7 +8844,7 @@ def _on_autocomplete_selected(self, text: str) -> None:
 ### ⚙️ Method `_on_check_completed`
 
 ```python
-def _on_check_completed(self, currencies_to_process: list)
+def _on_check_completed(self, currencies_to_process: list) -> None
 ```
 
 Handle successful completion of exchange rate check.
@@ -8853,7 +8853,7 @@ Handle successful completion of exchange rate check.
 <summary>Code:</summary>
 
 ```python
-def _on_check_completed(self, currencies_to_process: list):
+def _on_check_completed(self, currencies_to_process: list) -> None:
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.close()
 
@@ -8903,7 +8903,7 @@ def _on_check_completed(self, currencies_to_process: list):
 ### ⚙️ Method `_on_check_failed`
 
 ```python
-def _on_check_failed(self, error_message: str)
+def _on_check_failed(self, error_message: str) -> None
 ```
 
 Handle check failure.
@@ -8912,7 +8912,7 @@ Handle check failure.
 <summary>Code:</summary>
 
 ```python
-def _on_check_failed(self, error_message: str):
+def _on_check_failed(self, error_message: str) -> None:
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.close()
 
@@ -8925,7 +8925,7 @@ def _on_check_failed(self, error_message: str):
 ### ⚙️ Method `_on_check_progress_updated`
 
 ```python
-def _on_check_progress_updated(self, message: str)
+def _on_check_progress_updated(self, message: str) -> None
 ```
 
 Handle progress updates from checker worker.
@@ -8934,7 +8934,7 @@ Handle progress updates from checker worker.
 <summary>Code:</summary>
 
 ```python
-def _on_check_progress_updated(self, message: str):
+def _on_check_progress_updated(self, message: str) -> None:
         print(message)
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.setText(message)
@@ -8945,7 +8945,7 @@ def _on_check_progress_updated(self, message: str):
 ### ⚙️ Method `_on_currency_started`
 
 ```python
-def _on_currency_started(self, currency_code: str)
+def _on_currency_started(self, currency_code: str) -> None
 ```
 
 Handle currency processing start.
@@ -8954,7 +8954,7 @@ Handle currency processing start.
 <summary>Code:</summary>
 
 ```python
-def _on_currency_started(self, currency_code: str):
+def _on_currency_started(self, currency_code: str) -> None:
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.setText(f"Processing {currency_code}...")
 ```
@@ -8964,7 +8964,7 @@ def _on_currency_started(self, currency_code: str):
 ### ⚙️ Method `_on_progress_updated`
 
 ```python
-def _on_progress_updated(self, message: str)
+def _on_progress_updated(self, message: str) -> None
 ```
 
 Handle progress updates from worker.
@@ -8973,7 +8973,7 @@ Handle progress updates from worker.
 <summary>Code:</summary>
 
 ```python
-def _on_progress_updated(self, message: str):
+def _on_progress_updated(self, message: str) -> None:
         print(message)
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.setText(message)
@@ -8984,7 +8984,7 @@ def _on_progress_updated(self, message: str):
 ### ⚙️ Method `_on_rate_added`
 
 ```python
-def _on_rate_added(self, currency_code: str, rate: float, date_str: str)
+def _on_rate_added(self, currency_code: str, rate: float, date_str: str) -> None
 ```
 
 Handle successful rate addition.
@@ -8993,7 +8993,7 @@ Handle successful rate addition.
 <summary>Code:</summary>
 
 ```python
-def _on_rate_added(self, currency_code: str, rate: float, date_str: str):
+def _on_rate_added(self, currency_code: str, rate: float, date_str: str) -> None:
         print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
 ```
 
@@ -9002,7 +9002,7 @@ def _on_rate_added(self, currency_code: str, rate: float, date_str: str):
 ### ⚙️ Method `_on_startup_check_completed`
 
 ```python
-def _on_startup_check_completed(self, currencies_to_process: list)
+def _on_startup_check_completed(self, currencies_to_process: list) -> None
 ```
 
 Handle successful completion of startup exchange rate check.
@@ -9011,7 +9011,7 @@ Handle successful completion of startup exchange rate check.
 <summary>Code:</summary>
 
 ```python
-def _on_startup_check_completed(self, currencies_to_process: list):
+def _on_startup_check_completed(self, currencies_to_process: list) -> None:
         # If no currencies need processing, cleanup and exit
         if not currencies_to_process:
             print("✅ [Startup] All exchange rates are up to date.")
@@ -9053,7 +9053,7 @@ def _on_startup_check_completed(self, currencies_to_process: list):
 ### ⚙️ Method `_on_startup_check_failed`
 
 ```python
-def _on_startup_check_failed(self, error_message: str)
+def _on_startup_check_failed(self, error_message: str) -> None
 ```
 
 Handle startup check failure.
@@ -9062,7 +9062,7 @@ Handle startup check failure.
 <summary>Code:</summary>
 
 ```python
-def _on_startup_check_failed(self, error_message: str):
+def _on_startup_check_failed(self, error_message: str) -> None:
         print(f"❌ [Startup] Check failed: {error_message}")
 
         if hasattr(self, "startup_progress_dialog"):
@@ -9078,7 +9078,7 @@ def _on_startup_check_failed(self, error_message: str):
 ### ⚙️ Method `_on_startup_check_progress_updated`
 
 ```python
-def _on_startup_check_progress_updated(self, message: str)
+def _on_startup_check_progress_updated(self, message: str) -> None
 ```
 
 Handle progress updates from startup checker worker.
@@ -9087,7 +9087,7 @@ Handle progress updates from startup checker worker.
 <summary>Code:</summary>
 
 ```python
-def _on_startup_check_progress_updated(self, message: str):
+def _on_startup_check_progress_updated(self, message: str) -> None:
         print(f"[Startup] {message}")
         if hasattr(self, "startup_progress_dialog"):
             # Update dialog text with current progress
@@ -9099,7 +9099,7 @@ def _on_startup_check_progress_updated(self, message: str):
 ### ⚙️ Method `_on_startup_currency_started`
 
 ```python
-def _on_startup_currency_started(self, currency_code: str)
+def _on_startup_currency_started(self, currency_code: str) -> None
 ```
 
 Handle currency processing start for startup.
@@ -9108,7 +9108,7 @@ Handle currency processing start for startup.
 <summary>Code:</summary>
 
 ```python
-def _on_startup_currency_started(self, currency_code: str):
+def _on_startup_currency_started(self, currency_code: str) -> None:
         print(f"[Startup] Processing {currency_code}...")
         if hasattr(self, "startup_progress_dialog"):
             current_text = self.startup_progress_dialog.text()
@@ -9123,7 +9123,7 @@ def _on_startup_currency_started(self, currency_code: str):
 ### ⚙️ Method `_on_startup_dialog_cancelled`
 
 ```python
-def _on_startup_dialog_cancelled(self)
+def _on_startup_dialog_cancelled(self) -> None
 ```
 
 Handle cancel button click in startup dialog.
@@ -9132,7 +9132,7 @@ Handle cancel button click in startup dialog.
 <summary>Code:</summary>
 
 ```python
-def _on_startup_dialog_cancelled(self):
+def _on_startup_dialog_cancelled(self) -> None:
         print("🚫 [Startup] User cancelled exchange rate update")
 
         # Stop checker if running
@@ -9153,7 +9153,7 @@ def _on_startup_dialog_cancelled(self):
 ### ⚙️ Method `_on_startup_progress_updated`
 
 ```python
-def _on_startup_progress_updated(self, message: str)
+def _on_startup_progress_updated(self, message: str) -> None
 ```
 
 Handle progress updates from startup worker.
@@ -9162,7 +9162,7 @@ Handle progress updates from startup worker.
 <summary>Code:</summary>
 
 ```python
-def _on_startup_progress_updated(self, message: str):
+def _on_startup_progress_updated(self, message: str) -> None:
         print(f"[Startup] {message}")
         if hasattr(self, "startup_progress_dialog"):
             # Keep the main info and update with current progress
@@ -9181,7 +9181,7 @@ def _on_startup_progress_updated(self, message: str):
 ### ⚙️ Method `_on_startup_rate_added`
 
 ```python
-def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str)
+def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str) -> None
 ```
 
 Handle successful rate addition for startup.
@@ -9190,7 +9190,7 @@ Handle successful rate addition for startup.
 <summary>Code:</summary>
 
 ```python
-def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str):
+def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str) -> None:
         print(f"✅ [Startup] Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
 ```
 
@@ -9199,7 +9199,7 @@ def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str)
 ### ⚙️ Method `_on_startup_update_finished_error`
 
 ```python
-def _on_startup_update_finished_error(self, error_message: str)
+def _on_startup_update_finished_error(self, error_message: str) -> None
 ```
 
 Handle error completion of startup update.
@@ -9208,7 +9208,7 @@ Handle error completion of startup update.
 <summary>Code:</summary>
 
 ```python
-def _on_startup_update_finished_error(self, error_message: str):
+def _on_startup_update_finished_error(self, error_message: str) -> None:
         print(f"❌ [Startup] Update failed: {error_message}")
 
         if hasattr(self, "startup_progress_dialog"):
@@ -9224,7 +9224,7 @@ def _on_startup_update_finished_error(self, error_message: str):
 ### ⚙️ Method `_on_startup_update_finished_success`
 
 ```python
-def _on_startup_update_finished_success(self, processed_count: int, total_operations: int)
+def _on_startup_update_finished_success(self, processed_count: int, total_operations: int) -> None
 ```
 
 Handle successful completion of startup update.
@@ -9233,7 +9233,7 @@ Handle successful completion of startup update.
 <summary>Code:</summary>
 
 ```python
-def _on_startup_update_finished_success(self, processed_count: int, total_operations: int):
+def _on_startup_update_finished_success(self, processed_count: int, total_operations: int) -> None:
         if processed_count > 0:
             # Determine the strategy for logging
             has_exchange_rates = (
@@ -9424,7 +9424,7 @@ def _on_transaction_selection_changed(self, current: QModelIndex, previous: QMod
 ### ⚙️ Method `_on_update_finished_error`
 
 ```python
-def _on_update_finished_error(self, error_message: str)
+def _on_update_finished_error(self, error_message: str) -> None
 ```
 
 Handle error completion.
@@ -9433,7 +9433,7 @@ Handle error completion.
 <summary>Code:</summary>
 
 ```python
-def _on_update_finished_error(self, error_message: str):
+def _on_update_finished_error(self, error_message: str) -> None:
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
 
@@ -9446,7 +9446,7 @@ def _on_update_finished_error(self, error_message: str):
 ### ⚙️ Method `_on_update_finished_success`
 
 ```python
-def _on_update_finished_success(self, processed_count: int, total_operations: int)
+def _on_update_finished_success(self, processed_count: int, total_operations: int) -> None
 ```
 
 Handle successful completion.
@@ -9455,7 +9455,7 @@ Handle successful completion.
 <summary>Code:</summary>
 
 ```python
-def _on_update_finished_success(self, processed_count: int, total_operations: int):
+def _on_update_finished_success(self, processed_count: int, total_operations: int) -> None:
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.close()
 
@@ -10507,7 +10507,7 @@ Delegate for tag column in transactions table.
 ```python
 class TagDelegate(QStyledItemDelegate):
 
-    def __init__(self, parent=None, tags=None):
+    def __init__(self, parent=None, tags=None) -> None:
         super().__init__(parent)
         self.tags = tags or []
 
@@ -10525,7 +10525,7 @@ class TagDelegate(QStyledItemDelegate):
 
         return combo
 
-    def setEditorData(self, editor, index):
+    def setEditorData(self, editor, index) -> None:
         """Set the current value in the editor."""
         current_value = index.data()
         if current_value:
@@ -10537,7 +10537,7 @@ class TagDelegate(QStyledItemDelegate):
                 # If not found, set as current text
                 editor.setCurrentText(current_value)
 
-    def setModelData(self, editor, model, index):
+    def setModelData(self, editor, model, index) -> None:
         """Set the data from the editor back to the model."""
         selected_text = editor.currentText()
         if selected_text:
@@ -10549,7 +10549,7 @@ class TagDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent = None, tags = None)
+def __init__(self, parent = None, tags = None) -> None
 ```
 
 _No docstring provided._
@@ -10558,7 +10558,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent=None, tags=None):
+def __init__(self, parent=None, tags=None) -> None:
         super().__init__(parent)
         self.tags = tags or []
 ```
@@ -10596,7 +10596,7 @@ def createEditor(self, parent, option, index):
 ### ⚙️ Method `setEditorData`
 
 ```python
-def setEditorData(self, editor, index)
+def setEditorData(self, editor, index) -> None
 ```
 
 Set the current value in the editor.
@@ -10605,7 +10605,7 @@ Set the current value in the editor.
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor, index):
+def setEditorData(self, editor, index) -> None:
         current_value = index.data()
         if current_value:
             # Find the exact value in the combo box
@@ -10622,7 +10622,7 @@ def setEditorData(self, editor, index):
 ### ⚙️ Method `setModelData`
 
 ```python
-def setModelData(self, editor, model, index)
+def setModelData(self, editor, model, index) -> None
 ```
 
 Set the data from the editor back to the model.
@@ -10631,7 +10631,7 @@ Set the data from the editor back to the model.
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor, model, index):
+def setModelData(self, editor, model, index) -> None:
         selected_text = editor.currentText()
         if selected_text:
             model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)

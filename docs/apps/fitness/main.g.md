@@ -820,7 +820,9 @@ class MainWindow(
 
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
-            yesterday = datetime.now().date() - timedelta(days=1)  # Use local time instead of UTC
+            yesterday = datetime.now(tz=datetime.now().astimezone().tzinfo).date() - timedelta(
+                days=1
+            )  # Use local time instead of UTC
 
             try:
                 first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
@@ -965,7 +967,7 @@ class MainWindow(
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
         # Use local time for current date
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         monthly_data = []
         colors = []
@@ -1214,7 +1216,7 @@ class MainWindow(
         selected_month_index = self.comboBox_compare_same_months.currentIndex()
         selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
 
-        today = datetime.now()  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)  # Use local time instead of UTC
         selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
@@ -1855,7 +1857,9 @@ class MainWindow(
                 return
 
             # Calculate date one year ago
-            one_year_ago = datetime.now() - timedelta(days=365)  # Use local time instead of UTC
+            one_year_ago = datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(
+                days=365
+            )  # Use local time instead of UTC
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Group data by exercise and type combination
@@ -2276,7 +2280,7 @@ class MainWindow(
                 color_priority = row_data[-1]  # Get color priority from last element
 
                 # Create items for display columns only (exclude the color priority)
-                for col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color priority)
+                for _col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color priority)
                     item = QStandardItem(str(value))
 
                     # Apply color based on priority
@@ -2362,7 +2366,7 @@ class MainWindow(
                 return
 
             # Calculate days ago for each exercise
-            today = datetime.now().date()  # Use local time instead of UTC
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).date()  # Use local time instead of UTC
             table_data = []
 
             for exercise_name, last_date_str in exercise_dates:
@@ -2679,7 +2683,9 @@ class MainWindow(
 
         # For calories chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -2767,7 +2773,9 @@ class MainWindow(
 
         # For sets chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3128,7 +3136,9 @@ class MainWindow(
 
         # For exercise chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3394,7 +3404,7 @@ class MainWindow(
         from datetime import datetime, timedelta
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
         current_year = today.year
 
@@ -3559,7 +3569,7 @@ class MainWindow(
             return
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -3691,7 +3701,7 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
         monthly_data = []
 
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         for i in range(months_count):
             # Calculate start and end of month
@@ -3796,7 +3806,7 @@ class MainWindow(
                 today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
         # Calculate remaining days in current month
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
         current_year = today.year
         days_in_month = calendar.monthrange(current_year, current_month)[1]
@@ -3902,7 +3912,7 @@ class MainWindow(
         from datetime import datetime, timedelta
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
         current_year = today.year
 
@@ -4072,6 +4082,7 @@ class MainWindow(
 
         Returns:
             dict: Dictionary containing all recommendation values
+
         """
         import calendar
         from datetime import datetime
@@ -4079,20 +4090,17 @@ class MainWindow(
         # Find the maximum final value from all months and last month value
         max_value = 0.0
         last_month_value = 0.0
-        max_month_index = 0
 
         for i, month_data in enumerate(monthly_data):
             if month_data:
                 final_value = month_data[-1][1]
-                if final_value > max_value:
-                    max_value = final_value
-                    max_month_index = i
+                max_value = max(max_value, final_value)
                 # Last month is the second item (index 1) if it exists
                 if i == 1:
                     last_month_value = final_value
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -4148,7 +4156,9 @@ class MainWindow(
 
         try:
             # Calculate date one year ago
-            one_year_ago = datetime.now() - timedelta(days=365)  # Use local time instead of UTC
+            one_year_ago = datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(
+                days=365
+            )  # Use local time instead of UTC
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Use database manager method
@@ -4687,11 +4697,12 @@ class MainWindow(
 
         Returns:
             list: Monthly data in the same format as compare_last
+
         """
         from datetime import datetime, timedelta
 
         monthly_data = []
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         for i in range(months_count):
             # Calculate start and end of month (same logic as compare_last)
@@ -5519,10 +5530,7 @@ class MainWindow(
         # Default message uses the spinner value for months when appropriate
         if text is None:
             months = self.spinBox_compare_last.value() if hasattr(self, "spinBox_compare_last") else 0
-            if months > 0:
-                text = f"No data for the last {months} months."
-            else:
-                text = "No data for the selected period."
+            text = f"No data for the last {months} months." if months > 0 else "No data for the selected period."
 
         self.label_chart_info.setText(text)
         self.label_chart_info.setStyleSheet("""
@@ -6845,7 +6853,9 @@ def on_check_steps(self) -> None:
 
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
-            yesterday = datetime.now().date() - timedelta(days=1)  # Use local time instead of UTC
+            yesterday = datetime.now(tz=datetime.now().astimezone().tzinfo).date() - timedelta(
+                days=1
+            )  # Use local time instead of UTC
 
             try:
                 first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
@@ -7002,7 +7012,7 @@ def on_compare_last_months(self) -> None:
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
         # Use local time for current date
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         monthly_data = []
         colors = []
@@ -7263,7 +7273,7 @@ def on_compare_same_months(self) -> None:
         selected_month_index = self.comboBox_compare_same_months.currentIndex()
         selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
 
-        today = datetime.now()  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)  # Use local time instead of UTC
         selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
@@ -8021,7 +8031,9 @@ def on_refresh_statistics(self) -> None:
                 return
 
             # Calculate date one year ago
-            one_year_ago = datetime.now() - timedelta(days=365)  # Use local time instead of UTC
+            one_year_ago = datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(
+                days=365
+            )  # Use local time instead of UTC
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Group data by exercise and type combination
@@ -8455,7 +8467,7 @@ def on_show_exercise_goal_recommendations(self) -> None:
                 color_priority = row_data[-1]  # Get color priority from last element
 
                 # Create items for display columns only (exclude the color priority)
-                for col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color priority)
+                for _col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color priority)
                     item = QStandardItem(str(value))
 
                     # Apply color based on priority
@@ -8554,7 +8566,7 @@ def on_show_last_exercises(self) -> None:
                 return
 
             # Calculate days ago for each exercise
-            today = datetime.now().date()  # Use local time instead of UTC
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).date()  # Use local time instead of UTC
             table_data = []
 
             for exercise_name, last_date_str in exercise_dates:
@@ -9042,7 +9054,9 @@ def show_kcal_chart(self) -> None:
 
         # For calories chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -9143,7 +9157,9 @@ def show_sets_chart(self) -> None:
 
         # For sets chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -9569,7 +9585,9 @@ def update_exercise_chart(self) -> None:
 
         # For exercise chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")  # Use local time instead of UTC
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -9909,7 +9927,7 @@ def _add_calories_recommendations_to_label(self) -> None:
         from datetime import datetime, timedelta
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
         current_year = today.year
 
@@ -10086,7 +10104,7 @@ def _add_exercise_recommendations_to_label(
             return
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -10231,7 +10249,7 @@ def _add_exercise_recommendations_to_label_for_standard_chart(
         months_count = self.spinBox_compare_last.value()
         monthly_data = []
 
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         for i in range(months_count):
             # Calculate start and end of month
@@ -10363,7 +10381,7 @@ def _add_same_months_recommendations_to_label(
                 today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
         # Calculate remaining days in current month
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
         current_year = today.year
         days_in_month = calendar.monthrange(current_year, current_month)[1]
@@ -10482,7 +10500,7 @@ def _add_sets_recommendations_to_label(self) -> None:
         from datetime import datetime, timedelta
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
         current_year = today.year
 
@@ -10686,20 +10704,17 @@ def _calculate_exercise_recommendations(
         # Find the maximum final value from all months and last month value
         max_value = 0.0
         last_month_value = 0.0
-        max_month_index = 0
 
         for i, month_data in enumerate(monthly_data):
             if month_data:
                 final_value = month_data[-1][1]
-                if final_value > max_value:
-                    max_value = final_value
-                    max_month_index = i
+                max_value = max(max_value, final_value)
                 # Last month is the second item (index 1) if it exists
                 if i == 1:
                     last_month_value = final_value
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -10767,7 +10782,9 @@ def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float,
 
         try:
             # Calculate date one year ago
-            one_year_ago = datetime.now() - timedelta(days=365)  # Use local time instead of UTC
+            one_year_ago = datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(
+                days=365
+            )  # Use local time instead of UTC
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Use database manager method
@@ -11524,7 +11541,7 @@ def _get_monthly_data_for_exercise(self, exercise_name: str, months_count: int) 
         from datetime import datetime, timedelta
 
         monthly_data = []
-        today = datetime.now()
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
         for i in range(months_count):
             # Calculate start and end of month (same logic as compare_last)
@@ -12710,10 +12727,7 @@ def _set_no_data_info_label(self, text: str | None = None) -> None:
         # Default message uses the spinner value for months when appropriate
         if text is None:
             months = self.spinBox_compare_last.value() if hasattr(self, "spinBox_compare_last") else 0
-            if months > 0:
-                text = f"No data for the last {months} months."
-            else:
-                text = "No data for the selected period."
+            text = f"No data for the last {months} months." if months > 0 else "No data for the selected period."
 
         self.label_chart_info.setText(text)
         self.label_chart_info.setStyleSheet("""

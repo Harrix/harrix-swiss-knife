@@ -37,7 +37,7 @@ class ExchangeRateCheckerWorker(QThread):
     check_completed = Signal(list)  # List of currencies to process
     check_failed = Signal(str)  # Error message
 
-    def __init__(self, db_manager, check_from_first_transaction=True):
+    def __init__(self, db_manager, check_from_first_transaction=True) -> None:
         """Initialize the checker worker.
 
         Args:
@@ -51,7 +51,7 @@ class ExchangeRateCheckerWorker(QThread):
         self.check_from_first_transaction = check_from_first_transaction
         self.should_stop = False
 
-    def run(self):
+    def run(self) -> None:
         """Main worker execution for checking exchange rates."""
         try:
             self.progress_updated.emit("🔍 Starting exchange rates check...")
@@ -64,7 +64,7 @@ class ExchangeRateCheckerWorker(QThread):
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = datetime.now().date()
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).date()
             today_str = today.strftime("%Y-%m-%d")
 
             self.progress_updated.emit(f"📅 Checking rates up to {today_str}")
@@ -86,7 +86,7 @@ class ExchangeRateCheckerWorker(QThread):
 
             # Process each currency
             total_currencies = len(currencies)
-            for idx, (currency_id, currency_code, currency_name, currency_symbol) in enumerate(currencies, 1):
+            for idx, (currency_id, currency_code, _currency_name, _currency_symbol) in enumerate(currencies, 1):
                 if self.should_stop:
                     self.check_failed.emit("Check cancelled by user")
                     return
@@ -157,7 +157,7 @@ class ExchangeRateCheckerWorker(QThread):
         except Exception as e:
             self.check_failed.emit(f"Check error: {e!s}")
 
-    def stop(self):
+    def stop(self) -> None:
         """Request worker to stop."""
         self.should_stop = True
 ```
@@ -167,7 +167,7 @@ class ExchangeRateCheckerWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_manager, check_from_first_transaction = True)
+def __init__(self, db_manager, check_from_first_transaction = True) -> None
 ```
 
 Initialize the checker worker.
@@ -181,7 +181,7 @@ if False, check from last exchange rate
 <summary>Code:</summary>
 
 ```python
-def __init__(self, db_manager, check_from_first_transaction=True):
+def __init__(self, db_manager, check_from_first_transaction=True) -> None:
         super().__init__()
         self.db_manager = db_manager
         self.check_from_first_transaction = check_from_first_transaction
@@ -193,7 +193,7 @@ def __init__(self, db_manager, check_from_first_transaction=True):
 ### ⚙️ Method `run`
 
 ```python
-def run(self)
+def run(self) -> None
 ```
 
 Main worker execution for checking exchange rates.
@@ -202,7 +202,7 @@ Main worker execution for checking exchange rates.
 <summary>Code:</summary>
 
 ```python
-def run(self):
+def run(self) -> None:
         try:
             self.progress_updated.emit("🔍 Starting exchange rates check...")
 
@@ -214,7 +214,7 @@ def run(self):
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = datetime.now().date()
+            today = datetime.now(tz=datetime.now().astimezone().tzinfo).date()
             today_str = today.strftime("%Y-%m-%d")
 
             self.progress_updated.emit(f"📅 Checking rates up to {today_str}")
@@ -236,7 +236,7 @@ def run(self):
 
             # Process each currency
             total_currencies = len(currencies)
-            for idx, (currency_id, currency_code, currency_name, currency_symbol) in enumerate(currencies, 1):
+            for idx, (currency_id, currency_code, _currency_name, _currency_symbol) in enumerate(currencies, 1):
                 if self.should_stop:
                     self.check_failed.emit("Check cancelled by user")
                     return
@@ -313,7 +313,7 @@ def run(self):
 ### ⚙️ Method `stop`
 
 ```python
-def stop(self)
+def stop(self) -> None
 ```
 
 Request worker to stop.
@@ -322,7 +322,7 @@ Request worker to stop.
 <summary>Code:</summary>
 
 ```python
-def stop(self):
+def stop(self) -> None:
         self.should_stop = True
 ```
 

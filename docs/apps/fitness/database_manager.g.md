@@ -772,7 +772,9 @@ class DatabaseManager:
         - `float`: Total value for the exercise today, or 0.0 if no records found.
 
         """
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )
         rows = self.get_rows(
             "SELECT SUM(CAST(value AS REAL)) FROM process WHERE _id_exercises = :ex_id AND date = :today",
             {"ex_id": exercise_id, "today": today},
@@ -1067,7 +1069,9 @@ class DatabaseManager:
         - `float`: Total calories burned today, or 0.0 if no records found.
 
         """
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )
         query = """
             SELECT SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
             FROM process p
@@ -1279,7 +1283,9 @@ class DatabaseManager:
         - `int`: Number of process records for today's date.
 
         """
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )
         rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
 
@@ -1370,9 +1376,7 @@ class DatabaseManager:
             "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
         )
 
-        if query and query.next():
-            return True
-        return False
+        return bool(query and query.next())
 
     def update_exercise(
         self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0
@@ -2591,7 +2595,9 @@ Returns:
 
 ```python
 def get_exercise_total_today(self, exercise_id: int) -> float:
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )
         rows = self.get_rows(
             "SELECT SUM(CAST(value AS REAL)) FROM process WHERE _id_exercises = :ex_id AND date = :today",
             {"ex_id": exercise_id, "today": today},
@@ -2994,7 +3000,9 @@ Returns:
 
 ```python
 def get_kcal_today(self) -> float:
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )
         query = """
             SELECT SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
             FROM process p
@@ -3314,7 +3322,9 @@ Returns:
 
 ```python
 def get_sets_count_today(self) -> int:
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
+            "%Y-%m-%d"
+        )
         rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
 ```
@@ -3465,9 +3475,7 @@ def table_exists(self, table_name: str) -> bool:
             "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
         )
 
-        if query and query.next():
-            return True
-        return False
+        return bool(query and query.next())
 ```
 
 </details>

@@ -1097,10 +1097,15 @@ class OnNewArticle(ActionBase):
 
         text = self.config["beginning_of_article"].replace(
             "[YEAR]",
-            datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y"),
+            datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime("%Y"),
         )
         text = text.replace("[NAME]", article_name)
-        text = text.replace("[DATE]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d"))
+        text = text.replace(
+            "[DATE]",
+            datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
+                "%Y-%m-%d"
+            ),
+        )
         text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 
         result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)
@@ -1133,10 +1138,15 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         text = self.config["beginning_of_article"].replace(
             "[YEAR]",
-            datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y"),
+            datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime("%Y"),
         )
         text = text.replace("[NAME]", article_name)
-        text = text.replace("[DATE]", datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d"))
+        text = text.replace(
+            "[DATE]",
+            datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
+                "%Y-%m-%d"
+            ),
+        )
         text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 
         result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)

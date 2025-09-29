@@ -504,7 +504,7 @@ class DatabaseManager:
         - `int`: Total weight of drinks in grams.
 
         """
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
         query = "SELECT SUM(weight) FROM food_log WHERE date = :today AND is_drink = 1 AND weight IS NOT NULL"
         params = {"today": today}
         rows = self.get_rows(query, params)
@@ -537,7 +537,7 @@ class DatabaseManager:
         - `float`: Total calories today.
 
         """
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
         query = """
             SELECT SUM(
                 CASE
@@ -628,10 +628,7 @@ class DatabaseManager:
             try:
                 date_str = str(row[0]) if row[0] is not None else ""
                 calories_value = row[1]
-                if calories_value is None or calories_value == "":
-                    calories_float = 0.0
-                else:
-                    calories_float = float(calories_value)
+                calories_float = 0.0 if calories_value is None or calories_value == "" else float(calories_value)
                 result.append((date_str, calories_float))
             except (ValueError, TypeError):
                 # Skip invalid rows
@@ -995,9 +992,7 @@ class DatabaseManager:
             "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
         )
 
-        if query and query.next():
-            return True
-        return False
+        return bool(query and query.next())
 
     def update_food_item(
         self,
@@ -1845,7 +1840,7 @@ Returns:
 
 ```python
 def get_drinks_weight_today(self) -> int:
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
         query = "SELECT SUM(weight) FROM food_log WHERE date = :today AND is_drink = 1 AND weight IS NOT NULL"
         params = {"today": today}
         rows = self.get_rows(query, params)
@@ -1902,7 +1897,7 @@ Returns:
 
 ```python
 def get_food_calories_today(self) -> float:
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
         query = """
             SELECT SUM(
                 CASE
@@ -2029,10 +2024,7 @@ def get_food_log_chart_data(self, date_from: str, date_to: str) -> list[tuple[st
             try:
                 date_str = str(row[0]) if row[0] is not None else ""
                 calories_value = row[1]
-                if calories_value is None or calories_value == "":
-                    calories_float = 0.0
-                else:
-                    calories_float = float(calories_value)
+                calories_float = 0.0 if calories_value is None or calories_value == "" else float(calories_value)
                 result.append((date_str, calories_float))
             except (ValueError, TypeError):
                 # Skip invalid rows
@@ -2555,9 +2547,7 @@ def table_exists(self, table_name: str) -> bool:
             "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
         )
 
-        if query and query.next():
-            return True
-        return False
+        return bool(query and query.next())
 ```
 
 </details>
