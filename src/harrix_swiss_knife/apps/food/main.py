@@ -6,6 +6,7 @@ SQLite database with food items and food log records.
 
 from __future__ import annotations
 
+import colorsys
 import sys
 from functools import partial
 from pathlib import Path
@@ -25,7 +26,6 @@ from PySide6.QtWidgets import (
     QTableView,
     QWidget,
 )
-import colorsys
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.food import database_manager, window
@@ -932,9 +932,9 @@ class MainWindow(
         use_weight = self.radioButton_use_weight.isChecked()
 
         print(f"🔧 update_calories_calculation: weight={weight}, calories={calories}, use_weight={use_weight}")
-        print(
-            f"🔧 Radio button states in update_calories_calculation: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
-        )
+        s_weight = f"weight={self.radioButton_use_weight.isChecked()}"
+        s_calories = f"calories={self.radioButton_use_calories.isChecked()}"
+        print(f"🔧 Radio button states in update_calories_calculation: {s_weight}, {s_calories}")
 
         if use_weight:
             # Weight mode: calories per 100g
@@ -990,7 +990,7 @@ class MainWindow(
         self.show_tables()
 
     @requires_database()
-    def _add_food_item_from_log_record(self, include_weight: bool = True) -> None:
+    def _add_food_item_from_log_record(self, *, include_weight: bool = True) -> None:
         """Add a new food item to food_items table based on selected food log record.
 
         Args:
@@ -1019,7 +1019,8 @@ class MainWindow(
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+            # The table columns are:
+            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
             is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
@@ -1347,7 +1348,8 @@ class MainWindow(
                 item.setBackground(QBrush(row_color))
 
                 # Make calculated calories column non-editable (column 5)
-                if col_idx == 5:
+                id_column_calories = 5
+                if col_idx == id_column_calories:
                     item.setEditable(False)
 
                 # Check if this is today's record and make it bold
