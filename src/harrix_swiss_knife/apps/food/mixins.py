@@ -399,7 +399,7 @@ class ChartOperations:
             chart_config.get("color", "b"),
             non_zero_count,
             chart_config.get("period"),
-            chart_config.get("is_calories_chart", False),  # Add this parameter
+            is_calories_chart=chart_config.get("is_calories_chart", False),  # Add this parameter
         )
 
         # Customize plot
@@ -678,6 +678,7 @@ class ChartOperations:
         color: str,
         non_zero_count: int | None = None,
         period: str | None = None,
+        *,
         is_calories_chart: bool = False,
     ) -> None:
         """Plot data with automatic marker selection based on data points.
