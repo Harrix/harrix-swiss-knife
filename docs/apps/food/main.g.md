@@ -2012,11 +2012,12 @@ class MainWindow(
             food_item_data = self.db_manager.get_food_item_by_name(food_name)
 
             if food_item_data:
-                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                # food_item_data format:
+                # [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                 (
                     _food_id,
-                    name,
-                    name_en,
+                    _name,
+                    _name_en,
                     is_drink,
                     calories_per_100g,
                     default_portion_weight,
@@ -2292,8 +2293,6 @@ class MainWindow(
 
     def _setup_autocomplete(self) -> None:
         """Setup autocomplete functionality for food name input."""
-        from PySide6.QtCore import Qt
-
         # Create completer
         self.food_completer = QCompleter(self)
         self.food_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
@@ -2444,8 +2443,8 @@ class MainWindow(
         context_menu = QMenu(self)
 
         # Add food item actions
-        add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")
-        add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")
+        add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")  # noqa: RUF001
+        add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")  # noqa: RUF001
 
         # Add separator
         context_menu.addSeparator()
@@ -2500,11 +2499,11 @@ class MainWindow(
         context_menu.addSeparator()
 
         # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
         plus_one_action.triggered.connect(self._add_one_day_to_food)
 
         # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
         minus_one_action.triggered.connect(self._subtract_one_day_from_food)
 
         # Show context menu at cursor position
@@ -2543,7 +2542,8 @@ class MainWindow(
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+            # The table columns are:
+            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
 
@@ -2594,9 +2594,9 @@ class MainWindow(
             new_calories_per_100g = weight
 
             # Show information about the swap
-            print(
-                f"🔄 Swapping values: weight={weight} -> {new_weight}, calories_per_100g={calories_per_100g} -> {new_calories_per_100g}"
-            )
+            s_weight = f"weight={weight} -> {new_weight}"
+            s_calories_per_100g = f"calories_per_100g={calories_per_100g} -> {new_calories_per_100g}"
+            print(f"🔄 Swapping values: {s_weight}, {s_calories_per_100g}")
 
             # Update the table model
             source_model.item(row, 2).setText(str(new_weight))
@@ -2650,7 +2650,7 @@ class MainWindow(
             )
         else:
             # Food mode: default blue color and food icon
-            self.pushButton_food_add.setText("➕ Add Food")
+            self.pushButton_food_add.setText("➕ Add Food")  # noqa: RUF001
             self.pushButton_food_add.setStyleSheet(
                 "QPushButton {\n"
                 "    background-color: #e3f2fd;\n"
@@ -5838,11 +5838,12 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
             food_item_data = self.db_manager.get_food_item_by_name(food_name)
 
             if food_item_data:
-                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+                # food_item_data format:
+                # [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                 (
                     _food_id,
-                    name,
-                    name_en,
+                    _name,
+                    _name_en,
                     is_drink,
                     calories_per_100g,
                     default_portion_weight,
@@ -6186,8 +6187,6 @@ Setup autocomplete functionality for food name input.
 
 ```python
 def _setup_autocomplete(self) -> None:
-        from PySide6.QtCore import Qt
-
         # Create completer
         self.food_completer = QCompleter(self)
         self.food_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
@@ -6392,8 +6391,8 @@ def _show_food_log_context_menu(self, position) -> None:
         context_menu = QMenu(self)
 
         # Add food item actions
-        add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")
-        add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")
+        add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")  # noqa: RUF001
+        add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")  # noqa: RUF001
 
         # Add separator
         context_menu.addSeparator()
@@ -6462,11 +6461,11 @@ def _show_food_yesterday_context_menu(self, position) -> None:
         context_menu.addSeparator()
 
         # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
         plus_one_action.triggered.connect(self._add_one_day_to_food)
 
         # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
         minus_one_action.triggered.connect(self._subtract_one_day_from_food)
 
         # Show context menu at cursor position
@@ -6533,7 +6532,8 @@ def _swap_weight_and_calories_per_100g(self) -> None:
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+            # The table columns are:
+            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
 
@@ -6584,9 +6584,9 @@ def _swap_weight_and_calories_per_100g(self) -> None:
             new_calories_per_100g = weight
 
             # Show information about the swap
-            print(
-                f"🔄 Swapping values: weight={weight} -> {new_weight}, calories_per_100g={calories_per_100g} -> {new_calories_per_100g}"
-            )
+            s_weight = f"weight={weight} -> {new_weight}"
+            s_calories_per_100g = f"calories_per_100g={calories_per_100g} -> {new_calories_per_100g}"
+            print(f"🔄 Swapping values: {s_weight}, {s_calories_per_100g}")
 
             # Update the table model
             source_model.item(row, 2).setText(str(new_weight))
@@ -6654,7 +6654,7 @@ def _update_add_button_appearance(self) -> None:
             )
         else:
             # Food mode: default blue color and food icon
-            self.pushButton_food_add.setText("➕ Add Food")
+            self.pushButton_food_add.setText("➕ Add Food")  # noqa: RUF001
             self.pushButton_food_add.setStyleSheet(
                 "QPushButton {\n"
                 "    background-color: #e3f2fd;\n"

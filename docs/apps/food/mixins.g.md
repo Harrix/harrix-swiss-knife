@@ -766,7 +766,7 @@ class ChartOperations:
             chart_config.get("color", "b"),
             non_zero_count,
             chart_config.get("period"),
-            chart_config.get("is_calories_chart", False),  # Add this parameter
+            is_calories_chart=chart_config.get("is_calories_chart", False),  # Add this parameter
         )
 
         # Customize plot
@@ -1045,6 +1045,7 @@ class ChartOperations:
         color: str,
         non_zero_count: int | None = None,
         period: str | None = None,
+        *,
         is_calories_chart: bool = False,
     ) -> None:
         """Plot data with automatic marker selection based on data points.
@@ -1392,7 +1393,7 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
             chart_config.get("color", "b"),
             non_zero_count,
             chart_config.get("period"),
-            chart_config.get("is_calories_chart", False),  # Add this parameter
+            is_calories_chart=chart_config.get("is_calories_chart", False),  # Add this parameter
         )
 
         # Customize plot
@@ -1731,7 +1732,7 @@ def _group_data_by_period_with_max(self, rows: list, period: str, value_type: st
 ### ⚙️ Method `_plot_data`
 
 ```python
-def _plot_data(self, ax: Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None, period: str | None = None, is_calories_chart: bool = False) -> None
+def _plot_data(self, ax: Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None, period: str | None = None) -> None
 ```
 
 Plot data with automatic marker selection based on data points.
@@ -1758,6 +1759,7 @@ def _plot_data(
         color: str,
         non_zero_count: int | None = None,
         period: str | None = None,
+        *,
         is_calories_chart: bool = False,
     ) -> None:
         # Map color names to matplotlib single-letter codes

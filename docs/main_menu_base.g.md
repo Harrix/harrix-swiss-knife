@@ -118,9 +118,7 @@ class MainMenuBase:
         # Filter menus in compact mode - only add menus that have visible items
         filtered_menus = []
         if menus and self.compact_mode:
-            for menu in menus:
-                if self._menu_has_visible_items(menu):
-                    filtered_menus.append(menu)
+            filtered_menus = [menu for menu in menus if self._menu_has_visible_items(menu)]
         elif menus:
             filtered_menus = menus
 
@@ -472,9 +470,7 @@ def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, ite
         # Filter menus in compact mode - only add menus that have visible items
         filtered_menus = []
         if menus and self.compact_mode:
-            for menu in menus:
-                if self._menu_has_visible_items(menu):
-                    filtered_menus.append(menu)
+            filtered_menus = [menu for menu in menus if self._menu_has_visible_items(menu)]
         elif menus:
             filtered_menus = menus
 

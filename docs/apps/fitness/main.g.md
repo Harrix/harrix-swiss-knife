@@ -3113,12 +3113,6 @@ class MainWindow(
             self._set_no_data_info_label("No data for the selected period.")
             return
 
-        if not grouped_data:
-            self._clear_layout(self.verticalLayout_charts_content)
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
-            self._set_no_data_info_label("No data for the selected period.")
-            return
-
         # Group data by period with aggregation based on checkbox
         if use_max_value:
             grouped_data = self._group_data_by_period_with_max(rows, period, value_type="float")
@@ -9559,12 +9553,6 @@ def update_exercise_chart(self) -> None:
         if not datetime_data:
             self._clear_layout(self.verticalLayout_charts_content)
             self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
-            self._set_no_data_info_label("No data for the selected period.")
-            return
-
-        if not grouped_data:
-            self._clear_layout(self.verticalLayout_charts_content)
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
             self._set_no_data_info_label("No data for the selected period.")
             return
 
