@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QTableView,
     QWidget,
 )
+import colorsys
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.food import database_manager, window
@@ -231,8 +232,6 @@ class MainWindow(
         - `list[QColor]`: List of pastel QColor objects.
 
         """
-        import colorsys
-
         colors = []
 
         for i in range(count):

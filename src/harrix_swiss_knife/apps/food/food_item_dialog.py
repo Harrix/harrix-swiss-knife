@@ -77,7 +77,7 @@ class FoodItemDialog(QDialog):
         else:
             self.delete_confirmed = False
 
-    def get_edited_data(self):
+    def get_edited_data(self) -> dict:
         """Get the edited data as a dictionary."""
         return {
             "name": self.name_edit.text().strip(),
@@ -91,7 +91,8 @@ class FoodItemDialog(QDialog):
     def setup_data(self) -> None:
         """Setup initial data from food_item_data."""
         if self.food_item_data:
-            # food_item_data format: [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+            # food_item_data format:
+            # [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
             self.name_edit.setText(self.food_item_data[1] if self.food_item_data[1] else "")
             self.name_en_edit.setText(self.food_item_data[2] if self.food_item_data[2] else "")
             self.is_drink_checkbox.setChecked(self.food_item_data[3] == 1)
