@@ -291,8 +291,6 @@ class MainWindow(
         - `list[QColor]`: List of pastel QColor objects.
 
         """
-        import colorsys
-
         colors = []
 
         for i in range(count):
@@ -993,9 +991,9 @@ class MainWindow(
         use_weight = self.radioButton_use_weight.isChecked()
 
         print(f"🔧 update_calories_calculation: weight={weight}, calories={calories}, use_weight={use_weight}")
-        print(
-            f"🔧 Radio button states in update_calories_calculation: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
-        )
+        s_weight = f"weight={self.radioButton_use_weight.isChecked()}"
+        s_calories = f"calories={self.radioButton_use_calories.isChecked()}"
+        print(f"🔧 Radio button states in update_calories_calculation: {s_weight}, {s_calories}")
 
         if use_weight:
             # Weight mode: calories per 100g
@@ -1051,7 +1049,7 @@ class MainWindow(
         self.show_tables()
 
     @requires_database()
-    def _add_food_item_from_log_record(self, include_weight: bool = True) -> None:
+    def _add_food_item_from_log_record(self, *, include_weight: bool = True) -> None:
         """Add a new food item to food_items table based on selected food log record.
 
         Args:
@@ -1080,7 +1078,8 @@ class MainWindow(
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+            # The table columns are:
+            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
             is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
@@ -1408,7 +1407,8 @@ class MainWindow(
                 item.setBackground(QBrush(row_color))
 
                 # Make calculated calories column non-editable (column 5)
-                if col_idx == 5:
+                id_column_calories = 5
+                if col_idx == id_column_calories:
                     item.setEditable(False)
 
                 # Check if this is today's record and make it bold
@@ -3425,8 +3425,6 @@ Returns:
 
 ```python
 def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
-        import colorsys
-
         colors = []
 
         for i in range(count):
@@ -4444,9 +4442,9 @@ def update_calories_calculation(self) -> None:
         use_weight = self.radioButton_use_weight.isChecked()
 
         print(f"🔧 update_calories_calculation: weight={weight}, calories={calories}, use_weight={use_weight}")
-        print(
-            f"🔧 Radio button states in update_calories_calculation: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
-        )
+        s_weight = f"weight={self.radioButton_use_weight.isChecked()}"
+        s_calories = f"calories={self.radioButton_use_calories.isChecked()}"
+        print(f"🔧 Radio button states in update_calories_calculation: {s_weight}, {s_calories}")
 
         if use_weight:
             # Weight mode: calories per 100g
@@ -4534,7 +4532,7 @@ def update_food_data(self) -> None:
 ### ⚙️ Method `_add_food_item_from_log_record`
 
 ```python
-def _add_food_item_from_log_record(self, include_weight: bool = True) -> None
+def _add_food_item_from_log_record(self) -> None
 ```
 
 Add a new food item to food_items table based on selected food log record.
@@ -4547,7 +4545,7 @@ If False, sets weight to zero.
 <summary>Code:</summary>
 
 ```python
-def _add_food_item_from_log_record(self, include_weight: bool = True) -> None:
+def _add_food_item_from_log_record(self, *, include_weight: bool = True) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -4569,7 +4567,8 @@ def _add_food_item_from_log_record(self, include_weight: bool = True) -> None:
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
+            # The table columns are:
+            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
             is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
@@ -5003,7 +5002,8 @@ def _create_colored_food_log_table_model(
                 item.setBackground(QBrush(row_color))
 
                 # Make calculated calories column non-editable (column 5)
-                if col_idx == 5:
+                id_column_calories = 5
+                if col_idx == id_column_calories:
                     item.setEditable(False)
 
                 # Check if this is today's record and make it bold
