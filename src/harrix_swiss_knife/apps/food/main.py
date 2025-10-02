@@ -2288,7 +2288,7 @@ class MainWindow(
         self.dateEdit_food.setDate(today)
 
     def _setup_autocomplete(self) -> None:
-        """Setup autocomplete functionality for food name input."""
+        """Set up autocomplete functionality for food name input."""
         # Create completer
         self.food_completer = QCompleter(self)
         self.food_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
