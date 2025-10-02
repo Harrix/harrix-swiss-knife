@@ -1110,8 +1110,6 @@ class MainWindow(
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are:
-            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
             is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
@@ -1609,8 +1607,7 @@ class MainWindow(
             return ""
 
         # Remove calories info in parentheses at the end
-        # Pattern: " (XXX kcal/portion)" or " (XXX kcal/100g)"
-        import re
+        # Pattern: `(XXX kcal/portion)` or `(XXX kcal/100g)`
 
         pattern = r"\s+$$\d+\.?\d*\s+kcal/(?:portion|100g)$$$"
         clean_name = re.sub(pattern, "", display_text)
@@ -2059,8 +2056,6 @@ class MainWindow(
             food_item_data = self.db_manager.get_food_item_by_name(food_name)
 
             if food_item_data:
-                # food_item_data format:
-                # [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                 (
                     _food_id,
                     _name,
@@ -2348,7 +2343,7 @@ class MainWindow(
         self.dateEdit_food.setDate(today)
 
     def _setup_autocomplete(self) -> None:
-        """Setup autocomplete functionality for food name input."""
+        """Set up autocomplete functionality for food name input."""
         # Create completer
         self.food_completer = QCompleter(self)
         self.food_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
@@ -4659,8 +4654,6 @@ def _add_food_item_from_log_record(self, *, include_weight: bool = True) -> None
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are:
-            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
             is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
@@ -5314,8 +5307,7 @@ def _extract_food_name_from_display(self, display_text: str) -> str:
             return ""
 
         # Remove calories info in parentheses at the end
-        # Pattern: " (XXX kcal/portion)" or " (XXX kcal/100g)"
-        import re
+        # Pattern: `(XXX kcal/portion)` or `(XXX kcal/100g)`
 
         pattern = r"\s+$$\d+\.?\d*\s+kcal/(?:portion|100g)$$$"
         clean_name = re.sub(pattern, "", display_text)
@@ -5941,8 +5933,6 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
             food_item_data = self.db_manager.get_food_item_by_name(food_name)
 
             if food_item_data:
-                # food_item_data format:
-                # [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                 (
                     _food_id,
                     _name,
@@ -6290,7 +6280,7 @@ def _set_today_date_in_food(self) -> None:
 def _setup_autocomplete(self) -> None
 ```
 
-Setup autocomplete functionality for food name input.
+Set up autocomplete functionality for food name input.
 
 <details>
 <summary>Code:</summary>
