@@ -14,22 +14,24 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, Qt, QTimer
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QPoint, QSortFilterProxyModel, Qt, QTimer
 from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
     QColor,
     QIcon,
     QKeyEvent,
+    QMouseEvent,
     QMovie,
     QPixmap,
+    QResizeEvent,
     QStandardItem,
     QStandardItemModel,
 )
@@ -3440,11 +3442,12 @@ class MainWindow(
         """Add exercise recommendations to label_chart_info.
 
         Args:
-            exercise (str): Name of the selected exercise
-            exercise_type (str | None): Type of the exercise or None
-            monthly_data (list): List of monthly data from on_compare_last_months
-            months_count (int): Number of months to compare
-            exercise_unit (str): Unit of measurement
+
+        - `exercise` (`str`): Name of the selected exercise.
+        - `exercise_type` (`str | None`): Type of the exercise or None.
+        - `monthly_data` (`list`): List of monthly data from on_compare_last_months.
+        - `months_count` (`int`): Number of months to compare.
+        - `exercise_unit` (`str`): Unit of measurement.
 
         """
         if not monthly_data:
@@ -3597,6 +3600,13 @@ class MainWindow(
         """Add exercise recommendations to label_chart_info for standard chart.
 
         Uses the same logic as compare_last but for the selected exercise.
+
+        Args:
+
+        - `exercise` (`str`): Name of the exercise.
+        - `exercise_type` (`str | None`): Type of the exercise or None.
+        - `exercise_unit` (`str`): Unit of measurement.
+
         """
         if self.db_manager is None:
             self.label_chart_info.setText("")
@@ -3654,6 +3664,15 @@ class MainWindow(
         """Add same months recommendations to label_chart_info.
 
         Shows information about exercise progress for the same month across different years.
+
+        Args:
+
+        - `exercise` (`str`): Name of the exercise.
+        - `exercise_type` (`str | None`): Type of the exercise or None.
+        - `exercise_unit` (`str`): Unit of measurement.
+        - `yearly_data` (`list`): List of yearly data.
+        - `years_count` (`int`): Number of years to compare.
+
         """
         if not yearly_data:
             self.label_chart_info.setText("")
@@ -3982,13 +4001,15 @@ class MainWindow(
         """Calculate exercise recommendations based on monthly data.
 
         Args:
-            exercise_name (str): Name of the exercise
-            monthly_data (list): Monthly data from _get_monthly_data_for_exercise
-            months_count (int): Number of months analyzed
-            exercise_unit (str): Unit of measurement
+
+        - `exercise_name` (`str`): Name of the exercise.
+        - `monthly_data` (`list`): Monthly data from _get_monthly_data_for_exercise.
+        - `months_count` (`int`): Number of months analyzed.
+        - `exercise_unit` (`str`): Unit of measurement.
 
         Returns:
-            dict: Dictionary containing all recommendation values
+
+        - `dict`: Dictionary containing all recommendation values.
 
         """
         import calendar
@@ -4236,15 +4257,13 @@ class MainWindow(
         # Connect weight table selection
         self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
 
-    def _connect_table_signals_for_table(
-        self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]
-    ) -> None:
+    def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None:
         """Connect selection change signal for a specific table.
 
         Args:
 
         - `table_name` (`str`): Name of the table.
-        - `selection_handler` (`Callable[[QModelIndex, QModelIndex], None]`): Handler function for selection changes.
+        - `selection_handler` (`Callable`): Handler function for selection changes.
 
         """
         if table_name in self.table_config:
@@ -4599,11 +4618,13 @@ class MainWindow(
         """Get monthly data for a specific exercise using the same logic as compare_last.
 
         Args:
-            exercise_name (str): Name of the exercise
-            months_count (int): Number of months to analyze
+
+        - `exercise_name` (`str`): Name of the exercise.
+        - `months_count` (`int`): Number of months to analyze.
 
         Returns:
-            list: Monthly data in the same format as compare_last
+
+        - `list`: Monthly data in the same format as compare_last.
 
         """
         from datetime import datetime, timedelta
@@ -5224,12 +5245,12 @@ class MainWindow(
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
-    def _on_chart_info_double_clicked(self, event) -> None:
+    def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None:
         """Handle double-click on chart info label to copy text to clipboard.
 
         Args:
 
-        - `event`: Mouse event (ignored, we just need the double-click signal).
+        - `event` (`QMouseEvent`): Mouse event.
 
         """
         from PySide6.QtGui import QTextDocument
@@ -5301,12 +5322,12 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
-    def _on_window_resize(self, event) -> None:
+    def _on_window_resize(self, event: QResizeEvent) -> None:
         """Handle window resize event and adjust table column widths proportionally.
 
         Args:
 
-        - `event`: The resize event.
+        - `event` (`QResizeEvent`): The resize event.
 
         """
         # Call parent resize event first
@@ -5316,15 +5337,15 @@ class MainWindow(
         self._adjust_process_table_columns()
 
     def _refresh_table(
-        self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None
+        self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None
     ) -> None:
         """Refresh a table with data.
 
         Args:
 
         - `table_name` (`str`): Name of the table to refresh.
-        - `data_getter` (`Callable[[], Any]`): Function to get data from database.
-        - `data_transformer` (`Callable[[Any], Any] | None`): Optional function to transform raw data.
+        - `data_getter` (`Callable`): Function to get data from database.
+        - `data_transformer` (`Callable | None`): Optional function to transform raw data.
           Defaults to `None`.
 
         Raises:
@@ -5349,7 +5370,8 @@ class MainWindow(
         """Schedule a chart update with the specified delay.
 
         Args:
-            delay_ms (int): Delay in milliseconds before updating the chart.
+
+        - `delay_ms` (`int`): Delay in milliseconds before updating the chart. Defaults to `50`.
 
         """
         # Ensure timer exists (defensive programming)
@@ -5364,7 +5386,8 @@ class MainWindow(
         """Select an exercise in the chart exercise list view by name.
 
         Args:
-            exercise_name (str): Name of the exercise to select.
+
+        - `exercise_name` (`str`): Name of the exercise to select.
 
         """
         if not exercise_name:
@@ -5430,9 +5453,11 @@ class MainWindow(
     def _set_no_data_info_label(self, text: str | None = None) -> None:
         """Set a unified 'no data' message into label_chart_info.
 
-        Comments are in English per the request:
-        - This is called whenever a chart has no data for the last N months
-        (or for the selected period in other modes), so the info label does not keep stale content.
+        Args:
+
+        - `text` (`str | None`): Message text to display. If None, uses default message based
+          on spinBox_compare_last value. Defaults to `None`.
+
         """
         # Default message uses the spinner value for months when appropriate
         if text is None:
@@ -5535,16 +5560,14 @@ class MainWindow(
                 window_height,
             )
 
-    def _show_exercise_types_context_menu(self, position) -> None:
+    def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercise types table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5554,16 +5577,14 @@ class MainWindow(
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
-    def _show_exercises_context_menu(self, position) -> None:
+    def _show_exercises_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercises table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5573,16 +5594,14 @@ class MainWindow(
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
-    def _show_process_context_menu(self, position) -> None:
+    def _show_process_context_menu(self, position: QPoint) -> None:
         """Show context menu for process table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
@@ -5699,16 +5718,14 @@ class MainWindow(
         except Exception as e:
             print(f"Error showing record congratulations: {e}")
 
-    def _show_statistics_context_menu(self, position) -> None:
+    def _show_statistics_context_menu(self, position: QPoint) -> None:
         """Show context menu for statistics table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5718,16 +5735,14 @@ class MainWindow(
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
-    def _show_weight_context_menu(self, position) -> None:
+    def _show_weight_context_menu(self, position: QPoint) -> None:
         """Show context menu for weight table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5737,8 +5752,14 @@ class MainWindow(
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
-    def _show_yesterday_context_menu(self, position) -> None:
-        """Show context menu for yesterday button with date options."""
+    def _show_yesterday_context_menu(self, position: QPoint) -> None:
+        """Show context menu for yesterday button with date options.
+
+        Args:
+
+        - `position` (`QPoint`): Position where context menu should appear.
+
+        """
         context_menu = QMenu(self)
 
         # Today's date
