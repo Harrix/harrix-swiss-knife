@@ -274,8 +274,6 @@ class ChartOperations:
         - `layout` (`QLayout`): Layout to clear.
 
         """
-        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  # local import
-
         for i in reversed(range(layout.count())):
             item = layout.takeAt(i)
             if item is None:
@@ -287,8 +285,6 @@ class ChartOperations:
                 try:
                     if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
                         try:
-                            import matplotlib.pyplot as plt
-
                             plt.close(w.figure)
                         except Exception:
                             pass

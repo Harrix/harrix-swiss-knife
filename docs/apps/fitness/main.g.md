@@ -5338,9 +5338,6 @@ class MainWindow(
         - `event` (`QMouseEvent`): Mouse event.
 
         """
-        from PySide6.QtGui import QTextDocument
-        from PySide6.QtWidgets import QApplication
-
         # Get the text from the label
         html_text = self.label_chart_info.text()
         if html_text.strip():  # Only copy if there's actual text
@@ -12436,9 +12433,6 @@ Args:
 
 ```python
 def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None:
-        from PySide6.QtGui import QTextDocument
-        from PySide6.QtWidgets import QApplication
-
         # Get the text from the label
         html_text = self.label_chart_info.text()
         if html_text.strip():  # Only copy if there's actual text

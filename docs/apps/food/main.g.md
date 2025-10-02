@@ -565,13 +565,13 @@ class MainWindow(
         # Move focus back to the cleared field
         self.lineEdit_food_manual_name.setFocus()
 
-    def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+    def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle favorite food item selection change in the list view.
 
         Args:
 
         - `current` (`QModelIndex`): Current selected index.
-        - `previous` (`QModelIndex`): Previously selected index.
+        - `_previous` (`QModelIndex`): Previously selected index.
 
         """
         if not current.isValid():
@@ -591,12 +591,12 @@ class MainWindow(
                 food_name = self._extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
 
-    def on_food_item_double_clicked(self, index: QModelIndex) -> None:
+    def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
 
         Args:
 
-        - `index` (`QModelIndex`): Index of the double-clicked item.
+        - `_index` (`QModelIndex`): Index of the double-clicked item.
 
         """
         # Prevent multiple dialogs from opening
@@ -1676,7 +1676,7 @@ class MainWindow(
             return food_name
 
         # Helper function to safely convert to float
-        def safe_float(value) -> float | None:
+        def safe_float(value: str | None) -> float | None:
             if value is None:
                 return None
             try:
@@ -3848,7 +3848,7 @@ def on_clear_food_manual_name(self) -> None:
 ### ⚙️ Method `on_favorite_food_item_selection_changed`
 
 ```python
-def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None
+def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
 Handle favorite food item selection change in the list view.
@@ -3856,13 +3856,13 @@ Handle favorite food item selection change in the list view.
 Args:
 
 - `current` (`QModelIndex`): Current selected index.
-- `previous` (`QModelIndex`): Previously selected index.
+- `_previous` (`QModelIndex`): Previously selected index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         if not current.isValid():
             return
 
@@ -3886,20 +3886,20 @@ def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous
 ### ⚙️ Method `on_food_item_double_clicked`
 
 ```python
-def on_food_item_double_clicked(self, index: QModelIndex) -> None
+def on_food_item_double_clicked(self, _index: QModelIndex) -> None
 ```
 
 Handle double click on food item in the list view.
 
 Args:
 
-- `index` (`QModelIndex`): Index of the double-clicked item.
+- `_index` (`QModelIndex`): Index of the double-clicked item.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_food_item_double_clicked(self, index: QModelIndex) -> None:
+def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         # Prevent multiple dialogs from opening
         if self._food_item_dialog_open:
             return
@@ -5414,7 +5414,7 @@ def _format_food_name_with_calories(
             return food_name
 
         # Helper function to safely convert to float
-        def safe_float(value) -> float | None:
+        def safe_float(value: str | None) -> float | None:
             if value is None:
                 return None
             try:

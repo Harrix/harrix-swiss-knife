@@ -391,7 +391,8 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[list[Any]]`: List of food log records [_id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: List of food log records [_id, date, weight, portion_calories,
+          calories_per_100g, name, name_en, is_drink].
 
         """
         return self.get_rows("""
@@ -594,7 +595,8 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[Any] | None`: Food item data as [name, name_en, is_drink, calories_per_100g, weight, portion_calories] or None if not found.
+        - `list[Any] | None`: Food item data as [name, name_en, is_drink, calories_per_100g,
+          weight, portion_calories] or None if not found.
 
         """
         query = """
@@ -804,8 +806,6 @@ class DatabaseManager:
                     # If not found in food_items, get data from food_log
                     food_log_data = self.get_food_log_item_by_name(name)
                     if food_log_data:
-                        # food_log_data format: [name, name_en, is_drink, calories_per_100g, weight, portion_calories]
-                        # Convert to food_items format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                         name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
                         result.append([None, name, name_en, is_drink, calories_per_100g, weight, portion_calories])
                     else:
@@ -853,7 +853,8 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[list[Any]]`: List of recent food log records [_id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: List of recent food log records [_id, date, weight, portion_calories,
+          calories_per_100g, name, name_en, is_drink].
 
         """
         return self.get_rows(f"""

@@ -56,7 +56,8 @@ class FoodItemDialog(QDialog):
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-        - `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]. Defaults to `None`.
+        - `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink, calories_per_100g,
+          default_portion_weight, default_portion_calories]. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -123,10 +124,8 @@ class FoodItemDialog(QDialog):
         }
 
     def setup_data(self) -> None:
-        """Setup initial data from food_item_data."""
+        """Set up initial data from food_item_data."""
         if self.food_item_data:
-            # food_item_data format:
-            # [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
             self.name_edit.setText(self.food_item_data[1] if self.food_item_data[1] else "")
             self.name_en_edit.setText(self.food_item_data[2] if self.food_item_data[2] else "")
             self.is_drink_checkbox.setChecked(self.food_item_data[3] == 1)
@@ -135,7 +134,7 @@ class FoodItemDialog(QDialog):
             self.default_portion_calories_spinbox.setValue(self.food_item_data[6] if self.food_item_data[6] else 0)
 
     def setup_ui(self) -> None:
-        """Setup the user interface."""
+        """Set up the user interface."""
         self.setWindowTitle("Edit Food Item")
         self.setModal(True)
         self.resize(400, 300)
