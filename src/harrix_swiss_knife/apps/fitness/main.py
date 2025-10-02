@@ -5002,7 +5002,7 @@ class MainWindow(
             # Automatically refresh statistics on first visit
             self.on_refresh_statistics()
 
-    def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:  # noqa: PLR0911
+    def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:
         """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
 
         Args:

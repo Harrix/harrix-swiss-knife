@@ -51,6 +51,7 @@ dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
 # BLE001 - blind-except	Do not catch blind exception: {name}
 # PERF203 - try-except within a loop incurs performance overhead
 # PLR0913 - Too many arguments in function definition ({c_args} > {max_args})
+# PLR0911 - Too many return statements (7 > 6)
 [tool.ruff]
 lint.select = ["ALL"]
 lint.ignore = [
@@ -69,7 +70,8 @@ lint.ignore = [
     "T201",
     "BLE001",
     "PERF203",
-    "PLR0913"
+    "PLR0913",
+    "PLR0911"
 ]
 line-length = 120
 exclude = [
