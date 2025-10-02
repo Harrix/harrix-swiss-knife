@@ -16,15 +16,27 @@ from typing import Any
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QSortFilterProxyModel, QStringListModel, Qt, QTimer
+from PySide6.QtCore import (
+    QDate,
+    QDateTime,
+    QEvent,
+    QModelIndex,
+    QObject,
+    QSortFilterProxyModel,
+    QStringListModel,
+    Qt,
+    QTimer,
+)
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QComboBox,
     QCompleter,
+    QDateEdit,
     QDialog,
     QFileDialog,
+    QLineEdit,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -58,7 +70,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.categories = categories or []
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QComboBox:
         """Create a combo box editor for the category column."""
         combo = QComboBox(parent)
         combo.setEditable(False)
@@ -97,7 +109,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.currencies = currencies or []
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QComboBox:
         """Create a combo box editor for the currency column."""
         combo = QComboBox(parent)
         combo.setEditable(False)
@@ -133,10 +145,8 @@ class DateDelegate(QStyledItemDelegate):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QDateEdit:
         """Create a date editor for the date column."""
-        from PySide6.QtWidgets import QDateEdit
-
         editor = QDateEdit(parent)
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
@@ -171,10 +181,8 @@ class DescriptionDelegate(QStyledItemDelegate):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QLineEdit:
         """Create a line edit editor for the description column."""
-        from PySide6.QtWidgets import QLineEdit
-
         editor = QLineEdit(parent)
 
         # Set white background for the editor
@@ -574,7 +582,7 @@ class MainWindow(
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
-    def eventFilter(self, obj, event) -> bool:
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """Event filter for handling mouse and key events."""
         from PySide6.QtCore import QEvent, QTimer
         from PySide6.QtGui import QKeyEvent, QMouseEvent

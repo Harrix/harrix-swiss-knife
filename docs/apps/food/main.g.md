@@ -425,16 +425,12 @@ class MainWindow(
         is_drink = self.checkBox_food_is_drink.isChecked()
 
         print(
-            (
-                f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, "
-                f"use_weight={use_weight}, is_drink={is_drink}"
-            )
+            f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, "
+            f"use_weight={use_weight}, is_drink={is_drink}"
         )
         print(
-            (
-                f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
+            f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, "
+            f"calories={self.radioButton_use_calories.isChecked()}"
         )
 
         # Validate required fields
@@ -485,19 +481,15 @@ class MainWindow(
 
             # Final check before database call
             print(
-                (
-                    f"🔧 Final values before database call: "
-                    f"calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-                )
+                f"🔧 Final values before database call: "
+                f"calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
             )
 
             # Final radio button state check before database call
             print(
-                (
-                    f"🔧 Final radio button state before database call: "
-                    f"weight={self.radioButton_use_weight.isChecked()}, "
-                    f"calories={self.radioButton_use_calories.isChecked()}"
-                )
+                f"🔧 Final radio button state before database call: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
             )
 
             # Use database manager method
@@ -736,11 +728,9 @@ class MainWindow(
 
             # Check radio button state after populating form
             print(
-                (
-                    f"🔧 on_food_log_table_cell_clicked: Final radio button state: "
-                    f"weight={self.radioButton_use_weight.isChecked()}, "
-                    f"calories={self.radioButton_use_calories.isChecked()}"
-                )
+                f"🔧 on_food_log_table_cell_clicked: Final radio button state: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
             )
 
             # Additional check: verify that only one radio button is checked
@@ -1936,11 +1926,9 @@ class MainWindow(
 
         # Check radio button state after populating form
         print(
-            (
-                f"🔧 _on_autocomplete_selected: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
+            f"🔧 _on_autocomplete_selected: Final radio button state: "
+            f"weight={self.radioButton_use_weight.isChecked()}, "
+            f"calories={self.radioButton_use_calories.isChecked()}"
         )
 
         # Additional check: verify that only one radio button is checked
@@ -2091,11 +2079,9 @@ class MainWindow(
 
             # Check radio button state after populating form
             print(
-                (
-                    f"🔧 _populate_form_from_food_name: Final radio button state: "
-                    f"weight={self.radioButton_use_weight.isChecked()}, "
-                    f"calories={self.radioButton_use_calories.isChecked()}"
-                )
+                f"🔧 _populate_form_from_food_name: Final radio button state: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
             )
 
             # Additional check: verify that only one radio button is checked
@@ -2225,11 +2211,9 @@ class MainWindow(
 
             # Check radio button state after populating form
             print(
-                (
-                    f"🔧 _process_food_item_selection: Final radio button state: "
-                    f"weight={self.radioButton_use_weight.isChecked()}, "
-                    f"calories={self.radioButton_use_calories.isChecked()}"
-                )
+                f"🔧 _process_food_item_selection: Final radio button state: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
             )
 
             # Additional check: verify that only one radio button is checked
@@ -2375,10 +2359,8 @@ class MainWindow(
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)
         print(
-            (
-                f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()},"
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
+            f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()},"
+            f"calories={self.radioButton_use_calories.isChecked()}"
         )
         self.update_calories_calculation()
 
@@ -2462,8 +2444,6 @@ class MainWindow(
             position: Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         # Check that a row is selected before showing the menu
         if not self.tableView_food_log.currentIndex().isValid():
             print("⚠️ Context menu: No row selected")
@@ -3642,16 +3622,12 @@ def on_add_food_log(self) -> None:
         is_drink = self.checkBox_food_is_drink.isChecked()
 
         print(
-            (
-                f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, "
-                f"use_weight={use_weight}, is_drink={is_drink}"
-            )
+            f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, "
+            f"use_weight={use_weight}, is_drink={is_drink}"
         )
         print(
-            (
-                f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
+            f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, "
+            f"calories={self.radioButton_use_calories.isChecked()}"
         )
 
         # Validate required fields
@@ -3702,19 +3678,15 @@ def on_add_food_log(self) -> None:
 
             # Final check before database call
             print(
-                (
-                    f"🔧 Final values before database call: "
-                    f"calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-                )
+                f"🔧 Final values before database call: "
+                f"calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
             )
 
             # Final radio button state check before database call
             print(
-                (
-                    f"🔧 Final radio button state before database call: "
-                    f"weight={self.radioButton_use_weight.isChecked()}, "
-                    f"calories={self.radioButton_use_calories.isChecked()}"
-                )
+                f"🔧 Final radio button state before database call: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
             )
 
             # Use database manager method
@@ -4023,11 +3995,9 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
 
             # Check radio button state after populating form
             print(
-                (
-                    f"🔧 on_food_log_table_cell_clicked: Final radio button state: "
-                    f"weight={self.radioButton_use_weight.isChecked()}, "
-                    f"calories={self.radioButton_use_calories.isChecked()}"
-                )
+                f"🔧 on_food_log_table_cell_clicked: Final radio button state: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
             )
 
             # Additional check: verify that only one radio button is checked
@@ -5743,11 +5713,9 @@ def _on_autocomplete_selected(self, text: str) -> None:
 
         # Check radio button state after populating form
         print(
-            (
-                f"🔧 _on_autocomplete_selected: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
+            f"🔧 _on_autocomplete_selected: Final radio button state: "
+            f"weight={self.radioButton_use_weight.isChecked()}, "
+            f"calories={self.radioButton_use_calories.isChecked()}"
         )
 
         # Additional check: verify that only one radio button is checked
@@ -5948,11 +5916,9 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
 
             # Check radio button state after populating form
             print(
-                (
-                    f"🔧 _populate_form_from_food_name: Final radio button state: "
-                    f"weight={self.radioButton_use_weight.isChecked()}, "
-                    f"calories={self.radioButton_use_calories.isChecked()}"
-                )
+                f"🔧 _populate_form_from_food_name: Final radio button state: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
             )
 
             # Additional check: verify that only one radio button is checked
@@ -6096,11 +6062,9 @@ def _process_food_item_selection(self, food_name: str) -> None:
 
             # Check radio button state after populating form
             print(
-                (
-                    f"🔧 _process_food_item_selection: Final radio button state: "
-                    f"weight={self.radioButton_use_weight.isChecked()}, "
-                    f"calories={self.radioButton_use_calories.isChecked()}"
-                )
+                f"🔧 _process_food_item_selection: Final radio button state: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
             )
 
             # Additional check: verify that only one radio button is checked
@@ -6314,10 +6278,8 @@ def _setup_ui(self) -> None:
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)
         print(
-            (
-                f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()},"
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
+            f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()},"
+            f"calories={self.radioButton_use_calories.isChecked()}"
         )
         self.update_calories_calculation()
 
@@ -6441,8 +6403,6 @@ position: Position where context menu should appear.
 
 ```python
 def _show_food_log_context_menu(self, position) -> None:
-        from PySide6.QtWidgets import QMenu
-
         # Check that a row is selected before showing the menu
         if not self.tableView_food_log.currentIndex().isValid():
             print("⚠️ Context menu: No row selected")

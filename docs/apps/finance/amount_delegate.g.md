@@ -51,7 +51,7 @@ class AmountDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.db_manager = db_manager
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QDoubleSpinBox:
         """Create editor for amount editing.
 
         Args:
@@ -75,7 +75,7 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value, locale):
+    def displayText(self, value, locale) -> str:
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
@@ -288,7 +288,7 @@ def __init__(self, parent=None, db_manager=None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent, option, index)
+def createEditor(self, parent, option, index) -> QDoubleSpinBox
 ```
 
 Create editor for amount editing.
@@ -307,7 +307,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent, option, index):
+def createEditor(self, parent, option, index) -> QDoubleSpinBox:
         editor = QDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
@@ -324,7 +324,7 @@ def createEditor(self, parent, option, index):
 ### ⚙️ Method `displayText`
 
 ```python
-def displayText(self, value, locale)
+def displayText(self, value, locale) -> str
 ```
 
 Format display text with spaces for thousands separator and subscript decimals.
@@ -342,7 +342,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def displayText(self, value, locale):
+def displayText(self, value, locale) -> str:
         try:
             # Get the raw text value
             text = str(value)

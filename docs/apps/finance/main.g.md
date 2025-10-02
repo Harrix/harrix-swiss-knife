@@ -184,7 +184,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.categories = categories or []
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QComboBox:
         """Create a combo box editor for the category column."""
         combo = QComboBox(parent)
         combo.setEditable(False)
@@ -240,7 +240,7 @@ def __init__(self, parent=None, categories=None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent, option, index)
+def createEditor(self, parent, option, index) -> QComboBox
 ```
 
 Create a combo box editor for the category column.
@@ -249,7 +249,7 @@ Create a combo box editor for the category column.
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent, option, index):
+def createEditor(self, parent, option, index) -> QComboBox:
         combo = QComboBox(parent)
         combo.setEditable(False)
 
@@ -328,7 +328,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.currencies = currencies or []
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QComboBox:
         """Create a combo box editor for the currency column."""
         combo = QComboBox(parent)
         combo.setEditable(False)
@@ -382,7 +382,7 @@ def __init__(self, parent=None, currencies=None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent, option, index)
+def createEditor(self, parent, option, index) -> QComboBox
 ```
 
 Create a combo box editor for the currency column.
@@ -391,7 +391,7 @@ Create a combo box editor for the currency column.
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent, option, index):
+def createEditor(self, parent, option, index) -> QComboBox:
         combo = QComboBox(parent)
         combo.setEditable(False)
 
@@ -467,10 +467,8 @@ class DateDelegate(QStyledItemDelegate):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QDateEdit:
         """Create a date editor for the date column."""
-        from PySide6.QtWidgets import QDateEdit
-
         editor = QDateEdit(parent)
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
@@ -522,7 +520,7 @@ def __init__(self, parent=None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent, option, index)
+def createEditor(self, parent, option, index) -> QDateEdit
 ```
 
 Create a date editor for the date column.
@@ -531,9 +529,7 @@ Create a date editor for the date column.
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent, option, index):
-        from PySide6.QtWidgets import QDateEdit
-
+def createEditor(self, parent, option, index) -> QDateEdit:
         editor = QDateEdit(parent)
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
@@ -609,10 +605,8 @@ class DescriptionDelegate(QStyledItemDelegate):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QLineEdit:
         """Create a line edit editor for the description column."""
-        from PySide6.QtWidgets import QLineEdit
-
         editor = QLineEdit(parent)
 
         # Set white background for the editor
@@ -656,7 +650,7 @@ def __init__(self, parent=None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent, option, index)
+def createEditor(self, parent, option, index) -> QLineEdit
 ```
 
 Create a line edit editor for the description column.
@@ -665,9 +659,7 @@ Create a line edit editor for the description column.
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent, option, index):
-        from PySide6.QtWidgets import QLineEdit
-
+def createEditor(self, parent, option, index) -> QLineEdit:
         editor = QLineEdit(parent)
 
         # Set white background for the editor
@@ -1106,7 +1098,7 @@ class MainWindow(
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
-    def eventFilter(self, obj, event) -> bool:
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """Event filter for handling mouse and key events."""
         from PySide6.QtCore import QEvent, QTimer
         from PySide6.QtGui import QKeyEvent, QMouseEvent
@@ -5201,7 +5193,7 @@ def delete_record(self, table_name: str) -> None:
 ### ⚙️ Method `eventFilter`
 
 ```python
-def eventFilter(self, obj, event) -> bool
+def eventFilter(self, obj: QObject, event: QEvent) -> bool
 ```
 
 Event filter for handling mouse and key events.
@@ -5210,7 +5202,7 @@ Event filter for handling mouse and key events.
 <summary>Code:</summary>
 
 ```python
-def eventFilter(self, obj, event) -> bool:
+def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         from PySide6.QtCore import QEvent, QTimer
         from PySide6.QtGui import QKeyEvent, QMouseEvent
 

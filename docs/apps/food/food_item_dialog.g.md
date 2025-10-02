@@ -39,8 +39,9 @@ class FoodItemDialog(QDialog):
         """Initialize the dialog.
 
         Args:
-            parent: Parent widget
-            food_item_data: Food item data as [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+
+        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -90,7 +91,13 @@ class FoodItemDialog(QDialog):
             self.delete_confirmed = False
 
     def get_edited_data(self) -> dict:
-        """Get the edited data as a dictionary."""
+        """Get the edited data as a dictionary.
+
+        Returns:
+
+        - `dict`: Dictionary containing the edited food item data.
+
+        """
         return {
             "name": self.name_edit.text().strip(),
             "name_en": self.name_en_edit.text().strip() or None,
@@ -191,8 +198,9 @@ def __init__(self, parent = None, food_item_data = None) -> None
 Initialize the dialog.
 
 Args:
-parent: Parent widget
-food_item_data: Food item data as [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
+
+- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
@@ -283,6 +291,10 @@ def get_edited_data(self) -> dict
 ```
 
 Get the edited data as a dictionary.
+
+Returns:
+
+- `dict`: Dictionary containing the edited food item data.
 
 <details>
 <summary>Code:</summary>

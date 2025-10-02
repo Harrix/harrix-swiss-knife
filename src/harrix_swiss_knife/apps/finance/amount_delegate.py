@@ -26,7 +26,7 @@ class AmountDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.db_manager = db_manager
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QDoubleSpinBox:
         """Create editor for amount editing.
 
         Args:
@@ -50,7 +50,7 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value, locale):
+    def displayText(self, value, locale) -> str:
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:

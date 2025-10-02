@@ -48,7 +48,7 @@ class AccountEditDialog(QDialog):
         self._setup_ui()
         self._populate_data()
 
-    def get_result(self):
+    def get_result(self) -> dict:
         """Get the dialog result.
 
         Returns:

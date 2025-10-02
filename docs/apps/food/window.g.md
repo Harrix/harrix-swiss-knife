@@ -32,7 +32,14 @@ _No docstring provided._
 class Ui_MainWindow(object):
     # setupUi
 
-    def retranslateUi(self, MainWindow):
+    def retranslateUi(self, MainWindow: QMainWindow) -> None:
+        """Retranslate the UI elements to the current language.
+
+        Args:
+
+        - `MainWindow` (`QMainWindow`): The main window widget to retranslate.
+
+        """
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Food tracker", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", "Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(
@@ -92,7 +99,14 @@ class Ui_MainWindow(object):
             QCoreApplication.translate("MainWindow", "Food Statistics", None),
         )
 
-    def setupUi(self, MainWindow):
+    def setupUi(self, MainWindow: QMainWindow) -> None:
+        """Setup the user interface for the main window.
+
+        Args:
+
+        - `MainWindow` (`QMainWindow`): The main window widget to setup.
+
+        """
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1375, 926)
@@ -616,16 +630,20 @@ class Ui_MainWindow(object):
 ### ⚙️ Method `retranslateUi`
 
 ```python
-def retranslateUi(self, MainWindow)
+def retranslateUi(self, MainWindow: QMainWindow) -> None
 ```
 
-_No docstring provided._
+Retranslate the UI elements to the current language.
+
+Args:
+
+- `MainWindow` (`QMainWindow`): The main window widget to retranslate.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def retranslateUi(self, MainWindow):
+def retranslateUi(self, MainWindow: QMainWindow) -> None:
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Food tracker", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", "Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(
@@ -691,16 +709,20 @@ def retranslateUi(self, MainWindow):
 ### ⚙️ Method `setupUi`
 
 ```python
-def setupUi(self, MainWindow)
+def setupUi(self, MainWindow: QMainWindow) -> None
 ```
 
-_No docstring provided._
+Setup the user interface for the main window.
+
+Args:
+
+- `MainWindow` (`QMainWindow`): The main window widget to setup.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def setupUi(self, MainWindow):
+def setupUi(self, MainWindow: QMainWindow) -> None:
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1375, 926)

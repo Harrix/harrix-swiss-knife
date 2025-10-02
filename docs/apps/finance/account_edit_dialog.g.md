@@ -62,7 +62,7 @@ class AccountEditDialog(QDialog):
         self._setup_ui()
         self._populate_data()
 
-    def get_result(self):
+    def get_result(self) -> dict:
         """Get the dialog result.
 
         Returns:
@@ -296,7 +296,7 @@ def __init__(self, parent=None, account_data=None, currencies=None) -> None:
 ### ⚙️ Method `get_result`
 
 ```python
-def get_result(self)
+def get_result(self) -> dict
 ```
 
 Get the dialog result.
@@ -309,7 +309,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_result(self):
+def get_result(self) -> dict:
         return self.result_data
 ```
 
