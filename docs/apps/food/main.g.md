@@ -580,9 +580,9 @@ class MainWindow(
         # Clear selection in main food items list to avoid conflicts
         main_selection_model = self.listView_food_items.selectionModel()
         if main_selection_model:
-            main_selection_model.blockSignals(True)
+            main_selection_model.blockSignals(True)  # noqa: FBT003
             main_selection_model.clearSelection()
-            main_selection_model.blockSignals(False)
+            main_selection_model.blockSignals(False)  # noqa: FBT003
 
         # Get food item from favorite list
         if self.favorite_food_items_list_model:
@@ -857,9 +857,9 @@ class MainWindow(
         # Clear selection in favorite food items list to avoid conflicts
         favorite_selection_model = self.listView_favorite_food_items.selectionModel()
         if favorite_selection_model:
-            favorite_selection_model.blockSignals(True)
+            favorite_selection_model.blockSignals(True)  # noqa: FBT003
             favorite_selection_model.clearSelection()
-            favorite_selection_model.blockSignals(False)
+            favorite_selection_model.blockSignals(False)  # noqa: FBT003
 
         # Get food item from main list
         if self.food_items_list_model:
@@ -2476,12 +2476,12 @@ class MainWindow(
         # Show all favorite food items
         if self.favorite_food_items_list_model:
             for i in range(self.favorite_food_items_list_model.rowCount()):
-                self.listView_favorite_food_items.setRowHidden(i, False)
+                self.listView_favorite_food_items.setRowHidden(i, False)  # noqa: FBT003
 
         # Show all main food items
         if self.food_items_list_model:
             for i in range(self.food_items_list_model.rowCount()):
-                self.listView_food_items.setRowHidden(i, False)
+                self.listView_food_items.setRowHidden(i, False)  # noqa: FBT003
 
     def _show_food_log_context_menu(self, position: QPoint) -> None:
         """Show context menu for food log table.
@@ -3874,9 +3874,9 @@ def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous
         # Clear selection in main food items list to avoid conflicts
         main_selection_model = self.listView_food_items.selectionModel()
         if main_selection_model:
-            main_selection_model.blockSignals(True)
+            main_selection_model.blockSignals(True)  # noqa: FBT003
             main_selection_model.clearSelection()
-            main_selection_model.blockSignals(False)
+            main_selection_model.blockSignals(False)  # noqa: FBT003
 
         # Get food item from favorite list
         if self.favorite_food_items_list_model:
@@ -4299,9 +4299,9 @@ def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QM
         # Clear selection in favorite food items list to avoid conflicts
         favorite_selection_model = self.listView_favorite_food_items.selectionModel()
         if favorite_selection_model:
-            favorite_selection_model.blockSignals(True)
+            favorite_selection_model.blockSignals(True)  # noqa: FBT003
             favorite_selection_model.clearSelection()
-            favorite_selection_model.blockSignals(False)
+            favorite_selection_model.blockSignals(False)  # noqa: FBT003
 
         # Get food item from main list
         if self.food_items_list_model:
@@ -6466,12 +6466,12 @@ def _show_all_food_items(self) -> None:
         # Show all favorite food items
         if self.favorite_food_items_list_model:
             for i in range(self.favorite_food_items_list_model.rowCount()):
-                self.listView_favorite_food_items.setRowHidden(i, False)
+                self.listView_favorite_food_items.setRowHidden(i, False)  # noqa: FBT003
 
         # Show all main food items
         if self.food_items_list_model:
             for i in range(self.food_items_list_model.rowCount()):
-                self.listView_food_items.setRowHidden(i, False)
+                self.listView_food_items.setRowHidden(i, False)  # noqa: FBT003
 ```
 
 </details>

@@ -3527,11 +3527,12 @@ class MainWindow(
         """Add exercise recommendations to label_chart_info.
 
         Args:
-            exercise (str): Name of the selected exercise
-            exercise_type (str | None): Type of the exercise or None
-            monthly_data (list): List of monthly data from on_compare_last_months
-            months_count (int): Number of months to compare
-            exercise_unit (str): Unit of measurement
+
+        - `exercise` (`str`): Name of the selected exercise.
+        - `exercise_type` (`str | None`): Type of the exercise or None.
+        - `monthly_data` (`list`): List of monthly data from on_compare_last_months.
+        - `months_count` (`int`): Number of months to compare.
+        - `exercise_unit` (`str`): Unit of measurement.
 
         """
         if not monthly_data:
@@ -3684,6 +3685,13 @@ class MainWindow(
         """Add exercise recommendations to label_chart_info for standard chart.
 
         Uses the same logic as compare_last but for the selected exercise.
+
+        Args:
+
+        - `exercise` (`str`): Name of the exercise.
+        - `exercise_type` (`str | None`): Type of the exercise or None.
+        - `exercise_unit` (`str`): Unit of measurement.
+
         """
         if self.db_manager is None:
             self.label_chart_info.setText("")
@@ -3741,6 +3749,15 @@ class MainWindow(
         """Add same months recommendations to label_chart_info.
 
         Shows information about exercise progress for the same month across different years.
+
+        Args:
+
+        - `exercise` (`str`): Name of the exercise.
+        - `exercise_type` (`str | None`): Type of the exercise or None.
+        - `exercise_unit` (`str`): Unit of measurement.
+        - `yearly_data` (`list`): List of yearly data.
+        - `years_count` (`int`): Number of years to compare.
+
         """
         if not yearly_data:
             self.label_chart_info.setText("")
@@ -4069,13 +4086,15 @@ class MainWindow(
         """Calculate exercise recommendations based on monthly data.
 
         Args:
-            exercise_name (str): Name of the exercise
-            monthly_data (list): Monthly data from _get_monthly_data_for_exercise
-            months_count (int): Number of months analyzed
-            exercise_unit (str): Unit of measurement
+
+        - `exercise_name` (`str`): Name of the exercise.
+        - `monthly_data` (`list`): Monthly data from _get_monthly_data_for_exercise.
+        - `months_count` (`int`): Number of months analyzed.
+        - `exercise_unit` (`str`): Unit of measurement.
 
         Returns:
-            dict: Dictionary containing all recommendation values
+
+        - `dict`: Dictionary containing all recommendation values.
 
         """
         import calendar
@@ -4323,15 +4342,13 @@ class MainWindow(
         # Connect weight table selection
         self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
 
-    def _connect_table_signals_for_table(
-        self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]
-    ) -> None:
+    def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None:
         """Connect selection change signal for a specific table.
 
         Args:
 
         - `table_name` (`str`): Name of the table.
-        - `selection_handler` (`Callable[[QModelIndex, QModelIndex], None]`): Handler function for selection changes.
+        - `selection_handler` (`Callable`): Handler function for selection changes.
 
         """
         if table_name in self.table_config:
@@ -4686,11 +4703,13 @@ class MainWindow(
         """Get monthly data for a specific exercise using the same logic as compare_last.
 
         Args:
-            exercise_name (str): Name of the exercise
-            months_count (int): Number of months to analyze
+
+        - `exercise_name` (`str`): Name of the exercise.
+        - `months_count` (`int`): Number of months to analyze.
 
         Returns:
-            list: Monthly data in the same format as compare_last
+
+        - `list`: Monthly data in the same format as compare_last.
 
         """
         from datetime import datetime, timedelta
@@ -5311,12 +5330,12 @@ class MainWindow(
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
-    def _on_chart_info_double_clicked(self, event) -> None:
+    def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None:
         """Handle double-click on chart info label to copy text to clipboard.
 
         Args:
 
-        - `event`: Mouse event (ignored, we just need the double-click signal).
+        - `event` (`QMouseEvent`): Mouse event.
 
         """
         from PySide6.QtGui import QTextDocument
@@ -5388,12 +5407,12 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
-    def _on_window_resize(self, event) -> None:
+    def _on_window_resize(self, event: QResizeEvent) -> None:
         """Handle window resize event and adjust table column widths proportionally.
 
         Args:
 
-        - `event`: The resize event.
+        - `event` (`QResizeEvent`): The resize event.
 
         """
         # Call parent resize event first
@@ -5402,16 +5421,14 @@ class MainWindow(
         # Adjust process table column widths based on window size
         self._adjust_process_table_columns()
 
-    def _refresh_table(
-        self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None
-    ) -> None:
+    def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
         """Refresh a table with data.
 
         Args:
 
         - `table_name` (`str`): Name of the table to refresh.
-        - `data_getter` (`Callable[[], Any]`): Function to get data from database.
-        - `data_transformer` (`Callable[[Any], Any] | None`): Optional function to transform raw data.
+        - `data_getter` (`Callable`): Function to get data from database.
+        - `data_transformer` (`Callable | None`): Optional function to transform raw data.
           Defaults to `None`.
 
         Raises:
@@ -5436,7 +5453,8 @@ class MainWindow(
         """Schedule a chart update with the specified delay.
 
         Args:
-            delay_ms (int): Delay in milliseconds before updating the chart.
+
+        - `delay_ms` (`int`): Delay in milliseconds before updating the chart. Defaults to `50`.
 
         """
         # Ensure timer exists (defensive programming)
@@ -5451,7 +5469,8 @@ class MainWindow(
         """Select an exercise in the chart exercise list view by name.
 
         Args:
-            exercise_name (str): Name of the exercise to select.
+
+        - `exercise_name` (`str`): Name of the exercise to select.
 
         """
         if not exercise_name:
@@ -5517,9 +5536,11 @@ class MainWindow(
     def _set_no_data_info_label(self, text: str | None = None) -> None:
         """Set a unified 'no data' message into label_chart_info.
 
-        Comments are in English per the request:
-        - This is called whenever a chart has no data for the last N months
-        (or for the selected period in other modes), so the info label does not keep stale content.
+        Args:
+
+        - `text` (`str | None`): Message text to display. If None, uses default message based
+          on spinBox_compare_last value. Defaults to `None`.
+
         """
         # Default message uses the spinner value for months when appropriate
         if text is None:
@@ -5622,16 +5643,14 @@ class MainWindow(
                 window_height,
             )
 
-    def _show_exercise_types_context_menu(self, position) -> None:
+    def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercise types table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5641,16 +5660,14 @@ class MainWindow(
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
-    def _show_exercises_context_menu(self, position) -> None:
+    def _show_exercises_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercises table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5660,16 +5677,14 @@ class MainWindow(
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
-    def _show_process_context_menu(self, position) -> None:
+    def _show_process_context_menu(self, position: QPoint) -> None:
         """Show context menu for process table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
@@ -5786,16 +5801,14 @@ class MainWindow(
         except Exception as e:
             print(f"Error showing record congratulations: {e}")
 
-    def _show_statistics_context_menu(self, position) -> None:
+    def _show_statistics_context_menu(self, position: QPoint) -> None:
         """Show context menu for statistics table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5805,16 +5818,14 @@ class MainWindow(
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
-    def _show_weight_context_menu(self, position) -> None:
+    def _show_weight_context_menu(self, position: QPoint) -> None:
         """Show context menu for weight table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5824,8 +5835,14 @@ class MainWindow(
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
-    def _show_yesterday_context_menu(self, position) -> None:
-        """Show context menu for yesterday button with date options."""
+    def _show_yesterday_context_menu(self, position: QPoint) -> None:
+        """Show context menu for yesterday button with date options.
+
+        Args:
+
+        - `position` (`QPoint`): Position where context menu should appear.
+
+        """
         context_menu = QMenu(self)
 
         # Today's date
@@ -10050,11 +10067,12 @@ def _add_exercise_recommendations_to_label(self, exercise: str, exercise_type: s
 Add exercise recommendations to label_chart_info.
 
 Args:
-exercise (str): Name of the selected exercise
-exercise_type (str | None): Type of the exercise or None
-monthly_data (list): List of monthly data from on_compare_last_months
-months_count (int): Number of months to compare
-exercise_unit (str): Unit of measurement
+
+- `exercise` (`str`): Name of the selected exercise.
+- `exercise_type` (`str | None`): Type of the exercise or None.
+- `monthly_data` (`list`): List of monthly data from on_compare_last_months.
+- `months_count` (`int`): Number of months to compare.
+- `exercise_unit` (`str`): Unit of measurement.
 
 <details>
 <summary>Code:</summary>
@@ -10220,6 +10238,12 @@ Add exercise recommendations to label_chart_info for standard chart.
 
 Uses the same logic as compare_last but for the selected exercise.
 
+Args:
+
+- `exercise` (`str`): Name of the exercise.
+- `exercise_type` (`str | None`): Type of the exercise or None.
+- `exercise_unit` (`str`): Unit of measurement.
+
 <details>
 <summary>Code:</summary>
 
@@ -10303,6 +10327,14 @@ def _add_same_months_recommendations_to_label(self, exercise: str, exercise_type
 Add same months recommendations to label_chart_info.
 
 Shows information about exercise progress for the same month across different years.
+
+Args:
+
+- `exercise` (`str`): Name of the exercise.
+- `exercise_type` (`str | None`): Type of the exercise or None.
+- `exercise_unit` (`str`): Unit of measurement.
+- `yearly_data` (`list`): List of yearly data.
+- `years_count` (`int`): Number of years to compare.
 
 <details>
 <summary>Code:</summary>
@@ -10671,13 +10703,15 @@ def _calculate_exercise_recommendations(self, exercise_name: str, monthly_data: 
 Calculate exercise recommendations based on monthly data.
 
 Args:
-exercise_name (str): Name of the exercise
-monthly_data (list): Monthly data from \_get_monthly_data_for_exercise
-months_count (int): Number of months analyzed
-exercise_unit (str): Unit of measurement
+
+- `exercise_name` (`str`): Name of the exercise.
+- `monthly_data` (`list`): Monthly data from \_get_monthly_data_for_exercise.
+- `months_count` (`int`): Number of months analyzed.
+- `exercise_unit` (`str`): Unit of measurement.
 
 Returns:
-dict: Dictionary containing all recommendation values
+
+- `dict`: Dictionary containing all recommendation values.
 
 <details>
 <summary>Code:</summary>
@@ -10989,7 +11023,7 @@ def _connect_table_selection_signals(self) -> None:
 ### ⚙️ Method `_connect_table_signals_for_table`
 
 ```python
-def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]) -> None
+def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None
 ```
 
 Connect selection change signal for a specific table.
@@ -10997,15 +11031,13 @@ Connect selection change signal for a specific table.
 Args:
 
 - `table_name` (`str`): Name of the table.
-- `selection_handler` (`Callable[[QModelIndex, QModelIndex], None]`): Handler function for selection changes.
+- `selection_handler` (`Callable`): Handler function for selection changes.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _connect_table_signals_for_table(
-        self, table_name: str, selection_handler: Callable[[QModelIndex, QModelIndex], None]
-    ) -> None:
+def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None:
         if table_name in self.table_config:
             view = self.table_config[table_name][0]
             selection_model = view.selectionModel()
@@ -11515,11 +11547,13 @@ def _get_monthly_data_for_exercise(self, exercise_name: str, months_count: int) 
 Get monthly data for a specific exercise using the same logic as compare_last.
 
 Args:
-exercise_name (str): Name of the exercise
-months_count (int): Number of months to analyze
+
+- `exercise_name` (`str`): Name of the exercise.
+- `months_count` (`int`): Number of months to analyze.
 
 Returns:
-list: Monthly data in the same format as compare_last
+
+- `list`: Monthly data in the same format as compare_last.
 
 <details>
 <summary>Code:</summary>
@@ -12388,20 +12422,20 @@ def _next_avif_frame(self, label_key: str) -> None:
 ### ⚙️ Method `_on_chart_info_double_clicked`
 
 ```python
-def _on_chart_info_double_clicked(self, event) -> None
+def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None
 ```
 
 Handle double-click on chart info label to copy text to clipboard.
 
 Args:
 
-- `event`: Mouse event (ignored, we just need the double-click signal).
+- `event` (`QMouseEvent`): Mouse event.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _on_chart_info_double_clicked(self, event) -> None:
+def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None:
         from PySide6.QtGui import QTextDocument
         from PySide6.QtWidgets import QApplication
 
@@ -12498,20 +12532,20 @@ def _on_table_data_changed(
 ### ⚙️ Method `_on_window_resize`
 
 ```python
-def _on_window_resize(self, event) -> None
+def _on_window_resize(self, event: QResizeEvent) -> None
 ```
 
 Handle window resize event and adjust table column widths proportionally.
 
 Args:
 
-- `event`: The resize event.
+- `event` (`QResizeEvent`): The resize event.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _on_window_resize(self, event) -> None:
+def _on_window_resize(self, event: QResizeEvent) -> None:
         # Call parent resize event first
         super().resizeEvent(event)
 
@@ -12524,7 +12558,7 @@ def _on_window_resize(self, event) -> None:
 ### ⚙️ Method `_refresh_table`
 
 ```python
-def _refresh_table(self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None) -> None
+def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None
 ```
 
 Refresh a table with data.
@@ -12532,8 +12566,8 @@ Refresh a table with data.
 Args:
 
 - `table_name` (`str`): Name of the table to refresh.
-- `data_getter` (`Callable[[], Any]`): Function to get data from database.
-- `data_transformer` (`Callable[[Any], Any] | None`): Optional function to transform raw data.
+- `data_getter` (`Callable`): Function to get data from database.
+- `data_transformer` (`Callable | None`): Optional function to transform raw data.
   Defaults to `None`.
 
 Raises:
@@ -12544,9 +12578,7 @@ Raises:
 <summary>Code:</summary>
 
 ```python
-def _refresh_table(
-        self, table_name: str, data_getter: Callable[[], Any], data_transformer: Callable[[Any], Any] | None = None
-    ) -> None:
+def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
         if table_name not in self.table_config:
             error_msg = f"❌ Unknown table: {table_name}"
             raise ValueError(error_msg)
@@ -12572,7 +12604,8 @@ def _schedule_chart_update(self, delay_ms: int = 50) -> None
 Schedule a chart update with the specified delay.
 
 Args:
-delay_ms (int): Delay in milliseconds before updating the chart.
+
+- `delay_ms` (`int`): Delay in milliseconds before updating the chart. Defaults to `50`.
 
 <details>
 <summary>Code:</summary>
@@ -12599,7 +12632,8 @@ def _select_exercise_in_chart_list(self, exercise_name: str) -> None
 Select an exercise in the chart exercise list view by name.
 
 Args:
-exercise_name (str): Name of the exercise to select.
+
+- `exercise_name` (`str`): Name of the exercise to select.
 
 <details>
 <summary>Code:</summary>
@@ -12702,10 +12736,10 @@ def _set_no_data_info_label(self, text: str | None = None) -> None
 
 Set a unified 'no data' message into label_chart_info.
 
-Comments are in English per the request:
+Args:
 
-- This is called whenever a chart has no data for the last N months
-  (or for the selected period in other modes), so the info label does not keep stale content.
+- `text` (`str | None`): Message text to display. If None, uses default message based
+  on spinBox_compare_last value. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
@@ -12861,22 +12895,20 @@ def _setup_window_size_and_position(self) -> None:
 ### ⚙️ Method `_show_exercise_types_context_menu`
 
 ```python
-def _show_exercise_types_context_menu(self, position) -> None
+def _show_exercise_types_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for exercise types table.
 
 Args:
 
-- `position`: Position where context menu should appear.
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_exercise_types_context_menu(self, position) -> None:
-        from PySide6.QtWidgets import QMenu
-
+def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -12892,22 +12924,20 @@ def _show_exercise_types_context_menu(self, position) -> None:
 ### ⚙️ Method `_show_exercises_context_menu`
 
 ```python
-def _show_exercises_context_menu(self, position) -> None
+def _show_exercises_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for exercises table.
 
 Args:
 
-- `position`: Position where context menu should appear.
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_exercises_context_menu(self, position) -> None:
-        from PySide6.QtWidgets import QMenu
-
+def _show_exercises_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -12923,22 +12953,20 @@ def _show_exercises_context_menu(self, position) -> None:
 ### ⚙️ Method `_show_process_context_menu`
 
 ```python
-def _show_process_context_menu(self, position) -> None
+def _show_process_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for process table.
 
 Args:
 
-- `position`: Position where context menu should appear.
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_process_context_menu(self, position) -> None:
-        from PySide6.QtWidgets import QMenu
-
+def _show_process_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
@@ -13073,22 +13101,20 @@ def _show_record_congratulations(self, exercise: str, record_info: dict) -> None
 ### ⚙️ Method `_show_statistics_context_menu`
 
 ```python
-def _show_statistics_context_menu(self, position) -> None
+def _show_statistics_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for statistics table.
 
 Args:
 
-- `position`: Position where context menu should appear.
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_statistics_context_menu(self, position) -> None:
-        from PySide6.QtWidgets import QMenu
-
+def _show_statistics_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -13104,22 +13130,20 @@ def _show_statistics_context_menu(self, position) -> None:
 ### ⚙️ Method `_show_weight_context_menu`
 
 ```python
-def _show_weight_context_menu(self, position) -> None
+def _show_weight_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for weight table.
 
 Args:
 
-- `position`: Position where context menu should appear.
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_weight_context_menu(self, position) -> None:
-        from PySide6.QtWidgets import QMenu
-
+def _show_weight_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -13135,16 +13159,20 @@ def _show_weight_context_menu(self, position) -> None:
 ### ⚙️ Method `_show_yesterday_context_menu`
 
 ```python
-def _show_yesterday_context_menu(self, position) -> None
+def _show_yesterday_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for yesterday button with date options.
+
+Args:
+
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_yesterday_context_menu(self, position) -> None:
+def _show_yesterday_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
 
         # Today's date

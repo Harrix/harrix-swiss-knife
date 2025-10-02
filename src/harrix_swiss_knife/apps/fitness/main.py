@@ -5336,9 +5336,7 @@ class MainWindow(
         # Adjust process table column widths based on window size
         self._adjust_process_table_columns()
 
-    def _refresh_table(
-        self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None
-    ) -> None:
+    def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
         """Refresh a table with data.
 
         Args:
