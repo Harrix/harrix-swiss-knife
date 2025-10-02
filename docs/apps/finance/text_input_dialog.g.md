@@ -40,6 +40,9 @@ Attributes:
 ```python
 class TextInputDialog(QDialog):
 
+    text_edit: QPlainTextEdit
+    accepted_text: str | None
+
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the text input dialog.
 

@@ -33,7 +33,17 @@ SelfT = TypeVar("SelfT")
 
 
 class AutoSaveOperations:
-    """Mixin class for auto-save operations."""
+    """Mixin class for auto-save operations.
+
+    Expected attributes from main class:
+
+    - `db_manager`: Database manager instance.
+    - `_validate_database_connection`: Method to validate database connection.
+    - `_update_comboboxes`: Method to update comboboxes.
+    - `update_filter_comboboxes`: Method to update filter comboboxes.
+    - `_is_valid_date`: Method to validate date format.
+
+    """
 
     # Expected attributes from main class
     db_manager: Any
@@ -291,7 +301,13 @@ class AutoSaveOperations:
 
 
 class ChartOperations:
-    """Mixin class for chart operations."""
+    """Mixin class for chart operations.
+
+    Expected attributes from main class:
+
+    - `max_count_points_in_charts` (`int`): Maximum number of points to show labels for.
+
+    """
 
     # Expected attributes from main class
     max_count_points_in_charts: int
@@ -301,7 +317,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `ax` (`Axes`): Matplotlib axes object.
         - `stats_text` (`str`): Statistics text to display.
         - `color` (`str`): Background color of the statistics box. Defaults to `"lightgray"`.
 
@@ -411,8 +427,8 @@ class ChartOperations:
 
         - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
         - `period` (`str`): Period type (Days, Months, Years).
-        - `date_from` (`str | None`): Start date string (YYYY-MM-DD).
-        - `date_to` (`str | None`): End date string (YYYY-MM-DD).
+        - `date_from` (`str | None`): Start date string (YYYY-MM-DD). Defaults to `None`.
+        - `date_to` (`str | None`): End date string (YYYY-MM-DD). Defaults to `None`.
 
         Returns:
 
@@ -488,7 +504,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `ax` (`Axes`): Matplotlib axes object.
         - `dates` (`list`): List of datetime objects.
         - `period` (`str`): Time period for formatting.
 
@@ -598,7 +614,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `ax` (`Axes`): Matplotlib axes object.
         - `x_values` (`list`): X-axis values.
         - `y_values` (`list`): Y-axis values.
         - `color` (`str`): Plot color.
@@ -667,7 +683,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `ax` (`Axes`): Matplotlib axes object.
         - `y_values` (`list`): Y-axis values.
 
         """
@@ -715,7 +731,14 @@ class ChartOperations:
 
 
 class DateOperations:
-    """Mixin class for date operations."""
+    """Mixin class for date operations.
+
+    Expected attributes from main class:
+
+    - `db_manager`: Database manager instance.
+    - `_validate_database_connection`: Method to validate database connection.
+
+    """
 
     db_manager: Any
     _validate_database_connection: Callable[[], bool]
@@ -777,7 +800,15 @@ class DateOperations:
 
 
 class TableOperations:
-    """Mixin class for common table operations."""
+    """Mixin class for common table operations.
+
+    Expected attributes from main class:
+
+    - `table_config` (`dict`): Dictionary with table configuration.
+    - `models` (`dict`): Dictionary with table models.
+    - `_create_table_model`: Method to create table model.
+
+    """
 
     table_config: dict[str, tuple[Any, str, list[str]]]
     models: dict[str, Any]
@@ -801,9 +832,11 @@ class TableOperations:
         """Get the database ID of the currently selected row.
 
         Args:
+
         - `table_name` (`str`): Name of the table.
 
         Returns:
+
         - `int | None`: Database ID of selected row or None if no selection.
 
         """
@@ -897,7 +930,7 @@ def requires_database(
 
     Returns:
 
-    - ` Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]`: Decorated function
+    - `Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]`: Decorated function
       that checks database connection first.
 
     """

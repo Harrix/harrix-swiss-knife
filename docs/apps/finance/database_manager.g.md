@@ -84,7 +84,6 @@ lang: en
   - [⚙️ Method `update_currency`](#%EF%B8%8F-method-update_currency)
   - [⚙️ Method `update_currency_ticker`](#%EF%B8%8F-method-update_currency_ticker)
   - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate)
-  - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate-1)
   - [⚙️ Method `update_transaction`](#%EF%B8%8F-method-update_transaction)
   - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
   - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
@@ -117,6 +116,12 @@ Attributes:
 ```python
 class DatabaseManager:
 
+    db: QSqlDatabase
+    connection_name: str
+    _db_filename: str
+    _exchange_rate_cache: dict[str, float]
+    _cache_timestamp: datetime | None
+
     def __init__(self, db_filename: str) -> None:
         """Open a connection to an SQLite database stored in `db_filename`.
 
@@ -147,8 +152,8 @@ class DatabaseManager:
         # Initialize default settings if they don't exist
         self._init_default_settings()
 
-        self._exchange_rate_cache = {}
-        self._cache_timestamp = None
+        self._exchange_rate_cache: dict[str, float] = {}
+        self._cache_timestamp: datetime | None = None
 
     def __del__(self) -> None:
         """Clean up database connection when object is destroyed.
@@ -588,7 +593,7 @@ class DatabaseManager:
 
         try:
             # Calculate the cutoff date
-            from datetime import datetime, timedelta
+            from datetime import timedelta
 
             cutoff_date = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=days)).strftime(
                 "%Y-%m-%d"
@@ -743,7 +748,7 @@ class DatabaseManager:
         - `int`: Number of exchange rates that were filled.
 
         """
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
         currencies = self.get_currencies_except_usd()
         total_filled = 0
@@ -1617,7 +1622,7 @@ class DatabaseManager:
         - `dict[int, list[str]]`: Dictionary mapping currency_id to list of missing dates.
 
         """
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
         missing_info = {}
 
@@ -1878,6 +1883,16 @@ class DatabaseManager:
 
         Uses caching to avoid repeated database queries.
         Note: Despite the method name, this returns currency_to_USD rates.
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID.
+        - `date` (`str | None`): Date for rate lookup. Uses latest if None.
+
+        Returns:
+
+        - `float`: Exchange rate or 1.0 if not found.
+
         """
         # Check if currency is USD
         usd_currency = self.get_currency_by_code("USD")
@@ -1888,7 +1903,7 @@ class DatabaseManager:
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
         now = datetime.now(tz=datetime.now().astimezone().tzinfo)
         if (
@@ -1993,8 +2008,6 @@ class DatabaseManager:
 
         """
         try:
-            from datetime import datetime
-
             # Get today's date in YYYY-MM-DD format
             today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
@@ -2147,37 +2160,6 @@ class DatabaseManager:
             return True
         except Exception as e:
             print(f"Error updating currency ticker: {e}")
-            return False
-
-    def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> bool:
-        """Update an existing exchange rate record.
-
-        Args:
-
-        - `currency_id` (`int`): Currency ID.
-        - `date` (`str`): Date in YYYY-MM-DD format.
-        - `new_rate` (`float`): New exchange rate value.
-
-        Returns:
-
-        - `bool`: True if update was successful, False otherwise.
-
-        """
-        try:
-            query = """
-                UPDATE exchange_rates
-                SET rate = :rate
-                WHERE _id_currency = :currency_id AND date = :date
-            """
-            params = {"currency_id": currency_id, "date": date, "rate": new_rate}
-
-            result = self.execute_query(query, params)
-            if result:
-                result.clear()
-                return True
-            return False
-        except Exception as e:
-            print(f"Error updating exchange rate: {e}")
             return False
 
     def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
@@ -2397,6 +2379,15 @@ class DatabaseManager:
         """Generate full SQL for currency conversion via USD with exchange rates.
 
         This method should only be called when exchange rates are actually needed.
+
+        Args:
+
+        - `currency_id` (`int`): Target currency ID.
+
+        Returns:
+
+        - `tuple[str, str, dict]`: (join_clause, conversion_case, extra_params).
+
         """
         usd_currency = self.get_currency_by_code("USD")
         usd_currency_id = usd_currency[0] if usd_currency else None
@@ -2559,8 +2550,8 @@ def __init__(self, db_filename: str) -> None:
         # Initialize default settings if they don't exist
         self._init_default_settings()
 
-        self._exchange_rate_cache = {}
-        self._cache_timestamp = None
+        self._exchange_rate_cache: dict[str, float] = {}
+        self._cache_timestamp: datetime | None = None
 ```
 
 </details>
@@ -3229,7 +3220,7 @@ def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
 
         try:
             # Calculate the cutoff date
-            from datetime import datetime, timedelta
+            from datetime import timedelta
 
             cutoff_date = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=days)).strftime(
                 "%Y-%m-%d"
@@ -3432,7 +3423,7 @@ Returns:
 
 ```python
 def fill_missing_exchange_rates(self) -> int:
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
         currencies = self.get_currencies_except_usd()
         total_filled = 0
@@ -4676,7 +4667,7 @@ Returns:
 
 ```python
 def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
         missing_info = {}
 
@@ -5018,6 +5009,15 @@ Get exchange rate from currency to USD (how many USD for 1 currency unit).
 Uses caching to avoid repeated database queries.
 Note: Despite the method name, this returns currency_to_USD rates.
 
+Args:
+
+- `currency_id` (`int`): Currency ID.
+- `date` (`str | None`): Date for rate lookup. Uses latest if None.
+
+Returns:
+
+- `float`: Exchange rate or 1.0 if not found.
+
 <details>
 <summary>Code:</summary>
 
@@ -5032,7 +5032,7 @@ def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) ->
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
         now = datetime.now(tz=datetime.now().astimezone().tzinfo)
         if (
@@ -5185,8 +5185,6 @@ Returns:
 ```python
 def should_update_exchange_rates(self) -> bool:
         try:
-            from datetime import datetime
-
             # Get today's date in YYYY-MM-DD format
             today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
@@ -5399,49 +5397,6 @@ def update_currency_ticker(self, currency_id: int, ticker: str) -> bool:
             return True
         except Exception as e:
             print(f"Error updating currency ticker: {e}")
-            return False
-```
-
-</details>
-
-### ⚙️ Method `update_exchange_rate`
-
-```python
-def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> bool
-```
-
-Update an existing exchange rate record.
-
-Args:
-
-- `currency_id` (`int`): Currency ID.
-- `date` (`str`): Date in YYYY-MM-DD format.
-- `new_rate` (`float`): New exchange rate value.
-
-Returns:
-
-- `bool`: True if update was successful, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def update_exchange_rate(self, currency_id: int, date: str, new_rate: float) -> bool:
-        try:
-            query = """
-                UPDATE exchange_rates
-                SET rate = :rate
-                WHERE _id_currency = :currency_id AND date = :date
-            """
-            params = {"currency_id": currency_id, "date": date, "rate": new_rate}
-
-            result = self.execute_query(query, params)
-            if result:
-                result.clear()
-                return True
-            return False
-        except Exception as e:
-            print(f"Error updating exchange rate: {e}")
             return False
 ```
 
@@ -5729,6 +5684,14 @@ def _get_full_currency_conversion_sql(self, currency_id: int) -> tuple[str, str,
 Generate full SQL for currency conversion via USD with exchange rates.
 
 This method should only be called when exchange rates are actually needed.
+
+Args:
+
+- `currency_id` (`int`): Target currency ID.
+
+Returns:
+
+- `tuple[str, str, dict]`: (join_clause, conversion_case, extra_params).
 
 <details>
 <summary>Code:</summary>

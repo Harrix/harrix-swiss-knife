@@ -1,8 +1,8 @@
 """Amount delegate for formatting amounts in transactions table."""
 
-from PySide6.QtCore import QLocale, QModelIndex, Qt
+from PySide6.QtCore import QAbstractItemModel, QLocale, QModelIndex, Qt
 from PySide6.QtGui import QFont, QPainter
-from PySide6.QtWidgets import QAbstractItemModel, QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
+from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 
 class AmountDelegate(QStyledItemDelegate):
