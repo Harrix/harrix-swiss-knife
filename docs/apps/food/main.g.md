@@ -2542,8 +2542,6 @@ class MainWindow(
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are:
-            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
 
@@ -6532,8 +6530,6 @@ def _swap_weight_and_calories_per_100g(self) -> None:
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are:
-            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
 
