@@ -7,6 +7,7 @@ SQLite database with food items and food log records.
 from __future__ import annotations
 
 import colorsys
+import re
 import sys
 from functools import partial
 from pathlib import Path
@@ -1050,8 +1051,6 @@ class MainWindow(
             row = current_index.row()
 
             # Get data from the table model directly
-            # The table columns are:
-            # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
             is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
@@ -1549,8 +1548,7 @@ class MainWindow(
             return ""
 
         # Remove calories info in parentheses at the end
-        # Pattern: " (XXX kcal/portion)" or " (XXX kcal/100g)"
-        import re
+        # Pattern: `(XXX kcal/portion)` or `(XXX kcal/100g)`
 
         pattern = r"\s+$$\d+\.?\d*\s+kcal/(?:portion|100g)$$$"
         clean_name = re.sub(pattern, "", display_text)
@@ -1999,8 +1997,6 @@ class MainWindow(
             food_item_data = self.db_manager.get_food_item_by_name(food_name)
 
             if food_item_data:
-                # food_item_data format:
-                # [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                 (
                     _food_id,
                     _name,
