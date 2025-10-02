@@ -538,7 +538,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `ax` (`Axes`): Matplotlib axes object.
         - `stats_text` (`str`): Statistics text to display.
         - `color` (`str`): Background color of the statistics box. Defaults to `"lightgray"`.
 
@@ -555,7 +555,13 @@ class ChartOperations:
         )
 
     def _clear_layout(self, layout: QLayout) -> None:
-        """Clear all widgets from a layout and properly delete them to avoid stray windows."""
+        """Clear all widgets from a layout and properly delete them to avoid stray windows.
+
+        Args:
+
+        - `layout` (`QLayout`): Layout to clear.
+
+        """
         from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  # local import
 
         for i in reversed(range(layout.count())):
@@ -565,7 +571,7 @@ class ChartOperations:
 
             w = item.widget()
             if w is not None:
-                # Если это канвас Matplotlib — закрываем фигуру
+                # If this is a Matplotlib canvas, close the figure
                 try:
                     if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
                         try:
@@ -577,33 +583,35 @@ class ChartOperations:
                 except Exception:
                     pass
 
-                # Спрятать и корректно удалить виджет
+                # Hide and properly delete the widget
                 w.hide()
                 w.deleteLater()
                 continue
 
-            # Рекурсивно чистим вложенные лайауты
+            # Recursively clear nested layouts
             child_layout = item.layout()
             if child_layout is not None:
                 self._clear_layout(child_layout)
 
-    def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None:
+    def _create_chart(self, layout: QLayout, data: list[tuple], chart_config: dict[str, Any]) -> None:
         """Create and display a chart with given data and configuration.
 
         Args:
 
         - `layout` (`QLayout`): Layout to add chart to.
-        - `data` (`list`): Chart data as list of (x, y) tuples.
-        - `chart_config` (`dict`): Dictionary with chart configuration including:
-        - title: Chart title
-        - xlabel: X-axis label
-        - ylabel: Y-axis label
-        - color: Line color
-        - show_stats: Whether to show statistics
-        - stats_unit: Unit for statistics display
-        - period: Period for x-axis formatting (Days/Months/Years)
-        - stats_formatter: Optional function to format statistics
-        - fill_zero_periods: Whether to fill missing periods with zero values
+        - `data` (`list[tuple]`): Chart data as list of (x, y) tuples.
+        - `chart_config` (`dict[str, Any]`): Dictionary with chart configuration including:
+            - `title`: Chart title
+            - `xlabel`: X-axis label
+            - `ylabel`: Y-axis label
+            - `color`: Line color
+            - `show_stats`: Whether to show statistics
+            - `stats_unit`: Unit for statistics display
+            - `period`: Period for x-axis formatting (Days/Months/Years)
+            - `stats_formatter`: Optional function to format statistics
+            - `fill_zero_periods`: Whether to fill missing periods with zero values
+            - `date_from`: Start date for filling periods
+            - `date_to`: End date for filling periods
 
         """
         # Clear existing chart
@@ -677,8 +685,8 @@ class ChartOperations:
 
         - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
         - `period` (`str`): Period type (Days, Months, Years).
-        - `date_from` (`str | None`): Start date string (YYYY-MM-DD).
-        - `date_to` (`str | None`): End date string (YYYY-MM-DD).
+        - `date_from` (`str | None`): Start date string (YYYY-MM-DD). Defaults to `None`.
+        - `date_to` (`str | None`): End date string (YYYY-MM-DD). Defaults to `None`.
 
         Returns:
 
@@ -749,13 +757,13 @@ class ChartOperations:
 
         return result
 
-    def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
+    def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
         """Format x-axis for charts based on period and data range.
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
-        - `dates` (`list`): List of datetime objects.
+        - `ax` (`Axes`): Matplotlib axes object.
+        - `dates` (`list[datetime]`): List of datetime objects.
         - `period` (`str`): Time period for formatting.
 
         """
@@ -786,12 +794,12 @@ class ChartOperations:
         # Rotate date labels for better readability
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
-    def _format_default_stats(self, values: list, unit: str = "") -> str:
+    def _format_default_stats(self, values: list[float], unit: str = "") -> str:
         """Format default statistics text.
 
         Args:
 
-        - `values` (`list`): List of numeric values.
+        - `values` (`list[float]`): List of numeric values.
         - `unit` (`str`): Unit of measurement. Defaults to `""`.
 
         Returns:
@@ -812,18 +820,20 @@ class ChartOperations:
             )
         return f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
 
-    def _group_data_by_period(self, rows: list, period: str, value_type: str = "float") -> dict:
+    def _group_data_by_period(
+        self, rows: list[tuple[str, str]], period: str, value_type: str = "float"
+    ) -> dict[datetime, float | int]:
         """Group data by the specified period (Days, Months, Years).
 
         Args:
 
-        - `rows` (`list`): List of (date_str, value_str) tuples.
+        - `rows` (`list[tuple[str, str]]`): List of (date_str, value_str) tuples.
         - `period` (`str`): Grouping period (Days, Months, Years).
         - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
 
         Returns:
 
-        - `dict`: Dictionary with datetime keys and aggregated values.
+        - `dict[datetime, float | int]`: Dictionary with datetime keys and aggregated values.
 
         """
         grouped = defaultdict(float if value_type == "float" else int)
@@ -861,18 +871,20 @@ class ChartOperations:
 
         return dict(sorted(grouped.items()))
 
-    def _group_data_by_period_with_max(self, rows: list, period: str, value_type: str = "float") -> dict:
+    def _group_data_by_period_with_max(
+        self, rows: list[tuple[str, str]], period: str, value_type: str = "float"
+    ) -> dict[datetime, float | int]:
         """Group data by the specified period (Days, Months, Years) using maximum values.
 
         Args:
 
-        - `rows` (`list`): List of (date_str, value_str) tuples.
+        - `rows` (`list[tuple[str, str]]`): List of (date_str, value_str) tuples.
         - `period` (`str`): Grouping period (Days, Months, Years).
         - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
 
         Returns:
 
-        - `dict`: Dictionary with datetime keys and maximum values for each period.
+        - `dict[datetime, float | int]`: Dictionary with datetime keys and maximum values for each period.
 
         """
         grouped = defaultdict(list)
@@ -919,8 +931,8 @@ class ChartOperations:
     def _plot_data(
         self,
         ax: Axes,
-        x_values: list,
-        y_values: list,
+        x_values: list[datetime],
+        y_values: list[float],
         color: str,
         non_zero_count: int | None = None,
         period: str | None = None,
@@ -929,9 +941,9 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
-        - `x_values` (`list`): X-axis values.
-        - `y_values` (`list`): Y-axis values.
+        - `ax` (`Axes`): Matplotlib axes object.
+        - `x_values` (`list[datetime]`): X-axis values.
+        - `y_values` (`list[float]`): Y-axis values.
         - `color` (`str`): Plot color.
         - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
         - `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
@@ -1023,13 +1035,13 @@ class ChartOperations:
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
 
-    def _set_y_axis_limits(self, ax: Axes, y_values: list) -> None:
+    def _set_y_axis_limits(self, ax: Axes, y_values: list[float]) -> None:
         """Set Y-axis limits to start from a non-zero value for better data visualization.
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
-        - `y_values` (`list`): Y-axis values.
+        - `ax` (`Axes`): Matplotlib axes object.
+        - `y_values` (`list[float]`): Y-axis values.
 
         """
         if not y_values:
@@ -1087,7 +1099,7 @@ Add statistics box to chart.
 
 Args:
 
-- `ax` (`plt.Axes`): Matplotlib axes object.
+- `ax` (`Axes`): Matplotlib axes object.
 - `stats_text` (`str`): Statistics text to display.
 - `color` (`str`): Background color of the statistics box. Defaults to `"lightgray"`.
 
@@ -1118,6 +1130,10 @@ def _clear_layout(self, layout: QLayout) -> None
 
 Clear all widgets from a layout and properly delete them to avoid stray windows.
 
+Args:
+
+- `layout` (`QLayout`): Layout to clear.
+
 <details>
 <summary>Code:</summary>
 
@@ -1132,7 +1148,7 @@ def _clear_layout(self, layout: QLayout) -> None:
 
             w = item.widget()
             if w is not None:
-                # Если это канвас Matplotlib — закрываем фигуру
+                # If this is a Matplotlib canvas, close the figure
                 try:
                     if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
                         try:
@@ -1144,12 +1160,12 @@ def _clear_layout(self, layout: QLayout) -> None:
                 except Exception:
                     pass
 
-                # Спрятать и корректно удалить виджет
+                # Hide and properly delete the widget
                 w.hide()
                 w.deleteLater()
                 continue
 
-            # Рекурсивно чистим вложенные лайауты
+            # Recursively clear nested layouts
             child_layout = item.layout()
             if child_layout is not None:
                 self._clear_layout(child_layout)
@@ -1160,7 +1176,7 @@ def _clear_layout(self, layout: QLayout) -> None:
 ### ⚙️ Method `_create_chart`
 
 ```python
-def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
+def _create_chart(self, layout: QLayout, data: list[tuple], chart_config: dict[str, Any]) -> None
 ```
 
 Create and display a chart with given data and configuration.
@@ -1168,23 +1184,25 @@ Create and display a chart with given data and configuration.
 Args:
 
 - `layout` (`QLayout`): Layout to add chart to.
-- `data` (`list`): Chart data as list of (x, y) tuples.
-- `chart_config` (`dict`): Dictionary with chart configuration including:
-- title: Chart title
-- xlabel: X-axis label
-- ylabel: Y-axis label
-- color: Line color
-- show_stats: Whether to show statistics
-- stats_unit: Unit for statistics display
-- period: Period for x-axis formatting (Days/Months/Years)
-- stats_formatter: Optional function to format statistics
-- fill_zero_periods: Whether to fill missing periods with zero values
+- `data` (`list[tuple]`): Chart data as list of (x, y) tuples.
+- `chart_config` (`dict[str, Any]`): Dictionary with chart configuration including:
+  - `title`: Chart title
+  - `xlabel`: X-axis label
+  - `ylabel`: Y-axis label
+  - `color`: Line color
+  - `show_stats`: Whether to show statistics
+  - `stats_unit`: Unit for statistics display
+  - `period`: Period for x-axis formatting (Days/Months/Years)
+  - `stats_formatter`: Optional function to format statistics
+  - `fill_zero_periods`: Whether to fill missing periods with zero values
+  - `date_from`: Start date for filling periods
+  - `date_to`: End date for filling periods
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None:
+def _create_chart(self, layout: QLayout, data: list[tuple], chart_config: dict[str, Any]) -> None:
         # Clear existing chart
         self._clear_layout(layout)
 
@@ -1262,8 +1280,8 @@ Args:
 
 - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
 - `period` (`str`): Period type (Days, Months, Years).
-- `date_from` (`str | None`): Start date string (YYYY-MM-DD).
-- `date_to` (`str | None`): End date string (YYYY-MM-DD).
+- `date_from` (`str | None`): Start date string (YYYY-MM-DD). Defaults to `None`.
+- `date_to` (`str | None`): End date string (YYYY-MM-DD). Defaults to `None`.
 
 Returns:
 
@@ -1346,22 +1364,22 @@ def _fill_missing_periods_with_zeros(
 ### ⚙️ Method `_format_chart_x_axis`
 
 ```python
-def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None
+def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None
 ```
 
 Format x-axis for charts based on period and data range.
 
 Args:
 
-- `ax` (`plt.Axes`): Matplotlib axes object.
-- `dates` (`list`): List of datetime objects.
+- `ax` (`Axes`): Matplotlib axes object.
+- `dates` (`list[datetime]`): List of datetime objects.
 - `period` (`str`): Time period for formatting.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
+def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
         if not dates:
             return
 
@@ -1395,14 +1413,14 @@ def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
 ### ⚙️ Method `_format_default_stats`
 
 ```python
-def _format_default_stats(self, values: list, unit: str = "") -> str
+def _format_default_stats(self, values: list[float], unit: str = "") -> str
 ```
 
 Format default statistics text.
 
 Args:
 
-- `values` (`list`): List of numeric values.
+- `values` (`list[float]`): List of numeric values.
 - `unit` (`str`): Unit of measurement. Defaults to `""`.
 
 Returns:
@@ -1413,7 +1431,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def _format_default_stats(self, values: list, unit: str = "") -> str:
+def _format_default_stats(self, values: list[float], unit: str = "") -> str:
         min_val = min(values)
         max_val = max(values)
         avg_val = sum(values) / len(values)
@@ -1433,26 +1451,28 @@ def _format_default_stats(self, values: list, unit: str = "") -> str:
 ### ⚙️ Method `_group_data_by_period`
 
 ```python
-def _group_data_by_period(self, rows: list, period: str, value_type: str = "float") -> dict
+def _group_data_by_period(self, rows: list[tuple[str, str]], period: str, value_type: str = "float") -> dict[datetime, float | int]
 ```
 
 Group data by the specified period (Days, Months, Years).
 
 Args:
 
-- `rows` (`list`): List of (date_str, value_str) tuples.
+- `rows` (`list[tuple[str, str]]`): List of (date_str, value_str) tuples.
 - `period` (`str`): Grouping period (Days, Months, Years).
 - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
 
 Returns:
 
-- `dict`: Dictionary with datetime keys and aggregated values.
+- `dict[datetime, float | int]`: Dictionary with datetime keys and aggregated values.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _group_data_by_period(self, rows: list, period: str, value_type: str = "float") -> dict:
+def _group_data_by_period(
+        self, rows: list[tuple[str, str]], period: str, value_type: str = "float"
+    ) -> dict[datetime, float | int]:
         grouped = defaultdict(float if value_type == "float" else int)
 
         # Regex pattern for YYYY-MM-DD format
@@ -1494,26 +1514,28 @@ def _group_data_by_period(self, rows: list, period: str, value_type: str = "floa
 ### ⚙️ Method `_group_data_by_period_with_max`
 
 ```python
-def _group_data_by_period_with_max(self, rows: list, period: str, value_type: str = "float") -> dict
+def _group_data_by_period_with_max(self, rows: list[tuple[str, str]], period: str, value_type: str = "float") -> dict[datetime, float | int]
 ```
 
 Group data by the specified period (Days, Months, Years) using maximum values.
 
 Args:
 
-- `rows` (`list`): List of (date_str, value_str) tuples.
+- `rows` (`list[tuple[str, str]]`): List of (date_str, value_str) tuples.
 - `period` (`str`): Grouping period (Days, Months, Years).
 - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
 
 Returns:
 
-- `dict`: Dictionary with datetime keys and maximum values for each period.
+- `dict[datetime, float | int]`: Dictionary with datetime keys and maximum values for each period.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _group_data_by_period_with_max(self, rows: list, period: str, value_type: str = "float") -> dict:
+def _group_data_by_period_with_max(
+        self, rows: list[tuple[str, str]], period: str, value_type: str = "float"
+    ) -> dict[datetime, float | int]:
         grouped = defaultdict(list)
 
         # Regex pattern for YYYY-MM-DD format
@@ -1561,16 +1583,16 @@ def _group_data_by_period_with_max(self, rows: list, period: str, value_type: st
 ### ⚙️ Method `_plot_data`
 
 ```python
-def _plot_data(self, ax: Axes, x_values: list, y_values: list, color: str, non_zero_count: int | None = None, period: str | None = None) -> None
+def _plot_data(self, ax: Axes, x_values: list[datetime], y_values: list[float], color: str, non_zero_count: int | None = None, period: str | None = None) -> None
 ```
 
 Plot data with automatic marker selection based on data points.
 
 Args:
 
-- `ax` (`plt.Axes`): Matplotlib axes object.
-- `x_values` (`list`): X-axis values.
-- `y_values` (`list`): Y-axis values.
+- `ax` (`Axes`): Matplotlib axes object.
+- `x_values` (`list[datetime]`): X-axis values.
+- `y_values` (`list[float]`): Y-axis values.
 - `color` (`str`): Plot color.
 - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
 - `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
@@ -1582,8 +1604,8 @@ Args:
 def _plot_data(
         self,
         ax: Axes,
-        x_values: list,
-        y_values: list,
+        x_values: list[datetime],
+        y_values: list[float],
         color: str,
         non_zero_count: int | None = None,
         period: str | None = None,
@@ -1680,21 +1702,21 @@ def _plot_data(
 ### ⚙️ Method `_set_y_axis_limits`
 
 ```python
-def _set_y_axis_limits(self, ax: Axes, y_values: list) -> None
+def _set_y_axis_limits(self, ax: Axes, y_values: list[float]) -> None
 ```
 
 Set Y-axis limits to start from a non-zero value for better data visualization.
 
 Args:
 
-- `ax` (`plt.Axes`): Matplotlib axes object.
-- `y_values` (`list`): Y-axis values.
+- `ax` (`Axes`): Matplotlib axes object.
+- `y_values` (`list[float]`): Y-axis values.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _set_y_axis_limits(self, ax: Axes, y_values: list) -> None:
+def _set_y_axis_limits(self, ax: Axes, y_values: list[float]) -> None:
         if not y_values:
             return
 
@@ -1948,9 +1970,11 @@ class TableOperations:
         """Get the database ID of the currently selected row.
 
         Args:
+
         - `table_name` (`str`): Name of the table.
 
         Returns:
+
         - `int | None`: Database ID of selected row or None if no selection.
 
         """
@@ -2137,7 +2161,7 @@ class ValidationOperations:
 
     @staticmethod
     def _is_valid_date(date_str: str) -> bool:
-        """Return `True` if `YYYY-MM-DD` formatted `date_str` is correct.
+        """Check if date string is valid and in YYYY-MM-DD format.
 
         Args:
 
@@ -2145,7 +2169,7 @@ class ValidationOperations:
 
         Returns:
 
-        - `bool`: True if the date is in the correct format and represents a valid date.
+        - `bool`: True if the date is in the correct format and represents a valid date, False otherwise.
 
         """
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_str):
@@ -2167,7 +2191,7 @@ class ValidationOperations:
 def _is_valid_date(date_str: str) -> bool
 ```
 
-Return `True` if `YYYY-MM-DD` formatted `date_str` is correct.
+Check if date string is valid and in YYYY-MM-DD format.
 
 Args:
 
@@ -2175,7 +2199,7 @@ Args:
 
 Returns:
 
-- `bool`: True if the date is in the correct format and represents a valid date.
+- `bool`: True if the date is in the correct format and represents a valid date, False otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2209,7 +2233,7 @@ Args:
 
 Returns:
 
-- ` Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]`: Decorated function
+- `Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]`: Decorated function
   that checks database connection first.
 
 <details>

@@ -17,13 +17,40 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QVBoxLayout,
+    QWidget,
 )
 
 
 class FoodItemDialog(QDialog):
-    """Dialog for editing food item parameters."""
+    """Dialog for editing food item parameters.
 
-    def __init__(self, parent=None, food_item_data=None) -> None:
+    Attributes:
+
+    - `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories].
+    - `name_edit` (`QLineEdit`): Name input field.
+    - `name_en_edit` (`QLineEdit`): English name input field.
+    - `is_drink_checkbox` (`QCheckBox`): Checkbox for drink indicator.
+    - `calories_per_100g_spinbox` (`QDoubleSpinBox`): Spinbox for calories per 100g.
+    - `default_portion_weight_spinbox` (`QSpinBox`): Spinbox for default portion weight.
+    - `default_portion_calories_spinbox` (`QDoubleSpinBox`): Spinbox for default portion calories.
+    - `delete_button` (`QPushButton`): Button to delete the item.
+    - `button_box` (`QDialogButtonBox`): Dialog button box with Save/Cancel.
+    - `delete_confirmed` (`bool`): Flag indicating if deletion was confirmed.
+
+    """
+
+    food_item_data: list | None
+    name_edit: QLineEdit
+    name_en_edit: QLineEdit
+    is_drink_checkbox: QCheckBox
+    calories_per_100g_spinbox: QDoubleSpinBox
+    default_portion_weight_spinbox: QSpinBox
+    default_portion_calories_spinbox: QDoubleSpinBox
+    delete_button: QPushButton
+    button_box: QDialogButtonBox
+    delete_confirmed: bool
+
+    def __init__(self, parent: QWidget | None = None, food_item_data: list | None = None) -> None:
         """Initialize the dialog.
 
         Args:

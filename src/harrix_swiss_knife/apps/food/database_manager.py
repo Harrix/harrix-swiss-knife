@@ -867,9 +867,11 @@ class DatabaseManager:
         """Get recent unique food names for autocomplete functionality.
 
         Args:
+
         - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `100`.
 
         Returns:
+
         - `list[str]`: List of unique food names from recent records.
 
         """

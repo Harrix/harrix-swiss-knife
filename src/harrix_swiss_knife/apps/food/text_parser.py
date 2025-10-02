@@ -77,7 +77,9 @@ class TextParser:
         lines = text.strip().split("\n")
         parsed_items = []
         # Use provided default_date or today's date
-        today = default_date or datetime.now(tz=datetime.now().astimezone().tzinfo).date().strftime("%Y-%m-%d")
+        today = default_date or datetime.datetime.now(tz=datetime.datetime.now().astimezone().tzinfo).date().strftime(
+            "%Y-%m-%d"
+        )
 
         for line_num, line in enumerate(lines, 1):
             line_new = line.strip()
@@ -98,7 +100,7 @@ class TextParser:
                         if simple_item:
                             parsed_items.append(simple_item)
                             continue
-                    except (ValueError, TypeError, AttributeError) as e:
+                    except (ValueError, TypeError, AttributeError):
                         pass
                     except Exception as e:
                         print(f"⚠️ Unexpected error in simple parsing: {e}")

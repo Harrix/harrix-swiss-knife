@@ -684,7 +684,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `ax` (`Axes`): Matplotlib axes object.
         - `stats_text` (`str`): Statistics text to display.
         - `color` (`str`): Background color of the statistics box. Defaults to `"lightgray"`.
 
@@ -804,7 +804,20 @@ class ChartOperations:
     def _fill_missing_periods_with_zeros(
         self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None
     ) -> list[tuple]:
-        """Fill missing periods with None values (for gaps in chart)."""
+        """Fill missing periods with None values (for gaps in chart).
+
+        Args:
+
+        - `data` (`list[tuple]`): List of (datetime, value) tuples.
+        - `period` (`str`): Period type (Days/Months/Years).
+        - `date_from` (`str | None`): Start date string in YYYY-MM-DD format. Defaults to `None`.
+        - `date_to` (`str | None`): End date string in YYYY-MM-DD format. Defaults to `None`.
+
+        Returns:
+
+        - `list[tuple]`: List with filled missing periods.
+
+        """
         if not data:
             return data
 
@@ -869,7 +882,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `ax` (`Axes`): Matplotlib axes object.
         - `dates` (`list`): List of datetime objects.
         - `period` (`str`): Time period for formatting.
 
@@ -1052,7 +1065,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `ax` (`Axes`): Matplotlib axes object.
         - `x_values` (`list`): X-axis values.
         - `y_values` (`list`): Y-axis values.
         - `color` (`str`): Plot color.
@@ -1224,7 +1237,7 @@ class ChartOperations:
 
         Args:
 
-        - `ax` (`plt.Axes`): Matplotlib axes object.
+        - `ax` (`Axes`): Matplotlib axes object.
         - `y_values` (`list`): Y-axis values.
 
         """
@@ -1283,7 +1296,7 @@ Add statistics box to chart.
 
 Args:
 
-- `ax` (`plt.Axes`): Matplotlib axes object.
+- `ax` (`Axes`): Matplotlib axes object.
 - `stats_text` (`str`): Statistics text to display.
 - `color` (`str`): Background color of the statistics box. Defaults to `"lightgray"`.
 
@@ -1439,6 +1452,17 @@ def _fill_missing_periods_with_zeros(self, data: list[tuple], period: str, date_
 
 Fill missing periods with None values (for gaps in chart).
 
+Args:
+
+- `data` (`list[tuple]`): List of (datetime, value) tuples.
+- `period` (`str`): Period type (Days/Months/Years).
+- `date_from` (`str | None`): Start date string in YYYY-MM-DD format. Defaults to `None`.
+- `date_to` (`str | None`): End date string in YYYY-MM-DD format. Defaults to `None`.
+
+Returns:
+
+- `list[tuple]`: List with filled missing periods.
+
 <details>
 <summary>Code:</summary>
 
@@ -1518,7 +1542,7 @@ Format x-axis for charts based on period and data range.
 
 Args:
 
-- `ax` (`plt.Axes`): Matplotlib axes object.
+- `ax` (`Axes`): Matplotlib axes object.
 - `dates` (`list`): List of datetime objects.
 - `period` (`str`): Time period for formatting.
 
@@ -1739,7 +1763,7 @@ Plot data with automatic marker selection based on data points.
 
 Args:
 
-- `ax` (`plt.Axes`): Matplotlib axes object.
+- `ax` (`Axes`): Matplotlib axes object.
 - `x_values` (`list`): X-axis values.
 - `y_values` (`list`): Y-axis values.
 - `color` (`str`): Plot color.
@@ -1933,7 +1957,7 @@ Set Y-axis limits to start from a non-zero value for better data visualization.
 
 Args:
 
-- `ax` (`plt.Axes`): Matplotlib axes object.
+- `ax` (`Axes`): Matplotlib axes object.
 - `y_values` (`list`): Y-axis values.
 
 <details>
@@ -2194,9 +2218,11 @@ class TableOperations:
         """Get the database ID of the currently selected row.
 
         Args:
+
         - `table_name` (`str`): Name of the table.
 
         Returns:
+
         - `int | None`: Database ID of selected row or None if no selection.
 
         """
@@ -2455,7 +2481,7 @@ Args:
 
 Returns:
 
-- ` Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]`: Decorated function
+- `Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]`: Decorated function
   that checks database connection first.
 
 <details>

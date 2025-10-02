@@ -39,7 +39,7 @@ class TextInputDialog(QDialog):
 
         Returns:
 
-        - `str | None`: The entered text, or None if dialog was cancelled.
+        - `str | None`: The entered text, or `None` if dialog was cancelled.
 
         """
         if self.result() == QDialog.DialogCode.Accepted:

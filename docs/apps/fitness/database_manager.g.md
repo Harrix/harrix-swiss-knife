@@ -86,8 +86,7 @@ Manage the connection and operations for a fitness tracking database.
 
 Attributes:
 
-- `db` (`QSqlDatabase`): A live connection object opened on an SQLite
-  database file.
+- `db` (`QSqlDatabase`): A live connection object opened on an SQLite database file.
 - `connection_name` (`str`): Unique name for this database connection.
 
 <details>
@@ -95,6 +94,10 @@ Attributes:
 
 ```python
 class DatabaseManager:
+
+    db: QSqlDatabase
+    connection_name: str
+    _db_filename: str
 
     def __init__(self, db_filename: str) -> None:
         """Open a connection to an SQLite database stored in `db_filename`.
@@ -105,8 +108,7 @@ class DatabaseManager:
 
         Raises:
 
-        - `ConnectionError`: If the underlying Qt driver fails to open the
-          database.
+        - `ConnectionError`: If the underlying Qt driver fails to open the database.
 
         """
         # Include thread ID to ensure unique connections across threads
@@ -390,8 +392,7 @@ class DatabaseManager:
 
         Returns:
 
-        - `QSqlQuery | None`: The executed query when successful, otherwise
-          `None`.
+        - `QSqlQuery | None`: The executed query when successful, otherwise `None`.
 
         """
         # Ensure database connection is valid
@@ -822,8 +823,7 @@ class DatabaseManager:
 
         Args:
 
-        - `limit` (`int`): Number of most recent rows from the `process` table
-          to analyse. Defaults to `500`.
+        - `limit` (`int`): Number of most recent rows from the `process` table to analyse. Defaults to `500`.
 
         Returns:
 
@@ -969,8 +969,7 @@ class DatabaseManager:
 
         Returns:
 
-        - `int | None`: The found identifier or `None` when the query yields
-          no rows.
+        - `int | None`: The found identifier or `None` when the query yields no rows.
 
         """
         # Validate identifiers to eliminate SQL-injection vectors.
@@ -1003,10 +1002,8 @@ class DatabaseManager:
 
         - `table` (`str`): Table that will be queried.
         - `column` (`str`): The column to extract.
-        - `condition` (`str | None`): Optional `WHERE` clause. Defaults to
-          `None`.
-        - `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to
-          `None`.
+        - `condition` (`str | None`): Optional `WHERE` clause. Defaults to `None`.
+        - `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to `None`.
 
         Returns:
 
@@ -1235,13 +1232,11 @@ class DatabaseManager:
         Args:
 
         - `query_text` (`str`): A SQL statement.
-        - `params` (`dict[str, Any] | None`): Values to be bound at run time.
-          Defaults to `None`.
+        - `params` (`dict[str, Any] | None`): Values to be bound at run time. Defaults to `None`.
 
         Returns:
 
-        - `list[list[Any]]`: A list whose elements are the records returned by
-          the database.
+        - `list[list[Any]]`: A list whose elements are the records returned by the database.
 
         """
         query = self.execute_query(query_text, params)
@@ -1527,8 +1522,7 @@ class DatabaseManager:
 
         Args:
 
-        - `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery`
-          object.
+        - `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery` object.
 
         Yields:
 
@@ -1597,8 +1591,7 @@ Args:
 
 Raises:
 
-- `ConnectionError`: If the underlying Qt driver fails to open the
-  database.
+- `ConnectionError`: If the underlying Qt driver fails to open the database.
 
 <details>
 <summary>Code:</summary>
@@ -2037,8 +2030,7 @@ Args:
 
 Returns:
 
-- `QSqlQuery | None`: The executed query when successful, otherwise
-  `None`.
+- `QSqlQuery | None`: The executed query when successful, otherwise `None`.
 
 <details>
 <summary>Code:</summary>
@@ -2677,8 +2669,7 @@ Return exercise names ordered by frequency in recent `limit` rows.
 
 Args:
 
-- `limit` (`int`): Number of most recent rows from the `process` table
-  to analyse. Defaults to `500`.
+- `limit` (`int`): Number of most recent rows from the `process` table to analyse. Defaults to `500`.
 
 Returns:
 
@@ -2853,8 +2844,7 @@ Args:
 
 Returns:
 
-- `int | None`: The found identifier or `None` when the query yields
-  no rows.
+- `int | None`: The found identifier or `None` when the query yields no rows.
 
 <details>
 <summary>Code:</summary>
@@ -2900,10 +2890,8 @@ Args:
 
 - `table` (`str`): Table that will be queried.
 - `column` (`str`): The column to extract.
-- `condition` (`str | None`): Optional `WHERE` clause. Defaults to
-  `None`.
-- `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to
-  `None`.
+- `condition` (`str | None`): Optional `WHERE` clause. Defaults to `None`.
+- `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to `None`.
 
 Returns:
 
@@ -3242,13 +3230,11 @@ Execute `query_text` and fetch the whole result set.
 Args:
 
 - `query_text` (`str`): A SQL statement.
-- `params` (`dict[str, Any] | None`): Values to be bound at run time.
-  Defaults to `None`.
+- `params` (`dict[str, Any] | None`): Values to be bound at run time. Defaults to `None`.
 
 Returns:
 
-- `list[list[Any]]`: A list whose elements are the records returned by
-  the database.
+- `list[list[Any]]`: A list whose elements are the records returned by the database.
 
 <details>
 <summary>Code:</summary>
@@ -3706,8 +3692,7 @@ Yield every record in `query` one by one.
 
 Args:
 
-- `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery`
-  object.
+- `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery` object.
 
 Yields:
 
