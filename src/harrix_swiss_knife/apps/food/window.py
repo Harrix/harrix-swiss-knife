@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
@@ -74,7 +76,7 @@ from PySide6.QtWidgets import (
 class Ui_MainWindow(object):
     # setupUi
 
-    def retranslateUi(self, MainWindow):
+    def retranslateUi(self, MainWindow: QMainWindow) -> None:
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Food tracker", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", "Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(
@@ -134,7 +136,7 @@ class Ui_MainWindow(object):
             QCoreApplication.translate("MainWindow", "Food Statistics", None),
         )
 
-    def setupUi(self, MainWindow):
+    def setupUi(self, MainWindow: QMainWindow) -> None:
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1375, 926)
