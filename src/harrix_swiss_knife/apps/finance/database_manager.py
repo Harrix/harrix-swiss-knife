@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+from datetime import timedelta
+
 from PySide6.QtCore import QTimer
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
@@ -503,8 +505,6 @@ class DatabaseManager:
 
         try:
             # Calculate the cutoff date
-            from datetime import timedelta
-
             cutoff_date = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=days)).strftime(
                 "%Y-%m-%d"
             )
@@ -658,8 +658,6 @@ class DatabaseManager:
         - `int`: Number of exchange rates that were filled.
 
         """
-        from datetime import timedelta
-
         currencies = self.get_currencies_except_usd()
         total_filled = 0
 
@@ -1532,8 +1530,6 @@ class DatabaseManager:
         - `dict[int, list[str]]`: Dictionary mapping currency_id to list of missing dates.
 
         """
-        from datetime import timedelta
-
         missing_info = {}
 
         # Get all currencies except USD
@@ -1813,8 +1809,6 @@ class DatabaseManager:
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        from datetime import timedelta
-
         now = datetime.now(tz=datetime.now().astimezone().tzinfo)
         if (
             self._cache_timestamp

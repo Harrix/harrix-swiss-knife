@@ -615,8 +615,6 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
         self.add_line(f"🔵 Processing git repository: {self.folder_path}")
 
         # Change to the selected directory
-        import os
-
         original_cwd = os.getcwd()
         os.chdir(self.folder_path)
 

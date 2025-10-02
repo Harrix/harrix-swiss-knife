@@ -230,8 +230,6 @@ class AmountDelegate(QStyledItemDelegate):
 
             # Handle cases where the text might already be a formatted number
             # Remove any non-numeric characters except decimal point and minus
-            import re
-
             clean_text = re.sub(r"[^\d.-]", "", clean_text)
 
             value = float(clean_text)
@@ -509,8 +507,6 @@ def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None:
 
             # Handle cases where the text might already be a formatted number
             # Remove any non-numeric characters except decimal point and minus
-            import re
-
             clean_text = re.sub(r"[^\d.-]", "", clean_text)
 
             value = float(clean_text)

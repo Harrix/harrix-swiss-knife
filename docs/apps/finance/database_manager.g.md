@@ -593,8 +593,6 @@ class DatabaseManager:
 
         try:
             # Calculate the cutoff date
-            from datetime import timedelta
-
             cutoff_date = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=days)).strftime(
                 "%Y-%m-%d"
             )
@@ -748,8 +746,6 @@ class DatabaseManager:
         - `int`: Number of exchange rates that were filled.
 
         """
-        from datetime import timedelta
-
         currencies = self.get_currencies_except_usd()
         total_filled = 0
 
@@ -1622,8 +1618,6 @@ class DatabaseManager:
         - `dict[int, list[str]]`: Dictionary mapping currency_id to list of missing dates.
 
         """
-        from datetime import timedelta
-
         missing_info = {}
 
         # Get all currencies except USD
@@ -1903,8 +1897,6 @@ class DatabaseManager:
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        from datetime import timedelta
-
         now = datetime.now(tz=datetime.now().astimezone().tzinfo)
         if (
             self._cache_timestamp
@@ -3220,8 +3212,6 @@ def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
 
         try:
             # Calculate the cutoff date
-            from datetime import timedelta
-
             cutoff_date = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=days)).strftime(
                 "%Y-%m-%d"
             )
@@ -3423,8 +3413,6 @@ Returns:
 
 ```python
 def fill_missing_exchange_rates(self) -> int:
-        from datetime import timedelta
-
         currencies = self.get_currencies_except_usd()
         total_filled = 0
 
@@ -4667,8 +4655,6 @@ Returns:
 
 ```python
 def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
-        from datetime import timedelta
-
         missing_info = {}
 
         # Get all currencies except USD
@@ -5032,8 +5018,6 @@ def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) ->
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        from datetime import timedelta
-
         now = datetime.now(tz=datetime.now().astimezone().tzinfo)
         if (
             self._cache_timestamp

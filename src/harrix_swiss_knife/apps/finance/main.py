@@ -7,6 +7,7 @@ SQLite database with transactions, categories, accounts, currencies and exchange
 from __future__ import annotations
 
 import colorsys
+import gc
 import sys
 from datetime import datetime, timedelta
 from functools import partial
@@ -26,7 +27,7 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QMouseEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -35,12 +36,14 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QDialog,
     QFileDialog,
+    QLabel,
     QLineEdit,
     QMainWindow,
     QMenu,
     QMessageBox,
     QStyledItemDelegate,
     QTableView,
+    QWidget,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -233,8 +236,6 @@ class DateDelegate(QStyledItemDelegate):
         current_value = index.data()
         if current_value:
             try:
-                from datetime import datetime
-
                 date_obj = datetime.strptime(str(current_value), "%Y-%m-%d").date()
                 editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
             except (ValueError, TypeError):
@@ -526,8 +527,6 @@ class MainWindow(
         self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
-        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
-
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
 
@@ -707,9 +706,6 @@ class MainWindow(
         - `bool`: True if event should be filtered, False otherwise.
 
         """
-        from PySide6.QtCore import QEvent, QTimer
-        from PySide6.QtGui import QKeyEvent, QMouseEvent
-
         # Track right mouse button on the table's viewport to suppress data copy on right-click
         if obj == self.tableView_transactions.viewport():
             if event.type() == QEvent.Type.MouseButtonPress:
@@ -1985,8 +1981,6 @@ class MainWindow(
                         # Close the canvas properly
                         widget.close()
                         # Force garbage collection
-                        import gc
-
                         gc.collect()
                     except Exception:
                         pass
@@ -3064,8 +3058,6 @@ class MainWindow(
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
         # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
-        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
-
         self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
         self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
 
@@ -3154,8 +3146,6 @@ class MainWindow(
         self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
 
         # Set up amount delegate for the Amount column (index 1)
-        from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
-
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
         self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
 
@@ -4065,8 +4055,6 @@ class MainWindow(
         """
         try:
             # Parse the date string and set it in dateEdit
-            from PySide6.QtCore import QDate
-
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
             if date_obj.isValid():
                 self.dateEdit.setDate(date_obj)
@@ -4085,8 +4073,6 @@ class MainWindow(
         """
         try:
             # Parse the date string, subtract 1 day and set it in dateEdit
-            from PySide6.QtCore import QDate
-
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
             if date_obj.isValid():
                 new_date: QDate = date_obj.addDays(-1)
@@ -4106,8 +4092,6 @@ class MainWindow(
         """
         try:
             # Parse the date string, add 1 day and set it in dateEdit
-            from PySide6.QtCore import QDate
-
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
             if date_obj.isValid():
                 new_date: QDate = date_obj.addDays(1)
@@ -4123,7 +4107,7 @@ class MainWindow(
         self.dateEdit.setDate(today)
 
     def _setup_autocomplete(self) -> None:
-        """Setup autocomplete functionality for description input."""
+        """Set up autocomplete functionality for description input."""
         # Create completer
         self.description_completer: QCompleter = QCompleter(self)
         self.description_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
@@ -4144,9 +4128,7 @@ class MainWindow(
         self.description_completer.activated.connect(self._on_autocomplete_selected)
 
     def _setup_tab_order(self) -> None:
-        """Setup tab order for widgets in groupBox_transaction."""
-        from PySide6.QtWidgets import QWidget
-
+        """Se tup tab order for widgets in groupBox_transaction."""
         # Set tab order for widgets in groupBox_transaction
         # Make pushButton_description_clear the last in tab order
         QWidget.setTabOrder(self.lineEdit_description, self.doubleSpinBox_amount)
@@ -4258,8 +4240,6 @@ class MainWindow(
         - `message` (`str`): The message to display.
 
         """
-        from PySide6.QtWidgets import QLabel
-
         # Clear existing content
         self._clear_layout(layout)
 
@@ -4277,8 +4257,6 @@ class MainWindow(
         - `position`: Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         context_menu: QMenu = QMenu(self)
 
         # Get the clicked index

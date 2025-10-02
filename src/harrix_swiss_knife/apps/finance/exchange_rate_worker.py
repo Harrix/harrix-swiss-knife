@@ -4,6 +4,10 @@ This module contains the ExchangeRateUpdateWorker class that handles
 background updates of exchange rates from various data sources.
 """
 
+from datetime import datetime, timedelta
+
+import pandas as pd
+import yfinance as yf
 from PySide6.QtCore import QThread, Signal
 
 
@@ -50,11 +54,6 @@ class ExchangeRateUpdateWorker(QThread):
         """Main worker execution."""
         try:
             # Import required libraries
-            from datetime import datetime, timedelta
-
-            import pandas as pd
-            import yfinance as yf
-
             total_processed = 0
             total_operations = sum(
                 len(records["missing_dates"]) + len(records["existing_records"])

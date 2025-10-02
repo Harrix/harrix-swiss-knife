@@ -3394,9 +3394,6 @@ class MainWindow(
             self.label_chart_info.setText("")
             return
 
-        import calendar
-        from datetime import datetime, timedelta
-
         # Get current month data
         today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
@@ -3539,9 +3536,6 @@ class MainWindow(
             months_count = self.spinBox_compare_last.value()
             self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
-
-        import calendar
-        from datetime import datetime
 
         # Find the maximum final value from all months and last month value
         max_value = 0.0
@@ -3697,8 +3691,6 @@ class MainWindow(
             self.label_chart_info.setText("")
             return
 
-        from datetime import datetime, timedelta
-
         # Get data for last N months (from spinBox_compare_last) in the same format as compare_last
         months_count = self.spinBox_compare_last.value()
         monthly_data = []
@@ -3762,9 +3754,6 @@ class MainWindow(
         if not yearly_data:
             self.label_chart_info.setText("")
             return
-
-        import calendar
-        from datetime import datetime
 
         # Find the maximum final value from all years and last year value
         max_value = 0.0
@@ -3918,9 +3907,6 @@ class MainWindow(
         if self.db_manager is None:
             self.label_chart_info.setText("")
             return
-
-        import calendar
-        from datetime import datetime, timedelta
 
         # Get current month data
         today = datetime.now(tz=datetime.now().astimezone().tzinfo)
@@ -4097,9 +4083,6 @@ class MainWindow(
         - `dict`: Dictionary containing all recommendation values.
 
         """
-        import calendar
-        from datetime import datetime
-
         # Find the maximum final value from all months and last month value
         max_value = 0.0
         last_month_value = 0.0
@@ -4712,8 +4695,6 @@ class MainWindow(
         - `list`: Monthly data in the same format as compare_last.
 
         """
-        from datetime import datetime, timedelta
-
         monthly_data = []
         today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
@@ -9925,9 +9906,6 @@ def _add_calories_recommendations_to_label(self) -> None:
             self.label_chart_info.setText("")
             return
 
-        import calendar
-        from datetime import datetime, timedelta
-
         # Get current month data
         today = datetime.now(tz=datetime.now().astimezone().tzinfo)
         current_month = today.month
@@ -10082,9 +10060,6 @@ def _add_exercise_recommendations_to_label(
             months_count = self.spinBox_compare_last.value()
             self._set_no_data_info_label(f"No data for the last {months_count} months.")
             return
-
-        import calendar
-        from datetime import datetime
 
         # Find the maximum final value from all months and last month value
         max_value = 0.0
@@ -10252,8 +10227,6 @@ def _add_exercise_recommendations_to_label_for_standard_chart(
             self.label_chart_info.setText("")
             return
 
-        from datetime import datetime, timedelta
-
         # Get data for last N months (from spinBox_compare_last) in the same format as compare_last
         months_count = self.spinBox_compare_last.value()
         monthly_data = []
@@ -10343,9 +10316,6 @@ def _add_same_months_recommendations_to_label(
         if not yearly_data:
             self.label_chart_info.setText("")
             return
-
-        import calendar
-        from datetime import datetime
 
         # Find the maximum final value from all years and last year value
         max_value = 0.0
@@ -10512,9 +10482,6 @@ def _add_sets_recommendations_to_label(self) -> None:
         if self.db_manager is None:
             self.label_chart_info.setText("")
             return
-
-        import calendar
-        from datetime import datetime, timedelta
 
         # Get current month data
         today = datetime.now(tz=datetime.now().astimezone().tzinfo)
@@ -10717,9 +10684,6 @@ Returns:
 def _calculate_exercise_recommendations(
         self, exercise_name: str, monthly_data: list, months_count: int, exercise_unit: str
     ) -> dict:
-        import calendar
-        from datetime import datetime
-
         # Find the maximum final value from all months and last month value
         max_value = 0.0
         last_month_value = 0.0
@@ -11557,8 +11521,6 @@ Returns:
 
 ```python
 def _get_monthly_data_for_exercise(self, exercise_name: str, months_count: int) -> list:
-        from datetime import datetime, timedelta
-
         monthly_data = []
         today = datetime.now(tz=datetime.now().astimezone().tzinfo)
 

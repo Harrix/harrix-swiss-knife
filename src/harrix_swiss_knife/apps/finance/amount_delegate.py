@@ -1,5 +1,7 @@
 """Amount delegate for formatting amounts in transactions table."""
 
+import re
+
 from PySide6.QtCore import QAbstractItemModel, QLocale, QModelIndex, Qt
 from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
@@ -205,8 +207,6 @@ class AmountDelegate(QStyledItemDelegate):
 
             # Handle cases where the text might already be a formatted number
             # Remove any non-numeric characters except decimal point and minus
-            import re
-
             clean_text = re.sub(r"[^\d.-]", "", clean_text)
 
             value = float(clean_text)
