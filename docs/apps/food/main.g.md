@@ -425,10 +425,16 @@ class MainWindow(
         is_drink = self.checkBox_food_is_drink.isChecked()
 
         print(
-            f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, use_weight={use_weight}, is_drink={is_drink}"
+            (
+                f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, "
+                f"use_weight={use_weight}, is_drink={is_drink}"
+            )
         )
         print(
-            f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            (
+                f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
+            )
         )
 
         # Validate required fields
@@ -479,12 +485,19 @@ class MainWindow(
 
             # Final check before database call
             print(
-                f"🔧 Final values before database call: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+                (
+                    f"🔧 Final values before database call: "
+                    f"calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+                )
             )
 
             # Final radio button state check before database call
             print(
-                f"🔧 Final radio button state before database call: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+                (
+                    f"🔧 Final radio button state before database call: "
+                    f"weight={self.radioButton_use_weight.isChecked()}, "
+                    f"calories={self.radioButton_use_calories.isChecked()}"
+                )
             )
 
             # Use database manager method
@@ -670,7 +683,6 @@ class MainWindow(
                 return
 
             # Get data from the table model directly
-            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
             is_drink = source_model.item(index.row(), 1).text() == "1" if source_model.item(index.row(), 1) else False
             weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
@@ -724,7 +736,11 @@ class MainWindow(
 
             # Check radio button state after populating form
             print(
-                f"🔧 on_food_log_table_cell_clicked: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+                (
+                    f"🔧 on_food_log_table_cell_clicked: Final radio button state: "
+                    f"weight={self.radioButton_use_weight.isChecked()}, "
+                    f"calories={self.radioButton_use_calories.isChecked()}"
+                )
             )
 
             # Additional check: verify that only one radio button is checked
@@ -907,7 +923,8 @@ class MainWindow(
                     calories_per_100g = row[4]
                     weight = row[2]
 
-                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # If portion_calories is non-zero and calories_per_100g is 0,
+                    # show empty string for calories_per_100g
                     # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
                     if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
                         calories_per_100g_display = ""
@@ -939,9 +956,7 @@ class MainWindow(
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend(
-                        [row[0], date_color]
-                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_row.extend([row[0], date_color])
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -1921,7 +1936,11 @@ class MainWindow(
 
         # Check radio button state after populating form
         print(
-            f"🔧 _on_autocomplete_selected: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            (
+                f"🔧 _on_autocomplete_selected: Final radio button state: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
+            )
         )
 
         # Additional check: verify that only one radio button is checked
@@ -2072,7 +2091,11 @@ class MainWindow(
 
             # Check radio button state after populating form
             print(
-                f"🔧 _populate_form_from_food_name: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+                (
+                    f"🔧 _populate_form_from_food_name: Final radio button state: "
+                    f"weight={self.radioButton_use_weight.isChecked()}, "
+                    f"calories={self.radioButton_use_calories.isChecked()}"
+                )
             )
 
             # Additional check: verify that only one radio button is checked
@@ -2105,7 +2128,6 @@ class MainWindow(
             food_item_data = self.db_manager.get_food_item_by_name(food_name)
 
             if food_item_data:
-                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                 (
                     _food_id,
                     name,
@@ -3620,10 +3642,16 @@ def on_add_food_log(self) -> None:
         is_drink = self.checkBox_food_is_drink.isChecked()
 
         print(
-            f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, use_weight={use_weight}, is_drink={is_drink}"
+            (
+                f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, "
+                f"use_weight={use_weight}, is_drink={is_drink}"
+            )
         )
         print(
-            f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            (
+                f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
+            )
         )
 
         # Validate required fields
@@ -3674,12 +3702,19 @@ def on_add_food_log(self) -> None:
 
             # Final check before database call
             print(
-                f"🔧 Final values before database call: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+                (
+                    f"🔧 Final values before database call: "
+                    f"calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
+                )
             )
 
             # Final radio button state check before database call
             print(
-                f"🔧 Final radio button state before database call: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+                (
+                    f"🔧 Final radio button state before database call: "
+                    f"weight={self.radioButton_use_weight.isChecked()}, "
+                    f"calories={self.radioButton_use_calories.isChecked()}"
+                )
             )
 
             # Use database manager method
@@ -3935,7 +3970,6 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
                 return
 
             # Get data from the table model directly
-            # The table columns are: [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
             name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
             is_drink = source_model.item(index.row(), 1).text() == "1" if source_model.item(index.row(), 1) else False
             weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
@@ -3989,7 +4023,11 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
 
             # Check radio button state after populating form
             print(
-                f"🔧 on_food_log_table_cell_clicked: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+                (
+                    f"🔧 on_food_log_table_cell_clicked: Final radio button state: "
+                    f"weight={self.radioButton_use_weight.isChecked()}, "
+                    f"calories={self.radioButton_use_calories.isChecked()}"
+                )
             )
 
             # Additional check: verify that only one radio button is checked
@@ -4353,7 +4391,8 @@ def show_tables(self) -> None:
                     calories_per_100g = row[4]
                     weight = row[2]
 
-                    # If portion_calories is non-zero and calories_per_100g is 0, show empty string for calories_per_100g
+                    # If portion_calories is non-zero and calories_per_100g is 0,
+                    # show empty string for calories_per_100g
                     # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
                     if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
                         calories_per_100g_display = ""
@@ -4385,9 +4424,7 @@ def show_tables(self) -> None:
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
-                    transformed_row.extend(
-                        [row[0], date_color]
-                    )  # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en, id, color]
+                    transformed_row.extend([row[0], date_color])
                     transformed_rows.append(transformed_row)
 
                 return transformed_rows
@@ -5706,7 +5743,11 @@ def _on_autocomplete_selected(self, text: str) -> None:
 
         # Check radio button state after populating form
         print(
-            f"🔧 _on_autocomplete_selected: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            (
+                f"🔧 _on_autocomplete_selected: Final radio button state: "
+                f"weight={self.radioButton_use_weight.isChecked()}, "
+                f"calories={self.radioButton_use_calories.isChecked()}"
+            )
         )
 
         # Additional check: verify that only one radio button is checked
@@ -5907,7 +5948,11 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
 
             # Check radio button state after populating form
             print(
-                f"🔧 _populate_form_from_food_name: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+                (
+                    f"🔧 _populate_form_from_food_name: Final radio button state: "
+                    f"weight={self.radioButton_use_weight.isChecked()}, "
+                    f"calories={self.radioButton_use_calories.isChecked()}"
+                )
             )
 
             # Additional check: verify that only one radio button is checked
@@ -5954,7 +5999,6 @@ def _process_food_item_selection(self, food_name: str) -> None:
             food_item_data = self.db_manager.get_food_item_by_name(food_name)
 
             if food_item_data:
-                # food_item_data format: [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories]
                 (
                     _food_id,
                     name,
