@@ -28,7 +28,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
 
     - `message` (`str`, optional): The text to be displayed in the notification.
       Defaults to `"Process is running…"`.
-    - `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
+    - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
     """
 
@@ -44,8 +44,8 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         """
         super().__init__(message, parent)
 
-        self.elapsed_seconds = 0
-        self.timer = QTimer(self)
+        self.elapsed_seconds: int = 0
+        self.timer: QTimer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
@@ -62,8 +62,8 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         super().closeEvent(event)
 
     def start_countdown(self) -> None:
-        """Start the countdown timer and initializes the display."""
-        self.start_time = QTime.currentTime()
+        """Start the countdown timer and initialize the display."""
+        self.start_time: QTime = QTime.currentTime()
         self.timer.start(1000)
         self._refresh_label_text()
 
@@ -72,7 +72,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
 
         This method is called automatically every second when the timer is active.
         """
-        now = QTime.currentTime()
+        now: QTime = QTime.currentTime()
         self.elapsed_seconds = self.start_time.secsTo(now)
         self._refresh_label_text()
 

@@ -33,20 +33,18 @@ class MainWindow(QMainWindow):
     """
 
     def __init__(self, menu: QMenu) -> None:
-        """Initialize the `MainWindow` with the given menu.
+        """Initialize the main window with the given menu.
 
         Args:
 
         - `menu` (`QMenu`): The menu whose actions will be displayed in the list widget.
-
-        Sets up the main window layout, initializes widgets, populates the list with menu actions,
-        and connects signals to their respective handlers.
 
         """
         super().__init__()
 
         self.setWindowTitle("Harrix Swiss Knife")
         self.resize(1024, 800)
+
         # Main widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -87,8 +85,6 @@ class MainWindow(QMainWindow):
 
         - `event` (`QCloseEvent`): The close event triggered when the window is requested to close.
 
-        Prevents the window from closing and hides it instead.
-
         """
         # Stop the timer when hiding the window
         self.update_timer.stop()
@@ -102,17 +98,11 @@ class MainWindow(QMainWindow):
 
         - `item` (`QListWidgetItem`): The item that was clicked.
 
-        If the associated action is a `QAction`, it triggers the action and logs the action's text
-        in the text edit widget.
-
-        Returns:
-
-        - None
-
         """
         # Check if the item is enabled
         if not item.flags() & Qt.ItemFlag.ItemIsSelectable:
             return  # Do nothing if the item is disabled
+
         action = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(action, QAction):
             # Trigger the action
@@ -128,17 +118,11 @@ class MainWindow(QMainWindow):
         - `actions` (`list[QAction]`): A list of actions to add to the list widget.
         - `indent_level` (`int`): The current indentation level for submenu actions. Defaults to `0`.
 
-        For each action, an item is created with appropriate indentation and icon. If the action
-        has a submenu, the text is made bold and the submenu actions are added recursively with increased indentation.
-
-        Returns:
-
-        - None
-
         """
         for action in actions:
             if not action.text():
                 continue
+
             item = QListWidgetItem()
             # Add indentation for submenus
             text = ("    " * indent_level) + action.text()
@@ -157,7 +141,7 @@ class MainWindow(QMainWindow):
                 # Do not set UserRole data for this item
                 self.list_widget.addItem(item)
                 # Recursively add actions from the submenu
-                self.populate_list(action.menu().actions(), indent_level + 1)  # type: ignore noqa: PGH003
+                self.populate_list(action.menu().actions(), indent_level + 1)  # type: ignore  # noqa: PGH003
             else:
                 # Regular action without submenu
                 item.setData(Qt.ItemDataRole.UserRole, action)
@@ -168,9 +152,7 @@ class MainWindow(QMainWindow):
 
         Args:
 
-        - `event`: The show event triggered when the window is displayed.
-
-        Restarts the timer to continue updating the output content.
+        - `event` (`QShowEvent`): The show event triggered when the window is displayed.
 
         """
         super().showEvent(event)
@@ -184,17 +166,7 @@ class MainWindow(QMainWindow):
         self.update_timer.start(2000)
 
     def update_output_content(self) -> None:
-        """Update the text edit content from the output.txt file.
-
-        Reads the content of the output.txt file and displays it in the text edit widget
-        only if the content has changed. If the file doesn't exist or can't be read,
-        displays an appropriate message.
-
-        Returns:
-
-        - None
-
-        """
+        """Update the text edit content from the output.txt file."""
         try:
             output_file = h.dev.get_project_root() / "temp/output.txt"
             if output_file.exists():
