@@ -663,8 +663,8 @@ class ExchangeRatesOperations:
 
         try:
             # Block signals temporarily to prevent chart drawing during setup
-            self.dateEdit_exchange_rates_from.blockSignals(True)
-            self.dateEdit_exchange_rates_to.blockSignals(True)
+            self.dateEdit_exchange_rates_from.blockSignals(True)  # noqa: FBT003
+            self.dateEdit_exchange_rates_to.blockSignals(True)  # noqa: FBT003
 
             # Fill currency combo box
             currencies = self.db_manager.get_all_currencies()
@@ -714,8 +714,8 @@ class ExchangeRatesOperations:
             self._set_exchange_rates_date_range()
 
             # Unblock signals
-            self.dateEdit_exchange_rates_from.blockSignals(False)
-            self.dateEdit_exchange_rates_to.blockSignals(False)
+            self.dateEdit_exchange_rates_from.blockSignals(False)  # noqa: FBT003
+            self.dateEdit_exchange_rates_to.blockSignals(False)  # noqa: FBT003
 
             # Mark as initialized
             self._exchange_rates_initialized = True
