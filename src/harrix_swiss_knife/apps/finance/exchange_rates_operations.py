@@ -356,9 +356,11 @@ class ExchangeRatesOperations:
         """Automatically update exchange rates on startup with modal dialog.
 
         Strategy:
-        - First check if all currencies have today's rates
-        - If yes: skip update
-        - If no: proceed with normal update strategy
+
+        - First check if all currencies have today's rates.
+        - If yes: skip update.
+        - If no: proceed with normal update strategy.
+
         """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
@@ -427,9 +429,10 @@ class ExchangeRatesOperations:
         """Create and display exchange rate chart.
 
         Args:
-            currency_id: ID of the currency
-            date_from: Start date in yyyy-MM-dd format
-            date_to: End date in yyyy-MM-dd format
+
+        - `currency_id` (`int`): ID of the currency.
+        - `date_from` (`str`): Start date in yyyy-MM-dd format.
+        - `date_to` (`str`): End date in yyyy-MM-dd format.
 
         """
         if not self._validate_database_connection():
@@ -590,12 +593,14 @@ class ExchangeRatesOperations:
         """Get exchange rates data for the specified currency and date range.
 
         Args:
-            currency_id: ID of the currency
-            date_from: Start date in yyyy-MM-dd format
-            date_to: End date in yyyy-MM-dd format
+
+        - `currency_id` (`int`): ID of the currency.
+        - `date_from` (`str`): Start date in yyyy-MM-dd format.
+        - `date_to` (`str`): End date in yyyy-MM-dd format.
 
         Returns:
-            List of tuples (date, rate) sorted by date
+
+        - `list[tuple[str, float]]`: List of tuples (date, rate) sorted by date.
 
         """
         if not self._validate_database_connection():
@@ -724,7 +729,13 @@ class ExchangeRatesOperations:
             print(f"Error setting up exchange rates controls: {e}")
 
     def _start_exchange_rate_update(self, currencies_to_process: list) -> None:
-        """Start the exchange rate update process after check is complete."""
+        """Start the exchange rate update process after check is complete.
+
+        Args:
+
+        - `currencies_to_process` (`list`): List of currencies to process.
+
+        """
         try:
             # Create and configure update progress dialog
             self.progress_dialog = QMessageBox(self)
@@ -764,7 +775,13 @@ class ExchangeRatesOperations:
             print(f"❌ Exchange rate update error: {e}")
 
     def _start_startup_exchange_rate_update(self, currencies_to_process: list) -> None:
-        """Start the exchange rate update process for startup."""
+        """Start the exchange rate update process for startup.
+
+        Args:
+
+        - `currencies_to_process` (`list`): List of currencies to process.
+
+        """
         try:
             # Determine the strategy for logging
             has_exchange_rates = self.db_manager.has_exchange_rates_data() if self.db_manager else False
@@ -796,8 +813,14 @@ class ExchangeRatesOperations:
             else:
                 self._cleanup_startup_dialog()
 
-    def _update_exchange_rates_table(self, data: list[list[Any]]) -> None:
-        """Update the exchange rates table with provided data."""
+    def _update_exchange_rates_table(self, data: list[list]) -> None:
+        """Update the exchange rates table with provided data.
+
+        Args:
+
+        - `data` (`list[list]`): List of exchange rate records to display.
+
+        """
         try:
             # Transform the data to match the expected format for exchange rates table
             rates_transformed_data = []

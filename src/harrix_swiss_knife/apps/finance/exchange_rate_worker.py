@@ -8,16 +8,39 @@ from PySide6.QtCore import QThread, Signal
 
 
 class ExchangeRateUpdateWorker(QThread):
-    """Worker thread for updating and adding exchange rate records from yfinance."""
+    """Worker thread for updating and adding exchange rate records from yfinance.
+
+    Attributes:
+
+    - `progress_updated` (`Signal`): Signal for progress message updates.
+    - `currency_started` (`Signal`): Signal emitted when currency processing starts.
+    - `rates_added` (`Signal`): Signal emitted when rate is added (currency_code, rate, date).
+    - `finished_success` (`Signal`): Signal emitted on success (total_processed, total_operations).
+    - `finished_error` (`Signal`): Signal emitted on error with error message.
+    - `should_stop` (`bool`): Flag to request worker to stop.
+
+    """
 
     # Signals
-    progress_updated = Signal(str)  # Progress message
-    currency_started = Signal(str)  # Currency being processed
-    rates_added = Signal(str, float, str)  # currency_code, rate, date
-    finished_success = Signal(int, int)  # Total processed count, total operations
-    finished_error = Signal(str)  # Error message
+    progress_updated: Signal = Signal(str)  # Progress message
+    currency_started: Signal = Signal(str)  # Currency being processed
+    rates_added: Signal = Signal(str, float, str)  # currency_code, rate, date
+    finished_success: Signal = Signal(int, int)  # Total processed count, total operations
+    finished_error: Signal = Signal(str)  # Error message
 
-    def __init__(self, db_manager, currencies_to_process) -> None:
+    db_manager: object
+    currencies_to_process: list
+    should_stop: bool
+
+    def __init__(self, db_manager, currencies_to_process: list) -> None:
+        """Initialize the exchange rate update worker.
+
+        Args:
+
+        - `db_manager`: Database manager instance.
+        - `currencies_to_process` (`list`): List of tuples (currency_id, code, records_dict).
+
+        """
         super().__init__()
         self.db_manager = db_manager
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
@@ -47,7 +70,16 @@ class ExchangeRateUpdateWorker(QThread):
             def get_yfinance_data_batch(currency_code: str, dates: list[str], currency_id: int) -> dict[str, float]:
                 """Get exchange rate data from yfinance for multiple dates at once.
 
-                Returns dictionary mapping date to rate (currency to USD rate).
+                Args:
+
+                - `currency_code` (`str`): Currency code (e.g., 'EUR', 'RUB').
+                - `dates` (`list[str]`): List of dates in YYYY-MM-DD format.
+                - `currency_id` (`int`): Currency ID in database.
+
+                Returns:
+
+                - `dict[str, float]`: Dictionary mapping date to rate (currency to USD rate).
+
                 """
                 if not dates:
                     return {}
@@ -183,7 +215,18 @@ class ExchangeRateUpdateWorker(QThread):
                 return {}
 
             def get_fallback_rate(currency_code: str, date: str) -> float | None:
-                """Get fallback rate using the most recent available rate."""
+                """Get fallback rate using the most recent available rate.
+
+                Args:
+
+                - `currency_code` (`str`): Currency code.
+                - `date` (`str`): Date in YYYY-MM-DD format.
+
+                Returns:
+
+                - `float | None`: Fallback rate or None if not found.
+
+                """
                 try:
                     query = """
                         SELECT rate FROM exchange_rates
@@ -299,10 +342,12 @@ class ExchangeRateUpdateWorker(QThread):
         """Batch insert exchange rates.
 
         Args:
-            batch_data: List of tuples (currency_id, rate, date)
+
+        - `batch_data` (`list[tuple]`): List of tuples (currency_id, rate, date).
 
         Returns:
-            Number of successfully inserted records
+
+        - `int`: Number of successfully inserted records.
 
         """
         try:

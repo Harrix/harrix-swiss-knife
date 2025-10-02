@@ -6,20 +6,34 @@ from PySide6.QtCore import QThread, Signal
 
 
 class ExchangeRateCheckerWorker(QThread):
-    """Worker thread for checking which exchange rates need updates."""
+    """Worker thread for checking which exchange rates need updates.
+
+    Attributes:
+
+    - `progress_updated` (`Signal`): Signal for progress message updates.
+    - `check_completed` (`Signal`): Signal emitted when check is completed with list of currencies to process.
+    - `check_failed` (`Signal`): Signal emitted when check fails with error message.
+    - `should_stop` (`bool`): Flag to request worker to stop.
+
+    """
 
     # Signals
-    progress_updated = Signal(str)  # Progress message
-    check_completed = Signal(list)  # List of currencies to process
-    check_failed = Signal(str)  # Error message
+    progress_updated: Signal = Signal(str)  # Progress message
+    check_completed: Signal = Signal(list)  # List of currencies to process
+    check_failed: Signal = Signal(str)  # Error message
 
-    def __init__(self, db_manager, check_from_first_transaction=True) -> None:
+    db_manager: object
+    check_from_first_transaction: bool
+    should_stop: bool
+
+    def __init__(self, db_manager, check_from_first_transaction: bool = True) -> None:
         """Initialize the checker worker.
 
         Args:
-            db_manager: Database manager instance
-            check_from_first_transaction: If True, check from first transaction;
-                                         if False, check from last exchange rate
+
+        - `db_manager`: Database manager instance.
+        - `check_from_first_transaction` (`bool`): If True, check from first transaction;
+          if False, check from last exchange rate. Defaults to `True`.
 
         """
         super().__init__()
