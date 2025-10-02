@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
 
@@ -26,14 +27,19 @@ class AccountEditDialog(QDialog):
 
     """
 
-    def __init__(self, parent=None, account_data=None, currencies=None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        account_data: dict | None = None,
+        currencies: list | None = None,
+    ) -> None:
         """Initialize the dialog.
 
         Args:
 
-        - `parent`: Parent widget. Defaults to `None`.
-        - `account_data`: Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash). Defaults to `None`.
-        - `currencies`: List of currency codes. Defaults to `None`.
+        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `account_data` (`dict | None`): Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash). Defaults to `None`.
+        - `currencies` (`list | None`): List of currency codes. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -176,7 +182,7 @@ class AccountEditDialog(QDialog):
             self.balance_spin.selectAll()
 
     def _setup_ui(self) -> None:
-        """Setup the user interface."""
+        """Set up the user interface."""
         layout = QVBoxLayout()
 
         # Account name

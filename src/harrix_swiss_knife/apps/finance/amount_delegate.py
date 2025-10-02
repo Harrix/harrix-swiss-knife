@@ -1,8 +1,8 @@
 """Amount delegate for formatting amounts in transactions table."""
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate
+from PySide6.QtCore import QLocale, QModelIndex, Qt
+from PySide6.QtGui import QFont, QPainter
+from PySide6.QtWidgets import QAbstractItemModel, QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 
 class AmountDelegate(QStyledItemDelegate):
@@ -14,19 +14,19 @@ class AmountDelegate(QStyledItemDelegate):
 
     """
 
-    def __init__(self, parent=None, db_manager=None) -> None:
+    def __init__(self, parent: QWidget | None = None, db_manager=None) -> None:
         """Initialize the amount delegate.
 
         Args:
 
-        - `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
-        - `db_manager` (`object`, optional): The database manager instance. Defaults to `None`.
+        - `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
+        - `db_manager`: The database manager instance. Defaults to `None`.
 
         """
         super().__init__(parent)
         self.db_manager = db_manager
 
-    def createEditor(self, parent, option, index) -> QDoubleSpinBox:
+    def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QDoubleSpinBox:
         """Create editor for amount editing.
 
         Args:
@@ -50,12 +50,12 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value, locale) -> str:
+    def displayText(self, value, locale: QLocale) -> str:
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
 
-        - `value` (`any`): The value to format for display.
+        - `value`: The value to format for display.
         - `locale` (`QLocale`): The locale for formatting (unused in this implementation).
 
         Returns:
@@ -127,7 +127,7 @@ class AmountDelegate(QStyledItemDelegate):
         except Exception:
             return str(value)
 
-    def paint(self, painter, option, index) -> None:
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         """Custom paint method to handle income formatting.
 
         Args:
@@ -187,7 +187,7 @@ class AmountDelegate(QStyledItemDelegate):
             # Fallback to default painting on any error
             super().paint(painter, option, index)
 
-    def setEditorData(self, editor, index) -> None:
+    def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None:
         """Set data in editor (without spaces).
 
         Args:
@@ -214,7 +214,7 @@ class AmountDelegate(QStyledItemDelegate):
         except (ValueError, TypeError):
             editor.setValue(0.0)
 
-    def setModelData(self, editor, model, index) -> None:
+    def setModelData(self, editor: QDoubleSpinBox, model: QAbstractItemModel, index: QModelIndex) -> None:
         """Set data from editor back to model.
 
         Args:

@@ -40,14 +40,19 @@ including name, balance, currency, and account type settings.
 ```python
 class AccountEditDialog(QDialog):
 
-    def __init__(self, parent=None, account_data=None, currencies=None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        account_data: dict | None = None,
+        currencies: list | None = None,
+    ) -> None:
         """Initialize the dialog.
 
         Args:
 
-        - `parent`: Parent widget. Defaults to `None`.
-        - `account_data`: Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash). Defaults to `None`.
-        - `currencies`: List of currency codes. Defaults to `None`.
+        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `account_data` (`dict | None`): Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash). Defaults to `None`.
+        - `currencies` (`list | None`): List of currency codes. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -190,7 +195,7 @@ class AccountEditDialog(QDialog):
             self.balance_spin.selectAll()
 
     def _setup_ui(self) -> None:
-        """Setup the user interface."""
+        """Set up the user interface."""
         layout = QVBoxLayout()
 
         # Account name
@@ -262,22 +267,27 @@ class AccountEditDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent = None, account_data = None, currencies = None) -> None
+def __init__(self, parent: QWidget | None = None, account_data: dict | None = None, currencies: list | None = None) -> None
 ```
 
 Initialize the dialog.
 
 Args:
 
-- `parent`: Parent widget. Defaults to `None`.
-- `account_data`: Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash). Defaults to `None`.
-- `currencies`: List of currency codes. Defaults to `None`.
+- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- `account_data` (`dict | None`): Dictionary with account data (id, name, balance, currency_code, is_liquid, is_cash). Defaults to `None`.
+- `currencies` (`list | None`): List of currency codes. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent=None, account_data=None, currencies=None) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        account_data: dict | None = None,
+        currencies: list | None = None,
+    ) -> None:
         super().__init__(parent)
         self.account_data = account_data or {}
         self.currencies = currencies or []
@@ -506,7 +516,7 @@ def _populate_data(self) -> None:
 def _setup_ui(self) -> None
 ```
 
-Setup the user interface.
+Set up the user interface.
 
 <details>
 <summary>Code:</summary>

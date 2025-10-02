@@ -39,19 +39,19 @@ and special formatting for income transactions.
 ```python
 class AmountDelegate(QStyledItemDelegate):
 
-    def __init__(self, parent=None, db_manager=None) -> None:
+    def __init__(self, parent: QWidget | None = None, db_manager=None) -> None:
         """Initialize the amount delegate.
 
         Args:
 
-        - `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
-        - `db_manager` (`object`, optional): The database manager instance. Defaults to `None`.
+        - `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
+        - `db_manager`: The database manager instance. Defaults to `None`.
 
         """
         super().__init__(parent)
         self.db_manager = db_manager
 
-    def createEditor(self, parent, option, index) -> QDoubleSpinBox:
+    def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QDoubleSpinBox:
         """Create editor for amount editing.
 
         Args:
@@ -75,12 +75,12 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value, locale) -> str:
+    def displayText(self, value, locale: QLocale) -> str:
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
 
-        - `value` (`any`): The value to format for display.
+        - `value`: The value to format for display.
         - `locale` (`QLocale`): The locale for formatting (unused in this implementation).
 
         Returns:
@@ -152,7 +152,7 @@ class AmountDelegate(QStyledItemDelegate):
         except Exception:
             return str(value)
 
-    def paint(self, painter, option, index) -> None:
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         """Custom paint method to handle income formatting.
 
         Args:
@@ -212,7 +212,7 @@ class AmountDelegate(QStyledItemDelegate):
             # Fallback to default painting on any error
             super().paint(painter, option, index)
 
-    def setEditorData(self, editor, index) -> None:
+    def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None:
         """Set data in editor (without spaces).
 
         Args:
@@ -239,7 +239,7 @@ class AmountDelegate(QStyledItemDelegate):
         except (ValueError, TypeError):
             editor.setValue(0.0)
 
-    def setModelData(self, editor, model, index) -> None:
+    def setModelData(self, editor: QDoubleSpinBox, model: QAbstractItemModel, index: QModelIndex) -> None:
         """Set data from editor back to model.
 
         Args:
@@ -264,21 +264,21 @@ class AmountDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent = None, db_manager = None) -> None
+def __init__(self, parent: QWidget | None = None, db_manager = None) -> None
 ```
 
 Initialize the amount delegate.
 
 Args:
 
-- `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
-- `db_manager` (`object`, optional): The database manager instance. Defaults to `None`.
+- `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
+- `db_manager`: The database manager instance. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent=None, db_manager=None) -> None:
+def __init__(self, parent: QWidget | None = None, db_manager=None) -> None:
         super().__init__(parent)
         self.db_manager = db_manager
 ```
@@ -288,7 +288,7 @@ def __init__(self, parent=None, db_manager=None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent, option, index) -> QDoubleSpinBox
+def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QDoubleSpinBox
 ```
 
 Create editor for amount editing.
@@ -307,7 +307,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent, option, index) -> QDoubleSpinBox:
+def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QDoubleSpinBox:
         editor = QDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
@@ -324,14 +324,14 @@ def createEditor(self, parent, option, index) -> QDoubleSpinBox:
 ### ⚙️ Method `displayText`
 
 ```python
-def displayText(self, value, locale) -> str
+def displayText(self, value, locale: QLocale) -> str
 ```
 
 Format display text with spaces for thousands separator and subscript decimals.
 
 Args:
 
-- `value` (`any`): The value to format for display.
+- `value`: The value to format for display.
 - `locale` (`QLocale`): The locale for formatting (unused in this implementation).
 
 Returns:
@@ -342,7 +342,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def displayText(self, value, locale) -> str:
+def displayText(self, value, locale: QLocale) -> str:
         try:
             # Get the raw text value
             text = str(value)
@@ -413,7 +413,7 @@ def displayText(self, value, locale) -> str:
 ### ⚙️ Method `paint`
 
 ```python
-def paint(self, painter, option, index) -> None
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None
 ```
 
 Custom paint method to handle income formatting.
@@ -428,7 +428,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def paint(self, painter, option, index) -> None:
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         try:
             # Get the model and check if this is an income transaction
             model = index.model()
@@ -485,7 +485,7 @@ def paint(self, painter, option, index) -> None:
 ### ⚙️ Method `setEditorData`
 
 ```python
-def setEditorData(self, editor, index) -> None
+def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None
 ```
 
 Set data in editor (without spaces).
@@ -499,7 +499,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor, index) -> None:
+def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None:
         try:
             # Get the original value without formatting
             text = str(index.data(Qt.ItemDataRole.DisplayRole))
@@ -524,7 +524,7 @@ def setEditorData(self, editor, index) -> None:
 ### ⚙️ Method `setModelData`
 
 ```python
-def setModelData(self, editor, model, index) -> None
+def setModelData(self, editor: QDoubleSpinBox, model: QAbstractItemModel, index: QModelIndex) -> None
 ```
 
 Set data from editor back to model.
@@ -539,7 +539,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor, model, index) -> None:
+def setModelData(self, editor: QDoubleSpinBox, model: QAbstractItemModel, index: QModelIndex) -> None:
         value = editor.value()
 
         # Format the value as string with 2 decimal places for storage
