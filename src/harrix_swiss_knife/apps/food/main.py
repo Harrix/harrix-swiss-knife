@@ -2144,7 +2144,11 @@ class MainWindow(
 
             # Check radio button state after populating form
             print(
-                f"🔧 _process_food_item_selection: Final radio button state: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+                (
+                    f"🔧 _process_food_item_selection: Final radio button state: "
+                    f"weight={self.radioButton_use_weight.isChecked()}, "
+                    f"calories={self.radioButton_use_calories.isChecked()}"
+                )
             )
 
             # Additional check: verify that only one radio button is checked
@@ -2290,7 +2294,10 @@ class MainWindow(
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)
         print(
-            f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()}, calories={self.radioButton_use_calories.isChecked()}"
+            (
+                f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()},"
+                f"calories={self.radioButton_use_calories.isChecked()}"
+            )
         )
         self.update_calories_calculation()
 
@@ -2522,7 +2529,11 @@ class MainWindow(
                 result = QMessageBox.question(
                     self,
                     "Portion Calories Warning",
-                    f"This record has portion calories ({portion_calories}), which might affect how calories per 100g are displayed. Continue with swap?",
+                    (
+                        f"This record has portion calories ({portion_calories}), "
+                        f"which might affect how calories per 100g are displayed. "
+                        f"Continue with swap?"
+                    ),
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 )
                 if result == QMessageBox.StandardButton.No:
