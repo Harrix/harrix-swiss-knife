@@ -566,7 +566,14 @@ class MainWindow(
         self.lineEdit_food_manual_name.setFocus()
 
     def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
-        """Handle favorite food item selection change in the list view."""
+        """Handle favorite food item selection change in the list view.
+
+        Args:
+
+        - `current` (`QModelIndex`): Current selected index.
+        - `previous` (`QModelIndex`): Previously selected index.
+
+        """
         if not current.isValid():
             return
 
@@ -585,7 +592,13 @@ class MainWindow(
                 self._process_food_item_selection(food_name)
 
     def on_food_item_double_clicked(self, index: QModelIndex) -> None:
-        """Handle double click on food item in the list view."""
+        """Handle double click on food item in the list view.
+
+        Args:
+
+        - `index` (`QModelIndex`): Index of the double-clicked item.
+
+        """
         # Prevent multiple dialogs from opening
         if self._food_item_dialog_open:
             return
@@ -660,7 +673,13 @@ class MainWindow(
             self._food_item_dialog_open = False
 
     def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
-        """Handle food log table cell click and populate form fields with row data."""
+        """Handle food log table cell click and populate form fields with row data.
+
+        Args:
+
+        - `index` (`QModelIndex`): Index of the clicked cell.
+
+        """
         try:
             # Get the row ID from the vertical header
             proxy_model = self.models["food_log"]
@@ -824,7 +843,14 @@ class MainWindow(
         self._update_food_calories_chart()
 
     def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
-        """Handle main food item selection change in the list view."""
+        """Handle main food item selection change in the list view.
+
+        Args:
+
+        - `current` (`QModelIndex`): Current selected index.
+        - `previous` (`QModelIndex`): Previously selected index.
+
+        """
         if not current.isValid():
             return
 
@@ -1058,8 +1084,9 @@ class MainWindow(
         """Add a new food item to food_items table based on selected food log record.
 
         Args:
-            include_weight (bool): If True, includes the weight from the log record.
-                                If False, sets weight to zero.
+
+        - `include_weight` (`bool`): If True, includes the weight from the log record.
+          If False, sets weight to zero. Defaults to `True`.
 
         """
         if self.db_manager is None:
@@ -1585,7 +1612,7 @@ class MainWindow(
         # Pattern: " (XXX kcal/portion)" or " (XXX kcal/100g)"
         import re
 
-        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:portion|100g)\)$"
+        pattern = r"\s+$$\d+\.?\d*\s+kcal/(?:portion|100g)$$$"
         clean_name = re.sub(pattern, "", display_text)
 
         return clean_name.strip()
@@ -1594,7 +1621,8 @@ class MainWindow(
         """Filter food items lists based on input text.
 
         Args:
-            text (str): Filter text from lineEdit_food_manual_name
+
+        - `text` (`str`): Filter text from lineEdit_food_manual_name.
 
         """
         if not text:
@@ -1908,7 +1936,13 @@ class MainWindow(
             QTimer.singleShot(50, self._update_food_calories_chart)
 
     def _on_autocomplete_selected(self, text: str) -> None:
-        """Handle autocomplete selection and populate form fields."""
+        """Handle autocomplete selection and populate form fields.
+
+        Args:
+
+        - `text` (`str`): Selected autocomplete text.
+
+        """
         if not text:
             return
 
@@ -1992,12 +2026,12 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
-    def _on_window_resize(self, event) -> None:
+    def _on_window_resize(self, event: QResizeEvent) -> None:
         """Handle window resize event and adjust table column widths proportionally.
 
         Args:
 
-        - `event`: The resize event.
+        - `event` (`QResizeEvent`): The resize event.
 
         """
         # Call parent resize event first
@@ -2007,7 +2041,13 @@ class MainWindow(
         self._adjust_food_log_table_columns()
 
     def _populate_form_from_food_name(self, food_name: str) -> None:
-        """Populate form fields based on food name from database."""
+        """Populate form fields based on food name from database.
+
+        Args:
+
+        - `food_name` (`str`): Name of the food item to populate form with.
+
+        """
         if not self._validate_database_connection():
             return
 
@@ -2096,7 +2136,13 @@ class MainWindow(
             print(f"Error populating form from food name: {e}")
 
     def _process_food_item_selection(self, food_name: str) -> None:
-        """Process food item selection and populate form fields."""
+        """Process food item selection and populate form fields.
+
+        Args:
+
+        - `food_name` (`str`): Name of the selected food item.
+
+        """
         if not food_name:
             return
 
@@ -2437,11 +2483,12 @@ class MainWindow(
             for i in range(self.food_items_list_model.rowCount()):
                 self.listView_food_items.setRowHidden(i, False)
 
-    def _show_food_log_context_menu(self, position) -> None:
+    def _show_food_log_context_menu(self, position: QPoint) -> None:
         """Show context menu for food log table.
 
         Args:
-            position: Position where context menu should appear.
+
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
         # Check that a row is selected before showing the menu
@@ -2496,8 +2543,14 @@ class MainWindow(
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
 
-    def _show_food_yesterday_context_menu(self, position) -> None:
-        """Show context menu for food yesterday button with date options."""
+    def _show_food_yesterday_context_menu(self, position: QPoint) -> None:
+        """Show context menu for food yesterday button with date options.
+
+        Args:
+
+        - `position` (`QPoint`): Position where context menu should appear.
+
+        """
         context_menu = QMenu(self)
 
         # Today's date
@@ -2912,10 +2965,12 @@ class MainWindow(
                 """Transform food_log data with coloring.
 
                 Args:
-                    rows (list[list]): Raw food_log data from database.
+
+                - `rows` (`list[list]`): Raw food_log data from database.
 
                 Returns:
-                    list[list]: Transformed food_log data.
+
+                - `list[list]`: Transformed food_log data.
 
                 """
                 # Get all unique dates and assign colors
@@ -3011,12 +3066,12 @@ class MainWindow(
             print(f"Error updating food log table: {e}")
             QMessageBox.warning(self, "Database Error", f"Failed to update food log table: {e}")
 
-    def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> None:
+    def _update_food_log_table_with_data(self, food_log_rows: list[list]) -> None:
         """Update the food log table with specific data.
 
         Args:
 
-        - `food_log_rows` (`list[list[Any]]`): Raw food log data to display.
+        - `food_log_rows` (`list[list]`): Raw food log data to display.
 
         """
         if not self._validate_database_connection():
@@ -3029,10 +3084,12 @@ class MainWindow(
                 """Transform food_log data with coloring.
 
                 Args:
-                    rows (list[list]): Raw food_log data from database.
+
+                - `rows` (`list[list]`): Raw food_log data from database.
 
                 Returns:
-                    list[list]: Transformed food_log data.
+
+                - `list[list]`: Transformed food_log data.
 
                 """
                 # Get all unique dates and assign colors
@@ -3801,6 +3858,11 @@ def on_favorite_food_item_selection_changed(self, current: QModelIndex, previous
 
 Handle favorite food item selection change in the list view.
 
+Args:
+
+- `current` (`QModelIndex`): Current selected index.
+- `previous` (`QModelIndex`): Previously selected index.
+
 <details>
 <summary>Code:</summary>
 
@@ -3833,6 +3895,10 @@ def on_food_item_double_clicked(self, index: QModelIndex) -> None
 ```
 
 Handle double click on food item in the list view.
+
+Args:
+
+- `index` (`QModelIndex`): Index of the double-clicked item.
 
 <details>
 <summary>Code:</summary>
@@ -3922,6 +3988,10 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None
 ```
 
 Handle food log table cell click and populate form fields with row data.
+
+Args:
+
+- `index` (`QModelIndex`): Index of the clicked cell.
 
 <details>
 <summary>Code:</summary>
@@ -4212,6 +4282,11 @@ def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QM
 ```
 
 Handle main food item selection change in the list view.
+
+Args:
+
+- `current` (`QModelIndex`): Current selected index.
+- `previous` (`QModelIndex`): Previously selected index.
 
 <details>
 <summary>Code:</summary>
@@ -4554,8 +4629,9 @@ def _add_food_item_from_log_record(self) -> None
 Add a new food item to food_items table based on selected food log record.
 
 Args:
-include_weight (bool): If True, includes the weight from the log record.
-If False, sets weight to zero.
+
+- `include_weight` (`bool`): If True, includes the weight from the log record.
+  If False, sets weight to zero. Defaults to `True`.
 
 <details>
 <summary>Code:</summary>
@@ -5241,7 +5317,7 @@ def _extract_food_name_from_display(self, display_text: str) -> str:
         # Pattern: " (XXX kcal/portion)" or " (XXX kcal/100g)"
         import re
 
-        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:portion|100g)\)$"
+        pattern = r"\s+$$\d+\.?\d*\s+kcal/(?:portion|100g)$$$"
         clean_name = re.sub(pattern, "", display_text)
 
         return clean_name.strip()
@@ -5258,7 +5334,8 @@ def _filter_food_items(self, text: str) -> None
 Filter food items lists based on input text.
 
 Args:
-text (str): Filter text from lineEdit_food_manual_name
+
+- `text` (`str`): Filter text from lineEdit_food_manual_name.
 
 <details>
 <summary>Code:</summary>
@@ -5691,6 +5768,10 @@ def _on_autocomplete_selected(self, text: str) -> None
 
 Handle autocomplete selection and populate form fields.
 
+Args:
+
+- `text` (`str`): Selected autocomplete text.
+
 <details>
 <summary>Code:</summary>
 
@@ -5809,20 +5890,20 @@ def _on_table_data_changed(
 ### ⚙️ Method `_on_window_resize`
 
 ```python
-def _on_window_resize(self, event) -> None
+def _on_window_resize(self, event: QResizeEvent) -> None
 ```
 
 Handle window resize event and adjust table column widths proportionally.
 
 Args:
 
-- `event`: The resize event.
+- `event` (`QResizeEvent`): The resize event.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _on_window_resize(self, event) -> None:
+def _on_window_resize(self, event: QResizeEvent) -> None:
         # Call parent resize event first
         super().resizeEvent(event)
 
@@ -5839,6 +5920,10 @@ def _populate_form_from_food_name(self, food_name: str) -> None
 ```
 
 Populate form fields based on food name from database.
+
+Args:
+
+- `food_name` (`str`): Name of the food item to populate form with.
 
 <details>
 <summary>Code:</summary>
@@ -5942,6 +6027,10 @@ def _process_food_item_selection(self, food_name: str) -> None
 ```
 
 Process food item selection and populate form fields.
+
+Args:
+
+- `food_name` (`str`): Name of the selected food item.
 
 <details>
 <summary>Code:</summary>
@@ -6390,19 +6479,20 @@ def _show_all_food_items(self) -> None:
 ### ⚙️ Method `_show_food_log_context_menu`
 
 ```python
-def _show_food_log_context_menu(self, position) -> None
+def _show_food_log_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for food log table.
 
 Args:
-position: Position where context menu should appear.
+
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_food_log_context_menu(self, position) -> None:
+def _show_food_log_context_menu(self, position: QPoint) -> None:
         # Check that a row is selected before showing the menu
         if not self.tableView_food_log.currentIndex().isValid():
             print("⚠️ Context menu: No row selected")
@@ -6461,16 +6551,20 @@ def _show_food_log_context_menu(self, position) -> None:
 ### ⚙️ Method `_show_food_yesterday_context_menu`
 
 ```python
-def _show_food_yesterday_context_menu(self, position) -> None
+def _show_food_yesterday_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for food yesterday button with date options.
+
+Args:
+
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_food_yesterday_context_menu(self, position) -> None:
+def _show_food_yesterday_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
 
         # Today's date
@@ -7011,10 +7105,12 @@ def _update_food_log_table(self) -> None:
                 """Transform food_log data with coloring.
 
                 Args:
-                    rows (list[list]): Raw food_log data from database.
+
+                - `rows` (`list[list]`): Raw food_log data from database.
 
                 Returns:
-                    list[list]: Transformed food_log data.
+
+                - `list[list]`: Transformed food_log data.
 
                 """
                 # Get all unique dates and assign colors
@@ -7116,20 +7212,20 @@ def _update_food_log_table(self) -> None:
 ### ⚙️ Method `_update_food_log_table_with_data`
 
 ```python
-def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> None
+def _update_food_log_table_with_data(self, food_log_rows: list[list]) -> None
 ```
 
 Update the food log table with specific data.
 
 Args:
 
-- `food_log_rows` (`list[list[Any]]`): Raw food log data to display.
+- `food_log_rows` (`list[list]`): Raw food log data to display.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> None:
+def _update_food_log_table_with_data(self, food_log_rows: list[list]) -> None:
         if not self._validate_database_connection():
             print("Database connection not available for updating food log table")
             return
@@ -7140,10 +7236,12 @@ def _update_food_log_table_with_data(self, food_log_rows: list[list[Any]]) -> No
                 """Transform food_log data with coloring.
 
                 Args:
-                    rows (list[list]): Raw food_log data from database.
+
+                - `rows` (`list[list]`): Raw food_log data from database.
 
                 Returns:
-                    list[list]: Transformed food_log data.
+
+                - `list[list]`: Transformed food_log data.
 
                 """
                 # Get all unique dates and assign colors
