@@ -11,7 +11,6 @@ import sys
 from datetime import datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any
 
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas

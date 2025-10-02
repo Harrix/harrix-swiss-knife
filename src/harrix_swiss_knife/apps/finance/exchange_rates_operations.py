@@ -7,7 +7,6 @@ including loading, updating, filtering, and chart creation.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
