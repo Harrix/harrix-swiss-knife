@@ -2403,8 +2403,6 @@ class MainWindow(
             position: Position where context menu should appear.
 
         """
-        from PySide6.QtWidgets import QMenu
-
         # Check that a row is selected before showing the menu
         if not self.tableView_food_log.currentIndex().isValid():
             print("⚠️ Context menu: No row selected")
