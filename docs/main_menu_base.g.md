@@ -40,6 +40,8 @@ retrieve icons, and generate documentation for menu items in a README file.
 Attributes:
 
 - `menu` (`QMenu`): The main menu object for the application, initialized in `__init__`.
+- `config` (`dict`): The configuration dictionary loaded from the config file.
+- `compact_mode` (`bool`): Whether compact mode is enabled. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
@@ -61,10 +63,6 @@ class MainMenuBase:
 
         - `menu` (`QMenu`): The menu to which the actions will be added.
         - `items` (`list`): List of callables or separators. Use `"-"` string for separator.
-
-        Returns:
-
-        - `None`
 
         """
         # Filter items based on compact mode if enabled
@@ -106,13 +104,9 @@ class MainMenuBase:
         Args:
 
         - `parent_menu` (`QMenu`): The parent menu to which submenus and items will be added.
-        - `menus` (`list`, optional): List of QMenu objects to add as submenus. Defaults to `None`.
-        - `items` (`list`, optional): List of callables or separators to add as items. Use `"-"` string for separator.
+        - `menus` (`list | None`): List of QMenu objects to add as submenus. Defaults to `None`.
+        - `items` (`list | None`): List of callables or separators to add as items. Use `"-"` string for separator.
           Defaults to `None`.
-
-        Returns:
-
-        - `None`
 
         """
         # Filter menus in compact mode - only add menus that have visible items
@@ -168,11 +162,11 @@ class MainMenuBase:
         Args:
 
         - `menu` (`QMenu`): The QMenu object to convert to Markdown.
-        - `level` (`int`, optional): The current indentation level for nested menus. Defaults to `0`.
+        - `level` (`int`): The current indentation level for nested menus. Defaults to `0`.
 
         Returns:
 
-        - `List[str]`: A list of strings, each representing a line of Markdown text that describes the menu structure.
+        - `list[str]`: A list of strings, each representing a line of Markdown text that describes the menu structure.
 
         """
         markdown_lines: list[str] = []
@@ -200,7 +194,7 @@ class MainMenuBase:
 
         Args:
 
-        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: "uv.svg", "🏆".
+        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: `"uv.svg"`, `"🏆"`.
         - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
 
         Returns:
@@ -245,12 +239,12 @@ class MainMenuBase:
         return list_of_menu
 
     def new_menu(self, title: str, icon: str) -> QMenu:
-        """Create and returns a new QMenu with a title and an icon.
+        """Create and return a new QMenu with a title and an icon.
 
         Args:
 
         - `title` (`str`): The title of the new menu.
-        - `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: "uv.svg", "🏆".
+        - `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: `"uv.svg"`, `"🏆"`.
 
         Returns:
 
@@ -268,11 +262,7 @@ class MainMenuBase:
 
         - `menu` (`QMenu`): The menu to which the action will be added.
         - `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
-        - `icon` (`str`, optional): Path or emoji for the icon of the menu item. Defaults to `""`.
-
-        Returns:
-
-        - `None`
+        - `icon` (`str`): Path or emoji for the icon of the menu item. Defaults to `""`.
 
         """
         action_instance = class_action(parent=self)
@@ -352,7 +342,7 @@ class MainMenuBase:
 
         Returns:
 
-        - `bool`: True if the menu has visible items, False otherwise.
+        - `bool`: `True` if the menu has visible items, `False` otherwise.
 
         """
         # This is a simple check - in a more complex implementation,
@@ -397,10 +387,6 @@ Args:
 
 - `menu` (`QMenu`): The menu to which the actions will be added.
 - `items` (`list`): List of callables or separators. Use `"-"` string for separator.
-
-Returns:
-
-- `None`
 
 <details>
 <summary>Code:</summary>
@@ -454,13 +440,9 @@ Add submenus and items to the parent menu.
 Args:
 
 - `parent_menu` (`QMenu`): The parent menu to which submenus and items will be added.
-- `menus` (`list`, optional): List of QMenu objects to add as submenus. Defaults to `None`.
-- `items` (`list`, optional): List of callables or separators to add as items. Use `"-"` string for separator.
+- `menus` (`list | None`): List of QMenu objects to add as submenus. Defaults to `None`.
+- `items` (`list | None`): List of callables or separators to add as items. Use `"-"` string for separator.
   Defaults to `None`.
-
-Returns:
-
-- `None`
 
 <details>
 <summary>Code:</summary>
@@ -540,11 +522,11 @@ This function traverses the QMenu and its submenus to produce a nested list in M
 Args:
 
 - `menu` (`QMenu`): The QMenu object to convert to Markdown.
-- `level` (`int`, optional): The current indentation level for nested menus. Defaults to `0`.
+- `level` (`int`): The current indentation level for nested menus. Defaults to `0`.
 
 Returns:
 
-- `List[str]`: A list of strings, each representing a line of Markdown text that describes the menu structure.
+- `list[str]`: A list of strings, each representing a line of Markdown text that describes the menu structure.
 
 <details>
 <summary>Code:</summary>
@@ -584,7 +566,7 @@ Retrieve an icon for menu items.
 
 Args:
 
-- `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: "uv.svg", "🏆".
+- `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: `"uv.svg"`, `"🏆"`.
 - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
 
 Returns:
@@ -653,12 +635,12 @@ def get_menu(self) -> str:
 def new_menu(self, title: str, icon: str) -> QMenu
 ```
 
-Create and returns a new QMenu with a title and an icon.
+Create and return a new QMenu with a title and an icon.
 
 Args:
 
 - `title` (`str`): The title of the new menu.
-- `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: "uv.svg", "🏆".
+- `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: `"uv.svg"`, `"🏆"`.
 
 Returns:
 
@@ -688,11 +670,7 @@ Args:
 
 - `menu` (`QMenu`): The menu to which the action will be added.
 - `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
-- `icon` (`str`, optional): Path or emoji for the icon of the menu item. Defaults to `""`.
-
-Returns:
-
-- `None`
+- `icon` (`str`): Path or emoji for the icon of the menu item. Defaults to `""`.
 
 <details>
 <summary>Code:</summary>
@@ -796,7 +774,7 @@ Args:
 
 Returns:
 
-- `bool`: True if the menu has visible items, False otherwise.
+- `bool`: `True` if the menu has visible items, `False` otherwise.
 
 <details>
 <summary>Code:</summary>

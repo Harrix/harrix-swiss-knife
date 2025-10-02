@@ -33,12 +33,14 @@ that appear temporarily on screen. It creates a semi-transparent, frameless
 dialog with a message displayed in the center.
 
 Attributes:
-message (str): The text to be displayed in the notification.
-label (QLabel): The label widget that displays the message.
+
+- `message` (`str`): The text to be displayed in the notification.
+- `label` (`QLabel`): The label widget that displays the message.
 
 Args:
-message (str): The text to be displayed in the notification.
-parent (QWidget, optional): The parent widget. Defaults to None.
+
+- `message` (`str`): The text to be displayed in the notification.
+- `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
@@ -52,7 +54,7 @@ class ToastNotificationBase(QDialog):
         Args:
 
         - `message` (`str`): The message to display in the toast notification.
-        - `parent` (`Optional[QWidget]`): The parent widget of the notification. Defaults to `None`.
+        - `parent` (`QWidget | None`): The parent widget of the notification. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -166,7 +168,7 @@ Initialize the toast notification with the specified message and parent widget.
 Args:
 
 - `message` (`str`): The message to display in the toast notification.
-- `parent` (`Optional[QWidget]`): The parent widget of the notification. Defaults to `None`.
+- `parent` (`QWidget | None`): The parent widget of the notification. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
