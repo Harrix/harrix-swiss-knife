@@ -1428,13 +1428,18 @@ class MainWindow(
             if len(row) > 1:
                 try:
                     calories = float(row[1]) if row[1] else 0.0
-                    if calories <= 1800:
+                    thresholds = config.get("food_calorie_thresholds", {})
+                    low_threshold = thresholds.get("low", 1800)
+                    medium_low_threshold = thresholds.get("medium_low", 2100)
+                    medium_high_threshold = thresholds.get("medium_high", 2500)
+
+                    if calories <= low_threshold:
                         # Green for low calories
                         row_color = QColor(144, 238, 144)
-                    elif calories <= 2100:
+                    elif calories <= medium_low_threshold:
                         # Green-yellow for medium-low calories
                         row_color = QColor(255, 255, 224)
-                    elif calories <= 2500:
+                    elif calories <= medium_high_threshold:
                         # Yellow for medium-high calories
                         row_color = QColor(255, 228, 196)
                     else:

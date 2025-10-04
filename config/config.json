@@ -121,5 +121,10 @@
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
   "show_main_window_on_startup": false,
-  "compact_mode": false
+  "compact_mode": false,
+  "food_calorie_thresholds": {
+    "low": 1800,
+    "medium_low": 2100,
+    "medium_high": 2500
+  }
 }
