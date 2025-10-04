@@ -5228,12 +5228,12 @@ class MainWindow(
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
-    def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None:
+    def _on_chart_info_double_clicked(self, _event: QMouseEvent) -> None:
         """Handle double-click on chart info label to copy text to clipboard.
 
         Args:
 
-        - `event` (`QMouseEvent`): Mouse event.
+        - `_event` (`QMouseEvent`): Mouse event.
 
         """
         # Get the text from the label
@@ -5251,12 +5251,12 @@ class MainWindow(
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
 
-    def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+    def _on_exercises_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on exercises list to open statistics tab.
 
         Args:
 
-        - `index` (`QModelIndex`): Index of the double-clicked item.
+        - `_index` (`QModelIndex`): Index of the double-clicked item.
 
         """
         # Find the statistics tab index

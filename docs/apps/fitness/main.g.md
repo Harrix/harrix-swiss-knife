@@ -5311,12 +5311,12 @@ class MainWindow(
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
-    def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None:
+    def _on_chart_info_double_clicked(self, _event: QMouseEvent) -> None:
         """Handle double-click on chart info label to copy text to clipboard.
 
         Args:
 
-        - `event` (`QMouseEvent`): Mouse event.
+        - `_event` (`QMouseEvent`): Mouse event.
 
         """
         # Get the text from the label
@@ -5334,12 +5334,12 @@ class MainWindow(
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
 
-    def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+    def _on_exercises_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on exercises list to open statistics tab.
 
         Args:
 
-        - `index` (`QModelIndex`): Index of the double-clicked item.
+        - `_index` (`QModelIndex`): Index of the double-clicked item.
 
         """
         # Find the statistics tab index
@@ -12381,20 +12381,20 @@ def _next_avif_frame(self, label_key: str) -> None:
 ### ⚙️ Method `_on_chart_info_double_clicked`
 
 ```python
-def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None
+def _on_chart_info_double_clicked(self, _event: QMouseEvent) -> None
 ```
 
 Handle double-click on chart info label to copy text to clipboard.
 
 Args:
 
-- `event` (`QMouseEvent`): Mouse event.
+- `_event` (`QMouseEvent`): Mouse event.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None:
+def _on_chart_info_double_clicked(self, _event: QMouseEvent) -> None:
         # Get the text from the label
         html_text = self.label_chart_info.text()
         if html_text.strip():  # Only copy if there's actual text
@@ -12413,20 +12413,20 @@ def _on_chart_info_double_clicked(self, event: QMouseEvent) -> None:
 ### ⚙️ Method `_on_exercises_list_double_clicked`
 
 ```python
-def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None
+def _on_exercises_list_double_clicked(self, _index: QModelIndex) -> None
 ```
 
 Handle double-click on exercises list to open statistics tab.
 
 Args:
 
-- `index` (`QModelIndex`): Index of the double-clicked item.
+- `_index` (`QModelIndex`): Index of the double-clicked item.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+def _on_exercises_list_double_clicked(self, _index: QModelIndex) -> None:
         # Find the statistics tab index
         for i in range(self.tabWidget.count()):
             tab_widget = self.tabWidget.widget(i)

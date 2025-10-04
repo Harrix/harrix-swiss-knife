@@ -842,13 +842,13 @@ class MainWindow(
         """Update the food calories chart."""
         self._update_food_calories_chart()
 
-    def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+    def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle main food item selection change in the list view.
 
         Args:
 
         - `current` (`QModelIndex`): Current selected index.
-        - `previous` (`QModelIndex`): Previously selected index.
+        - `_previous` (`QModelIndex`): Previously selected index.
 
         """
         if not current.isValid():
@@ -930,10 +930,6 @@ class MainWindow(
                 # Transform data and add color information
                 transformed_rows = []
                 for row in rows:
-                    # Original transformation:
-                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
-                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
-
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
                     calories_per_100g = row[4]
@@ -4273,7 +4269,7 @@ def on_food_stats_update(self) -> None:
 ### ⚙️ Method `on_main_food_item_selection_changed`
 
 ```python
-def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None
+def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
 Handle main food item selection change in the list view.
@@ -4281,13 +4277,13 @@ Handle main food item selection change in the list view.
 Args:
 
 - `current` (`QModelIndex`): Current selected index.
-- `previous` (`QModelIndex`): Previously selected index.
+- `_previous` (`QModelIndex`): Previously selected index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_main_food_item_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         if not current.isValid():
             return
 
@@ -4422,10 +4418,6 @@ def show_tables(self) -> None:
                 # Transform data and add color information
                 transformed_rows = []
                 for row in rows:
-                    # Original transformation:
-                    # [id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink] ->
-                    # [name, is_drink, weight, calories_per_100g, portion_calories, calculated_calories, date, name_en]
-
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
                     calories_per_100g = row[4]

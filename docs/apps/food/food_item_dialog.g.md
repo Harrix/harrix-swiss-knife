@@ -31,7 +31,8 @@ Dialog for editing food item parameters.
 
 Attributes:
 
-- `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories].
+- `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink,
+  calories_per_100g, default_portion_weight, default_portion_calories].
 - `name_edit` (`QLineEdit`): Name input field.
 - `name_en_edit` (`QLineEdit`): English name input field.
 - `is_drink_checkbox` (`QCheckBox`): Checkbox for drink indicator.
