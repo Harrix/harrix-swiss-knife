@@ -37,7 +37,6 @@ class ExchangeRatesOperations:
             rates_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
             rates_transformed_data = []
             for row in rates_data:
-                # Transform: [id, from_code, to_code, rate, date]
                 # Rate is stored as USD→currency, but display as currency→USD
                 usd_to_currency_rate = float(row[3]) if row[3] else 0.0
                 currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0

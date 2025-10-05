@@ -7,6 +7,7 @@ SQLite database with transactions, categories, accounts, currencies and exchange
 from __future__ import annotations
 
 import colorsys
+import contextlib
 import gc
 import sys
 from datetime import datetime, timedelta
@@ -1763,8 +1764,6 @@ class MainWindow(
         daily_expenses: dict[str, float] = {}
 
         for row in rows:
-            # Raw data:
-            # [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
             amount_cents: int = row[1]
             date: str = row[5]
             category_type: int = row[7]
@@ -2938,8 +2937,6 @@ class MainWindow(
         for group_key in [(0, 1), (1, 1), (0, 0), (1, 0)]:
             color: QColor = account_colors[group_key]
             for row in account_groups[group_key]:
-                # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] ->
-                # [name, balance, currency, liquid, cash, id, color]
                 currency_id: int = row[6]  # currency_id
                 balance: float = self.db_manager.convert_from_minor_units(row[2], currency_id)
                 liquid_str: str = "👍" if row[4] == 1 else "⛔"
@@ -2960,11 +2957,8 @@ class MainWindow(
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
 
         # Disconnect existing signal to prevent multiple connections
-        try:
+        with contextlib.suppress(RuntimeError):
             self.tableView_accounts.doubleClicked.disconnect()
-        except RuntimeError:
-            # Signal was not connected, which is fine
-            pass
 
         # Connect double-click signal
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
@@ -3028,7 +3022,6 @@ class MainWindow(
         exchanges_data: list = self.db_manager.get_all_currency_exchanges()
         exchanges_transformed_data: list[list] = []
         for row in exchanges_data:
-            # Transform: [id, from_code, to_code, amount_from, amount_to, rate, fee, date, description]
             # Convert amounts and fees from minor units to major units
             from_currency_code: str = row[1]
             to_currency_code: str = row[2]
@@ -3739,8 +3732,6 @@ class MainWindow(
             if not transaction_data:
                 return
 
-            # Extract transaction data
-            # transaction_data: [id, amount_cents, description, category_id, currency_id, date, tag]
             amount_cents: int = transaction_data[1]
             description: str = transaction_data[2]
             category_id: int = transaction_data[3]
@@ -4386,8 +4377,6 @@ class MainWindow(
         dates_with_totals: set[str] = set()
 
         for row in rows:
-            # Raw data:
-            # [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
             transaction_id: int = row[0]
             amount_cents: int = row[1]
             description: str = row[2]
@@ -4436,8 +4425,6 @@ class MainWindow(
             # Format amount with minus sign for expenses
             amount_display: str = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
 
-            # Transform to display format:
-            # [description, amount, category, currency, date, tag, total_per_day, id, color]
             transformed_row: list = [
                 description,
                 amount_display,

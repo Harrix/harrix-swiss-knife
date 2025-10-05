@@ -2832,9 +2832,6 @@ class MainWindow(
             light_green = QColor(240, 255, 240)  # Light green background
 
             for row in exercises_data:
-                # Transform exercises data:
-                # [id, name, unit, is_type_required, calories_per_unit] ->
-                # [name, unit, is_type_required, calories_per_unit, id, color]
                 transformed_row = [row[1], row[2], str(row[3]), f"{row[4]:.1f}", row[0], light_green]
                 exercises_transformed_data.append(transformed_row)
 
@@ -2849,8 +2846,6 @@ class MainWindow(
             light_orange = QColor(255, 248, 220)  # Light orange background
 
             for row in types_data:
-                # Transform types data: [id, exercise_name, type_name, calories_modifier] ->
-                # [exercise_name, type_name, calories_modifier, id, color]
                 transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[0], light_orange]
                 types_transformed_data.append(transformed_row)
 
@@ -2998,10 +2993,8 @@ class MainWindow(
             # Connect signals after setting model (disconnect first to avoid duplicates)
             selection_model = self.listView_chart_exercise.selectionModel()
             if selection_model:
-                try:
+                with contextlib.suppress(TypeError):
                     selection_model.currentChanged.disconnect()
-                except TypeError:
-                    pass  # No connections exist
                 selection_model.currentChanged.connect(self.update_chart_type_listview)
                 selection_model.currentChanged.connect(self.on_chart_exercise_changed)
 
@@ -9253,9 +9246,6 @@ def show_tables(self) -> None:
             light_green = QColor(240, 255, 240)  # Light green background
 
             for row in exercises_data:
-                # Transform exercises data:
-                # [id, name, unit, is_type_required, calories_per_unit] ->
-                # [name, unit, is_type_required, calories_per_unit, id, color]
                 transformed_row = [row[1], row[2], str(row[3]), f"{row[4]:.1f}", row[0], light_green]
                 exercises_transformed_data.append(transformed_row)
 
@@ -9270,8 +9260,6 @@ def show_tables(self) -> None:
             light_orange = QColor(255, 248, 220)  # Light orange background
 
             for row in types_data:
-                # Transform types data: [id, exercise_name, type_name, calories_modifier] ->
-                # [exercise_name, type_name, calories_modifier, id, color]
                 transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[0], light_orange]
                 types_transformed_data.append(transformed_row)
 
@@ -9446,10 +9434,8 @@ def update_chart_comboboxes(self) -> None:
             # Connect signals after setting model (disconnect first to avoid duplicates)
             selection_model = self.listView_chart_exercise.selectionModel()
             if selection_model:
-                try:
+                with contextlib.suppress(TypeError):
                     selection_model.currentChanged.disconnect()
-                except TypeError:
-                    pass  # No connections exist
                 selection_model.currentChanged.connect(self.update_chart_type_listview)
                 selection_model.currentChanged.connect(self.on_chart_exercise_changed)
 

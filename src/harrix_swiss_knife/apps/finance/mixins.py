@@ -237,8 +237,7 @@ class AutoSaveOperations:
         - `row_id` (`str`): Database ID of the row.
 
         """
-        # Correct column order in tableView_transactions:
-        # [Description, Amount, Category, Currency, Date, Tag]
+        # Correct column order in tableView_transactions
         description = model.data(model.index(row, 0)) or ""  # Description
         amount_str = model.data(model.index(row, 1)) or "0"  # Amount
         category_name = model.data(model.index(row, 2)) or ""  # Category
