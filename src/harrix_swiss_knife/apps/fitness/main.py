@@ -653,14 +653,14 @@ class MainWindow(
 
     @requires_database()
     def on_chart_exercise_changed(
-        self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()
+        self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()
     ) -> None:
         """Handle chart exercise list view selection change.
 
         Args:
 
-        - `current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
-        - `previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+        - `_current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
+        - `_previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
 
         """
         self._update_charts_avif()
@@ -677,14 +677,14 @@ class MainWindow(
 
     @requires_database()
     def on_chart_type_changed(
-        self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()
+        self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()
     ) -> None:
         """Handle chart type list view selection change.
 
         Args:
 
-        - `current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
-        - `previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+        - `_current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
+        - `_previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
 
         """
         self._schedule_chart_update(50)
@@ -2932,14 +2932,14 @@ class MainWindow(
 
     @requires_database(is_show_warning=False)
     def update_chart_type_listview(
-        self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()
+        self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()
     ) -> None:
         """Update chart type list view based on selected exercise.
 
         Args:
 
-        - `current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
-        - `previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+        - `_current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
+        - `_previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
 
         """
         if self.db_manager is None:
@@ -3984,16 +3984,16 @@ class MainWindow(
             self.tableView_process.setColumnWidth(i, width)
 
     def _calculate_exercise_recommendations(
-        self, exercise_name: str, monthly_data: list, months_count: int, exercise_unit: str
+        self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str
     ) -> dict:
         """Calculate exercise recommendations based on monthly data.
 
         Args:
 
-        - `exercise_name` (`str`): Name of the exercise.
+        - `_exercise_name` (`str`): Name of the exercise.
         - `monthly_data` (`list`): Monthly data from _get_monthly_data_for_exercise.
-        - `months_count` (`int`): Number of months analyzed.
-        - `exercise_unit` (`str`): Unit of measurement.
+        - `_months_count` (`int`): Number of months analyzed.
+        - `_exercise_unit` (`str`): Unit of measurement.
 
         Returns:
 

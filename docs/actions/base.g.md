@@ -2080,7 +2080,7 @@ class DragDropFileDialog(QDialog):
         else:
             event.ignore()
 
-    def dragLeaveEvent(self, event) -> None:
+    def dragLeaveEvent(self, _event) -> None:
         """Handle drag leave event."""
         self.drop_area.setStyleSheet("""
             QLabel {
@@ -2281,7 +2281,7 @@ def dragEnterEvent(self, event: QDragEnterEvent) -> None:
 ### ⚙️ Method `dragLeaveEvent`
 
 ```python
-def dragLeaveEvent(self, event) -> None
+def dragLeaveEvent(self, _event) -> None
 ```
 
 Handle drag leave event.
@@ -2290,7 +2290,7 @@ Handle drag leave event.
 <summary>Code:</summary>
 
 ```python
-def dragLeaveEvent(self, event) -> None:
+def dragLeaveEvent(self, _event) -> None:
         self.drop_area.setStyleSheet("""
             QLabel {
                 border: 2px dashed #aaa;

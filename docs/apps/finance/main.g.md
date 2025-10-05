@@ -184,14 +184,14 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.categories = categories or []
 
-    def createEditor(self, parent: QObject, option, index: QModelIndex) -> QComboBox:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
         """Create a combo box editor for the category column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `option`: Style option.
-        - `index` (`QModelIndex`): Model index.
+        - `_option`: Style option.
+        - `_index` (`QModelIndex`): Model index.
 
         Returns:
 
@@ -267,7 +267,7 @@ def __init__(self, parent: QObject | None = None, categories: list[str] | None =
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QComboBox
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox
 ```
 
 Create a combo box editor for the category column.
@@ -275,8 +275,8 @@ Create a combo box editor for the category column.
 Args:
 
 - `parent` (`QObject`): Parent widget.
-- `option`: Style option.
-- `index` (`QModelIndex`): Model index.
+- `_option`: Style option.
+- `_index` (`QModelIndex`): Model index.
 
 Returns:
 
@@ -286,7 +286,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QComboBox:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
         combo = QComboBox(parent)
         combo.setEditable(False)
 
@@ -376,14 +376,14 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.currencies = currencies or []
 
-    def createEditor(self, parent: QObject, option, index: QModelIndex) -> QComboBox:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
         """Create a combo box editor for the currency column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `option`: Style option.
-        - `index` (`QModelIndex`): Model index.
+        - `_option`: Style option.
+        - `_index` (`QModelIndex`): Model index.
 
         Returns:
 
@@ -457,7 +457,7 @@ def __init__(self, parent: QObject | None = None, currencies: list[str] | None =
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QComboBox
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox
 ```
 
 Create a combo box editor for the currency column.
@@ -465,8 +465,8 @@ Create a combo box editor for the currency column.
 Args:
 
 - `parent` (`QObject`): Parent widget.
-- `option`: Style option.
-- `index` (`QModelIndex`): Model index.
+- `_option`: Style option.
+- `_index` (`QModelIndex`): Model index.
 
 Returns:
 
@@ -476,7 +476,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QComboBox:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
         combo = QComboBox(parent)
         combo.setEditable(False)
 
@@ -563,14 +563,14 @@ class DateDelegate(QStyledItemDelegate):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent: QObject, option, index: QModelIndex) -> QDateEdit:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:
         """Create a date editor for the date column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `option`: Style option.
-        - `index` (`QModelIndex`): Model index.
+        - `_option`: Style option.
+        - `_index` (`QModelIndex`): Model index.
 
         Returns:
 
@@ -641,7 +641,7 @@ def __init__(self, parent: QObject | None = None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QDateEdit
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit
 ```
 
 Create a date editor for the date column.
@@ -649,8 +649,8 @@ Create a date editor for the date column.
 Args:
 
 - `parent` (`QObject`): Parent widget.
-- `option`: Style option.
-- `index` (`QModelIndex`): Model index.
+- `_option`: Style option.
+- `_index` (`QModelIndex`): Model index.
 
 Returns:
 
@@ -660,7 +660,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QDateEdit:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:
         editor = QDateEdit(parent)
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
@@ -745,14 +745,14 @@ class DescriptionDelegate(QStyledItemDelegate):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent: QObject, option, index: QModelIndex) -> QLineEdit:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QLineEdit:
         """Create a line edit editor for the description column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `option`: Style option.
-        - `index` (`QModelIndex`): Model index.
+        - `_option`: Style option.
+        - `_index` (`QModelIndex`): Model index.
 
         Returns:
 
@@ -817,7 +817,7 @@ def __init__(self, parent: QObject | None = None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QLineEdit
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QLineEdit
 ```
 
 Create a line edit editor for the description column.
@@ -825,8 +825,8 @@ Create a line edit editor for the description column.
 Args:
 
 - `parent` (`QObject`): Parent widget.
-- `option`: Style option.
-- `index` (`QModelIndex`): Model index.
+- `_option`: Style option.
+- `_index` (`QModelIndex`): Model index.
 
 Returns:
 
@@ -836,7 +836,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QLineEdit:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QLineEdit:
         editor = QLineEdit(parent)
 
         # Set white background for the editor
@@ -1672,13 +1672,13 @@ class MainWindow(
             amount_to: float = amount_from * rate
             self.doubleSpinBox_exchange_to.setValue(amount_to)
 
-    def on_category_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+    def on_category_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle category selection change in listView_categories.
 
         Args:
 
         - `current` (`QModelIndex`): Current selected index.
-        - `previous` (`QModelIndex`): Previously selected index.
+        - `_previous` (`QModelIndex`): Previously selected index.
 
         """
         if current.isValid():
@@ -3043,12 +3043,12 @@ class MainWindow(
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
-    def _generate_category_analysis_report(self, currency_id: int) -> None:
+    def _generate_category_analysis_report(self, _currency_id: int) -> None:
         """Generate category analysis report.
 
         Args:
 
-        - `currency_id` (`int`): Currency ID for conversion.
+        - `_currency_id` (`int`): Currency ID for conversion.
 
         """
         if self.db_manager is None:
@@ -4284,13 +4284,13 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
-    def _on_transaction_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+    def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields.
 
         Args:
 
         - `current` (`QModelIndex`): The current selected index.
-        - `previous` (`QModelIndex`): The previously selected index.
+        - `_previous` (`QModelIndex`): The previously selected index.
 
         """
         # Don't copy data if right click is in progress
@@ -6090,7 +6090,7 @@ def on_calculate_exchange(self) -> None:
 ### ⚙️ Method `on_category_selection_changed`
 
 ```python
-def on_category_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None
+def on_category_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
 Handle category selection change in listView_categories.
@@ -6098,13 +6098,13 @@ Handle category selection change in listView_categories.
 Args:
 
 - `current` (`QModelIndex`): Current selected index.
-- `previous` (`QModelIndex`): Previously selected index.
+- `_previous` (`QModelIndex`): Previously selected index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_category_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+def on_category_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         if current.isValid():
             # Get the display text (with icon and income marker if applicable)
             display_text: str | None = current.data(Qt.ItemDataRole.DisplayRole)
@@ -8075,20 +8075,20 @@ def _generate_account_balances_report(self, currency_id: int) -> None:
 ### ⚙️ Method `_generate_category_analysis_report`
 
 ```python
-def _generate_category_analysis_report(self, currency_id: int) -> None
+def _generate_category_analysis_report(self, _currency_id: int) -> None
 ```
 
 Generate category analysis report.
 
 Args:
 
-- `currency_id` (`int`): Currency ID for conversion.
+- `_currency_id` (`int`): Currency ID for conversion.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _generate_category_analysis_report(self, currency_id: int) -> None:
+def _generate_category_analysis_report(self, _currency_id: int) -> None:
         if self.db_manager is None:
             return
 
@@ -9823,7 +9823,7 @@ def _on_table_data_changed(
 ### ⚙️ Method `_on_transaction_selection_changed`
 
 ```python
-def _on_transaction_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None
+def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
 Handle transaction selection change and copy data to form fields.
@@ -9831,13 +9831,13 @@ Handle transaction selection change and copy data to form fields.
 Args:
 
 - `current` (`QModelIndex`): The current selected index.
-- `previous` (`QModelIndex`): The previously selected index.
+- `_previous` (`QModelIndex`): The previously selected index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _on_transaction_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         # Don't copy data if right click is in progress
         if hasattr(self, "_right_click_in_progress") and self._right_click_in_progress:
             return
@@ -11032,14 +11032,14 @@ class TagDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.tags = tags or []
 
-    def createEditor(self, parent: QObject, option, index: QModelIndex) -> QComboBox:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
         """Create a combo box editor for the tag column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `option`: Style option.
-        - `index` (`QModelIndex`): Model index.
+        - `_option`: Style option.
+        - `_index` (`QModelIndex`): Model index.
 
         Returns:
 
@@ -11116,7 +11116,7 @@ def __init__(self, parent: QObject | None = None, tags: list[str] | None = None)
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QComboBox
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox
 ```
 
 Create a combo box editor for the tag column.
@@ -11124,8 +11124,8 @@ Create a combo box editor for the tag column.
 Args:
 
 - `parent` (`QObject`): Parent widget.
-- `option`: Style option.
-- `index` (`QModelIndex`): Model index.
+- `_option`: Style option.
+- `_index` (`QModelIndex`): Model index.
 
 Returns:
 
@@ -11135,7 +11135,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, option, index: QModelIndex) -> QComboBox:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
         combo: QComboBox = QComboBox(parent)
         combo.setEditable(True)
 

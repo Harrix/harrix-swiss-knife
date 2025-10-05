@@ -51,14 +51,14 @@ class AmountDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.db_manager = db_manager
 
-    def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QDoubleSpinBox:
+    def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> QDoubleSpinBox:
         """Create editor for amount editing.
 
         Args:
 
         - `parent` (`QWidget`): The parent widget for the editor.
-        - `option` (`QStyleOptionViewItem`): The style options for the item.
-        - `index` (`QModelIndex`): The model index of the item being edited.
+        - `_option` (`QStyleOptionViewItem`): The style options for the item.
+        - `_index` (`QModelIndex`): The model index of the item being edited.
 
         Returns:
 
@@ -75,13 +75,13 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value, locale: QLocale) -> str:
+    def displayText(self, value, _locale: QLocale) -> str:
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
 
         - `value`: The value to format for display.
-        - `locale` (`QLocale`): The locale for formatting (unused in this implementation).
+        - `_locale` (`QLocale`): The locale for formatting (unused in this implementation).
 
         Returns:
 
@@ -286,7 +286,7 @@ def __init__(self, parent: QWidget | None = None, db_manager=None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QDoubleSpinBox
+def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> QDoubleSpinBox
 ```
 
 Create editor for amount editing.
@@ -294,8 +294,8 @@ Create editor for amount editing.
 Args:
 
 - `parent` (`QWidget`): The parent widget for the editor.
-- `option` (`QStyleOptionViewItem`): The style options for the item.
-- `index` (`QModelIndex`): The model index of the item being edited.
+- `_option` (`QStyleOptionViewItem`): The style options for the item.
+- `_index` (`QModelIndex`): The model index of the item being edited.
 
 Returns:
 
@@ -305,7 +305,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QDoubleSpinBox:
+def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> QDoubleSpinBox:
         editor = QDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
@@ -322,7 +322,7 @@ def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QMo
 ### ⚙️ Method `displayText`
 
 ```python
-def displayText(self, value, locale: QLocale) -> str
+def displayText(self, value, _locale: QLocale) -> str
 ```
 
 Format display text with spaces for thousands separator and subscript decimals.
@@ -330,7 +330,7 @@ Format display text with spaces for thousands separator and subscript decimals.
 Args:
 
 - `value`: The value to format for display.
-- `locale` (`QLocale`): The locale for formatting (unused in this implementation).
+- `_locale` (`QLocale`): The locale for formatting (unused in this implementation).
 
 Returns:
 
@@ -340,7 +340,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def displayText(self, value, locale: QLocale) -> str:
+def displayText(self, value, _locale: QLocale) -> str:
         try:
             # Get the raw text value
             text = str(value)

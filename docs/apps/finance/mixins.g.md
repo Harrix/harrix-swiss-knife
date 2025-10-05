@@ -221,27 +221,27 @@ class AutoSaveOperations:
             # Update related UI elements
             self._update_comboboxes()
 
-    def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+    def _save_exchange_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
         """Save currency exchange data.
 
         Args:
 
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
+        - `_model` (`QStandardItemModel`): The model containing the data.
+        - `_row` (`int`): Row index.
+        - `_row_id` (`str`): Database ID of the row.
 
         """
         # Currency exchanges are complex to update, so we'll skip auto-save for now
         QMessageBox.information(None, "Info", "Currency exchange auto-save not implemented yet")
 
-    def _save_rate_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+    def _save_rate_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
         """Save exchange rate data.
 
         Args:
 
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
+        - `_model` (`QStandardItemModel`): The model containing the data.
+        - `_row` (`int`): Row index.
+        - `_row_id` (`str`): Database ID of the row.
 
         """
         # Exchange rates are complex to update, so we'll skip auto-save for now
@@ -522,22 +522,22 @@ def _save_currency_data(self, model: QStandardItemModel, row: int, row_id: str) 
 ### ⚙️ Method `_save_exchange_data`
 
 ```python
-def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
+def _save_exchange_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None
 ```
 
 Save currency exchange data.
 
 Args:
 
-- `model` (`QStandardItemModel`): The model containing the data.
-- `row` (`int`): Row index.
-- `row_id` (`str`): Database ID of the row.
+- `_model` (`QStandardItemModel`): The model containing the data.
+- `_row` (`int`): Row index.
+- `_row_id` (`str`): Database ID of the row.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+def _save_exchange_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
         # Currency exchanges are complex to update, so we'll skip auto-save for now
         QMessageBox.information(None, "Info", "Currency exchange auto-save not implemented yet")
 ```
@@ -547,22 +547,22 @@ def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) 
 ### ⚙️ Method `_save_rate_data`
 
 ```python
-def _save_rate_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
+def _save_rate_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None
 ```
 
 Save exchange rate data.
 
 Args:
 
-- `model` (`QStandardItemModel`): The model containing the data.
-- `row` (`int`): Row index.
-- `row_id` (`str`): Database ID of the row.
+- `_model` (`QStandardItemModel`): The model containing the data.
+- `_row` (`int`): Row index.
+- `_row_id` (`str`): Database ID of the row.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _save_rate_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+def _save_rate_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
         # Exchange rates are complex to update, so we'll skip auto-save for now
         QMessageBox.information(None, "Info", "Exchange rate auto-save not implemented yet")
 ```

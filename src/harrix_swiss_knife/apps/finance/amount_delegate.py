@@ -28,14 +28,14 @@ class AmountDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.db_manager = db_manager
 
-    def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QDoubleSpinBox:
+    def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> QDoubleSpinBox:
         """Create editor for amount editing.
 
         Args:
 
         - `parent` (`QWidget`): The parent widget for the editor.
-        - `option` (`QStyleOptionViewItem`): The style options for the item.
-        - `index` (`QModelIndex`): The model index of the item being edited.
+        - `_option` (`QStyleOptionViewItem`): The style options for the item.
+        - `_index` (`QModelIndex`): The model index of the item being edited.
 
         Returns:
 
@@ -52,13 +52,13 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value, locale: QLocale) -> str:
+    def displayText(self, value, _locale: QLocale) -> str:
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
 
         - `value`: The value to format for display.
-        - `locale` (`QLocale`): The locale for formatting (unused in this implementation).
+        - `_locale` (`QLocale`): The locale for formatting (unused in this implementation).
 
         Returns:
 
