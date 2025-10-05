@@ -2255,8 +2255,11 @@ class MainWindow(
         sizes: list[float] = list(data.values())
 
         # Create pie chart
+        PIE_RESULT_LEN = 3  # PLR2004 Magic value used in comparison, consider replacing `3` with a constant variable
         pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
-        _wedges, _texts, autotexts = pie_result if len(pie_result) == 3 else (pie_result[0], pie_result[1], [])
+        _wedges, _texts, autotexts = (
+            pie_result if len(pie_result) == PIE_RESULT_LEN else (pie_result[0], pie_result[1], [])
+        )
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
