@@ -273,7 +273,8 @@ class ExchangeRateUpdateWorker(QThread):
                         else:
                             # Try fallback for weekends/holidays
                             date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-                            if date_obj.weekday() >= 5:  # Weekend
+                            weekend_days = (5, 6)  # Saturday=5, Sunday=6
+                            if date_obj.weekday() in weekend_days:
                                 self.progress_updated.emit(f"📅 {date_str} is weekend, using fallback...")
                                 new_rate = get_fallback_rate(currency_code, date_str)
                             else:

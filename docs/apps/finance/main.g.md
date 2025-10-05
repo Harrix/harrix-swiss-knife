@@ -1944,12 +1944,15 @@ class MainWindow(
 
         """
         # Update relevant data when switching to different tabs
-        if index == 4:  # Exchange Rates tab - lazy loading
+        id_exchange_rates_tab: int = 4
+        id_charts_tab: int = 6
+        id_reports_tab: int = 7
+        if index == id_exchange_rates_tab:  # Exchange Rates tab - lazy loading
             if not self.exchange_rates_loaded:
                 self.load_exchange_rates_table()
-        elif index == 6:  # Charts tab
+        elif index == id_charts_tab:  # Charts tab
             self.update_chart_comboboxes()
-        elif index == 7:  # Reports tab
+        elif index == id_reports_tab:  # Reports tab
             self.update_summary_labels()
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
@@ -2031,7 +2034,7 @@ class MainWindow(
                             daily_balance -= trans_amount
 
             balance += daily_balance
-            date_obj: datetime = datetime.strptime(date_str, "%Y-%m-%d")
+            date_obj: datetime = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=None)
             balance_data.append((date_obj, balance))
 
         # Create chart configuration
@@ -6497,12 +6500,15 @@ Args:
 ```python
 def on_tab_changed(self, index: int) -> None:
         # Update relevant data when switching to different tabs
-        if index == 4:  # Exchange Rates tab - lazy loading
+        id_exchange_rates_tab: int = 4
+        id_charts_tab: int = 6
+        id_reports_tab: int = 7
+        if index == id_exchange_rates_tab:  # Exchange Rates tab - lazy loading
             if not self.exchange_rates_loaded:
                 self.load_exchange_rates_table()
-        elif index == 6:  # Charts tab
+        elif index == id_charts_tab:  # Charts tab
             self.update_chart_comboboxes()
-        elif index == 7:  # Reports tab
+        elif index == id_reports_tab:  # Reports tab
             self.update_summary_labels()
 ```
 
@@ -6681,7 +6687,7 @@ def show_balance_chart(self) -> None:
                             daily_balance -= trans_amount
 
             balance += daily_balance
-            date_obj: datetime = datetime.strptime(date_str, "%Y-%m-%d")
+            date_obj: datetime = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=None)
             balance_data.append((date_obj, balance))
 
         # Create chart configuration

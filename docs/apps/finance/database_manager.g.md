@@ -1660,12 +1660,13 @@ class DatabaseManager:
                 print(f"📊 {currency_code}: {len(missing_dates)} missing rates")
 
                 # Show first 10 dates as sample
-                sample_size = min(10, len(missing_dates))
+                max_sample_size = 10
+                sample_size = min(max_sample_size, len(missing_dates))
                 sample_dates = missing_dates[:sample_size]
                 print(f"    First {sample_size} missing dates: {', '.join(sample_dates)}")
 
-                if len(missing_dates) > 10:
-                    print(f"    ... and {len(missing_dates) - 10} more dates")
+                if len(missing_dates) > max_sample_size:
+                    print(f"    ... and {len(missing_dates) - max_sample_size} more dates")
 
                 # Show date ranges for better understanding
                 if len(missing_dates) > 1:
@@ -1690,8 +1691,9 @@ class DatabaseManager:
                 print(f"\n🔍 FULL LIST for {first_currency_code} ({len(first_missing)} dates):")
                 for i, date in enumerate(first_missing, 1):
                     print(f"  {i:4d}. {date}")
-                    if i >= 50:  # Limit output to 50 dates
-                        print(f"  ... and {len(first_missing) - 50} more dates")
+                    max_dates = 50
+                    if i >= max_dates:  # Limit output to 50 dates
+                        print(f"  ... and {len(first_missing) - max_dates} more dates")
                         break
 
         return missing_info
@@ -1736,7 +1738,8 @@ class DatabaseManager:
         """
 
         # Use 70% for frequent, 30% for recent
-        limit_frequent = int(limit * 0.7)
+        limit_frequent_percentage = 0.7
+        limit_frequent = int(limit * limit_frequent_percentage)
         limit_recent = limit - limit_frequent
 
         rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
@@ -4699,12 +4702,13 @@ def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[
                 print(f"📊 {currency_code}: {len(missing_dates)} missing rates")
 
                 # Show first 10 dates as sample
-                sample_size = min(10, len(missing_dates))
+                max_sample_size = 10
+                sample_size = min(max_sample_size, len(missing_dates))
                 sample_dates = missing_dates[:sample_size]
                 print(f"    First {sample_size} missing dates: {', '.join(sample_dates)}")
 
-                if len(missing_dates) > 10:
-                    print(f"    ... and {len(missing_dates) - 10} more dates")
+                if len(missing_dates) > max_sample_size:
+                    print(f"    ... and {len(missing_dates) - max_sample_size} more dates")
 
                 # Show date ranges for better understanding
                 if len(missing_dates) > 1:
@@ -4729,8 +4733,9 @@ def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[
                 print(f"\n🔍 FULL LIST for {first_currency_code} ({len(first_missing)} dates):")
                 for i, date in enumerate(first_missing, 1):
                     print(f"  {i:4d}. {date}")
-                    if i >= 50:  # Limit output to 50 dates
-                        print(f"  ... and {len(first_missing) - 50} more dates")
+                    max_dates = 50
+                    if i >= max_dates:  # Limit output to 50 dates
+                        print(f"  ... and {len(first_missing) - max_dates} more dates")
                         break
 
         return missing_info
@@ -4787,7 +4792,8 @@ def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000
         """
 
         # Use 70% for frequent, 30% for recent
-        limit_frequent = int(limit * 0.7)
+        limit_frequent_percentage = 0.7
+        limit_frequent = int(limit * limit_frequent_percentage)
         limit_recent = limit - limit_frequent
 
         rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
