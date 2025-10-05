@@ -184,7 +184,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.categories = categories or []
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
         """Create a combo box editor for the category column.
 
         Args:
@@ -210,7 +210,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
 
         return combo
 
-    def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:
+    def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
 
         Args:
@@ -226,7 +226,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
             if index_in_combo >= 0:
                 editor.setCurrentIndex(index_in_combo)
 
-    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:
+    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
@@ -286,7 +286,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
         combo = QComboBox(parent)
         combo.setEditable(False)
 
@@ -319,7 +319,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:
+def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa: N802
         current_value = index.data()
         if current_value:
             # Find the exact value in the combo box
@@ -348,7 +348,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:
+def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
         selected_text = editor.currentText()
         if selected_text:
             # Check if this is an income category and add suffix if needed
@@ -376,7 +376,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.currencies = currencies or []
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
         """Create a combo box editor for the currency column.
 
         Args:
@@ -402,7 +402,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
 
         return combo
 
-    def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:
+    def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
 
         Args:
@@ -418,7 +418,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
             if index_in_combo >= 0:
                 editor.setCurrentIndex(index_in_combo)
 
-    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:
+    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
@@ -476,7 +476,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
         combo = QComboBox(parent)
         combo.setEditable(False)
 
@@ -509,7 +509,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:
+def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa: N802
         current_value = index.data()
         if current_value:
             # Find the exact value in the combo box
@@ -538,7 +538,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:
+def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
         selected_text = editor.currentText()
         if selected_text:
             model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
@@ -563,7 +563,7 @@ class DateDelegate(QStyledItemDelegate):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:  # noqa: N802
         """Create a date editor for the date column.
 
         Args:
@@ -586,7 +586,7 @@ class DateDelegate(QStyledItemDelegate):
 
         return editor
 
-    def setEditorData(self, editor: QDateEdit, index: QModelIndex) -> None:
+    def setEditorData(self, editor: QDateEdit, index: QModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
 
         Args:
@@ -603,7 +603,7 @@ class DateDelegate(QStyledItemDelegate):
             except (ValueError, TypeError):
                 editor.setDate(QDate.currentDate())
 
-    def setModelData(self, editor: QDateEdit, model, index: QModelIndex) -> None:
+    def setModelData(self, editor: QDateEdit, model, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
@@ -660,7 +660,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:  # noqa: N802
         editor = QDateEdit(parent)
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
@@ -690,7 +690,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor: QDateEdit, index: QModelIndex) -> None:
+def setEditorData(self, editor: QDateEdit, index: QModelIndex) -> None:  # noqa: N802
         current_value = index.data()
         if current_value:
             try:
@@ -720,7 +720,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor: QDateEdit, model, index: QModelIndex) -> None:
+def setModelData(self, editor: QDateEdit, model, index: QModelIndex) -> None:  # noqa: N802
         selected_date = editor.date()
         date_string = selected_date.toString("yyyy-MM-dd")
         model.setData(index, date_string, Qt.ItemDataRole.DisplayRole)
@@ -745,7 +745,7 @@ class DescriptionDelegate(QStyledItemDelegate):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QLineEdit:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QLineEdit:  # noqa: N802
         """Create a line edit editor for the description column.
 
         Args:
@@ -766,7 +766,7 @@ class DescriptionDelegate(QStyledItemDelegate):
 
         return editor
 
-    def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:
+    def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
 
         Args:
@@ -779,7 +779,7 @@ class DescriptionDelegate(QStyledItemDelegate):
         if current_value:
             editor.setText(str(current_value))
 
-    def setModelData(self, editor: QLineEdit, model, index: QModelIndex) -> None:
+    def setModelData(self, editor: QLineEdit, model, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
@@ -836,7 +836,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QLineEdit:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QLineEdit:  # noqa: N802
         editor = QLineEdit(parent)
 
         # Set white background for the editor
@@ -864,7 +864,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:
+def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:  # noqa: N802
         current_value = index.data()
         if current_value:
             editor.setText(str(current_value))
@@ -890,7 +890,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor: QLineEdit, model, index: QModelIndex) -> None:
+def setModelData(self, editor: QLineEdit, model, index: QModelIndex) -> None:  # noqa: N802
         text = editor.text()
         if text:
             model.setData(index, text, Qt.ItemDataRole.DisplayRole)
@@ -1173,7 +1173,7 @@ class MainWindow(
         # Reconnect auto-save signals for the updated table
         self._connect_table_auto_save_signals()
 
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
 
         Args:
@@ -1289,7 +1289,7 @@ class MainWindow(
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
-    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         """Event filter for handling mouse and key events.
 
         Args:
@@ -1366,7 +1366,7 @@ class MainWindow(
 
         return colors
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.
 
         Args:
@@ -5458,7 +5458,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def closeEvent(self, event: QCloseEvent) -> None:
+def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         # Stop any running worker threads
         if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
             self.exchange_rate_worker.stop()
@@ -5602,7 +5602,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         # Track right mouse button on the table's viewport to suppress data copy on right-click
         if obj == self.tableView_transactions.viewport():
             if event.type() == QEvent.Type.MouseButtonPress:
@@ -5698,7 +5698,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def keyPressEvent(self, event: QKeyEvent) -> None:
+def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         # Handle Ctrl+C for copying table selections
         if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             # Determine which table is currently focused
@@ -11042,7 +11042,7 @@ class TagDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.tags = tags or []
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
         """Create a combo box editor for the tag column.
 
         Args:
@@ -11068,7 +11068,7 @@ class TagDelegate(QStyledItemDelegate):
 
         return combo
 
-    def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:
+    def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
 
         Args:
@@ -11087,7 +11087,7 @@ class TagDelegate(QStyledItemDelegate):
                 # If not found, set as current text
                 editor.setCurrentText(current_value)
 
-    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:
+    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
@@ -11145,7 +11145,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:
+def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
         combo: QComboBox = QComboBox(parent)
         combo.setEditable(True)
 
@@ -11178,7 +11178,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:
+def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa: N802
         current_value = index.data()
         if current_value:
             # Find the exact value in the combo box
@@ -11210,7 +11210,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:
+def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
         selected_text: str = editor.currentText()
         if selected_text:
             model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)

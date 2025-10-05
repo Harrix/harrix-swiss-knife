@@ -51,7 +51,7 @@ class AmountDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.db_manager = db_manager
 
-    def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> QDoubleSpinBox:
+    def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> QDoubleSpinBox:  # noqa: N802
         """Create editor for amount editing.
 
         Args:
@@ -75,7 +75,7 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value, _locale: QLocale) -> str:
+    def displayText(self, value, _locale: QLocale) -> str:  # noqa: N802
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
@@ -212,7 +212,7 @@ class AmountDelegate(QStyledItemDelegate):
             # Fallback to default painting on any error
             super().paint(painter, option, index)
 
-    def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None:
+    def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None:  # noqa: N802
         """Set data in editor (without spaces).
 
         Args:
@@ -237,7 +237,7 @@ class AmountDelegate(QStyledItemDelegate):
         except (ValueError, TypeError):
             editor.setValue(0.0)
 
-    def setModelData(self, editor: QDoubleSpinBox, model: QAbstractItemModel, index: QModelIndex) -> None:
+    def setModelData(self, editor: QDoubleSpinBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
         """Set data from editor back to model.
 
         Args:
@@ -305,7 +305,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> QDoubleSpinBox:
+def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> QDoubleSpinBox:  # noqa: N802
         editor = QDoubleSpinBox(parent)
         editor.setRange(-999999999.99, 999999999.99)
         editor.setDecimals(2)
@@ -340,7 +340,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def displayText(self, value, _locale: QLocale) -> str:
+def displayText(self, value, _locale: QLocale) -> str:  # noqa: N802
         try:
             # Get the raw text value
             text = str(value)
@@ -497,7 +497,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None:
+def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None:  # noqa: N802
         try:
             # Get the original value without formatting
             text = str(index.data(Qt.ItemDataRole.DisplayRole))
@@ -535,7 +535,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor: QDoubleSpinBox, model: QAbstractItemModel, index: QModelIndex) -> None:
+def setModelData(self, editor: QDoubleSpinBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
         value = editor.value()
 
         # Format the value as string with 2 decimal places for storage

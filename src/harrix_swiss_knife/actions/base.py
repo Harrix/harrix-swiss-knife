@@ -915,7 +915,7 @@ class DragDropFileDialog(QDialog):
         self.selected_files.clear()
         self.files_list.clear()
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
         """Handle drag enter event."""
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -933,7 +933,7 @@ class DragDropFileDialog(QDialog):
         else:
             event.ignore()
 
-    def dragLeaveEvent(self, _event) -> None:
+    def dragLeaveEvent(self, _event) -> None:  # noqa: N802
         """Handle drag leave event."""
         self.drop_area.setStyleSheet("""
             QLabel {
@@ -947,7 +947,7 @@ class DragDropFileDialog(QDialog):
             }
         """)
 
-    def dropEvent(self, event: QDropEvent) -> None:
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
         """Handle drop event."""
         if event.mimeData().hasUrls():
             urls = event.mimeData().urls()
