@@ -2268,9 +2268,12 @@ class MainWindow(
             self.update_food_data()
 
         if error_count > 0:
-            error_text = f"Added {success_count} items successfully.\n\nErrors:\n" + "\n".join(error_messages[:10])
-            if len(error_messages) > 10:
-                error_text += f"\n... and {len(error_messages) - 10} more errors"
+            max_errors = 10
+            error_text = f"Added {success_count} items successfully.\n\nErrors:\n" + "\n".join(
+                error_messages[:max_errors]
+            )
+            if len(error_messages) > max_errors:
+                error_text += f"\n... and {len(error_messages) - max_errors} more errors"
             QMessageBox.warning(self, "Results", error_text)
         else:
             QMessageBox.information(self, "Success", f"Successfully added {success_count} food items.")

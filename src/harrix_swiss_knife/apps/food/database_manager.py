@@ -66,6 +66,7 @@ class DatabaseManager:
         self,
         name: str,
         name_en: str | None = None,
+        *,
         is_drink: bool = False,
         calories_per_100g: float | None = None,
         default_portion_weight: float | None = None,
@@ -109,6 +110,7 @@ class DatabaseManager:
         name_en: str | None = None,
         weight: float | None = None,
         portion_calories: float | None = None,
+        *,
         is_drink: bool = False,
     ) -> bool:
         """Add a new food log record.
@@ -951,6 +953,7 @@ class DatabaseManager:
         food_item_id: int,
         name: str,
         name_en: str | None = None,
+        *,
         is_drink: bool = False,
         calories_per_100g: float | None = None,
         default_portion_weight: float | None = None,
@@ -1000,6 +1003,7 @@ class DatabaseManager:
         name_en: str | None = None,
         weight: float | None = None,
         portion_calories: float | None = None,
+        *,
         is_drink: bool = False,
     ) -> bool:
         """Update a food log record.

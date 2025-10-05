@@ -26,7 +26,7 @@ class ExchangeRateCheckerWorker(QThread):
     check_from_first_transaction: bool
     should_stop: bool
 
-    def __init__(self, db_manager, check_from_first_transaction: bool = True) -> None:
+    def __init__(self, db_manager, *, check_from_first_transaction: bool = True) -> None:
         """Initialize the checker worker.
 
         Args:

@@ -5831,11 +5831,11 @@ class MainWindow(
         context_menu.addSeparator()
 
         # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
         plus_one_action.triggered.connect(self._add_one_day_to_main)
 
         # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position
@@ -13139,11 +13139,11 @@ def _show_yesterday_context_menu(self, position: QPoint) -> None:
         context_menu.addSeparator()
 
         # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
         plus_one_action.triggered.connect(self._add_one_day_to_main)
 
         # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position

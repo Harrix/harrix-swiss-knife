@@ -2249,7 +2249,7 @@ class OnOptimizeSelectedImages(ActionBase):
                 with Path.open(md_file, "w", encoding="utf-8") as file:
                     file.write(document_new)
                 return f"✅ File {md_file} updated with optimized images."
-            return f"ℹ️ File {md_file} was not changed (no selected images found)."
+            return f"ℹ️ File {md_file} was not changed (no selected images found)."  # noqa: RUF001
 
         except Exception as e:
             return f"❌ Error processing {md_file}: {e}"
@@ -2593,7 +2593,7 @@ def optimize_selected_images_in_md(self, md_file: Path, selected_images: list[Pa
                 with Path.open(md_file, "w", encoding="utf-8") as file:
                     file.write(document_new)
                 return f"✅ File {md_file} updated with optimized images."
-            return f"ℹ️ File {md_file} was not changed (no selected images found)."
+            return f"ℹ️ File {md_file} was not changed (no selected images found)."  # noqa: RUF001
 
         except Exception as e:
             return f"❌ Error processing {md_file}: {e}"

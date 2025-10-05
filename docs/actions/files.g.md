@@ -1473,8 +1473,8 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
 
     # Mapping of keywords to emojis
     EMOJI_MAPPING = {
-        "Add": "➕",
-        "Create": "➕",
+        "Add": "➕",  # noqa: RUF001
+        "Create": "➕",  # noqa: RUF001
         "Build": "🚀",
         "Delete": "🗑️",
         "Remove": "🗑️",
@@ -1534,7 +1534,7 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
                     break
 
             if not new_message:
-                self.add_line("ℹ️ No matching keyword found, no changes needed")
+                self.add_line("ℹ️ No matching keyword found, no changes needed")  # noqa: RUF001
                 return
 
             # Amend the commit with new message
@@ -1607,7 +1607,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                     break
 
             if not new_message:
-                self.add_line("ℹ️ No matching keyword found, no changes needed")
+                self.add_line("ℹ️ No matching keyword found, no changes needed")  # noqa: RUF001
                 return
 
             # Amend the commit with new message

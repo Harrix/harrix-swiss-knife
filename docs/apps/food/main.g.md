@@ -1487,13 +1487,18 @@ class MainWindow(
             if len(row) > 1:
                 try:
                     calories = float(row[1]) if row[1] else 0.0
-                    if calories <= 1800:
+                    thresholds = config.get("food_calorie_thresholds", {})
+                    low_threshold = thresholds.get("low", 1800)
+                    medium_low_threshold = thresholds.get("medium_low", 2100)
+                    medium_high_threshold = thresholds.get("medium_high", 2500)
+
+                    if calories <= low_threshold:
                         # Green for low calories
                         row_color = QColor(144, 238, 144)
-                    elif calories <= 2100:
+                    elif calories <= medium_low_threshold:
                         # Green-yellow for medium-low calories
                         row_color = QColor(255, 255, 224)
-                    elif calories <= 2500:
+                    elif calories <= medium_high_threshold:
                         # Yellow for medium-high calories
                         row_color = QColor(255, 228, 196)
                     else:
@@ -2322,9 +2327,12 @@ class MainWindow(
             self.update_food_data()
 
         if error_count > 0:
-            error_text = f"Added {success_count} items successfully.\n\nErrors:\n" + "\n".join(error_messages[:10])
-            if len(error_messages) > 10:
-                error_text += f"\n... and {len(error_messages) - 10} more errors"
+            max_errors = 10
+            error_text = f"Added {success_count} items successfully.\n\nErrors:\n" + "\n".join(
+                error_messages[:max_errors]
+            )
+            if len(error_messages) > max_errors:
+                error_text += f"\n... and {len(error_messages) - max_errors} more errors"
             QMessageBox.warning(self, "Results", error_text)
         else:
             QMessageBox.information(self, "Success", f"Successfully added {success_count} food items.")
@@ -5145,13 +5153,18 @@ def _create_colored_kcal_per_day_table_model(
             if len(row) > 1:
                 try:
                     calories = float(row[1]) if row[1] else 0.0
-                    if calories <= 1800:
+                    thresholds = config.get("food_calorie_thresholds", {})
+                    low_threshold = thresholds.get("low", 1800)
+                    medium_low_threshold = thresholds.get("medium_low", 2100)
+                    medium_high_threshold = thresholds.get("medium_high", 2500)
+
+                    if calories <= low_threshold:
                         # Green for low calories
                         row_color = QColor(144, 238, 144)
-                    elif calories <= 2100:
+                    elif calories <= medium_low_threshold:
                         # Green-yellow for medium-low calories
                         row_color = QColor(255, 255, 224)
-                    elif calories <= 2500:
+                    elif calories <= medium_high_threshold:
                         # Yellow for medium-high calories
                         row_color = QColor(255, 228, 196)
                     else:
@@ -6219,9 +6232,12 @@ def _process_text_input(self, text: str) -> None:
             self.update_food_data()
 
         if error_count > 0:
-            error_text = f"Added {success_count} items successfully.\n\nErrors:\n" + "\n".join(error_messages[:10])
-            if len(error_messages) > 10:
-                error_text += f"\n... and {len(error_messages) - 10} more errors"
+            max_errors = 10
+            error_text = f"Added {success_count} items successfully.\n\nErrors:\n" + "\n".join(
+                error_messages[:max_errors]
+            )
+            if len(error_messages) > max_errors:
+                error_text += f"\n... and {len(error_messages) - max_errors} more errors"
             QMessageBox.warning(self, "Results", error_text)
         else:
             QMessageBox.information(self, "Success", f"Successfully added {success_count} food items.")

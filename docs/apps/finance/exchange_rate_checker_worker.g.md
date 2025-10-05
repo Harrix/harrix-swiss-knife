@@ -48,7 +48,7 @@ class ExchangeRateCheckerWorker(QThread):
     check_from_first_transaction: bool
     should_stop: bool
 
-    def __init__(self, db_manager, check_from_first_transaction: bool = True) -> None:
+    def __init__(self, db_manager, *, check_from_first_transaction: bool = True) -> None:
         """Initialize the checker worker.
 
         Args:
@@ -179,7 +179,7 @@ class ExchangeRateCheckerWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_manager, check_from_first_transaction: bool = True) -> None
+def __init__(self, db_manager) -> None
 ```
 
 Initialize the checker worker.
@@ -194,7 +194,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def __init__(self, db_manager, check_from_first_transaction: bool = True) -> None:
+def __init__(self, db_manager, *, check_from_first_transaction: bool = True) -> None:
         super().__init__()
         self.db_manager = db_manager
         self.check_from_first_transaction = check_from_first_transaction

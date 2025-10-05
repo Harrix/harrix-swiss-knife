@@ -4238,10 +4238,10 @@ class MainWindow(
             if current_tab_index == 4:  # Exchange Rates tab
                 self.load_exchange_rates_table()
         else:
-            print("ℹ️ [Startup] No exchange rate records were processed")
+            print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
 
             if hasattr(self, "startup_progress_dialog"):
-                self.startup_progress_dialog.setText("ℹ️ No exchange rate records were processed")
+                self.startup_progress_dialog.setText("ℹ️ No exchange rate records were processed")  # noqa: RUF001
                 # Auto-close after 2 seconds
                 QTimer.singleShot(2000, self._cleanup_startup_dialog)
             else:
@@ -4745,7 +4745,7 @@ class MainWindow(
         """Set up additional UI elements."""
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
-        self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")
+        self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
@@ -4767,22 +4767,22 @@ class MainWindow(
         # Set emoji for additional exchange and currency buttons
         self.pushButton_exchange_yesterday.setText(f"📅 {self.pushButton_exchange_yesterday.text()}")
         self.pushButton_calculate_exchange.setText(f"🧮 {self.pushButton_calculate_exchange.text()}")
-        self.pushButton_currency_add.setText(f"➕ {self.pushButton_currency_add.text()}")
+        self.pushButton_currency_add.setText(f"➕ {self.pushButton_currency_add.text()}")  # noqa: RUF001
         self.pushButton_set_default_currency.setText(f"⭐ {self.pushButton_set_default_currency.text()}")
         self.pushButton_currencies_delete.setText(f"🗑️ {self.pushButton_currencies_delete.text()}")
         self.pushButton_currencies_refresh.setText(f"🔄 {self.pushButton_currencies_refresh.text()}")
 
         # Set emoji for account and category buttons
-        self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")
+        self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")  # noqa: RUF001
         self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
         self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
-        self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")
+        self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")  # noqa: RUF001
         self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
         self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
         self.pushButton_copy_categories_as_text.setText(f"📋 {self.pushButton_copy_categories_as_text.text()}")
 
         # Set emoji for exchange buttons
-        self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")
+        self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
         self.pushButton_exchange_delete.setText(f"🗑️ {self.pushButton_exchange_delete.text()}")
         self.pushButton_exchange_refresh.setText(f"🔄 {self.pushButton_exchange_refresh.text()}")
 
@@ -4924,11 +4924,11 @@ class MainWindow(
         context_menu.addSeparator()
 
         # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
         plus_one_action.triggered.connect(self._add_one_day_to_main)
 
         # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position
@@ -9759,10 +9759,10 @@ def _on_startup_update_finished_success(self, processed_count: int, total_operat
             if current_tab_index == 4:  # Exchange Rates tab
                 self.load_exchange_rates_table()
         else:
-            print("ℹ️ [Startup] No exchange rate records were processed")
+            print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
 
             if hasattr(self, "startup_progress_dialog"):
-                self.startup_progress_dialog.setText("ℹ️ No exchange rate records were processed")
+                self.startup_progress_dialog.setText("ℹ️ No exchange rate records were processed")  # noqa: RUF001
                 # Auto-close after 2 seconds
                 QTimer.singleShot(2000, self._cleanup_startup_dialog)
             else:
@@ -10466,7 +10466,7 @@ Set up additional UI elements.
 def _setup_ui(self) -> None:
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
-        self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")
+        self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
@@ -10488,22 +10488,22 @@ def _setup_ui(self) -> None:
         # Set emoji for additional exchange and currency buttons
         self.pushButton_exchange_yesterday.setText(f"📅 {self.pushButton_exchange_yesterday.text()}")
         self.pushButton_calculate_exchange.setText(f"🧮 {self.pushButton_calculate_exchange.text()}")
-        self.pushButton_currency_add.setText(f"➕ {self.pushButton_currency_add.text()}")
+        self.pushButton_currency_add.setText(f"➕ {self.pushButton_currency_add.text()}")  # noqa: RUF001
         self.pushButton_set_default_currency.setText(f"⭐ {self.pushButton_set_default_currency.text()}")
         self.pushButton_currencies_delete.setText(f"🗑️ {self.pushButton_currencies_delete.text()}")
         self.pushButton_currencies_refresh.setText(f"🔄 {self.pushButton_currencies_refresh.text()}")
 
         # Set emoji for account and category buttons
-        self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")
+        self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")  # noqa: RUF001
         self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
         self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
-        self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")
+        self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")  # noqa: RUF001
         self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
         self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
         self.pushButton_copy_categories_as_text.setText(f"📋 {self.pushButton_copy_categories_as_text.text()}")
 
         # Set emoji for exchange buttons
-        self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")
+        self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
         self.pushButton_exchange_delete.setText(f"🗑️ {self.pushButton_exchange_delete.text()}")
         self.pushButton_exchange_refresh.setText(f"🔄 {self.pushButton_exchange_refresh.text()}")
 
@@ -10695,11 +10695,11 @@ def _show_yesterday_context_menu(self, position) -> None:
         context_menu.addSeparator()
 
         # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")
+        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
         plus_one_action.triggered.connect(self._add_one_day_to_main)
 
         # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position

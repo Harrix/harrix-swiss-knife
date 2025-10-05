@@ -335,7 +335,9 @@ class ExchangeRatesOperations:
             self.check_progress_dialog.show()
 
             # Create and start checker thread
-            self.exchange_rate_checker = ExchangeRateCheckerWorker(self.db_manager, check_from_first_transaction)
+            self.exchange_rate_checker = ExchangeRateCheckerWorker(
+                self.db_manager, check_from_first_transaction=check_from_first_transaction
+            )
 
             # Connect checker signals
             self.exchange_rate_checker.progress_updated.connect(self._on_check_progress_updated)
@@ -388,7 +390,7 @@ class ExchangeRatesOperations:
                 # Additional check: ensure transactions exist
                 earliest_transaction = self.db_manager.get_earliest_transaction_date()
                 if not earliest_transaction:
-                    print("ℹ️ [Startup] No transactions found. Skipping exchange rate update.")
+                    print("ℹ️ [Startup] No transactions found. Skipping exchange rate update.")  # noqa: RUF001
                     return
 
             # Create modal progress dialog
@@ -409,7 +411,7 @@ class ExchangeRatesOperations:
 
             # Create and start checker thread
             self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
-                self.db_manager, check_from_first_transaction
+                self.db_manager, check_from_first_transaction=check_from_first_transaction
             )
 
             # Connect signals

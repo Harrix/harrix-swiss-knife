@@ -117,6 +117,7 @@ class DatabaseManager:
         self,
         name: str,
         name_en: str | None = None,
+        *,
         is_drink: bool = False,
         calories_per_100g: float | None = None,
         default_portion_weight: float | None = None,
@@ -160,6 +161,7 @@ class DatabaseManager:
         name_en: str | None = None,
         weight: float | None = None,
         portion_calories: float | None = None,
+        *,
         is_drink: bool = False,
     ) -> bool:
         """Add a new food log record.
@@ -1002,6 +1004,7 @@ class DatabaseManager:
         food_item_id: int,
         name: str,
         name_en: str | None = None,
+        *,
         is_drink: bool = False,
         calories_per_100g: float | None = None,
         default_portion_weight: float | None = None,
@@ -1051,6 +1054,7 @@ class DatabaseManager:
         name_en: str | None = None,
         weight: float | None = None,
         portion_calories: float | None = None,
+        *,
         is_drink: bool = False,
     ) -> bool:
         """Update a food log record.
@@ -1289,7 +1293,7 @@ def __del__(self) -> None:
 ### ⚙️ Method `add_food_item`
 
 ```python
-def add_food_item(self, name: str, name_en: str | None = None, is_drink: bool = False, calories_per_100g: float | None = None, default_portion_weight: float | None = None, default_portion_calories: float | None = None) -> bool
+def add_food_item(self, name: str, name_en: str | None = None) -> bool
 ```
 
 Add a new food item.
@@ -1315,6 +1319,7 @@ def add_food_item(
         self,
         name: str,
         name_en: str | None = None,
+        *,
         is_drink: bool = False,
         calories_per_100g: float | None = None,
         default_portion_weight: float | None = None,
@@ -1340,7 +1345,7 @@ def add_food_item(
 ### ⚙️ Method `add_food_log_record`
 
 ```python
-def add_food_log_record(self, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None, is_drink: bool = False) -> bool
+def add_food_log_record(self, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None) -> bool
 ```
 
 Add a new food log record.
@@ -1371,6 +1376,7 @@ def add_food_log_record(
         name_en: str | None = None,
         weight: float | None = None,
         portion_calories: float | None = None,
+        *,
         is_drink: bool = False,
     ) -> bool:
         query = """
@@ -2559,7 +2565,7 @@ def table_exists(self, table_name: str) -> bool:
 ### ⚙️ Method `update_food_item`
 
 ```python
-def update_food_item(self, food_item_id: int, name: str, name_en: str | None = None, is_drink: bool = False, calories_per_100g: float | None = None, default_portion_weight: float | None = None, default_portion_calories: float | None = None) -> bool
+def update_food_item(self, food_item_id: int, name: str, name_en: str | None = None) -> bool
 ```
 
 Update a food item.
@@ -2587,6 +2593,7 @@ def update_food_item(
         food_item_id: int,
         name: str,
         name_en: str | None = None,
+        *,
         is_drink: bool = False,
         calories_per_100g: float | None = None,
         default_portion_weight: float | None = None,
@@ -2616,7 +2623,7 @@ def update_food_item(
 ### ⚙️ Method `update_food_log_record`
 
 ```python
-def update_food_log_record(self, record_id: int, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None, is_drink: bool = False) -> bool
+def update_food_log_record(self, record_id: int, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None) -> bool
 ```
 
 Update a food log record.
@@ -2649,6 +2656,7 @@ def update_food_log_record(
         name_en: str | None = None,
         weight: float | None = None,
         portion_calories: float | None = None,
+        *,
         is_drink: bool = False,
     ) -> bool:
         query = """
