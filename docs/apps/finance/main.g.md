@@ -2556,12 +2556,12 @@ class MainWindow(
         self.doubleSpinBox_exchange_fee.setValue(0.0)
         self.lineEdit_exchange_description.clear()
 
-    def _clear_layout(self, layout) -> None:
+    def _clear_layout(self, layout: QLayout) -> None:
         """Clear all widgets from the specified layout.
 
         Args:
 
-        - `layout`: The layout to clear.
+        - `layout` (`QLayout`): The layout to clear.
 
         """
         while layout.count():
@@ -2572,7 +2572,7 @@ class MainWindow(
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        widget._deleting = True
+                        widget._deleting = True  # noqa: SLF001
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
@@ -2716,7 +2716,7 @@ class MainWindow(
         for table_name in self._SAFE_TABLES:
             if self.models[table_name] is not None:
                 # Use partial to properly bind table_name
-                handler: Callable = partial(self._on_table_data_changed, table_name)
+                handler = partial(self._on_table_data_changed, table_name)
                 model = self.models[table_name]
                 if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
                     model.sourceModel().dataChanged.connect(handler)
@@ -2846,11 +2846,13 @@ class MainWindow(
         sizes: list[float] = list(data.values())
 
         # Create pie chart
-        PIE_RESULT_LEN = 3  # PLR2004 Magic value used in comparison, consider replacing `3` with a constant variable
+        pie_result_len: int = 3  # Number of expected return values from ax.pie
         pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
-        _wedges, _texts, autotexts = (
-            pie_result if len(pie_result) == PIE_RESULT_LEN else (pie_result[0], pie_result[1], [])
-        )
+        if len(pie_result) == pie_result_len:
+            _wedges, _texts, autotexts = pie_result
+        else:
+            _wedges, _texts = pie_result[0], pie_result[1]
+            autotexts = []
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
@@ -7425,20 +7427,20 @@ def _clear_exchange_form(self) -> None:
 ### ⚙️ Method `_clear_layout`
 
 ```python
-def _clear_layout(self, layout) -> None
+def _clear_layout(self, layout: QLayout) -> None
 ```
 
 Clear all widgets from the specified layout.
 
 Args:
 
-- `layout`: The layout to clear.
+- `layout` (`QLayout`): The layout to clear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _clear_layout(self, layout) -> None:
+def _clear_layout(self, layout: QLayout) -> None:
         while layout.count():
             child = layout.takeAt(0)
             if child.widget():
@@ -7447,7 +7449,7 @@ def _clear_layout(self, layout) -> None:
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        widget._deleting = True
+                        widget._deleting = True  # noqa: SLF001
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
@@ -7619,7 +7621,7 @@ def _connect_table_auto_save_signals(self) -> None:
         for table_name in self._SAFE_TABLES:
             if self.models[table_name] is not None:
                 # Use partial to properly bind table_name
-                handler: Callable = partial(self._on_table_data_changed, table_name)
+                handler = partial(self._on_table_data_changed, table_name)
                 model = self.models[table_name]
                 if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
                     model.sourceModel().dataChanged.connect(handler)
@@ -7785,11 +7787,13 @@ def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
         sizes: list[float] = list(data.values())
 
         # Create pie chart
-        PIE_RESULT_LEN = 3  # PLR2004 Magic value used in comparison, consider replacing `3` with a constant variable
+        pie_result_len: int = 3  # Number of expected return values from ax.pie
         pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
-        _wedges, _texts, autotexts = (
-            pie_result if len(pie_result) == PIE_RESULT_LEN else (pie_result[0], pie_result[1], [])
-        )
+        if len(pie_result) == pie_result_len:
+            _wedges, _texts, autotexts = pie_result
+        else:
+            _wedges, _texts = pie_result[0], pie_result[1]
+            autotexts = []
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
