@@ -736,16 +736,20 @@ class MainWindow(
 
     @requires_database()
     def on_chart_exercise_changed(
-        self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()
+        self, current: QModelIndex | None = None, previous: QModelIndex | None = None
     ) -> None:
         """Handle chart exercise list view selection change.
 
         Args:
 
-        - `_current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
-        - `_previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+        - `current` (`QModelIndex | None`): Currently selected index. Defaults to invalid index.
+        - `previous` (`QModelIndex | None`): Previously selected index. Defaults to invalid index.
 
         """
+        if current is None:
+            current = QModelIndex()
+        if previous is None:
+            previous = QModelIndex()
         self._update_charts_avif()
 
         # Sync selection with exercises list view
@@ -759,17 +763,19 @@ class MainWindow(
                 self._syncing_selection = False
 
     @requires_database()
-    def on_chart_type_changed(
-        self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()
-    ) -> None:
+    def on_chart_type_changed(self, current: QModelIndex | None = None, previous: QModelIndex | None = None) -> None:
         """Handle chart type list view selection change.
 
         Args:
 
-        - `_current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
-        - `_previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+        - `current` (`QModelIndex | None`): Currently selected index. Defaults to invalid index.
+        - `previous` (`QModelIndex | None`): Previously selected index. Defaults to invalid index.
 
         """
+        if current is None:
+            current = QModelIndex()
+        if previous is None:
+            previous = QModelIndex()
         self._schedule_chart_update(50)
 
     @requires_database()
@@ -3010,16 +3016,22 @@ class MainWindow(
 
     @requires_database(is_show_warning=False)
     def update_chart_type_listview(
-        self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()
+        self, current: QModelIndex | None = None, previous: QModelIndex | None = None
     ) -> None:
         """Update chart type list view based on selected exercise.
 
         Args:
 
-        - `_current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
-        - `_previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+        - `current` (`QModelIndex | None`): Currently selected index. Defaults to invalid index.
+        - `previous` (`QModelIndex | None`): Previously selected index. Defaults to invalid index.
 
         """
+        # Avoid mutable or function call defaults; set to None and handle inside
+        if current is None:
+            current = QModelIndex()
+        if previous is None:
+            previous = QModelIndex()
+
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -6754,23 +6766,27 @@ def on_add_weight(self) -> None:
 ### ⚙️ Method `on_chart_exercise_changed`
 
 ```python
-def on_chart_exercise_changed(self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()) -> None
+def on_chart_exercise_changed(self, current: QModelIndex | None = None, previous: QModelIndex | None = None) -> None
 ```
 
 Handle chart exercise list view selection change.
 
 Args:
 
-- `_current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
-- `_previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+- `current` (`QModelIndex | None`): Currently selected index. Defaults to invalid index.
+- `previous` (`QModelIndex | None`): Previously selected index. Defaults to invalid index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_chart_exercise_changed(
-        self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()
+        self, current: QModelIndex | None = None, previous: QModelIndex | None = None
     ) -> None:
+        if current is None:
+            current = QModelIndex()
+        if previous is None:
+            previous = QModelIndex()
         self._update_charts_avif()
 
         # Sync selection with exercises list view
@@ -6789,23 +6805,25 @@ def on_chart_exercise_changed(
 ### ⚙️ Method `on_chart_type_changed`
 
 ```python
-def on_chart_type_changed(self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()) -> None
+def on_chart_type_changed(self, current: QModelIndex | None = None, previous: QModelIndex | None = None) -> None
 ```
 
 Handle chart type list view selection change.
 
 Args:
 
-- `_current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
-- `_previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+- `current` (`QModelIndex | None`): Currently selected index. Defaults to invalid index.
+- `previous` (`QModelIndex | None`): Previously selected index. Defaults to invalid index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_chart_type_changed(
-        self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()
-    ) -> None:
+def on_chart_type_changed(self, current: QModelIndex | None = None, previous: QModelIndex | None = None) -> None:
+        if current is None:
+            current = QModelIndex()
+        if previous is None:
+            previous = QModelIndex()
         self._schedule_chart_update(50)
 ```
 
@@ -9455,23 +9473,29 @@ def update_chart_comboboxes(self) -> None:
 ### ⚙️ Method `update_chart_type_listview`
 
 ```python
-def update_chart_type_listview(self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()) -> None
+def update_chart_type_listview(self, current: QModelIndex | None = None, previous: QModelIndex | None = None) -> None
 ```
 
 Update chart type list view based on selected exercise.
 
 Args:
 
-- `_current` (`QModelIndex`): Currently selected index. Defaults to invalid index.
-- `_previous` (`QModelIndex`): Previously selected index. Defaults to invalid index.
+- `current` (`QModelIndex | None`): Currently selected index. Defaults to invalid index.
+- `previous` (`QModelIndex | None`): Previously selected index. Defaults to invalid index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def update_chart_type_listview(
-        self, _current: QModelIndex = QModelIndex(), _previous: QModelIndex = QModelIndex()
+        self, current: QModelIndex | None = None, previous: QModelIndex | None = None
     ) -> None:
+        # Avoid mutable or function call defaults; set to None and handle inside
+        if current is None:
+            current = QModelIndex()
+        if previous is None:
+            previous = QModelIndex()
+
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
