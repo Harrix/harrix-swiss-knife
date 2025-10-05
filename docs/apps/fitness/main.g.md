@@ -3054,10 +3054,8 @@ class MainWindow(
             # Connect signals after setting model
             selection_model = self.listView_chart_type.selectionModel()
             if selection_model:
-                try:
+                with contextlib.suppress(TypeError):
                     selection_model.currentChanged.disconnect()
-                except TypeError:
-                    pass  # No connections exist
                 selection_model.currentChanged.connect(self.on_chart_type_changed)
 
             # Select first item by default (All types)
@@ -3738,8 +3736,8 @@ class MainWindow(
             cumulative_value = 0.0
             for date_str, value_str in month_data:
                 cumulative_value += float(value_str)
-                # Convert date to day number in month
-                day = datetime.strptime(date_str, "%Y-%m-%d").day
+                # Convert date to day number in month using aware datetime
+                day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo).day
                 cumulative_data.append((day, cumulative_value))
 
             monthly_data.append(cumulative_data)
@@ -3812,6 +3810,8 @@ class MainWindow(
         if exercise_id:
             # For exercises with types, we need to filter by type
             if exercise_type and exercise_type != "All types":
+                # Get today's date
+                today = datetime.now(tz=datetime.now().astimezone().tzinfo)
                 # Get today's data for this specific exercise and type
                 today_data = self.db_manager.get_exercise_chart_data(
                     exercise_name=exercise,
@@ -4684,8 +4684,8 @@ class MainWindow(
                 last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
                 if last_date.isValid():
                     return last_date.addDays(1)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Error parsing last steps record date: {e}")
 
         # If no last date found or parsing failed, return today
         return QDate.currentDate()
@@ -9513,10 +9513,8 @@ def update_chart_type_listview(
             # Connect signals after setting model
             selection_model = self.listView_chart_type.selectionModel()
             if selection_model:
-                try:
+                with contextlib.suppress(TypeError):
                     selection_model.currentChanged.disconnect()
-                except TypeError:
-                    pass  # No connections exist
                 selection_model.currentChanged.connect(self.on_chart_type_changed)
 
             # Select first item by default (All types)
@@ -10308,8 +10306,8 @@ def _add_exercise_recommendations_to_label_for_standard_chart(
             cumulative_value = 0.0
             for date_str, value_str in month_data:
                 cumulative_value += float(value_str)
-                # Convert date to day number in month
-                day = datetime.strptime(date_str, "%Y-%m-%d").day
+                # Convert date to day number in month using aware datetime
+                day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo).day
                 cumulative_data.append((day, cumulative_value))
 
             monthly_data.append(cumulative_data)
@@ -10408,6 +10406,8 @@ def _add_same_months_recommendations_to_label(
         if exercise_id:
             # For exercises with types, we need to filter by type
             if exercise_type and exercise_type != "All types":
+                # Get today's date
+                today = datetime.now(tz=datetime.now().astimezone().tzinfo)
                 # Get today's data for this specific exercise and type
                 today_data = self.db_manager.get_exercise_chart_data(
                     exercise_name=exercise,
@@ -11520,8 +11520,8 @@ def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
                 last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
                 if last_date.isValid():
                     return last_date.addDays(1)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Error parsing last steps record date: {e}")
 
         # If no last date found or parsing failed, return today
         return QDate.currentDate()

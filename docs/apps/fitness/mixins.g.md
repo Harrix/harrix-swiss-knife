@@ -570,14 +570,11 @@ class ChartOperations:
             w = item.widget()
             if w is not None:
                 # If this is a Matplotlib canvas, close the figure
-                try:
-                    if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
-                        try:
-                            plt.close(w.figure)
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
+                if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
+                    try:
+                        plt.close(w.figure)
+                    except Exception as e:
+                        print(f"Error closing Matplotlib figure: {e}")
 
                 # Hide and properly delete the widget
                 w.hide()
@@ -1143,14 +1140,11 @@ def _clear_layout(self, layout: QLayout) -> None:
             w = item.widget()
             if w is not None:
                 # If this is a Matplotlib canvas, close the figure
-                try:
-                    if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
-                        try:
-                            plt.close(w.figure)
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
+                if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
+                    try:
+                        plt.close(w.figure)
+                    except Exception as e:
+                        print(f"Error closing Matplotlib figure: {e}")
 
                 # Hide and properly delete the widget
                 w.hide()
