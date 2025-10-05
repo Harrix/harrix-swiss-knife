@@ -112,16 +112,17 @@ class AccountEditDialog(QDialog):
             msg = "Division by zero"
             raise ValueError(msg)
 
+        def _raise_value_error(msg):
+            raise ValueError(msg)
+
         try:
             # Use eval with a restricted namespace for safety
             result = eval(expression, {"__builtins__": {}}, {})
             if not isinstance(result, (int, float)):
-                msg = "Expression does not evaluate to a number"
-                raise ValueError(msg)
+                _raise_value_error("Expression does not evaluate to a number")
             return float(result)
         except Exception as e:
-            msg = f"Invalid expression: {e!s}"
-            raise ValueError(msg)
+            _raise_value_error(f"Invalid expression: {e!s}")
 
     def _on_delete(self) -> None:
         """Handle delete button click."""
@@ -370,16 +371,17 @@ def _evaluate_expression(self, expression: str) -> float:
             msg = "Division by zero"
             raise ValueError(msg)
 
+        def _raise_value_error(msg):
+            raise ValueError(msg)
+
         try:
             # Use eval with a restricted namespace for safety
             result = eval(expression, {"__builtins__": {}}, {})
             if not isinstance(result, (int, float)):
-                msg = "Expression does not evaluate to a number"
-                raise ValueError(msg)
+                _raise_value_error("Expression does not evaluate to a number")
             return float(result)
         except Exception as e:
-            msg = f"Invalid expression: {e!s}"
-            raise ValueError(msg)
+            _raise_value_error(f"Invalid expression: {e!s}")
 ```
 
 </details>

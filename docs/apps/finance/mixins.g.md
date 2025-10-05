@@ -169,14 +169,14 @@ class AutoSaveOperations:
             QMessageBox.warning(None, "Validation Error", "Category name cannot be empty")
             return
 
-        # Convert type to int
+        # Convert type to int and validate
         try:
             category_type = int(type_str)
-            if category_type not in (0, 1):
-                msg = "Type must be 0 or 1"
-                raise ValueError(msg)
         except (ValueError, TypeError):
             QMessageBox.warning(None, "Validation Error", f"Invalid category type: {type_str}")
+            return
+        if category_type not in (0, 1):
+            QMessageBox.warning(None, "Validation Error", "Type must be 0 or 1")
             return
 
         # Update database
@@ -451,14 +451,14 @@ def _save_category_data(self, model: QStandardItemModel, row: int, row_id: str) 
             QMessageBox.warning(None, "Validation Error", "Category name cannot be empty")
             return
 
-        # Convert type to int
+        # Convert type to int and validate
         try:
             category_type = int(type_str)
-            if category_type not in (0, 1):
-                msg = "Type must be 0 or 1"
-                raise ValueError(msg)
         except (ValueError, TypeError):
             QMessageBox.warning(None, "Validation Error", f"Invalid category type: {type_str}")
+            return
+        if category_type not in (0, 1):
+            QMessageBox.warning(None, "Validation Error", "Type must be 0 or 1")
             return
 
         # Update database
