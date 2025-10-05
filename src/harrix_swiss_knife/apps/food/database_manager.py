@@ -89,8 +89,14 @@ class DatabaseManager:
 
         """
         query = """
-            INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories)
-            VALUES (:name, :name_en, :is_drink, :calories_per_100g, :default_portion_weight, :default_portion_calories)
+            INSERT INTO food_items (
+                name, name_en, is_drink, calories_per_100g,
+                default_portion_weight, default_portion_calories
+            )
+            VALUES (
+                :name, :name_en, :is_drink, :calories_per_100g,
+                :default_portion_weight, :default_portion_calories
+            )
         """
         params = {
             "name": name,
@@ -379,7 +385,8 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[list[Any]]`: List of food items [_id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories].
+        - `list[list[Any]]`: List of food items [_id, name, name_en, is_drink, calories_per_100g,
+          default_portion_weight, default_portion_calories].
 
         """
         return self.get_rows("""
@@ -418,7 +425,8 @@ class DatabaseManager:
                     CASE
                         WHEN portion_calories IS NOT NULL AND portion_calories > 0
                         THEN portion_calories
-                        WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0 AND weight IS NOT NULL AND weight > 0
+                        WHEN calories_per_100g IS NOT NULL AND calories_per_100g > 0
+                             AND weight IS NOT NULL AND weight > 0
                         THEN (calories_per_100g * weight) / 100
                         ELSE 0
                     END
@@ -531,7 +539,10 @@ class DatabaseManager:
         - `list[Any] | None`: Food item data or None if not found.
 
         """
-        query = "SELECT _id, name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories FROM food_items WHERE name = :name"
+        query = (
+            "SELECT _id, name, name_en, is_drink, calories_per_100g, "
+            "default_portion_weight, default_portion_calories FROM food_items WHERE name = :name"
+        )
         params = {"name": name}
         rows = self.get_rows(query, params)
         return rows[0] if rows else None

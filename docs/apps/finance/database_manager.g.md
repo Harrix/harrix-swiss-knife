@@ -897,7 +897,8 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[list[Any]]`: List of account records [_id, name, balance, currency_code, is_liquid, is_cash, currency_id].
+        - `list[list[Any]]`: List of account records [_id, name, balance, currency_code,
+          is_liquid, is_cash, currency_id].
 
         """
         return self.get_rows("""
@@ -1808,7 +1809,8 @@ class DatabaseManager:
 
         Returns:
 
-        - `list[Any] | None`: Transaction data [id, amount, description, category_id, currency_id, date, tag] or None if not found.
+        - `list[Any] | None`: Transaction data [id, amount, description, category_id,
+          currency_id, date, tag] or None if not found.
 
         """
         query = """
@@ -3596,7 +3598,8 @@ Get all accounts with currency information.
 
 Returns:
 
-- `list[list[Any]]`: List of account records [_id, name, balance, currency_code, is_liquid, is_cash, currency_id].
+- `list[list[Any]]`: List of account records [_id, name, balance, currency_code,
+  is_liquid, is_cash, currency_id].
 
 <details>
 <summary>Code:</summary>
@@ -4901,7 +4904,8 @@ Args:
 
 Returns:
 
-- `list[Any] | None`: Transaction data [id, amount, description, category_id, currency_id, date, tag] or None if not found.
+- `list[Any] | None`: Transaction data [id, amount, description, category_id,
+  currency_id, date, tag] or None if not found.
 
 <details>
 <summary>Code:</summary>

@@ -2750,7 +2750,8 @@ class MainWindow(
 
             for row in exercises_data:
                 # Transform exercises data:
-                # [id, name, unit, is_type_required, calories_per_unit] -> [name, unit, is_type_required, calories_per_unit, id, color]
+                # [id, name, unit, is_type_required, calories_per_unit] ->
+                # [name, unit, is_type_required, calories_per_unit, id, color]
                 transformed_row = [row[1], row[2], str(row[3]), f"{row[4]:.1f}", row[0], light_green]
                 exercises_transformed_data.append(transformed_row)
 
@@ -2765,7 +2766,8 @@ class MainWindow(
             light_orange = QColor(255, 248, 220)  # Light orange background
 
             for row in types_data:
-                # Transform types data: [id, exercise_name, type_name, calories_modifier] -> [exercise_name, type_name, calories_modifier, id, color]
+                # Transform types data: [id, exercise_name, type_name, calories_modifier] ->
+                # [exercise_name, type_name, calories_modifier, id, color]
                 transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[0], light_orange]
                 types_transformed_data.append(transformed_row)
 
@@ -3383,7 +3385,11 @@ class MainWindow(
                 if remaining_days > 0:
                     daily_needed_last = remaining_to_last_month / remaining_days
                     daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)
-                    recommendation_text += f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded} kcal</b>"
+                    recommendation_text += (
+                        f"📅 Needed per day for last month "
+                        f"({remaining_days} left): "
+                        f"<b>{daily_needed_last_rounded} kcal</b>"
+                    )
                 else:
                     recommendation_text += "⏰ Month ending - reach last month goal today!"
             else:
@@ -3402,7 +3408,11 @@ class MainWindow(
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
-                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded} kcal</b><br>"
+                recommendation_text += (
+                    f"📊 Needed per day including today "
+                    f"({total_days_including_current} days total): "
+                    f"<b>{daily_needed_including_current_rounded} kcal</b><br>"
+                )
 
                 # Add remaining for today calculation
                 remaining_for_today = daily_needed_including_current_rounded - calories_today
@@ -3536,7 +3546,11 @@ class MainWindow(
                     daily_needed_last_rounded = int(daily_needed_last) + (
                         1 if daily_needed_last % 1 > 0 else 0
                     )  # Round up to integer
-                    recommendation_text += f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded}{unit_text}</b>"
+                    recommendation_text += (
+                        f"📅 Needed per day for last month "
+                        f"({remaining_days} left): "
+                        f"<b>{daily_needed_last_rounded}{unit_text}</b>"
+                    )
                 else:
                     recommendation_text += "⏰ Month ending - reach last month goal today!"
             else:
@@ -3555,7 +3569,11 @@ class MainWindow(
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
-                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+                recommendation_text += (
+                    f"📊 Needed per day including today "
+                    f"({total_days_including_current} days total): "
+                    f"<b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+                )
 
                 # Add remaining for today calculation
                 remaining_for_today = daily_needed_including_current_rounded - today_progress
@@ -3762,7 +3780,10 @@ class MainWindow(
                     daily_needed_last_rounded = int(daily_needed_last) + (
                         1 if daily_needed_last % 1 > 0 else 0
                     )  # Round up to integer
-                    recommendation_text += f"📅 Needed per day for last year ({remaining_days} left): <b>{daily_needed_last_rounded}{unit_text}</b>"
+                    recommendation_text += (
+                        f"📅 Needed per day for last year ({remaining_days} left): "
+                        f"<b>{daily_needed_last_rounded}{unit_text}</b>"
+                    )
                 else:
                     recommendation_text += "⏰ Month ending - reach last year goal today!"
             else:
@@ -3770,7 +3791,10 @@ class MainWindow(
             recommendation_text += "<br>"
 
         # Add max goal information second
-        recommendation_text += f"🎯 Max {selected_month_name.lower()} over last {years_count} years: <b>{int(max_value)}{unit_text}</b><br>"
+        recommendation_text += (
+            f"🎯 Max {selected_month_name.lower()} over last {years_count} years: "
+            f"<b>{int(max_value)}{unit_text}</b><br>"
+        )
         if remaining_to_max > 0:
             recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)}{unit_text}</b><br>"
 
@@ -3781,7 +3805,11 @@ class MainWindow(
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )  # Round up to integer
-                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+                recommendation_text += (
+                    f"📊 Needed per day including today "
+                    f"({total_days_including_current} days total): "
+                    f"<b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+                )
 
                 # Add remaining for today calculation
                 remaining_for_today = daily_needed_including_current_rounded - today_progress
@@ -3918,7 +3946,11 @@ class MainWindow(
                 daily_needed_including_current_rounded = int(daily_needed_including_current) + (
                     1 if daily_needed_including_current % 1 > 0 else 0
                 )
-                recommendation_text += f"📊 Needed per day including today ({total_days_including_current} days total): <b>{daily_needed_including_current_rounded}</b><br>"
+                recommendation_text += (
+                    f"📊 Needed per day including today "
+                    f"({total_days_including_current} days total): "
+                    f"<b>{daily_needed_including_current_rounded}</b><br>"
+                )
 
                 # Add remaining for today calculation
                 remaining_for_today = daily_needed_including_current_rounded - sets_today
@@ -5517,16 +5549,18 @@ class MainWindow(
 
         # Determine window size and position based on screen characteristics
         aspect_ratio = screen_width / screen_height
-        is_standard_aspect = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+        standard_aspect_ratio = 2.0
+        is_standard_aspect = aspect_ratio <= standard_aspect_ratio  # Standard aspect ratio (16:9, 16:10, etc.)
 
-        if is_standard_aspect and screen_width >= 1920:
-            # For standard aspect ratios with width >= 1920, maximize window
+        standart_width = 1920
+        if is_standard_aspect and screen_width >= standart_width:
+            # For standard aspect ratios with width >= standart_width, maximize window
             self.showMaximized()
         else:
             title_bar_height = 30  # Approximate title bar height
             windows_task_bar_height = 48  # Approximate windows task bar height
             # For other cases, use fixed width and full height minus title bar
-            window_width = 1920
+            window_width = standart_width
             window_height = screen_height - title_bar_height - windows_task_bar_height
             # Position window on screen
             screen_center = screen_geometry.center()

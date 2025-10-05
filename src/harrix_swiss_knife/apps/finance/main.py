@@ -1540,7 +1540,8 @@ class MainWindow(
 
         # If exchange rates tab is currently active, reload the data
         current_tab_index: int = self.tabWidget.currentIndex()
-        if current_tab_index == 4:  # Exchange Rates tab
+        id_exchange_rates_tab = 4
+        if current_tab_index == id_exchange_rates_tab:  # Exchange Rates tab
             self.load_exchange_rates_table()
         else:
             # Mark exchange rates as not loaded to force reload when tab is accessed
@@ -1762,7 +1763,8 @@ class MainWindow(
         daily_expenses: dict[str, float] = {}
 
         for row in rows:
-            # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
+            # Raw data:
+            # [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
             amount_cents: int = row[1]
             date: str = row[5]
             category_type: int = row[7]
@@ -1888,7 +1890,8 @@ class MainWindow(
                     else:
                         converted_amount: float = balance * exchange_rate
                         details_lines.append(
-                            f"{currency_code}: {balance:,.2f}{currency_symbol} → {converted_amount:,.2f}{default_currency_symbol}"
+                            f"{currency_code}: {balance:,.2f}{currency_symbol} → "
+                            f"{converted_amount:,.2f}{default_currency_symbol}"
                         )
 
             details_text: str = "\n".join(details_lines)
@@ -2653,14 +2656,15 @@ class MainWindow(
         report_data: list[list[str]] = []
         end_date: datetime = datetime.now(tz=datetime.now().astimezone().tzinfo)
 
-        for i in range(12):
+        count_months = 12
+        for i in range(count_months):
             # Calculate month start and end
             month_date: datetime = end_date.replace(day=1) - timedelta(days=30 * i)
             month_start: datetime = month_date.replace(day=1)
 
             # Calculate last day of month
             next_month: datetime
-            if month_start.month == 12:
+            if month_start.month == count_months:
                 next_month = month_start.replace(year=month_start.year + 1, month=1)
             else:
                 next_month = month_start.replace(month=month_start.month + 1)
@@ -2934,7 +2938,8 @@ class MainWindow(
         for group_key in [(0, 1), (1, 1), (0, 0), (1, 0)]:
             color: QColor = account_colors[group_key]
             for row in account_groups[group_key]:
-                # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] -> [name, balance, currency, liquid, cash, id, color]
+                # Transform: [id, name, balance_cents, currency_code, is_liquid, is_cash, currency_id] ->
+                # [name, balance, currency, liquid, cash, id, color]
                 currency_id: int = row[6]  # currency_id
                 balance: float = self.db_manager.convert_from_minor_units(row[2], currency_id)
                 liquid_str: str = "👍" if row[4] == 1 else "⛔"
@@ -3534,7 +3539,8 @@ class MainWindow(
         if hasattr(self, "startup_progress_dialog"):
             current_text: str = self.startup_progress_dialog.text()
             lines: list[str] = current_text.split("\n")
-            if len(lines) >= 2:
+            max_lines = 2
+            if len(lines) >= max_lines:
                 main_info: str = "\n".join(lines[:3])  # Keep first 3 lines
                 self.startup_progress_dialog.setText(f"{main_info}\n\n🔄 Processing {currency_code}...")
 
@@ -3568,7 +3574,8 @@ class MainWindow(
             current_text: str = self.startup_progress_dialog.text()
             # Extract the first two lines (main info) and add current progress
             lines: list[str] = current_text.split("\n")
-            if len(lines) >= 2:
+            max_lines = 2
+            if len(lines) >= max_lines:
                 main_info: str = "\n".join(lines[:3])  # Keep first 3 lines
                 self.startup_progress_dialog.setText(f"{main_info}\n\n{message}")
             else:
@@ -3620,7 +3627,9 @@ class MainWindow(
             strategy: str = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
 
             print(
-                f"✅ [Startup] Successfully processed {processed_count} out of {total_operations} exchange rate operations ({strategy})"
+                "✅ [Startup] Successfully processed "
+                f"{processed_count} out of {total_operations} "
+                f"exchange rate operations ({strategy})"
             )
 
             # Update dialog with success message
@@ -3639,7 +3648,8 @@ class MainWindow(
             self._mark_exchange_rates_changed()
             # If exchange rates tab is currently active, reload the data
             current_tab_index: int = self.tabWidget.currentIndex()
-            if current_tab_index == 4:  # Exchange Rates tab
+            id_exchange_rates_tab = 4
+            if current_tab_index == id_exchange_rates_tab:  # Exchange Rates tab
                 self.load_exchange_rates_table()
         else:
             print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
@@ -3800,14 +3810,18 @@ class MainWindow(
             self.progress_dialog.close()
 
         if processed_count > 0:
-            message: str = f"Successfully completed exchange rate update:\n• Processed {processed_count} out of {total_operations} operations from yfinance"
+            message: str = (
+                "Successfully completed exchange rate update:\n"
+                f"• Processed {processed_count} out of {total_operations} operations from yfinance"
+            )
             QMessageBox.information(self, "Update Complete", message)
 
             # Mark exchange rates as changed to trigger reload if tab is active
             self._mark_exchange_rates_changed()
             # If exchange rates tab is currently active, reload the data
             current_tab_index: int = self.tabWidget.currentIndex()
-            if current_tab_index == 4:  # Exchange Rates tab
+            id_exchange_rates_tab = 4
+            if current_tab_index == id_exchange_rates_tab:  # Exchange Rates tab
                 self.load_exchange_rates_table()
         else:
             QMessageBox.information(
@@ -3955,11 +3969,12 @@ class MainWindow(
             # Restore the original date
             self.dateEdit.setDate(current_date)
 
+        max_error_messages = 10
         if error_count > 0:
             error_text: str = f"Added {success_count} purchases successfully.\n\nErrors:\n" + "\n".join(
-                error_messages[:10]
+                error_messages[:max_error_messages]
             )
-            if len(error_messages) > 10:
+            if len(error_messages) > max_error_messages:
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
             QMessageBox.warning(self, "Results", error_text)
         else:
@@ -4210,16 +4225,18 @@ class MainWindow(
 
         # Determine window size and position based on screen characteristics
         aspect_ratio: float = screen_width / screen_height
-        is_standard_aspect: bool = aspect_ratio <= 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+        standard_width = 1920
+        standard_aspect_ratio = 2.0
+        is_standard_aspect: bool = aspect_ratio <= standard_aspect_ratio  # Standard aspect ratio (16:9, 16:10, etc.)
 
-        if is_standard_aspect and screen_width >= 1920:
+        if is_standard_aspect and screen_width >= standard_width:
             # For standard aspect ratios with width >= 1920, maximize window
             self.showMaximized()
         else:
             title_bar_height: int = 30  # Approximate title bar height
             windows_task_bar_height: int = 48  # Approximate windows task bar height
             # For other cases, use fixed width and full height minus title bar
-            window_width: int = 1920
+            window_width: int = standard_width
             window_height: int = screen_height - title_bar_height - windows_task_bar_height
             # Position window on screen
             screen_center = screen_geometry.center()
@@ -4369,7 +4386,8 @@ class MainWindow(
         dates_with_totals: set[str] = set()
 
         for row in rows:
-            # Raw data: [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
+            # Raw data:
+            # [id, amount_cents, description, category_name, currency_code, date, tag, category_type, icon, symbol]
             transaction_id: int = row[0]
             amount_cents: int = row[1]
             description: str = row[2]
@@ -4418,7 +4436,8 @@ class MainWindow(
             # Format amount with minus sign for expenses
             amount_display: str = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
 
-            # Transform to display format: [description, amount, category, currency, date, tag, total_per_day, id, color]
+            # Transform to display format:
+            # [description, amount, category, currency, date, tag, total_per_day, id, color]
             transformed_row: list = [
                 description,
                 amount_display,

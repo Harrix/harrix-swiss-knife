@@ -332,13 +332,15 @@ class ExchangeRateUpdateWorker(QThread):
 
                                 # Only update if significantly different
                                 rate_diff = abs(new_rate - old_rate) / old_rate if old_rate != 0 else 1
-                                if rate_diff > 0.001:  # Update if difference > 0.1%
+                                min_rate_diff = 0.001
+                                if rate_diff > min_rate_diff:  # Update if difference > 0.1%
                                     if self.db_manager.update_exchange_rate(currency_id, date_str, new_rate):
                                         total_processed += 1
                                         currency_processed += 1
                                         self.rates_added.emit(currency_code, new_rate, date_str)
                                         self.progress_updated.emit(
-                                            f"✅ Updated {currency_code} rate for {date_str}: {old_rate:.6f} → {new_rate:.6f}"
+                                            f"✅ Updated {currency_code} rate for {date_str}: "
+                                            f"{old_rate:.6f} → {new_rate:.6f}"
                                         )
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
@@ -368,7 +370,7 @@ class ExchangeRateUpdateWorker(QThread):
         """
         try:
             success_count = 0
-            batch_size = 500  # Insert in batches of 500
+            batch_size = 500  # Insert in batches of batch_size
 
             for i in range(0, len(batch_data), batch_size):
                 batch = batch_data[i : i + batch_size]
@@ -688,13 +690,15 @@ def run(self) -> None:
 
                                 # Only update if significantly different
                                 rate_diff = abs(new_rate - old_rate) / old_rate if old_rate != 0 else 1
-                                if rate_diff > 0.001:  # Update if difference > 0.1%
+                                min_rate_diff = 0.001
+                                if rate_diff > min_rate_diff:  # Update if difference > 0.1%
                                     if self.db_manager.update_exchange_rate(currency_id, date_str, new_rate):
                                         total_processed += 1
                                         currency_processed += 1
                                         self.rates_added.emit(currency_code, new_rate, date_str)
                                         self.progress_updated.emit(
-                                            f"✅ Updated {currency_code} rate for {date_str}: {old_rate:.6f} → {new_rate:.6f}"
+                                            f"✅ Updated {currency_code} rate for {date_str}: "
+                                            f"{old_rate:.6f} → {new_rate:.6f}"
                                         )
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
@@ -750,7 +754,7 @@ Returns:
 def _batch_insert_rates(self, batch_data: list[tuple]) -> int:
         try:
             success_count = 0
-            batch_size = 500  # Insert in batches of 500
+            batch_size = 500  # Insert in batches of batch_size
 
             for i in range(0, len(batch_data), batch_size):
                 batch = batch_data[i : i + batch_size]

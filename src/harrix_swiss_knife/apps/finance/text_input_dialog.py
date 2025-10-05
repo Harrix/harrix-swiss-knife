@@ -76,7 +76,10 @@ class TextInputDialog(QDialog):
         # Add text edit
         self.text_edit = QPlainTextEdit()
         self.text_edit.setPlaceholderText(
-            "Enter your purchases here...\nExample:\nSugar-free Cola 'From Store'\tFood\t99 ₽\nMilk Cocktail 'Wonder'\tFood\t65 ₽"
+            "Enter your purchases here...\n"
+            "Example:\n"
+            "Sugar-free Cola 'From Store'\tFood\t99 ₽\n"
+            "Milk Cocktail 'Wonder'\tFood\t65 ₽"
         )
         layout.addWidget(self.text_edit)
 

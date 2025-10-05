@@ -815,7 +815,8 @@ class ExchangeRatesOperations:
             strategy = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
 
             print(
-                f"🔄 [Startup] Starting exchange rate update for {len(currencies_to_process)} currencies ({strategy})..."
+                f"🔄 [Startup] Starting exchange rate update for "
+                f"{len(currencies_to_process)} currencies ({strategy})..."
             )
 
             # Create and start worker thread
@@ -1893,7 +1894,8 @@ def _start_startup_exchange_rate_update(self, currencies_to_process: list) -> No
             strategy = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
 
             print(
-                f"🔄 [Startup] Starting exchange rate update for {len(currencies_to_process)} currencies ({strategy})..."
+                f"🔄 [Startup] Starting exchange rate update for "
+                f"{len(currencies_to_process)} currencies ({strategy})..."
             )
 
             # Create and start worker thread

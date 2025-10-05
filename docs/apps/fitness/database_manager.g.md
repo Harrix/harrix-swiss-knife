@@ -148,7 +148,10 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit) VALUES (:name, :unit, :is_type_required, :calories_per_unit)"
+        query = (
+            "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit) "
+            "VALUES (:name, :unit, :is_type_required, :calories_per_unit)"
+        )
         params = {
             "name": name,
             "unit": unit,
@@ -1391,7 +1394,11 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr, calories_per_unit = :cpu WHERE _id = :id"
+        query = (
+            "UPDATE exercises SET name = :n, unit = :u, "
+            "is_type_required = :itr, calories_per_unit = :cpu "
+            "WHERE _id = :id"
+        )
         params = {
             "n": name,
             "u": unit,
@@ -1661,7 +1668,10 @@ Returns:
 
 ```python
 def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool:
-        query = "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit) VALUES (:name, :unit, :is_type_required, :calories_per_unit)"
+        query = (
+            "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit) "
+            "VALUES (:name, :unit, :is_type_required, :calories_per_unit)"
+        )
         params = {
             "name": name,
             "unit": unit,
@@ -3493,7 +3503,11 @@ Returns:
 def update_exercise(
         self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0
     ) -> bool:
-        query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr, calories_per_unit = :cpu WHERE _id = :id"
+        query = (
+            "UPDATE exercises SET name = :n, unit = :u, "
+            "is_type_required = :itr, calories_per_unit = :cpu "
+            "WHERE _id = :id"
+        )
         params = {
             "n": name,
             "u": unit,

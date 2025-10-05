@@ -80,7 +80,10 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit) VALUES (:name, :unit, :is_type_required, :calories_per_unit)"
+        query = (
+            "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit) "
+            "VALUES (:name, :unit, :is_type_required, :calories_per_unit)"
+        )
         params = {
             "name": name,
             "unit": unit,
@@ -1323,7 +1326,11 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "UPDATE exercises SET name = :n, unit = :u, is_type_required = :itr, calories_per_unit = :cpu WHERE _id = :id"
+        query = (
+            "UPDATE exercises SET name = :n, unit = :u, "
+            "is_type_required = :itr, calories_per_unit = :cpu "
+            "WHERE _id = :id"
+        )
         params = {
             "n": name,
             "u": unit,
