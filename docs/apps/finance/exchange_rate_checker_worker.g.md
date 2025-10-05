@@ -54,8 +54,8 @@ class ExchangeRateCheckerWorker(QThread):
         Args:
 
         - `db_manager`: Database manager instance.
-        - `check_from_first_transaction` (`bool`): If True, check from first transaction;
-          if False, check from last exchange rate. Defaults to `True`.
+        - `check_from_first_transaction` (`bool`): If `True`, check from first transaction;
+          if `False`, check from last exchange rate. Defaults to `True`.
 
         """
         super().__init__()
@@ -64,14 +64,14 @@ class ExchangeRateCheckerWorker(QThread):
         self.should_stop = False
 
     def run(self) -> None:
-        """Main worker execution for checking exchange rates."""
+        """Execute worker to check which exchange rates need updates."""
         try:
             self.progress_updated.emit("🔍 Starting exchange rates check...")
 
             # Get all currencies except USD (base currency)
             currencies = self.db_manager.get_currencies_except_usd()
             if not currencies:
-                self.check_failed.emit("No currencies found except USD.")
+                self.check_failed.emit("No currencies found except USD")
                 return
 
             # Calculate which currencies need updates and missing records
@@ -187,8 +187,8 @@ Initialize the checker worker.
 Args:
 
 - `db_manager`: Database manager instance.
-- `check_from_first_transaction` (`bool`): If True, check from first transaction;
-  if False, check from last exchange rate. Defaults to `True`.
+- `check_from_first_transaction` (`bool`): If `True`, check from first transaction;
+  if `False`, check from last exchange rate. Defaults to `True`.
 
 <details>
 <summary>Code:</summary>
@@ -209,7 +209,7 @@ def __init__(self, db_manager, *, check_from_first_transaction: bool = True) -> 
 def run(self) -> None
 ```
 
-Main worker execution for checking exchange rates.
+Execute worker to check which exchange rates need updates.
 
 <details>
 <summary>Code:</summary>
@@ -222,7 +222,7 @@ def run(self) -> None:
             # Get all currencies except USD (base currency)
             currencies = self.db_manager.get_currencies_except_usd()
             if not currencies:
-                self.check_failed.emit("No currencies found except USD.")
+                self.check_failed.emit("No currencies found except USD")
                 return
 
             # Calculate which currencies need updates and missing records

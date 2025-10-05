@@ -153,7 +153,7 @@ class AmountDelegate(QStyledItemDelegate):
             return str(value)
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
-        """Custom paint method to handle income formatting.
+        """Paint cell with special formatting for income transactions
 
         Args:
 
@@ -414,7 +414,7 @@ def displayText(self, value, _locale: QLocale) -> str:  # noqa: N802
 def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None
 ```
 
-Custom paint method to handle income formatting.
+Paint cell with special formatting for income transactions
 
 Args:
 

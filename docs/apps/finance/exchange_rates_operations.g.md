@@ -688,7 +688,7 @@ class ExchangeRatesOperations:
             print(f"Error setting exchange rates date range: {e}")
 
     def _setup_exchange_rates_controls(self) -> None:
-        """Setup exchange rates chart controls with initial values."""
+        """Set up exchange rates chart controls with initial values."""
         if not self._validate_database_connection():
             return
 
@@ -1736,7 +1736,7 @@ def _set_exchange_rates_date_range(self) -> None:
 def _setup_exchange_rates_controls(self) -> None
 ```
 
-Setup exchange rates chart controls with initial values.
+Set up exchange rates chart controls with initial values.
 
 <details>
 <summary>Code:</summary>

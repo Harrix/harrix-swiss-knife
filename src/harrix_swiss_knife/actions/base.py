@@ -973,7 +973,7 @@ class DragDropFileDialog(QDialog):
             self.add_files(filenames)
 
     def setup_ui(self) -> None:
-        """Setup the user interface."""
+        """Set up the user interface."""
         layout = QVBoxLayout(self)
 
         # Title label

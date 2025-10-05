@@ -51,16 +51,15 @@ class ExchangeRateUpdateWorker(QThread):
         self.should_stop = False
 
     def run(self) -> None:
-        """Main worker execution."""
+        """Execute worker main logic."""
         try:
-            # Import required libraries
             total_processed = 0
             total_operations = sum(
                 len(records["missing_dates"]) + len(records["existing_records"])
                 for _, _, records in self.currencies_to_process
             )
 
-            # Clean invalid exchange rates first
+            # Clean invalid exchange rates before processing
             self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
             cleaned_count = self.db_manager.clean_invalid_exchange_rates()
             if cleaned_count > 0:

@@ -3477,7 +3477,7 @@ class MainWindow(
         self.checkBox_use_date_filter.setChecked(False)
 
     def _initial_load(self) -> None:
-        """Initial load of essential data at startup (without exchange rates)."""
+        """Load essential data at startup (excluding exchange rates)."""
         if not self._validate_database_connection():
             print("Database connection not available for initial load")
             return
@@ -3680,7 +3680,7 @@ class MainWindow(
 
         try:
             # Load each table individually with error handling
-            tables_to_load: list[tuple[str, Callable]] = [
+            tables_to_load = [
                 ("transactions", self._load_transactions_table),
                 ("categories", self._load_categories_table),
                 ("accounts", self._load_accounts_table),
@@ -4593,10 +4593,7 @@ class MainWindow(
 
         """
         header = table_view.horizontalHeader()
-        column_widths: list[int] = []
-        for i in range(header.count()):
-            column_widths.append(table_view.columnWidth(i))
-        return column_widths
+        return [table_view.columnWidth(i) for i in range(header.count())]
 
     def _select_category_by_id(self, category_id: int) -> None:
         """Select category in listView_categories by database ID.
@@ -4834,12 +4831,12 @@ class MainWindow(
                 window_height,
             )
 
-    def _show_no_data_label(self, layout, message: str) -> None:
+    def _show_no_data_label(self, layout: QLayout, message: str) -> None:
         """Show a message when no data is available for the chart.
 
         Args:
 
-        - `layout`: The layout to add the message to.
+        - `layout` (`QLayout`): The layout to add the message to.
         - `message` (`str`): The message to display.
 
         """
@@ -4852,12 +4849,12 @@ class MainWindow(
         label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
         layout.addWidget(label)
 
-    def _show_transactions_context_menu(self, position) -> None:
+    def _show_transactions_context_menu(self, position: QPoint) -> None:
         """Show context menu for transactions table.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
         context_menu: QMenu = QMenu(self)
@@ -4868,7 +4865,7 @@ class MainWindow(
             # Get the date from the Date column (index 4)
             date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 4)
             if date_index.isValid():
-                date_value = self.tableView_transactions.model().data(date_index)
+                date_value: str = self.tableView_transactions.model().data(date_index)
                 if date_value:
                     # Add menu item to set this date in dateEdit
                     set_date_action = context_menu.addAction("📅 Set this date in main field")
@@ -4913,12 +4910,12 @@ class MainWindow(
             # This will be handled by the lambda connection above
             pass
 
-    def _show_yesterday_context_menu(self, position) -> None:
+    def _show_yesterday_context_menu(self, position: QPoint) -> None:
         """Show context menu for yesterday button with date options.
 
         Args:
 
-        - `position`: Position where context menu should appear.
+        - `position` (`QPoint`): Position where context menu should appear.
 
         """
         context_menu: QMenu = QMenu(self)
@@ -8656,7 +8653,7 @@ def _init_filter_controls(self) -> None:
 def _initial_load(self) -> None
 ```
 
-Initial load of essential data at startup (without exchange rates).
+Load essential data at startup (excluding exchange rates).
 
 <details>
 <summary>Code:</summary>
@@ -8935,7 +8932,7 @@ def _load_essential_tables(self) -> None:
 
         try:
             # Load each table individually with error handling
-            tables_to_load: list[tuple[str, Callable]] = [
+            tables_to_load = [
                 ("transactions", self._load_transactions_table),
                 ("categories", self._load_categories_table),
                 ("accounts", self._load_accounts_table),
@@ -10215,10 +10212,7 @@ Returns:
 ```python
 def _save_table_column_widths(self, table_view: QTableView) -> list[int]:
         header = table_view.horizontalHeader()
-        column_widths: list[int] = []
-        for i in range(header.count()):
-            column_widths.append(table_view.columnWidth(i))
-        return column_widths
+        return [table_view.columnWidth(i) for i in range(header.count())]
 ```
 
 </details>
@@ -10580,21 +10574,21 @@ def _setup_window_size_and_position(self) -> None:
 ### ⚙️ Method `_show_no_data_label`
 
 ```python
-def _show_no_data_label(self, layout, message: str) -> None
+def _show_no_data_label(self, layout: QLayout, message: str) -> None
 ```
 
 Show a message when no data is available for the chart.
 
 Args:
 
-- `layout`: The layout to add the message to.
+- `layout` (`QLayout`): The layout to add the message to.
 - `message` (`str`): The message to display.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_no_data_label(self, layout, message: str) -> None:
+def _show_no_data_label(self, layout: QLayout, message: str) -> None:
         # Clear existing content
         self._clear_layout(layout)
 
@@ -10610,20 +10604,20 @@ def _show_no_data_label(self, layout, message: str) -> None:
 ### ⚙️ Method `_show_transactions_context_menu`
 
 ```python
-def _show_transactions_context_menu(self, position) -> None
+def _show_transactions_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for transactions table.
 
 Args:
 
-- `position`: Position where context menu should appear.
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_transactions_context_menu(self, position) -> None:
+def _show_transactions_context_menu(self, position: QPoint) -> None:
         context_menu: QMenu = QMenu(self)
 
         # Get the clicked index
@@ -10632,7 +10626,7 @@ def _show_transactions_context_menu(self, position) -> None:
             # Get the date from the Date column (index 4)
             date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 4)
             if date_index.isValid():
-                date_value = self.tableView_transactions.model().data(date_index)
+                date_value: str = self.tableView_transactions.model().data(date_index)
                 if date_value:
                     # Add menu item to set this date in dateEdit
                     set_date_action = context_menu.addAction("📅 Set this date in main field")
@@ -10683,20 +10677,20 @@ def _show_transactions_context_menu(self, position) -> None:
 ### ⚙️ Method `_show_yesterday_context_menu`
 
 ```python
-def _show_yesterday_context_menu(self, position) -> None
+def _show_yesterday_context_menu(self, position: QPoint) -> None
 ```
 
 Show context menu for yesterday button with date options.
 
 Args:
 
-- `position`: Position where context menu should appear.
+- `position` (`QPoint`): Position where context menu should appear.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_yesterday_context_menu(self, position) -> None:
+def _show_yesterday_context_menu(self, position: QPoint) -> None:
         context_menu: QMenu = QMenu(self)
 
         # Today's date
@@ -11039,17 +11033,18 @@ Delegate for tag column in transactions table.
 class TagDelegate(QStyledItemDelegate):
 
     def __init__(self, parent: QObject | None = None, tags: list[str] | None = None) -> None:
+        """Initialize the tag delegate."""
         super().__init__(parent)
         self.tags = tags or []
 
-    def createEditor(self, parent: QObject, _: QStyleOptionViewItem, _index: QModelIndex) -> QComboBox:
+    def createEditor(self, parent: QObject, _: QStyleOptionViewItem, _index: QModelIndex) -> QComboBox:  # noqa: N802
         """Create a combo box editor for the tag column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `_` (`QStyleOptionViewItem`): Style option.
-        - `_index` (`QModelIndex`): Model index.
+        - `_` (`QStyleOptionViewItem`): Style option (unused).
+        - `_index` (`QModelIndex`): Model index (unused).
 
         Returns:
 
@@ -11110,7 +11105,7 @@ class TagDelegate(QStyledItemDelegate):
 def __init__(self, parent: QObject | None = None, tags: list[str] | None = None) -> None
 ```
 
-_No docstring provided._
+Initialize the tag delegate.
 
 <details>
 <summary>Code:</summary>
@@ -11134,8 +11129,8 @@ Create a combo box editor for the tag column.
 Args:
 
 - `parent` (`QObject`): Parent widget.
-- `_` (`QStyleOptionViewItem`): Style option.
-- `_index` (`QModelIndex`): Model index.
+- `_` (`QStyleOptionViewItem`): Style option (unused).
+- `_index` (`QModelIndex`): Model index (unused).
 
 Returns:
 
@@ -11145,7 +11140,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _: QStyleOptionViewItem, _index: QModelIndex) -> QComboBox:
+def createEditor(self, parent: QObject, _: QStyleOptionViewItem, _index: QModelIndex) -> QComboBox:  # noqa: N802
         combo: QComboBox = QComboBox(parent)
         combo.setEditable(True)
 
