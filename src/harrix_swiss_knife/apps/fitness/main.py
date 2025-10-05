@@ -2199,6 +2199,10 @@ class MainWindow(
                 ]
             )
 
+            color_priority_green = 0
+            color_priority_orange = 1
+            color_priority_dark_red = 2
+
             for row_data in table_data:
                 items = []
                 color_priority = row_data[-1]  # Get color priority from last element
@@ -2208,11 +2212,11 @@ class MainWindow(
                     item = QStandardItem(str(value))
 
                     # Apply color based on priority
-                    if color_priority == 0:  # Green - all goals achieved
+                    if color_priority == color_priority_green:  # Green - all goals achieved
                         item.setBackground(QBrush(QColor(200, 255, 200)))  # Light green background
-                    elif color_priority == 1:  # Orange - incomplete goals
+                    elif color_priority == color_priority_orange:  # Orange - incomplete goals
                         item.setBackground(QBrush(QColor(255, 200, 150)))  # Light orange background
-                    elif color_priority == 2:  # Dark red - no data or error
+                    elif color_priority == color_priority_dark_red:  # Dark red - no data or error
                         item.setBackground(QBrush(QColor(255, 150, 150)))  # Dark red background
 
                     items.append(item)

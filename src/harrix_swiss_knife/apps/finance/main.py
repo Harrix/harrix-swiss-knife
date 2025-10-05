@@ -18,6 +18,7 @@ import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import (
+    QAbstractItemModel,
     QDate,
     QDateTime,
     QEvent,
@@ -43,6 +44,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QStyledItemDelegate,
+    QStyleOptionViewItem,
     QTableView,
     QWidget,
 )
@@ -4579,13 +4581,13 @@ class TagDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.tags = tags or []
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
+    def createEditor(self, parent: QObject, _: QStyleOptionViewItem, _index: QModelIndex) -> QComboBox:
         """Create a combo box editor for the tag column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `_option`: Style option.
+        - `_` (`QStyleOptionViewItem`): Style option.
         - `_index` (`QModelIndex`): Model index.
 
         Returns:
@@ -4624,13 +4626,13 @@ class TagDelegate(QStyledItemDelegate):
                 # If not found, set as current text
                 editor.setCurrentText(current_value)
 
-    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(self, editor: QComboBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
 
         - `editor` (`QComboBox`): The editor widget.
-        - `model`: The data model.
+        - `model` (`QAbstractItemModel`): The data model.
         - `index` (`QModelIndex`): Model index.
 
         """

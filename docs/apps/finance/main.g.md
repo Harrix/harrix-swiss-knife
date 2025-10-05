@@ -11042,13 +11042,13 @@ class TagDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.tags = tags or []
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
+    def createEditor(self, parent: QObject, _: QStyleOptionViewItem, _index: QModelIndex) -> QComboBox:
         """Create a combo box editor for the tag column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `_option`: Style option.
+        - `_` (`QStyleOptionViewItem`): Style option.
         - `_index` (`QModelIndex`): Model index.
 
         Returns:
@@ -11087,13 +11087,13 @@ class TagDelegate(QStyledItemDelegate):
                 # If not found, set as current text
                 editor.setCurrentText(current_value)
 
-    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(self, editor: QComboBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
 
         - `editor` (`QComboBox`): The editor widget.
-        - `model`: The data model.
+        - `model` (`QAbstractItemModel`): The data model.
         - `index` (`QModelIndex`): Model index.
 
         """
@@ -11126,7 +11126,7 @@ def __init__(self, parent: QObject | None = None, tags: list[str] | None = None)
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox
+def createEditor(self, parent: QObject, _: QStyleOptionViewItem, _index: QModelIndex) -> QComboBox
 ```
 
 Create a combo box editor for the tag column.
@@ -11134,7 +11134,7 @@ Create a combo box editor for the tag column.
 Args:
 
 - `parent` (`QObject`): Parent widget.
-- `_option`: Style option.
+- `_` (`QStyleOptionViewItem`): Style option.
 - `_index` (`QModelIndex`): Model index.
 
 Returns:
@@ -11145,7 +11145,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
+def createEditor(self, parent: QObject, _: QStyleOptionViewItem, _index: QModelIndex) -> QComboBox:
         combo: QComboBox = QComboBox(parent)
         combo.setEditable(True)
 
@@ -11195,7 +11195,7 @@ def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa:
 ### ⚙️ Method `setModelData`
 
 ```python
-def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None
+def setModelData(self, editor: QComboBox, model: QAbstractItemModel, index: QModelIndex) -> None
 ```
 
 Set the data from the editor back to the model.
@@ -11203,14 +11203,14 @@ Set the data from the editor back to the model.
 Args:
 
 - `editor` (`QComboBox`): The editor widget.
-- `model`: The data model.
+- `model` (`QAbstractItemModel`): The data model.
 - `index` (`QModelIndex`): Model index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
+def setModelData(self, editor: QComboBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
         selected_text: str = editor.currentText()
         if selected_text:
             model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)

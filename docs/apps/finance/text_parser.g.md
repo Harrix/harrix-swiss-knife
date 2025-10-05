@@ -146,7 +146,8 @@ class TextParser:
         # Split by tab character
         parts = line.split("\t")
 
-        if len(parts) != 3:
+        expected_columns = 3
+        if len(parts) != expected_columns:
             print(f"Line {line_num}: Expected 3 columns separated by tabs, got {len(parts)}")
             return None
 
@@ -296,7 +297,8 @@ def _parse_line(self, line: str, line_num: int) -> ParsedPurchaseItem | None:
         # Split by tab character
         parts = line.split("\t")
 
-        if len(parts) != 3:
+        expected_columns = 3
+        if len(parts) != expected_columns:
             print(f"Line {line_num}: Expected 3 columns separated by tabs, got {len(parts)}")
             return None
 
