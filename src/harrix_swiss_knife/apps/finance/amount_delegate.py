@@ -52,7 +52,7 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802, ANN001
+    def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
@@ -130,7 +130,7 @@ class AmountDelegate(QStyledItemDelegate):
             return str(value)
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
-        """Paint cell with special formatting for income transactions
+        """Paint cell with special formatting for income transactions.
 
         Args:
 

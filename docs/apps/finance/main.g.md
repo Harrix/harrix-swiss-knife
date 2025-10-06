@@ -184,7 +184,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.categories = categories or []
 
-    def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QComboBox:  # noqa: N802, ANN001
+    def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QComboBox:  # noqa: N802
         """Create a combo box editor for the category column.
 
         Args:
@@ -286,7 +286,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QComboBox:  # noqa: N802, ANN001
+def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QComboBox:  # noqa: N802
         combo = QComboBox(parent)
         combo.setEditable(False)
 
@@ -598,7 +598,12 @@ class DateDelegate(QStyledItemDelegate):
         current_value = index.data()
         if current_value:
             try:
-                date_obj = datetime.strptime(str(current_value), "%Y-%m-%d").date()
+                # Make the datetime object timezone-aware (UTC) to avoid naive datetime
+                date_obj = (
+                    datetime.strptime(str(current_value), "%Y-%m-%d")
+                    .replace(tzinfo=datetime.now().astimezone().tzinfo)
+                    .date()
+                )
                 editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
             except (ValueError, TypeError):
                 editor.setDate(QDate.currentDate())
@@ -694,7 +699,12 @@ def setEditorData(self, editor: QDateEdit, index: QModelIndex) -> None:  # noqa:
         current_value = index.data()
         if current_value:
             try:
-                date_obj = datetime.strptime(str(current_value), "%Y-%m-%d").date()
+                # Make the datetime object timezone-aware (UTC) to avoid naive datetime
+                date_obj = (
+                    datetime.strptime(str(current_value), "%Y-%m-%d")
+                    .replace(tzinfo=datetime.now().astimezone().tzinfo)
+                    .date()
+                )
                 editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
             except (ValueError, TypeError):
                 editor.setDate(QDate.currentDate())
@@ -743,9 +753,15 @@ Delegate for description column in transactions table.
 class DescriptionDelegate(QStyledItemDelegate):
 
     def __init__(self, parent: QObject | None = None) -> None:
+        """Initialize DescriptionDelegate.
+
+        Args:
+            parent (QObject | None): Parent object for the delegate.
+
+        """
         super().__init__(parent)
 
-    def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QLineEdit:  # noqa: N802, ANN001
+    def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QLineEdit:  # noqa: N802
         """Create a line edit editor for the description column.
 
         Args:
@@ -801,7 +817,10 @@ class DescriptionDelegate(QStyledItemDelegate):
 def __init__(self, parent: QObject | None = None) -> None
 ```
 
-_No docstring provided._
+Initialize DescriptionDelegate.
+
+Args:
+parent (QObject | None): Parent object for the delegate.
 
 <details>
 <summary>Code:</summary>
@@ -835,7 +854,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QLineEdit:  # noqa: N802, ANN001
+def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QLineEdit:  # noqa: N802
         editor = QLineEdit(parent)
 
         # Set white background for the editor

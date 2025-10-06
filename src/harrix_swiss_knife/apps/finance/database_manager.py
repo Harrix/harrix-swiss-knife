@@ -1572,10 +1572,7 @@ class DatabaseManager:
             existing_dates = {row[0] for row in rows}
 
             # Find missing dates
-            missing_dates = []
-            for date_str in all_dates:
-                if date_str not in existing_dates:
-                    missing_dates.append(date_str)
+            missing_dates = [date_str for date_str in all_dates if date_str not in existing_dates]
 
             # Print information about missing dates
             if missing_dates:

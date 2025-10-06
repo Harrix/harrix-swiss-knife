@@ -731,10 +731,8 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
         if "*" in path or "?" in path:
             # Use glob to find matching files
             matches = glob.glob(path, recursive=True)
-            # Filter out ignored paths
-            for match in matches:
-                if not h.file.should_ignore_path(Path(match)):
-                    expanded_paths.append(match)
+            # PERF401: Use list.extend to create a transformed list
+            expanded_paths.extend(match for match in matches if not h.file.should_ignore_path(Path(match)))
         elif os.path.isfile(path):
             # It's a direct file path - check if it should be ignored
             if not h.file.should_ignore_path(Path(path)):
@@ -754,11 +752,8 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
             # Path doesn't exist, but might be a glob pattern that didn't match
             # Try glob anyway in case it's a pattern
             matches = glob.glob(path, recursive=True)
-            if matches:
-                # Filter out ignored paths
-                for match in matches:
-                    if not h.file.should_ignore_path(Path(match)):
-                        expanded_paths.append(match)
+            # PERF401: Use list.extend to create a transformed list
+            expanded_paths.extend(match for match in matches if not h.file.should_ignore_path(Path(match)))
 
     return expanded_paths
 
