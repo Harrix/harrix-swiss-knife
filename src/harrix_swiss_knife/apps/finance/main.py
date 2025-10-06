@@ -351,13 +351,11 @@ class MainWindow(
     )
 
     def __init__(self) -> None:
+        """Initialize main window for finance tracking application."""
         super().__init__()
         self.setupUi(self)
         self._setup_ui()
-
-        # Set window icon
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
-
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize core attributes
@@ -1199,7 +1197,7 @@ class MainWindow(
                 )
                 # Clear exchange rate cache to ensure fresh data
                 if hasattr(self.db_manager, "_exchange_rate_cache"):
-                    self.db_manager._exchange_rate_cache.clear()
+                    self.db_manager._exchange_rate_cache.clear()  # noqa: SLF001
                 # Update all views
                 self.update_all()
                 self.update_summary_labels()
@@ -1442,7 +1440,7 @@ class MainWindow(
                             daily_balance -= trans_amount
 
             balance += daily_balance
-            date_obj: datetime = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=None)
+            date_obj: datetime = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
             balance_data.append((date_obj, balance))
 
         # Create chart configuration

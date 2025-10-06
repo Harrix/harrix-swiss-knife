@@ -755,7 +755,11 @@ class DatabaseManager:
             print("No transactions found, cannot determine start date for filling rates")
             return 0
 
-        start_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
+        # Make start_date timezone-aware (UTC) to avoid naive datetime
+        start_date_dt = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").replace(
+            tzinfo=datetime.now().astimezone().tzinfo
+        )
+        start_date = start_date_dt.date()
         end_date = datetime.now(tz=datetime.now().astimezone().tzinfo).date()
 
         print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
@@ -789,12 +793,11 @@ class DatabaseManager:
                 if date_str in existing_rates:
                     # Update last known rate
                     last_known_rate = existing_rates[date_str]
-                elif last_known_rate is not None:
+                elif last_known_rate is not None and self.add_exchange_rate(currency_id, last_known_rate, date_str):
                     # Fill missing date with last known rate
-                    if self.add_exchange_rate(currency_id, last_known_rate, date_str):
-                        currency_filled += 1
-                        total_filled += 1
-                        print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
+                    currency_filled += 1
+                    total_filled += 1
+                    print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
 
                 current_date += timedelta(days=1)
 
@@ -979,16 +982,23 @@ class DatabaseManager:
 
         rows = self.get_rows(query)
 
+        # Use a constant for the index to avoid magic numbers
+        exchange_rate_index = 3  # Index of the rate in the row
+
         # Rates are already stored as REAL, no conversion needed
         # Just ensure they are float type for consistency and handle empty strings
         for row in rows:
-            if len(row) >= 4 and row[3] is not None and row[3] != "":
+            if (
+                len(row) >= exchange_rate_index + 1
+                and row[exchange_rate_index] is not None
+                and row[exchange_rate_index] != ""
+            ):
                 try:
-                    row[3] = float(row[3])
+                    row[exchange_rate_index] = float(row[exchange_rate_index])
                 except (ValueError, TypeError):
-                    row[3] = 0.0  # Set to 0 for invalid values
-            elif len(row) >= 4:
-                row[3] = 0.0  # Set to 0 for None or empty string
+                    row[exchange_rate_index] = 0.0  # Set to 0 for invalid values
+            elif len(row) >= exchange_rate_index + 1:
+                row[exchange_rate_index] = 0.0  # Set to 0 for None or empty string
 
         return rows
 
@@ -3427,7 +3437,11 @@ def fill_missing_exchange_rates(self) -> int:
             print("No transactions found, cannot determine start date for filling rates")
             return 0
 
-        start_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
+        # Make start_date timezone-aware (UTC) to avoid naive datetime
+        start_date_dt = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").replace(
+            tzinfo=datetime.now().astimezone().tzinfo
+        )
+        start_date = start_date_dt.date()
         end_date = datetime.now(tz=datetime.now().astimezone().tzinfo).date()
 
         print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
@@ -3461,12 +3475,11 @@ def fill_missing_exchange_rates(self) -> int:
                 if date_str in existing_rates:
                     # Update last known rate
                     last_known_rate = existing_rates[date_str]
-                elif last_known_rate is not None:
+                elif last_known_rate is not None and self.add_exchange_rate(currency_id, last_known_rate, date_str):
                     # Fill missing date with last known rate
-                    if self.add_exchange_rate(currency_id, last_known_rate, date_str):
-                        currency_filled += 1
-                        total_filled += 1
-                        print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
+                    currency_filled += 1
+                    total_filled += 1
+                    print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
 
                 current_date += timedelta(days=1)
 
@@ -3733,16 +3746,23 @@ def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
 
         rows = self.get_rows(query)
 
+        # Use a constant for the index to avoid magic numbers
+        exchange_rate_index = 3  # Index of the rate in the row
+
         # Rates are already stored as REAL, no conversion needed
         # Just ensure they are float type for consistency and handle empty strings
         for row in rows:
-            if len(row) >= 4 and row[3] is not None and row[3] != "":
+            if (
+                len(row) >= exchange_rate_index + 1
+                and row[exchange_rate_index] is not None
+                and row[exchange_rate_index] != ""
+            ):
                 try:
-                    row[3] = float(row[3])
+                    row[exchange_rate_index] = float(row[exchange_rate_index])
                 except (ValueError, TypeError):
-                    row[3] = 0.0  # Set to 0 for invalid values
-            elif len(row) >= 4:
-                row[3] = 0.0  # Set to 0 for None or empty string
+                    row[exchange_rate_index] = 0.0  # Set to 0 for invalid values
+            elif len(row) >= exchange_rate_index + 1:
+                row[exchange_rate_index] = 0.0  # Set to 0 for None or empty string
 
         return rows
 ```
