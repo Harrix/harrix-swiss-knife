@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 
 from PySide6.QtWidgets import (
@@ -103,8 +104,8 @@ class AccountEditDialog(QDialog):
             raise ValueError(msg)
 
         try:
-            # Use eval with a restricted namespace for safety
-            result = eval(expression, {"__builtins__": {}}, {})
+            # Use ast.literal_eval for safe evaluation
+            result = ast.literal_eval(expression)
             if not isinstance(result, (int, float)):
                 _raise_value_error("Expression does not evaluate to a number")
             return float(result)

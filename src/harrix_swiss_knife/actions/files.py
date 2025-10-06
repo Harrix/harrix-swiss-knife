@@ -722,8 +722,8 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
     """
     expanded_paths = []
 
-    for path in paths:
-        path = path.strip()
+    for original_path in paths:
+        path = original_path.strip()
         if not path:
             continue
 
