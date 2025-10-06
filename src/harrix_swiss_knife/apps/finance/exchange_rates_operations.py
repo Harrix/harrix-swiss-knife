@@ -625,11 +625,9 @@ class ExchangeRatesOperations:
                 rows = self.db_manager._rows_from_query(query_obj)
                 query_obj.clear()
                 return [(row[0], float(row[1])) for row in rows if row[1] is not None]
-            return []
-
         except Exception as e:
             print(f"Error getting exchange rates data: {e}")
-            return []
+        return []
 
     def _mark_exchange_rates_changed(self) -> None:
         """Mark exchange rates as changed to trigger updates."""
@@ -679,7 +677,7 @@ class ExchangeRatesOperations:
 
             # Add currencies with format: "RUB - Russian Ruble" (excluding USD)
             for currency in currencies:
-                currency_id, code, name, symbol = currency
+                currency_id, code, name, _ = currency
                 # Skip USD currency
                 if code.upper() == "USD":
                     continue

@@ -1398,19 +1398,18 @@ class DatabaseManager:
             rows = self._rows_from_query(query_obj)
 
             # Ensure rates are float type
+            rate_index = 3  # Index of the rate column in each row
             for row in rows:
-                if len(row) >= 4 and row[3] is not None and row[3] != "":
+                if len(row) > rate_index:
+                    value = row[rate_index]
                     try:
-                        row[3] = float(row[3])
+                        row[rate_index] = float(value) if value not in (None, "") else 0.0
                     except (ValueError, TypeError):
-                        row[3] = 0.0
-                else:
-                    row[3] = 0.0
-
-            return rows
+                        row[rate_index] = 0.0
         except Exception as e:
             print(f"❌ Error getting filtered exchange rates: {e}")
             return []
+        return rows
 
     def get_filtered_transactions(
         self,
@@ -1692,7 +1691,7 @@ class DatabaseManager:
             # Show full list of all missing dates for first currency as example
             if missing_info:
                 first_currency_id = next(iter(missing_info))
-                first_currency_code = next(code for id, code, _1, _2 in currencies if id == first_currency_id)
+                first_currency_code = next(code for id_item, code, _1, _2 in currencies if id_item == first_currency_id)
                 first_missing = missing_info[first_currency_id]
 
                 print(f"\n🔍 FULL LIST for {first_currency_code} ({len(first_missing)} dates):")
@@ -1940,9 +1939,9 @@ class DatabaseManager:
                 # Update cache
                 self._exchange_rate_cache[cache_key] = rate
                 self._cache_timestamp = now
-                return rate
             except (ValueError, TypeError):
                 return 1.0
+            return rate
 
         return 1.0
 
@@ -2161,10 +2160,9 @@ class DatabaseManager:
             query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
             params = {"ticker": ticker, "id": currency_id}
             self.execute_query(query, params)
-            return True
         except Exception as e:
             print(f"Error updating currency ticker: {e}")
-            return False
+        return True
 
     def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
         """Update or insert exchange rate for a specific currency and date.
@@ -4375,19 +4373,18 @@ def get_filtered_exchange_rates(
             rows = self._rows_from_query(query_obj)
 
             # Ensure rates are float type
+            rate_index = 3  # Index of the rate column in each row
             for row in rows:
-                if len(row) >= 4 and row[3] is not None and row[3] != "":
+                if len(row) > rate_index:
+                    value = row[rate_index]
                     try:
-                        row[3] = float(row[3])
+                        row[rate_index] = float(value) if value not in (None, "") else 0.0
                     except (ValueError, TypeError):
-                        row[3] = 0.0
-                else:
-                    row[3] = 0.0
-
-            return rows
+                        row[rate_index] = 0.0
         except Exception as e:
             print(f"❌ Error getting filtered exchange rates: {e}")
             return []
+        return rows
 ```
 
 </details>
@@ -4741,7 +4738,7 @@ def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[
             # Show full list of all missing dates for first currency as example
             if missing_info:
                 first_currency_id = next(iter(missing_info))
-                first_currency_code = next(code for id, code, _1, _2 in currencies if id == first_currency_id)
+                first_currency_code = next(code for id_item, code, _1, _2 in currencies if id_item == first_currency_id)
                 first_missing = missing_info[first_currency_id]
 
                 print(f"\n🔍 FULL LIST for {first_currency_code} ({len(first_missing)} dates):")
@@ -5073,9 +5070,9 @@ def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) ->
                 # Update cache
                 self._exchange_rate_cache[cache_key] = rate
                 self._cache_timestamp = now
-                return rate
             except (ValueError, TypeError):
                 return 1.0
+            return rate
 
         return 1.0
 ```
@@ -5402,10 +5399,9 @@ def update_currency_ticker(self, currency_id: int, ticker: str) -> bool:
             query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
             params = {"ticker": ticker, "id": currency_id}
             self.execute_query(query, params)
-            return True
         except Exception as e:
             print(f"Error updating currency ticker: {e}")
-            return False
+        return True
 ```
 
 </details>

@@ -384,11 +384,10 @@ class ExchangeRateUpdateWorker(QThread):
                 for currency_id, rate, date in batch:
                     if self.db_manager.add_exchange_rate(currency_id, rate, date):
                         success_count += 1
-
-            return success_count
         except Exception as e:
             self.progress_updated.emit(f"❌ Batch insert error: {e}")
             return 0
+        return success_count
 ```
 
 </details>
@@ -773,11 +772,10 @@ def _batch_insert_rates(self, batch_data: list[tuple]) -> int:
                 for currency_id, rate, date in batch:
                     if self.db_manager.add_exchange_rate(currency_id, rate, date):
                         success_count += 1
-
-            return success_count
         except Exception as e:
             self.progress_updated.emit(f"❌ Batch insert error: {e}")
             return 0
+        return success_count
 ```
 
 </details>

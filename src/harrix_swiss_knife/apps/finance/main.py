@@ -1934,11 +1934,10 @@ class MainWindow(
 
             details_text: str = "\n".join(details_lines)
 
-            return total_balance, details_text
-
         except Exception as e:
             print(f"Error calculating total accounts balance: {e}")
             return 0.0, f"Error: {e!s}"
+        return total_balance, details_text
 
     def _cleanup_startup_dialog(self) -> None:
         """Clean up startup dialog and re-enable main window."""
@@ -2780,10 +2779,10 @@ class MainWindow(
 
                 category_names.append(name)
 
-            return category_names
         except Exception as e:
             print(f"Error getting categories for delegate: {e}")
             return []
+        return category_names
 
     def _get_currencies_for_delegate(self) -> list[str]:
         """Get list of currency codes for the delegate dropdown.
@@ -2802,11 +2801,10 @@ class MainWindow(
             for currency in currencies:
                 code: str = currency[1]  # currency code is at index 1
                 currency_codes.append(code)
-
-            return currency_codes
         except Exception as e:
             print(f"Error getting currencies for delegate: {e}")
             return []
+        return currency_codes
 
     def _get_or_create_category(self, category_name: str) -> int | None:
         """Get existing category ID or create new one.
@@ -2833,6 +2831,7 @@ class MainWindow(
                 )
                 if rows:
                     return rows[0][0]
+                return None
 
             # Create new category if not exists
             if self.db_manager.add_category(category_name, 0, ""):  # 0 = expense, empty icon
@@ -2842,11 +2841,11 @@ class MainWindow(
                 )
                 if rows:
                     return rows[0][0]
-
-            return None
+                return None
         except Exception as e:
             print(f"Error creating category {category_name}: {e}")
             return None
+        return None
 
     def _get_tags_for_delegate(self) -> list[str]:
         """Get list of unique tags for the delegate dropdown.
