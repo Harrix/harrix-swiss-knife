@@ -1507,7 +1507,7 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
         self.add_line(f"🔵 Processing git repository: {self.folder_path}")
 
         # Change to the selected directory
-        original_cwd = os.getcwd()
+        original_cwd = Path.cwd()
         os.chdir(self.folder_path)
 
         try:
@@ -1580,7 +1580,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.add_line(f"🔵 Processing git repository: {self.folder_path}")
 
         # Change to the selected directory
-        original_cwd = os.getcwd()
+        original_cwd = Path.cwd()
         os.chdir(self.folder_path)
 
         try:
@@ -1774,15 +1774,15 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
 
         # Check if it's a glob pattern (contains * or ?)
         if "*" in path or "?" in path:
-            # Use glob to find matching files
-            matches = glob.glob(path, recursive=True)
-            # PERF401: Use list.extend to create a transformed list
-            expanded_paths.extend(match for match in matches if not h.file.should_ignore_path(Path(match)))
-        elif os.path.isfile(path):
+            # Use Path.glob or Path.rglob to find matching files (PTH207)
+            p = Path(path)
+            matches = p.parent.rglob(p.name) if "**" in path else p.parent.glob(p.name)
+            expanded_paths.extend(str(match) for match in matches if not h.file.should_ignore_path(match))
+        elif Path(path).is_file():
             # It's a direct file path - check if it should be ignored
             if not h.file.should_ignore_path(Path(path)):
                 expanded_paths.append(path)
-        elif os.path.isdir(path):
+        elif Path(path).is_dir():
             # It's a directory, find all files recursively
             for root, dirs, files in os.walk(path):
                 # Filter out ignored directories
@@ -1795,10 +1795,10 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
                         expanded_paths.append(str(file_path))
         else:
             # Path doesn't exist, but might be a glob pattern that didn't match
-            # Try glob anyway in case it's a pattern
-            matches = glob.glob(path, recursive=True)
-            # PERF401: Use list.extend to create a transformed list
-            expanded_paths.extend(match for match in matches if not h.file.should_ignore_path(Path(match)))
+            # Try Path.glob or Path.rglob in case it's a pattern
+            p = Path(path)
+            matches = p.parent.rglob(p.name) if "**" in path else p.parent.glob(p.name)
+            expanded_paths.extend(str(match) for match in matches if not h.file.should_ignore_path(match))
 
     return expanded_paths
 ```
@@ -1874,7 +1874,7 @@ def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str
         for file_path in file_paths:
             try:
                 # Try to read the file to check if it's a text file
-                with open(file_path, encoding="utf-8") as f:
+                with Path.open(file_path, encoding="utf-8") as f:
                     f.read(1)  # Try to read at least one character
                 processed_files.append(file_path)
             except UnicodeDecodeError:

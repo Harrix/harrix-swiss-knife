@@ -2022,8 +2022,8 @@ class MainWindow(
                         widget.close()
                         # Force garbage collection
                         gc.collect()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(f"Error while clearing matplotlib canvas: {e}")
                 widget.deleteLater()
 
     def _connect_signals(self) -> None:

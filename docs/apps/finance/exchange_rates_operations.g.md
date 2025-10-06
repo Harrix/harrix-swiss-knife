@@ -474,8 +474,8 @@ class ExchangeRatesOperations:
                     # Wait a bit for cleanup to complete
                     QTimer.singleShot(100, lambda: self._create_exchange_rate_chart(currency_id, date_from, date_to))
                     return
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Error while checking for previous chart deletion: {e}")
 
         try:
             # Get currency info
@@ -1474,8 +1474,8 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                     # Wait a bit for cleanup to complete
                     QTimer.singleShot(100, lambda: self._create_exchange_rate_chart(currency_id, date_from, date_to))
                     return
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Error while checking for previous chart deletion: {e}")
 
         try:
             # Get currency info

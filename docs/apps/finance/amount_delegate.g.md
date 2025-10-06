@@ -138,19 +138,15 @@ class AmountDelegate(QStyledItemDelegate):
 
             # Construct final formatted number with subscript decimals
             # Skip decimal part if it's actually zero
-            if num == int(num):  # Check if the number is actually a whole number
-                formatted = formatted_integer
-            else:
-                formatted = f"{formatted_integer}.{subscript_decimal}"
+            formatted = formatted_integer if num == int(num) else f"{formatted_integer}.{subscript_decimal}"
 
             # Add minus sign back if needed
             if is_negative:
                 formatted = "-" + formatted
-
-            return formatted
-
-        except Exception:
+        except Exception as e:
+            print(f"Error while formatting amount: {e}")
             return str(value)
+        return formatted
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         """Paint cell with special formatting for income transactions.
@@ -391,19 +387,15 @@ def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802
 
             # Construct final formatted number with subscript decimals
             # Skip decimal part if it's actually zero
-            if num == int(num):  # Check if the number is actually a whole number
-                formatted = formatted_integer
-            else:
-                formatted = f"{formatted_integer}.{subscript_decimal}"
+            formatted = formatted_integer if num == int(num) else f"{formatted_integer}.{subscript_decimal}"
 
             # Add minus sign back if needed
             if is_negative:
                 formatted = "-" + formatted
-
-            return formatted
-
-        except Exception:
+        except Exception as e:
+            print(f"Error while formatting amount: {e}")
             return str(value)
+        return formatted
 ```
 
 </details>

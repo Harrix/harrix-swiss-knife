@@ -611,11 +611,10 @@ class DatabaseManager:
                     deleted_count = query_obj.value(0)
                     return True, deleted_count
                 return True, 0  # Success but couldn't determine count
-            return False, 0
-
         except Exception as e:
             print(f"❌ Error deleting exchange rates by days: {e}")
             return False, 0
+        return False, 0
 
     def delete_transaction(self, transaction_id: int) -> bool:
         """Delete a transaction.
@@ -952,9 +951,15 @@ class DatabaseManager:
 
         # Return raw values (in minor units) - conversion will be done in the UI layer
         # Just ensure exchange_rate is float type for consistency
+        exchange_rate_index = 5  # Use a constant instead of magic number
         for row in rows:
-            if len(row) >= 6 and row[5] is not None:  # exchange_rate
-                row[5] = float(row[5])
+            if len(row) > exchange_rate_index and row[exchange_rate_index] is not None:
+                try:
+                    row[exchange_rate_index] = float(row[exchange_rate_index])
+                except (ValueError, TypeError):
+                    row[exchange_rate_index] = 0.0  # Set to 0 for invalid values
+            elif len(row) > exchange_rate_index:
+                row[exchange_rate_index] = 0.0  # Set to 0 for None
 
         return rows
 
@@ -1149,11 +1154,10 @@ class DatabaseManager:
                     return float(rows[0][0])
                 except (ValueError, TypeError):
                     return 1.0
-
-            return 1.0
         except Exception as e:
             print(f"Error getting currency exchange rate by date: {e}")
             return 1.0
+        return 1.0
 
     def get_currency_subdivision(self, currency_id: int) -> int:
         """Get subdivision value for a currency.
@@ -1243,10 +1247,10 @@ class DatabaseManager:
             currency_id = int(stored_value)
             # Verify the currency exists
             currency_info = self.get_currency_by_id(currency_id)
-            return currency_id if currency_info else 1
         except (ValueError, TypeError):
             # Fallback to default if stored value is not a valid integer
             return 1
+        return currency_id if currency_info else 1
 
     def get_earliest_currency_exchange_date(self) -> str | None:
         """Get the earliest date from currency_exchanges table.
@@ -2029,12 +2033,11 @@ class DatabaseManager:
                     return True
 
             print(f"✅ [Exchange Rates] All currencies are up to date (last update: {today})")
-            return False
-
         except Exception as e:
             print(f"❌ Error checking exchange rates update status: {e}")
             # In case of error, assume update is needed
             return True
+        return False
 
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
@@ -3240,11 +3243,10 @@ def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
                     deleted_count = query_obj.value(0)
                     return True, deleted_count
                 return True, 0  # Success but couldn't determine count
-            return False, 0
-
         except Exception as e:
             print(f"❌ Error deleting exchange rates by days: {e}")
             return False, 0
+        return False, 0
 ```
 
 </details>
@@ -3699,9 +3701,15 @@ def get_all_currency_exchanges(self) -> list[list[Any]]:
 
         # Return raw values (in minor units) - conversion will be done in the UI layer
         # Just ensure exchange_rate is float type for consistency
+        exchange_rate_index = 5  # Use a constant instead of magic number
         for row in rows:
-            if len(row) >= 6 and row[5] is not None:  # exchange_rate
-                row[5] = float(row[5])
+            if len(row) > exchange_rate_index and row[exchange_rate_index] is not None:
+                try:
+                    row[exchange_rate_index] = float(row[exchange_rate_index])
+                except (ValueError, TypeError):
+                    row[exchange_rate_index] = 0.0  # Set to 0 for invalid values
+            elif len(row) > exchange_rate_index:
+                row[exchange_rate_index] = 0.0  # Set to 0 for None
 
         return rows
 ```
@@ -4004,11 +4012,10 @@ def get_currency_exchange_rate_by_date(self, currency_id: int, date: str) -> flo
                     return float(rows[0][0])
                 except (ValueError, TypeError):
                     return 1.0
-
-            return 1.0
         except Exception as e:
             print(f"Error getting currency exchange rate by date: {e}")
             return 1.0
+        return 1.0
 ```
 
 </details>
@@ -4158,10 +4165,10 @@ def get_default_currency_id(self) -> int:
             currency_id = int(stored_value)
             # Verify the currency exists
             currency_info = self.get_currency_by_id(currency_id)
-            return currency_id if currency_info else 1
         except (ValueError, TypeError):
             # Fallback to default if stored value is not a valid integer
             return 1
+        return currency_id if currency_info else 1
 ```
 
 </details>
@@ -5208,12 +5215,11 @@ def should_update_exchange_rates(self) -> bool:
                     return True
 
             print(f"✅ [Exchange Rates] All currencies are up to date (last update: {today})")
-            return False
-
         except Exception as e:
             print(f"❌ Error checking exchange rates update status: {e}")
             # In case of error, assume update is needed
             return True
+        return False
 ```
 
 </details>

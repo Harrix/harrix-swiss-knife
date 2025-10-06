@@ -1035,10 +1035,9 @@ class OnOptimizeSelectedImages(ActionBase):
                 with Path.open(md_file, "w", encoding="utf-8") as file:
                     file.write(document_new)
                 return f"✅ File {md_file} updated with optimized images."
-            return f"ℹ️ File {md_file} was not changed (no selected images found)."  # noqa: RUF001
-
         except Exception as e:
             return f"❌ Error processing {md_file}: {e}"
+        return f"ℹ️ File {md_file} was not changed (no selected images found)."  # noqa: RUF001
 
     @ActionBase.handle_exceptions("optimizing selected images thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
