@@ -26,12 +26,12 @@ class ExchangeRateCheckerWorker(QThread):
     check_from_first_transaction: bool
     should_stop: bool
 
-    def __init__(self, db_manager, *, check_from_first_transaction: bool = True) -> None:
+    def __init__(self, db_manager: object, *, check_from_first_transaction: bool = True) -> None:
         """Initialize the checker worker.
 
         Args:
 
-        - `db_manager`: Database manager instance.
+        - `db_manager (`worker`): Database manager instance.
         - `check_from_first_transaction` (`bool`): If `True`, check from first transaction;
           if `False`, check from last exchange rate. Defaults to `True`.
 

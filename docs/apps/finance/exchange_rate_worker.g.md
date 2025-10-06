@@ -53,12 +53,12 @@ class ExchangeRateUpdateWorker(QThread):
     currencies_to_process: list
     should_stop: bool
 
-    def __init__(self, db_manager, currencies_to_process: list) -> None:
+    def __init__(self, db_manager: object, currencies_to_process: list) -> None:
         """Initialize the exchange rate update worker.
 
         Args:
 
-        - `db_manager`: Database manager instance.
+        - `db_manager` (`object`): Database manager instance.
         - `currencies_to_process` (`list`): List of tuples (currency_id, code, records_dict).
 
         """
@@ -391,21 +391,21 @@ class ExchangeRateUpdateWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_manager, currencies_to_process: list) -> None
+def __init__(self, db_manager: object, currencies_to_process: list) -> None
 ```
 
 Initialize the exchange rate update worker.
 
 Args:
 
-- `db_manager`: Database manager instance.
+- `db_manager` (`object`): Database manager instance.
 - `currencies_to_process` (`list`): List of tuples (currency_id, code, records_dict).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, db_manager, currencies_to_process: list) -> None:
+def __init__(self, db_manager: object, currencies_to_process: list) -> None:
         super().__init__()
         self.db_manager = db_manager
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
