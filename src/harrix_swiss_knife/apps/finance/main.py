@@ -77,13 +77,13 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.categories = categories or []
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
+    def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QComboBox:  # noqa: N802, ANN001
         """Create a combo box editor for the category column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `_option`: Style option.
+        - `_option` (`object`): Style option.
         - `_index` (`QModelIndex`): Model index.
 
         Returns:
@@ -119,13 +119,13 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
             if index_in_combo >= 0:
                 editor.setCurrentIndex(index_in_combo)
 
-    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(self, editor: QComboBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
 
         - `editor` (`QComboBox`): The editor widget.
-        - `model`: The data model.
+        - `model` (`QAbstractItemModel`): The data model.
         - `index` (`QModelIndex`): Model index.
 
         """
@@ -139,11 +139,11 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
 class CurrencyComboBoxDelegate(QStyledItemDelegate):
     """Delegate for currency column in transactions table with dropdown list."""
 
-    def __init__(self, parent: QObject | None = None, currencies: list[str] | None = None) -> None:
+    def __init__(self, parent: QObject, currencies: list[str] | None = None) -> None:
         super().__init__(parent)
         self.currencies = currencies or []
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802, ANN001
         """Create a combo box editor for the currency column.
 
         Args:
@@ -185,13 +185,13 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
             if index_in_combo >= 0:
                 editor.setCurrentIndex(index_in_combo)
 
-    def setModelData(self, editor: QComboBox, model, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(self, editor: QComboBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
 
         - `editor` (`QComboBox`): The editor widget.
-        - `model`: The data model.
+        - `model` (`QAbstractItemModel`): The data model.
         - `index` (`QModelIndex`): Model index.
 
         """
@@ -206,7 +206,7 @@ class DateDelegate(QStyledItemDelegate):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:  # noqa: N802
+    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:  # noqa: N802, ANN001
         """Create a date editor for the date column.
 
         Args:
@@ -246,18 +246,18 @@ class DateDelegate(QStyledItemDelegate):
             except (ValueError, TypeError):
                 editor.setDate(QDate.currentDate())
 
-    def setModelData(self, editor: QDateEdit, model, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(self, editor: QDateEdit, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
 
         - `editor` (`QDateEdit`): The editor widget.
-        - `model`: The data model.
+        - `model` (`QAbstractItemModel`): The data model.
         - `index` (`QModelIndex`): Model index.
 
         """
-        selected_date = editor.date()
-        date_string = selected_date.toString("yyyy-MM-dd")
+        selected_date: QDate = editor.date()
+        date_string: str = selected_date.toString("yyyy-MM-dd")
         model.setData(index, date_string, Qt.ItemDataRole.DisplayRole)
 
 
@@ -267,13 +267,13 @@ class DescriptionDelegate(QStyledItemDelegate):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QLineEdit:  # noqa: N802
+    def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QLineEdit:  # noqa: N802, ANN001
         """Create a line edit editor for the description column.
 
         Args:
 
         - `parent` (`QObject`): Parent widget.
-        - `_option`: Style option.
+        - `_option` (`object`): Style option.
         - `_index` (`QModelIndex`): Model index.
 
         Returns:
