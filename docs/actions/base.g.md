@@ -2038,6 +2038,16 @@ Custom dialog with drag-and-drop support for file selection.
 class DragDropFileDialog(QDialog):
 
     def __init__(self, title: str, default_path: str, filter_: str, parent: QWidget | None = None) -> None:
+        """Initialize DragDropFileDialog.
+
+        Args:
+
+        - `title` (`str`): The window title for the dialog.
+        - `default_path` (`str`): The default path to open in the file dialog.
+        - `filter_` (`str`): The file filter string (e.g., "Text Files (*.txt)").
+        - `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
+
+        """
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setModal(True)
@@ -2184,7 +2194,14 @@ class DragDropFileDialog(QDialog):
 def __init__(self, title: str, default_path: str, filter_: str, parent: QWidget | None = None) -> None
 ```
 
-_No docstring provided._
+Initialize DragDropFileDialog.
+
+Args:
+
+- `title` (`str`): The window title for the dialog.
+- `default_path` (`str`): The default path to open in the file dialog.
+- `filter_` (`str`): The file filter string (e.g., "Text Files (\*.txt)").
+- `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>

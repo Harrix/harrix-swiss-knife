@@ -74,6 +74,14 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
     """Delegate for category column in transactions table with dropdown list."""
 
     def __init__(self, parent: QObject | None = None, categories: list[str] | None = None) -> None:
+        """Initialize CategoryComboBoxDelegate.
+
+        Args:
+
+        - `parent` (`QObject | None`): Parent object.
+        - `categories` (`list[str] | None`): List of category names for the combo box.
+
+        """
         super().__init__(parent)
         self.categories = categories or []
 
@@ -140,6 +148,14 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
     """Delegate for currency column in transactions table with dropdown list."""
 
     def __init__(self, parent: QObject, currencies: list[str] | None = None) -> None:
+        """Initialize CurrencyComboBoxDelegate.
+
+        Args:
+
+        - `parent` (`QObject`): Parent widget.
+        - `currencies` (`list[str] | None`): List of currency codes. Defaults to empty list if None.
+
+        """
         super().__init__(parent)
         self.currencies = currencies or []
 
@@ -204,6 +220,13 @@ class DateDelegate(QStyledItemDelegate):
     """Delegate for date column in transactions table."""
 
     def __init__(self, parent: QObject | None = None) -> None:
+        """Initialize DateDelegate.
+
+        Args:
+
+        - `parent` (`QObject | None`): Parent object for the delegate.
+
+        """
         super().__init__(parent)
 
     def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:  # noqa: N802, ANN001
@@ -273,7 +296,8 @@ class DescriptionDelegate(QStyledItemDelegate):
         """Initialize DescriptionDelegate.
 
         Args:
-            parent (QObject | None): Parent object for the delegate.
+
+        - `parent` (`QObject | None`): Parent object for the delegate.
 
         """
         super().__init__(parent)
