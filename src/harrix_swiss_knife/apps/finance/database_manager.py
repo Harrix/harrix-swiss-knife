@@ -1550,8 +1550,8 @@ class DatabaseManager:
         currencies = self.get_currencies_except_usd()
 
         # Generate all dates in the range
-        start_date = datetime.strptime(date_from, "%Y-%m-%d").date()
-        end_date = datetime.strptime(date_to, "%Y-%m-%d").date()
+        start_date = datetime.date.fromisoformat(date_from)
+        end_date = datetime.date.fromisoformat(date_to)
 
         all_dates = []
         current_date = start_date
