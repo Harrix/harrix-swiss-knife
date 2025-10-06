@@ -320,15 +320,16 @@ class ExchangeRateUpdateWorker(QThread):
                                 # Only update if significantly different
                                 rate_diff = abs(new_rate - old_rate) / old_rate if old_rate != 0 else 1
                                 min_rate_diff = 0.001
-                                if rate_diff > min_rate_diff:  # Update if difference > 0.1%
-                                    if self.db_manager.update_exchange_rate(currency_id, date_str, new_rate):
-                                        total_processed += 1
-                                        currency_processed += 1
-                                        self.rates_added.emit(currency_code, new_rate, date_str)
-                                        self.progress_updated.emit(
-                                            f"✅ Updated {currency_code} rate for {date_str}: "
-                                            f"{old_rate:.6f} → {new_rate:.6f}"
-                                        )
+                                if rate_diff > min_rate_diff and self.db_manager.update_exchange_rate(
+                                    currency_id, date_str, new_rate
+                                ):
+                                    total_processed += 1
+                                    currency_processed += 1
+                                    self.rates_added.emit(currency_code, new_rate, date_str)
+                                    self.progress_updated.emit(
+                                        f"✅ Updated {currency_code} rate for {date_str}: "
+                                        f"{old_rate:.6f} → {new_rate:.6f}"
+                                    )
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
 

@@ -1547,8 +1547,8 @@ class DatabaseManager:
         currencies = self.get_currencies_except_usd()
 
         # Generate all dates in the range
-        start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo).date()
-        end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo).date()
+        start_date = datetime.strptime(date_from, "%Y-%m-%d").date()
+        end_date = datetime.strptime(date_to, "%Y-%m-%d").date()
 
         all_dates = []
         current_date = start_date
@@ -1604,7 +1604,7 @@ class DatabaseManager:
             # Show full list of all missing dates for first currency as example
             if missing_info:
                 first_currency_id = next(iter(missing_info))
-                first_currency_code = next(code for id, code, _, _ in currencies if id == first_currency_id)
+                first_currency_code = next(code for id, code, _1, _2 in currencies if id == first_currency_id)
                 first_missing = missing_info[first_currency_id]
 
                 print(f"\n🔍 FULL LIST for {first_currency_code} ({len(first_missing)} dates):")

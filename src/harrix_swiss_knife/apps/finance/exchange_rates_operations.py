@@ -695,7 +695,7 @@ class ExchangeRatesOperations:
             self.comboBox_exchange_rates_filter_currency.clear()
             self.comboBox_exchange_rates_filter_currency.addItem("")  # All currencies option
             for currency in currencies:
-                currency_id, code, name, symbol = currency
+                currency_id, code, name, _symbol = currency
                 # Skip USD currency
                 if code.upper() == "USD":
                     continue
