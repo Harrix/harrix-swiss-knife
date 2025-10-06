@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import harrix_pylib as h
 
@@ -579,7 +579,6 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
     title = "Rename last Git commit with emoji"
 
     # Mapping of keywords to emojis
-    from typing import ClassVar
 
     EMOJI_MAPPING: ClassVar[dict[str, str]] = {
         "Add": "➕",  # noqa: RUF001

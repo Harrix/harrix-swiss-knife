@@ -1472,7 +1472,8 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
     title = "Rename last Git commit with emoji"
 
     # Mapping of keywords to emojis
-    EMOJI_MAPPING = {
+
+    EMOJI_MAPPING: ClassVar[dict[str, str]] = {
         "Add": "➕",  # noqa: RUF001
         "Create": "➕",  # noqa: RUF001
         "Build": "🚀",
