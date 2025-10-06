@@ -1635,8 +1635,8 @@ class DatabaseManager:
         currencies = self.get_currencies_except_usd()
 
         # Generate all dates in the range
-        start_date = datetime.strptime(date_from, "%Y-%m-%d").date()
-        end_date = datetime.strptime(date_to, "%Y-%m-%d").date()
+        start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo).date()
+        end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo).date()
 
         all_dates = []
         current_date = start_date
@@ -4684,8 +4684,8 @@ def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[
         currencies = self.get_currencies_except_usd()
 
         # Generate all dates in the range
-        start_date = datetime.strptime(date_from, "%Y-%m-%d").date()
-        end_date = datetime.strptime(date_to, "%Y-%m-%d").date()
+        start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo).date()
+        end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo).date()
 
         all_dates = []
         current_date = start_date

@@ -88,7 +88,9 @@ class ExchangeRateUpdateWorker(QThread):
                 end_date = sorted_dates[-1]
 
                 # Add one day to end_date for yfinance API
-                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").replace(
+                    tzinfo=datetime.now().astimezone().tzinfo
+                )
                 end_date_plus = (end_date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
 
                 self.progress_updated.emit(f"📊 Fetching {currency_code} rates from {start_date} to {end_date}...")
@@ -272,7 +274,9 @@ class ExchangeRateUpdateWorker(QThread):
                             new_rate = rates_dict[date_str]
                         else:
                             # Try fallback for weekends/holidays
-                            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                            date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(
+                                tzinfo=datetime.now().astimezone().tzinfo
+                            )
                             weekend_days = (5, 6)  # Saturday=5, Sunday=6
                             if date_obj.weekday() in weekend_days:
                                 self.progress_updated.emit(f"📅 {date_str} is weekend, using fallback...")

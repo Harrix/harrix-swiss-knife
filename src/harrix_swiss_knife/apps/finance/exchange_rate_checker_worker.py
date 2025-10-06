@@ -67,7 +67,11 @@ class ExchangeRateCheckerWorker(QThread):
                     self.check_failed.emit("No transactions found to determine start date.")
                     return
 
-                global_start_date = datetime.strptime(earliest_transaction_date, "%Y-%m-%d").date()
+                global_start_date = (
+                    datetime.strptime(earliest_transaction_date, "%Y-%m-%d")
+                    .replace(tzinfo=datetime.now().astimezone().tzinfo)
+                    .date()
+                )
                 self.progress_updated.emit(f"📊 Checking from first transaction date: {global_start_date}")
             else:
                 # Start from last exchange rate date for each currency
@@ -93,7 +97,11 @@ class ExchangeRateCheckerWorker(QThread):
                     if not last_date_str:
                         self.progress_updated.emit(f"⚠️ {currency_code}: No exchange rate records found - skipping")
                         continue
-                    start_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+                    start_date = (
+                        datetime.strptime(last_date_str, "%Y-%m-%d")
+                        .replace(tzinfo=datetime.now().astimezone().tzinfo)
+                        .date()
+                    )
 
                 # Calculate missing dates from start_date to today
                 missing_dates = []

@@ -173,7 +173,7 @@ class ExchangeRatesOperations:
                 # Additional check: if canvas is being deleted, wait a bit
                 if (
                     hasattr(self._current_exchange_rate_canvas, "_deleting")
-                    and self._current_exchange_rate_canvas._deleting
+                    and self._current_exchange_rate_canvas._deleting  # noqa: SLF001
                 ):
                     return
             except Exception:
@@ -443,7 +443,7 @@ class ExchangeRatesOperations:
             try:
                 if (
                     hasattr(self._current_exchange_rate_canvas, "_deleting")
-                    and self._current_exchange_rate_canvas._deleting
+                    and self._current_exchange_rate_canvas._deleting  # noqa: SLF001
                 ):
                     # Wait a bit for cleanup to complete
                     QTimer.singleShot(100, lambda: self._create_exchange_rate_chart(currency_id, date_from, date_to))
@@ -493,8 +493,10 @@ class ExchangeRatesOperations:
                 else:
                     transformed_rates.append(0.0)
 
-            # Convert dates to datetime objects for plotting
-            date_objects = [datetime.strptime(date, "%Y-%m-%d") for date in dates]
+            # Convert dates to timezone-aware datetime objects for plotting
+            date_objects = [
+                datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo) for date in dates
+            ]
 
             # Plot the data
             ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=1)
