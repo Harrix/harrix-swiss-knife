@@ -112,7 +112,7 @@ class AccountEditDialog(QDialog):
             msg = "Division by zero"
             raise ValueError(msg)
 
-        def _raise_value_error(msg):
+        def _raise_value_error(msg: str) -> None:
             raise ValueError(msg)
 
         try:
@@ -371,7 +371,7 @@ def _evaluate_expression(self, expression: str) -> float:
             msg = "Division by zero"
             raise ValueError(msg)
 
-        def _raise_value_error(msg):
+        def _raise_value_error(msg: str) -> None:
             raise ValueError(msg)
 
         try:

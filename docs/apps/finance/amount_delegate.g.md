@@ -39,13 +39,13 @@ and special formatting for income transactions.
 ```python
 class AmountDelegate(QStyledItemDelegate):
 
-    def __init__(self, parent: QWidget | None = None, db_manager=None) -> None:
+    def __init__(self, parent: QWidget | None = None, db_manager: object = None) -> None:
         """Initialize the amount delegate.
 
         Args:
 
         - `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
-        - `db_manager`: The database manager instance. Defaults to `None`.
+        - `db_manager` (`object | None`): The database manager instance. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -75,12 +75,12 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value, _locale: QLocale) -> str:  # noqa: N802
+    def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802, ANN001
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
 
-        - `value`: The value to format for display.
+        - `value` (`object`): The value to format for display.
         - `_locale` (`QLocale`): The locale for formatting (unused in this implementation).
 
         Returns:
@@ -262,7 +262,7 @@ class AmountDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, db_manager = None) -> None
+def __init__(self, parent: QWidget | None = None, db_manager: object = None) -> None
 ```
 
 Initialize the amount delegate.
@@ -270,13 +270,13 @@ Initialize the amount delegate.
 Args:
 
 - `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
-- `db_manager`: The database manager instance. Defaults to `None`.
+- `db_manager` (`object | None`): The database manager instance. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None, db_manager=None) -> None:
+def __init__(self, parent: QWidget | None = None, db_manager: object = None) -> None:
         super().__init__(parent)
         self.db_manager = db_manager
 ```
@@ -322,14 +322,14 @@ def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: Q
 ### ⚙️ Method `displayText`
 
 ```python
-def displayText(self, value, _locale: QLocale) -> str
+def displayText(self, value: object, _locale: QLocale) -> str
 ```
 
 Format display text with spaces for thousands separator and subscript decimals.
 
 Args:
 
-- `value`: The value to format for display.
+- `value` (`object`): The value to format for display.
 - `_locale` (`QLocale`): The locale for formatting (unused in this implementation).
 
 Returns:
@@ -340,7 +340,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def displayText(self, value, _locale: QLocale) -> str:  # noqa: N802
+def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802, ANN001
         try:
             # Get the raw text value
             text = str(value)

@@ -12,7 +12,7 @@ from typing import Any, Concatenate, NoReturn, ParamSpec, TypeVar
 
 import harrix_pylib as h
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QClipboard, QDragEnterEvent, QDropEvent, QFont, QGuiApplication
+from PySide6.QtGui import QClipboard, QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFont, QGuiApplication
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -890,7 +890,7 @@ class ActionBase:
 class DragDropFileDialog(QDialog):
     """Custom dialog with drag-and-drop support for file selection."""
 
-    def __init__(self, title: str, default_path: str, filter_: str, parent=None) -> None:
+    def __init__(self, title: str, default_path: str, filter_: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setModal(True)
@@ -933,7 +933,7 @@ class DragDropFileDialog(QDialog):
         else:
             event.ignore()
 
-    def dragLeaveEvent(self, _event) -> None:  # noqa: N802
+    def dragLeaveEvent(self, _event: QDragLeaveEvent) -> None:  # noqa: N802
         """Handle drag leave event."""
         self.drop_area.setStyleSheet("""
             QLabel {

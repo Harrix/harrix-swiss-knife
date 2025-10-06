@@ -2037,7 +2037,7 @@ Custom dialog with drag-and-drop support for file selection.
 ```python
 class DragDropFileDialog(QDialog):
 
-    def __init__(self, title: str, default_path: str, filter_: str, parent=None) -> None:
+    def __init__(self, title: str, default_path: str, filter_: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setModal(True)
@@ -2080,7 +2080,7 @@ class DragDropFileDialog(QDialog):
         else:
             event.ignore()
 
-    def dragLeaveEvent(self, _event) -> None:  # noqa: N802
+    def dragLeaveEvent(self, _event: QDragLeaveEvent) -> None:  # noqa: N802
         """Handle drag leave event."""
         self.drop_area.setStyleSheet("""
             QLabel {
@@ -2181,7 +2181,7 @@ class DragDropFileDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, title: str, default_path: str, filter_: str, parent = None) -> None
+def __init__(self, title: str, default_path: str, filter_: str, parent: QWidget | None = None) -> None
 ```
 
 _No docstring provided._
@@ -2190,7 +2190,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, title: str, default_path: str, filter_: str, parent=None) -> None:
+def __init__(self, title: str, default_path: str, filter_: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setModal(True)
@@ -2281,7 +2281,7 @@ def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
 ### ⚙️ Method `dragLeaveEvent`
 
 ```python
-def dragLeaveEvent(self, _event) -> None
+def dragLeaveEvent(self, _event: QDragLeaveEvent) -> None
 ```
 
 Handle drag leave event.
@@ -2290,7 +2290,7 @@ Handle drag leave event.
 <summary>Code:</summary>
 
 ```python
-def dragLeaveEvent(self, _event) -> None:  # noqa: N802
+def dragLeaveEvent(self, _event: QDragLeaveEvent) -> None:  # noqa: N802
         self.drop_area.setStyleSheet("""
             QLabel {
                 border: 2px dashed #aaa;
