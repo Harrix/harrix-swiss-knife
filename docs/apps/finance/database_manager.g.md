@@ -76,6 +76,7 @@ lang: en
   - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate)
   - [⚙️ Method `has_exchange_rates_data`](#%EF%B8%8F-method-has_exchange_rates_data)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
+  - [⚙️ Method `rows_from_query`](#%EF%B8%8F-method-rows_from_query)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
   - [⚙️ Method `should_update_exchange_rates`](#%EF%B8%8F-method-should_update_exchange_rates)
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
@@ -92,7 +93,6 @@ lang: en
   - [⚙️ Method `_init_default_settings`](#%EF%B8%8F-method-_init_default_settings)
   - [⚙️ Method `_iter_query`](#%EF%B8%8F-method-_iter_query)
   - [⚙️ Method `_reconnect`](#%EF%B8%8F-method-_reconnect)
-  - [⚙️ Method `_rows_from_query`](#%EF%B8%8F-method-_rows_from_query)
 - [🔧 Function `_safe_identifier`](#-function-_safe_identifier)
 
 </details>
@@ -1399,7 +1399,7 @@ class DatabaseManager:
             if not query_obj:
                 return []
 
-            rows = self._rows_from_query(query_obj)
+            rows = self.rows_from_query(query_obj)
 
             # Ensure rates are float type
             rate_index = 3  # Index of the rate column in each row
@@ -1776,7 +1776,7 @@ class DatabaseManager:
         """
         query = self.execute_query(query_text, params)
         if query:
-            result = self._rows_from_query(query)
+            result = self.rows_from_query(query)
             query.clear()  # Clear the query to release resources
             return result
         return []
@@ -1973,6 +1973,25 @@ class DatabaseManager:
 
         """
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
+
+    def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
+        """Convert the full result set in `query` into a list of rows.
+
+        Args:
+
+        - `query` (`QSqlQuery`): An executed query.
+
+        Returns:
+
+        - `list[list[Any]]`: Every database row represented as a list whose
+          elements correspond to column values.
+
+        """
+        result: list[list[Any]] = []
+        while query.next():
+            row = [query.value(i) for i in range(query.record().count())]
+            result.append(row)
+        return result
 
     def set_default_currency(self, currency_code: str) -> bool:
         """Set the default currency.
@@ -2493,25 +2512,6 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
             error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
-
-    def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        """Convert the full result set in `query` into a list of rows.
-
-        Args:
-
-        - `query` (`QSqlQuery`): An executed query.
-
-        Returns:
-
-        - `list[list[Any]]`: Every database row represented as a list whose
-          elements correspond to column values.
-
-        """
-        result: list[list[Any]] = []
-        while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
-        return result
 ```
 
 </details>
@@ -4377,7 +4377,7 @@ def get_filtered_exchange_rates(
             if not query_obj:
                 return []
 
-            rows = self._rows_from_query(query_obj)
+            rows = self.rows_from_query(query_obj)
 
             # Ensure rates are float type
             rate_index = 3  # Index of the rate column in each row
@@ -4850,7 +4850,7 @@ def get_rows(
     ) -> list[list[Any]]:
         query = self.execute_query(query_text, params)
         if query:
-            result = self._rows_from_query(query)
+            result = self.rows_from_query(query)
             query.clear()  # Clear the query to release resources
             return result
         return []
@@ -5131,6 +5131,37 @@ Returns:
 ```python
 def is_database_open(self) -> bool:
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
+```
+
+</details>
+
+### ⚙️ Method `rows_from_query`
+
+```python
+def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]
+```
+
+Convert the full result set in `query` into a list of rows.
+
+Args:
+
+- `query` (`QSqlQuery`): An executed query.
+
+Returns:
+
+- `list[list[Any]]`: Every database row represented as a list whose
+  elements correspond to column values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
+        result: list[list[Any]] = []
+        while query.next():
+            row = [query.value(i) for i in range(query.record().count())]
+            result.append(row)
+        return result
 ```
 
 </details>
@@ -5847,37 +5878,6 @@ def _reconnect(self) -> None:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
             error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
-```
-
-</details>
-
-### ⚙️ Method `_rows_from_query`
-
-```python
-def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]
-```
-
-Convert the full result set in `query` into a list of rows.
-
-Args:
-
-- `query` (`QSqlQuery`): An executed query.
-
-Returns:
-
-- `list[list[Any]]`: Every database row represented as a list whose
-  elements correspond to column values.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        result: list[list[Any]] = []
-        while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
-        return result
 ```
 
 </details>

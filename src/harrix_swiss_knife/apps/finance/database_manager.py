@@ -1311,7 +1311,7 @@ class DatabaseManager:
             if not query_obj:
                 return []
 
-            rows = self._rows_from_query(query_obj)
+            rows = self.rows_from_query(query_obj)
 
             # Ensure rates are float type
             rate_index = 3  # Index of the rate column in each row
@@ -1688,7 +1688,7 @@ class DatabaseManager:
         """
         query = self.execute_query(query_text, params)
         if query:
-            result = self._rows_from_query(query)
+            result = self.rows_from_query(query)
             query.clear()  # Clear the query to release resources
             return result
         return []
@@ -1885,6 +1885,25 @@ class DatabaseManager:
 
         """
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
+
+    def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
+        """Convert the full result set in `query` into a list of rows.
+
+        Args:
+
+        - `query` (`QSqlQuery`): An executed query.
+
+        Returns:
+
+        - `list[list[Any]]`: Every database row represented as a list whose
+          elements correspond to column values.
+
+        """
+        result: list[list[Any]] = []
+        while query.next():
+            row = [query.value(i) for i in range(query.record().count())]
+            result.append(row)
+        return result
 
     def set_default_currency(self, currency_code: str) -> bool:
         """Set the default currency.
@@ -2405,25 +2424,6 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
             error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
-
-    def _rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        """Convert the full result set in `query` into a list of rows.
-
-        Args:
-
-        - `query` (`QSqlQuery`): An executed query.
-
-        Returns:
-
-        - `list[list[Any]]`: Every database row represented as a list whose
-          elements correspond to column values.
-
-        """
-        result: list[list[Any]] = []
-        while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
-        return result
 
 
 def _safe_identifier(identifier: str) -> str:

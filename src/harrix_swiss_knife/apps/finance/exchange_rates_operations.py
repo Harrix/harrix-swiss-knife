@@ -622,7 +622,7 @@ class ExchangeRatesOperations:
             # Execute query and get results
             query_obj = self.db_manager.execute_query(query, params)
             if query_obj:
-                rows = self.db_manager._rows_from_query(query_obj)
+                rows = self.db_manager.rows_from_query(query_obj)
                 query_obj.clear()
                 return [(row[0], float(row[1])) for row in rows if row[1] is not None]
         except Exception as e:
