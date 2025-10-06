@@ -301,19 +301,18 @@ class DescriptionDelegate(QStyledItemDelegate):
         if current_value:
             editor.setText(str(current_value))
 
-    def setModelData(self, editor: QLineEdit, model, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(self, editor: QLineEdit, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
         """Set the data from the editor back to the model.
 
         Args:
 
         - `editor` (`QLineEdit`): The editor widget.
-        - `model`: The data model.
+        - `model` (`QAbstractItemModel`): The data model.
         - `index` (`QModelIndex`): Model index.
 
         """
         text = editor.text()
-        if text:
-            model.setData(index, text, Qt.ItemDataRole.DisplayRole)
+        model.setData(index, text, Qt.ItemDataRole.DisplayRole)
 
 
 class MainWindow(
