@@ -104,6 +104,7 @@ class OnCombineForAI(ActionBase):
     document with proper code fencing, making it suitable for AI analysis and processing.
 
     Now supports:
+
     - Direct file paths (as before)
     - Directory paths (all files recursively)
     - Glob patterns (e.g., *.py, **/*.py)
@@ -499,10 +500,12 @@ class OnRenameFilesByMapping(ActionBase):
         """Parse mapping text into a dictionary.
 
         Args:
-            mapping_text (str): Text with old_filename<TAB>new_filename per line
+
+        -`mapping_text` (`str`): Text with `old_filename<TAB>new_filename` per line.
 
         Returns:
-            dict[str, str] | None: Dictionary mapping old names to new names, or None if error
+
+        - `dict[str, str] | None`: Dictionary mapping old names to new names, or None if error.
 
         """
         try:
@@ -709,15 +712,18 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
     """Expand path patterns to actual file paths.
 
     This function processes a list of paths that may contain:
+
     - Direct file paths (returned as-is)
     - Directory paths (all files recursively)
     - Glob patterns (e.g., *.py, **/*.py)
 
     Args:
-        paths: List of paths that may be files, directories, or glob patterns
+
+    - `paths` (`list[str]`): List of paths that may be files, directories, or glob patterns.
 
     Returns:
-        List of actual file paths (filtered to exclude ignored paths)
+
+    - `list[str]`: List of actual file paths (filtered to exclude ignored paths).
 
     """
     expanded_paths = []
@@ -762,11 +768,14 @@ def _filter_files_by_extension(files: list[str], extensions: list[str] | None = 
     """Filter files by extension.
 
     Args:
-        files: List of file paths
-        extensions: List of extensions to include (e.g., ['.py', '.md']). If None, includes all files.
+
+    - `files` (`list[str]`): List of file paths.
+    - `extensions` (`list[str] | None`): List of extensions to include (e.g., ['.py', '.md']).
+      If None, includes all files.
 
     Returns:
-        Filtered list of file paths
+
+    - `list[str]`: Filtered list of file paths.
 
     """
     if not extensions:
@@ -788,11 +797,13 @@ def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str
     exceptions by skipping files that can't be decoded as text (e.g., binary files).
 
     Args:
-        file_paths: List of file paths to process
-        base_folder: Base folder path for relative path calculation
+
+    - `file_paths` (`list[str]`): List of file paths to process.
+    - `base_folder` (`str`): Base folder path for relative path calculation.
 
     Returns:
-        Markdown string with successfully processed files
+
+    - `str`: Markdown string with successfully processed files.
 
     """
     try:

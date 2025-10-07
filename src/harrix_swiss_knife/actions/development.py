@@ -88,6 +88,7 @@ class OnNpmManagePackages(ActionBase):
     """Install or update configured NPM packages globally.
 
     This action manages NPM packages specified in the `config["npm_packages"]` list:
+
     1. Updates NPM itself to the latest version
     2. Installs/updates all configured packages (npm install will update if already exists)
     3. Runs global update to ensure all packages are at latest versions
