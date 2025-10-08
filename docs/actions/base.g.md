@@ -151,7 +151,8 @@ class ActionBase:
         - `title` (`str`): The title of the selection dialog.
         - `label` (`str`): The label prompting the user for selection.
         - `choices` (`list[str]`): List of string options to choose from.
-        - `default_selected` (`list[str] | None`): List of choices that should be selected by default. Defaults to `None`.
+        - `default_selected` (`list[str] | None`): List of choices that should be selected by default.
+          Defaults to `None`.
 
         Returns:
 
@@ -1045,7 +1046,8 @@ Args:
 - `title` (`str`): The title of the selection dialog.
 - `label` (`str`): The label prompting the user for selection.
 - `choices` (`list[str]`): List of string options to choose from.
-- `default_selected` (`list[str] | None`): List of choices that should be selected by default. Defaults to `None`.
+- `default_selected` (`list[str] | None`): List of choices that should be selected by default.
+  Defaults to `None`.
 
 Returns:
 

@@ -150,11 +150,13 @@ class OnOptimize(ActionBase):
         """Perform common image optimization operations.
 
         Args:
-            command (str): The npm command to execute for optimization
-            output_folder (str | Path | None): Optional output folder to open after optimization
+
+        - `command` (`str`): The npm command to execute for optimization.
+        - `output_folder` (`str | Path | None`): Optional output folder to open after optimization.
 
         Returns:
-            str | None: The result of the command execution
+
+        - `str | None`: The result of the command execution
 
         """
         result = h.dev.run_command(command)

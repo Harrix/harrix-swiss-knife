@@ -1428,6 +1428,7 @@ class OnOptimizeImagesFolder(ActionBase):
         """Process a single line of Markdown to optimize any image reference it contains.
 
         Args:
+
         - `markdown_line` (`str`): A single line from the Markdown document.
         - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
         - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
@@ -1436,6 +1437,7 @@ class OnOptimizeImagesFolder(ActionBase):
           Defaults to `False`.
 
         Returns:
+
         - `str`: The processed Markdown line, with image references updated if needed.
 
         """
@@ -1557,9 +1559,11 @@ class OnOptimizeImagesFolder(ActionBase):
         optimizes them, and for PNG images compares optimized PNG vs AVIF sizes to keep the smaller one.
 
         Args:
+
         - `filename` (`Path | str`): Path to the Markdown file to process.
 
         Returns:
+
         - `str`: A status message indicating whether the file was modified.
 
         """
@@ -1593,6 +1597,7 @@ class OnOptimizeImagesFolder(ActionBase):
         are left unchanged.
 
         Args:
+
         - `markdown_text` (`str`): The Markdown content to process.
         - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
         - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
@@ -1601,9 +1606,11 @@ class OnOptimizeImagesFolder(ActionBase):
           Defaults to `False`.
 
         Returns:
+
         - `str`: The updated Markdown content with references to optimized images.
 
         Notes:
+
         - Images with extensions .jpg, .jpeg, .webp, .gif, and .mp4 will be converted to .avif
         - PNG files behavior depends on flags:
           - If `is_compare_png_avif_sizes` is True: compares optimized PNG vs AVIF and keeps smaller
@@ -2015,9 +2022,11 @@ class OnOptimizeSelectedImages(ActionBase):
         """Find a Markdown file one level up from the given directory.
 
         Args:
+
         - `image_dir` (`Path`): Directory containing the images.
 
         Returns:
+
         - `Path | None`: Path to the Markdown file if found, None otherwise.
 
         """
@@ -2072,12 +2081,14 @@ class OnOptimizeSelectedImages(ActionBase):
         """Optimize only selected images referenced in Markdown content.
 
         Args:
+
         - `markdown_text` (`str`): The Markdown content to process.
         - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
         - `selected_image_names` (`set[str]`): Set of image filenames to optimize.
         - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
 
         Returns:
+
         - `str`: The updated Markdown content with references to optimized images.
 
         """
@@ -2111,12 +2122,14 @@ class OnOptimizeSelectedImages(ActionBase):
         """Process a single line of Markdown to optimize only selected image references.
 
         Args:
+
         - `markdown_line` (`str`): A single line from the Markdown document.
         - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
         - `selected_image_names` (`set[str]`): Set of image filenames to optimize.
         - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
 
         Returns:
+
         - `str`: The processed Markdown line, with image references updated if needed.
 
         """
@@ -2228,10 +2241,12 @@ class OnOptimizeSelectedImages(ActionBase):
         """Optimize only the selected images in a Markdown file.
 
         Args:
+
         - `md_file` (`Path`): Path to the Markdown file.
         - `selected_images` (`list[Path]`): List of selected image paths to optimize.
 
         Returns:
+
         - `str`: Status message indicating the result of the operation.
 
         """
