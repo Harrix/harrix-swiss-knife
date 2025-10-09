@@ -30,4 +30,3 @@ def _safe_identifier(identifier: str) -> str:
         msg = f"Illegal SQL identifier: {identifier!r}"
         raise ValueError(msg)
     return identifier
-
