@@ -175,6 +175,29 @@ class ActionBase:
         # Add some spacing before buttons
         layout.addStretch()
 
+        # Add Select All / Deselect All buttons
+        selection_buttons_layout = QHBoxLayout()
+
+        select_all_button = QPushButton("✅ Select All")
+        deselect_all_button = QPushButton("❌ Deselect All")
+
+        def select_all() -> None:
+            for checkbox in checkboxes:
+                checkbox.setChecked(True)
+
+        def deselect_all() -> None:
+            for checkbox in checkboxes:
+                checkbox.setChecked(False)
+
+        select_all_button.clicked.connect(select_all)
+        deselect_all_button.clicked.connect(deselect_all)
+
+        selection_buttons_layout.addWidget(select_all_button)
+        selection_buttons_layout.addWidget(deselect_all_button)
+        selection_buttons_layout.addStretch()
+
+        layout.addLayout(selection_buttons_layout)
+
         # Add OK and Cancel buttons
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
