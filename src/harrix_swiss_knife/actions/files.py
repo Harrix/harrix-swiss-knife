@@ -756,10 +756,7 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
             # Use rglob if pattern contains ** or glob otherwise
             base_path = Path(base_dir)
             if base_path.exists() and base_path.is_dir():
-                if "**" in pattern:
-                    matches = base_path.rglob(pattern.replace("**/", ""))
-                else:
-                    matches = base_path.glob(pattern)
+                matches = base_path.rglob(pattern.replace("**/", "")) if "**" in pattern else base_path.glob(pattern)
                 expanded_paths.extend(
                     str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
                 )
@@ -798,10 +795,7 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
 
             base_path = Path(base_dir)
             if base_path.exists() and base_path.is_dir():
-                if "**" in pattern:
-                    matches = base_path.rglob(pattern.replace("**/", ""))
-                else:
-                    matches = base_path.glob(pattern)
+                matches = base_path.rglob(pattern.replace("**/", "")) if "**" in pattern else base_path.glob(pattern)
                 expanded_paths.extend(
                     str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
                 )

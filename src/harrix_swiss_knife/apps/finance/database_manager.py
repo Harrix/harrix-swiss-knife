@@ -16,7 +16,7 @@ from datetime import timedelta
 from PySide6.QtCore import QTimer
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
-from ..common import _safe_identifier
+from harrix_swiss_knife.apps.common import _safe_identifier
 
 
 class DatabaseManager:
