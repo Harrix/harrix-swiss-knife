@@ -1781,10 +1781,34 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
 
         # Check if it's a glob pattern (contains * or ?)
         if "*" in path or "?" in path:
-            # Use Path.glob or Path.rglob to find matching files (PTH207)
-            p = Path(path)
-            matches = p.parent.rglob(p.name) if "**" in path else p.parent.glob(p.name)
-            expanded_paths.extend(str(match) for match in matches if not h.file.should_ignore_path(match))
+            # Find the base directory (before any wildcards) and the pattern
+            # Split path at the first wildcard occurrence
+            parts = path.replace("\\", "/").split("/")
+            base_parts = []
+            pattern_parts = []
+            found_wildcard = False
+
+            for part in parts:
+                if not found_wildcard and "*" not in part and "?" not in part:
+                    base_parts.append(part)
+                else:
+                    found_wildcard = True
+                    pattern_parts.append(part)
+
+            # Reconstruct base directory and pattern
+            base_dir = "/".join(base_parts) if base_parts else "."
+            pattern = "/".join(pattern_parts) if pattern_parts else "*"
+
+            # Use rglob if pattern contains ** or glob otherwise
+            base_path = Path(base_dir)
+            if base_path.exists() and base_path.is_dir():
+                if "**" in pattern:
+                    matches = base_path.rglob(pattern.replace("**/", ""))
+                else:
+                    matches = base_path.glob(pattern)
+                expanded_paths.extend(
+                    str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
+                )
         elif Path(path).is_file():
             # It's a direct file path - check if it should be ignored
             if not h.file.should_ignore_path(Path(path)):
@@ -1802,10 +1826,31 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
                         expanded_paths.append(str(file_path))
         else:
             # Path doesn't exist, but might be a glob pattern that didn't match
-            # Try Path.glob or Path.rglob in case it's a pattern
-            p = Path(path)
-            matches = p.parent.rglob(p.name) if "**" in path else p.parent.glob(p.name)
-            expanded_paths.extend(str(match) for match in matches if not h.file.should_ignore_path(match))
+            # Try to find base directory and pattern
+            parts = path.replace("\\", "/").split("/")
+            base_parts = []
+            pattern_parts = []
+            found_wildcard = False
+
+            for part in parts:
+                if not found_wildcard and "*" not in part and "?" not in part:
+                    base_parts.append(part)
+                else:
+                    found_wildcard = True
+                    pattern_parts.append(part)
+
+            base_dir = "/".join(base_parts) if base_parts else "."
+            pattern = "/".join(pattern_parts) if pattern_parts else "*"
+
+            base_path = Path(base_dir)
+            if base_path.exists() and base_path.is_dir():
+                if "**" in pattern:
+                    matches = base_path.rglob(pattern.replace("**/", ""))
+                else:
+                    matches = base_path.glob(pattern)
+                expanded_paths.extend(
+                    str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
+                )
 
     return expanded_paths
 ```
