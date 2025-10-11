@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
-from pathlib import Path
 
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
@@ -316,9 +314,9 @@ class TemplateParser:
         fields = []
         seen_names = set()
 
-        for name, field_type in matches:
-            name = name.strip()
-            field_type = field_type.strip().lower()
+        for original_name, original_field_type in matches:
+            name = original_name.strip()
+            field_type = original_field_type.strip().lower()
 
             # Skip duplicate fields
             if name in seen_names:
