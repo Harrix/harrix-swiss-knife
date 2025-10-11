@@ -194,6 +194,7 @@ CLI commands after installation:
 - `ruff format` — format the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
 - `vermin src` — determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
+- `npm update`: update packages according to `package.json`.
 
 ### Add a new action
 
