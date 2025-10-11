@@ -107,6 +107,13 @@ class TemplateDialog(QDialog):
             widget.setPlaceholderText(f"Enter {field.name.lower()}")
             return widget
 
+        if field.field_type == "int":
+            widget = QSpinBox()
+            widget.setRange(0, 1000)
+            widget.setSingleStep(1)
+            widget.setValue(0)
+            return widget
+
         if field.field_type == "float":
             widget = QDoubleSpinBox()
             widget.setRange(0.0, 100.0)
@@ -148,6 +155,9 @@ class TemplateDialog(QDialog):
         """
         if field.field_type == "line":
             return widget.text() if isinstance(widget, QLineEdit) else ""
+
+        if field.field_type == "int":
+            return str(widget.value()) if isinstance(widget, QSpinBox) else "0"
 
         if field.field_type == "float":
             return str(widget.value()) if isinstance(widget, QDoubleSpinBox) else "0.0"
@@ -324,6 +334,13 @@ def _create_widget_for_field(self, field: TemplateField) -> QWidget:
             widget.setPlaceholderText(f"Enter {field.name.lower()}")
             return widget
 
+        if field.field_type == "int":
+            widget = QSpinBox()
+            widget.setRange(0, 1000)
+            widget.setSingleStep(1)
+            widget.setValue(0)
+            return widget
+
         if field.field_type == "float":
             widget = QDoubleSpinBox()
             widget.setRange(0.0, 100.0)
@@ -377,6 +394,9 @@ Returns:
 def _get_widget_value(self, field: TemplateField, widget: QWidget) -> str:
         if field.field_type == "line":
             return widget.text() if isinstance(widget, QLineEdit) else ""
+
+        if field.field_type == "int":
+            return str(widget.value()) if isinstance(widget, QSpinBox) else "0"
 
         if field.field_type == "float":
             return str(widget.value()) if isinstance(widget, QDoubleSpinBox) else "0.0"
@@ -516,7 +536,7 @@ Represents a single field in a template.
 Attributes:
 
 - `name` (`str`): The field name (e.g., "Title", "Score").
-- `field_type` (`str`): The field type (e.g., "line", "float", "date", "multiline").
+- `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "multiline").
 - `placeholder` (`str`): The original placeholder text from the template.
 
 <details>
@@ -582,6 +602,7 @@ This class parses templates with placeholders in the format:
 Supported field types:
 
 - line: Single-line text input
+- int: Integer number
 - float: Floating-point number
 - date: Date picker
 - multiline: Multi-line text area
@@ -637,9 +658,9 @@ class TemplateParser:
         fields = []
         seen_names = set()
 
-        for name, field_type in matches:
-            name = name.strip()
-            field_type = field_type.strip().lower()
+        for original_name, original_field_type in matches:
+            name = original_name.strip()
+            field_type = original_field_type.strip().lower()
 
             # Skip duplicate fields
             if name in seen_names:
@@ -718,9 +739,9 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
         fields = []
         seen_names = set()
 
-        for name, field_type in matches:
-            name = name.strip()
-            field_type = field_type.strip().lower()
+        for original_name, original_field_type in matches:
+            name = original_name.strip()
+            field_type = original_field_type.strip().lower()
 
             # Skip duplicate fields
             if name in seen_names:

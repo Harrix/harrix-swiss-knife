@@ -76,6 +76,7 @@ Added the new action to the "New Markdown" menu
 
 - `line` - Single-line text input (QLineEdit)
 - `float` - Floating-point number with spinner (QDoubleSpinBox)
+- `int` - Integer-point number with spinner (QSpinBox)
 - `date` - Date picker with calendar popup (QDateEdit)
 - `multiline` - Multi-line text area (QPlainTextEdit)
 

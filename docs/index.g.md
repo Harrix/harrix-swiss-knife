@@ -103,6 +103,7 @@ _Figure 1: Screenshot_
   - ❞ Quotes. Add author and title
   - 📶 Sort sections in one MD
 - **New Markdown**
+  - 📝 ★ Add markdown from template
   - ✍️ New article
   - 📖 New diary note
   - 💤 New dream note

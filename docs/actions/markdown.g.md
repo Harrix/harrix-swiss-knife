@@ -203,9 +203,37 @@ class OnAddMarkdownFromTemplate(ActionBase):
             if insert_position == "end":
                 new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
             elif insert_position == "start":
-                # Find the end of YAML frontmatter if it exists
+                # Split YAML frontmatter from content
                 yaml_md, content_md = h.md.split_yaml_content(existing_content)
-                if yaml_md:
+
+                # Find the year heading (# 2025 or ## 2025)
+                year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
+
+                if year_match:
+                    # Find the table of contents section
+                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+
+                    if toc_match:
+                        # Insert new entry right after the TOC
+                        toc_end_pos = toc_match.end()
+                        updated_content_md = (
+                            content_md[:toc_end_pos]
+                            + "\n\n"
+                            + result_markdown
+                            + "\n\n"
+                            + content_md[toc_end_pos:].lstrip()
+                        )
+                    else:
+                        # No TOC found, insert after year heading
+                        year_pos = year_match.end()
+                        updated_content_md = (
+                            content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
+                        )
+
+                    # Combine YAML and updated content
+                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                # No year heading found, just insert after YAML frontmatter
+                elif yaml_md:
                     new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
                 else:
                     new_content = result_markdown + "\n\n" + existing_content
@@ -331,9 +359,37 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             if insert_position == "end":
                 new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
             elif insert_position == "start":
-                # Find the end of YAML frontmatter if it exists
+                # Split YAML frontmatter from content
                 yaml_md, content_md = h.md.split_yaml_content(existing_content)
-                if yaml_md:
+
+                # Find the year heading (# 2025 or ## 2025)
+                year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
+
+                if year_match:
+                    # Find the table of contents section
+                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+
+                    if toc_match:
+                        # Insert new entry right after the TOC
+                        toc_end_pos = toc_match.end()
+                        updated_content_md = (
+                            content_md[:toc_end_pos]
+                            + "\n\n"
+                            + result_markdown
+                            + "\n\n"
+                            + content_md[toc_end_pos:].lstrip()
+                        )
+                    else:
+                        # No TOC found, insert after year heading
+                        year_pos = year_match.end()
+                        updated_content_md = (
+                            content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
+                        )
+
+                    # Combine YAML and updated content
+                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                # No year heading found, just insert after YAML frontmatter
+                elif yaml_md:
                     new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
                 else:
                     new_content = result_markdown + "\n\n" + existing_content
