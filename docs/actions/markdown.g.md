@@ -11,52 +11,54 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `OnAddMarkdownFromTemplate`](#%EF%B8%8F-class-onaddmarkdownfromtemplate)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 - [🏛️ Class `OnBeautifyMdFolder`](#%EF%B8%8F-class-onbeautifymdfolder)
   - [⚙️ Method `beautify_markdown_common`](#%EF%B8%8F-method-beautify_markdown_common)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `OnBeautifyMdFolderAndRegenerateGMd`](#%EF%B8%8F-class-onbeautifymdfolderandregenerategmd)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
 - [🏛️ Class `OnCheckMdFolder`](#%EF%B8%8F-class-oncheckmdfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
 - [🏛️ Class `OnDecreaseHeadingLevelContent`](#%EF%B8%8F-class-ondecreaseheadinglevelcontent)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
-- [🏛️ Class `OnDownloadAndReplaceImagesFolder`](#%EF%B8%8F-class-ondownloadandreplaceimagesfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+- [🏛️ Class `OnDownloadAndReplaceImagesFolder`](#%EF%B8%8F-class-ondownloadandreplaceimagesfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
 - [🏛️ Class `OnGenerateShortNoteTocWithLinks`](#%EF%B8%8F-class-ongenerateshortnotetocwithlinks)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-4)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-4)
 - [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
-- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
-- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
+- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
-- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
+- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
-- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
+- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
-- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
+- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
-- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
+- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
-- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
+- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-5)
   - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
   - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
   - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-5)
 - [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
   - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
   - [⚙️ Method `optimize_selected_images_content`](#%EF%B8%8F-method-optimize_selected_images_content)
@@ -64,15 +66,295 @@ lang: en
   - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
 - [🏛️ Class `OnQuotesFormatAsMarkdownContent`](#%EF%B8%8F-class-onquotesformatasmarkdowncontent)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
-- [🏛️ Class `OnQuotesGenerateAuthorAndBook`](#%EF%B8%8F-class-onquotesgenerateauthorandbook)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
+- [🏛️ Class `OnQuotesGenerateAuthorAndBook`](#%EF%B8%8F-class-onquotesgenerateauthorandbook)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
 - [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
+
+</details>
+
+## 🏛️ Class `OnAddMarkdownFromTemplate`
+
+```python
+class OnAddMarkdownFromTemplate(ActionBase)
+```
+
+Add markdown content using template-based forms.
+
+This action provides a flexible template system for adding structured markdown
+elements (movies, series, books, etc.) to files. It:
+
+1. Reads a template file with field placeholders ({{FieldName:FieldType}})
+2. Generates a dynamic form dialog based on the template fields
+3. Collects user input through the form
+4. Fills the template with the provided values
+5. Either returns the markdown text or inserts it into a specified file
+
+Supported field types:
+
+- line: Single-line text input
+- float: Floating-point number (e.g., ratings)
+- date: Date picker
+- multiline: Multi-line text area
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnAddMarkdownFromTemplate(ActionBase):
+
+    icon = "📝"
+    title = "Add markdown from template"
+    bold_title = True
+
+    @ActionBase.handle_exceptions("adding markdown from template")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Get available templates from config
+        templates = self.config.get("markdown_templates", {})
+
+        if not templates:
+            self.add_line("❌ No markdown templates configured in config.json")
+            self.show_result()
+            return
+
+        # Let user choose a template
+        template_names = list(templates.keys())
+        selected_template = self.get_choice_from_list(
+            "Select Template",
+            "Choose a template to use:",
+            template_names,
+        )
+
+        if not selected_template:
+            return
+
+        template_config = templates[selected_template]
+        template_file = template_config.get("template_file")
+
+        if not template_file:
+            self.add_line(f"❌ Template file not specified for '{selected_template}'")
+            self.show_result()
+            return
+
+        # Read template file
+        template_path = Path(template_file)
+        if not template_path.exists():
+            self.add_line(f"❌ Template file not found: {template_file}")
+            self.show_result()
+            return
+
+        with Path.open(template_path, encoding="utf-8") as f:
+            template_content = f.read()
+
+        # Parse template to get fields
+        fields, _ = TemplateParser.parse_template(template_content)
+
+        if not fields:
+            self.add_line(f"❌ No fields found in template: {template_file}")
+            self.show_result()
+            return
+
+        # Show dialog to collect field values
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Add {selected_template.capitalize()}",
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            self.show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            self.show_result()
+            return
+
+        # Fill template with values
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+
+        # Get target file configuration
+        target_file = template_config.get("target_file")
+        insert_position = template_config.get("insert_position", "end")
+
+        if target_file:
+            # Insert into file
+            target_path = Path(target_file)
+
+            if not target_path.exists():
+                self.add_line(f"❌ Target file not found: {target_file}")
+                self.add_line("Generated markdown:")
+                self.add_line(result_markdown)
+                self.show_result()
+                return
+
+            # Read existing file content
+            with Path.open(target_path, encoding="utf-8") as f:
+                existing_content = f.read()
+
+            # Insert new content based on position
+            if insert_position == "end":
+                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+            elif insert_position == "start":
+                # Find the end of YAML frontmatter if it exists
+                yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                if yaml_md:
+                    new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                else:
+                    new_content = result_markdown + "\n\n" + existing_content
+            else:
+                # Default to end
+                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+
+            # Write back to file
+            with Path.open(target_path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+
+            self.add_line(f"✅ Added markdown to {target_file}")
+            self.add_line("\nGenerated markdown:")
+            self.add_line(result_markdown)
+        else:
+            # Just return the text
+            self.add_line("Generated markdown:")
+            self.add_line(result_markdown)
+
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        # Get available templates from config
+        templates = self.config.get("markdown_templates", {})
+
+        if not templates:
+            self.add_line("❌ No markdown templates configured in config.json")
+            self.show_result()
+            return
+
+        # Let user choose a template
+        template_names = list(templates.keys())
+        selected_template = self.get_choice_from_list(
+            "Select Template",
+            "Choose a template to use:",
+            template_names,
+        )
+
+        if not selected_template:
+            return
+
+        template_config = templates[selected_template]
+        template_file = template_config.get("template_file")
+
+        if not template_file:
+            self.add_line(f"❌ Template file not specified for '{selected_template}'")
+            self.show_result()
+            return
+
+        # Read template file
+        template_path = Path(template_file)
+        if not template_path.exists():
+            self.add_line(f"❌ Template file not found: {template_file}")
+            self.show_result()
+            return
+
+        with Path.open(template_path, encoding="utf-8") as f:
+            template_content = f.read()
+
+        # Parse template to get fields
+        fields, _ = TemplateParser.parse_template(template_content)
+
+        if not fields:
+            self.add_line(f"❌ No fields found in template: {template_file}")
+            self.show_result()
+            return
+
+        # Show dialog to collect field values
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Add {selected_template.capitalize()}",
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            self.show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            self.show_result()
+            return
+
+        # Fill template with values
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+
+        # Get target file configuration
+        target_file = template_config.get("target_file")
+        insert_position = template_config.get("insert_position", "end")
+
+        if target_file:
+            # Insert into file
+            target_path = Path(target_file)
+
+            if not target_path.exists():
+                self.add_line(f"❌ Target file not found: {target_file}")
+                self.add_line("Generated markdown:")
+                self.add_line(result_markdown)
+                self.show_result()
+                return
+
+            # Read existing file content
+            with Path.open(target_path, encoding="utf-8") as f:
+                existing_content = f.read()
+
+            # Insert new content based on position
+            if insert_position == "end":
+                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+            elif insert_position == "start":
+                # Find the end of YAML frontmatter if it exists
+                yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                if yaml_md:
+                    new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                else:
+                    new_content = result_markdown + "\n\n" + existing_content
+            else:
+                # Default to end
+                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+
+            # Write back to file
+            with Path.open(target_path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+
+            self.add_line(f"✅ Added markdown to {target_file}")
+            self.add_line("\nGenerated markdown:")
+            self.add_line(result_markdown)
+        else:
+            # Just return the text
+            self.add_line("Generated markdown:")
+            self.add_line(result_markdown)
+
+        self.show_result()
+```
 
 </details>
 

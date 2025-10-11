@@ -111,6 +111,8 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_items(
             self.menu_new_md,
             [
+                hsk.md.OnAddMarkdownFromTemplate,
+                "-",
                 hsk.md.OnNewArticle,
                 hsk.md.OnNewDiary,
                 hsk.md.OnNewDiaryDream,

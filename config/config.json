@@ -126,5 +126,22 @@
     "low": 1800,
     "medium_low": 2100,
     "medium_high": 2500
+  },
+  "markdown_templates": {
+    "movie": {
+      "template_file": "config/template-movie.md",
+      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
+      "insert_position": "end"
+    },
+    "series": {
+      "template_file": "config/template-series.md",
+      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
+      "insert_position": "start"
+    },
+    "book": {
+      "template_file": "config/template-book.md",
+      "target_file": "D:/Dropbox/Notes/Notes-Lists/Books/2025.md",
+      "insert_position": "start"
+    }
   }
 }

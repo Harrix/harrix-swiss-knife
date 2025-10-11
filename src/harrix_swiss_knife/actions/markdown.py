@@ -11,6 +11,146 @@ from typing import Any
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateParser
+
+
+class OnAddMarkdownFromTemplate(ActionBase):
+    """Add markdown content using template-based forms.
+
+    This action provides a flexible template system for adding structured markdown
+    elements (movies, series, books, etc.) to files. It:
+
+    1. Reads a template file with field placeholders ({{FieldName:FieldType}})
+    2. Generates a dynamic form dialog based on the template fields
+    3. Collects user input through the form
+    4. Fills the template with the provided values
+    5. Either returns the markdown text or inserts it into a specified file
+
+    Supported field types:
+    - line: Single-line text input
+    - float: Floating-point number (e.g., ratings)
+    - date: Date picker
+    - multiline: Multi-line text area
+    """
+
+    icon = "📝"
+    title = "Add markdown from template"
+    bold_title = True
+
+    @ActionBase.handle_exceptions("adding markdown from template")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Get available templates from config
+        templates = self.config.get("markdown_templates", {})
+
+        if not templates:
+            self.add_line("❌ No markdown templates configured in config.json")
+            self.show_result()
+            return
+
+        # Let user choose a template
+        template_names = list(templates.keys())
+        selected_template = self.get_choice_from_list(
+            "Select Template",
+            "Choose a template to use:",
+            template_names,
+        )
+
+        if not selected_template:
+            return
+
+        template_config = templates[selected_template]
+        template_file = template_config.get("template_file")
+
+        if not template_file:
+            self.add_line(f"❌ Template file not specified for '{selected_template}'")
+            self.show_result()
+            return
+
+        # Read template file
+        template_path = Path(template_file)
+        if not template_path.exists():
+            self.add_line(f"❌ Template file not found: {template_file}")
+            self.show_result()
+            return
+
+        with Path.open(template_path, encoding="utf-8") as f:
+            template_content = f.read()
+
+        # Parse template to get fields
+        fields, _ = TemplateParser.parse_template(template_content)
+
+        if not fields:
+            self.add_line(f"❌ No fields found in template: {template_file}")
+            self.show_result()
+            return
+
+        # Show dialog to collect field values
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Add {selected_template.capitalize()}",
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            self.show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            self.show_result()
+            return
+
+        # Fill template with values
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+
+        # Get target file configuration
+        target_file = template_config.get("target_file")
+        insert_position = template_config.get("insert_position", "end")
+
+        if target_file:
+            # Insert into file
+            target_path = Path(target_file)
+
+            if not target_path.exists():
+                self.add_line(f"❌ Target file not found: {target_file}")
+                self.add_line("Generated markdown:")
+                self.add_line(result_markdown)
+                self.show_result()
+                return
+
+            # Read existing file content
+            with Path.open(target_path, encoding="utf-8") as f:
+                existing_content = f.read()
+
+            # Insert new content based on position
+            if insert_position == "end":
+                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+            elif insert_position == "start":
+                # Find the end of YAML frontmatter if it exists
+                yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                if yaml_md:
+                    new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                else:
+                    new_content = result_markdown + "\n\n" + existing_content
+            else:
+                # Default to end
+                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+
+            # Write back to file
+            with Path.open(target_path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+
+            self.add_line(f"✅ Added markdown to {target_file}")
+            self.add_line("\nGenerated markdown:")
+            self.add_line(result_markdown)
+        else:
+            # Just return the text
+            self.add_line("Generated markdown:")
+            self.add_line(result_markdown)
+
+        self.show_result()
 
 
 class OnBeautifyMdFolder(ActionBase):
