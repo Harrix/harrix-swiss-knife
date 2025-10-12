@@ -350,9 +350,16 @@ class TemplateParser:
         seen_names = set()
 
         for match in matches:
+            field_type_index = 1
+            default_value_index = 2
+
             name = match[0].strip()
-            field_type = match[1].strip().lower()
-            default_value = match[2].strip() if len(match) > 2 and match[2] else None
+            field_type = match[field_type_index].strip().lower()
+            default_value = (
+                match[default_value_index].strip()
+                if len(match) > default_value_index and match[default_value_index]
+                else None
+            )
 
             # Skip duplicate fields
             if name in seen_names:
