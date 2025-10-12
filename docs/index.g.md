@@ -134,6 +134,7 @@ _Figure 1: Screenshot_
 Install the following software:
 
 - Git
+- Python
 - Cursor or VSCode (with Python extensions)
 - Node.js
 
@@ -158,7 +159,7 @@ Commands for PowerShell.
 
 3. Open the folder `D:/GitHub/harrix-pylib` in Cursor (or VSCode) and open a terminal `Ctrl` + `` ` ``.
 
-4. Install dependencies (`uv sync --upgrade` is optional):
+4. Install dependencies:
 
    ```shell
    uv sync
