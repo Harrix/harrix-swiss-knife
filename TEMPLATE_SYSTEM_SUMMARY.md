@@ -69,16 +69,16 @@ Added the new action to the "New Markdown" menu
 ### Supported Field Types
 
 - `line` - Single-line text input (QLineEdit)
+- `int` - Integer number with spinner (QSpinBox)
 - `float` - Floating-point number with spinner (QDoubleSpinBox)
-- `int` - Integer-point number with spinner (QSpinBox)
 - `date` - Date picker with calendar popup (QDateEdit)
 - `multiline` - Multi-line text area (QPlainTextEdit)
 
 ### Template Format
 
-Fields are defined using the syntax: `{{FieldName:FieldType}}`
+Fields are defined using the syntax: `{{FieldName:FieldType}}` or `{{FieldName:FieldType:DefaultValue}}`
 
-Example:
+**Examples without default values:**
 
 ```markdown
 ## {{Title:line}}: {{Score:float}}
@@ -86,6 +86,24 @@ Example:
 - **Date watching:** {{Date watching:date}}
 - **Comments:** {{Comments:multiline}}
 ```
+
+**Examples with default values:**
+
+```markdown
+## {{Title:line}}: {{Score:float:10}}
+
+- **Season:** {{Season:int:1}}
+- **Date watching:** {{Date watching:date:2025-01-01}}
+- **Comments:** {{Comments:multiline:No comments yet}}
+```
+
+**Supported default value formats:**
+
+- `line` - Any text string
+- `int` - Integer number (e.g., `1`, `5`, `100`)
+- `float` - Decimal number (e.g., `10`, `7.5`, `9.2`)
+- `date` - Date in format `yyyy-MM-dd` (e.g., `2025-01-15`)
+- `multiline` - Any text string (can include spaces)
 
 ### Workflow
 

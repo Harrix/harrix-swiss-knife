@@ -28,9 +28,12 @@ class OnAddMarkdownFromTemplate(ActionBase):
 
     Supported field types:
     - line: Single-line text input
+    - int: Integer number (e.g., season number)
     - float: Floating-point number (e.g., ratings)
     - date: Date picker
     - multiline: Multi-line text area
+
+    Optional default values can be specified: {{FieldName:FieldType:DefaultValue}}
     """
 
     icon = "📝"
