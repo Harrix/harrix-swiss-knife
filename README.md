@@ -366,6 +366,65 @@ Generate `resources_rc.py`:
 pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resources_rc.py
 ```
 
+### Add a new Markdown template (for 📝 Add markdown from template)
+
+#### Quick start
+
+Template system allows adding structured markdown content (movies, books, etc.) through dynamic forms.
+
+Create a new `.md` file in `config/` folder with field placeholders:
+
+```markdown
+## {{Title:line}}: {{Score:float:10}}
+
+- **Date:** {{Date:date}}
+- **URL:** <{{URL:line}}>
+- **Comments:** {{Comments:multiline}}
+```
+
+Add template configuration to `config/config.json`:
+
+```json
+"markdown_templates": {
+  "your-template-name": {
+    "template_file": "config/template-your-name.md",
+    "target_file": "D:/path/to/target-file.md",
+    "insert_position": "start"
+  }
+}
+```
+
+Options:
+
+- `template_file` — Path to template file
+- `target_file` — Target markdown file (optional, if omitted - just returns text)
+- `insert_position` — `"start"` (after TOC) or `"end"` (default)
+
+#### Supported Field Types
+
+Syntax:
+
+```text
+{{FieldName:FieldType}}
+{{FieldName:FieldType:DefaultValue}}
+```
+
+Available Types:
+
+| Type        | Widget                 | Example                  | Default Value Example                |
+| ----------- | ---------------------- | ------------------------ | ------------------------------------ |
+| `line`      | Single-line text input | `{{Title:line}}`         | `{{Title:line:Untitled}}`            |
+| `int`       | Integer spinner        | `{{Season:int}}`         | `{{Season:int:1}}`                   |
+| `float`     | Decimal spinner        | `{{Score:float}}`        | `{{Score:float:10}}`                 |
+| `date`      | Date picker            | `{{Date:date}}`          | `{{Date:date:2025-01-01}}`           |
+| `multiline` | Text area              | `{{Comments:multiline}}` | `{{Comments:multiline:No comments}}` |
+
+Notes:
+
+- Float values that are whole numbers are formatted without decimals (`11.0` → `11`)
+- Date format: `yyyy-MM-dd`
+- Default values are optional
+
 </details>
 
 ## 🔗 Create a shortcut
