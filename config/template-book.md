@@ -1,4 +1,4 @@
-## {{Title:line}}: {{Score:float:10}}
+## {{Title:line}} ({{Author:line}}): {{Score:float:10}}
 
 - **Title in English:** {{Title in English:line}}
 - **Author's name in English:** {{Author's name in English:line}}
