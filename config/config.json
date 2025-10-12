@@ -4,9 +4,32 @@
   "beginning_of_md_docs": "snippet:config/beginning-of-md-docs.md",
   "block_drives": ["E", "F"],
   "cli_commands": "snippet:config/cli-commands.md",
-  "editor-notes": "code-insiders",
+  "compact_mode": false,
   "editor": "cursor",
+  "editor-notes": "code-insiders",
+  "food_calorie_thresholds": {
+    "low": 1800,
+    "medium_high": 2500,
+    "medium_low": 2100
+  },
   "github_user": "Harrix",
+  "markdown_templates": {
+    "Book": {
+      "insert_position": "start",
+      "target_file": "D:/Dropbox/Notes/Notes-Lists/Books/2025.md",
+      "template_file": "config/template-book.md"
+    },
+    "Movie": {
+      "insert_position": "end",
+      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
+      "template_file": "config/template-movie.md"
+    },
+    "Movie: series": {
+      "insert_position": "start",
+      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
+      "template_file": "config/template-series.md"
+    }
+  },
   "npm_packages": ["npm-check-updates", "prettier"],
   "path_3d": "D:/Downloads",
   "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
@@ -17,37 +40,6 @@
   "path_notes": "D:/Dropbox/Notes",
   "path_py_projects": "C:/Users/sergi/OneDrive/Projects/Python",
   "path_quotes": "D:/Dropbox/Notes/Notes/Quotes",
-  "paths_combine_for_ai": [
-    {
-      "name": "harrix-swiss-knife - finance",
-      "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/recover.sql",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/*.py"
-      ]
-    },
-    {
-      "name": "harrix-swiss-knife - food",
-      "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/recover.sql",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/*.py"
-      ]
-    },
-    {
-      "name": "harrix-swiss-knife - fitness",
-      "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/recover.sql",
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/*.py"
-      ]
-    },
-    {
-      "name": "harrix-swiss-knife - all Python files in apps",
-      "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"]
-    }
-  ],
   "paths_camera_uploads": [
     "D:/Dropbox/Camera Uploads",
     "D:/Dropbox/Camera Uploads/3d_printing",
@@ -67,17 +59,43 @@
     "D:/Dropbox/Camera Uploads/info",
     "D:/Dropbox/Camera Uploads/video"
   ],
+  "paths_combine_for_ai": [
+    {
+      "base_folder": "D:/GitHub/harrix-swiss-knife",
+      "files": [
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/recover.sql",
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/*.py"
+      ],
+      "name": "harrix-swiss-knife - finance"
+    },
+    {
+      "base_folder": "D:/GitHub/harrix-swiss-knife",
+      "files": [
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/recover.sql",
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/food/*.py"
+      ],
+      "name": "harrix-swiss-knife - food"
+    },
+    {
+      "base_folder": "D:/GitHub/harrix-swiss-knife",
+      "files": [
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/recover.sql",
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/fitness/*.py"
+      ],
+      "name": "harrix-swiss-knife - fitness"
+    },
+    {
+      "base_folder": "D:/GitHub/harrix-swiss-knife",
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"],
+      "name": "harrix-swiss-knife - all Python files in apps"
+    }
+  ],
   "paths_git": [
     "D:/Dropbox/Notes/Notes",
     "D:/Dropbox/Notes/Notes-Lists",
     "D:/Dropbox/Notes/Notes-External",
     "D:/GitHub/harrix-swiss-knife",
     "D:/GitHub/harrix-pylib"
-  ],
-  "paths_notes_for_summaries": [
-    "D:/Dropbox/Notes/Notes-Lists/Movies",
-    "D:/Dropbox/Notes/Notes-Lists/Books",
-    "D:/Dropbox/Notes/Notes-Lists/Books-of-nonfiction"
   ],
   "paths_notes": [
     "D:/Dropbox/Notes",
@@ -94,9 +112,14 @@
     "D:/GitHub/harrix-swiss-knife",
     "D:/GitHub/harrix-pylib"
   ],
+  "paths_notes_for_summaries": [
+    "D:/Dropbox/Notes/Notes-Lists/Movies",
+    "D:/Dropbox/Notes/Notes-Lists/Books",
+    "D:/Dropbox/Notes/Notes-Lists/Books-of-nonfiction"
+  ],
+  "paths_python_libraries": ["D:/GitHub/harrix-pylib"],
   "paths_python_project_creation": ["C:/Users/sergi/OneDrive/Projects/Python", "D:/GitHub"],
   "paths_python_projects": ["D:/GitHub/harrix-swiss-knife", "D:/GitHub/harrix-pylib"],
-  "paths_python_libraries": ["D:/GitHub/harrix-pylib"],
   "paths_with_featured_image": [
     "D:/Dropbox/IT/3D printer/Models/Print",
     "D:/Dropbox/IT/3D printer/Models/Printed",
@@ -115,33 +138,10 @@
     "D:/Dropbox/IT/3D printer/Models - Science/Unprinted"
   ],
   "pypi_token": "snippet:config/pypi-token.txt",
-  "start_pattern_py_projects": "python-project-",
-  "sqlite_fitness": "D:/Dropbox/Databases/fitness.db",
-  "sqlite_finance": "D:/Dropbox/Databases/finance.db",
-  "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
-  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
   "show_main_window_on_startup": false,
-  "compact_mode": false,
-  "food_calorie_thresholds": {
-    "low": 1800,
-    "medium_low": 2100,
-    "medium_high": 2500
-  },
-  "markdown_templates": {
-    "Movie": {
-      "template_file": "config/template-movie.md",
-      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
-      "insert_position": "end"
-    },
-    "Movie: series": {
-      "template_file": "config/template-series.md",
-      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
-      "insert_position": "start"
-    },
-    "Book": {
-      "template_file": "config/template-book.md",
-      "target_file": "D:/Dropbox/Notes/Notes-Lists/Books/2025.md",
-      "insert_position": "start"
-    }
-  }
+  "sqlite_finance": "D:/Dropbox/Databases/finance.db",
+  "sqlite_fitness": "D:/Dropbox/Databases/fitness.db",
+  "start_pattern_py_projects": "python-project-",
+  "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
+  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace"
 }
