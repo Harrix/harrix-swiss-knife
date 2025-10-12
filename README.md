@@ -19,6 +19,9 @@
   - [CLI commands](#cli-commands)
   - [Add a new action](#add-a-new-action)
   - [Add file to a resource file](#add-file-to-a-resource-file)
+  - [Add a new Markdown template (for 📝 Add markdown from template)](#add-a-new-markdown-template-for--add-markdown-from-template)
+    - [Quick start](#quick-start)
+    - [Supported Field Types](#supported-field-types)
 - [🔗 Create a shortcut](#-create-a-shortcut)
 - [📄 License](#-license)
 
@@ -127,11 +130,18 @@ Install the following software:
 - Git
 - Cursor or VSCode (with Python extensions)
 - Node.js
-- [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md))
 
 ### Installation steps
 
-1. Clone project:
+Commands for PowerShell.
+
+1. Install [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md)):
+
+   ```shell
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+
+2. Restart PowerShell and clone projects:
 
    ```shell
    mkdir D:/GitHub
@@ -140,29 +150,31 @@ Install the following software:
    git clone https://github.com/Harrix/harrix-swiss-knife.git
    ```
 
-2. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode).
-
-3. Open a terminal `Ctrl` + `` ` ``.
+3. Open the folder `D:/GitHub/harrix-pylib` in Cursor (or VSCode) and open a terminal `Ctrl` + `` ` ``.
 
 4. Install dependencies (`uv sync --upgrade` is optional):
 
    ```shell
    uv sync
-   uv add --editable ../harrix-pylib
-   uv sync --upgrade
-   npm i
-   npm i -g npm-check-updates prettier
    ```
 
-   Alternatively, instead of the two previous commands, run `Dev` → `Install/Update global NPM packages`.
+5. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode) and open a terminal `Ctrl` + `` ` ``.
 
-5. Download required executables:
+6. Install dependencies:
+
+   ```shell
+   uv sync
+   npm i
+   npm i -g prettier
+   ```
+
+7. Download required executables:
    - **ffmpeg.exe**: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
    - **libavif executables** (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
 
    Copy all executables to the project folder `D:/GitHub/harrix-swiss-knife`.
 
-6. Run the application:
+8. Run the application:
    Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
 
 ### Running from command line

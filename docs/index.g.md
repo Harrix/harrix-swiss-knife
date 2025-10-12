@@ -25,6 +25,9 @@ lang: en
   - [CLI commands](#cli-commands)
   - [Add a new action](#add-a-new-action)
   - [Add file to a resource file](#add-file-to-a-resource-file)
+  - [Add a new Markdown template (for 📝 Add markdown from template)](#add-a-new-markdown-template-for--add-markdown-from-template)
+    - [Quick start](#quick-start)
+    - [Supported Field Types](#supported-field-types)
 - [🔗 Create a shortcut](#-create-a-shortcut)
 - [📄 License](#-license)
 
@@ -133,11 +136,18 @@ Install the following software:
 - Git
 - Cursor or VSCode (with Python extensions)
 - Node.js
-- [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md))
 
 ### Installation steps
 
-1. Clone project:
+Commands for PowerShell.
+
+1. Install [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md)):
+
+   ```shell
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+
+2. Restart PowerShell and clone projects:
 
    ```shell
    mkdir D:/GitHub
@@ -146,29 +156,31 @@ Install the following software:
    git clone https://github.com/Harrix/harrix-swiss-knife.git
    ```
 
-2. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode).
-
-3. Open a terminal `Ctrl` + `` ` ``.
+3. Open the folder `D:/GitHub/harrix-pylib` in Cursor (or VSCode) and open a terminal `Ctrl` + `` ` ``.
 
 4. Install dependencies (`uv sync --upgrade` is optional):
 
    ```shell
    uv sync
-   uv add --editable ../harrix-pylib
-   uv sync --upgrade
-   npm i
-   npm i -g npm-check-updates prettier
    ```
 
-   Alternatively, instead of the two previous commands, run `Dev` → `Install/Update global NPM packages`.
+5. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode) and open a terminal `Ctrl` + `` ` ``.
 
-5. Download required executables:
+6. Install dependencies:
+
+   ```shell
+   uv sync
+   npm i
+   npm i -g prettier
+   ```
+
+7. Download required executables:
    - **ffmpeg.exe**: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
    - **libavif executables** (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
 
    Copy all executables to the project folder `D:/GitHub/harrix-swiss-knife`.
 
-6. Run the application:
+8. Run the application:
    Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
 
 ### Running from command line
@@ -371,6 +383,65 @@ Generate `resources_rc.py`:
 ```shell
 pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resources_rc.py
 ```
+
+### Add a new Markdown template (for 📝 Add markdown from template)
+
+#### Quick start
+
+Template system allows adding structured markdown content (movies, books, etc.) through dynamic forms.
+
+Create a new `.md` file in `config/` folder with field placeholders:
+
+```markdown
+## {{Title:line}}: {{Score:float:10}}
+
+- **Date:** {{Date:date}}
+- **URL:** <{{URL:line}}>
+- **Comments:** {{Comments:multiline}}
+```
+
+Add template configuration to `config/config.json`:
+
+```json
+"markdown_templates": {
+  "your-template-name": {
+    "template_file": "config/template-your-name.md",
+    "target_file": "D:/path/to/target-file.md",
+    "insert_position": "start"
+  }
+}
+```
+
+Options:
+
+- `template_file` — Path to template file
+- `target_file` — Target markdown file (optional, if omitted - just returns text)
+- `insert_position` — `"start"` (after TOC) or `"end"` (default)
+
+#### Supported Field Types
+
+Syntax:
+
+```text
+{{FieldName:FieldType}}
+{{FieldName:FieldType:DefaultValue}}
+```
+
+Available Types:
+
+| Type        | Widget                 | Example                  | Default Value Example                |
+| ----------- | ---------------------- | ------------------------ | ------------------------------------ |
+| `line`      | Single-line text input | `{{Title:line}}`         | `{{Title:line:Untitled}}`            |
+| `int`       | Integer spinner        | `{{Season:int}}`         | `{{Season:int:1}}`                   |
+| `float`     | Decimal spinner        | `{{Score:float}}`        | `{{Score:float:10}}`                 |
+| `date`      | Date picker            | `{{Date:date}}`          | `{{Date:date:2025-01-01}}`           |
+| `multiline` | Text area              | `{{Comments:multiline}}` | `{{Comments:multiline:No comments}}` |
+
+Notes:
+
+- Float values that are whole numbers are formatted without decimals (`11.0` → `11`)
+- Date format: `yyyy-MM-dd`
+- Default values are optional
 
 </details>
 
