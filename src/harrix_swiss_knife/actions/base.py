@@ -310,7 +310,7 @@ class ActionBase:
         return Path(folder_path)
 
     def get_folder_with_choice_option(
-        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "📚 Choice a folder …"
+        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "📁 Select folder …"
     ) -> Path | None:
         """Open a dialog to select a folder from a predefined list or browse for a new one.
 
@@ -322,7 +322,7 @@ class ActionBase:
         - `title` (`str`): The title for both the list dialog and file dialog.
         - `folders_list` (`list[str]`): List of predefined folder paths to choose from.
         - `default_path` (`str`): Default directory for the file dialog if browse option is selected.
-        - `choice_text` (`str`): Text for the browse option. Defaults to `"📁 Choice a folder …"`.
+        - `choice_text` (`str`): Text for the browse option. Defaults to `"📁 Select folder …"`.
 
         Returns:
 

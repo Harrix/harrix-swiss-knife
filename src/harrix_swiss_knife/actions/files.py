@@ -23,7 +23,7 @@ class OnAllFilesToParentFolder(ActionBase):
     @ActionBase.handle_exceptions("moving files to parent folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -66,7 +66,7 @@ class OnCheckFeaturedImage(ActionBase):
     @ActionBase.handle_exceptions("checking featured image")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -244,7 +244,7 @@ class OnExtractZipArchives(ActionBase):
     @ActionBase.handle_exceptions("extracting ZIP archives")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder with ZIP archives", self.config["path_3d"])
+        self.folder_path = self.get_existing_directory("Select folder with ZIP archives", self.config["path_3d"])
         if self.folder_path is None:
             return
 
@@ -281,7 +281,7 @@ class OnListFilesCurrentFolder(ActionBase):
     @ActionBase.handle_exceptions("generating current folder file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -306,7 +306,7 @@ class OnListFilesSimple(ActionBase):
     @ActionBase.handle_exceptions("generating file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -348,7 +348,7 @@ class OnRemoveEmptyFolders(ActionBase):
     @ActionBase.handle_exceptions("removing empty folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder to clean empty folders", self.config["path_3d"])
+        self.folder_path = self.get_existing_directory("Select folder to clean empty folders", self.config["path_3d"])
         if self.folder_path is None:
             return
 
@@ -393,7 +393,7 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
-            "Select a folder with FB2, Epub, PDF files", self.config["path_books"]
+            "Select folder with FB2, Epub, PDF files", self.config["path_books"]
         )
         if self.folder_path is None:
             return
@@ -459,7 +459,7 @@ class OnRenameFilesByMapping(ActionBase):
     @ActionBase.handle_exceptions("renaming files by mapping")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder to rename files", self.config["path_3d"])
+        self.folder_path = self.get_existing_directory("Select folder to rename files", self.config["path_3d"])
         if self.folder_path is None:
             return
 
@@ -561,7 +561,7 @@ class OnRenameLargestImagesToFeaturedImage(ActionBase):
     @ActionBase.handle_exceptions("renaming largest images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -680,7 +680,7 @@ class OnTreeViewFolder(ActionBase):
     @ActionBase.handle_exceptions("generating tree view")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select a folder", self.config["path_3d"])
+        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 

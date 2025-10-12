@@ -262,7 +262,7 @@ class OnOptimizeDialogReplace(OnOptimize):
     @ActionBase.handle_exceptions("folder image optimization with replacement")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select a folder", self.config["path_articles"])
+        self.folder_path = self.get_existing_directory("Select folder", self.config["path_articles"])
         if not self.folder_path:
             return
 
