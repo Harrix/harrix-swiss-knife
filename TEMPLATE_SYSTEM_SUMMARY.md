@@ -102,6 +102,7 @@ Fields are defined using the syntax: `{{FieldName:FieldType}}` or `{{FieldName:F
 - `line` - Any text string
 - `int` - Integer number (e.g., `1`, `5`, `100`)
 - `float` - Decimal number (e.g., `10`, `7.5`, `9.2`)
+  - Note: If the entered value is a whole number (e.g., `11.0`), it will be formatted as an integer (`11`)
 - `date` - Date in format `yyyy-MM-dd` (e.g., `2025-01-15`)
 - `multiline` - Any text string (can include spaces)
 
