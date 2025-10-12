@@ -64,7 +64,7 @@ class OnCheckPythonFolder(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_github"]
+            "Select folder with PY files", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -107,7 +107,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with PY files", self.config["paths_python_projects"], self.config["path_github"]
+            "Select folder with PY files", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -1035,7 +1035,7 @@ class OnUpdateUvDependencies(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Python project", self.config["paths_python_projects"], self.config["path_github"]
+            "Select folder with Python project", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -1075,7 +1075,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Python project", self.config["paths_python_projects"], self.config["path_github"]
+            "Select folder with Python project", self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return

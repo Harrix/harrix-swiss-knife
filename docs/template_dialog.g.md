@@ -104,14 +104,23 @@ class TemplateDialog(QDialog):
         """
         if field.field_type == "line":
             widget = QLineEdit()
-            widget.setPlaceholderText(f"Enter {field.name.lower()}")
+            if field.default_value:
+                widget.setText(field.default_value)
+            else:
+                widget.setPlaceholderText(f"Enter {field.name.lower()}")
             return widget
 
         if field.field_type == "int":
             widget = QSpinBox()
             widget.setRange(0, 1000)
             widget.setSingleStep(1)
-            widget.setValue(0)
+            if field.default_value:
+                try:
+                    widget.setValue(int(field.default_value))
+                except ValueError:
+                    widget.setValue(0)
+            else:
+                widget.setValue(0)
             return widget
 
         if field.field_type == "float":
@@ -119,25 +128,48 @@ class TemplateDialog(QDialog):
             widget.setRange(0.0, 100.0)
             widget.setDecimals(1)
             widget.setSingleStep(0.5)
-            widget.setValue(0.0)
+            if field.default_value:
+                try:
+                    widget.setValue(float(field.default_value))
+                except ValueError:
+                    widget.setValue(0.0)
+            else:
+                widget.setValue(0.0)
             return widget
 
         if field.field_type == "date":
             widget = QDateEdit()
             widget.setCalendarPopup(True)
-            widget.setDate(QDate.currentDate())
             widget.setDisplayFormat("yyyy-MM-dd")
+            if field.default_value:
+                try:
+                    # Try to parse the date string
+                    date_obj = QDate.fromString(field.default_value, "yyyy-MM-dd")
+                    if date_obj.isValid():
+                        widget.setDate(date_obj)
+                    else:
+                        widget.setDate(QDate.currentDate())
+                except Exception:
+                    widget.setDate(QDate.currentDate())
+            else:
+                widget.setDate(QDate.currentDate())
             return widget
 
         if field.field_type == "multiline":
             widget = QPlainTextEdit()
-            widget.setPlaceholderText(f"Enter {field.name.lower()}")
+            if field.default_value:
+                widget.setPlainText(field.default_value)
+            else:
+                widget.setPlaceholderText(f"Enter {field.name.lower()}")
             widget.setMinimumHeight(100)
             return widget
 
         # Default to line edit for unknown types
         widget = QLineEdit()
-        widget.setPlaceholderText(f"Enter {field.name.lower()}")
+        if field.default_value:
+            widget.setText(field.default_value)
+        else:
+            widget.setPlaceholderText(f"Enter {field.name.lower()}")
         return widget
 
     def _get_widget_value(self, field: TemplateField, widget: QWidget) -> str:
@@ -331,14 +363,23 @@ Returns:
 def _create_widget_for_field(self, field: TemplateField) -> QWidget:
         if field.field_type == "line":
             widget = QLineEdit()
-            widget.setPlaceholderText(f"Enter {field.name.lower()}")
+            if field.default_value:
+                widget.setText(field.default_value)
+            else:
+                widget.setPlaceholderText(f"Enter {field.name.lower()}")
             return widget
 
         if field.field_type == "int":
             widget = QSpinBox()
             widget.setRange(0, 1000)
             widget.setSingleStep(1)
-            widget.setValue(0)
+            if field.default_value:
+                try:
+                    widget.setValue(int(field.default_value))
+                except ValueError:
+                    widget.setValue(0)
+            else:
+                widget.setValue(0)
             return widget
 
         if field.field_type == "float":
@@ -346,25 +387,48 @@ def _create_widget_for_field(self, field: TemplateField) -> QWidget:
             widget.setRange(0.0, 100.0)
             widget.setDecimals(1)
             widget.setSingleStep(0.5)
-            widget.setValue(0.0)
+            if field.default_value:
+                try:
+                    widget.setValue(float(field.default_value))
+                except ValueError:
+                    widget.setValue(0.0)
+            else:
+                widget.setValue(0.0)
             return widget
 
         if field.field_type == "date":
             widget = QDateEdit()
             widget.setCalendarPopup(True)
-            widget.setDate(QDate.currentDate())
             widget.setDisplayFormat("yyyy-MM-dd")
+            if field.default_value:
+                try:
+                    # Try to parse the date string
+                    date_obj = QDate.fromString(field.default_value, "yyyy-MM-dd")
+                    if date_obj.isValid():
+                        widget.setDate(date_obj)
+                    else:
+                        widget.setDate(QDate.currentDate())
+                except Exception:
+                    widget.setDate(QDate.currentDate())
+            else:
+                widget.setDate(QDate.currentDate())
             return widget
 
         if field.field_type == "multiline":
             widget = QPlainTextEdit()
-            widget.setPlaceholderText(f"Enter {field.name.lower()}")
+            if field.default_value:
+                widget.setPlainText(field.default_value)
+            else:
+                widget.setPlaceholderText(f"Enter {field.name.lower()}")
             widget.setMinimumHeight(100)
             return widget
 
         # Default to line edit for unknown types
         widget = QLineEdit()
-        widget.setPlaceholderText(f"Enter {field.name.lower()}")
+        if field.default_value:
+            widget.setText(field.default_value)
+        else:
+            widget.setPlaceholderText(f"Enter {field.name.lower()}")
         return widget
 ```
 
@@ -538,6 +602,7 @@ Attributes:
 - `name` (`str`): The field name (e.g., "Title", "Score").
 - `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "multiline").
 - `placeholder` (`str`): The original placeholder text from the template.
+- `default_value` (`str | None`): Optional default value for the field.
 
 <details>
 <summary>Code:</summary>
@@ -545,7 +610,7 @@ Attributes:
 ```python
 class TemplateField:
 
-    def __init__(self, name: str, field_type: str, placeholder: str) -> None:
+    def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None) -> None:
         """Initialize a template field.
 
         Args:
@@ -553,11 +618,13 @@ class TemplateField:
         - `name` (`str`): The field name.
         - `field_type` (`str`): The field type.
         - `placeholder` (`str`): The original placeholder text.
+        - `default_value` (`str | None`): Optional default value. Defaults to `None`.
 
         """
         self.name = name
         self.field_type = field_type
         self.placeholder = placeholder
+        self.default_value = default_value
 ```
 
 </details>
@@ -565,7 +632,7 @@ class TemplateField:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, name: str, field_type: str, placeholder: str) -> None
+def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None) -> None
 ```
 
 Initialize a template field.
@@ -575,15 +642,17 @@ Args:
 - `name` (`str`): The field name.
 - `field_type` (`str`): The field type.
 - `placeholder` (`str`): The original placeholder text.
+- `default_value` (`str | None`): Optional default value. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, name: str, field_type: str, placeholder: str) -> None:
+def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None) -> None:
         self.name = name
         self.field_type = field_type
         self.placeholder = placeholder
+        self.default_value = default_value
 ```
 
 </details>
@@ -651,16 +720,24 @@ class TemplateParser:
           - The original template content
 
         """
-        # Pattern to match {{FieldName:FieldType}}
-        pattern = r"\{\{([^:{}]+):([^:{}]+)\}\}"
+        # Pattern to match {{FieldName:FieldType}} or {{FieldName:FieldType:DefaultValue}}
+        pattern = r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}"
         matches = re.findall(pattern, template_content)
 
         fields = []
         seen_names = set()
 
-        for original_name, original_field_type in matches:
-            name = original_name.strip()
-            field_type = original_field_type.strip().lower()
+        for match in matches:
+            field_type_index = 1
+            default_value_index = 2
+
+            name = match[0].strip()
+            field_type = match[field_type_index].strip().lower()
+            default_value = (
+                match[default_value_index].strip()
+                if len(match) > default_value_index and match[default_value_index]
+                else None
+            )
 
             # Skip duplicate fields
             if name in seen_names:
@@ -668,7 +745,7 @@ class TemplateParser:
 
             seen_names.add(name)
             placeholder = f"{{{{{name}:{field_type}}}}}"
-            fields.append(TemplateField(name, field_type, placeholder))
+            fields.append(TemplateField(name, field_type, placeholder, default_value))
 
         return fields, template_content
 ```
@@ -732,16 +809,24 @@ Returns:
 
 ```python
 def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
-        # Pattern to match {{FieldName:FieldType}}
-        pattern = r"\{\{([^:{}]+):([^:{}]+)\}\}"
+        # Pattern to match {{FieldName:FieldType}} or {{FieldName:FieldType:DefaultValue}}
+        pattern = r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}"
         matches = re.findall(pattern, template_content)
 
         fields = []
         seen_names = set()
 
-        for original_name, original_field_type in matches:
-            name = original_name.strip()
-            field_type = original_field_type.strip().lower()
+        for match in matches:
+            field_type_index = 1
+            default_value_index = 2
+
+            name = match[0].strip()
+            field_type = match[field_type_index].strip().lower()
+            default_value = (
+                match[default_value_index].strip()
+                if len(match) > default_value_index and match[default_value_index]
+                else None
+            )
 
             # Skip duplicate fields
             if name in seen_names:
@@ -749,7 +834,7 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
 
             seen_names.add(name)
             placeholder = f"{{{{{name}:{field_type}}}}}"
-            fields.append(TemplateField(name, field_type, placeholder))
+            fields.append(TemplateField(name, field_type, placeholder, default_value))
 
         return fields, template_content
 ```

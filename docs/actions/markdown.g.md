@@ -98,9 +98,12 @@ elements (movies, series, books, etc.) to files. It:
 Supported field types:
 
 - line: Single-line text input
+- int: Integer number (e.g., season number)
 - float: Floating-point number (e.g., ratings)
 - date: Date picker
 - multiline: Multi-line text area
+
+Optional default values can be specified: {{FieldName:FieldType:DefaultValue}}
 
 <details>
 <summary>Code:</summary>
@@ -523,7 +526,7 @@ class OnBeautifyMdFolder(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
         )
         if not self.folder_path:
             return
@@ -650,7 +653,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
         )
         if not self.folder_path:
             return
@@ -735,7 +738,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
         )
         if not self.folder_path:
             return
@@ -773,7 +776,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
         )
         if not self.folder_path:
             return
@@ -844,7 +847,7 @@ class OnCheckMdFolder(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
         )
         if not self.folder_path:
             return
@@ -887,7 +890,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select a folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
         )
         if not self.folder_path:
             return
@@ -1031,7 +1034,7 @@ class OnDownloadAndReplaceImagesFolder(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
+            "Select folder with Markdown files", self.config["path_articles"]
         )
         if not self.folder_path:
             return
@@ -1068,7 +1071,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
+            "Select folder with Markdown files", self.config["path_articles"]
         )
         if not self.folder_path:
             return
@@ -1740,7 +1743,7 @@ class OnOptimizeImagesFolder(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
+            "Select folder with Markdown files", self.config["path_articles"]
         )
         if not self.folder_path:
             return
@@ -2003,7 +2006,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_existing_directory(
-            "Select a folder with Markdown files", self.config["path_articles"]
+            "Select folder with Markdown files", self.config["path_articles"]
         )
         if not self.folder_path:
             return
@@ -3112,7 +3115,7 @@ After processing:
 ```
 
 """)
-self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
+self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
 if not self.folder_path:
 return
 
@@ -3189,7 +3192,7 @@ After processing:
 ```
 
 """)
-self.folder_path = self.get_existing_directory("Select a folder with quotes", self.config["path_quotes"])
+self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
 if not self.folder_path:
 return
 
