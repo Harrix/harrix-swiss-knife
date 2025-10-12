@@ -192,7 +192,13 @@ class TemplateDialog(QDialog):
             return str(widget.value()) if isinstance(widget, QSpinBox) else "0"
 
         if field.field_type == "float":
-            return str(widget.value()) if isinstance(widget, QDoubleSpinBox) else "0.0"
+            if isinstance(widget, QDoubleSpinBox):
+                value = widget.value()
+                # If the value is a whole number, return it without decimal part
+                if value == int(value):
+                    return str(int(value))
+                return str(value)
+            return "0.0"
 
         if field.field_type == "date":
             if isinstance(widget, QDateEdit):
@@ -463,7 +469,13 @@ def _get_widget_value(self, field: TemplateField, widget: QWidget) -> str:
             return str(widget.value()) if isinstance(widget, QSpinBox) else "0"
 
         if field.field_type == "float":
-            return str(widget.value()) if isinstance(widget, QDoubleSpinBox) else "0.0"
+            if isinstance(widget, QDoubleSpinBox):
+                value = widget.value()
+                # If the value is a whole number, return it without decimal part
+                if value == int(value):
+                    return str(int(value))
+                return str(value)
+            return "0.0"
 
         if field.field_type == "date":
             if isinstance(widget, QDateEdit):
