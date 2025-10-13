@@ -92,7 +92,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnDecreaseHeadingLevelContent,
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
-                hsk.md.OnQuotesFormatAsMarkdownContent,
+                hsk.md.OnQuotesProcess,
                 "-",
                 hsk.md.OnBeautifyMdFolder,
                 hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
@@ -101,7 +101,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnGenerateShortNoteTocWithLinks,
                 hsk.md.OnOptimizeImagesFolder,
                 hsk.md.OnOptimizeSelectedImages,
-                hsk.md.OnQuotesGenerateAuthorAndBook,
                 hsk.md.OnSortSections,
             ],
         )

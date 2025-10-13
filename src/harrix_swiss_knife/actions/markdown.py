@@ -1232,15 +1232,41 @@ class OnOptimizeSelectedImages(ActionBase):
         self.show_result()
 
 
-class OnQuotesFormatAsMarkdownContent(ActionBase):
-    """Format plain text quotes into properly structured Markdown."""
+class OnQuotesProcess(ActionBase):
+    """Process quotes with different formatting options.
+
+    This action provides two quote processing options:
+    1. Format plain text quotes into properly structured Markdown content
+    2. Process quote files in a folder to add author and book information
+    """
 
     icon = "❞"
-    title = "Quotes. Format quotes as Markdown content"
+    title = "Quotes. Process"
 
-    @ActionBase.handle_exceptions("formatting quotes as markdown")
+    @ActionBase.handle_exceptions("processing quotes")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
+        # Let user choose processing mode
+        options = [
+            "Format quotes as Markdown content",
+            "Add author and title to quote files",
+        ]
+        selected_option = self.get_choice_from_list(
+            "Select Quote Processing Mode",
+            "Choose how you want to process quotes:",
+            options,
+        )
+
+        if not selected_option:
+            return
+
+        if selected_option == options[0]:
+            self.execute_format_as_markdown()
+        elif selected_option == options[1]:
+            self.execute_add_author_and_title()
+
+    def execute_format_as_markdown(self) -> None:
+        """Format plain text quotes into properly structured Markdown."""
         default_text = """They can get a big bang out of buying a blanket.
 
 The Catcher in the Rye
@@ -1260,21 +1286,8 @@ J.D. Salinger"""
         self.add_line(result)
         self.show_result()
 
-
-class OnQuotesGenerateAuthorAndBook(ActionBase):
-    """Process quote files to add author and book information.
-
-    This action traverses a folder of quote Markdown files and processes each file
-    to generate or update author and book information based on the content structure.
-    Useful for maintaining a consistent format in a collection of literary quotes.
-    """
-
-    icon = "❞"
-    title = "Quotes. Add author and title"
-
-    @ActionBase.handle_exceptions("generating author and book information")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+    def execute_add_author_and_title(self) -> None:
+        """Process quote files to add author and book information."""
         self.show_instructions("""Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
 
 ```markdown
@@ -1319,7 +1332,7 @@ After processing:
         if not self.folder_path:
             return
 
-        self.start_thread(self.in_thread, self.thread_after, self.title)
+        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
 
     @ActionBase.handle_exceptions("generating author book thread")
     def in_thread(self) -> str | None:
@@ -1332,7 +1345,7 @@ After processing:
     @ActionBase.handle_exceptions("generating author book thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
         self.show_result()
 
 
