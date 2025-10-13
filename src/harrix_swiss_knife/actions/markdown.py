@@ -11,7 +11,7 @@ from typing import Any
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateParser
+from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateField, TemplateParser
 
 
 class OnAddMarkdownFromTemplate(ActionBase):
@@ -1236,9 +1236,10 @@ class OnOptimizeSelectedImages(ActionBase):
 class OnQuotesProcess(ActionBase):
     """Process quotes with different formatting options.
 
-    This action provides two quote processing options:
+    This action provides three quote processing options:
     1. Format plain text quotes into properly structured Markdown content
-    2. Process quote files in a folder to add author and book information
+    2. Format quotes with specified author and book title
+    3. Process quote files in a folder to add author and book information
     """
 
     icon = "❞"
@@ -1250,6 +1251,7 @@ class OnQuotesProcess(ActionBase):
         # Let user choose processing mode
         options = [
             "Format quotes as Markdown content",
+            "Format quotes with author and book",
             "Add author and title to quote files",
         ]
         selected_option = self.get_choice_from_list(
@@ -1264,28 +1266,9 @@ class OnQuotesProcess(ActionBase):
         if selected_option == options[0]:
             self.execute_format_as_markdown()
         elif selected_option == options[1]:
+            self.execute_format_with_author_and_book()
+        elif selected_option == options[2]:
             self.execute_add_author_and_title()
-
-    def execute_format_as_markdown(self) -> None:
-        """Format plain text quotes into properly structured Markdown."""
-        default_text = """They can get a big bang out of buying a blanket.
-
-The Catcher in the Rye
-J.D. Salinger
-
-
-I just mean that I used to think about old Spencer quite a lot
-
-The Catcher in the Rye
-J.D. Salinger"""
-        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
-        if not content:
-            return
-
-        result = h.md.format_quotes_as_markdown_content(content)
-
-        self.add_line(result)
-        self.show_result()
 
     def execute_add_author_and_title(self) -> None:
         """Process quote files to add author and book information."""
@@ -1334,6 +1317,88 @@ After processing:
             return
 
         self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
+
+    def execute_format_as_markdown(self) -> None:
+        """Format plain text quotes into properly structured Markdown."""
+        default_text = """They can get a big bang out of buying a blanket.
+
+The Catcher in the Rye
+J.D. Salinger
+
+
+I just mean that I used to think about old Spencer quite a lot
+
+The Catcher in the Rye
+J.D. Salinger"""
+        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
+        if not content:
+            return
+
+        result = h.md.format_quotes_as_markdown_content(content)
+
+        self.add_line(result)
+        self.show_result()
+
+    def execute_format_with_author_and_book(self) -> None:
+        """Format quotes with specified author and book title via dialog."""
+        # Create template fields for author and book
+        fields = [
+            TemplateField("Book Title", "line", "{{Book Title:line}}", None),
+            TemplateField("Author", "line", "{{Author:line}}", None),
+        ]
+
+        # Show dialog to collect author and book info
+        dialog = TemplateDialog(
+            fields=fields,
+            title="Enter Book and Author Information",
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            self.show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            self.show_result()
+            return
+
+        book_title = field_values.get("Book Title", "")
+        author = field_values.get("Author", "")
+
+        if not book_title or not author:
+            self.add_line("❌ Book title and author are required.")
+            self.show_result()
+            return
+
+        # Now get the quotes
+        default_text = """They can get a big bang out of buying a blanket.
+
+
+I just mean that I used to think about old Spencer quite a lot"""
+        quotes_content = self.get_text_textarea(
+            "Quotes", "Input quotes (separated by double line breaks)", default_text
+        )
+        if not quotes_content:
+            return
+
+        # Split quotes by double line breaks
+        quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
+
+        # Build the formatted content in the same format as execute_format_as_markdown expects
+        formatted_content = ""
+        for quote in quotes:
+            formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
+
+        # Remove trailing newlines
+        formatted_content = formatted_content.rstrip()
+
+        # Apply the same formatting function
+        result = h.md.format_quotes_as_markdown_content(formatted_content)
+
+        self.add_line(result)
+        self.show_result()
 
     @ActionBase.handle_exceptions("generating author book thread")
     def in_thread(self) -> str | None:

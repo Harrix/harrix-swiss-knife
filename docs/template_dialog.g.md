@@ -155,6 +155,16 @@ class TemplateDialog(QDialog):
                 widget.setDate(QDate.currentDate())
             return widget
 
+        if field.field_type == "bool":
+            widget = QCheckBox()
+            if field.default_value:
+                # Parse boolean values (true, false, 1, 0, yes, no)
+                is_checked = field.default_value.lower() in ["true", "1", "yes"]
+                widget.setChecked(is_checked)
+            else:
+                widget.setChecked(False)
+            return widget
+
         if field.field_type == "multiline":
             widget = QPlainTextEdit()
             if field.default_value:
@@ -204,6 +214,11 @@ class TemplateDialog(QDialog):
             if isinstance(widget, QDateEdit):
                 return widget.date().toString("yyyy-MM-dd")
             return ""
+
+        if field.field_type == "bool":
+            if isinstance(widget, QCheckBox):
+                return "true" if widget.isChecked() else "false"
+            return "false"
 
         if field.field_type == "multiline":
             return widget.toPlainText() if isinstance(widget, QPlainTextEdit) else ""
@@ -420,6 +435,16 @@ def _create_widget_for_field(self, field: TemplateField) -> QWidget:
                 widget.setDate(QDate.currentDate())
             return widget
 
+        if field.field_type == "bool":
+            widget = QCheckBox()
+            if field.default_value:
+                # Parse boolean values (true, false, 1, 0, yes, no)
+                is_checked = field.default_value.lower() in ["true", "1", "yes"]
+                widget.setChecked(is_checked)
+            else:
+                widget.setChecked(False)
+            return widget
+
         if field.field_type == "multiline":
             widget = QPlainTextEdit()
             if field.default_value:
@@ -481,6 +506,11 @@ def _get_widget_value(self, field: TemplateField, widget: QWidget) -> str:
             if isinstance(widget, QDateEdit):
                 return widget.date().toString("yyyy-MM-dd")
             return ""
+
+        if field.field_type == "bool":
+            if isinstance(widget, QCheckBox):
+                return "true" if widget.isChecked() else "false"
+            return "false"
 
         if field.field_type == "multiline":
             return widget.toPlainText() if isinstance(widget, QPlainTextEdit) else ""
@@ -612,7 +642,7 @@ Represents a single field in a template.
 Attributes:
 
 - `name` (`str`): The field name (e.g., "Title", "Score").
-- `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "multiline").
+- `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "bool", "multiline").
 - `placeholder` (`str`): The original placeholder text from the template.
 - `default_value` (`str | None`): Optional default value for the field.
 
@@ -686,6 +716,7 @@ Supported field types:
 - int: Integer number
 - float: Floating-point number
 - date: Date picker
+- bool: Checkbox (returns "true" or "false")
 - multiline: Multi-line text area
 
 <details>

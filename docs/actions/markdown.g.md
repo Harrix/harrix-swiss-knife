@@ -65,14 +65,15 @@ lang: en
   - [⚙️ Method `optimize_selected_images_content_line`](#%EF%B8%8F-method-optimize_selected_images_content_line)
   - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
-- [🏛️ Class `OnQuotesFormatAsMarkdownContent`](#%EF%B8%8F-class-onquotesformatasmarkdowncontent)
+- [🏛️ Class `OnQuotesProcess`](#%EF%B8%8F-class-onquotesprocess)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
-- [🏛️ Class `OnQuotesGenerateAuthorAndBook`](#%EF%B8%8F-class-onquotesgenerateauthorandbook)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
+  - [⚙️ Method `execute_add_author_and_title`](#%EF%B8%8F-method-execute_add_author_and_title)
+  - [⚙️ Method `execute_format_as_markdown`](#%EF%B8%8F-method-execute_format_as_markdown)
+  - [⚙️ Method `execute_format_with_author_and_book`](#%EF%B8%8F-method-execute_format_with_author_and_book)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
 - [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
 
@@ -101,6 +102,7 @@ Supported field types:
 - int: Integer number (e.g., season number)
 - float: Floating-point number (e.g., ratings)
 - date: Date picker
+- bool: Checkbox (returns "true" or "false")
 - multiline: Multi-line text area
 
 Optional default values can be specified: {{FieldName:FieldType:DefaultValue}}
@@ -2974,107 +2976,56 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## 🏛️ Class `OnQuotesFormatAsMarkdownContent`
+## 🏛️ Class `OnQuotesProcess`
 
 ```python
-class OnQuotesFormatAsMarkdownContent(ActionBase)
+class OnQuotesProcess(ActionBase)
 ```
 
-Format plain text quotes into properly structured Markdown.
+Process quotes with different formatting options.
 
-<details>
-<summary>Code:</summary>
+This action provides three quote processing options:
 
-```python
-class OnQuotesFormatAsMarkdownContent(ActionBase):
-
-    icon = "❞"
-    title = "Quotes. Format quotes as Markdown content"
-
-    @ActionBase.handle_exceptions("formatting quotes as markdown")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        default_text = """They can get a big bang out of buying a blanket.
-
-The Catcher in the Rye
-J.D. Salinger
-
-
-I just mean that I used to think about old Spencer quite a lot
-
-The Catcher in the Rye
-J.D. Salinger"""
-        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
-        if not content:
-            return
-
-        result = h.md.format_quotes_as_markdown_content(content)
-
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        default_text = """They can get a big bang out of buying a blanket.
-
-The Catcher in the Rye
-J.D. Salinger
-
-
-I just mean that I used to think about old Spencer quite a lot
-
-The Catcher in the Rye
-J.D. Salinger"""
-        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
-        if not content:
-            return
-
-        result = h.md.format_quotes_as_markdown_content(content)
-
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-## 🏛️ Class `OnQuotesGenerateAuthorAndBook`
-
-```python
-class OnQuotesGenerateAuthorAndBook(ActionBase)
-```
-
-Process quote files to add author and book information.
-
-This action traverses a folder of quote Markdown files and processes each file
-to generate or update author and book information based on the content structure.
-Useful for maintaining a consistent format in a collection of literary quotes.
+1. Format plain text quotes into properly structured Markdown content
+2. Format quotes with specified author and book title
+3. Process quote files in a folder to add author and book information
 
 <details>
 <summary>Code:</summary>
 
 ````python
-class OnQuotesGenerateAuthorAndBook(ActionBase):
+class OnQuotesProcess(ActionBase):
 
     icon = "❞"
-    title = "Quotes. Add author and title"
+    title = "Quotes. Process"
 
-    @ActionBase.handle_exceptions("generating author and book information")
+    @ActionBase.handle_exceptions("processing quotes")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
+        # Let user choose processing mode
+        options = [
+            "Format quotes as Markdown content",
+            "Format quotes with author and book",
+            "Add author and title to quote files",
+        ]
+        selected_option = self.get_choice_from_list(
+            "Select Quote Processing Mode",
+            "Choose how you want to process quotes:",
+            options,
+        )
+
+        if not selected_option:
+            return
+
+        if selected_option == options[0]:
+            self.execute_format_as_markdown()
+        elif selected_option == options[1]:
+            self.execute_format_with_author_and_book()
+        elif selected_option == options[2]:
+            self.execute_add_author_and_title()
+
+    def execute_add_author_and_title(self) -> None:
+        """Process quote files to add author and book information."""
         self.show_instructions("""Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
 
 ```markdown
@@ -3119,7 +3070,87 @@ self.folder_path = self.get_existing_directory("Select folder with quotes", self
 if not self.folder_path:
 return
 
-        self.start_thread(self.in_thread, self.thread_after, self.title)
+        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
+
+    def execute_format_as_markdown(self) -> None:
+        """Format plain text quotes into properly structured Markdown."""
+        default_text = """They can get a big bang out of buying a blanket.
+
+The Catcher in the Rye
+J.D. Salinger
+
+I just mean that I used to think about old Spencer quite a lot
+
+The Catcher in the Rye
+J.D. Salinger"""
+content = self.get_text_textarea("Quotes", "Input quotes", default_text)
+if not content:
+return
+
+        result = h.md.format_quotes_as_markdown_content(content)
+
+        self.add_line(result)
+        self.show_result()
+
+    def execute_format_with_author_and_book(self) -> None:
+        """Format quotes with specified author and book title via dialog."""
+        # Create template fields for author and book
+        fields = [
+            TemplateField("Book Title", "line", "{{Book Title:line}}", None),
+            TemplateField("Author", "line", "{{Author:line}}", None),
+        ]
+
+        # Show dialog to collect author and book info
+        dialog = TemplateDialog(
+            fields=fields,
+            title="Enter Book and Author Information",
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            self.show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            self.show_result()
+            return
+
+        book_title = field_values.get("Book Title", "")
+        author = field_values.get("Author", "")
+
+        if not book_title or not author:
+            self.add_line("❌ Book title and author are required.")
+            self.show_result()
+            return
+
+        # Now get the quotes
+        default_text = """They can get a big bang out of buying a blanket.
+
+I just mean that I used to think about old Spencer quite a lot"""
+quotes_content = self.get_text_textarea(
+"Quotes", "Input quotes (separated by double line breaks)", default_text
+)
+if not quotes_content:
+return
+
+        # Split quotes by double line breaks
+        quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
+
+        # Build the formatted content in the same format as execute_format_as_markdown expects
+        formatted_content = ""
+        for quote in quotes:
+            formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
+
+        # Remove trailing newlines
+        formatted_content = formatted_content.rstrip()
+
+        # Apply the same formatting function
+        result = h.md.format_quotes_as_markdown_content(formatted_content)
+
+        self.add_line(result)
+        self.show_result()
 
     @ActionBase.handle_exceptions("generating author book thread")
     def in_thread(self) -> str | None:
@@ -3132,7 +3163,7 @@ return
     @ActionBase.handle_exceptions("generating author book thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
         self.show_result()
 
 ````
@@ -3150,8 +3181,46 @@ Execute the code. Main method for the action.
 <details>
 <summary>Code:</summary>
 
-````python
+```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        # Let user choose processing mode
+        options = [
+            "Format quotes as Markdown content",
+            "Format quotes with author and book",
+            "Add author and title to quote files",
+        ]
+        selected_option = self.get_choice_from_list(
+            "Select Quote Processing Mode",
+            "Choose how you want to process quotes:",
+            options,
+        )
+
+        if not selected_option:
+            return
+
+        if selected_option == options[0]:
+            self.execute_format_as_markdown()
+        elif selected_option == options[1]:
+            self.execute_format_with_author_and_book()
+        elif selected_option == options[2]:
+            self.execute_add_author_and_title()
+```
+
+</details>
+
+### ⚙️ Method `execute_add_author_and_title`
+
+```python
+def execute_add_author_and_title(self) -> None
+```
+
+Process quote files to add author and book information.
+
+<details>
+<summary>Code:</summary>
+
+````python
+def execute_add_author_and_title(self) -> None:
         self.show_instructions("""Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
 
 ```markdown
@@ -3196,9 +3265,119 @@ self.folder_path = self.get_existing_directory("Select folder with quotes", self
 if not self.folder_path:
 return
 
-        self.start_thread(self.in_thread, self.thread_after, self.title)
+        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
 
 ````
+
+</details>
+
+### ⚙️ Method `execute_format_as_markdown`
+
+```python
+def execute_format_as_markdown(self) -> None
+````
+
+Format plain text quotes into properly structured Markdown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute_format_as_markdown(self) -> None:
+        default_text = """They can get a big bang out of buying a blanket.
+
+The Catcher in the Rye
+J.D. Salinger
+
+
+I just mean that I used to think about old Spencer quite a lot
+
+The Catcher in the Rye
+J.D. Salinger"""
+        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
+        if not content:
+            return
+
+        result = h.md.format_quotes_as_markdown_content(content)
+
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute_format_with_author_and_book`
+
+```python
+def execute_format_with_author_and_book(self) -> None
+```
+
+Format quotes with specified author and book title via dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute_format_with_author_and_book(self) -> None:
+        # Create template fields for author and book
+        fields = [
+            TemplateField("Book Title", "line", "{{Book Title:line}}", None),
+            TemplateField("Author", "line", "{{Author:line}}", None),
+        ]
+
+        # Show dialog to collect author and book info
+        dialog = TemplateDialog(
+            fields=fields,
+            title="Enter Book and Author Information",
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            self.show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            self.show_result()
+            return
+
+        book_title = field_values.get("Book Title", "")
+        author = field_values.get("Author", "")
+
+        if not book_title or not author:
+            self.add_line("❌ Book title and author are required.")
+            self.show_result()
+            return
+
+        # Now get the quotes
+        default_text = """They can get a big bang out of buying a blanket.
+
+
+I just mean that I used to think about old Spencer quite a lot"""
+        quotes_content = self.get_text_textarea(
+            "Quotes", "Input quotes (separated by double line breaks)", default_text
+        )
+        if not quotes_content:
+            return
+
+        # Split quotes by double line breaks
+        quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
+
+        # Build the formatted content in the same format as execute_format_as_markdown expects
+        formatted_content = ""
+        for quote in quotes:
+            formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
+
+        # Remove trailing newlines
+        formatted_content = formatted_content.rstrip()
+
+        # Apply the same formatting function
+        result = h.md.format_quotes_as_markdown_content(formatted_content)
+
+        self.add_line(result)
+        self.show_result()
+```
 
 </details>
 
@@ -3206,7 +3385,7 @@ return
 
 ```python
 def in_thread(self) -> str | None
-````
+```
 
 Execute code in a separate thread. For performing long-running operations.
 
@@ -3236,7 +3415,7 @@ Execute code in the main thread after in_thread(). For handling the results of t
 
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
         self.show_result()
 ```
 

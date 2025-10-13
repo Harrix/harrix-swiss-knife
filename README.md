@@ -89,7 +89,7 @@ _Figure 1: Screenshot_
   - 🎬 Get a list of movies, books for web
   - 👈 Heading level: Decrease
   - 👉 Heading level: Increase
-  - ❞ Quotes. Format quotes as Markdown content
+  - ❞ Quotes. Process
   - 💎 ★ Beautify MD and regenerate .g.md in …
   - 💎 Beautify MD in …
   - 🚧 Check in …
@@ -97,7 +97,6 @@ _Figure 1: Screenshot_
   - 📑 Generate a short version with only TOC
   - 🖼️ Optimize images in MD in …
   - 🖼️ ★ Optimize selected images in MD
-  - ❞ Quotes. Add author and title
   - 📶 Sort sections in one MD
 - **New Markdown**
   - 📝 ★ Add markdown from template
