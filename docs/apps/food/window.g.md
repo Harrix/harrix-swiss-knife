@@ -32,14 +32,7 @@ _No docstring provided._
 class Ui_MainWindow(object):
     # setupUi
 
-    def retranslateUi(self, MainWindow: QMainWindow) -> None:
-        """Retranslate the UI elements to the current language.
-
-        Args:
-
-        - `MainWindow` (`QMainWindow`): The main window widget to retranslate.
-
-        """
+    def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Food tracker", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", "Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(
@@ -99,14 +92,7 @@ class Ui_MainWindow(object):
             QCoreApplication.translate("MainWindow", "Food Statistics", None),
         )
 
-    def setupUi(self, MainWindow: QMainWindow) -> None:
-        """Setup the user interface for the main window.
-
-        Args:
-
-        - `MainWindow` (`QMainWindow`): The main window widget to setup.
-
-        """
+    def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1375, 926)
@@ -122,13 +108,13 @@ class Ui_MainWindow(object):
         self.horizontalLayout_food.setObjectName("horizontalLayout_food")
         self.splitter_food = QSplitter(self.tab_food)
         self.splitter_food.setObjectName("splitter_food")
-        self.splitter_food.setOrientation(Qt.Horizontal)
+        self.splitter_food.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_food.setChildrenCollapsible(False)
         self.frame_food_controls = QFrame(self.splitter_food)
         self.frame_food_controls.setObjectName("frame_food_controls")
         self.frame_food_controls.setMinimumSize(QSize(350, 0))
-        self.frame_food_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_food_controls.setFrameShadow(QFrame.Raised)
+        self.frame_food_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_food_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_food_controls = QVBoxLayout(self.frame_food_controls)
         self.verticalLayout_food_controls.setObjectName("verticalLayout_food_controls")
         self.groupBox_food_add = QGroupBox(self.frame_food_controls)
@@ -166,7 +152,9 @@ class Ui_MainWindow(object):
             "                                          background-color: #e3f2fd;\n"
             "                                          }"
         )
-        self.spinBox_food_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.spinBox_food_weight.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.spinBox_food_weight.setMaximum(10000)
         self.spinBox_food_weight.setValue(100)
 
@@ -185,7 +173,9 @@ class Ui_MainWindow(object):
             "                                          background-color: #e3f2fd;\n"
             "                                          }"
         )
-        self.doubleSpinBox_food_calories.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.doubleSpinBox_food_calories.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.doubleSpinBox_food_calories.setMaximum(10000.000000000000000)
 
         self.horizontalLayout_food_weight.addWidget(self.doubleSpinBox_food_calories)
@@ -231,7 +221,9 @@ class Ui_MainWindow(object):
         self.dateEdit_food = QDateEdit(self.groupBox_food_add)
         self.dateEdit_food.setObjectName("dateEdit_food")
         self.dateEdit_food.setMinimumSize(QSize(191, 0))
-        self.dateEdit_food.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_food.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_food.setCalendarPopup(True)
 
         self.horizontalLayout_food_date.addWidget(self.dateEdit_food)
@@ -404,7 +396,7 @@ class Ui_MainWindow(object):
         font3.setPointSize(30)
         font3.setBold(True)
         self.label_food_today.setFont(font3)
-        self.label_food_today.setAlignment(Qt.AlignCenter)
+        self.label_food_today.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_5.addWidget(self.label_food_today)
 
@@ -492,8 +484,8 @@ class Ui_MainWindow(object):
         self.frame.setObjectName("frame")
         self.frame.setMinimumSize(QSize(250, 0))
         self.frame.setMaximumSize(QSize(250, 16777215))
-        self.frame.setFrameShape(QFrame.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Raised)
+        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.label = QLabel(self.frame)
@@ -513,8 +505,8 @@ class Ui_MainWindow(object):
         self.frame_food_stats_controls = QFrame(self.tab_food_stats)
         self.frame_food_stats_controls.setObjectName("frame_food_stats_controls")
         self.frame_food_stats_controls.setMaximumSize(QSize(16777215, 80))
-        self.frame_food_stats_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_food_stats_controls.setFrameShadow(QFrame.Raised)
+        self.frame_food_stats_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_food_stats_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.horizontalLayout_food_stats_controls = QHBoxLayout(self.frame_food_stats_controls)
         self.horizontalLayout_food_stats_controls.setObjectName("horizontalLayout_food_stats_controls")
         self.label_food_stats_from = QLabel(self.frame_food_stats_controls)
@@ -593,7 +585,7 @@ class Ui_MainWindow(object):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1073, 758))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 98, 28))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName("verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -607,16 +599,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addWidget(self.tabWidget)
 
         MainWindow.setCentralWidget(self.centralWidget)
-        self.menuBar = QMenuBar(MainWindow)
-        self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1375, 21))
-        MainWindow.setMenuBar(self.menuBar)
-        self.mainToolBar = QToolBar(MainWindow)
-        self.mainToolBar.setObjectName("mainToolBar")
-        MainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.mainToolBar)
-        self.statusBar = QStatusBar(MainWindow)
-        self.statusBar.setObjectName("statusBar")
-        MainWindow.setStatusBar(self.statusBar)
 
         self.retranslateUi(MainWindow)
 
@@ -630,20 +612,16 @@ class Ui_MainWindow(object):
 ### ⚙️ Method `retranslateUi`
 
 ```python
-def retranslateUi(self, MainWindow: QMainWindow) -> None
+def retranslateUi(self, MainWindow)
 ```
 
-Retranslate the UI elements to the current language.
-
-Args:
-
-- `MainWindow` (`QMainWindow`): The main window widget to retranslate.
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def retranslateUi(self, MainWindow: QMainWindow) -> None:
+def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Food tracker", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", "Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(
@@ -709,20 +687,16 @@ def retranslateUi(self, MainWindow: QMainWindow) -> None:
 ### ⚙️ Method `setupUi`
 
 ```python
-def setupUi(self, MainWindow: QMainWindow) -> None
+def setupUi(self, MainWindow)
 ```
 
-Setup the user interface for the main window.
-
-Args:
-
-- `MainWindow` (`QMainWindow`): The main window widget to setup.
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def setupUi(self, MainWindow: QMainWindow) -> None:
+def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1375, 926)
@@ -738,13 +712,13 @@ def setupUi(self, MainWindow: QMainWindow) -> None:
         self.horizontalLayout_food.setObjectName("horizontalLayout_food")
         self.splitter_food = QSplitter(self.tab_food)
         self.splitter_food.setObjectName("splitter_food")
-        self.splitter_food.setOrientation(Qt.Horizontal)
+        self.splitter_food.setOrientation(Qt.Orientation.Horizontal)
         self.splitter_food.setChildrenCollapsible(False)
         self.frame_food_controls = QFrame(self.splitter_food)
         self.frame_food_controls.setObjectName("frame_food_controls")
         self.frame_food_controls.setMinimumSize(QSize(350, 0))
-        self.frame_food_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_food_controls.setFrameShadow(QFrame.Raised)
+        self.frame_food_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_food_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_food_controls = QVBoxLayout(self.frame_food_controls)
         self.verticalLayout_food_controls.setObjectName("verticalLayout_food_controls")
         self.groupBox_food_add = QGroupBox(self.frame_food_controls)
@@ -782,7 +756,9 @@ def setupUi(self, MainWindow: QMainWindow) -> None:
             "                                          background-color: #e3f2fd;\n"
             "                                          }"
         )
-        self.spinBox_food_weight.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.spinBox_food_weight.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.spinBox_food_weight.setMaximum(10000)
         self.spinBox_food_weight.setValue(100)
 
@@ -801,7 +777,9 @@ def setupUi(self, MainWindow: QMainWindow) -> None:
             "                                          background-color: #e3f2fd;\n"
             "                                          }"
         )
-        self.doubleSpinBox_food_calories.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.doubleSpinBox_food_calories.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.doubleSpinBox_food_calories.setMaximum(10000.000000000000000)
 
         self.horizontalLayout_food_weight.addWidget(self.doubleSpinBox_food_calories)
@@ -847,7 +825,9 @@ def setupUi(self, MainWindow: QMainWindow) -> None:
         self.dateEdit_food = QDateEdit(self.groupBox_food_add)
         self.dateEdit_food.setObjectName("dateEdit_food")
         self.dateEdit_food.setMinimumSize(QSize(191, 0))
-        self.dateEdit_food.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_food.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_food.setCalendarPopup(True)
 
         self.horizontalLayout_food_date.addWidget(self.dateEdit_food)
@@ -1020,7 +1000,7 @@ def setupUi(self, MainWindow: QMainWindow) -> None:
         font3.setPointSize(30)
         font3.setBold(True)
         self.label_food_today.setFont(font3)
-        self.label_food_today.setAlignment(Qt.AlignCenter)
+        self.label_food_today.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_5.addWidget(self.label_food_today)
 
@@ -1108,8 +1088,8 @@ def setupUi(self, MainWindow: QMainWindow) -> None:
         self.frame.setObjectName("frame")
         self.frame.setMinimumSize(QSize(250, 0))
         self.frame.setMaximumSize(QSize(250, 16777215))
-        self.frame.setFrameShape(QFrame.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Raised)
+        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_3 = QVBoxLayout(self.frame)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.label = QLabel(self.frame)
@@ -1129,8 +1109,8 @@ def setupUi(self, MainWindow: QMainWindow) -> None:
         self.frame_food_stats_controls = QFrame(self.tab_food_stats)
         self.frame_food_stats_controls.setObjectName("frame_food_stats_controls")
         self.frame_food_stats_controls.setMaximumSize(QSize(16777215, 80))
-        self.frame_food_stats_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_food_stats_controls.setFrameShadow(QFrame.Raised)
+        self.frame_food_stats_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_food_stats_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.horizontalLayout_food_stats_controls = QHBoxLayout(self.frame_food_stats_controls)
         self.horizontalLayout_food_stats_controls.setObjectName("horizontalLayout_food_stats_controls")
         self.label_food_stats_from = QLabel(self.frame_food_stats_controls)
@@ -1209,7 +1189,7 @@ def setupUi(self, MainWindow: QMainWindow) -> None:
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1073, 758))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 98, 28))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName("verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1223,16 +1203,6 @@ def setupUi(self, MainWindow: QMainWindow) -> None:
         self.horizontalLayout.addWidget(self.tabWidget)
 
         MainWindow.setCentralWidget(self.centralWidget)
-        self.menuBar = QMenuBar(MainWindow)
-        self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1375, 21))
-        MainWindow.setMenuBar(self.menuBar)
-        self.mainToolBar = QToolBar(MainWindow)
-        self.mainToolBar.setObjectName("mainToolBar")
-        MainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.mainToolBar)
-        self.statusBar = QStatusBar(MainWindow)
-        self.statusBar.setObjectName("statusBar")
-        MainWindow.setStatusBar(self.statusBar)
 
         self.retranslateUi(MainWindow)
 

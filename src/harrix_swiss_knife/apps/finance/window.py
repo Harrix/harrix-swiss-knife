@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.2
+## Created by: Qt User Interface Compiler version 6.9.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -54,7 +54,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListView,
     QMainWindow,
-    QMenuBar,
     QPushButton,
     QRadioButton,
     QScrollArea,
@@ -62,10 +61,8 @@ from PySide6.QtWidgets import (
     QSpacerItem,
     QSpinBox,
     QSplitter,
-    QStatusBar,
     QTableView,
     QTabWidget,
-    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -279,14 +276,14 @@ class Ui_MainWindow(object):
         self.horizontalLayout_main.setObjectName("horizontalLayout_main")
         self.splitter = QSplitter(self.tab_transactions)
         self.splitter.setObjectName("splitter")
-        self.splitter.setOrientation(Qt.Horizontal)
+        self.splitter.setOrientation(Qt.Orientation.Horizontal)
         self.splitter.setChildrenCollapsible(False)
         self.frame = QFrame(self.splitter)
         self.frame.setObjectName("frame")
         self.frame.setMinimumSize(QSize(380, 0))
         self.frame.setMaximumSize(QSize(16777215, 16777215))
-        self.frame.setFrameShape(QFrame.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Raised)
+        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_5 = QVBoxLayout(self.frame)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.groupBox_transaction = QGroupBox(self.frame)
@@ -300,7 +297,7 @@ class Ui_MainWindow(object):
         font.setPointSize(12)
         font.setBold(True)
         self.label_category_now.setFont(font)
-        self.label_category_now.setFocusPolicy(Qt.NoFocus)
+        self.label_category_now.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.verticalLayout_3.addWidget(self.label_category_now)
 
@@ -332,7 +329,9 @@ class Ui_MainWindow(object):
             "                                          background-color: #C1ECDD;\n"
             "                                          }"
         )
-        self.doubleSpinBox_amount.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.doubleSpinBox_amount.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.doubleSpinBox_amount.setMaximum(999999.989999999990687)
         self.doubleSpinBox_amount.setValue(100.000000000000000)
 
@@ -351,7 +350,9 @@ class Ui_MainWindow(object):
         self.dateEdit = QDateEdit(self.groupBox_transaction)
         self.dateEdit.setObjectName("dateEdit")
         self.dateEdit.setMinimumSize(QSize(191, 0))
-        self.dateEdit.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit.setCalendarPopup(True)
 
         self.horizontalLayout_date.addWidget(self.dateEdit)
@@ -388,7 +389,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.label_tag = QLabel(self.groupBox_transaction)
         self.label_tag.setObjectName("label_tag")
-        self.label_tag.setFocusPolicy(Qt.NoFocus)
+        self.label_tag.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.horizontalLayout_3.addWidget(self.label_tag)
 
@@ -527,7 +528,9 @@ class Ui_MainWindow(object):
         self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_from.setObjectName("dateEdit_filter_from")
         self.dateEdit_filter_from.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_from.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_from.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_filter_from.setCalendarPopup(True)
 
         self.horizontalLayout_11.addWidget(self.dateEdit_filter_from)
@@ -539,14 +542,18 @@ class Ui_MainWindow(object):
         self.label_filter_to = QLabel(self.groupBox_filter)
         self.label_filter_to.setObjectName("label_filter_to")
         self.label_filter_to.setMinimumSize(QSize(61, 0))
-        self.label_filter_to.setAlignment(Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
+        self.label_filter_to.setAlignment(
+            Qt.AlignmentFlag.AlignLeading | Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
 
         self.horizontalLayout_12.addWidget(self.label_filter_to)
 
         self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_to.setObjectName("dateEdit_filter_to")
         self.dateEdit_filter_to.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_to.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_to.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_filter_to.setCalendarPopup(True)
 
         self.horizontalLayout_12.addWidget(self.dateEdit_filter_to)
@@ -587,7 +594,7 @@ class Ui_MainWindow(object):
         font2.setPointSize(20)
         font2.setBold(True)
         self.label_today_expense.setFont(font2)
-        self.label_today_expense.setAlignment(Qt.AlignCenter)
+        self.label_today_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_20.addWidget(self.label_today_expense)
 
@@ -646,13 +653,13 @@ class Ui_MainWindow(object):
         self.verticalLayout_22.setObjectName("verticalLayout_22")
         self.splitter_2 = QSplitter(self.tab_accounts)
         self.splitter_2.setObjectName("splitter_2")
-        self.splitter_2.setOrientation(Qt.Horizontal)
+        self.splitter_2.setOrientation(Qt.Orientation.Horizontal)
         self.frame_accounts = QFrame(self.splitter_2)
         self.frame_accounts.setObjectName("frame_accounts")
         self.frame_accounts.setMinimumSize(QSize(300, 0))
         self.frame_accounts.setMaximumSize(QSize(16777215, 16777215))
-        self.frame_accounts.setFrameShape(QFrame.StyledPanel)
-        self.frame_accounts.setFrameShadow(QFrame.Raised)
+        self.frame_accounts.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_accounts.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_21 = QVBoxLayout(self.frame_accounts)
         self.verticalLayout_21.setObjectName("verticalLayout_21")
         self.groupBox_add_account = QGroupBox(self.frame_accounts)
@@ -767,7 +774,7 @@ class Ui_MainWindow(object):
         self.label_balance_accounts = QLabel(self.groupBox_balance_accounts)
         self.label_balance_accounts.setObjectName("label_balance_accounts")
         self.label_balance_accounts.setFont(font2)
-        self.label_balance_accounts.setAlignment(Qt.AlignCenter)
+        self.label_balance_accounts.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_16.addWidget(self.label_balance_accounts)
 
@@ -796,13 +803,13 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.splitter_3 = QSplitter(self.tab_categories)
         self.splitter_3.setObjectName("splitter_3")
-        self.splitter_3.setOrientation(Qt.Horizontal)
+        self.splitter_3.setOrientation(Qt.Orientation.Horizontal)
         self.frame_2 = QFrame(self.splitter_3)
         self.frame_2.setObjectName("frame_2")
         self.frame_2.setMinimumSize(QSize(300, 0))
         self.frame_2.setMaximumSize(QSize(16777215, 16777215))
-        self.frame_2.setFrameShape(QFrame.StyledPanel)
-        self.frame_2.setFrameShadow(QFrame.Raised)
+        self.frame_2.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_2.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_15 = QVBoxLayout(self.frame_2)
         self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.groupBox_2 = QGroupBox(self.frame_2)
@@ -895,8 +902,8 @@ class Ui_MainWindow(object):
         self.frame_currencies.setObjectName("frame_currencies")
         self.frame_currencies.setMinimumSize(QSize(300, 0))
         self.frame_currencies.setMaximumSize(QSize(16777215, 16777215))
-        self.frame_currencies.setFrameShape(QFrame.StyledPanel)
-        self.frame_currencies.setFrameShadow(QFrame.Raised)
+        self.frame_currencies.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_currencies.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_8 = QVBoxLayout(self.frame_currencies)
         self.verticalLayout_8.setObjectName("verticalLayout_8")
         self.groupBox_default_currency = QGroupBox(self.frame_currencies)
@@ -1042,13 +1049,13 @@ class Ui_MainWindow(object):
         self.horizontalLayout_10.setObjectName("horizontalLayout_10")
         self.splitter_4 = QSplitter(self.tab_currencies)
         self.splitter_4.setObjectName("splitter_4")
-        self.splitter_4.setOrientation(Qt.Horizontal)
+        self.splitter_4.setOrientation(Qt.Orientation.Horizontal)
         self.frame_exchange = QFrame(self.splitter_4)
         self.frame_exchange.setObjectName("frame_exchange")
         self.frame_exchange.setMinimumSize(QSize(350, 0))
         self.frame_exchange.setMaximumSize(QSize(16777215, 16777215))
-        self.frame_exchange.setFrameShape(QFrame.StyledPanel)
-        self.frame_exchange.setFrameShadow(QFrame.Raised)
+        self.frame_exchange.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_exchange.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_exchange = QVBoxLayout(self.frame_exchange)
         self.verticalLayout_exchange.setObjectName("verticalLayout_exchange")
         self.groupBox_exchange_operation = QGroupBox(self.frame_exchange)
@@ -1172,7 +1179,9 @@ class Ui_MainWindow(object):
         self.dateEdit_exchange = QDateEdit(self.groupBox_exchange_operation)
         self.dateEdit_exchange.setObjectName("dateEdit_exchange")
         self.dateEdit_exchange.setMinimumSize(QSize(151, 0))
-        self.dateEdit_exchange.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_exchange.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_exchange.setCalendarPopup(True)
 
         self.horizontalLayout_exchange_date.addWidget(self.dateEdit_exchange)
@@ -1245,21 +1254,21 @@ class Ui_MainWindow(object):
         self.horizontalLayout_28.setObjectName("horizontalLayout_28")
         self.splitter_6 = QSplitter(self.tab_exchange_rates)
         self.splitter_6.setObjectName("splitter_6")
-        self.splitter_6.setOrientation(Qt.Horizontal)
+        self.splitter_6.setOrientation(Qt.Orientation.Horizontal)
         self.frame_rates = QFrame(self.splitter_6)
         self.frame_rates.setObjectName("frame_rates")
         self.frame_rates.setMinimumSize(QSize(300, 0))
         self.frame_rates.setMaximumSize(QSize(16777215, 16777215))
-        self.frame_rates.setFrameShape(QFrame.StyledPanel)
-        self.frame_rates.setFrameShadow(QFrame.Raised)
+        self.frame_rates.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_rates.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_14 = QVBoxLayout(self.frame_rates)
         self.verticalLayout_14.setObjectName("verticalLayout_14")
         self.frame_3 = QFrame(self.frame_rates)
         self.frame_3.setObjectName("frame_3")
         self.frame_3.setMinimumSize(QSize(0, 171))
         self.frame_3.setMaximumSize(QSize(16777215, 150))
-        self.frame_3.setFrameShape(QFrame.StyledPanel)
-        self.frame_3.setFrameShadow(QFrame.Raised)
+        self.frame_3.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_3.setFrameShadow(QFrame.Shadow.Raised)
         self.horizontalLayout_25 = QHBoxLayout(self.frame_3)
         self.horizontalLayout_25.setSpacing(5)
         self.horizontalLayout_25.setObjectName("horizontalLayout_25")
@@ -1402,7 +1411,9 @@ class Ui_MainWindow(object):
         self.dateEdit_filter_exchange_rates_from = QDateEdit(self.groupBox_filter_2)
         self.dateEdit_filter_exchange_rates_from.setObjectName("dateEdit_filter_exchange_rates_from")
         self.dateEdit_filter_exchange_rates_from.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_exchange_rates_from.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_exchange_rates_from.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_filter_exchange_rates_from.setCalendarPopup(True)
 
         self.horizontalLayout_22.addWidget(self.dateEdit_filter_exchange_rates_from)
@@ -1414,14 +1425,18 @@ class Ui_MainWindow(object):
         self.label_filter_to_2 = QLabel(self.groupBox_filter_2)
         self.label_filter_to_2.setObjectName("label_filter_to_2")
         self.label_filter_to_2.setMinimumSize(QSize(61, 0))
-        self.label_filter_to_2.setAlignment(Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
+        self.label_filter_to_2.setAlignment(
+            Qt.AlignmentFlag.AlignLeading | Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
 
         self.horizontalLayout_23.addWidget(self.label_filter_to_2)
 
         self.dateEdit_filter_exchange_rates_to = QDateEdit(self.groupBox_filter_2)
         self.dateEdit_filter_exchange_rates_to.setObjectName("dateEdit_filter_exchange_rates_to")
         self.dateEdit_filter_exchange_rates_to.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_exchange_rates_to.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.dateEdit_filter_exchange_rates_to.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTrailing | Qt.AlignmentFlag.AlignVCenter
+        )
         self.dateEdit_filter_exchange_rates_to.setCalendarPopup(True)
 
         self.horizontalLayout_23.addWidget(self.dateEdit_filter_exchange_rates_to)
@@ -1466,8 +1481,8 @@ class Ui_MainWindow(object):
         self.frame_exchange_rates_controls = QFrame(self.widget_exchange_rates_right)
         self.frame_exchange_rates_controls.setObjectName("frame_exchange_rates_controls")
         self.frame_exchange_rates_controls.setMaximumSize(QSize(16777215, 80))
-        self.frame_exchange_rates_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_exchange_rates_controls.setFrameShadow(QFrame.Raised)
+        self.frame_exchange_rates_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_exchange_rates_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.horizontalLayout_exchange_rates_controls = QHBoxLayout(self.frame_exchange_rates_controls)
         self.horizontalLayout_exchange_rates_controls.setObjectName("horizontalLayout_exchange_rates_controls")
         self.label_exchange_rates_currency = QLabel(self.frame_exchange_rates_controls)
@@ -1528,7 +1543,7 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 627, 729))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 679, 712))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1549,8 +1564,8 @@ class Ui_MainWindow(object):
         self.frame_charts_controls = QFrame(self.tab_charts)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
-        self.frame_charts_controls.setFrameShape(QFrame.StyledPanel)
-        self.frame_charts_controls.setFrameShadow(QFrame.Raised)
+        self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_charts_controls = QVBoxLayout(self.frame_charts_controls)
         self.verticalLayout_charts_controls.setObjectName("verticalLayout_charts_controls")
         self.horizontalLayout_charts_controls_1 = QHBoxLayout()
@@ -1666,7 +1681,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1382, 696))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1382, 678))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1682,13 +1697,13 @@ class Ui_MainWindow(object):
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
         self.splitter_5 = QSplitter(self.tab_reports)
         self.splitter_5.setObjectName("splitter_5")
-        self.splitter_5.setOrientation(Qt.Horizontal)
+        self.splitter_5.setOrientation(Qt.Orientation.Horizontal)
         self.frame_5 = QFrame(self.splitter_5)
         self.frame_5.setObjectName("frame_5")
         self.frame_5.setMinimumSize(QSize(300, 0))
         self.frame_5.setMaximumSize(QSize(16777215, 16777215))
-        self.frame_5.setFrameShape(QFrame.StyledPanel)
-        self.frame_5.setFrameShadow(QFrame.Raised)
+        self.frame_5.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_5.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_7 = QVBoxLayout(self.frame_5)
         self.verticalLayout_7.setObjectName("verticalLayout_7")
         self.groupBox_10 = QGroupBox(self.frame_5)
@@ -1739,7 +1754,7 @@ class Ui_MainWindow(object):
         self.label_daily_balance = QLabel(self.groupBox_daily_balance)
         self.label_daily_balance.setObjectName("label_daily_balance")
         self.label_daily_balance.setFont(font2)
-        self.label_daily_balance.setAlignment(Qt.AlignCenter)
+        self.label_daily_balance.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_17.addWidget(self.label_daily_balance)
 
@@ -1761,16 +1776,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addWidget(self.tabWidget)
 
         MainWindow.setCentralWidget(self.centralWidget)
-        self.menuBar = QMenuBar(MainWindow)
-        self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1428, 21))
-        MainWindow.setMenuBar(self.menuBar)
-        self.mainToolBar = QToolBar(MainWindow)
-        self.mainToolBar.setObjectName("mainToolBar")
-        MainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.mainToolBar)
-        self.statusBar = QStatusBar(MainWindow)
-        self.statusBar.setObjectName("statusBar")
-        MainWindow.setStatusBar(self.statusBar)
 
         self.retranslateUi(MainWindow)
 
