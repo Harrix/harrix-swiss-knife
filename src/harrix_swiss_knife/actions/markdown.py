@@ -31,6 +31,7 @@ class OnAddMarkdownFromTemplate(ActionBase):
     - int: Integer number (e.g., season number)
     - float: Floating-point number (e.g., ratings)
     - date: Date picker
+    - bool: Checkbox (returns "true" or "false")
     - multiline: Multi-line text area
 
     Optional default values can be specified: {{FieldName:FieldType:DefaultValue}}
