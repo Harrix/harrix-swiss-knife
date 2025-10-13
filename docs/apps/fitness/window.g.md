@@ -128,7 +128,7 @@ class Ui_MainWindow(object):
         self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
         self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
-        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
+        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "Number of months:", None))
         self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.label_chart_info.setText("")
         self.tabWidget.setTabText(
@@ -1068,6 +1068,7 @@ class Ui_MainWindow(object):
 
         self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
         self.spinBox_compare_last.setObjectName("spinBox_compare_last")
+        self.spinBox_compare_last.setMaximum(100000)
         self.spinBox_compare_last.setValue(3)
 
         self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
@@ -1200,16 +1201,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addWidget(self.tabWidget)
 
         MainWindow.setCentralWidget(self.centralWidget)
-        self.menuBar = QMenuBar(MainWindow)
-        self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1375, 33))
-        MainWindow.setMenuBar(self.menuBar)
-        self.mainToolBar = QToolBar(MainWindow)
-        self.mainToolBar.setObjectName("mainToolBar")
-        MainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.mainToolBar)
-        self.statusBar = QStatusBar(MainWindow)
-        self.statusBar.setObjectName("statusBar")
-        MainWindow.setStatusBar(self.statusBar)
 
         self.retranslateUi(MainWindow)
 
@@ -1328,7 +1319,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
         self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
-        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
+        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "Number of months:", None))
         self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
         self.label_chart_info.setText("")
         self.tabWidget.setTabText(
@@ -2283,6 +2274,7 @@ def setupUi(self, MainWindow):
 
         self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
         self.spinBox_compare_last.setObjectName("spinBox_compare_last")
+        self.spinBox_compare_last.setMaximum(100000)
         self.spinBox_compare_last.setValue(3)
 
         self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
@@ -2415,16 +2407,6 @@ def setupUi(self, MainWindow):
         self.horizontalLayout.addWidget(self.tabWidget)
 
         MainWindow.setCentralWidget(self.centralWidget)
-        self.menuBar = QMenuBar(MainWindow)
-        self.menuBar.setObjectName("menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1375, 33))
-        MainWindow.setMenuBar(self.menuBar)
-        self.mainToolBar = QToolBar(MainWindow)
-        self.mainToolBar.setObjectName("mainToolBar")
-        MainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.mainToolBar)
-        self.statusBar = QStatusBar(MainWindow)
-        self.statusBar.setObjectName("statusBar")
-        MainWindow.setStatusBar(self.statusBar)
 
         self.retranslateUi(MainWindow)
 
