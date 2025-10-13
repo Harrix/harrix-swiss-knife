@@ -3026,7 +3026,7 @@ class OnQuotesProcess(ActionBase):
 
     def execute_add_author_and_title(self) -> None:
         """Process quote files to add author and book information."""
-        self.show_instructions("""Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
+        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
 
 ```markdown
 # Title of book
@@ -3221,7 +3221,7 @@ Process quote files to add author and book information.
 
 ````python
 def execute_add_author_and_title(self) -> None:
-        self.show_instructions("""Given a file like `C:/test/Name_Surname/Title_of_book.md` with content:
+        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
 
 ```markdown
 # Title of book
@@ -3433,6 +3433,7 @@ This action processes a user-selected Markdown file, performing two key operatio
 to improve its structure and readability:
 
 1. Section sorting:
+
    - Identifies sections (headings) within the Markdown file
    - Sorts sections in a logical order based on heading level and content
    - Maintains the hierarchy and structure of nested sections
