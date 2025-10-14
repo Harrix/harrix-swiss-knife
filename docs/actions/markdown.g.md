@@ -76,6 +76,9 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
+- [🔧 Function `_format_author_for_folder`](#-function-_format_author_for_folder)
+- [🔧 Function `_format_book_title_for_filename`](#-function-_format_book_title_for_filename)
+- [🔧 Function `_save_quotes_to_file`](#-function-_save_quotes_to_file)
 
 </details>
 
@@ -3089,7 +3092,55 @@ return
 
         result = h.md.format_quotes_as_markdown_content(content)
 
-        self.add_line(result)
+        # Ask if user wants to save to file
+        save_to_file = self.get_yes_no_question(
+            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
+        )
+
+        if save_to_file:
+            # Extract author and book title from content for folder structure
+            # This is a simple extraction - in practice, you might want more robust parsing
+            lines = content.strip().split("\n")
+            author = ""
+            book_title = ""
+
+            # Find the last author/book pair in the content
+            for i in range(len(lines) - 1, -1, -1):
+                line = lines[i].strip()
+                if line and not line.startswith("They can get") and not line.startswith("I just mean"):
+                    if not author:
+                        author = line
+                    elif not book_title:
+                        book_title = line
+                        break
+
+            if author and book_title:
+                # Remove the header from quotes content since it will be added by the save function
+                quotes_without_header = result
+                if quotes_without_header.startswith(f"# {book_title}"):
+                    # Find the first empty line after the header
+                    lines = quotes_without_header.split("\n")
+                    for i, line in enumerate(lines):
+                        if line.strip() == f"# {book_title}":
+                            # Skip the header line and any following empty lines
+                            while i + 1 < len(lines) and not lines[i + 1].strip():
+                                i += 1
+                            quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
+                            break
+
+                success = _save_quotes_to_file(
+                    quotes_without_header, author, book_title, self.config, self.get_existing_directory
+                )
+                if success:
+                    self.add_line("✅ Quotes saved to file successfully!")
+                else:
+                    self.add_line("❌ Failed to save quotes to file.")
+            else:
+                self.add_line("❌ Could not extract author and book title from content.")
+                self.add_line(result)
+        else:
+            self.add_line(result)
+
         self.show_result()
 
     def execute_format_with_author_and_book(self) -> None:
@@ -3149,7 +3200,35 @@ return
         # Apply the same formatting function
         result = h.md.format_quotes_as_markdown_content(formatted_content)
 
-        self.add_line(result)
+        # Ask if user wants to save to file
+        save_to_file = self.get_yes_no_question(
+            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
+        )
+
+        if save_to_file:
+            # Remove the header from quotes content since it will be added by the save function
+            quotes_without_header = result
+            if quotes_without_header.startswith(f"# {book_title}"):
+                # Find the first empty line after the header
+                lines = quotes_without_header.split("\n")
+                for i, line in enumerate(lines):
+                    if line.strip() == f"# {book_title}":
+                        # Skip the header line and any following empty lines
+                        while i + 1 < len(lines) and not lines[i + 1].strip():
+                            i += 1
+                        quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
+                        break
+
+            success = _save_quotes_to_file(
+                quotes_without_header, author, book_title, self.config, self.get_existing_directory
+            )
+            if success:
+                self.add_line("✅ Quotes saved to file successfully!")
+            else:
+                self.add_line("❌ Failed to save quotes to file.")
+        else:
+            self.add_line(result)
+
         self.show_result()
 
     @ActionBase.handle_exceptions("generating author book thread")
@@ -3300,7 +3379,55 @@ J.D. Salinger"""
 
         result = h.md.format_quotes_as_markdown_content(content)
 
-        self.add_line(result)
+        # Ask if user wants to save to file
+        save_to_file = self.get_yes_no_question(
+            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
+        )
+
+        if save_to_file:
+            # Extract author and book title from content for folder structure
+            # This is a simple extraction - in practice, you might want more robust parsing
+            lines = content.strip().split("\n")
+            author = ""
+            book_title = ""
+
+            # Find the last author/book pair in the content
+            for i in range(len(lines) - 1, -1, -1):
+                line = lines[i].strip()
+                if line and not line.startswith("They can get") and not line.startswith("I just mean"):
+                    if not author:
+                        author = line
+                    elif not book_title:
+                        book_title = line
+                        break
+
+            if author and book_title:
+                # Remove the header from quotes content since it will be added by the save function
+                quotes_without_header = result
+                if quotes_without_header.startswith(f"# {book_title}"):
+                    # Find the first empty line after the header
+                    lines = quotes_without_header.split("\n")
+                    for i, line in enumerate(lines):
+                        if line.strip() == f"# {book_title}":
+                            # Skip the header line and any following empty lines
+                            while i + 1 < len(lines) and not lines[i + 1].strip():
+                                i += 1
+                            quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
+                            break
+
+                success = _save_quotes_to_file(
+                    quotes_without_header, author, book_title, self.config, self.get_existing_directory
+                )
+                if success:
+                    self.add_line("✅ Quotes saved to file successfully!")
+                else:
+                    self.add_line("❌ Failed to save quotes to file.")
+            else:
+                self.add_line("❌ Could not extract author and book title from content.")
+                self.add_line(result)
+        else:
+            self.add_line(result)
+
         self.show_result()
 ```
 
@@ -3375,7 +3502,35 @@ I just mean that I used to think about old Spencer quite a lot"""
         # Apply the same formatting function
         result = h.md.format_quotes_as_markdown_content(formatted_content)
 
-        self.add_line(result)
+        # Ask if user wants to save to file
+        save_to_file = self.get_yes_no_question(
+            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
+        )
+
+        if save_to_file:
+            # Remove the header from quotes content since it will be added by the save function
+            quotes_without_header = result
+            if quotes_without_header.startswith(f"# {book_title}"):
+                # Find the first empty line after the header
+                lines = quotes_without_header.split("\n")
+                for i, line in enumerate(lines):
+                    if line.strip() == f"# {book_title}":
+                        # Skip the header line and any following empty lines
+                        while i + 1 < len(lines) and not lines[i + 1].strip():
+                            i += 1
+                        quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
+                        break
+
+            success = _save_quotes_to_file(
+                quotes_without_header, author, book_title, self.config, self.get_existing_directory
+            )
+            if success:
+                self.add_line("✅ Quotes saved to file successfully!")
+            else:
+                self.add_line("❌ Failed to save quotes to file.")
+        else:
+            self.add_line(result)
+
         self.show_result()
 ```
 
@@ -3433,7 +3588,6 @@ This action processes a user-selected Markdown file, performing two key operatio
 to improve its structure and readability:
 
 1. Section sorting:
-
    - Identifies sections (headings) within the Markdown file
    - Sorts sections in a logical order based on heading level and content
    - Maintains the hierarchy and structure of nested sections
@@ -3547,6 +3701,150 @@ Execute code in the main thread after in_thread(). For handling the results of t
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} {self.filename} completed")
         self.show_result()
+```
+
+</details>
+
+## 🔧 Function `_format_author_for_folder`
+
+```python
+def _format_author_for_folder(author: str) -> str
+```
+
+Format author name for folder structure.
+
+Args:
+author: Full author name (e.g., "Булгаков Михаил Афанасьевич")
+
+Returns:
+Formatted author name for folder (e.g., "Булгаков-Михаил-Афанасьевич")
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_author_for_folder(author: str) -> str:
+    # Replace spaces with hyphens and clean up
+    return "-".join(part.strip() for part in author.split() if part.strip())
+```
+
+</details>
+
+## 🔧 Function `_format_book_title_for_filename`
+
+```python
+def _format_book_title_for_filename(book_title: str) -> str
+```
+
+Format book title for filename.
+
+Args:
+book_title: Book title (e.g., "Мастер и Маргарита")
+
+Returns:
+Formatted book title for filename (e.g., "Мастер-и-Маргарита")
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_book_title_for_filename(book_title: str) -> str:
+    # Remove quotes and replace spaces with hyphens
+    clean_title = book_title.replace("«", "").replace("»", "").replace('"', "").replace("'", "")
+    return "-".join(part.strip() for part in clean_title.split() if part.strip())
+```
+
+</details>
+
+## 🔧 Function `_save_quotes_to_file`
+
+```python
+def _save_quotes_to_file(quotes_content: str, author: str, book_title: str, config: dict, get_existing_directory_func) -> bool
+```
+
+Save quotes to a markdown file.
+
+Args:
+quotes_content: Formatted quotes content
+author: Author name
+book_title: Book title
+config: Configuration dictionary
+get_existing_directory_func: Function to get directory from user
+
+Returns:
+True if file was saved successfully, False otherwise
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _save_quotes_to_file(
+    quotes_content: str, author: str, book_title: str, config: dict, get_existing_directory_func
+) -> bool:
+    # Ask user to select folder
+    default_path = config.get("path_quotes", "")
+    selected_folder = get_existing_directory_func("Select folder to save quotes", default_path)
+
+    if not selected_folder:
+        return False
+
+    # Create author folder and file paths
+    author_folder = selected_folder / _format_author_for_folder(author)
+    author_folder.mkdir(exist_ok=True)
+
+    filename = f"{_format_book_title_for_filename(book_title)}.md"
+    file_path = author_folder / filename
+
+    # Read beginning template
+    beginning_template = ""
+    beginning_path = config.get("beginning_of_md", "")
+    if beginning_path.startswith("snippet:"):
+        beginning_file = Path(beginning_path.replace("snippet:", ""))
+        if beginning_file.exists():
+            beginning_template = beginning_file.read_text(encoding="utf-8")
+
+    # Prepare content
+    header = f"# {book_title}"
+    separator = "---"
+
+    # Check if file exists
+    if file_path.exists():
+        # Read existing content
+        existing_content = file_path.read_text(encoding="utf-8")
+
+        # Find the header and insert quotes after it, keeping existing content
+        lines = existing_content.split("\n")
+        new_lines = []
+        header_found = False
+
+        for i, line in enumerate(lines):
+            new_lines.append(line)
+            if line.strip() == header.strip():
+                header_found = True
+                # Add quotes after the header, then separator
+                new_lines.append("")  # Empty line after header
+                new_lines.append(quotes_content)
+                new_lines.append("")
+                new_lines.append(separator)
+                # Add the rest of the existing content
+                new_lines.extend(lines[i + 1 :])
+                break
+
+        # If header not found, add at the end
+        if not header_found:
+            if not existing_content.rstrip().endswith("---"):
+                new_lines.extend(["", separator, "", quotes_content])
+            else:
+                new_lines.extend(["", quotes_content])
+
+        content = "\n".join(new_lines)
+    else:
+        # Create new file
+        content = f"{beginning_template}\n\n{header}\n\n{quotes_content}"
+
+    # Save file
+    file_path.write_text(content, encoding="utf-8")
+    return True
 ```
 
 </details>

@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QTextBrowser,
@@ -556,6 +557,25 @@ class ActionBase:
             return text
         self.add_line("❌ Dialog was canceled.")
         return None
+
+    def get_yes_no_question(self, title: str, message: str) -> bool:
+        """Open a yes/no question dialog.
+
+        Args:
+            title: The title of the dialog window.
+            message: The message to display to the user.
+
+        Returns:
+            True if user clicked Yes, False if user clicked No or closed the dialog.
+        """
+        reply = QMessageBox.question(
+            None,
+            title,
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
 
     def handle_error(self, error: Exception, context: str) -> None:
         """Handle an error with context information.

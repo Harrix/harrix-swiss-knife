@@ -27,6 +27,7 @@ lang: en
   - [⚙️ Method `get_text_input`](#%EF%B8%8F-method-get_text_input)
   - [⚙️ Method `get_text_input_with_auto`](#%EF%B8%8F-method-get_text_input_with_auto)
   - [⚙️ Method `get_text_textarea`](#%EF%B8%8F-method-get_text_textarea)
+  - [⚙️ Method `get_yes_no_question`](#%EF%B8%8F-method-get_yes_no_question)
   - [⚙️ Method `handle_error`](#%EF%B8%8F-method-handle_error)
   - [⚙️ Method `handle_exceptions`](#%EF%B8%8F-method-handle_exceptions)
   - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
@@ -574,6 +575,25 @@ class ActionBase:
             return text
         self.add_line("❌ Dialog was canceled.")
         return None
+
+    def get_yes_no_question(self, title: str, message: str) -> bool:
+        """Open a yes/no question dialog.
+
+        Args:
+            title: The title of the dialog window.
+            message: The message to display to the user.
+
+        Returns:
+            True if user clicked Yes, False if user clicked No or closed the dialog.
+        """
+        reply = QMessageBox.question(
+            None,
+            title,
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
 
     def handle_error(self, error: Exception, context: str) -> None:
         """Handle an error with context information.
@@ -1606,6 +1626,38 @@ def get_text_textarea(self, title: str, label: str, default_text: str | None = N
             return text
         self.add_line("❌ Dialog was canceled.")
         return None
+```
+
+</details>
+
+### ⚙️ Method `get_yes_no_question`
+
+```python
+def get_yes_no_question(self, title: str, message: str) -> bool
+```
+
+Open a yes/no question dialog.
+
+Args:
+title: The title of the dialog window.
+message: The message to display to the user.
+
+Returns:
+True if user clicked Yes, False if user clicked No or closed the dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_yes_no_question(self, title: str, message: str) -> bool:
+        reply = QMessageBox.question(
+            None,
+            title,
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
 ```
 
 </details>
