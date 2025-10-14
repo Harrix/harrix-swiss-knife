@@ -94,6 +94,7 @@ _Figure 1: Screenshot_
   - 💎 Beautify MD in …
   - 🚧 Check in …
   - 📥 Download images in …
+  - ❞ Fix Markdown with quotes
   - 📑 Generate a short version with only TOC
   - 🖼️ Optimize images in MD in …
   - 🖼️ ★ Optimize selected images in MD

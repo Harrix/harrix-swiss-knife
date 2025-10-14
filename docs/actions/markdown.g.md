@@ -32,50 +32,54 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
-- [🏛️ Class `OnGenerateShortNoteTocWithLinks`](#%EF%B8%8F-class-ongenerateshortnotetocwithlinks)
+- [🏛️ Class `OnFixMarkdownWithQuotes`](#%EF%B8%8F-class-onfixmarkdownwithquotes)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-4)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-4)
-- [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
+- [🏛️ Class `OnGenerateShortNoteTocWithLinks`](#%EF%B8%8F-class-ongenerateshortnotetocwithlinks)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
-- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
-- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
-- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
-- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
-- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
-- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
-- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-5)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-5)
+- [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
+- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
+- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
+- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
+- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
+- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
+- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
+- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
   - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
   - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
   - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-5)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
 - [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
   - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
   - [⚙️ Method `optimize_selected_images_content`](#%EF%B8%8F-method-optimize_selected_images_content)
   - [⚙️ Method `optimize_selected_images_content_line`](#%EF%B8%8F-method-optimize_selected_images_content_line)
   - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
 - [🏛️ Class `OnQuotesProcess`](#%EF%B8%8F-class-onquotesprocess)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
   - [⚙️ Method `execute_add_author_and_title`](#%EF%B8%8F-method-execute_add_author_and_title)
   - [⚙️ Method `execute_format_as_markdown`](#%EF%B8%8F-method-execute_format_as_markdown)
   - [⚙️ Method `execute_format_with_author_and_book`](#%EF%B8%8F-method-execute_format_with_author_and_book)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
-- [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
+- [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-9)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-9)
 - [🔧 Function `_format_author_for_folder`](#-function-_format_author_for_folder)
 - [🔧 Function `_format_book_title_for_filename`](#-function-_format_book_title_for_filename)
 - [🔧 Function `_save_quotes_to_file`](#-function-_save_quotes_to_file)
@@ -1102,6 +1106,209 @@ def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
         self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
+```
+
+</details>
+
+## 🏛️ Class `OnFixMarkdownWithQuotes`
+
+```python
+class OnFixMarkdownWithQuotes(ActionBase)
+```
+
+Add author and title information to quote files in a folder.
+
+This action processes quote files in a folder to add author and book information
+based on the folder structure. Given a file structure like:
+
+`C:/quotes/Name-Surname/Title-of-book.md`
+
+The action will:
+
+1. Extract author name from the parent folder
+2. Extract book title from the filename
+3. Format quotes with proper author attribution
+
+Example transformation:
+
+- Before: Plain text quotes separated by `---`
+- After: Block quotes with attribution `-- _Name Surname, Title of book_`
+
+<details>
+<summary>Code:</summary>
+
+````python
+class OnFixMarkdownWithQuotes(ActionBase):
+
+    icon = "❞"
+    title = "Fix MD with quotes"
+
+    @ActionBase.handle_exceptions("fixing markdown with quotes")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
+
+```markdown
+# Title of book
+
+Line 1.
+
+Line 2.
+
+---
+
+Line 3.
+
+Line 4.
+
+-- Modified title of book
+
+````
+
+After processing:
+
+```markdown
+# Title of book
+
+> Line 1.
+>
+> Line 2.
+>
+> -- _Name Surname, Title of book_
+
+---
+
+> Line 3.
+>
+> Line 4.
+>
+> -- _Name Surname, Modified title of book_
+```
+
+""")
+self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
+if not self.folder_path:
+return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("fixing markdown with quotes thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.folder_path is None:
+            return
+        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("fixing markdown with quotes thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
+
+````
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+````
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+````python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
+
+```markdown
+# Title of book
+
+Line 1.
+
+Line 2.
+
+---
+
+Line 3.
+
+Line 4.
+
+-- Modified title of book
+
+````
+
+After processing:
+
+```markdown
+# Title of book
+
+> Line 1.
+>
+> Line 2.
+>
+> -- _Name Surname, Title of book_
+
+---
+
+> Line 3.
+>
+> Line 4.
+>
+> -- _Name Surname, Modified title of book_
+```
+
+""")
+self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
+if not self.folder_path:
+return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+````
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+````
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        if self.folder_path is None:
+            return
+        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
+        self.add_line(result)
 ```
 
 </details>
