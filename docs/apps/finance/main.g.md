@@ -2319,10 +2319,10 @@ class MainWindow(
             default_currency_info = self.db_manager.get_currency_by_code(self.db_manager.get_default_currency())
             currency_symbol: str = default_currency_info[2] if default_currency_info else "₽"
 
-            # Для начальной загрузки показываем только суммы в валюте по умолчанию
-            # без конвертации из других валют
+            # For initial loading, only show sums in default currency
+            # without conversion from other currencies
 
-            # Упрощенный запрос для получения сумм только в валюте по умолчанию
+            # Simplified query for getting sums only in default currency
             query_income: str = """
                 SELECT SUM(t.amount) as total_income
                 FROM transactions t
@@ -2349,7 +2349,7 @@ class MainWindow(
             self.label_total_income.setText(f"Total Income: {total_income:.2f}{currency_symbol}")
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
-            # Для today's balance и expenses также используем упрощенные запросы
+            # For today's balance and expenses also use simplified queries
             today: str = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             today_query_income: str = """
@@ -2537,7 +2537,9 @@ class MainWindow(
 
                     if exchange_rate == 1.0 and currency_id != default_currency_id:
                         # No valid exchange rate found
-                        details_lines.append(f"{currency_code}: {balance:,.2f}{currency_symbol} (курс не найден)")
+                        details_lines.append(
+                            f"{currency_code}: {balance:,.2f}{currency_symbol} (exchange rate not found)"
+                        )
                     else:
                         converted_amount: float = balance * exchange_rate
                         details_lines.append(
@@ -3754,7 +3756,6 @@ class MainWindow(
                     load_method()
                 except Exception as e:
                     print(f"❌ Error loading {table_name} table: {e}")
-                    # Продолжаем загрузку других таблиц
 
             # Connect auto-save signals for loaded tables
             self._connect_table_auto_save_signals()
@@ -7061,10 +7062,10 @@ def update_summary_labels(self) -> None:
             default_currency_info = self.db_manager.get_currency_by_code(self.db_manager.get_default_currency())
             currency_symbol: str = default_currency_info[2] if default_currency_info else "₽"
 
-            # Для начальной загрузки показываем только суммы в валюте по умолчанию
-            # без конвертации из других валют
+            # For initial loading, only show sums in default currency
+            # without conversion from other currencies
 
-            # Упрощенный запрос для получения сумм только в валюте по умолчанию
+            # Simplified query for getting sums only in default currency
             query_income: str = """
                 SELECT SUM(t.amount) as total_income
                 FROM transactions t
@@ -7091,7 +7092,7 @@ def update_summary_labels(self) -> None:
             self.label_total_income.setText(f"Total Income: {total_income:.2f}{currency_symbol}")
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
-            # Для today's balance и expenses также используем упрощенные запросы
+            # For today's balance and expenses also use simplified queries
             today: str = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             today_query_income: str = """
@@ -7317,7 +7318,9 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
 
                     if exchange_rate == 1.0 and currency_id != default_currency_id:
                         # No valid exchange rate found
-                        details_lines.append(f"{currency_code}: {balance:,.2f}{currency_symbol} (курс не найден)")
+                        details_lines.append(
+                            f"{currency_code}: {balance:,.2f}{currency_symbol} (exchange rate not found)"
+                        )
                     else:
                         converted_amount: float = balance * exchange_rate
                         details_lines.append(
@@ -9010,7 +9013,6 @@ def _load_essential_tables(self) -> None:
                     load_method()
                 except Exception as e:
                     print(f"❌ Error loading {table_name} table: {e}")
-                    # Продолжаем загрузку других таблиц
 
             # Connect auto-save signals for loaded tables
             self._connect_table_auto_save_signals()

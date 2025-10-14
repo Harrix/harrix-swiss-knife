@@ -186,7 +186,7 @@ class OnCombineForAI(ActionBase):
         default_path = self.config.get("path_github", str(Path.cwd()))
 
         # Let user select a folder
-        selected_folder = self.get_existing_directory("Выбрать папку", default_path)
+        selected_folder = self.get_existing_directory("Select folder", default_path)
         if not selected_folder:
             return
 

@@ -172,7 +172,7 @@ class AutoSaveOperations:
                 return
 
         # Parse is_drink value
-        is_drink = is_drink_str.strip().lower() in ["yes", "true", "1", "да"]
+        is_drink = is_drink_str.strip().lower() in ["yes", "true", "1", "да"]  # ignore: HP001
 
         # Update database
         if not self.db_manager.update_food_log_record(

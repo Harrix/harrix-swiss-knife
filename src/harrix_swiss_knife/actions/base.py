@@ -562,11 +562,13 @@ class ActionBase:
         """Open a yes/no question dialog.
 
         Args:
-            title: The title of the dialog window.
-            message: The message to display to the user.
+
+        - `title` (`str`): The title of the dialog window.
+        - `message` (`str`): The message to display to the user.
 
         Returns:
-            True if user clicked Yes, False if user clicked No or closed the dialog.
+
+        - `bool`: True if user clicked Yes, False if user clicked No or closed the dialog.
 
         """
         reply = QMessageBox.question(

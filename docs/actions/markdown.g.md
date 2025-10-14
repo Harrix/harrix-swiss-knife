@@ -3924,10 +3924,12 @@ def _format_author_for_folder(author: str) -> str
 Format author name for folder structure.
 
 Args:
-author: Full author name (e.g., "Булгаков Михаил Афанасьевич")
+
+- `author` (`str`) : Full author name (e.g., "Bulgakov Mikhail Afanasievich")
 
 Returns:
-Formatted author name for folder (e.g., "Булгаков-Михаил-Афанасьевич")
+
+- `str`: Formatted author name for folder (e.g., "Bulgakov-Mikhail-Afanasievich")
 
 <details>
 <summary>Code:</summary>
@@ -3949,10 +3951,12 @@ def _format_book_title_for_filename(book_title: str) -> str
 Format book title for filename.
 
 Args:
-book_title: Book title (e.g., "Мастер и Маргарита")
+
+- `book_title` (`str`): Book title (e.g., "The Master and Margarita")
 
 Returns:
-Formatted book title for filename (e.g., "Мастер-и-Маргарита")
+
+- `str`: Formatted book title for filename (e.g., "Master-and-Margarita")
 
 <details>
 <summary>Code:</summary>
@@ -3975,14 +3979,16 @@ def _save_quotes_to_file(quotes_content: str, author: str, book_title: str, conf
 Save quotes to a markdown file.
 
 Args:
-quotes_content: Formatted quotes content
-author: Author name
-book_title: Book title
-config: Configuration dictionary
-get_existing_directory_func: Function to get directory from user
+
+- `quotes_content` (`str`): Formatted quotes content
+- `author` (`str`): Author name
+- `book_title` (`str`): Book title
+- `config` (`dict`): Configuration dictionary
+- `get_existing_directory_func` (`callable`): Function to get directory from user
 
 Returns:
-True if file was saved successfully, False otherwise
+
+- `bool`: True if file was saved successfully, False otherwise
 
 <details>
 <summary>Code:</summary>

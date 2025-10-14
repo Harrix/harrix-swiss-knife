@@ -109,7 +109,7 @@ class FileDropWidget(QWidget):
     def _clear_file(self) -> None:
         """Clear the selected file."""
         self.file_path = ""
-        self.file_label.setText("Перетащите файл сюда или нажмите кнопку")
+        self.file_label.setText("Drag and drop file here or click button")
         self.file_label.setStyleSheet("""
             QLabel {
                 border: 2px dashed #ccc;
@@ -136,7 +136,7 @@ class FileDropWidget(QWidget):
     def _set_file(self, file_path: str) -> None:
         """Set the file from file path."""
         self.file_path = file_path
-        self.file_label.setText(f"Файл: {Path(file_path).name}")
+        self.file_label.setText(f"File: {Path(file_path).name}")
         self.file_label.setStyleSheet("""
             QLabel {
                 border: 2px solid #4CAF50;
@@ -151,7 +151,7 @@ class FileDropWidget(QWidget):
         layout = QVBoxLayout()
 
         # File path display
-        self.file_label = QLabel("Перетащите файл сюда или нажмите кнопку")
+        self.file_label = QLabel("Drag and drop file here or click button")
         self.file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.file_label.setStyleSheet("""
             QLabel {
@@ -169,11 +169,11 @@ class FileDropWidget(QWidget):
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        self.browse_button = QPushButton("Выбрать файл")
+        self.browse_button = QPushButton("Select File")
         self.browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(self.browse_button)
 
-        self.clear_button = QPushButton("Очистить")
+        self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self._clear_file)
         button_layout.addWidget(self.clear_button)
 
@@ -276,7 +276,7 @@ Clear the selected file.
 ```python
 def _clear_file(self) -> None:
         self.file_path = ""
-        self.file_label.setText("Перетащите файл сюда или нажмите кнопку")
+        self.file_label.setText("Drag and drop file here or click button")
         self.file_label.setStyleSheet("""
             QLabel {
                 border: 2px dashed #ccc;
@@ -345,7 +345,7 @@ Set the file from file path.
 ```python
 def _set_file(self, file_path: str) -> None:
         self.file_path = file_path
-        self.file_label.setText(f"Файл: {Path(file_path).name}")
+        self.file_label.setText(f"File: {Path(file_path).name}")
         self.file_label.setStyleSheet("""
             QLabel {
                 border: 2px solid #4CAF50;
@@ -374,7 +374,7 @@ def _setup_ui(self) -> None:
         layout = QVBoxLayout()
 
         # File path display
-        self.file_label = QLabel("Перетащите файл сюда или нажмите кнопку")
+        self.file_label = QLabel("Drag and drop file here or click button")
         self.file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.file_label.setStyleSheet("""
             QLabel {
@@ -392,11 +392,11 @@ def _setup_ui(self) -> None:
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        self.browse_button = QPushButton("Выбрать файл")
+        self.browse_button = QPushButton("Select File")
         self.browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(self.browse_button)
 
-        self.clear_button = QPushButton("Очистить")
+        self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self._clear_file)
         button_layout.addWidget(self.clear_button)
 
@@ -497,15 +497,15 @@ class FilesListWidget(QWidget):
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        self.add_button = QPushButton("Добавить файлы")
+        self.add_button = QPushButton("Add Files")
         self.add_button.clicked.connect(self._add_files)
         button_layout.addWidget(self.add_button)
 
-        self.remove_button = QPushButton("Удалить выбранное")
+        self.remove_button = QPushButton("Remove Selected")
         self.remove_button.clicked.connect(self._remove_selected)
         button_layout.addWidget(self.remove_button)
 
-        self.clear_button = QPushButton("Очистить все")
+        self.clear_button = QPushButton("Clear All")
         self.clear_button.clicked.connect(self._clear_all)
         button_layout.addWidget(self.clear_button)
 
@@ -729,15 +729,15 @@ def _setup_ui(self) -> None:
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        self.add_button = QPushButton("Добавить файлы")
+        self.add_button = QPushButton("Add Files")
         self.add_button.clicked.connect(self._add_files)
         button_layout.addWidget(self.add_button)
 
-        self.remove_button = QPushButton("Удалить выбранное")
+        self.remove_button = QPushButton("Remove Selected")
         self.remove_button.clicked.connect(self._remove_selected)
         button_layout.addWidget(self.remove_button)
 
-        self.clear_button = QPushButton("Очистить все")
+        self.clear_button = QPushButton("Clear All")
         self.clear_button.clicked.connect(self._clear_all)
         button_layout.addWidget(self.clear_button)
 
@@ -782,9 +782,9 @@ class ImageDropWidget(QWidget):
         """Open file dialog to select image."""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Выберите изображение",
+            "Select Image",
             "",
-            "Изображения (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
+            "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
         )
         if file_path:
             self._set_image(file_path)
@@ -792,7 +792,7 @@ class ImageDropWidget(QWidget):
     def _clear_image(self) -> None:
         """Clear the selected image."""
         self.image_path = ""
-        self.image_label.setText("Перетащите изображение сюда или нажмите кнопку")
+        self.image_label.setText("Drag and drop image here or click button")
         self.image_label.setPixmap(QPixmap())
         self.image_label.setStyleSheet("""
             QLabel {
@@ -849,7 +849,7 @@ class ImageDropWidget(QWidget):
         layout = QVBoxLayout()
 
         # Image preview label
-        self.image_label = QLabel("Перетащите изображение сюда или нажмите кнопку")
+        self.image_label = QLabel("Drag and drop image here or click button")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("""
             QLabel {
@@ -867,11 +867,11 @@ class ImageDropWidget(QWidget):
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        self.browse_button = QPushButton("Выбрать файл")
+        self.browse_button = QPushButton("Select File")
         self.browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(self.browse_button)
 
-        self.clear_button = QPushButton("Очистить")
+        self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self._clear_image)
         button_layout.addWidget(self.clear_button)
 
@@ -955,9 +955,9 @@ Open file dialog to select image.
 def _browse_file(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Выберите изображение",
+            "Select Image",
             "",
-            "Изображения (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
+            "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
         )
         if file_path:
             self._set_image(file_path)
@@ -979,7 +979,7 @@ Clear the selected image.
 ```python
 def _clear_image(self) -> None:
         self.image_path = ""
-        self.image_label.setText("Перетащите изображение сюда или нажмите кнопку")
+        self.image_label.setText("Drag and drop image here or click button")
         self.image_label.setPixmap(QPixmap())
         self.image_label.setStyleSheet("""
             QLabel {
@@ -1106,7 +1106,7 @@ def _setup_ui(self) -> None:
         layout = QVBoxLayout()
 
         # Image preview label
-        self.image_label = QLabel("Перетащите изображение сюда или нажмите кнопку")
+        self.image_label = QLabel("Drag and drop image here or click button")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("""
             QLabel {
@@ -1124,11 +1124,11 @@ def _setup_ui(self) -> None:
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        self.browse_button = QPushButton("Выбрать файл")
+        self.browse_button = QPushButton("Select File")
         self.browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(self.browse_button)
 
-        self.clear_button = QPushButton("Очистить")
+        self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self._clear_image)
         button_layout.addWidget(self.clear_button)
 
@@ -1182,9 +1182,9 @@ class ImagesListWidget(QWidget):
         """Open file dialog to select multiple images."""
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
-            "Выберите изображения",
+            "Select Images",
             "",
-            "Изображения (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
+            "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
         )
         for file_path in file_paths:
             if file_path not in self.image_paths:
@@ -1239,15 +1239,15 @@ class ImagesListWidget(QWidget):
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        self.add_button = QPushButton("Добавить изображения")
+        self.add_button = QPushButton("Add Images")
         self.add_button.clicked.connect(self._add_images)
         button_layout.addWidget(self.add_button)
 
-        self.remove_button = QPushButton("Удалить выбранное")
+        self.remove_button = QPushButton("Remove Selected")
         self.remove_button.clicked.connect(self._remove_selected)
         button_layout.addWidget(self.remove_button)
 
-        self.clear_button = QPushButton("Очистить все")
+        self.clear_button = QPushButton("Clear All")
         self.clear_button.clicked.connect(self._clear_all)
         button_layout.addWidget(self.clear_button)
 
@@ -1354,9 +1354,9 @@ Open file dialog to select multiple images.
 def _add_images(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
-            "Выберите изображения",
+            "Select Images",
             "",
-            "Изображения (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
+            "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
         )
         for file_path in file_paths:
             if file_path not in self.image_paths:
@@ -1495,15 +1495,15 @@ def _setup_ui(self) -> None:
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        self.add_button = QPushButton("Добавить изображения")
+        self.add_button = QPushButton("Add Images")
         self.add_button.clicked.connect(self._add_images)
         button_layout.addWidget(self.add_button)
 
-        self.remove_button = QPushButton("Удалить выбранное")
+        self.remove_button = QPushButton("Remove Selected")
         self.remove_button.clicked.connect(self._remove_selected)
         button_layout.addWidget(self.remove_button)
 
-        self.clear_button = QPushButton("Очистить все")
+        self.clear_button = QPushButton("Clear All")
         self.clear_button.clicked.connect(self._clear_all)
         button_layout.addWidget(self.clear_button)
 

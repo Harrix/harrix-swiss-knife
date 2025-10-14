@@ -49,7 +49,8 @@ class OnAboutDialog(ActionBase):
         """Get version from pyproject.toml file.
 
         Returns:
-            str: Version string from pyproject.toml, or "Unknown" if not found.
+
+        - `str`: Version string from `pyproject.toml`, or "Unknown" if not found.
 
         """
         try:
