@@ -92,7 +92,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnDecreaseHeadingLevelContent,
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
-                hsk.md.OnQuotesProcess,
+                hsk.md.OnNewQuotes,
                 "-",
                 hsk.md.OnBeautifyMdFolder,
                 hsk.md.OnBeautifyMdFolderAndRegenerateGMd,

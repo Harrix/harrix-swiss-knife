@@ -54,27 +54,27 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
 - [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
-- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+- [🏛️ Class `OnNewQuotes`](#%EF%B8%8F-class-onnewquotes)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
-  - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
-  - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
-  - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
-- [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
-  - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
-  - [⚙️ Method `optimize_selected_images_content`](#%EF%B8%8F-method-optimize_selected_images_content)
-  - [⚙️ Method `optimize_selected_images_content_line`](#%EF%B8%8F-method-optimize_selected_images_content_line)
-  - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
-- [🏛️ Class `OnQuotesProcess`](#%EF%B8%8F-class-onquotesprocess)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
   - [⚙️ Method `execute_add_author_and_title`](#%EF%B8%8F-method-execute_add_author_and_title)
   - [⚙️ Method `execute_format_as_markdown`](#%EF%B8%8F-method-execute_format_as_markdown)
   - [⚙️ Method `execute_format_with_author_and_book`](#%EF%B8%8F-method-execute_format_with_author_and_book)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
+- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
+  - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
+  - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
+  - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
+- [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
+  - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
+  - [⚙️ Method `optimize_selected_images_content`](#%EF%B8%8F-method-optimize_selected_images_content)
+  - [⚙️ Method `optimize_selected_images_content_line`](#%EF%B8%8F-method-optimize_selected_images_content_line)
+  - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
 - [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
@@ -1934,6 +1934,606 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
+## 🏛️ Class `OnNewQuotes`
+
+```python
+class OnNewQuotes(ActionBase)
+```
+
+Add new quotes with various formatting options.
+
+This action allows you to quickly add new quotes:
+
+1. Format quote text as structured Markdown content
+2. Add a quote with specified author and book title
+3. Add quotes from files, supplementing them with author and book information
+
+<details>
+<summary>Code:</summary>
+
+````python
+class OnNewQuotes(ActionBase):
+
+    icon = "❞"
+    title = "New quotes"
+
+    @ActionBase.handle_exceptions("processing quotes")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Let user choose processing mode
+        options = [
+            "Format quotes as Markdown content",
+            "Format quotes with author and book",
+            "Add author and title to quote files",
+        ]
+        selected_option = self.get_choice_from_list(
+            "Select Quote Processing Mode",
+            "Choose how you want to process quotes:",
+            options,
+        )
+
+        if not selected_option:
+            return
+
+        if selected_option == options[0]:
+            self.execute_format_as_markdown()
+        elif selected_option == options[1]:
+            self.execute_format_with_author_and_book()
+        elif selected_option == options[2]:
+            self.execute_add_author_and_title()
+
+    def execute_add_author_and_title(self) -> None:
+        """Process quote files to add author and book information."""
+        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
+
+```markdown
+# Title of book
+
+Line 1.
+
+Line 2.
+
+---
+
+Line 3.
+
+Line 4.
+
+-- Modified title of book
+
+````
+
+After processing:
+
+```markdown
+# Title of book
+
+> Line 1.
+>
+> Line 2.
+>
+> -- _Name Surname, Title of book_
+
+---
+
+> Line 3.
+>
+> Line 4.
+>
+> -- _Name Surname, Modified title of book_
+```
+
+""")
+self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
+if not self.folder_path:
+return
+
+        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
+
+    def execute_format_as_markdown(self) -> None:
+        """Format plain text quotes into properly structured Markdown."""
+        default_text = """They can get a big bang out of buying a blanket.
+
+The Catcher in the Rye
+J.D. Salinger
+
+I just mean that I used to think about old Spencer quite a lot
+
+The Catcher in the Rye
+J.D. Salinger"""
+content = self.get_text_textarea("Quotes", "Input quotes", default_text)
+if not content:
+return
+
+        result = h.md.format_quotes_as_markdown_content(content)
+
+        # Ask if user wants to save to file
+        save_to_file = self.get_yes_no_question(
+            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
+        )
+
+        if save_to_file:
+            # Extract author and book title from content for folder structure
+            # This is a simple extraction - in practice, you might want more robust parsing
+            lines = content.strip().split("\n")
+            author = ""
+            book_title = ""
+
+            # Find the last author/book pair in the content
+            for i in range(len(lines) - 1, -1, -1):
+                line = lines[i].strip()
+                if line and not line.startswith("They can get") and not line.startswith("I just mean"):
+                    if not author:
+                        author = line
+                    elif not book_title:
+                        book_title = line
+                        break
+
+            if author and book_title:
+                # Remove the header from quotes content since it will be added by the save function
+                quotes_without_header = result
+                if quotes_without_header.startswith(f"# {book_title}"):
+                    # Find the first empty line after the header
+                    lines = quotes_without_header.split("\n")
+                    for i_original, line in enumerate(lines):
+                        i = i_original
+                        if line.strip() == f"# {book_title}":
+                            # Skip the header line and any following empty lines
+                            while i + 1 < len(lines) and not lines[i + 1].strip():
+                                i += 1
+                            quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
+                            break
+
+                success = _save_quotes_to_file(
+                    quotes_without_header, author, book_title, self.config, self.get_existing_directory
+                )
+                if success:
+                    self.add_line("✅ Quotes saved to file successfully!")
+                else:
+                    self.add_line("❌ Failed to save quotes to file.")
+            else:
+                self.add_line("❌ Could not extract author and book title from content.")
+                self.add_line(result)
+        else:
+            self.add_line(result)
+
+        self.show_result()
+
+    def execute_format_with_author_and_book(self) -> None:
+        """Format quotes with specified author and book title via dialog."""
+        # Create template fields for author, book, and quotes
+        fields = [
+            TemplateField("Book Title", "line", "{{Book Title:line}}", None),
+            TemplateField("Author", "line", "{{Author:line}}", None),
+            TemplateField(
+                "Quotes",
+                "multiline",
+                "{{Quotes:multiline}}",
+                (
+                    "They can get a big bang out of buying a blanket.\n\n\n"
+                    "I just mean that I used to think about old Spencer quite a lot"
+                ),
+            ),
+        ]
+
+        # Show dialog to collect all information
+        dialog = TemplateDialog(
+            fields=fields,
+            title="Enter Book, Author and Quotes",
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            self.show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            self.show_result()
+            return
+
+        book_title = field_values.get("Book Title", "")
+        author = field_values.get("Author", "")
+        quotes_content = field_values.get("Quotes", "")
+
+        if not book_title or not author or not quotes_content:
+            self.add_line("❌ Book title, author and quotes are required.")
+            self.show_result()
+            return
+
+        # Split quotes by double line breaks
+        quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
+
+        # Build the formatted content in the same format as execute_format_as_markdown expects
+        formatted_content = ""
+        for quote in quotes:
+            formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
+
+        # Remove trailing newlines
+        formatted_content = formatted_content.rstrip()
+
+        # Apply the same formatting function
+        result = h.md.format_quotes_as_markdown_content(formatted_content)
+
+        # Ask if user wants to save to file
+        save_to_file = self.get_yes_no_question(
+            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
+        )
+
+        if save_to_file:
+            # Remove the header from quotes content since it will be added by the save function
+            quotes_without_header = result
+            if quotes_without_header.startswith(f"# {book_title}"):
+                # Find the first empty line after the header
+                lines = quotes_without_header.split("\n")
+                for i_original, line in enumerate(lines):
+                    i = i_original
+                    if line.strip() == f"# {book_title}":
+                        # Skip the header line and any following empty lines
+                        while i + 1 < len(lines) and not lines[i + 1].strip():
+                            i += 1
+                        quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
+                        break
+
+            success = _save_quotes_to_file(
+                quotes_without_header, author, book_title, self.config, self.get_existing_directory
+            )
+            if success:
+                self.add_line("✅ Quotes saved to file successfully!")
+            else:
+                self.add_line("❌ Failed to save quotes to file.")
+        else:
+            self.add_line(result)
+
+        self.show_result()
+
+    @ActionBase.handle_exceptions("generating author book thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.folder_path is None:
+            return
+        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("generating author book thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
+        self.show_result()
+
+````
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+````
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        # Let user choose processing mode
+        options = [
+            "Format quotes as Markdown content",
+            "Format quotes with author and book",
+            "Add author and title to quote files",
+        ]
+        selected_option = self.get_choice_from_list(
+            "Select Quote Processing Mode",
+            "Choose how you want to process quotes:",
+            options,
+        )
+
+        if not selected_option:
+            return
+
+        if selected_option == options[0]:
+            self.execute_format_as_markdown()
+        elif selected_option == options[1]:
+            self.execute_format_with_author_and_book()
+        elif selected_option == options[2]:
+            self.execute_add_author_and_title()
+```
+
+</details>
+
+### ⚙️ Method `execute_add_author_and_title`
+
+```python
+def execute_add_author_and_title(self) -> None
+```
+
+Process quote files to add author and book information.
+
+<details>
+<summary>Code:</summary>
+
+````python
+def execute_add_author_and_title(self) -> None:
+        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
+
+```markdown
+# Title of book
+
+Line 1.
+
+Line 2.
+
+---
+
+Line 3.
+
+Line 4.
+
+-- Modified title of book
+
+````
+
+After processing:
+
+```markdown
+# Title of book
+
+> Line 1.
+>
+> Line 2.
+>
+> -- _Name Surname, Title of book_
+
+---
+
+> Line 3.
+>
+> Line 4.
+>
+> -- _Name Surname, Modified title of book_
+```
+
+""")
+self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
+if not self.folder_path:
+return
+
+        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
+
+````
+
+</details>
+
+### ⚙️ Method `execute_format_as_markdown`
+
+```python
+def execute_format_as_markdown(self) -> None
+````
+
+Format plain text quotes into properly structured Markdown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute_format_as_markdown(self) -> None:
+        default_text = """They can get a big bang out of buying a blanket.
+
+The Catcher in the Rye
+J.D. Salinger
+
+
+I just mean that I used to think about old Spencer quite a lot
+
+The Catcher in the Rye
+J.D. Salinger"""
+        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
+        if not content:
+            return
+
+        result = h.md.format_quotes_as_markdown_content(content)
+
+        # Ask if user wants to save to file
+        save_to_file = self.get_yes_no_question(
+            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
+        )
+
+        if save_to_file:
+            # Extract author and book title from content for folder structure
+            # This is a simple extraction - in practice, you might want more robust parsing
+            lines = content.strip().split("\n")
+            author = ""
+            book_title = ""
+
+            # Find the last author/book pair in the content
+            for i in range(len(lines) - 1, -1, -1):
+                line = lines[i].strip()
+                if line and not line.startswith("They can get") and not line.startswith("I just mean"):
+                    if not author:
+                        author = line
+                    elif not book_title:
+                        book_title = line
+                        break
+
+            if author and book_title:
+                # Remove the header from quotes content since it will be added by the save function
+                quotes_without_header = result
+                if quotes_without_header.startswith(f"# {book_title}"):
+                    # Find the first empty line after the header
+                    lines = quotes_without_header.split("\n")
+                    for i_original, line in enumerate(lines):
+                        i = i_original
+                        if line.strip() == f"# {book_title}":
+                            # Skip the header line and any following empty lines
+                            while i + 1 < len(lines) and not lines[i + 1].strip():
+                                i += 1
+                            quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
+                            break
+
+                success = _save_quotes_to_file(
+                    quotes_without_header, author, book_title, self.config, self.get_existing_directory
+                )
+                if success:
+                    self.add_line("✅ Quotes saved to file successfully!")
+                else:
+                    self.add_line("❌ Failed to save quotes to file.")
+            else:
+                self.add_line("❌ Could not extract author and book title from content.")
+                self.add_line(result)
+        else:
+            self.add_line(result)
+
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute_format_with_author_and_book`
+
+```python
+def execute_format_with_author_and_book(self) -> None
+```
+
+Format quotes with specified author and book title via dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute_format_with_author_and_book(self) -> None:
+        # Create template fields for author, book, and quotes
+        fields = [
+            TemplateField("Book Title", "line", "{{Book Title:line}}", None),
+            TemplateField("Author", "line", "{{Author:line}}", None),
+            TemplateField(
+                "Quotes",
+                "multiline",
+                "{{Quotes:multiline}}",
+                (
+                    "They can get a big bang out of buying a blanket.\n\n\n"
+                    "I just mean that I used to think about old Spencer quite a lot"
+                ),
+            ),
+        ]
+
+        # Show dialog to collect all information
+        dialog = TemplateDialog(
+            fields=fields,
+            title="Enter Book, Author and Quotes",
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            self.show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            self.show_result()
+            return
+
+        book_title = field_values.get("Book Title", "")
+        author = field_values.get("Author", "")
+        quotes_content = field_values.get("Quotes", "")
+
+        if not book_title or not author or not quotes_content:
+            self.add_line("❌ Book title, author and quotes are required.")
+            self.show_result()
+            return
+
+        # Split quotes by double line breaks
+        quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
+
+        # Build the formatted content in the same format as execute_format_as_markdown expects
+        formatted_content = ""
+        for quote in quotes:
+            formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
+
+        # Remove trailing newlines
+        formatted_content = formatted_content.rstrip()
+
+        # Apply the same formatting function
+        result = h.md.format_quotes_as_markdown_content(formatted_content)
+
+        # Ask if user wants to save to file
+        save_to_file = self.get_yes_no_question(
+            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
+        )
+
+        if save_to_file:
+            # Remove the header from quotes content since it will be added by the save function
+            quotes_without_header = result
+            if quotes_without_header.startswith(f"# {book_title}"):
+                # Find the first empty line after the header
+                lines = quotes_without_header.split("\n")
+                for i_original, line in enumerate(lines):
+                    i = i_original
+                    if line.strip() == f"# {book_title}":
+                        # Skip the header line and any following empty lines
+                        while i + 1 < len(lines) and not lines[i + 1].strip():
+                            i += 1
+                        quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
+                        break
+
+            success = _save_quotes_to_file(
+                quotes_without_header, author, book_title, self.config, self.get_existing_directory
+            )
+            if success:
+                self.add_line("✅ Quotes saved to file successfully!")
+            else:
+                self.add_line("❌ Failed to save quotes to file.")
+        else:
+            self.add_line(result)
+
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        if self.folder_path is None:
+            return
+        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
+        self.add_line(result)
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
+        self.show_result()
+```
+
+</details>
+
 ## 🏛️ Class `OnOptimizeImagesFolder`
 
 ```python
@@ -3181,606 +3781,6 @@ Execute code in the main thread after in_thread(). For handling the results of t
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
-        self.show_result()
-```
-
-</details>
-
-## 🏛️ Class `OnQuotesProcess`
-
-```python
-class OnQuotesProcess(ActionBase)
-```
-
-Process quotes with different formatting options.
-
-This action provides three quote processing options:
-
-1. Format plain text quotes into properly structured Markdown content
-2. Format quotes with specified author and book title
-3. Process quote files in a folder to add author and book information
-
-<details>
-<summary>Code:</summary>
-
-````python
-class OnQuotesProcess(ActionBase):
-
-    icon = "❞"
-    title = "Quotes. Process"
-
-    @ActionBase.handle_exceptions("processing quotes")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        # Let user choose processing mode
-        options = [
-            "Format quotes as Markdown content",
-            "Format quotes with author and book",
-            "Add author and title to quote files",
-        ]
-        selected_option = self.get_choice_from_list(
-            "Select Quote Processing Mode",
-            "Choose how you want to process quotes:",
-            options,
-        )
-
-        if not selected_option:
-            return
-
-        if selected_option == options[0]:
-            self.execute_format_as_markdown()
-        elif selected_option == options[1]:
-            self.execute_format_with_author_and_book()
-        elif selected_option == options[2]:
-            self.execute_add_author_and_title()
-
-    def execute_add_author_and_title(self) -> None:
-        """Process quote files to add author and book information."""
-        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
-
-```markdown
-# Title of book
-
-Line 1.
-
-Line 2.
-
----
-
-Line 3.
-
-Line 4.
-
--- Modified title of book
-
-````
-
-After processing:
-
-```markdown
-# Title of book
-
-> Line 1.
->
-> Line 2.
->
-> -- _Name Surname, Title of book_
-
----
-
-> Line 3.
->
-> Line 4.
->
-> -- _Name Surname, Modified title of book_
-```
-
-""")
-self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
-if not self.folder_path:
-return
-
-        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
-
-    def execute_format_as_markdown(self) -> None:
-        """Format plain text quotes into properly structured Markdown."""
-        default_text = """They can get a big bang out of buying a blanket.
-
-The Catcher in the Rye
-J.D. Salinger
-
-I just mean that I used to think about old Spencer quite a lot
-
-The Catcher in the Rye
-J.D. Salinger"""
-content = self.get_text_textarea("Quotes", "Input quotes", default_text)
-if not content:
-return
-
-        result = h.md.format_quotes_as_markdown_content(content)
-
-        # Ask if user wants to save to file
-        save_to_file = self.get_yes_no_question(
-            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
-        )
-
-        if save_to_file:
-            # Extract author and book title from content for folder structure
-            # This is a simple extraction - in practice, you might want more robust parsing
-            lines = content.strip().split("\n")
-            author = ""
-            book_title = ""
-
-            # Find the last author/book pair in the content
-            for i in range(len(lines) - 1, -1, -1):
-                line = lines[i].strip()
-                if line and not line.startswith("They can get") and not line.startswith("I just mean"):
-                    if not author:
-                        author = line
-                    elif not book_title:
-                        book_title = line
-                        break
-
-            if author and book_title:
-                # Remove the header from quotes content since it will be added by the save function
-                quotes_without_header = result
-                if quotes_without_header.startswith(f"# {book_title}"):
-                    # Find the first empty line after the header
-                    lines = quotes_without_header.split("\n")
-                    for i_original, line in enumerate(lines):
-                        i = i_original
-                        if line.strip() == f"# {book_title}":
-                            # Skip the header line and any following empty lines
-                            while i + 1 < len(lines) and not lines[i + 1].strip():
-                                i += 1
-                            quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
-                            break
-
-                success = _save_quotes_to_file(
-                    quotes_without_header, author, book_title, self.config, self.get_existing_directory
-                )
-                if success:
-                    self.add_line("✅ Quotes saved to file successfully!")
-                else:
-                    self.add_line("❌ Failed to save quotes to file.")
-            else:
-                self.add_line("❌ Could not extract author and book title from content.")
-                self.add_line(result)
-        else:
-            self.add_line(result)
-
-        self.show_result()
-
-    def execute_format_with_author_and_book(self) -> None:
-        """Format quotes with specified author and book title via dialog."""
-        # Create template fields for author, book, and quotes
-        fields = [
-            TemplateField("Book Title", "line", "{{Book Title:line}}", None),
-            TemplateField("Author", "line", "{{Author:line}}", None),
-            TemplateField(
-                "Quotes",
-                "multiline",
-                "{{Quotes:multiline}}",
-                (
-                    "They can get a big bang out of buying a blanket.\n\n\n"
-                    "I just mean that I used to think about old Spencer quite a lot"
-                ),
-            ),
-        ]
-
-        # Show dialog to collect all information
-        dialog = TemplateDialog(
-            fields=fields,
-            title="Enter Book, Author and Quotes",
-        )
-
-        if dialog.exec() != dialog.DialogCode.Accepted:
-            self.add_line("❌ Dialog was canceled.")
-            self.show_result()
-            return
-
-        field_values = dialog.get_field_values()
-        if not field_values:
-            self.add_line("❌ No field values collected.")
-            self.show_result()
-            return
-
-        book_title = field_values.get("Book Title", "")
-        author = field_values.get("Author", "")
-        quotes_content = field_values.get("Quotes", "")
-
-        if not book_title or not author or not quotes_content:
-            self.add_line("❌ Book title, author and quotes are required.")
-            self.show_result()
-            return
-
-        # Split quotes by double line breaks
-        quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
-
-        # Build the formatted content in the same format as execute_format_as_markdown expects
-        formatted_content = ""
-        for quote in quotes:
-            formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
-
-        # Remove trailing newlines
-        formatted_content = formatted_content.rstrip()
-
-        # Apply the same formatting function
-        result = h.md.format_quotes_as_markdown_content(formatted_content)
-
-        # Ask if user wants to save to file
-        save_to_file = self.get_yes_no_question(
-            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
-        )
-
-        if save_to_file:
-            # Remove the header from quotes content since it will be added by the save function
-            quotes_without_header = result
-            if quotes_without_header.startswith(f"# {book_title}"):
-                # Find the first empty line after the header
-                lines = quotes_without_header.split("\n")
-                for i_original, line in enumerate(lines):
-                    i = i_original
-                    if line.strip() == f"# {book_title}":
-                        # Skip the header line and any following empty lines
-                        while i + 1 < len(lines) and not lines[i + 1].strip():
-                            i += 1
-                        quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
-                        break
-
-            success = _save_quotes_to_file(
-                quotes_without_header, author, book_title, self.config, self.get_existing_directory
-            )
-            if success:
-                self.add_line("✅ Quotes saved to file successfully!")
-            else:
-                self.add_line("❌ Failed to save quotes to file.")
-        else:
-            self.add_line(result)
-
-        self.show_result()
-
-    @ActionBase.handle_exceptions("generating author book thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.folder_path is None:
-            return
-        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
-        self.add_line(result)
-
-    @ActionBase.handle_exceptions("generating author book thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
-        self.show_result()
-
-````
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-````
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        # Let user choose processing mode
-        options = [
-            "Format quotes as Markdown content",
-            "Format quotes with author and book",
-            "Add author and title to quote files",
-        ]
-        selected_option = self.get_choice_from_list(
-            "Select Quote Processing Mode",
-            "Choose how you want to process quotes:",
-            options,
-        )
-
-        if not selected_option:
-            return
-
-        if selected_option == options[0]:
-            self.execute_format_as_markdown()
-        elif selected_option == options[1]:
-            self.execute_format_with_author_and_book()
-        elif selected_option == options[2]:
-            self.execute_add_author_and_title()
-```
-
-</details>
-
-### ⚙️ Method `execute_add_author_and_title`
-
-```python
-def execute_add_author_and_title(self) -> None
-```
-
-Process quote files to add author and book information.
-
-<details>
-<summary>Code:</summary>
-
-````python
-def execute_add_author_and_title(self) -> None:
-        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
-
-```markdown
-# Title of book
-
-Line 1.
-
-Line 2.
-
----
-
-Line 3.
-
-Line 4.
-
--- Modified title of book
-
-````
-
-After processing:
-
-```markdown
-# Title of book
-
-> Line 1.
->
-> Line 2.
->
-> -- _Name Surname, Title of book_
-
----
-
-> Line 3.
->
-> Line 4.
->
-> -- _Name Surname, Modified title of book_
-```
-
-""")
-self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
-if not self.folder_path:
-return
-
-        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
-
-````
-
-</details>
-
-### ⚙️ Method `execute_format_as_markdown`
-
-```python
-def execute_format_as_markdown(self) -> None
-````
-
-Format plain text quotes into properly structured Markdown.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute_format_as_markdown(self) -> None:
-        default_text = """They can get a big bang out of buying a blanket.
-
-The Catcher in the Rye
-J.D. Salinger
-
-
-I just mean that I used to think about old Spencer quite a lot
-
-The Catcher in the Rye
-J.D. Salinger"""
-        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
-        if not content:
-            return
-
-        result = h.md.format_quotes_as_markdown_content(content)
-
-        # Ask if user wants to save to file
-        save_to_file = self.get_yes_no_question(
-            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
-        )
-
-        if save_to_file:
-            # Extract author and book title from content for folder structure
-            # This is a simple extraction - in practice, you might want more robust parsing
-            lines = content.strip().split("\n")
-            author = ""
-            book_title = ""
-
-            # Find the last author/book pair in the content
-            for i in range(len(lines) - 1, -1, -1):
-                line = lines[i].strip()
-                if line and not line.startswith("They can get") and not line.startswith("I just mean"):
-                    if not author:
-                        author = line
-                    elif not book_title:
-                        book_title = line
-                        break
-
-            if author and book_title:
-                # Remove the header from quotes content since it will be added by the save function
-                quotes_without_header = result
-                if quotes_without_header.startswith(f"# {book_title}"):
-                    # Find the first empty line after the header
-                    lines = quotes_without_header.split("\n")
-                    for i_original, line in enumerate(lines):
-                        i = i_original
-                        if line.strip() == f"# {book_title}":
-                            # Skip the header line and any following empty lines
-                            while i + 1 < len(lines) and not lines[i + 1].strip():
-                                i += 1
-                            quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
-                            break
-
-                success = _save_quotes_to_file(
-                    quotes_without_header, author, book_title, self.config, self.get_existing_directory
-                )
-                if success:
-                    self.add_line("✅ Quotes saved to file successfully!")
-                else:
-                    self.add_line("❌ Failed to save quotes to file.")
-            else:
-                self.add_line("❌ Could not extract author and book title from content.")
-                self.add_line(result)
-        else:
-            self.add_line(result)
-
-        self.show_result()
-```
-
-</details>
-
-### ⚙️ Method `execute_format_with_author_and_book`
-
-```python
-def execute_format_with_author_and_book(self) -> None
-```
-
-Format quotes with specified author and book title via dialog.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute_format_with_author_and_book(self) -> None:
-        # Create template fields for author, book, and quotes
-        fields = [
-            TemplateField("Book Title", "line", "{{Book Title:line}}", None),
-            TemplateField("Author", "line", "{{Author:line}}", None),
-            TemplateField(
-                "Quotes",
-                "multiline",
-                "{{Quotes:multiline}}",
-                (
-                    "They can get a big bang out of buying a blanket.\n\n\n"
-                    "I just mean that I used to think about old Spencer quite a lot"
-                ),
-            ),
-        ]
-
-        # Show dialog to collect all information
-        dialog = TemplateDialog(
-            fields=fields,
-            title="Enter Book, Author and Quotes",
-        )
-
-        if dialog.exec() != dialog.DialogCode.Accepted:
-            self.add_line("❌ Dialog was canceled.")
-            self.show_result()
-            return
-
-        field_values = dialog.get_field_values()
-        if not field_values:
-            self.add_line("❌ No field values collected.")
-            self.show_result()
-            return
-
-        book_title = field_values.get("Book Title", "")
-        author = field_values.get("Author", "")
-        quotes_content = field_values.get("Quotes", "")
-
-        if not book_title or not author or not quotes_content:
-            self.add_line("❌ Book title, author and quotes are required.")
-            self.show_result()
-            return
-
-        # Split quotes by double line breaks
-        quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
-
-        # Build the formatted content in the same format as execute_format_as_markdown expects
-        formatted_content = ""
-        for quote in quotes:
-            formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
-
-        # Remove trailing newlines
-        formatted_content = formatted_content.rstrip()
-
-        # Apply the same formatting function
-        result = h.md.format_quotes_as_markdown_content(formatted_content)
-
-        # Ask if user wants to save to file
-        save_to_file = self.get_yes_no_question(
-            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
-        )
-
-        if save_to_file:
-            # Remove the header from quotes content since it will be added by the save function
-            quotes_without_header = result
-            if quotes_without_header.startswith(f"# {book_title}"):
-                # Find the first empty line after the header
-                lines = quotes_without_header.split("\n")
-                for i_original, line in enumerate(lines):
-                    i = i_original
-                    if line.strip() == f"# {book_title}":
-                        # Skip the header line and any following empty lines
-                        while i + 1 < len(lines) and not lines[i + 1].strip():
-                            i += 1
-                        quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
-                        break
-
-            success = _save_quotes_to_file(
-                quotes_without_header, author, book_title, self.config, self.get_existing_directory
-            )
-            if success:
-                self.add_line("✅ Quotes saved to file successfully!")
-            else:
-                self.add_line("❌ Failed to save quotes to file.")
-        else:
-            self.add_line(result)
-
-        self.show_result()
-```
-
-</details>
-
-### ⚙️ Method `in_thread`
-
-```python
-def in_thread(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> str | None:
-        if self.folder_path is None:
-            return
-        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
-        self.add_line(result)
-```
-
-</details>
-
-### ⚙️ Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
         self.show_result()
 ```
 
