@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
 
-from PySide6.QtCore import QDate, Qt, QMimeData
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -29,23 +28,35 @@ from PySide6.QtWidgets import (
 )
 
 
-class ImageDropWidget(QWidget):
-    """Widget for single image selection with drag and drop support."""
+class FileDropWidget(QWidget):
+    """Widget for single file selection with drag and drop support."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize the image drop widget."""
+        """Initialize the file drop widget."""
         super().__init__(parent)
-        self.image_path = ""
+        self.file_path = ""
         self._setup_ui()
 
-    def _setup_ui(self) -> None:
-        """Set up the user interface."""
-        layout = QVBoxLayout()
+    def get_file_path(self) -> str:
+        """Get the selected file path."""
+        return self.file_path
 
-        # Image preview label
-        self.image_label = QLabel("Перетащите изображение сюда или нажмите кнопку")
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setStyleSheet("""
+    def set_file_path(self, path: str) -> None:
+        """Set the file path."""
+        if path and Path(path).exists():
+            self._set_file(path)
+
+    def _browse_file(self) -> None:
+        """Open file dialog to select file."""
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select file", "", "All files (*)")
+        if file_path:
+            self._set_file(file_path)
+
+    def _clear_file(self) -> None:
+        """Clear the selected file."""
+        self.file_path = ""
+        self.file_label.setText("Перетащите файл сюда или нажмите кнопку")
+        self.file_label.setStyleSheet("""
             QLabel {
                 border: 2px dashed #ccc;
                 border-radius: 5px;
@@ -53,26 +64,6 @@ class ImageDropWidget(QWidget):
                 background-color: #f9f9f9;
             }
         """)
-        self.image_label.setMinimumHeight(100)
-        self.image_label.setAcceptDrops(True)
-        self.image_label.dragEnterEvent = self._drag_enter_event
-        self.image_label.dropEvent = self._drop_event
-
-        # Buttons layout
-        button_layout = QHBoxLayout()
-
-        self.browse_button = QPushButton("Выбрать файл")
-        self.browse_button.clicked.connect(self._browse_file)
-        button_layout.addWidget(self.browse_button)
-
-        self.clear_button = QPushButton("Очистить")
-        self.clear_button.clicked.connect(self._clear_image)
-        button_layout.addWidget(self.clear_button)
-
-        layout.addWidget(self.image_label)
-        layout.addLayout(button_layout)
-
-        self.setLayout(layout)
 
     def _drag_enter_event(self, event: QDragEnterEvent) -> None:
         """Handle drag enter event."""
@@ -85,187 +76,21 @@ class ImageDropWidget(QWidget):
             urls = event.mimeData().urls()
             if urls:
                 file_path = urls[0].toLocalFile()
-                if self._is_image_file(file_path):
-                    self._set_image(file_path)
+                self._set_file(file_path)
             event.acceptProposedAction()
 
-    def _browse_file(self) -> None:
-        """Open file dialog to select image."""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Выберите изображение",
-            "",
-            "Изображения (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;Все файлы (*)"
-        )
-        if file_path:
-            self._set_image(file_path)
-
-    def _clear_image(self) -> None:
-        """Clear the selected image."""
-        self.image_path = ""
-        self.image_label.setText("Перетащите изображение сюда или нажмите кнопку")
-        self.image_label.setPixmap(QPixmap())
-        self.image_label.setStyleSheet("""
+    def _set_file(self, file_path: str) -> None:
+        """Set the file from file path."""
+        self.file_path = file_path
+        self.file_label.setText(f"Файл: {Path(file_path).name}")
+        self.file_label.setStyleSheet("""
             QLabel {
-                border: 2px dashed #ccc;
+                border: 2px solid #4CAF50;
                 border-radius: 5px;
-                padding: 20px;
-                background-color: #f9f9f9;
+                padding: 10px;
+                background-color: #f0f8f0;
             }
         """)
-
-    def _set_image(self, file_path: str) -> None:
-        """Set the image from file path."""
-        self.image_path = file_path
-        pixmap = QPixmap(file_path)
-        if not pixmap.isNull():
-            # Scale image to fit label while maintaining aspect ratio
-            scaled_pixmap = pixmap.scaled(
-                self.image_label.size(),
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            )
-            self.image_label.setPixmap(scaled_pixmap)
-            self.image_label.setStyleSheet("""
-                QLabel {
-                    border: 2px solid #4CAF50;
-                    border-radius: 5px;
-                    padding: 5px;
-                    background-color: #f0f8f0;
-                }
-            """)
-        else:
-            self._clear_image()
-
-    def _is_image_file(self, file_path: str) -> bool:
-        """Check if file is an image."""
-        image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg', '.webp', '.avif'}
-        return Path(file_path).suffix.lower() in image_extensions
-
-    def get_image_path(self) -> str:
-        """Get the selected image path."""
-        return self.image_path
-
-    def set_image_path(self, path: str) -> None:
-        """Set the image path."""
-        if path and os.path.exists(path):
-            self._set_image(path)
-
-
-class ImagesListWidget(QWidget):
-    """Widget for multiple image selection with drag and drop support."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize the images list widget."""
-        super().__init__(parent)
-        self.image_paths = []
-        self._setup_ui()
-
-    def _setup_ui(self) -> None:
-        """Set up the user interface."""
-        layout = QVBoxLayout()
-
-        # List widget for images
-        self.list_widget = QListWidget()
-        self.list_widget.setAcceptDrops(True)
-        self.list_widget.dragEnterEvent = self._drag_enter_event
-        self.list_widget.dropEvent = self._drop_event
-        self.list_widget.setMinimumHeight(150)
-
-        # Buttons layout
-        button_layout = QHBoxLayout()
-
-        self.add_button = QPushButton("Добавить изображения")
-        self.add_button.clicked.connect(self._add_images)
-        button_layout.addWidget(self.add_button)
-
-        self.remove_button = QPushButton("Удалить выбранное")
-        self.remove_button.clicked.connect(self._remove_selected)
-        button_layout.addWidget(self.remove_button)
-
-        self.clear_button = QPushButton("Очистить все")
-        self.clear_button.clicked.connect(self._clear_all)
-        button_layout.addWidget(self.clear_button)
-
-        layout.addWidget(self.list_widget)
-        layout.addLayout(button_layout)
-
-        self.setLayout(layout)
-
-    def _drag_enter_event(self, event: QDragEnterEvent) -> None:
-        """Handle drag enter event."""
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def _drop_event(self, event: QDropEvent) -> None:
-        """Handle drop event."""
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            for url in urls:
-                file_path = url.toLocalFile()
-                if self._is_image_file(file_path) and file_path not in self.image_paths:
-                    self._add_image_path(file_path)
-            event.acceptProposedAction()
-
-    def _add_images(self) -> None:
-        """Open file dialog to select multiple images."""
-        file_paths, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Выберите изображения",
-            "",
-            "Изображения (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;Все файлы (*)"
-        )
-        for file_path in file_paths:
-            if file_path not in self.image_paths:
-                self._add_image_path(file_path)
-
-    def _add_image_path(self, file_path: str) -> None:
-        """Add image path to the list."""
-        self.image_paths.append(file_path)
-        item = QListWidgetItem(os.path.basename(file_path))
-        item.setData(Qt.ItemDataRole.UserRole, file_path)
-        self.list_widget.addItem(item)
-
-    def _remove_selected(self) -> None:
-        """Remove selected image from the list."""
-        current_row = self.list_widget.currentRow()
-        if current_row >= 0:
-            item = self.list_widget.takeItem(current_row)
-            if item:
-                file_path = item.data(Qt.ItemDataRole.UserRole)
-                if file_path in self.image_paths:
-                    self.image_paths.remove(file_path)
-
-    def _clear_all(self) -> None:
-        """Clear all images from the list."""
-        self.image_paths.clear()
-        self.list_widget.clear()
-
-    def _is_image_file(self, file_path: str) -> bool:
-        """Check if file is an image."""
-        image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg', '.webp', '.avif'}
-        return Path(file_path).suffix.lower() in image_extensions
-
-    def get_image_paths(self) -> list[str]:
-        """Get the list of selected image paths."""
-        return self.image_paths.copy()
-
-    def set_image_paths(self, paths: list[str]) -> None:
-        """Set the list of image paths."""
-        self._clear_all()
-        for path in paths:
-            if os.path.exists(path):
-                self._add_image_path(path)
-
-
-class FileDropWidget(QWidget):
-    """Widget for single file selection with drag and drop support."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize the file drop widget."""
-        super().__init__(parent)
-        self.file_path = ""
-        self._setup_ui()
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
@@ -303,66 +128,6 @@ class FileDropWidget(QWidget):
 
         self.setLayout(layout)
 
-    def _drag_enter_event(self, event: QDragEnterEvent) -> None:
-        """Handle drag enter event."""
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def _drop_event(self, event: QDropEvent) -> None:
-        """Handle drop event."""
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            if urls:
-                file_path = urls[0].toLocalFile()
-                self._set_file(file_path)
-            event.acceptProposedAction()
-
-    def _browse_file(self) -> None:
-        """Open file dialog to select file."""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Выберите файл",
-            "",
-            "Все файлы (*)"
-        )
-        if file_path:
-            self._set_file(file_path)
-
-    def _clear_file(self) -> None:
-        """Clear the selected file."""
-        self.file_path = ""
-        self.file_label.setText("Перетащите файл сюда или нажмите кнопку")
-        self.file_label.setStyleSheet("""
-            QLabel {
-                border: 2px dashed #ccc;
-                border-radius: 5px;
-                padding: 20px;
-                background-color: #f9f9f9;
-            }
-        """)
-
-    def _set_file(self, file_path: str) -> None:
-        """Set the file from file path."""
-        self.file_path = file_path
-        self.file_label.setText(f"Файл: {os.path.basename(file_path)}")
-        self.file_label.setStyleSheet("""
-            QLabel {
-                border: 2px solid #4CAF50;
-                border-radius: 5px;
-                padding: 10px;
-                background-color: #f0f8f0;
-            }
-        """)
-
-    def get_file_path(self) -> str:
-        """Get the selected file path."""
-        return self.file_path
-
-    def set_file_path(self, path: str) -> None:
-        """Set the file path."""
-        if path and os.path.exists(path):
-            self._set_file(path)
-
 
 class FilesListWidget(QWidget):
     """Widget for multiple file selection with drag and drop support."""
@@ -372,6 +137,61 @@ class FilesListWidget(QWidget):
         super().__init__(parent)
         self.file_paths = []
         self._setup_ui()
+
+    def get_file_paths(self) -> list[str]:
+        """Get the list of selected file paths."""
+        return self.file_paths.copy()
+
+    def set_file_paths(self, paths: list[str]) -> None:
+        """Set the list of file paths."""
+        self._clear_all()
+        for path in paths:
+            if Path(path).exists():
+                self._add_file_path(path)
+
+    def _add_file_path(self, file_path: str) -> None:
+        """Add file path to the list."""
+        self.file_paths.append(file_path)
+        item = QListWidgetItem(Path(file_path).name)
+        item.setData(Qt.ItemDataRole.UserRole, file_path)
+        self.list_widget.addItem(item)
+
+    def _add_files(self) -> None:
+        """Open file dialog to select multiple files."""
+        file_paths, _ = QFileDialog.getOpenFileNames(self, "Select files", "", "All files (*)")
+        for file_path in file_paths:
+            if file_path not in self.file_paths:
+                self._add_file_path(file_path)
+
+    def _clear_all(self) -> None:
+        """Clear all files from the list."""
+        self.file_paths.clear()
+        self.list_widget.clear()
+
+    def _drag_enter_event(self, event: QDragEnterEvent) -> None:
+        """Handle drag enter event."""
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def _drop_event(self, event: QDropEvent) -> None:
+        """Handle drop event."""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            for url in urls:
+                file_path = url.toLocalFile()
+                if file_path not in self.file_paths:
+                    self._add_file_path(file_path)
+            event.acceptProposedAction()
+
+    def _remove_selected(self) -> None:
+        """Remove selected file from the list."""
+        current_row = self.list_widget.currentRow()
+        if current_row >= 0:
+            item = self.list_widget.takeItem(current_row)
+            if item:
+                file_path = item.data(Qt.ItemDataRole.UserRole)
+                if file_path in self.file_paths:
+                    self.file_paths.remove(file_path)
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
@@ -404,6 +224,172 @@ class FilesListWidget(QWidget):
 
         self.setLayout(layout)
 
+
+class ImageDropWidget(QWidget):
+    """Widget for single image selection with drag and drop support."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize the image drop widget."""
+        super().__init__(parent)
+        self.image_path = ""
+        self._setup_ui()
+
+    def get_image_path(self) -> str:
+        """Get the selected image path."""
+        return self.image_path
+
+    def set_image_path(self, path: str) -> None:
+        """Set the image path."""
+        if path and Path(path).exists():
+            self._set_image(path)
+
+    def _browse_file(self) -> None:
+        """Open file dialog to select image."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Выберите изображение",
+            "",
+            "Изображения (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
+        )
+        if file_path:
+            self._set_image(file_path)
+
+    def _clear_image(self) -> None:
+        """Clear the selected image."""
+        self.image_path = ""
+        self.image_label.setText("Перетащите изображение сюда или нажмите кнопку")
+        self.image_label.setPixmap(QPixmap())
+        self.image_label.setStyleSheet("""
+            QLabel {
+                border: 2px dashed #ccc;
+                border-radius: 5px;
+                padding: 20px;
+                background-color: #f9f9f9;
+            }
+        """)
+
+    def _drag_enter_event(self, event: QDragEnterEvent) -> None:
+        """Handle drag enter event."""
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def _drop_event(self, event: QDropEvent) -> None:
+        """Handle drop event."""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            if urls:
+                file_path = urls[0].toLocalFile()
+                if self._is_image_file(file_path):
+                    self._set_image(file_path)
+            event.acceptProposedAction()
+
+    def _is_image_file(self, file_path: str) -> bool:
+        """Check if file is an image."""
+        image_extensions = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".avif"}
+        return Path(file_path).suffix.lower() in image_extensions
+
+    def _set_image(self, file_path: str) -> None:
+        """Set the image from file path."""
+        self.image_path = file_path
+        pixmap = QPixmap(file_path)
+        if not pixmap.isNull():
+            # Scale image to fit label while maintaining aspect ratio
+            scaled_pixmap = pixmap.scaled(
+                self.image_label.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+            )
+            self.image_label.setPixmap(scaled_pixmap)
+            self.image_label.setStyleSheet("""
+                QLabel {
+                    border: 2px solid #4CAF50;
+                    border-radius: 5px;
+                    padding: 5px;
+                    background-color: #f0f8f0;
+                }
+            """)
+        else:
+            self._clear_image()
+
+    def _setup_ui(self) -> None:
+        """Set up the user interface."""
+        layout = QVBoxLayout()
+
+        # Image preview label
+        self.image_label = QLabel("Перетащите изображение сюда или нажмите кнопку")
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setStyleSheet("""
+            QLabel {
+                border: 2px dashed #ccc;
+                border-radius: 5px;
+                padding: 20px;
+                background-color: #f9f9f9;
+            }
+        """)
+        self.image_label.setMinimumHeight(100)
+        self.image_label.setAcceptDrops(True)
+        self.image_label.dragEnterEvent = self._drag_enter_event
+        self.image_label.dropEvent = self._drop_event
+
+        # Buttons layout
+        button_layout = QHBoxLayout()
+
+        self.browse_button = QPushButton("Выбрать файл")
+        self.browse_button.clicked.connect(self._browse_file)
+        button_layout.addWidget(self.browse_button)
+
+        self.clear_button = QPushButton("Очистить")
+        self.clear_button.clicked.connect(self._clear_image)
+        button_layout.addWidget(self.clear_button)
+
+        layout.addWidget(self.image_label)
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+
+class ImagesListWidget(QWidget):
+    """Widget for multiple image selection with drag and drop support."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize the images list widget."""
+        super().__init__(parent)
+        self.image_paths = []
+        self._setup_ui()
+
+    def get_image_paths(self) -> list[str]:
+        """Get the list of selected image paths."""
+        return self.image_paths.copy()
+
+    def set_image_paths(self, paths: list[str]) -> None:
+        """Set the list of image paths."""
+        self._clear_all()
+        for path in paths:
+            if Path(path).exists():
+                self._add_image_path(path)
+
+    def _add_image_path(self, file_path: str) -> None:
+        """Add image path to the list."""
+        self.image_paths.append(file_path)
+        item = QListWidgetItem(Path(file_path).name)
+        item.setData(Qt.ItemDataRole.UserRole, file_path)
+        self.list_widget.addItem(item)
+
+    def _add_images(self) -> None:
+        """Open file dialog to select multiple images."""
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Выберите изображения",
+            "",
+            "Изображения (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
+        )
+        for file_path in file_paths:
+            if file_path not in self.image_paths:
+                self._add_image_path(file_path)
+
+    def _clear_all(self) -> None:
+        """Clear all images from the list."""
+        self.image_paths.clear()
+        self.list_widget.clear()
+
     def _drag_enter_event(self, event: QDragEnterEvent) -> None:
         """Handle drag enter event."""
         if event.mimeData().hasUrls():
@@ -415,54 +401,55 @@ class FilesListWidget(QWidget):
             urls = event.mimeData().urls()
             for url in urls:
                 file_path = url.toLocalFile()
-                if file_path not in self.file_paths:
-                    self._add_file_path(file_path)
+                if self._is_image_file(file_path) and file_path not in self.image_paths:
+                    self._add_image_path(file_path)
             event.acceptProposedAction()
 
-    def _add_files(self) -> None:
-        """Open file dialog to select multiple files."""
-        file_paths, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Выберите файлы",
-            "",
-            "Все файлы (*)"
-        )
-        for file_path in file_paths:
-            if file_path not in self.file_paths:
-                self._add_file_path(file_path)
-
-    def _add_file_path(self, file_path: str) -> None:
-        """Add file path to the list."""
-        self.file_paths.append(file_path)
-        item = QListWidgetItem(os.path.basename(file_path))
-        item.setData(Qt.ItemDataRole.UserRole, file_path)
-        self.list_widget.addItem(item)
+    def _is_image_file(self, file_path: str) -> bool:
+        """Check if file is an image."""
+        image_extensions = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".avif"}
+        return Path(file_path).suffix.lower() in image_extensions
 
     def _remove_selected(self) -> None:
-        """Remove selected file from the list."""
+        """Remove selected image from the list."""
         current_row = self.list_widget.currentRow()
         if current_row >= 0:
             item = self.list_widget.takeItem(current_row)
             if item:
                 file_path = item.data(Qt.ItemDataRole.UserRole)
-                if file_path in self.file_paths:
-                    self.file_paths.remove(file_path)
+                if file_path in self.image_paths:
+                    self.image_paths.remove(file_path)
 
-    def _clear_all(self) -> None:
-        """Clear all files from the list."""
-        self.file_paths.clear()
-        self.list_widget.clear()
+    def _setup_ui(self) -> None:
+        """Set up the user interface."""
+        layout = QVBoxLayout()
 
-    def get_file_paths(self) -> list[str]:
-        """Get the list of selected file paths."""
-        return self.file_paths.copy()
+        # List widget for images
+        self.list_widget = QListWidget()
+        self.list_widget.setAcceptDrops(True)
+        self.list_widget.dragEnterEvent = self._drag_enter_event
+        self.list_widget.dropEvent = self._drop_event
+        self.list_widget.setMinimumHeight(150)
 
-    def set_file_paths(self, paths: list[str]) -> None:
-        """Set the list of file paths."""
-        self._clear_all()
-        for path in paths:
-            if os.path.exists(path):
-                self._add_file_path(path)
+        # Buttons layout
+        button_layout = QHBoxLayout()
+
+        self.add_button = QPushButton("Добавить изображения")
+        self.add_button.clicked.connect(self._add_images)
+        button_layout.addWidget(self.add_button)
+
+        self.remove_button = QPushButton("Удалить выбранное")
+        self.remove_button.clicked.connect(self._remove_selected)
+        button_layout.addWidget(self.remove_button)
+
+        self.clear_button = QPushButton("Очистить все")
+        self.clear_button.clicked.connect(self._clear_all)
+        button_layout.addWidget(self.clear_button)
+
+        layout.addWidget(self.list_widget)
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
 
 
 class TemplateDialog(QDialog):

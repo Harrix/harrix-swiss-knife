@@ -567,6 +567,7 @@ class ActionBase:
 
         Returns:
             True if user clicked Yes, False if user clicked No or closed the dialog.
+
         """
         reply = QMessageBox.question(
             None,

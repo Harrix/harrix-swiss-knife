@@ -395,9 +395,24 @@ Create a new `.md` file in `config/` folder with field placeholders:
 ```markdown
 ## {{Title:line}}: {{Score:float:10}}
 
+![Featured Image]({{Featured Image:image}})
+
 - **Date:** {{Date:date}}
 - **URL:** <{{URL:line}}>
+- **Published:** {{Published:bool:true}}
 - **Comments:** {{Comments:multiline}}
+
+## Gallery
+
+{{Gallery Images:images}}
+
+## Documents
+
+[Download]({{Main Document:file}})
+
+## Attachments
+
+{{Attachments:files}}
 ```
 
 Add template configuration to `config/config.json`:
@@ -429,19 +444,28 @@ Syntax:
 
 Available Types:
 
-| Type        | Widget                 | Example                  | Default Value Example                |
-| ----------- | ---------------------- | ------------------------ | ------------------------------------ |
-| `line`      | Single-line text input | `{{Title:line}}`         | `{{Title:line:Untitled}}`            |
-| `int`       | Integer spinner        | `{{Season:int}}`         | `{{Season:int:1}}`                   |
-| `float`     | Decimal spinner        | `{{Score:float}}`        | `{{Score:float:10}}`                 |
-| `date`      | Date picker            | `{{Date:date}}`          | `{{Date:date:2025-01-01}}`           |
-| `multiline` | Text area              | `{{Comments:multiline}}` | `{{Comments:multiline:No comments}}` |
+| Type        | Widget                 | Example                  | Default Value Example                      |
+| ----------- | ---------------------- | ------------------------ | ------------------------------------------ |
+| `line`      | Single-line text input | `{{Title:line}}`         | `{{Title:line:Untitled}}`                  |
+| `int`       | Integer spinner        | `{{Season:int}}`         | `{{Season:int:1}}`                         |
+| `float`     | Decimal spinner        | `{{Score:float}}`        | `{{Score:float:10}}`                       |
+| `date`      | Date picker            | `{{Date:date}}`          | `{{Date:date:2025-01-01}}`                 |
+| `bool`      | Checkbox               | `{{Published:bool}}`     | `{{Published:bool:true}}`                  |
+| `multiline` | Text area              | `{{Comments:multiline}}` | `{{Comments:multiline:No comments}}`       |
+| `image`     | Single image picker    | `{{Featured:image}}`     | `{{Featured:image:path/to/img.png}}`       |
+| `images`    | Multiple image picker  | `{{Gallery:images}}`     | `{{Gallery:images:img1.png,img2.jpg}}`     |
+| `file`      | Single file picker     | `{{Document:file}}`      | `{{Document:file:path/to/doc.pdf}}`        |
+| `files`     | Multiple file picker   | `{{Attachments:files}}`  | `{{Attachments:files:doc1.pdf,doc2.docx}}` |
 
 Notes:
 
 - Float values that are whole numbers are formatted without decimals (`11.0` → `11`)
 - Date format: `yyyy-MM-dd`
 - Default values are optional
+- **Image/File Types**: Support drag & drop, file dialogs, and preview functionality
+- **Multiple Types**: `images` and `files` return comma-separated paths
+- **Supported Image Formats**: PNG, JPG, JPEG, GIF, BMP, SVG, WEBP, AVIF
+- **File Types**: Accept any file type for `file` and `files` fields
 
 </details>
 

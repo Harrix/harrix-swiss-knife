@@ -1364,7 +1364,8 @@ J.D. Salinger"""
                 if quotes_without_header.startswith(f"# {book_title}"):
                     # Find the first empty line after the header
                     lines = quotes_without_header.split("\n")
-                    for i, line in enumerate(lines):
+                    for i_original, line in enumerate(lines):
+                        i = i_original
                         if line.strip() == f"# {book_title}":
                             # Skip the header line and any following empty lines
                             while i + 1 < len(lines) and not lines[i + 1].strip():
@@ -1397,7 +1398,10 @@ J.D. Salinger"""
                 "Quotes",
                 "multiline",
                 "{{Quotes:multiline}}",
-                "They can get a big bang out of buying a blanket.\n\n\nI just mean that I used to think about old Spencer quite a lot",
+                (
+                    "They can get a big bang out of buying a blanket.\n\n\n"
+                    "I just mean that I used to think about old Spencer quite a lot"
+                ),
             ),
         ]
 
@@ -1452,7 +1456,8 @@ J.D. Salinger"""
             if quotes_without_header.startswith(f"# {book_title}"):
                 # Find the first empty line after the header
                 lines = quotes_without_header.split("\n")
-                for i, line in enumerate(lines):
+                for i_original, line in enumerate(lines):
+                    i = i_original
                     if line.strip() == f"# {book_title}":
                         # Skip the header line and any following empty lines
                         while i + 1 < len(lines) and not lines[i + 1].strip():
@@ -1547,6 +1552,7 @@ def _format_author_for_folder(author: str) -> str:
 
     Returns:
         Formatted author name for folder (e.g., "Булгаков-Михаил-Афанасьевич")
+
     """
     # Replace spaces with hyphens and clean up
     return "-".join(part.strip() for part in author.split() if part.strip())
@@ -1560,6 +1566,7 @@ def _format_book_title_for_filename(book_title: str) -> str:
 
     Returns:
         Formatted book title for filename (e.g., "Мастер-и-Маргарита")
+
     """
     # Remove quotes and replace spaces with hyphens
     clean_title = book_title.replace("«", "").replace("»", "").replace('"', "").replace("'", "")
@@ -1567,7 +1574,7 @@ def _format_book_title_for_filename(book_title: str) -> str:
 
 
 def _save_quotes_to_file(
-    quotes_content: str, author: str, book_title: str, config: dict, get_existing_directory_func
+    quotes_content: str, author: str, book_title: str, config: dict, get_existing_directory_func: callable
 ) -> bool:
     """Save quotes to a markdown file.
 
@@ -1580,6 +1587,7 @@ def _save_quotes_to_file(
 
     Returns:
         True if file was saved successfully, False otherwise
+
     """
     # Ask user to select folder
     default_path = config.get("path_quotes", "")

@@ -3120,7 +3120,8 @@ return
                 if quotes_without_header.startswith(f"# {book_title}"):
                     # Find the first empty line after the header
                     lines = quotes_without_header.split("\n")
-                    for i, line in enumerate(lines):
+                    for i_original, line in enumerate(lines):
+                        i = i_original
                         if line.strip() == f"# {book_title}":
                             # Skip the header line and any following empty lines
                             while i + 1 < len(lines) and not lines[i + 1].strip():
@@ -3153,7 +3154,10 @@ return
                 "Quotes",
                 "multiline",
                 "{{Quotes:multiline}}",
-                "They can get a big bang out of buying a blanket.\n\n\nI just mean that I used to think about old Spencer quite a lot",
+                (
+                    "They can get a big bang out of buying a blanket.\n\n\n"
+                    "I just mean that I used to think about old Spencer quite a lot"
+                ),
             ),
         ]
 
@@ -3208,7 +3212,8 @@ return
             if quotes_without_header.startswith(f"# {book_title}"):
                 # Find the first empty line after the header
                 lines = quotes_without_header.split("\n")
-                for i, line in enumerate(lines):
+                for i_original, line in enumerate(lines):
+                    i = i_original
                     if line.strip() == f"# {book_title}":
                         # Skip the header line and any following empty lines
                         while i + 1 < len(lines) and not lines[i + 1].strip():
@@ -3404,7 +3409,8 @@ J.D. Salinger"""
                 if quotes_without_header.startswith(f"# {book_title}"):
                     # Find the first empty line after the header
                     lines = quotes_without_header.split("\n")
-                    for i, line in enumerate(lines):
+                    for i_original, line in enumerate(lines):
+                        i = i_original
                         if line.strip() == f"# {book_title}":
                             # Skip the header line and any following empty lines
                             while i + 1 < len(lines) and not lines[i + 1].strip():
@@ -3451,7 +3457,10 @@ def execute_format_with_author_and_book(self) -> None:
                 "Quotes",
                 "multiline",
                 "{{Quotes:multiline}}",
-                "They can get a big bang out of buying a blanket.\n\n\nI just mean that I used to think about old Spencer quite a lot",
+                (
+                    "They can get a big bang out of buying a blanket.\n\n\n"
+                    "I just mean that I used to think about old Spencer quite a lot"
+                ),
             ),
         ]
 
@@ -3506,7 +3515,8 @@ def execute_format_with_author_and_book(self) -> None:
             if quotes_without_header.startswith(f"# {book_title}"):
                 # Find the first empty line after the header
                 lines = quotes_without_header.split("\n")
-                for i, line in enumerate(lines):
+                for i_original, line in enumerate(lines):
+                    i = i_original
                     if line.strip() == f"# {book_title}":
                         # Skip the header line and any following empty lines
                         while i + 1 < len(lines) and not lines[i + 1].strip():
@@ -3752,7 +3762,7 @@ def _format_book_title_for_filename(book_title: str) -> str:
 ## 🔧 Function `_save_quotes_to_file`
 
 ```python
-def _save_quotes_to_file(quotes_content: str, author: str, book_title: str, config: dict, get_existing_directory_func) -> bool
+def _save_quotes_to_file(quotes_content: str, author: str, book_title: str, config: dict, get_existing_directory_func: callable) -> bool
 ```
 
 Save quotes to a markdown file.
@@ -3772,7 +3782,7 @@ True if file was saved successfully, False otherwise
 
 ```python
 def _save_quotes_to_file(
-    quotes_content: str, author: str, book_title: str, config: dict, get_existing_directory_func
+    quotes_content: str, author: str, book_title: str, config: dict, get_existing_directory_func: callable
 ) -> bool:
     # Ask user to select folder
     default_path = config.get("path_quotes", "")
