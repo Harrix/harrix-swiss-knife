@@ -3145,16 +3145,22 @@ return
 
     def execute_format_with_author_and_book(self) -> None:
         """Format quotes with specified author and book title via dialog."""
-        # Create template fields for author and book
+        # Create template fields for author, book, and quotes
         fields = [
             TemplateField("Book Title", "line", "{{Book Title:line}}", None),
             TemplateField("Author", "line", "{{Author:line}}", None),
+            TemplateField(
+                "Quotes",
+                "multiline",
+                "{{Quotes:multiline}}",
+                "They can get a big bang out of buying a blanket.\n\n\nI just mean that I used to think about old Spencer quite a lot",
+            ),
         ]
 
-        # Show dialog to collect author and book info
+        # Show dialog to collect all information
         dialog = TemplateDialog(
             fields=fields,
-            title="Enter Book and Author Information",
+            title="Enter Book, Author and Quotes",
         )
 
         if dialog.exec() != dialog.DialogCode.Accepted:
@@ -3170,21 +3176,12 @@ return
 
         book_title = field_values.get("Book Title", "")
         author = field_values.get("Author", "")
+        quotes_content = field_values.get("Quotes", "")
 
-        if not book_title or not author:
-            self.add_line("❌ Book title and author are required.")
+        if not book_title or not author or not quotes_content:
+            self.add_line("❌ Book title, author and quotes are required.")
             self.show_result()
             return
-
-        # Now get the quotes
-        default_text = """They can get a big bang out of buying a blanket.
-
-I just mean that I used to think about old Spencer quite a lot"""
-quotes_content = self.get_text_textarea(
-"Quotes", "Input quotes (separated by double line breaks)", default_text
-)
-if not quotes_content:
-return
 
         # Split quotes by double line breaks
         quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
@@ -3446,16 +3443,22 @@ Format quotes with specified author and book title via dialog.
 
 ```python
 def execute_format_with_author_and_book(self) -> None:
-        # Create template fields for author and book
+        # Create template fields for author, book, and quotes
         fields = [
             TemplateField("Book Title", "line", "{{Book Title:line}}", None),
             TemplateField("Author", "line", "{{Author:line}}", None),
+            TemplateField(
+                "Quotes",
+                "multiline",
+                "{{Quotes:multiline}}",
+                "They can get a big bang out of buying a blanket.\n\n\nI just mean that I used to think about old Spencer quite a lot",
+            ),
         ]
 
-        # Show dialog to collect author and book info
+        # Show dialog to collect all information
         dialog = TemplateDialog(
             fields=fields,
-            title="Enter Book and Author Information",
+            title="Enter Book, Author and Quotes",
         )
 
         if dialog.exec() != dialog.DialogCode.Accepted:
@@ -3471,21 +3474,11 @@ def execute_format_with_author_and_book(self) -> None:
 
         book_title = field_values.get("Book Title", "")
         author = field_values.get("Author", "")
+        quotes_content = field_values.get("Quotes", "")
 
-        if not book_title or not author:
-            self.add_line("❌ Book title and author are required.")
+        if not book_title or not author or not quotes_content:
+            self.add_line("❌ Book title, author and quotes are required.")
             self.show_result()
-            return
-
-        # Now get the quotes
-        default_text = """They can get a big bang out of buying a blanket.
-
-
-I just mean that I used to think about old Spencer quite a lot"""
-        quotes_content = self.get_text_textarea(
-            "Quotes", "Input quotes (separated by double line breaks)", default_text
-        )
-        if not quotes_content:
             return
 
         # Split quotes by double line breaks
