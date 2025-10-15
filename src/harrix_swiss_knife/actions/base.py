@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QStyledItemDelegate,
+    QStyle,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -1047,13 +1048,27 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         choice = lines[0]
         description = "\n".join(lines[1:]).strip()
 
-        # Create HTML content with different font sizes
+        # Check if item is selected
+        is_selected = option.state & QStyle.StateFlag.State_Selected
+        is_hovered = option.state & QStyle.StateFlag.State_MouseOver
+
+        # Set background color based on selection state
+        if is_selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+            text_color = option.palette.highlightedText().color()
+        elif is_hovered:
+            painter.fillRect(option.rect, option.palette.alternateBase())
+            text_color = option.palette.text().color()
+        else:
+            text_color = option.palette.text().color()
+
+        # Create HTML content with different font sizes and proper colors
         html_content = f"""
-        <div style="font-family: Arial, sans-serif;">
+        <div style="font-family: Arial, sans-serif; color: {text_color.name()};">
             <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
                 {choice}
             </div>
-            <div style="font-size: 9pt; font-style: italic; color: #666666; margin-left: 10px;">
+            <div style="font-size: 9pt; font-style: italic; color: {text_color.name()}; opacity: 0.7; margin-left: 10px;">
                 {description}
             </div>
         </div>
