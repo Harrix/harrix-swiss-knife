@@ -291,6 +291,84 @@ class ActionBase:
         self.add_line("❌ Dialog was canceled.")
         return None
 
+    def get_choice_from_list_with_descriptions(
+        self, title: str, label: str, choices: list[tuple[str, str]]
+    ) -> str | None:
+        """Open a dialog to select one item from a list of choices with descriptions.
+
+        Args:
+
+        - `title` (`str`): The title of the selection dialog.
+        - `label` (`str`): The label prompting the user for selection.
+        - `choices` (`list[tuple[str, str]]`): List of tuples containing (choice, description) pairs.
+
+        Returns:
+
+        - `str | None`: The selected choice, or `None` if cancelled or no selection made.
+
+        """
+        if not choices:
+            self.add_line("❌ No choices provided.")
+            return None
+
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(800, 500)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create a list widget
+        list_widget = QListWidget()
+
+        # Set larger font for the list widget
+        font = list_widget.font()
+        font.setPointSize(12)
+        list_widget.setFont(font)
+
+        for choice, description in choices:
+            # Create a custom item with choice and description
+            item_text = f"{choice}\n  {description}"
+            item = QListWidgetItem(item_text)
+            # Store the original choice text as data for easy retrieval
+            item.setData(Qt.ItemDataRole.UserRole, choice)
+            list_widget.addItem(item)
+
+        # Set the first item as selected by default if available
+        if list_widget.count() > 0:
+            list_widget.setCurrentRow(0)
+
+        # Connect double-click to accept dialog
+        list_widget.itemDoubleClicked.connect(dialog.accept)
+
+        layout.addWidget(list_widget)
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            current_item = list_widget.currentItem()
+            if current_item:
+                # Get the original choice from the item data
+                return current_item.data(Qt.ItemDataRole.UserRole)
+            self.add_line("❌ No item was selected.")
+            return None
+
+        self.add_line("❌ Dialog was canceled.")
+        return None
+
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         """Open a dialog to select an existing directory.
 
