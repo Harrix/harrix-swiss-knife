@@ -1976,9 +1976,9 @@ class OnNewQuotes(ActionBase):
         if not selected_option:
             return
 
-        if selected_option == options[0]:
+        if selected_option == options[0][0]:
             self.execute_format_quotes_from_text()
-        elif selected_option == options[1]:
+        elif selected_option == options[1][0]:
             self.execute_format_with_author_and_book()
 
     def execute_format_quotes_from_text(self) -> None:
@@ -2176,9 +2176,9 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if not selected_option:
             return
 
-        if selected_option == options[0]:
+        if selected_option == options[0][0]:
             self.execute_format_quotes_from_text()
-        elif selected_option == options[1]:
+        elif selected_option == options[1][0]:
             self.execute_format_with_author_and_book()
 ```
 
