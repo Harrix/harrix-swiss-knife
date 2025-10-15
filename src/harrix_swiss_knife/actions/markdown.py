@@ -807,7 +807,6 @@ class OnNewQuotes(ActionBase):
         elif selected_option == options[1]:
             self.execute_format_with_author_and_book()
 
-
     def execute_format_as_markdown(self) -> None:
         """Format plain text quotes into properly structured Markdown."""
         default_text = """They can get a big bang out of buying a blanket.
@@ -966,7 +965,6 @@ J.D. Salinger"""
             self.add_line(result)
 
         self.show_result()
-
 
 
 class OnOptimizeImagesFolder(ActionBase):

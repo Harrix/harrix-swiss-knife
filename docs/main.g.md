@@ -104,7 +104,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnDecreaseHeadingLevelContent,
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
-                hsk.md.OnNewQuotes,
                 "-",
                 hsk.md.OnBeautifyMdFolder,
                 hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
@@ -130,6 +129,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 hsk.md.OnNewDiaryDream,
                 hsk.md.OnNewNoteDialog,
                 hsk.md.OnNewNoteDialogWithImages,
+                hsk.md.OnNewQuotes,
             ],
         )
 
@@ -255,7 +255,6 @@ def __init__(self) -> None:
                 hsk.md.OnDecreaseHeadingLevelContent,
                 hsk.md.OnGetListMoviesBooks,
                 hsk.md.OnIncreaseHeadingLevelContent,
-                hsk.md.OnNewQuotes,
                 "-",
                 hsk.md.OnBeautifyMdFolder,
                 hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
@@ -281,6 +280,7 @@ def __init__(self) -> None:
                 hsk.md.OnNewDiaryDream,
                 hsk.md.OnNewNoteDialog,
                 hsk.md.OnNewNoteDialogWithImages,
+                hsk.md.OnNewQuotes,
             ],
         )
 

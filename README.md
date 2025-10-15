@@ -89,12 +89,12 @@ _Figure 1: Screenshot_
   - 🎬 Get a list of movies, books for web
   - 👈 Heading level: Decrease
   - 👉 Heading level: Increase
-  - ❞ Quotes. Process
+  - ❞ New quotes
   - 💎 ★ Beautify MD and regenerate .g.md in …
   - 💎 Beautify MD in …
   - 🚧 Check in …
   - 📥 Download images in …
-  - ❞ Fix Markdown with quotes
+  - ❞ Fix MD with quotes
   - 📑 Generate a short version with only TOC
   - 🖼️ Optimize images in MD in …
   - 🖼️ ★ Optimize selected images in MD

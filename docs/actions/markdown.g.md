@@ -56,30 +56,27 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
 - [🏛️ Class `OnNewQuotes`](#%EF%B8%8F-class-onnewquotes)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
-  - [⚙️ Method `execute_add_author_and_title`](#%EF%B8%8F-method-execute_add_author_and_title)
   - [⚙️ Method `execute_format_as_markdown`](#%EF%B8%8F-method-execute_format_as_markdown)
   - [⚙️ Method `execute_format_with_author_and_book`](#%EF%B8%8F-method-execute_format_with_author_and_book)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
 - [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
   - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
   - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
   - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
 - [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
   - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
   - [⚙️ Method `optimize_selected_images_content`](#%EF%B8%8F-method-optimize_selected_images_content)
   - [⚙️ Method `optimize_selected_images_content_line`](#%EF%B8%8F-method-optimize_selected_images_content_line)
   - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
 - [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-9)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-9)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
 - [🔧 Function `_format_author_for_folder`](#-function-_format_author_for_folder)
 - [🔧 Function `_format_book_title_for_filename`](#-function-_format_book_title_for_filename)
 - [🔧 Function `_save_quotes_to_file`](#-function-_save_quotes_to_file)
@@ -1946,12 +1943,11 @@ This action allows you to quickly add new quotes:
 
 1. Format quote text as structured Markdown content
 2. Add a quote with specified author and book title
-3. Add quotes from files, supplementing them with author and book information
 
 <details>
 <summary>Code:</summary>
 
-````python
+```python
 class OnNewQuotes(ActionBase):
 
     icon = "❞"
@@ -1964,7 +1960,6 @@ class OnNewQuotes(ActionBase):
         options = [
             "Format quotes as Markdown content",
             "Format quotes with author and book",
-            "Add author and title to quote files",
         ]
         selected_option = self.get_choice_from_list(
             "Select Quote Processing Mode",
@@ -1979,56 +1974,6 @@ class OnNewQuotes(ActionBase):
             self.execute_format_as_markdown()
         elif selected_option == options[1]:
             self.execute_format_with_author_and_book()
-        elif selected_option == options[2]:
-            self.execute_add_author_and_title()
-
-    def execute_add_author_and_title(self) -> None:
-        """Process quote files to add author and book information."""
-        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
-
-```markdown
-# Title of book
-
-Line 1.
-
-Line 2.
-
----
-
-Line 3.
-
-Line 4.
-
--- Modified title of book
-
-````
-
-After processing:
-
-```markdown
-# Title of book
-
-> Line 1.
->
-> Line 2.
->
-> -- _Name Surname, Title of book_
-
----
-
-> Line 3.
->
-> Line 4.
->
-> -- _Name Surname, Modified title of book_
-```
-
-""")
-self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
-if not self.folder_path:
-return
-
-        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
 
     def execute_format_as_markdown(self) -> None:
         """Format plain text quotes into properly structured Markdown."""
@@ -2037,13 +1982,14 @@ return
 The Catcher in the Rye
 J.D. Salinger
 
+
 I just mean that I used to think about old Spencer quite a lot
 
 The Catcher in the Rye
 J.D. Salinger"""
-content = self.get_text_textarea("Quotes", "Input quotes", default_text)
-if not content:
-return
+        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
+        if not content:
+            return
 
         result = h.md.format_quotes_as_markdown_content(content)
 
@@ -2187,22 +2133,7 @@ return
             self.add_line(result)
 
         self.show_result()
-
-    @ActionBase.handle_exceptions("generating author book thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.folder_path is None:
-            return
-        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
-        self.add_line(result)
-
-    @ActionBase.handle_exceptions("generating author book thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
-        self.show_result()
-
-````
+```
 
 </details>
 
@@ -2210,7 +2141,7 @@ return
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
-````
+```
 
 Execute the code. Main method for the action.
 
@@ -2223,7 +2154,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         options = [
             "Format quotes as Markdown content",
             "Format quotes with author and book",
-            "Add author and title to quote files",
         ]
         selected_option = self.get_choice_from_list(
             "Select Quote Processing Mode",
@@ -2238,72 +2168,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.execute_format_as_markdown()
         elif selected_option == options[1]:
             self.execute_format_with_author_and_book()
-        elif selected_option == options[2]:
-            self.execute_add_author_and_title()
 ```
-
-</details>
-
-### ⚙️ Method `execute_add_author_and_title`
-
-```python
-def execute_add_author_and_title(self) -> None
-```
-
-Process quote files to add author and book information.
-
-<details>
-<summary>Code:</summary>
-
-````python
-def execute_add_author_and_title(self) -> None:
-        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
-
-```markdown
-# Title of book
-
-Line 1.
-
-Line 2.
-
----
-
-Line 3.
-
-Line 4.
-
--- Modified title of book
-
-````
-
-After processing:
-
-```markdown
-# Title of book
-
-> Line 1.
->
-> Line 2.
->
-> -- _Name Surname, Title of book_
-
----
-
-> Line 3.
->
-> Line 4.
->
-> -- _Name Surname, Modified title of book_
-```
-
-""")
-self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
-if not self.folder_path:
-return
-
-        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
-
-````
 
 </details>
 
@@ -2311,7 +2176,7 @@ return
 
 ```python
 def execute_format_as_markdown(self) -> None
-````
+```
 
 Format plain text quotes into properly structured Markdown.
 
@@ -2489,46 +2354,6 @@ def execute_format_with_author_and_book(self) -> None:
         else:
             self.add_line(result)
 
-        self.show_result()
-```
-
-</details>
-
-### ⚙️ Method `in_thread`
-
-```python
-def in_thread(self) -> str | None
-```
-
-Execute code in a separate thread. For performing long-running operations.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def in_thread(self) -> str | None:
-        if self.folder_path is None:
-            return
-        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
-        self.add_line(result)
-```
-
-</details>
-
-### ⚙️ Method `thread_after`
-
-```python
-def thread_after(self, result: Any) -> None
-```
-
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
         self.show_result()
 ```
 
