@@ -796,11 +796,11 @@ class OnNewQuotes(ActionBase):
         options = [
             (
                 "Format quotes as Markdown content",
-                "Transform plain text quotes (with book and author lines after each quote) into nicely formatted Markdown with blockquotes and attributions."
+                "Transform plain text quotes (with book and author lines after each quote) into nicely formatted Markdown with blockquotes and attributions.",
             ),
             (
                 "Format quotes with author and book",
-                "Input a quote, author, and book separately and generate a Markdown quote block with source information."
+                "Input a quote, author, and book separately and generate a Markdown quote block with source information.",
             ),
         ]
         selected_option = self.get_choice_from_list_with_descriptions(

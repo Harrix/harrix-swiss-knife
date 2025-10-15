@@ -11,8 +11,17 @@ from pathlib import Path
 from typing import Any, Concatenate, NoReturn, ParamSpec, TypeVar
 
 import harrix_pylib as h
-from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QClipboard, QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFont, QGuiApplication
+from PySide6.QtCore import QSize, Qt, QThread, Signal
+from PySide6.QtGui import (
+    QClipboard,
+    QDragEnterEvent,
+    QDragLeaveEvent,
+    QDropEvent,
+    QFont,
+    QGuiApplication,
+    QPainter,
+    QTextDocument,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -28,6 +37,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QStyledItemDelegate,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -325,15 +335,17 @@ class ActionBase:
         # Create a list widget
         list_widget = QListWidget()
 
-        # Set larger font for the list widget
-        font = list_widget.font()
-        font.setPointSize(12)
-        list_widget.setFont(font)
+        # Set up the custom delegate for better text formatting
+        delegate = ChoiceWithDescriptionDelegate()
+        list_widget.setItemDelegate(delegate)
 
         for choice, description in choices:
             # Create a custom item with choice and description
-            item_text = f"{choice}\n  {description}"
+            # Format description with proper line breaks and indentation
+            formatted_description = description.replace("\n", "\n  ")
+            item_text = f"{choice}\n  {formatted_description}"
             item = QListWidgetItem(item_text)
+
             # Store the original choice text as data for easy retrieval
             item.setData(Qt.ItemDataRole.UserRole, choice)
             list_widget.addItem(item)
@@ -1009,6 +1021,91 @@ class ActionBase:
         clipboard = QApplication.clipboard()
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
+
+
+class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
+    """Custom delegate for displaying choices with descriptions in different font sizes."""
+
+    def paint(self, painter: QPainter, option, index) -> None:
+        """Paint the item with custom formatting using QTextDocument."""
+        painter.save()
+
+        # Get the item text
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        if not text:
+            painter.restore()
+            return
+
+        # Split text into choice and description
+        lines = text.split("\n")
+        if len(lines) < 2:
+            # Fallback to default painting
+            super().paint(painter, option, index)
+            painter.restore()
+            return
+
+        choice = lines[0]
+        description = "\n".join(lines[1:]).strip()
+
+        # Create HTML content with different font sizes
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif;">
+            <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
+                {choice}
+            </div>
+            <div style="font-size: 9pt; font-style: italic; color: #666666; margin-left: 10px;">
+                {description}
+            </div>
+        </div>
+        """
+
+        # Create QTextDocument for rich text rendering
+        doc = QTextDocument()
+        doc.setHtml(html_content)
+        doc.setTextWidth(option.rect.width())
+
+        # Set the document size
+        doc_size = doc.size()
+
+        # Draw the document
+        painter.translate(option.rect.topLeft())
+        doc.drawContents(painter)
+
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        """Calculate the size hint for the item."""
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        if not text:
+            return super().sizeHint(option, index)
+
+        lines = text.split("\n")
+        if len(lines) < 2:
+            return super().sizeHint(option, index)
+
+        # Create HTML content to calculate size
+        choice = lines[0]
+        description = "\n".join(lines[1:]).strip()
+
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif;">
+            <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
+                {choice}
+            </div>
+            <div style="font-size: 9pt; font-style: italic; color: #666666; margin-left: 10px;">
+                {description}
+            </div>
+        </div>
+        """
+
+        # Create QTextDocument to calculate size
+        doc = QTextDocument()
+        doc.setHtml(html_content)
+        doc.setTextWidth(option.rect.width())
+
+        # Return the calculated size
+        doc_size = doc.size()
+        return QSize(int(doc_size.width()), int(doc_size.height()) + 5)  # Add some padding
 
 
 class DragDropFileDialog(QDialog):
