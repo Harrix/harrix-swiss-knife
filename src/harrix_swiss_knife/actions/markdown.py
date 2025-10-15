@@ -790,10 +790,6 @@ class OnNewQuotes(ActionBase):
         """Execute the code. Main method for the action."""
         # Let user choose processing mode
         options = [
-            "Format quotes as Markdown content",
-            "Format quotes with author and book",
-        ]
-        options = [
             (
                 "Format quotes as Markdown content",
                 "Transform plain text quotes (with book and author lines after each quote) into nicely formatted Markdown with blockquotes and attributions.",
