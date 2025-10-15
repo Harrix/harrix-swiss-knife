@@ -780,7 +780,6 @@ class OnNewQuotes(ActionBase):
 
     1. Format quote text as structured Markdown content
     2. Add a quote with specified author and book title
-    3. Add quotes from files, supplementing them with author and book information
     """
 
     icon = "❞"
@@ -793,7 +792,6 @@ class OnNewQuotes(ActionBase):
         options = [
             "Format quotes as Markdown content",
             "Format quotes with author and book",
-            "Add author and title to quote files",
         ]
         selected_option = self.get_choice_from_list(
             "Select Quote Processing Mode",
@@ -808,56 +806,7 @@ class OnNewQuotes(ActionBase):
             self.execute_format_as_markdown()
         elif selected_option == options[1]:
             self.execute_format_with_author_and_book()
-        elif selected_option == options[2]:
-            self.execute_add_author_and_title()
 
-    def execute_add_author_and_title(self) -> None:
-        """Process quote files to add author and book information."""
-        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
-
-```markdown
-# Title of book
-
-Line 1.
-
-Line 2.
-
----
-
-Line 3.
-
-Line 4.
-
--- Modified title of book
-
-```
-
-After processing:
-
-```markdown
-# Title of book
-
-> Line 1.
->
-> Line 2.
->
-> -- _Name Surname, Title of book_
-
----
-
-> Line 3.
->
-> Line 4.
->
-> -- _Name Surname, Modified title of book_
-
-```
-""")
-        self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, "Quotes. Add author and title")
 
     def execute_format_as_markdown(self) -> None:
         """Format plain text quotes into properly structured Markdown."""
@@ -1018,19 +967,6 @@ J.D. Salinger"""
 
         self.show_result()
 
-    @ActionBase.handle_exceptions("generating author book thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
-        if self.folder_path is None:
-            return
-        result = h.file.apply_func(self.folder_path, ".md", h.md.generate_author_book)
-        self.add_line(result)
-
-    @ActionBase.handle_exceptions("generating author book thread completion")
-    def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast(f"Quotes. Add author and title {self.folder_path} completed")
-        self.show_result()
 
 
 class OnOptimizeImagesFolder(ActionBase):
