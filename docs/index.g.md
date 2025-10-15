@@ -95,7 +95,6 @@ _Figure 1: Screenshot_
   - 🎬 Get a list of movies, books for web
   - 👈 Heading level: Decrease
   - 👉 Heading level: Increase
-  - ❞ New quotes
   - 💎 ★ Beautify MD and regenerate .g.md in …
   - 💎 Beautify MD in …
   - 🚧 Check in …
@@ -112,6 +111,7 @@ _Figure 1: Screenshot_
   - 💤 New dream note
   - 📓 New note
   - 📓 New note with images
+  - ❞ New quotes
 - **Python**
   - 🚧 Check PY in …
   - 🐍 New uv library
