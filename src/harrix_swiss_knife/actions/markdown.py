@@ -793,9 +793,19 @@ class OnNewQuotes(ActionBase):
             "Format quotes as Markdown content",
             "Format quotes with author and book",
         ]
-        selected_option = self.get_choice_from_list(
+        options = [
+            (
+                "Format quotes as Markdown content",
+                "Transform plain text quotes (with book and author lines after each quote) into nicely formatted Markdown with blockquotes and attributions."
+            ),
+            (
+                "Format quotes with author and book",
+                "Input a quote, author, and book separately and generate a Markdown quote block with source information."
+            ),
+        ]
+        selected_option = self.get_choice_from_list_with_descriptions(
             "Select Quote Processing Mode",
-            "Choose how you want to process quotes:",
+            "How do you want to process quotes?",
             options,
         )
 
