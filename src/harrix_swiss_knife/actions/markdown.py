@@ -452,7 +452,7 @@ class OnDownloadAndReplaceImagesFolder(ActionBase):
         self.show_result()
 
 
-class OnFixMarkdownWithQuotes(ActionBase):
+class OnFixMDWithQuotes(ActionBase):
     """Add author and title information to quote files in a folder.
 
     This action processes quote files in a folder to add author and book information

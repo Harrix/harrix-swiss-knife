@@ -32,7 +32,7 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
-- [🏛️ Class `OnFixMarkdownWithQuotes`](#%EF%B8%8F-class-onfixmarkdownwithquotes)
+- [🏛️ Class `OnFixMDWithQuotes`](#%EF%B8%8F-class-onfixmdwithquotes)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-4)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-4)
@@ -1129,10 +1129,10 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## 🏛️ Class `OnFixMarkdownWithQuotes`
+## 🏛️ Class `OnFixMDWithQuotes`
 
 ```python
-class OnFixMarkdownWithQuotes(ActionBase)
+class OnFixMDWithQuotes(ActionBase)
 ```
 
 Add author and title information to quote files in a folder.
@@ -1157,7 +1157,7 @@ Example transformation:
 <summary>Code:</summary>
 
 ````python
-class OnFixMarkdownWithQuotes(ActionBase):
+class OnFixMDWithQuotes(ActionBase):
 
     icon = "❞"
     title = "Fix MD with quotes"
