@@ -791,7 +791,7 @@ class OnNewQuotes(ActionBase):
         # Let user choose processing mode
         options = [
             (
-                "Format quotes as Markdown content",
+                "Format quotes from text",
                 "Transform plain text quotes (with book and author lines after each quote) into nicely formatted Markdown with blockquotes and attributions.",
             ),
             (
@@ -809,11 +809,11 @@ class OnNewQuotes(ActionBase):
             return
 
         if selected_option == options[0]:
-            self.execute_format_as_markdown()
+            self.execute_format_quotes_from_text()
         elif selected_option == options[1]:
             self.execute_format_with_author_and_book()
 
-    def execute_format_as_markdown(self) -> None:
+    def execute_format_quotes_from_text(self) -> None:
         """Format plain text quotes into properly structured Markdown."""
         default_text = """They can get a big bang out of buying a blanket.
 
@@ -929,7 +929,7 @@ J.D. Salinger"""
         # Split quotes by double line breaks
         quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
 
-        # Build the formatted content in the same format as execute_format_as_markdown expects
+        # Build the formatted content in the same format as execute_format_quotes_from_text expects
         formatted_content = ""
         for quote in quotes:
             formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
