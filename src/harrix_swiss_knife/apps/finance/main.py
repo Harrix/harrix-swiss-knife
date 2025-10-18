@@ -466,7 +466,7 @@ class MainWindow(
             "currency_exchanges": (
                 self.tableView_exchange,
                 "currency_exchanges",
-                ["From", "To", "Amount From", "Amount To", "Rate", "Fee", "Date", "Description"],
+                ["From", "To", "Amount From", "Amount To", "Rate", "Fee", "Date", "Description", "Loss"],
             ),
             "exchange_rates": (
                 self.tableView_exchange_rates,
@@ -3080,6 +3080,34 @@ class MainWindow(
             amount_to: float = float(row[4]) / to_subdivision if row[4] is not None else 0.0
             fee: float = float(row[6]) / from_subdivision if row[6] is not None else 0.0
 
+            # Calculate loss due to exchange rate difference
+            loss: float = 0.0
+            try:
+                # Get currency IDs
+                from_currency_info = self.db_manager.get_currency_by_code(from_currency_code)
+                to_currency_info = self.db_manager.get_currency_by_code(to_currency_code)
+
+                if from_currency_info and to_currency_info:
+                    from_currency_id: int = from_currency_info[0]
+                    to_currency_id: int = to_currency_info[0]
+                    exchange_date: str = row[7]
+
+                    # Get the actual exchange rate from the database for the exchange date
+                    actual_rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, exchange_date)
+
+                    # Calculate what the amount_to should have been with the actual rate
+                    # Convert amount_from to target currency using actual rate
+                    expected_amount_to: float = amount_from * actual_rate
+
+                    # Calculate loss: difference between actual amount_to and expected amount_to
+                    # Loss is in target currency units
+                    loss = amount_to - expected_amount_to
+
+            except Exception as e:
+                # If there's any error in calculation, set loss to 0
+                print(f"Error calculating loss for exchange {row[0]}: {e}")
+                loss = 0.0
+
             color: QColor = QColor(255, 240, 255)
             transformed_row: list = [
                 row[1],  # from_code
@@ -3090,6 +3118,7 @@ class MainWindow(
                 f"{fee:.2f}",  # fee (converted)
                 row[7],  # date
                 row[8] or "",  # description
+                f"{loss:.2f}",  # loss (calculated)
                 row[0],  # id
                 color,
             ]
