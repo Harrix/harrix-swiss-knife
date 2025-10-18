@@ -466,7 +466,7 @@ class MainWindow(
             "currency_exchanges": (
                 self.tableView_exchange,
                 "currency_exchanges",
-                ["From", "To", "Amount From", "Amount To", "Rate", "Fee", "Date", "Description", "Loss"],
+                ["From", "To", "Amount From", "Amount To", "Rate", "Fee", "Date", "Description", "Loss", "Today's Loss"],
             ),
             "exchange_rates": (
                 self.tableView_exchange_rates,
@@ -3082,6 +3082,7 @@ class MainWindow(
 
             # Calculate loss due to exchange rate difference
             loss: float = 0.0
+            today_loss: float = 0.0
             try:
                 # Get currency IDs
                 from_currency_info = self.db_manager.get_currency_by_code(from_currency_code)
@@ -3103,10 +3104,27 @@ class MainWindow(
                     # Loss is in target currency units
                     loss = amount_to - expected_amount_to
 
+                    # Calculate today's loss - compare with today's exchange rate
+                    from datetime import datetime
+                    today: str = datetime.now().strftime("%Y-%m-%d")
+                    today_rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, today)
+
+                    # If today's rate is not available, try to get the latest available rate
+                    if today_rate == 1.0 and from_currency_id != to_currency_id:
+                        today_rate = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id)
+
+                    # Calculate what the amount_to would be with today's rate
+                    today_expected_amount_to: float = amount_from * today_rate
+
+                    # Calculate today's loss: difference between today's expected amount and actual amount
+                    # This shows how much you would gain/lose if you exchanged today instead
+                    today_loss = today_expected_amount_to - amount_to
+
             except Exception as e:
-                # If there's any error in calculation, set loss to 0
-                print(f"Error calculating loss for exchange {row[0]}: {e}")
+                # If there's any error in calculation, set losses to 0
+                print(f"Error calculating losses for exchange {row[0]}: {e}")
                 loss = 0.0
+                today_loss = 0.0
 
             color: QColor = QColor(255, 240, 255)
             transformed_row: list = [
@@ -3119,6 +3137,7 @@ class MainWindow(
                 row[7],  # date
                 row[8] or "",  # description
                 f"{loss:.2f}",  # loss (calculated)
+                f"{today_loss:.2f}",  # today's loss (calculated)
                 row[0],  # id
                 color,
             ]
