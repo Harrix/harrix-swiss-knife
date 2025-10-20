@@ -3065,6 +3065,13 @@ class MainWindow(
             return
 
         exchanges_data: list = self.db_manager.get_all_currency_exchanges()
+        # Get default currency info once
+        default_currency_id: int | None = None
+        try:
+            if self.db_manager is not None:
+                default_currency_id = self.db_manager.get_default_currency_id()
+        except Exception:
+            default_currency_id = None
         exchanges_transformed_data: list[list] = []
         for row in exchanges_data:
             # Convert amounts and fees from minor units to major units
@@ -3080,7 +3087,7 @@ class MainWindow(
             amount_to: float = float(row[4]) / to_subdivision if row[4] is not None else 0.0
             fee: float = float(row[6]) / from_subdivision if row[6] is not None else 0.0
 
-            # Calculate loss due to exchange rate difference
+            # Calculate loss due to exchange rate difference (displayed in default currency, negative = loss)
             loss: float = 0.0
             today_loss: float = 0.0
             try:
@@ -3093,32 +3100,64 @@ class MainWindow(
                     to_currency_id: int = to_currency_info[0]
                     exchange_date: str = row[7]
 
-                    # Get the actual exchange rate from the database for the exchange date
-                    actual_rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, exchange_date)
+                    # Historical market rate (to per 1 from) on exchange date
+                    hist_rate_to_per_from: float = self.db_manager.get_exchange_rate(
+                        from_currency_id, to_currency_id, exchange_date
+                    )
 
-                    # Calculate what the amount_to should have been with the actual rate
-                    # Convert amount_from to target currency using actual rate
-                    expected_amount_to: float = amount_from * actual_rate
+                    # Compute expected amount of source currency using market rate
+                    # expected_from = amount_to / (to_per_from)
+                    loss_in_from_currency: float = 0.0
+                    if hist_rate_to_per_from and hist_rate_to_per_from != 0:
+                        expected_from: float = amount_to / hist_rate_to_per_from
+                        paid_from: float = amount_from
+                        # diff > 0 => overpaid => loss; diff < 0 => underpaid => profit
+                        diff_from: float = paid_from - expected_from
+                        # Displayed value should be negative for loss, positive for profit
+                        display_loss_in_from: float = -diff_from
+                        loss_in_from_currency = display_loss_in_from
 
-                    # Calculate loss: difference between actual amount_to and expected amount_to
-                    # Loss is in target currency units
-                    loss = amount_to - expected_amount_to
-
-                    # Calculate today's loss - compare with today's exchange rate
+                    # Convert loss to default currency using today's rate from source → default
+                    loss_display: float = loss_in_from_currency
                     from datetime import datetime
                     today: str = datetime.now().strftime("%Y-%m-%d")
-                    today_rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, today)
+                    if default_currency_id is not None and from_currency_id != default_currency_id:
+                        rate_from_to_default_today: float = self.db_manager.get_exchange_rate(
+                            from_currency_id, default_currency_id, today
+                        )
+                        if rate_from_to_default_today == 1.0 and from_currency_id != default_currency_id:
+                            rate_from_to_default_today = self.db_manager.get_exchange_rate(
+                                from_currency_id, default_currency_id
+                            )
+                        if rate_from_to_default_today and rate_from_to_default_today != 0:
+                            loss_display = loss_in_from_currency * rate_from_to_default_today
+                    loss = loss_display
 
-                    # If today's rate is not available, try to get the latest available rate
-                    if today_rate == 1.0 and from_currency_id != to_currency_id:
-                        today_rate = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id)
+                    # Today's loss: compare paid_from with expected_from using today's to_per_from rate
+                    today_loss_in_from_currency: float = 0.0
+                    today_rate_to_per_from: float = self.db_manager.get_exchange_rate(
+                        from_currency_id, to_currency_id, today
+                    )
+                    if today_rate_to_per_from == 1.0 and from_currency_id != to_currency_id:
+                        today_rate_to_per_from = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id)
+                    if today_rate_to_per_from and today_rate_to_per_from != 0:
+                        expected_from_today: float = amount_to / today_rate_to_per_from
+                        diff_from_today: float = amount_from - expected_from_today
+                        display_today_in_from: float = -diff_from_today
+                        today_loss_in_from_currency = display_today_in_from
 
-                    # Calculate what the amount_to would be with today's rate
-                    today_expected_amount_to: float = amount_from * today_rate
-
-                    # Calculate today's loss: difference between today's expected amount and actual amount
-                    # This shows how much you would gain/lose if you exchanged today instead
-                    today_loss = today_expected_amount_to - amount_to
+                    today_loss_display: float = today_loss_in_from_currency
+                    if default_currency_id is not None and from_currency_id != default_currency_id:
+                        rate_from_to_default_today2: float = self.db_manager.get_exchange_rate(
+                            from_currency_id, default_currency_id, today
+                        )
+                        if rate_from_to_default_today2 == 1.0 and from_currency_id != default_currency_id:
+                            rate_from_to_default_today2 = self.db_manager.get_exchange_rate(
+                                from_currency_id, default_currency_id
+                            )
+                        if rate_from_to_default_today2 and rate_from_to_default_today2 != 0:
+                            today_loss_display = today_loss_in_from_currency * rate_from_to_default_today2
+                    today_loss = today_loss_display
 
             except Exception as e:
                 # If there's any error in calculation, set losses to 0
