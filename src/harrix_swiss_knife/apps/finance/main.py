@@ -1840,6 +1840,42 @@ class MainWindow(
 
         return daily_expenses
 
+    def _calculate_exchange_loss_in_source_currency(
+        self,
+        from_currency_id: int,
+        to_currency_id: int,
+        amount_from: float,
+        amount_to: float,
+        rate_to_per_from: float,
+        fee: float = 0.0,
+    ) -> float:
+        """Calculate exchange loss in source currency using given rate.
+
+        Args:
+            from_currency_id: Source currency ID
+            to_currency_id: Target currency ID
+            amount_from: Amount in source currency
+            amount_to: Amount in target currency
+            rate_to_per_from: Exchange rate (to per 1 from)
+            fee: Exchange fee in source currency
+
+        Returns:
+            Loss amount in source currency (negative = loss, positive = profit)
+        """
+        try:
+            if rate_to_per_from and rate_to_per_from != 0:
+                expected_from: float = amount_to / rate_to_per_from
+                # Include fee in the total cost
+                total_cost: float = amount_from + fee
+                diff_from: float = total_cost - expected_from
+                # Displayed value should be negative for loss, positive for profit
+                return -diff_from
+            return 0.0
+
+        except Exception as e:
+            print(f"Error calculating exchange loss in source currency: {e}")
+            return 0.0
+
     def _calculate_exchange_loss_on_date(
         self,
         from_currency_id: int,
@@ -1878,6 +1914,7 @@ class MainWindow(
             # Convert loss to default currency using today's rate from source → default
             if default_currency_id is not None and from_currency_id != default_currency_id:
                 from datetime import datetime
+
                 today: str = datetime.now().strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
@@ -1888,80 +1925,6 @@ class MainWindow(
         except Exception as e:
             print(f"Error calculating exchange loss on date: {e}")
             return 0.0
-
-    def _calculate_exchange_loss_in_source_currency(
-        self,
-        from_currency_id: int,
-        to_currency_id: int,
-        amount_from: float,
-        amount_to: float,
-        rate_to_per_from: float,
-        fee: float = 0.0,
-    ) -> float:
-        """Calculate exchange loss in source currency using given rate.
-
-        Args:
-            from_currency_id: Source currency ID
-            to_currency_id: Target currency ID
-            amount_from: Amount in source currency
-            amount_to: Amount in target currency
-            rate_to_per_from: Exchange rate (to per 1 from)
-            fee: Exchange fee in source currency
-
-        Returns:
-            Loss amount in source currency (negative = loss, positive = profit)
-        """
-        try:
-            if rate_to_per_from and rate_to_per_from != 0:
-                expected_from: float = amount_to / rate_to_per_from
-                # Include fee in the total cost
-                total_cost: float = amount_from + fee
-                diff_from: float = total_cost - expected_from
-                # Displayed value should be negative for loss, positive for profit
-                return -diff_from
-            return 0.0
-
-        except Exception as e:
-            print(f"Error calculating exchange loss in source currency: {e}")
-            return 0.0
-
-    def _convert_currency_amount(
-        self,
-        amount: float,
-        from_currency_id: int,
-        to_currency_id: int,
-        date: str | None = None,
-    ) -> float:
-        """Convert amount from one currency to another.
-
-        Args:
-            amount: Amount to convert
-            from_currency_id: Source currency ID
-            to_currency_id: Target currency ID
-            date: Date for rate lookup (uses today if None)
-
-        Returns:
-            Converted amount in target currency
-        """
-        try:
-            if from_currency_id == to_currency_id:
-                return amount
-
-            from datetime import datetime
-            if date is None:
-                date = datetime.now().strftime("%Y-%m-%d")
-
-            rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
-            if rate == 1.0 and from_currency_id != to_currency_id:
-                rate = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id)
-
-            if rate and rate != 0:
-                return amount * rate
-            return amount
-
-        except Exception as e:
-            print(f"Error converting currency amount: {e}")
-            return amount
 
     def _calculate_exchange_loss_today(
         self,
@@ -2348,6 +2311,45 @@ class MainWindow(
                 model = self.models[table_name]
                 if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
                     model.sourceModel().dataChanged.connect(handler)
+
+    def _convert_currency_amount(
+        self,
+        amount: float,
+        from_currency_id: int,
+        to_currency_id: int,
+        date: str | None = None,
+    ) -> float:
+        """Convert amount from one currency to another.
+
+        Args:
+            amount: Amount to convert
+            from_currency_id: Source currency ID
+            to_currency_id: Target currency ID
+            date: Date for rate lookup (uses today if None)
+
+        Returns:
+            Converted amount in target currency
+        """
+        try:
+            if from_currency_id == to_currency_id:
+                return amount
+
+            from datetime import datetime
+
+            if date is None:
+                date = datetime.now().strftime("%Y-%m-%d")
+
+            rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
+            if rate == 1.0 and from_currency_id != to_currency_id:
+                rate = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id)
+
+            if rate and rate != 0:
+                return amount * rate
+            return amount
+
+        except Exception as e:
+            print(f"Error converting currency amount: {e}")
+            return amount
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from table to clipboard as tab-separated text.
@@ -3285,7 +3287,13 @@ class MainWindow(
 
                     # Calculate loss on exchange date using extracted method
                     loss = self._calculate_exchange_loss_on_date(
-                        from_currency_id, to_currency_id, amount_from, amount_to, exchange_date, default_currency_id, fee
+                        from_currency_id,
+                        to_currency_id,
+                        amount_from,
+                        amount_to,
+                        exchange_date,
+                        default_currency_id,
+                        fee,
                     )
 
                     # Calculate today's loss using extracted method
