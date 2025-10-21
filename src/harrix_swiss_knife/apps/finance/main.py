@@ -1848,6 +1848,7 @@ class MainWindow(
         amount_to: float,
         exchange_date: str,
         default_currency_id: int | None,
+        fee: float = 0.0,
     ) -> float:
         """Calculate loss due to exchange rate difference on the exchange date.
 
@@ -1858,6 +1859,7 @@ class MainWindow(
             amount_to: Amount in target currency
             exchange_date: Date of exchange
             default_currency_id: Default currency ID for conversion
+            fee: Exchange fee in source currency
 
         Returns:
             Loss amount in default currency (negative = loss, positive = profit)
@@ -1870,7 +1872,7 @@ class MainWindow(
 
             # Calculate loss in source currency using historical rate
             loss_in_from_currency: float = self._calculate_exchange_loss_in_source_currency(
-                from_currency_id, to_currency_id, amount_from, amount_to, hist_rate_to_per_from
+                from_currency_id, to_currency_id, amount_from, amount_to, hist_rate_to_per_from, fee
             )
 
             # Convert loss to default currency using today's rate from source → default
@@ -1894,6 +1896,7 @@ class MainWindow(
         amount_from: float,
         amount_to: float,
         rate_to_per_from: float,
+        fee: float = 0.0,
     ) -> float:
         """Calculate exchange loss in source currency using given rate.
 
@@ -1903,6 +1906,7 @@ class MainWindow(
             amount_from: Amount in source currency
             amount_to: Amount in target currency
             rate_to_per_from: Exchange rate (to per 1 from)
+            fee: Exchange fee in source currency
 
         Returns:
             Loss amount in source currency (negative = loss, positive = profit)
@@ -1910,7 +1914,9 @@ class MainWindow(
         try:
             if rate_to_per_from and rate_to_per_from != 0:
                 expected_from: float = amount_to / rate_to_per_from
-                diff_from: float = amount_from - expected_from
+                # Include fee in the total cost
+                total_cost: float = amount_from + fee
+                diff_from: float = total_cost - expected_from
                 # Displayed value should be negative for loss, positive for profit
                 return -diff_from
             return 0.0
@@ -1964,6 +1970,7 @@ class MainWindow(
         amount_from: float,
         amount_to: float,
         default_currency_id: int | None,
+        fee: float = 0.0,
     ) -> float:
         """Calculate loss if exchange was done today instead of original date.
 
@@ -1973,6 +1980,7 @@ class MainWindow(
             amount_from: Amount in source currency
             amount_to: Amount in target currency
             default_currency_id: Default currency ID for conversion
+            fee: Exchange fee in source currency
 
         Returns:
             Loss amount in default currency (negative = today's rate worse, positive = today's rate better)
@@ -1989,7 +1997,7 @@ class MainWindow(
 
             # Calculate loss in source currency using today's rate
             today_loss_in_from_currency: float = self._calculate_exchange_loss_in_source_currency(
-                from_currency_id, to_currency_id, amount_from, amount_to, today_rate_to_per_from
+                from_currency_id, to_currency_id, amount_from, amount_to, today_rate_to_per_from, fee
             )
 
             # Convert to default currency
@@ -3277,12 +3285,12 @@ class MainWindow(
 
                     # Calculate loss on exchange date using extracted method
                     loss = self._calculate_exchange_loss_on_date(
-                        from_currency_id, to_currency_id, amount_from, amount_to, exchange_date, default_currency_id
+                        from_currency_id, to_currency_id, amount_from, amount_to, exchange_date, default_currency_id, fee
                     )
 
                     # Calculate today's loss using extracted method
                     today_loss = self._calculate_exchange_loss_today(
-                        from_currency_id, to_currency_id, amount_from, amount_to, default_currency_id
+                        from_currency_id, to_currency_id, amount_from, amount_to, default_currency_id, fee
                     )
 
             except Exception as e:
