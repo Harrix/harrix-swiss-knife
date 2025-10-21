@@ -1179,7 +1179,7 @@
                <x>0</x>
                <y>0</y>
                <width>1073</width>
-               <height>793</height>
+               <height>859</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_weight_chart_content"/>
@@ -1526,6 +1526,13 @@
              </layout>
             </item>
             <item>
+             <widget class="QLabel" name="label_chart_info">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QScrollArea" name="scrollArea_charts">
               <property name="widgetResizable">
                <bool>true</bool>
@@ -1535,19 +1542,12 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>1005</width>
-                 <height>735</height>
+                 <width>1021</width>
+                 <height>801</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>
               </widget>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_chart_info">
-              <property name="text">
-               <string/>
-              </property>
              </widget>
             </item>
            </layout>
