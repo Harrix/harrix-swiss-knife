@@ -857,7 +857,7 @@ class Ui_MainWindow(object):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 793))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 859))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -1093,22 +1093,22 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_20.addLayout(self.horizontalLayout_23)
 
+        self.label_chart_info = QLabel(self.widget_right_panel)
+        self.label_chart_info.setObjectName("label_chart_info")
+
+        self.verticalLayout_20.addWidget(self.label_chart_info)
+
         self.scrollArea_charts = QScrollArea(self.widget_right_panel)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1005, 735))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 801))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_20.addWidget(self.scrollArea_charts)
-
-        self.label_chart_info = QLabel(self.widget_right_panel)
-        self.label_chart_info.setObjectName("label_chart_info")
-
-        self.verticalLayout_20.addWidget(self.label_chart_info)
 
         self.splitter_charts.addWidget(self.widget_right_panel)
 
@@ -2063,7 +2063,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 793))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 859))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -2299,22 +2299,22 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_20.addLayout(self.horizontalLayout_23)
 
+        self.label_chart_info = QLabel(self.widget_right_panel)
+        self.label_chart_info.setObjectName("label_chart_info")
+
+        self.verticalLayout_20.addWidget(self.label_chart_info)
+
         self.scrollArea_charts = QScrollArea(self.widget_right_panel)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1005, 735))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 801))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_20.addWidget(self.scrollArea_charts)
-
-        self.label_chart_info = QLabel(self.widget_right_panel)
-        self.label_chart_info.setObjectName("label_chart_info")
-
-        self.verticalLayout_20.addWidget(self.label_chart_info)
 
         self.splitter_charts.addWidget(self.widget_right_panel)
 
