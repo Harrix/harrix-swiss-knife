@@ -5088,6 +5088,28 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 1)
         self.splitter.setStretchFactor(2, 3)
 
+        # Configure splitter_4 proportions (frame_exchange narrow, tableView_exchange wide)
+        self.splitter_4.setStretchFactor(0, 1)  # frame_exchange gets less space
+        self.splitter_4.setStretchFactor(1, 3)  # tableView_exchange gets more space
+
+        # Configure splitter_2 proportions (frame_accounts narrow, tableView_accounts wide)
+        self.splitter_2.setStretchFactor(0, 1)  # frame_accounts gets less space
+        self.splitter_2.setStretchFactor(1, 3)  # tableView_accounts gets more space
+
+        # Configure splitter_3 proportions (frames narrow, tableViews wide)
+        self.splitter_3.setStretchFactor(0, 1)  # frame_2 gets less space
+        self.splitter_3.setStretchFactor(1, 3)  # tableView_categories gets more space
+        self.splitter_3.setStretchFactor(2, 1)  # frame_currencies gets less space
+        self.splitter_3.setStretchFactor(3, 3)  # tableView_currencies gets more space
+
+        # Configure splitter_5 proportions (frame_5 narrow, tableView_reports wide)
+        self.splitter_5.setStretchFactor(0, 1)  # frame_5 gets less space
+        self.splitter_5.setStretchFactor(1, 3)  # tableView_reports gets more space
+
+        # Configure splitter_6 proportions (frame_rates narrow, widget_exchange_rates_right wide)
+        self.splitter_6.setStretchFactor(0, 1)  # frame_rates gets less space
+        self.splitter_6.setStretchFactor(1, 3)  # widget_exchange_rates_right gets more space
+
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)
         self.doubleSpinBox_exchange_from.setValue(100.0)
@@ -11096,6 +11118,28 @@ def _setup_ui(self) -> None:
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
         self.splitter.setStretchFactor(2, 3)
+
+        # Configure splitter_4 proportions (frame_exchange narrow, tableView_exchange wide)
+        self.splitter_4.setStretchFactor(0, 1)  # frame_exchange gets less space
+        self.splitter_4.setStretchFactor(1, 3)  # tableView_exchange gets more space
+
+        # Configure splitter_2 proportions (frame_accounts narrow, tableView_accounts wide)
+        self.splitter_2.setStretchFactor(0, 1)  # frame_accounts gets less space
+        self.splitter_2.setStretchFactor(1, 3)  # tableView_accounts gets more space
+
+        # Configure splitter_3 proportions (frames narrow, tableViews wide)
+        self.splitter_3.setStretchFactor(0, 1)  # frame_2 gets less space
+        self.splitter_3.setStretchFactor(1, 3)  # tableView_categories gets more space
+        self.splitter_3.setStretchFactor(2, 1)  # frame_currencies gets less space
+        self.splitter_3.setStretchFactor(3, 3)  # tableView_currencies gets more space
+
+        # Configure splitter_5 proportions (frame_5 narrow, tableView_reports wide)
+        self.splitter_5.setStretchFactor(0, 1)  # frame_5 gets less space
+        self.splitter_5.setStretchFactor(1, 3)  # tableView_reports gets more space
+
+        # Configure splitter_6 proportions (frame_rates narrow, widget_exchange_rates_right wide)
+        self.splitter_6.setStretchFactor(0, 1)  # frame_rates gets less space
+        self.splitter_6.setStretchFactor(1, 3)  # widget_exchange_rates_right gets more space
 
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)
