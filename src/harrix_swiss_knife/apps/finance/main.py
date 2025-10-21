@@ -4471,6 +4471,10 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 1)
         self.splitter.setStretchFactor(2, 3)
 
+        # Configure splitter_4 proportions (frame_exchange narrow, tableView_exchange wide)
+        self.splitter_4.setStretchFactor(0, 1)  # frame_exchange gets less space
+        self.splitter_4.setStretchFactor(1, 3)  # tableView_exchange gets more space
+
         # Set default values
         self.doubleSpinBox_amount.setValue(100.0)
         self.doubleSpinBox_exchange_from.setValue(100.0)
