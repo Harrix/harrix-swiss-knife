@@ -368,6 +368,31 @@ class OnCheckMdFolder(ActionBase):
         if not self.folder_path:
             return
 
+        # Get available rules from MarkdownChecker
+        checker = h.md_check.MarkdownChecker()
+        rules_dict = checker.RULES
+
+        # Convert rules dict to list of rule descriptions for display
+        rule_choices = [f"{rule_id}: {description}" for rule_id, description in rules_dict.items()]
+
+        # Show dialog to select rules (all selected by default)
+        selected_rules = self.get_checkbox_selection(
+            "Select Rules for Markdown Check",
+            "Choose which rules to check:",
+            rule_choices,
+            default_selected=rule_choices,  # All rules selected by default
+        )
+
+        if not selected_rules:
+            return
+
+        # Extract rule IDs from selected descriptions
+        self.selected_rule_ids = set()
+        for selected_rule in selected_rules:
+            # Extract rule ID (e.g., "H001" from "H001: Description")
+            rule_id = selected_rule.split(":")[0].strip()
+            self.selected_rule_ids.add(rule_id)
+
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("markdown folder checking thread")
@@ -376,10 +401,19 @@ class OnCheckMdFolder(ActionBase):
         checker = h.md_check.MarkdownChecker()
         if self.folder_path is None:
             return
-        errors = h.file.check_func(self.folder_path, ".md", checker)
-        if errors:
-            self.add_line("\n".join(errors))
-            self.add_line(f"🔢 Count errors = {len(errors)}")
+
+        # Use selected rules for checking directory
+        errors_dict = checker.check_directory(self.folder_path, select=self.selected_rule_ids)
+
+        # Flatten the errors dictionary into a list
+        all_errors = []
+        for file_path, file_errors in errors_dict.items():
+            for error in file_errors:
+                all_errors.append(f"{file_path}: {error}")
+
+        if all_errors:
+            self.add_line("\n".join(all_errors))
+            self.add_line(f"🔢 Count errors = {len(all_errors)}")
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
