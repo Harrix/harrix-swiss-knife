@@ -3339,6 +3339,7 @@ class MainWindow(
         )
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
+
         # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
         if self.amount_from_delegate is None:
             self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
@@ -3356,6 +3357,7 @@ class MainWindow(
 
         self.tableView_exchange.setItemDelegateForColumn(8, self.loss_readonly_delegate)  # Loss
         self.tableView_exchange.setItemDelegateForColumn(9, self.today_loss_readonly_delegate)  # Today's Loss
+
 
         # Enable editing for Amount From and Amount To columns
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
@@ -3977,6 +3979,9 @@ class MainWindow(
 
             # Process each changed row
             for row in range(top_left.row(), bottom_right.row() + 1):
+                if row >= model.rowCount():
+                    continue
+
                 vertical_header_item = model.verticalHeaderItem(row)
                 if vertical_header_item:
                     row_id: str = vertical_header_item.text()

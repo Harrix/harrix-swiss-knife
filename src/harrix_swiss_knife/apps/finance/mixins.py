@@ -219,9 +219,12 @@ class AutoSaveOperations:
             # Convert to float, handling any formatting
             try:
                 # Remove any spaces and convert to float
-                amount_from = float(str(amount_from_text).replace(" ", ""))
-                amount_to = float(str(amount_to_text).replace(" ", ""))
-            except (ValueError, TypeError):
+                amount_from_str = str(amount_from_text).replace(" ", "").replace("₀", "0").replace("₁", "1").replace("₂", "2").replace("₃", "3").replace("₄", "4").replace("₅", "5").replace("₆", "6").replace("₇", "7").replace("₈", "8").replace("₉", "9")
+                amount_to_str = str(amount_to_text).replace(" ", "").replace("₀", "0").replace("₁", "1").replace("₂", "2").replace("₃", "3").replace("₄", "4").replace("₅", "5").replace("₆", "6").replace("₇", "7").replace("₈", "8").replace("₉", "9")
+
+                amount_from = float(amount_from_str)
+                amount_to = float(amount_to_str)
+            except (ValueError, TypeError) as e:
                 QMessageBox.warning(None, "Validation Error", "Invalid amount values")
                 return
 
