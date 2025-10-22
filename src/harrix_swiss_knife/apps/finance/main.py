@@ -55,6 +55,7 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
+from harrix_swiss_knife.apps.finance.readonly_delegate import ReadOnlyDelegate
 from harrix_swiss_knife.apps.finance.exchange_rates_operations import ExchangeRatesOperations
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
@@ -412,6 +413,12 @@ class MainWindow(
         self.currency_delegate: CurrencyComboBoxDelegate | None = None
         self.date_delegate: DateDelegate | None = None
         self.tag_delegate: TagDelegate | None = None
+
+        # Delegates for exchange table
+        self.amount_from_delegate: AmountDelegate | None = None
+        self.amount_to_delegate: AmountDelegate | None = None
+        self.loss_readonly_delegate: ReadOnlyDelegate | None = None
+        self.today_loss_readonly_delegate: ReadOnlyDelegate | None = None
 
         # Chart configuration
         self.max_count_points_in_charts: int = 40
@@ -3330,11 +3337,22 @@ class MainWindow(
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
         # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
-        self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
-        self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+        if self.amount_from_delegate is None:
+            self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+        if self.amount_to_delegate is None:
+            self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
 
         self.tableView_exchange.setItemDelegateForColumn(2, self.amount_from_delegate)  # Amount From
         self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)  # Amount To
+
+        # Set up read-only delegates for Loss (index 8) and Today's Loss (index 9) columns
+        if self.loss_readonly_delegate is None:
+            self.loss_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
+        if self.today_loss_readonly_delegate is None:
+            self.today_loss_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
+
+        self.tableView_exchange.setItemDelegateForColumn(8, self.loss_readonly_delegate)  # Loss
+        self.tableView_exchange.setItemDelegateForColumn(9, self.today_loss_readonly_delegate)  # Today's Loss
 
         # Enable editing for Amount From and Amount To columns
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
