@@ -201,18 +201,48 @@ class AutoSaveOperations:
             # Update related UI elements
             self._update_comboboxes()
 
-    def _save_exchange_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
+    def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save currency exchange data.
 
         Args:
 
-        - `_model` (`QStandardItemModel`): The model containing the data.
-        - `_row` (`int`): Row index.
-        - `_row_id` (`str`): Database ID of the row.
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
 
         """
-        # Currency exchanges are complex to update, so we'll skip auto-save for now
-        QMessageBox.information(None, "Info", "Currency exchange auto-save not implemented yet")
+        try:
+            # Get amount values from the model (columns 2 and 3)
+            amount_from_text = model.data(model.index(row, 2)) or "0"
+            amount_to_text = model.data(model.index(row, 3)) or "0"
+
+            # Convert to float, handling any formatting
+            try:
+                # Remove any spaces and convert to float
+                amount_from = float(str(amount_from_text).replace(" ", ""))
+                amount_to = float(str(amount_to_text).replace(" ", ""))
+            except (ValueError, TypeError):
+                QMessageBox.warning(None, "Validation Error", "Invalid amount values")
+                return
+
+            # Validate amounts
+            if amount_from < 0:
+                QMessageBox.warning(None, "Validation Error", "Amount From cannot be negative")
+                return
+
+            if amount_to < 0:
+                QMessageBox.warning(None, "Validation Error", "Amount To cannot be negative")
+                return
+
+            # Update database
+            if not self.db_manager.update_currency_exchange(int(row_id), amount_from, amount_to):
+                QMessageBox.warning(None, "Database Error", "Failed to save currency exchange record")
+            else:
+                print(f"✅ Successfully updated currency exchange {row_id}: {amount_from} -> {amount_to}")
+
+        except Exception as e:
+            QMessageBox.warning(None, "Error", f"Failed to save exchange data: {e}")
+            print(f"Error saving exchange data: {e}")
 
     def _save_rate_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
         """Save exchange rate data.

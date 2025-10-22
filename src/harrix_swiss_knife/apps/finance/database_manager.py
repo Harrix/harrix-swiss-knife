@@ -2425,3 +2425,63 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
             error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
+
+    def update_currency_exchange(self, exchange_id: int, amount_from: float, amount_to: float) -> bool:
+        """Update currency exchange amounts.
+
+        Args:
+
+        - `exchange_id` (`int`): Exchange record ID.
+        - `amount_from` (`float`): Amount from (in major units).
+        - `amount_to` (`float`): Amount to (in major units).
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        try:
+            # Get the exchange record to get currency information
+            exchange_record = self.get_rows(
+                """
+                SELECT ce._id, ce._id_currency_from, ce._id_currency_to, ce.amount_from, ce.amount_to,
+                       ce.exchange_rate, ce.fee, ce.date, ce.description
+                FROM currency_exchanges ce
+                WHERE ce._id = :id
+                """,
+                {"id": exchange_id}
+            )
+
+            if not exchange_record:
+                print(f"Exchange record with ID {exchange_id} not found")
+                return False
+
+            record = exchange_record[0]
+            currency_from_id = record[1]
+            currency_to_id = record[2]
+
+            # Get currency subdivisions
+            from_subdivision = self.get_currency_subdivision(currency_from_id)
+            to_subdivision = self.get_currency_subdivision(currency_to_id)
+
+            # Convert amounts to minor units
+            amount_from_minor = int(amount_from * from_subdivision)
+            amount_to_minor = int(amount_to * to_subdivision)
+
+            # Update the exchange record
+            query = """
+                UPDATE currency_exchanges
+                SET amount_from = :amount_from, amount_to = :amount_to
+                WHERE _id = :id
+            """
+            params = {
+                "amount_from": amount_from_minor,
+                "amount_to": amount_to_minor,
+                "id": exchange_id
+            }
+
+            return self.execute_simple_query(query, params)
+
+        except Exception as e:
+            print(f"Error updating currency exchange: {e}")
+            return False
