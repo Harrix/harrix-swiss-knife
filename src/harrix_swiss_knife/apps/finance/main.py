@@ -3194,8 +3194,11 @@ class MainWindow(
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
 
         # Disconnect existing signal to prevent multiple connections
-        with contextlib.suppress(RuntimeError):
-            self.tableView_accounts.doubleClicked.disconnect()
+        try:
+            self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
+        except TypeError:
+            # Signal was not connected, which is fine
+            pass
 
         # Connect double-click signal
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
