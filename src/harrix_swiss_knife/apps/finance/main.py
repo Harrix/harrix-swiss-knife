@@ -7,7 +7,6 @@ SQLite database with transactions, categories, accounts, currencies and exchange
 from __future__ import annotations
 
 import colorsys
-import contextlib
 import gc
 import sys
 from datetime import datetime, timedelta
@@ -55,7 +54,6 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
-from harrix_swiss_knife.apps.finance.readonly_delegate import ReadOnlyDelegate
 from harrix_swiss_knife.apps.finance.exchange_rates_operations import ExchangeRatesOperations
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
@@ -65,6 +63,7 @@ from harrix_swiss_knife.apps.finance.mixins import (
     ValidationOperations,
     requires_database,
 )
+from harrix_swiss_knife.apps.finance.readonly_delegate import ReadOnlyDelegate
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.text_parser import TextParser
 
@@ -1868,6 +1867,7 @@ class MainWindow(
 
         Returns:
             Loss amount in source currency (negative = loss, positive = profit)
+
         """
         try:
             if rate_to_per_from and rate_to_per_from != 0:
@@ -1906,6 +1906,7 @@ class MainWindow(
 
         Returns:
             Loss amount in default currency (negative = loss, positive = profit)
+
         """
         try:
             # Get historical market rate (to per 1 from) on exchange date
@@ -1926,8 +1927,7 @@ class MainWindow(
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
-            else:
-                return loss_in_from_currency
+            return loss_in_from_currency
 
         except Exception as e:
             print(f"Error calculating exchange loss on date: {e}")
@@ -1954,6 +1954,7 @@ class MainWindow(
 
         Returns:
             Loss amount in default currency (negative = today's rate worse, positive = today's rate better)
+
         """
         try:
             from datetime import datetime
@@ -1975,8 +1976,7 @@ class MainWindow(
                 return self._convert_currency_amount(
                     today_loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
-            else:
-                return today_loss_in_from_currency
+            return today_loss_in_from_currency
 
         except Exception as e:
             print(f"Error calculating today's exchange loss: {e}")
@@ -2336,6 +2336,7 @@ class MainWindow(
 
         Returns:
             Converted amount in target currency
+
         """
         try:
             if from_currency_id == to_currency_id:

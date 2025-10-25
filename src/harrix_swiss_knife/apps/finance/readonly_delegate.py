@@ -1,6 +1,6 @@
 """Read-only delegate for displaying non-editable data in tables."""
 
-from PySide6.QtCore import QModelIndex, Qt
+from PySide6.QtCore import QModelIndex
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 
@@ -36,7 +36,7 @@ class ReadOnlyDelegate(QStyledItemDelegate):
 
         """
         # Return None to prevent any editing
-        return None
+        return
 
     def editorEvent(self, event, model, option, index):  # noqa: N802
         """Prevent editor events for read-only columns.

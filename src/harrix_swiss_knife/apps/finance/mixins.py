@@ -224,7 +224,7 @@ class AutoSaveOperations:
 
                 amount_from = float(amount_from_str)
                 amount_to = float(amount_to_str)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 QMessageBox.warning(None, "Validation Error", "Invalid amount values")
                 return
 
