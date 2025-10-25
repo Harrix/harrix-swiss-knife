@@ -38,7 +38,7 @@ class ReadOnlyDelegate(QStyledItemDelegate):
         # Return None to prevent any editing
         return
 
-    def editorEvent(self, event, model, option, index):  # noqa: N802
+    def editorEvent(self, event, model, option, index) -> bool:  # noqa: N802
         """Prevent editor events for read-only columns.
 
         Args:
