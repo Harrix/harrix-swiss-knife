@@ -54,6 +54,7 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.amount_delegate import AmountDelegate
+from harrix_swiss_knife.apps.finance.exchange_edit_dialog import ExchangeEditDialog
 from harrix_swiss_knife.apps.finance.exchange_rates_operations import ExchangeRatesOperations
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
@@ -418,6 +419,7 @@ class MainWindow(
         self.amount_to_delegate: AmountDelegate | None = None
         self.loss_readonly_delegate: ReadOnlyDelegate | None = None
         self.today_loss_readonly_delegate: ReadOnlyDelegate | None = None
+        self.exchange_readonly_delegate: ReadOnlyDelegate | None = None
 
         # Chart configuration
         self.max_count_points_in_charts: int = 40
@@ -1037,6 +1039,100 @@ class MainWindow(
                 QMessageBox.warning(self, "Error", "Failed to add currency exchange")
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add currency exchange: {e}")
+
+    @requires_database()
+    def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double-click on exchange table to open edit dialog.
+
+        Args:
+            index: Model index of the clicked cell.
+        """
+        if not index.isValid():
+            return
+
+        model = self.tableView_exchange.model()
+        if not model:
+            return
+
+        # Get the row data
+        row = index.row()
+
+        # Get exchange ID (stored in column 10)
+        exchange_id_item = model.index(row, 10)
+        if not exchange_id_item.isValid():
+            return
+
+        exchange_id = model.data(exchange_id_item)
+        if not exchange_id:
+            return
+
+        # Get all row data
+        from_currency = model.data(model.index(row, 0)) or ""
+        to_currency = model.data(model.index(row, 1)) or ""
+        amount_from_text = model.data(model.index(row, 2)) or "0"
+        amount_to_text = model.data(model.index(row, 3)) or "0"
+        rate_text = model.data(model.index(row, 4)) or "0"
+        fee_text = model.data(model.index(row, 5)) or "0"
+        date = model.data(model.index(row, 6)) or ""
+        description = model.data(model.index(row, 7)) or ""
+
+        # Parse values
+        try:
+            amount_from = float(str(amount_from_text))
+            amount_to = float(str(amount_to_text))
+            rate = float(str(rate_text))
+            fee = float(str(fee_text))
+        except (ValueError, TypeError):
+            QMessageBox.warning(self, "Error", "Failed to parse exchange values")
+            return
+
+        # Get currencies list
+        currencies = self.comboBox_exchange_from.allItems() if hasattr(self.comboBox_exchange_from, 'allItems') else []
+        if not currencies:
+            # Fallback: get currencies from combobox
+            currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
+
+        # Prepare exchange data
+        exchange_data = {
+            "id": exchange_id,
+            "from_currency": from_currency,
+            "to_currency": to_currency,
+            "amount_from": amount_from,
+            "amount_to": amount_to,
+            "rate": rate,
+            "fee": fee,
+            "date": date,
+            "description": description,
+        }
+
+        # Open dialog
+        dialog = ExchangeEditDialog(self, exchange_data, currencies)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            result = dialog.get_result()
+
+            # Update the exchange record
+            if self.db_manager.update_currency_exchange_full(
+                int(exchange_id),
+                result["from_currency"],
+                result["to_currency"],
+                result["amount_from"],
+                result["amount_to"],
+                result["rate"],
+                result["fee"],
+                result["date"],
+                result["description"],
+            ):
+                # Save current column widths before update
+                column_widths: list[int] = self._save_table_column_widths(self.tableView_exchange)
+
+                # Refresh the table
+                self._load_currency_exchanges_table()
+
+                # Restore column widths after update
+                self._restore_table_column_widths(self.tableView_exchange, column_widths)
+            else:
+                QMessageBox.warning(self, "Error", "Failed to update exchange record")
 
     @requires_database()
     def on_add_transaction(self) -> None:
@@ -3340,55 +3436,19 @@ class MainWindow(
         )
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
-        # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
-        if self.amount_from_delegate is None:
-            self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
-        if self.amount_to_delegate is None:
-            self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+        # Set up read-only delegates for all columns to disable inline editing
+        if self.exchange_readonly_delegate is None:
+            self.exchange_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
 
-        self.tableView_exchange.setItemDelegateForColumn(2, self.amount_from_delegate)  # Amount From
-        self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)  # Amount To
+        # Set read-only delegate for all columns (no inline editing)
+        for i in range(self.models["currency_exchanges"].columnCount()):
+            self.tableView_exchange.setItemDelegateForColumn(i, self.exchange_readonly_delegate)
 
-        # Set up amount delegate for Fee column (index 5)
-        if not hasattr(self, "fee_delegate") or self.fee_delegate is None:
-            self.fee_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
-        self.tableView_exchange.setItemDelegateForColumn(5, self.fee_delegate)
+        # Disable all editing triggers
+        self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
-        # Set up date delegate for Date column (index 6)
-        if not hasattr(self, "exchange_date_delegate") or self.exchange_date_delegate is None:
-            self.exchange_date_delegate = DateDelegate(self.tableView_exchange)
-        self.tableView_exchange.setItemDelegateForColumn(6, self.exchange_date_delegate)
-
-        # Set up description delegate for Description column (index 7)
-        if not hasattr(self, "exchange_description_delegate") or self.exchange_description_delegate is None:
-            self.exchange_description_delegate = DescriptionDelegate(self.tableView_exchange)
-        self.tableView_exchange.setItemDelegateForColumn(7, self.exchange_description_delegate)
-
-        # Set up read-only delegates for From (index 0) and To (index 1) columns
-        if not hasattr(self, "from_currency_readonly_delegate") or self.from_currency_readonly_delegate is None:
-            self.from_currency_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-        if not hasattr(self, "to_currency_readonly_delegate") or self.to_currency_readonly_delegate is None:
-            self.to_currency_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-
-        self.tableView_exchange.setItemDelegateForColumn(0, self.from_currency_readonly_delegate)  # From
-        self.tableView_exchange.setItemDelegateForColumn(1, self.to_currency_readonly_delegate)  # To
-
-        # Set up read-only delegate for Rate column (index 4) - rates shouldn't be manually edited
-        if not hasattr(self, "exchange_rate_readonly_delegate") or self.exchange_rate_readonly_delegate is None:
-            self.exchange_rate_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-        self.tableView_exchange.setItemDelegateForColumn(4, self.exchange_rate_readonly_delegate)  # Rate
-
-        # Set up read-only delegates for Loss (index 8) and Today's Loss (index 9) columns
-        if self.loss_readonly_delegate is None:
-            self.loss_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-        if self.today_loss_readonly_delegate is None:
-            self.today_loss_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-
-        self.tableView_exchange.setItemDelegateForColumn(8, self.loss_readonly_delegate)  # Loss
-        self.tableView_exchange.setItemDelegateForColumn(9, self.today_loss_readonly_delegate)  # Today's Loss
-
-        # Enable editing for editable columns (Amount From, Amount To, Fee, Date, Description)
-        self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
+        # Connect double-click signal to open edit dialog
+        self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
 
         # Configure column stretching for exchange table
         exchange_header = self.tableView_exchange.horizontalHeader()
