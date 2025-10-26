@@ -212,20 +212,60 @@ class AutoSaveOperations:
 
         """
         try:
-            # Get amount values from the model (columns 2 and 3)
+            # Get all field values from the model
+            # Column layout: From, To, Amount From, Amount To, Rate, Fee, Date, Description, Loss, Today's Loss
+            from_currency_code = model.data(model.index(row, 0)) or ""
+            to_currency_code = model.data(model.index(row, 1)) or ""
             amount_from_text = model.data(model.index(row, 2)) or "0"
             amount_to_text = model.data(model.index(row, 3)) or "0"
+            rate_text = model.data(model.index(row, 4)) or "0"
+            fee_text = model.data(model.index(row, 5)) or "0"
+            date = model.data(model.index(row, 6)) or ""
+            description = model.data(model.index(row, 7)) or ""
 
-            # Convert to float, handling any formatting
+            # Validate currency codes
+            if not from_currency_code or not to_currency_code:
+                QMessageBox.warning(None, "Validation Error", "Currency codes cannot be empty")
+                return
+
+            if from_currency_code == to_currency_code:
+                QMessageBox.warning(None, "Validation Error", "From and To currencies must be different")
+                return
+
+            # Validate date format
+            if not self._is_valid_date(date):
+                QMessageBox.warning(None, "Validation Error", f"Invalid date format: {date}. Use YYYY-MM-DD")
+                return
+
+            # Helper function to clean subscript numbers and formatting
+            def clean_number_text(text: str) -> str:
+                return (
+                    str(text)
+                    .replace(" ", "")
+                    .replace("₀", "0")
+                    .replace("₁", "1")
+                    .replace("₂", "2")
+                    .replace("₃", "3")
+                    .replace("₄", "4")
+                    .replace("₅", "5")
+                    .replace("₆", "6")
+                    .replace("₇", "7")
+                    .replace("₈", "8")
+                    .replace("₉", "9")
+                )
+
+            # Convert amounts to float, handling any formatting
             try:
-                # Remove any spaces and convert to float
-                amount_from_str = str(amount_from_text).replace(" ", "").replace("₀", "0").replace("₁", "1").replace("₂", "2").replace("₃", "3").replace("₄", "4").replace("₅", "5").replace("₆", "6").replace("₇", "7").replace("₈", "8").replace("₉", "9")
-                amount_to_str = str(amount_to_text).replace(" ", "").replace("₀", "0").replace("₁", "1").replace("₂", "2").replace("₃", "3").replace("₄", "4").replace("₅", "5").replace("₆", "6").replace("₇", "7").replace("₈", "8").replace("₉", "9")
-
-                amount_from = float(amount_from_str)
-                amount_to = float(amount_to_str)
-            except (ValueError, TypeError):
-                QMessageBox.warning(None, "Validation Error", "Invalid amount values")
+                amount_from = float(clean_number_text(amount_from_text))
+                amount_to = float(clean_number_text(amount_to_text))
+                rate = float(clean_number_text(rate_text))
+                fee = float(clean_number_text(fee_text))
+            except (ValueError, TypeError) as e:
+                QMessageBox.warning(None, "Validation Error", f"Invalid numeric values: {e}")
+                print(
+                    f"❌ Error converting values: amount_from={amount_from_text}, amount_to={amount_to_text}, "
+                    f"rate={rate_text}, fee={fee_text}"
+                )
                 return
 
             # Validate amounts
@@ -237,15 +277,43 @@ class AutoSaveOperations:
                 QMessageBox.warning(None, "Validation Error", "Amount To cannot be negative")
                 return
 
-            # Update database
-            if not self.db_manager.update_currency_exchange(int(row_id), amount_from, amount_to):
+            if rate <= 0:
+                QMessageBox.warning(None, "Validation Error", "Exchange rate must be positive")
+                return
+
+            if fee < 0:
+                QMessageBox.warning(None, "Validation Error", "Fee cannot be negative")
+                return
+
+            # Update database using the full update method
+            print(f"🔄 Attempting to save exchange data for row {row_id}:")
+            print(f"   From: {from_currency_code}, To: {to_currency_code}")
+            print(f"   Amount From: {amount_from}, Amount To: {amount_to}")
+            print(f"   Rate: {rate}, Fee: {fee}, Date: {date}")
+            print(f"   Description: {description}")
+
+            if not self.db_manager.update_currency_exchange_full(
+                int(row_id),
+                from_currency_code,
+                to_currency_code,
+                amount_from,
+                amount_to,
+                rate,
+                fee,
+                date,
+                description,
+            ):
                 QMessageBox.warning(None, "Database Error", "Failed to save currency exchange record")
+                print(f"❌ Failed to save currency exchange {row_id}")
             else:
-                print(f"✅ Successfully updated currency exchange {row_id}: {amount_from} -> {amount_to}")
+                print(f"✅ Successfully updated currency exchange {row_id}")
+                # Refresh the table to show updated Loss and Today's Loss values
+                # This is done through the update_all mechanism
 
         except Exception as e:
-            QMessageBox.warning(None, "Error", f"Failed to save exchange data: {e}")
-            print(f"Error saving exchange data: {e}")
+            error_msg = f"Failed to save exchange data: {e}"
+            QMessageBox.warning(None, "Error", error_msg)
+            print(f"❌ Error saving exchange data for row {row_id}: {e}")
 
     def _save_rate_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
         """Save exchange rate data.

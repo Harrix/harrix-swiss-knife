@@ -3340,7 +3340,6 @@ class MainWindow(
         )
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
-
         # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
         if self.amount_from_delegate is None:
             self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
@@ -3349,6 +3348,35 @@ class MainWindow(
 
         self.tableView_exchange.setItemDelegateForColumn(2, self.amount_from_delegate)  # Amount From
         self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)  # Amount To
+
+        # Set up amount delegate for Fee column (index 5)
+        if not hasattr(self, "fee_delegate") or self.fee_delegate is None:
+            self.fee_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+        self.tableView_exchange.setItemDelegateForColumn(5, self.fee_delegate)
+
+        # Set up date delegate for Date column (index 6)
+        if not hasattr(self, "exchange_date_delegate") or self.exchange_date_delegate is None:
+            self.exchange_date_delegate = DateDelegate(self.tableView_exchange)
+        self.tableView_exchange.setItemDelegateForColumn(6, self.exchange_date_delegate)
+
+        # Set up description delegate for Description column (index 7)
+        if not hasattr(self, "exchange_description_delegate") or self.exchange_description_delegate is None:
+            self.exchange_description_delegate = DescriptionDelegate(self.tableView_exchange)
+        self.tableView_exchange.setItemDelegateForColumn(7, self.exchange_description_delegate)
+
+        # Set up read-only delegates for From (index 0) and To (index 1) columns
+        if not hasattr(self, "from_currency_readonly_delegate") or self.from_currency_readonly_delegate is None:
+            self.from_currency_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
+        if not hasattr(self, "to_currency_readonly_delegate") or self.to_currency_readonly_delegate is None:
+            self.to_currency_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
+
+        self.tableView_exchange.setItemDelegateForColumn(0, self.from_currency_readonly_delegate)  # From
+        self.tableView_exchange.setItemDelegateForColumn(1, self.to_currency_readonly_delegate)  # To
+
+        # Set up read-only delegate for Rate column (index 4) - rates shouldn't be manually edited
+        if not hasattr(self, "exchange_rate_readonly_delegate") or self.exchange_rate_readonly_delegate is None:
+            self.exchange_rate_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
+        self.tableView_exchange.setItemDelegateForColumn(4, self.exchange_rate_readonly_delegate)  # Rate
 
         # Set up read-only delegates for Loss (index 8) and Today's Loss (index 9) columns
         if self.loss_readonly_delegate is None:
@@ -3359,8 +3387,7 @@ class MainWindow(
         self.tableView_exchange.setItemDelegateForColumn(8, self.loss_readonly_delegate)  # Loss
         self.tableView_exchange.setItemDelegateForColumn(9, self.today_loss_readonly_delegate)  # Today's Loss
 
-
-        # Enable editing for Amount From and Amount To columns
+        # Enable editing for editable columns (Amount From, Amount To, Fee, Date, Description)
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Configure column stretching for exchange table
@@ -3954,16 +3981,7 @@ class MainWindow(
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
-        """Handle data changes in table models and auto-save to database.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table that was modified.
-        - `top_left` (`QModelIndex`): Top-left index of the changed area.
-        - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
-        - `_roles` (`list | None`): List of roles that changed. Defaults to `None`.
-
-        """
+        """Handle data changes in table models and auto-save to database."""
         if table_name not in self._SAFE_TABLES:
             return
 
@@ -3971,11 +3989,15 @@ class MainWindow(
             return
 
         try:
+            print(f"🔄 Data changed in table: {table_name}, rows: {top_left.row()}-{bottom_right.row()}")  # Add logging
+
             proxy_model: QSortFilterProxyModel | None = self.models[table_name]
             if proxy_model is None:
+                print(f"❌ Proxy model is None for table {table_name}")  # Add logging
                 return
             model = proxy_model.sourceModel()
             if not isinstance(model, QStandardItemModel):
+                print(f"❌ Source model is not QStandardItemModel for table {table_name}")  # Add logging
                 return
 
             # Process each changed row
@@ -3986,10 +4008,13 @@ class MainWindow(
                 vertical_header_item = model.verticalHeaderItem(row)
                 if vertical_header_item:
                     row_id: str = vertical_header_item.text()
+                    print(f"🔄 Processing row {row}, ID: {row_id}")  # Add logging
                     self._auto_save_row(table_name, model, row, row_id)
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+            error_msg = f"Failed to auto-save changes: {e!s}"
+            print(f"❌ {error_msg}")  # Add logging
+            QMessageBox.warning(self, "Auto-save Error", error_msg)
 
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields.
