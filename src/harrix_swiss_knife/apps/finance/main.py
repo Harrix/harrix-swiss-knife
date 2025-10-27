@@ -415,11 +415,10 @@ class MainWindow(
         self.tag_delegate: TagDelegate | None = None
 
         # Delegates for exchange table
-        self.amount_from_delegate: AmountDelegate | None = None
-        self.amount_to_delegate: AmountDelegate | None = None
-        self.loss_readonly_delegate: ReadOnlyDelegate | None = None
-        self.today_loss_readonly_delegate: ReadOnlyDelegate | None = None
         self.exchange_readonly_delegate: ReadOnlyDelegate | None = None
+
+        # Dialog state flags
+        self._exchange_dialog_open: bool = False
 
         # Chart configuration
         self.max_count_points_in_charts: int = 40
@@ -1047,6 +1046,10 @@ class MainWindow(
         Args:
             index: Model index of the clicked cell.
         """
+        # Prevent opening multiple dialogs
+        if self._exchange_dialog_open:
+            return
+
         if not index.isValid():
             return
 
@@ -1057,12 +1060,8 @@ class MainWindow(
         # Get the row data
         row = index.row()
 
-        # Get exchange ID (stored in column 10)
-        exchange_id_item = model.index(row, 10)
-        if not exchange_id_item.isValid():
-            return
-
-        exchange_id = model.data(exchange_id_item)
+        # Get exchange ID from vertical header
+        exchange_id = model.headerData(row, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
         if not exchange_id:
             return
 
@@ -1105,34 +1104,41 @@ class MainWindow(
             "description": description,
         }
 
-        # Open dialog
-        dialog = ExchangeEditDialog(self, exchange_data, currencies)
+        # Set flag to prevent multiple dialogs
+        self._exchange_dialog_open = True
 
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            result = dialog.get_result()
+        try:
+            # Open dialog
+            dialog = ExchangeEditDialog(self, exchange_data, currencies)
 
-            # Update the exchange record
-            if self.db_manager.update_currency_exchange_full(
-                int(exchange_id),
-                result["from_currency"],
-                result["to_currency"],
-                result["amount_from"],
-                result["amount_to"],
-                result["rate"],
-                result["fee"],
-                result["date"],
-                result["description"],
-            ):
-                # Save current column widths before update
-                column_widths: list[int] = self._save_table_column_widths(self.tableView_exchange)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                result = dialog.get_result()
 
-                # Refresh the table
-                self._load_currency_exchanges_table()
+                # Update the exchange record
+                if self.db_manager.update_currency_exchange_full(
+                    int(exchange_id),
+                    result["from_currency"],
+                    result["to_currency"],
+                    result["amount_from"],
+                    result["amount_to"],
+                    result["rate"],
+                    result["fee"],
+                    result["date"],
+                    result["description"],
+                ):
+                    # Save current column widths before update
+                    column_widths: list[int] = self._save_table_column_widths(self.tableView_exchange)
 
-                # Restore column widths after update
-                self._restore_table_column_widths(self.tableView_exchange, column_widths)
-            else:
-                QMessageBox.warning(self, "Error", "Failed to update exchange record")
+                    # Refresh the table
+                    self._load_currency_exchanges_table()
+
+                    # Restore column widths after update
+                    self._restore_table_column_widths(self.tableView_exchange, column_widths)
+                else:
+                    QMessageBox.warning(self, "Error", "Failed to update exchange record")
+        finally:
+            # Reset flag when dialog is closed
+            self._exchange_dialog_open = False
 
     @requires_database()
     def on_add_transaction(self) -> None:
@@ -3447,9 +3453,6 @@ class MainWindow(
         # Disable all editing triggers
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
-        # Connect double-click signal to open edit dialog
-        self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
-
         # Configure column stretching for exchange table
         exchange_header = self.tableView_exchange.horizontalHeader()
         if exchange_header.count() > 0:
@@ -4577,6 +4580,9 @@ class MainWindow(
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
         self.pushButton_exchange_delete.setText(f"🗑️ {self.pushButton_exchange_delete.text()}")
         self.pushButton_exchange_refresh.setText(f"🔄 {self.pushButton_exchange_refresh.text()}")
+
+        # Connect double-click signal for exchange table
+        self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
