@@ -123,8 +123,11 @@ class Ui_MainWindow(object):
         self.label_exchange_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.label_exchange_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
         self.label_exchange_rate.setText(QCoreApplication.translate("MainWindow", "Rate:", None))
-        self.pushButton_calculate_exchange.setText(QCoreApplication.translate("MainWindow", "Calculate", None))
+        self.pushButton_calculate_exchange.setText(
+            QCoreApplication.translate("MainWindow", "Calculate To By Rate", None)
+        )
         self.label_exchange_fee.setText(QCoreApplication.translate("MainWindow", "Fee:", None))
+        self.pushButton_calculate_fee.setText(QCoreApplication.translate("MainWindow", "Calculate Fee", None))
         self.label_exchange_description.setText(QCoreApplication.translate("MainWindow", "Description:", None))
         self.lineEdit_exchange_description.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "Exchange description (optional)", None)
@@ -1111,6 +1114,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_exchange_fee.addWidget(self.doubleSpinBox_exchange_fee)
 
+        self.pushButton_calculate_fee = QPushButton(self.groupBox_exchange_operation)
+        self.pushButton_calculate_fee.setObjectName("pushButton_calculate_fee")
+
+        self.horizontalLayout_exchange_fee.addWidget(self.pushButton_calculate_fee)
+
         self.verticalLayout_exchange_operation.addLayout(self.horizontalLayout_exchange_fee)
 
         self.horizontalLayout_exchange_description = QHBoxLayout()
@@ -1504,7 +1512,7 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 679, 712))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 679, 778))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1642,7 +1650,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1382, 678))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1382, 744))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1850,8 +1858,11 @@ def retranslateUi(self, MainWindow):
         self.label_exchange_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.label_exchange_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
         self.label_exchange_rate.setText(QCoreApplication.translate("MainWindow", "Rate:", None))
-        self.pushButton_calculate_exchange.setText(QCoreApplication.translate("MainWindow", "Calculate", None))
+        self.pushButton_calculate_exchange.setText(
+            QCoreApplication.translate("MainWindow", "Calculate To By Rate", None)
+        )
         self.label_exchange_fee.setText(QCoreApplication.translate("MainWindow", "Fee:", None))
+        self.pushButton_calculate_fee.setText(QCoreApplication.translate("MainWindow", "Calculate Fee", None))
         self.label_exchange_description.setText(QCoreApplication.translate("MainWindow", "Description:", None))
         self.lineEdit_exchange_description.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "Exchange description (optional)", None)
@@ -2853,6 +2864,11 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_exchange_fee.addWidget(self.doubleSpinBox_exchange_fee)
 
+        self.pushButton_calculate_fee = QPushButton(self.groupBox_exchange_operation)
+        self.pushButton_calculate_fee.setObjectName("pushButton_calculate_fee")
+
+        self.horizontalLayout_exchange_fee.addWidget(self.pushButton_calculate_fee)
+
         self.verticalLayout_exchange_operation.addLayout(self.horizontalLayout_exchange_fee)
 
         self.horizontalLayout_exchange_description = QHBoxLayout()
@@ -3246,7 +3262,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 679, 712))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 679, 778))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -3384,7 +3400,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1382, 678))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1382, 744))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)

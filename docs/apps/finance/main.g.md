@@ -47,6 +47,7 @@ lang: en
   - [⚙️ Method `on_add_exchange`](#%EF%B8%8F-method-on_add_exchange)
   - [⚙️ Method `on_add_transaction`](#%EF%B8%8F-method-on_add_transaction)
   - [⚙️ Method `on_calculate_exchange`](#%EF%B8%8F-method-on_calculate_exchange)
+  - [⚙️ Method `on_calculate_fee`](#%EF%B8%8F-method-on_calculate_fee)
   - [⚙️ Method `on_category_selection_changed`](#%EF%B8%8F-method-on_category_selection_changed)
   - [⚙️ Method `on_clear_description`](#%EF%B8%8F-method-on_clear_description)
   - [⚙️ Method `on_copy_categories_as_text`](#%EF%B8%8F-method-on_copy_categories_as_text)
@@ -125,6 +126,7 @@ lang: en
   - [⚙️ Method `_on_check_failed`](#%EF%B8%8F-method-_on_check_failed)
   - [⚙️ Method `_on_check_progress_updated`](#%EF%B8%8F-method-_on_check_progress_updated)
   - [⚙️ Method `_on_currency_started`](#%EF%B8%8F-method-_on_currency_started)
+  - [⚙️ Method `_on_exchange_table_double_clicked`](#%EF%B8%8F-method-_on_exchange_table_double_clicked)
   - [⚙️ Method `_on_progress_updated`](#%EF%B8%8F-method-_on_progress_updated)
   - [⚙️ Method `_on_rate_added`](#%EF%B8%8F-method-_on_rate_added)
   - [⚙️ Method `_on_startup_check_completed`](#%EF%B8%8F-method-_on_startup_check_completed)
@@ -1031,10 +1033,10 @@ class MainWindow(
         self.tag_delegate: TagDelegate | None = None
 
         # Delegates for exchange table
-        self.amount_from_delegate: AmountDelegate | None = None
-        self.amount_to_delegate: AmountDelegate | None = None
-        self.loss_readonly_delegate: ReadOnlyDelegate | None = None
-        self.today_loss_readonly_delegate: ReadOnlyDelegate | None = None
+        self.exchange_readonly_delegate: ReadOnlyDelegate | None = None
+
+        # Dialog state flags
+        self._exchange_dialog_open: bool = False
 
         # Chart configuration
         self.max_count_points_in_charts: int = 40
@@ -1746,6 +1748,30 @@ class MainWindow(
         if rate > 0:
             amount_to: float = amount_from * rate
             self.doubleSpinBox_exchange_to.setValue(amount_to)
+
+    def on_calculate_fee(self) -> None:
+        """Calculate fee based on actual exchange vs expected exchange."""
+        amount_from: float = self.doubleSpinBox_exchange_from.value()
+        amount_to: float = self.doubleSpinBox_exchange_to.value()
+        exchange_rate: float = self.doubleSpinBox_exchange_rate.value()
+
+        if exchange_rate > 0:
+            # Calculate what amount_from should have been if they received amount_to at exchange_rate
+            expected_amount_from: float = amount_to / exchange_rate
+
+            # Calculate the fee as the difference
+            calculated_fee: float = amount_from - expected_amount_from
+
+            # Get current fee value
+            current_fee: float = self.doubleSpinBox_exchange_fee.value()
+
+            # If current fee is non-zero, add to it, otherwise set it
+            if current_fee != 0:
+                new_fee: float = current_fee + calculated_fee
+            else:
+                new_fee: float = calculated_fee
+
+            self.doubleSpinBox_exchange_fee.setValue(new_fee)
 
     def on_category_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle category selection change in listView_categories.
@@ -2865,6 +2891,7 @@ class MainWindow(
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
         self.pushButton_exchange_yesterday.clicked.connect(self.on_yesterday_exchange)
+        self.pushButton_calculate_fee.clicked.connect(self.on_calculate_fee)
 
         # Currency signals
         self.pushButton_set_default_currency.clicked.connect(self.on_set_default_currency)
@@ -3957,55 +3984,16 @@ class MainWindow(
         )
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
-        # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
-        if self.amount_from_delegate is None:
-            self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
-        if self.amount_to_delegate is None:
-            self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+        # Set up read-only delegates for all columns to disable inline editing
+        if self.exchange_readonly_delegate is None:
+            self.exchange_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
 
-        self.tableView_exchange.setItemDelegateForColumn(2, self.amount_from_delegate)  # Amount From
-        self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)  # Amount To
+        # Set read-only delegate for all columns (no inline editing)
+        for i in range(self.models["currency_exchanges"].columnCount()):
+            self.tableView_exchange.setItemDelegateForColumn(i, self.exchange_readonly_delegate)
 
-        # Set up amount delegate for Fee column (index 5)
-        if not hasattr(self, "fee_delegate") or self.fee_delegate is None:
-            self.fee_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
-        self.tableView_exchange.setItemDelegateForColumn(5, self.fee_delegate)
-
-        # Set up date delegate for Date column (index 6)
-        if not hasattr(self, "exchange_date_delegate") or self.exchange_date_delegate is None:
-            self.exchange_date_delegate = DateDelegate(self.tableView_exchange)
-        self.tableView_exchange.setItemDelegateForColumn(6, self.exchange_date_delegate)
-
-        # Set up description delegate for Description column (index 7)
-        if not hasattr(self, "exchange_description_delegate") or self.exchange_description_delegate is None:
-            self.exchange_description_delegate = DescriptionDelegate(self.tableView_exchange)
-        self.tableView_exchange.setItemDelegateForColumn(7, self.exchange_description_delegate)
-
-        # Set up read-only delegates for From (index 0) and To (index 1) columns
-        if not hasattr(self, "from_currency_readonly_delegate") or self.from_currency_readonly_delegate is None:
-            self.from_currency_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-        if not hasattr(self, "to_currency_readonly_delegate") or self.to_currency_readonly_delegate is None:
-            self.to_currency_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-
-        self.tableView_exchange.setItemDelegateForColumn(0, self.from_currency_readonly_delegate)  # From
-        self.tableView_exchange.setItemDelegateForColumn(1, self.to_currency_readonly_delegate)  # To
-
-        # Set up read-only delegate for Rate column (index 4) - rates shouldn't be manually edited
-        if not hasattr(self, "exchange_rate_readonly_delegate") or self.exchange_rate_readonly_delegate is None:
-            self.exchange_rate_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-        self.tableView_exchange.setItemDelegateForColumn(4, self.exchange_rate_readonly_delegate)  # Rate
-
-        # Set up read-only delegates for Loss (index 8) and Today's Loss (index 9) columns
-        if self.loss_readonly_delegate is None:
-            self.loss_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-        if self.today_loss_readonly_delegate is None:
-            self.today_loss_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-
-        self.tableView_exchange.setItemDelegateForColumn(8, self.loss_readonly_delegate)  # Loss
-        self.tableView_exchange.setItemDelegateForColumn(9, self.today_loss_readonly_delegate)  # Today's Loss
-
-        # Enable editing for editable columns (Amount From, Amount To, Fee, Date, Description)
-        self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
+        # Disable all editing triggers
+        self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
         # Configure column stretching for exchange table
         exchange_header = self.tableView_exchange.horizontalHeader()
@@ -4363,6 +4351,108 @@ class MainWindow(
         """
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.setText(f"Processing {currency_code}...")
+
+    @requires_database()
+    def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double-click on exchange table to open edit dialog.
+
+        Args:
+            index: Model index of the clicked cell.
+
+        """
+        # Prevent opening multiple dialogs
+        if self._exchange_dialog_open:
+            return
+
+        if not index.isValid():
+            return
+
+        model = self.tableView_exchange.model()
+        if not model:
+            return
+
+        # Get the row data
+        row = index.row()
+
+        # Get exchange ID from vertical header
+        exchange_id = model.headerData(row, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
+        if not exchange_id:
+            return
+
+        # Get all row data
+        from_currency = model.data(model.index(row, 0)) or ""
+        to_currency = model.data(model.index(row, 1)) or ""
+        amount_from_text = model.data(model.index(row, 2)) or "0"
+        amount_to_text = model.data(model.index(row, 3)) or "0"
+        rate_text = model.data(model.index(row, 4)) or "0"
+        fee_text = model.data(model.index(row, 5)) or "0"
+        date = model.data(model.index(row, 6)) or ""
+        description = model.data(model.index(row, 7)) or ""
+
+        # Parse values
+        try:
+            amount_from = float(str(amount_from_text))
+            amount_to = float(str(amount_to_text))
+            rate = float(str(rate_text))
+            fee = float(str(fee_text))
+        except (ValueError, TypeError):
+            QMessageBox.warning(self, "Error", "Failed to parse exchange values")
+            return
+
+        # Get currencies list
+        currencies = self.comboBox_exchange_from.allItems() if hasattr(self.comboBox_exchange_from, "allItems") else []
+        if not currencies:
+            # Fallback: get currencies from combobox
+            currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
+
+        # Prepare exchange data
+        exchange_data = {
+            "id": exchange_id,
+            "from_currency": from_currency,
+            "to_currency": to_currency,
+            "amount_from": amount_from,
+            "amount_to": amount_to,
+            "rate": rate,
+            "fee": fee,
+            "date": date,
+            "description": description,
+        }
+
+        # Set flag to prevent multiple dialogs
+        self._exchange_dialog_open = True
+
+        try:
+            # Open dialog
+            dialog = ExchangeEditDialog(self, exchange_data, currencies)
+
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                result = dialog.get_result()
+
+                # Update the exchange record
+                if self.db_manager.update_currency_exchange_full(
+                    int(exchange_id),
+                    result["from_currency"],
+                    result["to_currency"],
+                    result["amount_from"],
+                    result["amount_to"],
+                    result["rate"],
+                    result["fee"],
+                    result["date"],
+                    result["description"],
+                ):
+                    # Save current column widths before update
+                    column_widths: list[int] = self._save_table_column_widths(self.tableView_exchange)
+
+                    # Refresh the table
+                    self._load_currency_exchanges_table()
+
+                    # Restore column widths after update
+                    self._restore_table_column_widths(self.tableView_exchange, column_widths)
+                else:
+                    QMessageBox.warning(self, "Error", "Failed to update exchange record")
+        finally:
+            # Reset flag when dialog is closed
+            self._exchange_dialog_open = False
 
     def _on_progress_updated(self, message: str) -> None:
         """Handle progress updates from worker.
@@ -5135,6 +5225,9 @@ class MainWindow(
         self.pushButton_exchange_delete.setText(f"🗑️ {self.pushButton_exchange_delete.text()}")
         self.pushButton_exchange_refresh.setText(f"🔄 {self.pushButton_exchange_refresh.text()}")
 
+        # Connect double-click signal for exchange table
+        self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
+
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
@@ -5575,10 +5668,10 @@ def __init__(self) -> None:
         self.tag_delegate: TagDelegate | None = None
 
         # Delegates for exchange table
-        self.amount_from_delegate: AmountDelegate | None = None
-        self.amount_to_delegate: AmountDelegate | None = None
-        self.loss_readonly_delegate: ReadOnlyDelegate | None = None
-        self.today_loss_readonly_delegate: ReadOnlyDelegate | None = None
+        self.exchange_readonly_delegate: ReadOnlyDelegate | None = None
+
+        # Dialog state flags
+        self._exchange_dialog_open: bool = False
 
         # Chart configuration
         self.max_count_points_in_charts: int = 40
@@ -6468,6 +6561,44 @@ def on_calculate_exchange(self) -> None:
         if rate > 0:
             amount_to: float = amount_from * rate
             self.doubleSpinBox_exchange_to.setValue(amount_to)
+```
+
+</details>
+
+### ⚙️ Method `on_calculate_fee`
+
+```python
+def on_calculate_fee(self) -> None
+```
+
+Calculate fee based on actual exchange vs expected exchange.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_calculate_fee(self) -> None:
+        amount_from: float = self.doubleSpinBox_exchange_from.value()
+        amount_to: float = self.doubleSpinBox_exchange_to.value()
+        exchange_rate: float = self.doubleSpinBox_exchange_rate.value()
+
+        if exchange_rate > 0:
+            # Calculate what amount_from should have been if they received amount_to at exchange_rate
+            expected_amount_from: float = amount_to / exchange_rate
+
+            # Calculate the fee as the difference
+            calculated_fee: float = amount_from - expected_amount_from
+
+            # Get current fee value
+            current_fee: float = self.doubleSpinBox_exchange_fee.value()
+
+            # If current fee is non-zero, add to it, otherwise set it
+            if current_fee != 0:
+                new_fee: float = current_fee + calculated_fee
+            else:
+                new_fee: float = calculated_fee
+
+            self.doubleSpinBox_exchange_fee.setValue(new_fee)
 ```
 
 </details>
@@ -8095,6 +8226,7 @@ def _connect_signals(self) -> None:
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
         self.pushButton_exchange_yesterday.clicked.connect(self.on_yesterday_exchange)
+        self.pushButton_calculate_fee.clicked.connect(self.on_calculate_fee)
 
         # Currency signals
         self.pushButton_set_default_currency.clicked.connect(self.on_set_default_currency)
@@ -9551,55 +9683,16 @@ def _load_currency_exchanges_table(self) -> None:
         )
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
 
-        # Set up amount delegates for Amount From (index 2) and Amount To (index 3) columns
-        if self.amount_from_delegate is None:
-            self.amount_from_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
-        if self.amount_to_delegate is None:
-            self.amount_to_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
+        # Set up read-only delegates for all columns to disable inline editing
+        if self.exchange_readonly_delegate is None:
+            self.exchange_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
 
-        self.tableView_exchange.setItemDelegateForColumn(2, self.amount_from_delegate)  # Amount From
-        self.tableView_exchange.setItemDelegateForColumn(3, self.amount_to_delegate)  # Amount To
+        # Set read-only delegate for all columns (no inline editing)
+        for i in range(self.models["currency_exchanges"].columnCount()):
+            self.tableView_exchange.setItemDelegateForColumn(i, self.exchange_readonly_delegate)
 
-        # Set up amount delegate for Fee column (index 5)
-        if not hasattr(self, "fee_delegate") or self.fee_delegate is None:
-            self.fee_delegate = AmountDelegate(self.tableView_exchange, self.db_manager)
-        self.tableView_exchange.setItemDelegateForColumn(5, self.fee_delegate)
-
-        # Set up date delegate for Date column (index 6)
-        if not hasattr(self, "exchange_date_delegate") or self.exchange_date_delegate is None:
-            self.exchange_date_delegate = DateDelegate(self.tableView_exchange)
-        self.tableView_exchange.setItemDelegateForColumn(6, self.exchange_date_delegate)
-
-        # Set up description delegate for Description column (index 7)
-        if not hasattr(self, "exchange_description_delegate") or self.exchange_description_delegate is None:
-            self.exchange_description_delegate = DescriptionDelegate(self.tableView_exchange)
-        self.tableView_exchange.setItemDelegateForColumn(7, self.exchange_description_delegate)
-
-        # Set up read-only delegates for From (index 0) and To (index 1) columns
-        if not hasattr(self, "from_currency_readonly_delegate") or self.from_currency_readonly_delegate is None:
-            self.from_currency_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-        if not hasattr(self, "to_currency_readonly_delegate") or self.to_currency_readonly_delegate is None:
-            self.to_currency_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-
-        self.tableView_exchange.setItemDelegateForColumn(0, self.from_currency_readonly_delegate)  # From
-        self.tableView_exchange.setItemDelegateForColumn(1, self.to_currency_readonly_delegate)  # To
-
-        # Set up read-only delegate for Rate column (index 4) - rates shouldn't be manually edited
-        if not hasattr(self, "exchange_rate_readonly_delegate") or self.exchange_rate_readonly_delegate is None:
-            self.exchange_rate_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-        self.tableView_exchange.setItemDelegateForColumn(4, self.exchange_rate_readonly_delegate)  # Rate
-
-        # Set up read-only delegates for Loss (index 8) and Today's Loss (index 9) columns
-        if self.loss_readonly_delegate is None:
-            self.loss_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-        if self.today_loss_readonly_delegate is None:
-            self.today_loss_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-
-        self.tableView_exchange.setItemDelegateForColumn(8, self.loss_readonly_delegate)  # Loss
-        self.tableView_exchange.setItemDelegateForColumn(9, self.today_loss_readonly_delegate)  # Today's Loss
-
-        # Enable editing for editable columns (Amount From, Amount To, Fee, Date, Description)
-        self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
+        # Disable all editing triggers
+        self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
         # Configure column stretching for exchange table
         exchange_header = self.tableView_exchange.horizontalHeader()
@@ -10108,6 +10201,119 @@ Args:
 def _on_currency_started(self, currency_code: str) -> None:
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.setText(f"Processing {currency_code}...")
+```
+
+</details>
+
+### ⚙️ Method `_on_exchange_table_double_clicked`
+
+```python
+def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None
+```
+
+Handle double-click on exchange table to open edit dialog.
+
+Args:
+index: Model index of the clicked cell.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
+        # Prevent opening multiple dialogs
+        if self._exchange_dialog_open:
+            return
+
+        if not index.isValid():
+            return
+
+        model = self.tableView_exchange.model()
+        if not model:
+            return
+
+        # Get the row data
+        row = index.row()
+
+        # Get exchange ID from vertical header
+        exchange_id = model.headerData(row, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
+        if not exchange_id:
+            return
+
+        # Get all row data
+        from_currency = model.data(model.index(row, 0)) or ""
+        to_currency = model.data(model.index(row, 1)) or ""
+        amount_from_text = model.data(model.index(row, 2)) or "0"
+        amount_to_text = model.data(model.index(row, 3)) or "0"
+        rate_text = model.data(model.index(row, 4)) or "0"
+        fee_text = model.data(model.index(row, 5)) or "0"
+        date = model.data(model.index(row, 6)) or ""
+        description = model.data(model.index(row, 7)) or ""
+
+        # Parse values
+        try:
+            amount_from = float(str(amount_from_text))
+            amount_to = float(str(amount_to_text))
+            rate = float(str(rate_text))
+            fee = float(str(fee_text))
+        except (ValueError, TypeError):
+            QMessageBox.warning(self, "Error", "Failed to parse exchange values")
+            return
+
+        # Get currencies list
+        currencies = self.comboBox_exchange_from.allItems() if hasattr(self.comboBox_exchange_from, "allItems") else []
+        if not currencies:
+            # Fallback: get currencies from combobox
+            currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
+
+        # Prepare exchange data
+        exchange_data = {
+            "id": exchange_id,
+            "from_currency": from_currency,
+            "to_currency": to_currency,
+            "amount_from": amount_from,
+            "amount_to": amount_to,
+            "rate": rate,
+            "fee": fee,
+            "date": date,
+            "description": description,
+        }
+
+        # Set flag to prevent multiple dialogs
+        self._exchange_dialog_open = True
+
+        try:
+            # Open dialog
+            dialog = ExchangeEditDialog(self, exchange_data, currencies)
+
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                result = dialog.get_result()
+
+                # Update the exchange record
+                if self.db_manager.update_currency_exchange_full(
+                    int(exchange_id),
+                    result["from_currency"],
+                    result["to_currency"],
+                    result["amount_from"],
+                    result["amount_to"],
+                    result["rate"],
+                    result["fee"],
+                    result["date"],
+                    result["description"],
+                ):
+                    # Save current column widths before update
+                    column_widths: list[int] = self._save_table_column_widths(self.tableView_exchange)
+
+                    # Refresh the table
+                    self._load_currency_exchanges_table()
+
+                    # Restore column widths after update
+                    self._restore_table_column_widths(self.tableView_exchange, column_widths)
+                else:
+                    QMessageBox.warning(self, "Error", "Failed to update exchange record")
+        finally:
+            # Reset flag when dialog is closed
+            self._exchange_dialog_open = False
 ```
 
 </details>
@@ -11215,6 +11421,9 @@ def _setup_ui(self) -> None:
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
         self.pushButton_exchange_delete.setText(f"🗑️ {self.pushButton_exchange_delete.text()}")
         self.pushButton_exchange_refresh.setText(f"🔄 {self.pushButton_exchange_refresh.text()}")
+
+        # Connect double-click signal for exchange table
+        self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)

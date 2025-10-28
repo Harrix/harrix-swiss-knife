@@ -37,6 +37,7 @@ class ExchangeEditDialog(QDialog):
             parent: Parent widget. Defaults to None.
             exchange_data: Dictionary with exchange data. Defaults to None.
             currencies: List of currency codes. Defaults to None.
+
         """
         super().__init__(parent)
         self.exchange_data = exchange_data or {}
@@ -55,8 +56,60 @@ class ExchangeEditDialog(QDialog):
 
         Returns:
             Dictionary with exchange data if accepted, empty dict if cancelled.
+
         """
         return self.result_data
+
+    def _on_ok(self) -> None:
+        """Handle OK button click."""
+        # Get values
+        from_currency = self.from_currency_combo.currentText()
+        to_currency = self.to_currency_combo.currentText()
+        amount_from = self.amount_from_spin.value()
+        amount_to = self.amount_to_spin.value()
+        rate = self.rate_spin.value()
+        fee = self.fee_spin.value()
+        date = self.date_edit.date().toString("yyyy-MM-dd")
+        description = self.description_edit.text()
+
+        # Validate
+        if not from_currency or not to_currency:
+            QMessageBox.warning(self, "Validation Error", "Please select both currencies")
+            return
+
+        if from_currency == to_currency:
+            QMessageBox.warning(self, "Validation Error", "From and To currencies must be different")
+            return
+
+        if amount_from <= 0:
+            QMessageBox.warning(self, "Validation Error", "Amount From must be positive")
+            return
+
+        if amount_to <= 0:
+            QMessageBox.warning(self, "Validation Error", "Amount To must be positive")
+            return
+
+        if rate <= 0:
+            QMessageBox.warning(self, "Validation Error", "Exchange rate must be positive")
+            return
+
+        if fee < 0:
+            QMessageBox.warning(self, "Validation Error", "Fee cannot be negative")
+            return
+
+        # Store result
+        self.result_data = {
+            "from_currency": from_currency,
+            "to_currency": to_currency,
+            "amount_from": amount_from,
+            "amount_to": amount_to,
+            "rate": rate,
+            "fee": fee,
+            "date": date,
+            "description": description,
+        }
+
+        self.accept()
 
     def _populate_data(self) -> None:
         """Populate the dialog with existing data."""
@@ -191,55 +244,3 @@ class ExchangeEditDialog(QDialog):
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
-
-    def _on_ok(self) -> None:
-        """Handle OK button click."""
-        # Get values
-        from_currency = self.from_currency_combo.currentText()
-        to_currency = self.to_currency_combo.currentText()
-        amount_from = self.amount_from_spin.value()
-        amount_to = self.amount_to_spin.value()
-        rate = self.rate_spin.value()
-        fee = self.fee_spin.value()
-        date = self.date_edit.date().toString("yyyy-MM-dd")
-        description = self.description_edit.text()
-
-        # Validate
-        if not from_currency or not to_currency:
-            QMessageBox.warning(self, "Validation Error", "Please select both currencies")
-            return
-
-        if from_currency == to_currency:
-            QMessageBox.warning(self, "Validation Error", "From and To currencies must be different")
-            return
-
-        if amount_from <= 0:
-            QMessageBox.warning(self, "Validation Error", "Amount From must be positive")
-            return
-
-        if amount_to <= 0:
-            QMessageBox.warning(self, "Validation Error", "Amount To must be positive")
-            return
-
-        if rate <= 0:
-            QMessageBox.warning(self, "Validation Error", "Exchange rate must be positive")
-            return
-
-        if fee < 0:
-            QMessageBox.warning(self, "Validation Error", "Fee cannot be negative")
-            return
-
-        # Store result
-        self.result_data = {
-            "from_currency": from_currency,
-            "to_currency": to_currency,
-            "amount_from": amount_from,
-            "amount_to": amount_to,
-            "rate": rate,
-            "fee": fee,
-            "date": date,
-            "description": description,
-        }
-
-        self.accept()
-

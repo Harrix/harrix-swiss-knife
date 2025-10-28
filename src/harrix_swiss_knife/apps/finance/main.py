@@ -1040,107 +1040,6 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to add currency exchange: {e}")
 
     @requires_database()
-    def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
-        """Handle double-click on exchange table to open edit dialog.
-
-        Args:
-            index: Model index of the clicked cell.
-        """
-        # Prevent opening multiple dialogs
-        if self._exchange_dialog_open:
-            return
-
-        if not index.isValid():
-            return
-
-        model = self.tableView_exchange.model()
-        if not model:
-            return
-
-        # Get the row data
-        row = index.row()
-
-        # Get exchange ID from vertical header
-        exchange_id = model.headerData(row, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
-        if not exchange_id:
-            return
-
-        # Get all row data
-        from_currency = model.data(model.index(row, 0)) or ""
-        to_currency = model.data(model.index(row, 1)) or ""
-        amount_from_text = model.data(model.index(row, 2)) or "0"
-        amount_to_text = model.data(model.index(row, 3)) or "0"
-        rate_text = model.data(model.index(row, 4)) or "0"
-        fee_text = model.data(model.index(row, 5)) or "0"
-        date = model.data(model.index(row, 6)) or ""
-        description = model.data(model.index(row, 7)) or ""
-
-        # Parse values
-        try:
-            amount_from = float(str(amount_from_text))
-            amount_to = float(str(amount_to_text))
-            rate = float(str(rate_text))
-            fee = float(str(fee_text))
-        except (ValueError, TypeError):
-            QMessageBox.warning(self, "Error", "Failed to parse exchange values")
-            return
-
-        # Get currencies list
-        currencies = self.comboBox_exchange_from.allItems() if hasattr(self.comboBox_exchange_from, 'allItems') else []
-        if not currencies:
-            # Fallback: get currencies from combobox
-            currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
-
-        # Prepare exchange data
-        exchange_data = {
-            "id": exchange_id,
-            "from_currency": from_currency,
-            "to_currency": to_currency,
-            "amount_from": amount_from,
-            "amount_to": amount_to,
-            "rate": rate,
-            "fee": fee,
-            "date": date,
-            "description": description,
-        }
-
-        # Set flag to prevent multiple dialogs
-        self._exchange_dialog_open = True
-
-        try:
-            # Open dialog
-            dialog = ExchangeEditDialog(self, exchange_data, currencies)
-
-            if dialog.exec() == QDialog.DialogCode.Accepted:
-                result = dialog.get_result()
-
-                # Update the exchange record
-                if self.db_manager.update_currency_exchange_full(
-                    int(exchange_id),
-                    result["from_currency"],
-                    result["to_currency"],
-                    result["amount_from"],
-                    result["amount_to"],
-                    result["rate"],
-                    result["fee"],
-                    result["date"],
-                    result["description"],
-                ):
-                    # Save current column widths before update
-                    column_widths: list[int] = self._save_table_column_widths(self.tableView_exchange)
-
-                    # Refresh the table
-                    self._load_currency_exchanges_table()
-
-                    # Restore column widths after update
-                    self._restore_table_column_widths(self.tableView_exchange, column_widths)
-                else:
-                    QMessageBox.warning(self, "Error", "Failed to update exchange record")
-        finally:
-            # Reset flag when dialog is closed
-            self._exchange_dialog_open = False
-
-    @requires_database()
     def on_add_transaction(self) -> None:
         """Add a new transaction using database manager."""
         amount: float = self.doubleSpinBox_amount.value()
@@ -1231,6 +1130,30 @@ class MainWindow(
         if rate > 0:
             amount_to: float = amount_from * rate
             self.doubleSpinBox_exchange_to.setValue(amount_to)
+
+    def on_calculate_fee(self) -> None:
+        """Calculate fee based on actual exchange vs expected exchange."""
+        amount_from: float = self.doubleSpinBox_exchange_from.value()
+        amount_to: float = self.doubleSpinBox_exchange_to.value()
+        exchange_rate: float = self.doubleSpinBox_exchange_rate.value()
+
+        if exchange_rate > 0:
+            # Calculate what amount_from should have been if they received amount_to at exchange_rate
+            expected_amount_from: float = amount_to / exchange_rate
+
+            # Calculate the fee as the difference
+            calculated_fee: float = amount_from - expected_amount_from
+
+            # Get current fee value
+            current_fee: float = self.doubleSpinBox_exchange_fee.value()
+
+            # If current fee is non-zero, add to it, otherwise set it
+            if current_fee != 0:
+                new_fee: float = current_fee + calculated_fee
+            else:
+                new_fee: float = calculated_fee
+
+            self.doubleSpinBox_exchange_fee.setValue(new_fee)
 
     def on_category_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle category selection change in listView_categories.
@@ -2350,6 +2273,7 @@ class MainWindow(
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
         self.pushButton_exchange_yesterday.clicked.connect(self.on_yesterday_exchange)
+        self.pushButton_calculate_fee.clicked.connect(self.on_calculate_fee)
 
         # Currency signals
         self.pushButton_set_default_currency.clicked.connect(self.on_set_default_currency)
@@ -3809,6 +3733,108 @@ class MainWindow(
         """
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.setText(f"Processing {currency_code}...")
+
+    @requires_database()
+    def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double-click on exchange table to open edit dialog.
+
+        Args:
+            index: Model index of the clicked cell.
+
+        """
+        # Prevent opening multiple dialogs
+        if self._exchange_dialog_open:
+            return
+
+        if not index.isValid():
+            return
+
+        model = self.tableView_exchange.model()
+        if not model:
+            return
+
+        # Get the row data
+        row = index.row()
+
+        # Get exchange ID from vertical header
+        exchange_id = model.headerData(row, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
+        if not exchange_id:
+            return
+
+        # Get all row data
+        from_currency = model.data(model.index(row, 0)) or ""
+        to_currency = model.data(model.index(row, 1)) or ""
+        amount_from_text = model.data(model.index(row, 2)) or "0"
+        amount_to_text = model.data(model.index(row, 3)) or "0"
+        rate_text = model.data(model.index(row, 4)) or "0"
+        fee_text = model.data(model.index(row, 5)) or "0"
+        date = model.data(model.index(row, 6)) or ""
+        description = model.data(model.index(row, 7)) or ""
+
+        # Parse values
+        try:
+            amount_from = float(str(amount_from_text))
+            amount_to = float(str(amount_to_text))
+            rate = float(str(rate_text))
+            fee = float(str(fee_text))
+        except (ValueError, TypeError):
+            QMessageBox.warning(self, "Error", "Failed to parse exchange values")
+            return
+
+        # Get currencies list
+        currencies = self.comboBox_exchange_from.allItems() if hasattr(self.comboBox_exchange_from, "allItems") else []
+        if not currencies:
+            # Fallback: get currencies from combobox
+            currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
+
+        # Prepare exchange data
+        exchange_data = {
+            "id": exchange_id,
+            "from_currency": from_currency,
+            "to_currency": to_currency,
+            "amount_from": amount_from,
+            "amount_to": amount_to,
+            "rate": rate,
+            "fee": fee,
+            "date": date,
+            "description": description,
+        }
+
+        # Set flag to prevent multiple dialogs
+        self._exchange_dialog_open = True
+
+        try:
+            # Open dialog
+            dialog = ExchangeEditDialog(self, exchange_data, currencies)
+
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                result = dialog.get_result()
+
+                # Update the exchange record
+                if self.db_manager.update_currency_exchange_full(
+                    int(exchange_id),
+                    result["from_currency"],
+                    result["to_currency"],
+                    result["amount_from"],
+                    result["amount_to"],
+                    result["rate"],
+                    result["fee"],
+                    result["date"],
+                    result["description"],
+                ):
+                    # Save current column widths before update
+                    column_widths: list[int] = self._save_table_column_widths(self.tableView_exchange)
+
+                    # Refresh the table
+                    self._load_currency_exchanges_table()
+
+                    # Restore column widths after update
+                    self._restore_table_column_widths(self.tableView_exchange, column_widths)
+                else:
+                    QMessageBox.warning(self, "Error", "Failed to update exchange record")
+        finally:
+            # Reset flag when dialog is closed
+            self._exchange_dialog_open = False
 
     def _on_progress_updated(self, message: str) -> None:
         """Handle progress updates from worker.
