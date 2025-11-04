@@ -65,7 +65,6 @@ from harrix_swiss_knife.apps.finance.mixins import (
     ValidationOperations,
     requires_database,
 )
-from harrix_swiss_knife.apps.finance.readonly_delegate import ReadOnlyDelegate
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.text_parser import TextParser
 
@@ -414,9 +413,6 @@ class MainWindow(
         self.currency_delegate: CurrencyComboBoxDelegate | None = None
         self.date_delegate: DateDelegate | None = None
         self.tag_delegate: TagDelegate | None = None
-
-        # Delegates for exchange table
-        self.exchange_readonly_delegate: ReadOnlyDelegate | None = None
 
         # Dialog state flags
         self._exchange_dialog_open: bool = False
@@ -3365,14 +3361,6 @@ class MainWindow(
             exchanges_transformed_data, self.table_config["currency_exchanges"][2]
         )
         self.tableView_exchange.setModel(self.models["currency_exchanges"])
-
-        # Set up read-only delegates for all columns to disable inline editing
-        if self.exchange_readonly_delegate is None:
-            self.exchange_readonly_delegate = ReadOnlyDelegate(self.tableView_exchange)
-
-        # Set read-only delegate for all columns (no inline editing)
-        for i in range(self.models["currency_exchanges"].columnCount()):
-            self.tableView_exchange.setItemDelegateForColumn(i, self.exchange_readonly_delegate)
 
         # Disable all editing triggers
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
