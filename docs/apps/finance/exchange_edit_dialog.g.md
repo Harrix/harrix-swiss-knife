@@ -49,6 +49,7 @@ class ExchangeEditDialog(QDialog):
             parent: Parent widget. Defaults to None.
             exchange_data: Dictionary with exchange data. Defaults to None.
             currencies: List of currency codes. Defaults to None.
+
         """
         super().__init__(parent)
         self.exchange_data = exchange_data or {}
@@ -67,6 +68,7 @@ class ExchangeEditDialog(QDialog):
 
         Returns:
             Dictionary with exchange data if accepted, empty dict if cancelled.
+
         """
         return self.result_data
 
@@ -155,8 +157,8 @@ class ExchangeEditDialog(QDialog):
                 date = QDate.fromString(date_str, "yyyy-MM-dd")
                 if date.isValid():
                     self.date_edit.setDate(date)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Failed to parse or set date '{date_str}': {e}")
 
         # Set description
         self.description_edit.setText(self.exchange_data.get("description", ""))
@@ -427,8 +429,8 @@ def _populate_data(self) -> None:
                 date = QDate.fromString(date_str, "yyyy-MM-dd")
                 if date.isValid():
                     self.date_edit.setDate(date)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Failed to parse or set date '{date_str}': {e}")
 
         # Set description
         self.description_edit.setText(self.exchange_data.get("description", ""))

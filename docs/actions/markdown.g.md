@@ -899,7 +899,7 @@ class OnCheckMdFolder(ActionBase):
         all_errors = []
         for file_path, file_errors in errors_dict.items():
             for error in file_errors:
-                all_errors.append(f"{file_path}: {error}")
+                all_errors.extend([f"{file_path}: {error}" for error in file_errors])
 
         if all_errors:
             self.add_line("\n".join(all_errors))
@@ -989,7 +989,7 @@ def in_thread(self) -> str | None:
         all_errors = []
         for file_path, file_errors in errors_dict.items():
             for error in file_errors:
-                all_errors.append(f"{file_path}: {error}")
+                all_errors.extend([f"{file_path}: {error}" for error in file_errors])
 
         if all_errors:
             self.add_line("\n".join(all_errors))
@@ -2028,11 +2028,17 @@ class OnNewQuotes(ActionBase):
         options = [
             (
                 "Format quotes from text",
-                "Transform plain text quotes (with book and author lines after each quote) into nicely formatted Markdown with blockquotes and attributions.",
+                (
+                    "Transform plain text quotes (with book and author lines after each quote) into nicely "
+                    "formatted Markdown with blockquotes and attributions."
+                ),
             ),
             (
                 "Format quotes with author and book",
-                "Input a quote, author, and book separately and generate a Markdown quote block with source information.",
+                (
+                    "Input a quote, author, and book separately and generate a Markdown quote block "
+                    "with source information."
+                ),
             ),
         ]
         selected_option = self.get_choice_from_list_with_descriptions(
@@ -2228,11 +2234,17 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         options = [
             (
                 "Format quotes from text",
-                "Transform plain text quotes (with book and author lines after each quote) into nicely formatted Markdown with blockquotes and attributions.",
+                (
+                    "Transform plain text quotes (with book and author lines after each quote) into nicely "
+                    "formatted Markdown with blockquotes and attributions."
+                ),
             ),
             (
                 "Format quotes with author and book",
-                "Input a quote, author, and book separately and generate a Markdown quote block with source information.",
+                (
+                    "Input a quote, author, and book separately and generate a Markdown quote block "
+                    "with source information."
+                ),
             ),
         ]
         selected_option = self.get_choice_from_list_with_descriptions(

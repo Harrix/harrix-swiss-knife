@@ -2491,8 +2491,8 @@ class MainWindow(
 
     def _calculate_exchange_loss_in_source_currency(
         self,
-        from_currency_id: int,
-        to_currency_id: int,
+        _from_currency_id: int,
+        _to_currency_id: int,
         amount_from: float,
         amount_to: float,
         rate_to_per_from: float,
@@ -2520,11 +2520,9 @@ class MainWindow(
                 diff_from: float = total_cost - expected_from
                 # Displayed value should be negative for loss, positive for profit
                 return -diff_from
-            return 0.0
-
         except Exception as e:
             print(f"Error calculating exchange loss in source currency: {e}")
-            return 0.0
+        return 0.0
 
     def _calculate_exchange_loss_on_date(
         self,
@@ -2564,17 +2562,15 @@ class MainWindow(
 
             # Convert loss to default currency using today's rate from source → default
             if default_currency_id is not None and from_currency_id != default_currency_id:
-                from datetime import datetime
-
-                today: str = datetime.now().strftime("%Y-%m-%d")
+                today: str = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
-            return loss_in_from_currency
-
         except Exception as e:
             print(f"Error calculating exchange loss on date: {e}")
             return 0.0
+
+        return loss_in_from_currency
 
     def _calculate_exchange_loss_today(
         self,
@@ -2600,9 +2596,7 @@ class MainWindow(
 
         """
         try:
-            from datetime import datetime
-
-            today: str = datetime.now().strftime("%Y-%m-%d")
+            today: str = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             # Get today's exchange rate
             today_rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, today)
@@ -2619,11 +2613,11 @@ class MainWindow(
                 return self._convert_currency_amount(
                     today_loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
-            return today_loss_in_from_currency
-
         except Exception as e:
             print(f"Error calculating today's exchange loss: {e}")
             return 0.0
+
+        return today_loss_in_from_currency
 
     def _calculate_total_accounts_balance(self) -> tuple[float, str]:
         """Calculate total balance across all accounts in default currency.
@@ -2986,10 +2980,8 @@ class MainWindow(
             if from_currency_id == to_currency_id:
                 return amount
 
-            from datetime import datetime
-
             if date is None:
-                date = datetime.now().strftime("%Y-%m-%d")
+                date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
             rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
             if rate == 1.0 and from_currency_id != to_currency_id:
@@ -2997,11 +2989,9 @@ class MainWindow(
 
             if rate and rate != 0:
                 return amount * rate
-            return amount
-
         except Exception as e:
             print(f"Error converting currency amount: {e}")
-            return amount
+        return amount
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from table to clipboard as tab-separated text.
@@ -3840,7 +3830,8 @@ class MainWindow(
 
         # Disconnect existing signal to prevent multiple connections
         try:
-            self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
+            with contextlib.suppress(TypeError):
+                self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
         except TypeError:
             # Signal was not connected, which is fine
             pass
@@ -7672,7 +7663,7 @@ def _calculate_daily_expenses(self, rows: list[list]) -> dict[str, float]:
 ### ⚙️ Method `_calculate_exchange_loss_in_source_currency`
 
 ```python
-def _calculate_exchange_loss_in_source_currency(self, from_currency_id: int, to_currency_id: int, amount_from: float, amount_to: float, rate_to_per_from: float, fee: float = 0.0) -> float
+def _calculate_exchange_loss_in_source_currency(self, _from_currency_id: int, _to_currency_id: int, amount_from: float, amount_to: float, rate_to_per_from: float, fee: float = 0.0) -> float
 ```
 
 Calculate exchange loss in source currency using given rate.
@@ -7694,8 +7685,8 @@ Loss amount in source currency (negative = loss, positive = profit)
 ```python
 def _calculate_exchange_loss_in_source_currency(
         self,
-        from_currency_id: int,
-        to_currency_id: int,
+        _from_currency_id: int,
+        _to_currency_id: int,
         amount_from: float,
         amount_to: float,
         rate_to_per_from: float,
@@ -7709,11 +7700,9 @@ def _calculate_exchange_loss_in_source_currency(
                 diff_from: float = total_cost - expected_from
                 # Displayed value should be negative for loss, positive for profit
                 return -diff_from
-            return 0.0
-
         except Exception as e:
             print(f"Error calculating exchange loss in source currency: {e}")
-            return 0.0
+        return 0.0
 ```
 
 </details>
@@ -7765,17 +7754,15 @@ def _calculate_exchange_loss_on_date(
 
             # Convert loss to default currency using today's rate from source → default
             if default_currency_id is not None and from_currency_id != default_currency_id:
-                from datetime import datetime
-
-                today: str = datetime.now().strftime("%Y-%m-%d")
+                today: str = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
-            return loss_in_from_currency
-
         except Exception as e:
             print(f"Error calculating exchange loss on date: {e}")
             return 0.0
+
+        return loss_in_from_currency
 ```
 
 </details>
@@ -7813,9 +7800,7 @@ def _calculate_exchange_loss_today(
         fee: float = 0.0,
     ) -> float:
         try:
-            from datetime import datetime
-
-            today: str = datetime.now().strftime("%Y-%m-%d")
+            today: str = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("%Y-%m-%d")
 
             # Get today's exchange rate
             today_rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, today)
@@ -7832,11 +7817,11 @@ def _calculate_exchange_loss_today(
                 return self._convert_currency_amount(
                     today_loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
-            return today_loss_in_from_currency
-
         except Exception as e:
             print(f"Error calculating today's exchange loss: {e}")
             return 0.0
+
+        return today_loss_in_from_currency
 ```
 
 </details>
@@ -8347,10 +8332,8 @@ def _convert_currency_amount(
             if from_currency_id == to_currency_id:
                 return amount
 
-            from datetime import datetime
-
             if date is None:
-                date = datetime.now().strftime("%Y-%m-%d")
+                date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
             rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
             if rate == 1.0 and from_currency_id != to_currency_id:
@@ -8358,11 +8341,9 @@ def _convert_currency_amount(
 
             if rate and rate != 0:
                 return amount * rate
-            return amount
-
         except Exception as e:
             print(f"Error converting currency amount: {e}")
-            return amount
+        return amount
 ```
 
 </details>
@@ -9497,7 +9478,8 @@ def _load_accounts_table(self) -> None:
 
         # Disconnect existing signal to prevent multiple connections
         try:
-            self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
+            with contextlib.suppress(TypeError):
+                self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
         except TypeError:
             # Signal was not connected, which is fine
             pass

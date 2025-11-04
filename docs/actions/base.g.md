@@ -2316,7 +2316,7 @@ Custom delegate for displaying choices with descriptions in different font sizes
 ```python
 class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 
-    def paint(self, painter: QPainter, option, index) -> None:
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         """Paint the item with custom formatting using QTextDocument."""
         painter.save()
 
@@ -2328,7 +2328,8 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 
         # Split text into choice and description
         lines = text.split("\n")
-        if len(lines) < 2:
+        min_count_lines = 2
+        if len(lines) < min_count_lines:
             # Fallback to default painting
             super().paint(painter, option, index)
             painter.restore()
@@ -2351,25 +2352,23 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         else:
             text_color = option.palette.text().color()
 
-        # Create HTML content with different font sizes and proper colors
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif; color: {text_color.name()};">
-            <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
-                {choice}
-            </div>
-            <div style="font-size: 9pt; font-style: italic; color: {text_color.name()}; opacity: 0.7; margin-left: 10px;">
-                {description}
-            </div>
-        </div>
-        """
+        # Create HTML content with different font sizes and proper colors, avoiding line too long
+        html_content = (
+            f'<div style="font-family: Arial, sans-serif; color: {text_color.name()};">'
+            f'<div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">'
+            f"{choice}"
+            f"</div>"
+            f'<div style="font-size: 9pt; font-style: italic; color: {text_color.name()}; '
+            f'opacity: 0.7; margin-left: 10px;">'
+            f"{description}"
+            f"</div>"
+            f"</div>"
+        )
 
         # Create QTextDocument for rich text rendering
         doc = QTextDocument()
         doc.setHtml(html_content)
         doc.setTextWidth(option.rect.width())
-
-        # Set the document size
-        doc_size = doc.size()
 
         # Draw the document
         painter.translate(option.rect.topLeft())
@@ -2377,17 +2376,17 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 
         painter.restore()
 
-    def sizeHint(self, option, index):
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:  # noqa: N802
         """Calculate the size hint for the item."""
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if not text:
             return super().sizeHint(option, index)
 
         lines = text.split("\n")
-        if len(lines) < 2:
+        max_count_parts = 2
+        if len(lines) < max_count_parts:
             return super().sizeHint(option, index)
 
-        # Create HTML content to calculate size
         choice = lines[0]
         description = "\n".join(lines[1:]).strip()
 
@@ -2402,12 +2401,10 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         </div>
         """
 
-        # Create QTextDocument to calculate size
         doc = QTextDocument()
         doc.setHtml(html_content)
         doc.setTextWidth(option.rect.width())
 
-        # Return the calculated size
         doc_size = doc.size()
         return QSize(int(doc_size.width()), int(doc_size.height()) + 5)  # Add some padding
 ```
@@ -2417,7 +2414,7 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 ### ⚙️ Method `paint`
 
 ```python
-def paint(self, painter: QPainter, option, index) -> None
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None
 ```
 
 Paint the item with custom formatting using QTextDocument.
@@ -2426,7 +2423,7 @@ Paint the item with custom formatting using QTextDocument.
 <summary>Code:</summary>
 
 ```python
-def paint(self, painter: QPainter, option, index) -> None:
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         painter.save()
 
         # Get the item text
@@ -2437,7 +2434,8 @@ def paint(self, painter: QPainter, option, index) -> None:
 
         # Split text into choice and description
         lines = text.split("\n")
-        if len(lines) < 2:
+        min_count_lines = 2
+        if len(lines) < min_count_lines:
             # Fallback to default painting
             super().paint(painter, option, index)
             painter.restore()
@@ -2460,25 +2458,23 @@ def paint(self, painter: QPainter, option, index) -> None:
         else:
             text_color = option.palette.text().color()
 
-        # Create HTML content with different font sizes and proper colors
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif; color: {text_color.name()};">
-            <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
-                {choice}
-            </div>
-            <div style="font-size: 9pt; font-style: italic; color: {text_color.name()}; opacity: 0.7; margin-left: 10px;">
-                {description}
-            </div>
-        </div>
-        """
+        # Create HTML content with different font sizes and proper colors, avoiding line too long
+        html_content = (
+            f'<div style="font-family: Arial, sans-serif; color: {text_color.name()};">'
+            f'<div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">'
+            f"{choice}"
+            f"</div>"
+            f'<div style="font-size: 9pt; font-style: italic; color: {text_color.name()}; '
+            f'opacity: 0.7; margin-left: 10px;">'
+            f"{description}"
+            f"</div>"
+            f"</div>"
+        )
 
         # Create QTextDocument for rich text rendering
         doc = QTextDocument()
         doc.setHtml(html_content)
         doc.setTextWidth(option.rect.width())
-
-        # Set the document size
-        doc_size = doc.size()
 
         # Draw the document
         painter.translate(option.rect.topLeft())
@@ -2492,7 +2488,7 @@ def paint(self, painter: QPainter, option, index) -> None:
 ### ⚙️ Method `sizeHint`
 
 ```python
-def sizeHint(self, option, index)
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize
 ```
 
 Calculate the size hint for the item.
@@ -2501,16 +2497,16 @@ Calculate the size hint for the item.
 <summary>Code:</summary>
 
 ```python
-def sizeHint(self, option, index):
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:  # noqa: N802
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if not text:
             return super().sizeHint(option, index)
 
         lines = text.split("\n")
-        if len(lines) < 2:
+        max_count_parts = 2
+        if len(lines) < max_count_parts:
             return super().sizeHint(option, index)
 
-        # Create HTML content to calculate size
         choice = lines[0]
         description = "\n".join(lines[1:]).strip()
 
@@ -2525,12 +2521,10 @@ def sizeHint(self, option, index):
         </div>
         """
 
-        # Create QTextDocument to calculate size
         doc = QTextDocument()
         doc.setHtml(html_content)
         doc.setTextWidth(option.rect.width())
 
-        # Return the calculated size
         doc_size = doc.size()
         return QSize(int(doc_size.width()), int(doc_size.height()) + 5)  # Add some padding
 ```

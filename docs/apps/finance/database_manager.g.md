@@ -2304,11 +2304,12 @@ class DatabaseManager:
                 print(f"✅ Successfully updated currency exchange {exchange_id} in database")
             else:
                 print(f"❌ Failed to update currency exchange {exchange_id} in database")
-            return success
 
         except Exception as e:
             print(f"❌ Error updating currency exchange: {e}")
             return False
+
+        return success
 
     def update_currency_ticker(self, currency_id: int, ticker: str) -> bool:
         """Update currency ticker.
@@ -5714,11 +5715,12 @@ def update_currency_exchange_full(
                 print(f"✅ Successfully updated currency exchange {exchange_id} in database")
             else:
                 print(f"❌ Failed to update currency exchange {exchange_id} in database")
-            return success
 
         except Exception as e:
             print(f"❌ Error updating currency exchange: {e}")
             return False
+
+        return success
 ```
 
 </details>
