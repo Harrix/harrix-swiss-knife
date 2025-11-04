@@ -1884,15 +1884,17 @@ class MainWindow(
         """Calculate exchange loss in source currency using given rate.
 
         Args:
-            from_currency_id: Source currency ID
-            to_currency_id: Target currency ID
-            amount_from: Amount in source currency
-            amount_to: Amount in target currency
-            rate_to_per_from: Exchange rate (to per 1 from)
-            fee: Exchange fee in source currency
+
+        - `from_currency_id` (`int`): Source currency ID
+        - `to_currency_id` (`int`): Target currency ID
+        - `amount_from` (`float`): Amount in source currency
+        - `amount_to` (`float`): Amount in target currency
+        - `rate_to_per_from` (`float`): Exchange rate (to per 1 from)
+        - `fee` (`float`): Exchange fee in source currency
 
         Returns:
-            Loss amount in source currency (negative = loss, positive = profit)
+
+        - `float`: Loss amount in source currency (negative = loss, positive = profit)
 
         """
         try:
@@ -1920,16 +1922,18 @@ class MainWindow(
         """Calculate loss due to exchange rate difference on the exchange date.
 
         Args:
-            from_currency_id: Source currency ID
-            to_currency_id: Target currency ID
-            amount_from: Amount in source currency
-            amount_to: Amount in target currency
-            exchange_date: Date of exchange
-            default_currency_id: Default currency ID for conversion
-            fee: Exchange fee in source currency
+
+        - `from_currency_id` (`int`): Source currency ID
+        - `to_currency_id` (`int`): Target currency ID
+        - `amount_from` (`float`): Amount in source currency
+        - `amount_to` (`float`): Amount in target currency
+        - `exchange_date` (`str`): Date of exchange
+        - `default_currency_id` (`int | None`): Default currency ID for conversion
+        - `fee` (`float`): Exchange fee in source currency
 
         Returns:
-            Loss amount in default currency (negative = loss, positive = profit)
+
+        - `float`: Loss amount in default currency (negative = loss, positive = profit)
 
         """
         try:
@@ -1967,15 +1971,17 @@ class MainWindow(
         """Calculate loss if exchange was done today instead of original date.
 
         Args:
-            from_currency_id: Source currency ID
-            to_currency_id: Target currency ID
-            amount_from: Amount in source currency
-            amount_to: Amount in target currency
-            default_currency_id: Default currency ID for conversion
-            fee: Exchange fee in source currency
+
+        - `from_currency_id` (`int`): Source currency ID
+        - `to_currency_id` (`int`): Target currency ID
+        - `amount_from` (`float`): Amount in source currency
+        - `amount_to` (`float`): Amount in target currency
+        - `default_currency_id` (`int | None`): Default currency ID for conversion
+        - `fee` (`float`): Exchange fee in source currency
 
         Returns:
-            Loss amount in default currency (negative = today's rate worse, positive = today's rate better)
+
+        - `float`: Loss amount in default currency (negative = today's rate worse, positive = today's rate better)
 
         """
         try:
@@ -2350,13 +2356,15 @@ class MainWindow(
         """Convert amount from one currency to another.
 
         Args:
-            amount: Amount to convert
-            from_currency_id: Source currency ID
-            to_currency_id: Target currency ID
-            date: Date for rate lookup (uses today if None)
+
+        - `amount` (`float`): Amount to convert
+        - `from_currency_id` (`int`): Source currency ID
+        - `to_currency_id` (`int`): Target currency ID
+        - `date` (`str`): Date for rate lookup (uses today if None)
 
         Returns:
-            Converted amount in target currency
+
+        - `float`: Converted amount in target currency
 
         """
         try:
@@ -3731,7 +3739,8 @@ class MainWindow(
         """Handle double-click on exchange table to open edit dialog.
 
         Args:
-            index: Model index of the clicked cell.
+
+        - `index` (`QModelIndex`): Model index of the clicked cell.
 
         """
         # Prevent opening multiple dialogs

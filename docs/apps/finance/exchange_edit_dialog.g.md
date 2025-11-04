@@ -46,9 +46,10 @@ class ExchangeEditDialog(QDialog):
         """Initialize the dialog.
 
         Args:
-            parent: Parent widget. Defaults to None.
-            exchange_data: Dictionary with exchange data. Defaults to None.
-            currencies: List of currency codes. Defaults to None.
+
+        - `parent` (`QWidget | None`): Parent widget. Defaults to None.
+        - `exchange_data` (`dict | None`): Dictionary with exchange data. Defaults to None.
+        - `currencies` (`list[str] | None`): List of currency codes. Defaults to None.
 
         """
         super().__init__(parent)
@@ -67,7 +68,8 @@ class ExchangeEditDialog(QDialog):
         """Get the dialog result.
 
         Returns:
-            Dictionary with exchange data if accepted, empty dict if cancelled.
+
+        - `dict`: Dictionary with exchange data if accepted, empty dict if cancelled.
 
         """
         return self.result_data
@@ -269,9 +271,10 @@ def __init__(self, parent: QWidget | None = None, exchange_data: dict | None = N
 Initialize the dialog.
 
 Args:
-parent: Parent widget. Defaults to None.
-exchange_data: Dictionary with exchange data. Defaults to None.
-currencies: List of currency codes. Defaults to None.
+
+- `parent` (`QWidget | None`): Parent widget. Defaults to None.
+- `exchange_data` (`dict | None`): Dictionary with exchange data. Defaults to None.
+- `currencies` (`list[str] | None`): List of currency codes. Defaults to None.
 
 <details>
 <summary>Code:</summary>
@@ -307,7 +310,8 @@ def get_result(self) -> dict
 Get the dialog result.
 
 Returns:
-Dictionary with exchange data if accepted, empty dict if cancelled.
+
+- `dict`: Dictionary with exchange data if accepted, empty dict if cancelled.
 
 <details>
 <summary>Code:</summary>
