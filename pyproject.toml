@@ -17,7 +17,6 @@ dependencies = [
     "pyside6>=6.8.1.1",
     "pythonnet>=3.0.5",
     "pyyaml>=6.0.2",
-    "ruff>=0.9.2",
     "yfinance>=0.2.65",
 ]
 
@@ -29,7 +28,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["isort>=5.13.2", "pytest>=8.3.4", "vermin>=1.6.0"]
+dev = [
+    "isort>=5.13.2",
+    "pytest>=8.3.4",
+    "ruff>=0.14.3",
+    "ty>=0.0.1a25",
+    "vermin>=1.6.0",
+]
+
+[tool.ty.rules]
+method-assign = "ignore"
 
 # Disabling some pydocstyle rules that conflict with Markdown-style documentation.
 # We use Markdown for docstrings instead of traditional reST/Napoleon/Google formats:
