@@ -109,8 +109,8 @@ class FileDropWidget(QWidget):
         """)
         self.file_label.setMinimumHeight(60)
         self.file_label.setAcceptDrops(True)
-        self.file_label.dragEnterEvent = self._drag_enter_event
-        self.file_label.dropEvent = self._drop_event
+        self.file_label.dragEnterEvent = self._drag_enter_event  # ty: ignore[invalid-assignment]
+        self.file_label.dropEvent = self._drop_event  # ty: ignore[invalid-assignment]
 
         # Buttons layout
         button_layout = QHBoxLayout()
@@ -200,8 +200,8 @@ class FilesListWidget(QWidget):
         # List widget for files
         self.list_widget = QListWidget()
         self.list_widget.setAcceptDrops(True)
-        self.list_widget.dragEnterEvent = self._drag_enter_event
-        self.list_widget.dropEvent = self._drop_event
+        self.list_widget.dragEnterEvent = self._drag_enter_event  # ty: ignore[invalid-assignment]
+        self.list_widget.dropEvent = self._drop_event  # ty: ignore[invalid-assignment]
         self.list_widget.setMinimumHeight(150)
 
         # Buttons layout
@@ -326,8 +326,8 @@ class ImageDropWidget(QWidget):
         """)
         self.image_label.setMinimumHeight(100)
         self.image_label.setAcceptDrops(True)
-        self.image_label.dragEnterEvent = self._drag_enter_event
-        self.image_label.dropEvent = self._drop_event
+        self.image_label.dragEnterEvent = self._drag_enter_event  # ty: ignore[invalid-assignment]
+        self.image_label.dropEvent = self._drop_event  # ty: ignore[invalid-assignment]
 
         # Buttons layout
         button_layout = QHBoxLayout()
@@ -427,8 +427,8 @@ class ImagesListWidget(QWidget):
         # List widget for images
         self.list_widget = QListWidget()
         self.list_widget.setAcceptDrops(True)
-        self.list_widget.dragEnterEvent = self._drag_enter_event
-        self.list_widget.dropEvent = self._drop_event
+        self.list_widget.dragEnterEvent = self._drag_enter_event  # ty: ignore[invalid-assignment]
+        self.list_widget.dropEvent = self._drop_event  # ty: ignore[invalid-assignment]
         self.list_widget.setMinimumHeight(150)
 
         # Buttons layout
@@ -561,7 +561,7 @@ class TemplateDialog(QDialog):
                 try:
                     # Try to parse the date string
                     date_obj = QDate.fromString(field.default_value, "yyyy-MM-dd")
-                    if date_obj.isValid():
+                    if QDate.isValid(date_obj):
                         widget.setDate(date_obj)
                     else:
                         widget.setDate(QDate.currentDate())
