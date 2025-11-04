@@ -1097,7 +1097,6 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         lines = text.split("\n")
         if len(lines) < 2:
             return super().sizeHint(option, index)
-
         # Create HTML content to calculate size
         choice = lines[0]
         description = "\n".join(lines[1:]).strip()

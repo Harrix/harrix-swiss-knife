@@ -1,6 +1,6 @@
 """Read-only delegate for displaying non-editable data in tables."""
 
-from PySide6.QtCore import QModelIndex
+from PySide6.QtCore import QAbstractItemModel, QEvent, QModelIndex
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 
@@ -21,14 +21,14 @@ class ReadOnlyDelegate(QStyledItemDelegate):
         """
         super().__init__(parent)
 
-    def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> None:  # noqa: N802
+    def createEditor(self, _parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> None:  # noqa: N802
         """Prevent creation of any editor for read-only columns.
 
         Args:
 
-        - `parent` (`QWidget`): The parent widget for the editor.
-        - `option` (`QStyleOptionViewItem`): The style options for the item.
-        - `index` (`QModelIndex`): The model index of the item being edited.
+        - `_parent` (`QWidget`): The parent widget for the editor.
+        - `_option` (`QStyleOptionViewItem`): The style options for the item.
+        - `_index` (`QModelIndex`): The model index of the item being edited.
 
         Returns:
 
@@ -40,8 +40,8 @@ class ReadOnlyDelegate(QStyledItemDelegate):
 
     def editorEvent(  # noqa: N802
         self,
-        event: "QEvent",
-        model: "QAbstractItemModel",
+        _event: "QEvent",
+        _model: "QAbstractItemModel",
         _option: QStyleOptionViewItem,
         _index: QModelIndex,
     ) -> bool:
@@ -49,8 +49,8 @@ class ReadOnlyDelegate(QStyledItemDelegate):
 
         Args:
 
-        - `event` (`QEvent`): The event being processed.
-        - `model` (`QAbstractItemModel`): The model containing the data.
+        - `_event` (`QEvent`): The event being processed.
+        - `_model` (`QAbstractItemModel`): The model containing the data.
         - `_option` (`QStyleOptionViewItem`): The style options for the item.
         - `_index` (`QModelIndex`): The model index of the item.
 
