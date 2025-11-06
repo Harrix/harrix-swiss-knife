@@ -1288,19 +1288,17 @@ class MainWindow(
             category_name: str = row[3]  # category name
             amount_cents: int = row[1]  # amount in cents
             currency_code: str = row[4]  # currency code
+            transaction_date: str = row[5]  # transaction date
 
             # Convert to default currency
-            amount: float
+            amount: float = float(amount_cents) / 100
             if currency_code != default_currency_code:
                 currency_info = self.db_manager.get_currency_by_code(currency_code)
                 if currency_info:
                     source_currency_id: int = currency_info[0]
-                    exchange_rate: float = self.db_manager.get_exchange_rate(source_currency_id, default_currency_id)
-                    amount = (float(amount_cents) / 100) * exchange_rate
-                else:
-                    amount = float(amount_cents) / 100
-            else:
-                amount = float(amount_cents) / 100
+                    amount = self._convert_currency_amount(
+                        amount, source_currency_id, default_currency_id, transaction_date
+                    )
 
             if category_name in category_totals:
                 category_totals[category_name] += amount
@@ -1740,21 +1738,14 @@ class MainWindow(
                     currency_balances[currency_code] += balance_major_units
                 else:
                     # Different currency - need to convert via USD
-                    # Get exchange rate for today, fallback to latest if not available
-                    exchange_rate: float = self.db_manager.get_exchange_rate(currency_id, default_currency_id, today)
-                    if exchange_rate == 1.0 and currency_id != default_currency_id:
-                        # Try to get latest rate if today's rate not available
-                        exchange_rate = self.db_manager.get_exchange_rate(currency_id, default_currency_id)
+                    # Convert to default currency using centralized conversion method
+                    converted_balance: float = self._convert_currency_amount(
+                        balance_major_units, currency_id, default_currency_id, today
+                    )
 
-                    # If still no valid rate, skip this account or use 1.0 as fallback
-                    converted_balance: float
-                    if exchange_rate == 1.0 and currency_id != default_currency_id:
+                    # Check if conversion was successful (not equal to original when currencies differ)
+                    if converted_balance == balance_major_units and currency_id != default_currency_id:
                         print(f"Warning: No exchange rate found for {currency_code} to {default_currency_code}")
-                        # Use 1.0 as fallback (treat as same currency)
-                        converted_balance = balance_major_units
-                    else:
-                        # Convert to default currency
-                        converted_balance = balance_major_units * exchange_rate
 
                     total_balance += converted_balance
 
@@ -1781,17 +1772,16 @@ class MainWindow(
 
                     # Calculate converted amount for this currency
                     currency_id: int = self.db_manager.get_currency_by_code(currency_code)[0]
-                    exchange_rate: float = self.db_manager.get_exchange_rate(currency_id, default_currency_id, today)
-                    if exchange_rate == 1.0 and currency_id != default_currency_id:
-                        exchange_rate = self.db_manager.get_exchange_rate(currency_id, default_currency_id)
+                    converted_amount: float = self._convert_currency_amount(
+                        balance, currency_id, default_currency_id, today
+                    )
 
-                    if exchange_rate == 1.0 and currency_id != default_currency_id:
+                    if converted_amount == balance and currency_id != default_currency_id:
                         # No valid exchange rate found
                         details_lines.append(
                             f"{currency_code}: {balance:,.2f}{currency_symbol} (exchange rate not found)"
                         )
                     else:
-                        converted_amount: float = balance * exchange_rate
                         details_lines.append(
                             f"{currency_code}: {balance:,.2f}{currency_symbol} → "
                             f"{converted_amount:,.2f}{default_currency_symbol}"
