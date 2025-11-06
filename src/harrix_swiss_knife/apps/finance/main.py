@@ -1868,43 +1868,6 @@ class MainWindow(
 
         return daily_expenses
 
-    def _calculate_exchange_loss_in_source_currency(
-        self,
-        _from_currency_id: int,
-        _to_currency_id: int,
-        amount_from: float,
-        amount_to: float,
-        rate_to_per_from: float,
-        fee: float = 0.0,
-    ) -> float:
-        """Calculate exchange loss in source currency using given rate.
-
-        Args:
-
-        - `from_currency_id` (`int`): Source currency ID
-        - `to_currency_id` (`int`): Target currency ID
-        - `amount_from` (`float`): Amount in source currency
-        - `amount_to` (`float`): Amount in target currency
-        - `rate_to_per_from` (`float`): Exchange rate (to per 1 from)
-        - `fee` (`float`): Exchange fee in source currency
-
-        Returns:
-
-        - `float`: Loss amount in source currency (negative = loss, positive = profit)
-
-        """
-        try:
-            if rate_to_per_from and rate_to_per_from != 0:
-                expected_from: float = amount_to / rate_to_per_from
-                # Include fee in the total cost
-                total_cost: float = amount_from + fee
-                diff_from: float = total_cost - expected_from
-                # Displayed value should be negative for loss, positive for profit
-                return -diff_from
-        except Exception as e:
-            print(f"Error calculating exchange loss in source currency: {e}")
-        return 0.0
-
     def _calculate_exchange_loss(
         self,
         from_currency_id: int,
@@ -1964,6 +1927,43 @@ class MainWindow(
             return 0.0
 
         return loss_in_from_currency
+
+    def _calculate_exchange_loss_in_source_currency(
+        self,
+        _from_currency_id: int,
+        _to_currency_id: int,
+        amount_from: float,
+        amount_to: float,
+        rate_to_per_from: float,
+        fee: float = 0.0,
+    ) -> float:
+        """Calculate exchange loss in source currency using given rate.
+
+        Args:
+
+        - `from_currency_id` (`int`): Source currency ID
+        - `to_currency_id` (`int`): Target currency ID
+        - `amount_from` (`float`): Amount in source currency
+        - `amount_to` (`float`): Amount in target currency
+        - `rate_to_per_from` (`float`): Exchange rate (to per 1 from)
+        - `fee` (`float`): Exchange fee in source currency
+
+        Returns:
+
+        - `float`: Loss amount in source currency (negative = loss, positive = profit)
+
+        """
+        try:
+            if rate_to_per_from and rate_to_per_from != 0:
+                expected_from: float = amount_to / rate_to_per_from
+                # Include fee in the total cost
+                total_cost: float = amount_from + fee
+                diff_from: float = total_cost - expected_from
+                # Displayed value should be negative for loss, positive for profit
+                return -diff_from
+        except Exception as e:
+            print(f"Error calculating exchange loss in source currency: {e}")
+        return 0.0
 
     def _calculate_total_accounts_balance(self) -> tuple[float, str]:
         """Calculate total balance across all accounts in default currency.

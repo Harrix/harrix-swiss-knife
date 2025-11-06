@@ -255,13 +255,13 @@ class MainMenuBase:
         menu.setIcon(self.get_icon(icon))
         return menu
 
-    def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
+    def _add_item(self, menu: QMenu, class_action: type, icon: str = "") -> None:
         """Add an item to the given menu.
 
         Args:
 
         - `menu` (`QMenu`): The menu to which the action will be added.
-        - `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
+        - `class_action` (`Type`): The type of the class to be executed when the menu item is triggered.
         - `icon` (`str`): Path or emoji for the icon of the menu item. Defaults to `""`.
 
         """
@@ -661,7 +661,7 @@ def new_menu(self, title: str, icon: str) -> QMenu:
 ### ⚙️ Method `_add_item`
 
 ```python
-def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None
+def _add_item(self, menu: QMenu, class_action: type, icon: str = "") -> None
 ```
 
 Add an item to the given menu.
@@ -669,14 +669,14 @@ Add an item to the given menu.
 Args:
 
 - `menu` (`QMenu`): The menu to which the action will be added.
-- `class_action` (`Callable`): The callable to be executed when the menu item is triggered.
+- `class_action` (`Type`): The type of the class to be executed when the menu item is triggered.
 - `icon` (`str`): Path or emoji for the icon of the menu item. Defaults to `""`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _add_item(self, menu: QMenu, class_action: Callable, icon: str = "") -> None:
+def _add_item(self, menu: QMenu, class_action: type, icon: str = "") -> None:
         action_instance = class_action(parent=self)
 
         # Add visual emphasis for bold items
