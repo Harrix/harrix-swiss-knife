@@ -268,6 +268,7 @@ class ActionBase:
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.resize(600, 400)
+        dialog.setMaximumHeight(800)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -341,6 +342,7 @@ class ActionBase:
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.resize(800, 500)
+        dialog.setMaximumHeight(800)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -1155,6 +1157,7 @@ class DragDropFileDialog(QDialog):
         self.setModal(True)
         self.setAcceptDrops(True)
         self.setMinimumSize(500, 300)
+        self.setMaximumHeight(800)
 
         self.default_path = default_path
         self.filter_ = filter_
