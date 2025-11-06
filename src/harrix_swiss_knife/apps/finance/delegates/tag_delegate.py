@@ -70,4 +70,3 @@ class TagDelegate(QStyledItemDelegate):
         selected_text: str = editor.currentText()
         if selected_text:
             model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
-

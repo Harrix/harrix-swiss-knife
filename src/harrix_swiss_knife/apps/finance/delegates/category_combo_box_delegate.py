@@ -76,4 +76,3 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
             # Check if this is an income category and add suffix if needed
             # This logic should match the logic used in _save_transaction_data
             model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
-

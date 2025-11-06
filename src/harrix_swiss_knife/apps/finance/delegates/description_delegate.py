@@ -63,4 +63,3 @@ class DescriptionDelegate(QStyledItemDelegate):
         """
         text = editor.text()
         model.setData(index, text, Qt.ItemDataRole.DisplayRole)
-

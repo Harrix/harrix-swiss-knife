@@ -77,4 +77,3 @@ class DateDelegate(QStyledItemDelegate):
         selected_date: QDate = editor.date()
         date_string: str = selected_date.toString("yyyy-MM-dd")
         model.setData(index, date_string, Qt.ItemDataRole.DisplayRole)
-
