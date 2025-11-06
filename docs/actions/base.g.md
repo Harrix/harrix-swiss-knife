@@ -171,6 +171,7 @@ class ActionBase:
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.resize(500, 400)
+        dialog.setMaximumHeight(800)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -178,6 +179,15 @@ class ActionBase:
         # Add a label
         label_widget = QLabel(label)
         layout.addWidget(label_widget)
+
+        # Create a scroll area for checkboxes
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        # Create a container widget for checkboxes
+        checkboxes_container = QWidget()
+        checkboxes_layout = QVBoxLayout(checkboxes_container)
 
         # Create checkboxes for each choice
         checkboxes = []
@@ -193,10 +203,14 @@ class ActionBase:
                 checkbox.setChecked(True)
 
             checkboxes.append(checkbox)
-            layout.addWidget(checkbox)
+            checkboxes_layout.addWidget(checkbox)
 
-        # Add some spacing before buttons
-        layout.addStretch()
+        # Add stretch to push checkboxes to the top
+        checkboxes_layout.addStretch()
+
+        # Set the container as the scroll area's widget
+        scroll_area.setWidget(checkboxes_container)
+        layout.addWidget(scroll_area)
 
         # Add Select All / Deselect All buttons
         selection_buttons_layout = QHBoxLayout()
@@ -263,6 +277,7 @@ class ActionBase:
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.resize(600, 400)
+        dialog.setMaximumHeight(800)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -336,6 +351,7 @@ class ActionBase:
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.resize(800, 500)
+        dialog.setMaximumHeight(800)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -1197,6 +1213,7 @@ def get_checkbox_selection(
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.resize(500, 400)
+        dialog.setMaximumHeight(800)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -1204,6 +1221,15 @@ def get_checkbox_selection(
         # Add a label
         label_widget = QLabel(label)
         layout.addWidget(label_widget)
+
+        # Create a scroll area for checkboxes
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        # Create a container widget for checkboxes
+        checkboxes_container = QWidget()
+        checkboxes_layout = QVBoxLayout(checkboxes_container)
 
         # Create checkboxes for each choice
         checkboxes = []
@@ -1219,10 +1245,14 @@ def get_checkbox_selection(
                 checkbox.setChecked(True)
 
             checkboxes.append(checkbox)
-            layout.addWidget(checkbox)
+            checkboxes_layout.addWidget(checkbox)
 
-        # Add some spacing before buttons
-        layout.addStretch()
+        # Add stretch to push checkboxes to the top
+        checkboxes_layout.addStretch()
+
+        # Set the container as the scroll area's widget
+        scroll_area.setWidget(checkboxes_container)
+        layout.addWidget(scroll_area)
 
         # Add Select All / Deselect All buttons
         selection_buttons_layout = QHBoxLayout()
@@ -1301,6 +1331,7 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.resize(600, 400)
+        dialog.setMaximumHeight(800)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -1386,6 +1417,7 @@ def get_choice_from_list_with_descriptions(
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.resize(800, 500)
+        dialog.setMaximumHeight(800)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -2561,6 +2593,7 @@ class DragDropFileDialog(QDialog):
         self.setModal(True)
         self.setAcceptDrops(True)
         self.setMinimumSize(500, 300)
+        self.setMaximumHeight(800)
 
         self.default_path = default_path
         self.filter_ = filter_
@@ -2721,6 +2754,7 @@ def __init__(self, title: str, default_path: str, filter_: str, parent: QWidget 
         self.setModal(True)
         self.setAcceptDrops(True)
         self.setMinimumSize(500, 300)
+        self.setMaximumHeight(800)
 
         self.default_path = default_path
         self.filter_ = filter_
