@@ -2679,9 +2679,8 @@ class MainWindow(
 
         # Create model with column headers
         model: QStandardItemModel = QStandardItemModel()
-        headers: list[str] = ["Month"]
+        headers: list[str] = ["Month", "Total"]  # Month and Total first
         headers.extend([cat[1] for cat in expense_categories])  # Add category names
-        headers.append("Total")  # Add total column
         model.setHorizontalHeaderLabels(headers)
 
         # Generate colors for categories (using HSV color space for distinct colors)
@@ -2702,21 +2701,25 @@ class MainWindow(
             month_item = QStandardItem(month_name)
             row_items.append(month_item)
 
-            # Category amounts with colors
+            # Calculate total first
             month_total: float = 0.0
-            for idx, (category_id, _category_name, _category_icon) in enumerate(expense_categories):
+            for category_id, _category_name, _category_icon in expense_categories:
                 amount = monthly_data[month_name].get(category_id, 0.0)
                 month_total += amount
+
+            # Total for the month (light gray background) - add as second column
+            total_item = QStandardItem(f"{month_total:.2f}")
+            total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            row_items.append(total_item)
+
+            # Category amounts with colors
+            for idx, (category_id, _category_name, _category_icon) in enumerate(expense_categories):
+                amount = monthly_data[month_name].get(category_id, 0.0)
 
                 item = QStandardItem(f"{amount:.2f}")
                 # Set background color for this category
                 item.setBackground(QBrush(category_colors[idx]))
                 row_items.append(item)
-
-            # Total for the month (light gray background)
-            total_item = QStandardItem(f"{month_total:.2f}")
-            total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
-            row_items.append(total_item)
 
             model.appendRow(row_items)
 
