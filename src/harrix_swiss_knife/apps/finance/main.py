@@ -2576,7 +2576,7 @@ class MainWindow(
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _generate_monthly_summary_report(self, currency_id: int) -> None:
-        """Generate monthly summary report.
+        """Generate monthly summary report showing expenses by category per month.
 
         Args:
 
@@ -2588,11 +2588,37 @@ class MainWindow(
 
         currency_code: str = self.db_manager.get_default_currency()
 
-        # Get last 12 months
-        report_data: list[list[str]] = []
-        end_date: datetime = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        # Get all expense categories
+        all_categories: list = self.db_manager.get_all_categories()
+        expense_categories: list[tuple[int, str, str]] = []  # (id, name, icon)
+        category_name_to_id: dict[str, int] = {}  # Map category name to ID for fast lookup
 
+        for category in all_categories:
+            category_id, category_name, category_type, category_icon = category[0], category[1], category[2], category[3]
+            if category_type == 0:  # 0 = expense
+                # Create display name with icon
+                display_name = f"{category_icon} {category_name}" if category_icon else category_name
+                expense_categories.append((category_id, display_name, category_icon))
+                category_name_to_id[category_name] = category_id
+
+        if not expense_categories:
+            # No categories found, show empty table
+            model: QStandardItemModel = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Month"])
+            self.tableView_reports.setModel(model)
+            return
+
+        # Sort categories by name for consistent display
+        expense_categories.sort(key=lambda x: x[1])
+
+        # Get last 12 months
+        end_date: datetime = datetime.now(tz=datetime.now().astimezone().tzinfo)
         count_months = 12
+
+        # Dictionary to store data: {month_name: {category_id: amount}}
+        monthly_data: dict[str, dict[int, float]] = {}
+        month_names: list[str] = []
+
         for i in range(count_months):
             # Calculate month start and end
             month_date: datetime = end_date.replace(day=1) - timedelta(days=30 * i)
@@ -2600,7 +2626,7 @@ class MainWindow(
 
             # Calculate last day of month
             next_month: datetime
-            if month_start.month == count_months:
+            if month_start.month == 12:
                 next_month = month_start.replace(year=month_start.year + 1, month=1)
             else:
                 next_month = month_start.replace(month=month_start.month + 1)
@@ -2608,41 +2634,99 @@ class MainWindow(
 
             date_from: str = month_start.strftime("%Y-%m-%d")
             date_to: str = month_end.strftime("%Y-%m-%d")
-
-            income: float
-            expenses: float
-            income, expenses = self.db_manager.get_income_vs_expenses_in_currency(currency_id, date_from, date_to)
-
-            balance: float = income - expenses
             month_name: str = month_start.strftime("%Y-%m")
 
-            report_data.append(
-                [
-                    month_name,
-                    f"{income:.2f} {currency_code}",
-                    f"{expenses:.2f} {currency_code}",
-                    f"{balance:.2f} {currency_code}",
-                ]
+            month_names.append(month_name)
+            monthly_data[month_name] = {}
+
+            # Get all expense transactions for this month
+            expense_rows: list = self.db_manager.get_filtered_transactions(
+                category_type=0, date_from=date_from, date_to=date_to
             )
 
+            # Process transactions and group by category
+            for row in expense_rows:
+                # row structure: [_id, amount, description, cat.name, c.code, date, tag, cat.type, cat.icon, c.symbol]
+                amount_cents: int = row[1]  # amount in cents
+                category_name_from_row: str = row[3]  # category name
+                currency_code_tx: str = row[4]  # currency code
+                transaction_date: str = row[5]  # transaction date
+
+                # Get category_id from name using lookup dictionary
+                category_id_matched: int | None = category_name_to_id.get(category_name_from_row)
+
+                if category_id_matched is None:
+                    continue
+
+                # Convert amount to default currency
+                amount: float = float(amount_cents) / 100
+                if currency_code_tx != currency_code:
+                    currency_info = self.db_manager.get_currency_by_code(currency_code_tx)
+                    if currency_info:
+                        source_currency_id: int = currency_info[0]
+                        amount = self._convert_currency_amount(
+                            amount, source_currency_id, currency_id, transaction_date
+                        )
+
+                # Add to category total for this month
+                if category_id_matched in monthly_data[month_name]:
+                    monthly_data[month_name][category_id_matched] += amount
+                else:
+                    monthly_data[month_name][category_id_matched] = amount
+
         # Reverse to show oldest first
-        report_data.reverse()
+        month_names.reverse()
 
-        # Create model
+        # Create model with column headers
         model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Month", "Income", "Expenses", "Balance"])
+        headers: list[str] = ["Month"]
+        headers.extend([cat[1] for cat in expense_categories])  # Add category names
+        headers.append("Total")  # Add total column
+        model.setHorizontalHeaderLabels(headers)
 
-        for row_data in report_data:
-            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
-            model.appendRow(items)
+        # Generate colors for categories (using HSV color space for distinct colors)
+        num_categories = len(expense_categories)
+        category_colors: list[QColor] = []
+        for i in range(num_categories):
+            # Generate evenly distributed hues
+            hue = (i * 360) / num_categories if num_categories > 0 else 0
+            # Use pastel colors (high lightness, low saturation)
+            color = QColor.fromHsv(int(hue), 80, 240)  # Saturation=80, Value=240
+            category_colors.append(color)
+
+        # Create rows
+        for month_name in month_names:
+            row_items: list[QStandardItem] = []
+
+            # Month name (no background color)
+            month_item = QStandardItem(month_name)
+            row_items.append(month_item)
+
+            # Category amounts with colors
+            month_total: float = 0.0
+            for idx, (category_id, _category_name, _category_icon) in enumerate(expense_categories):
+                amount = monthly_data[month_name].get(category_id, 0.0)
+                month_total += amount
+
+                item = QStandardItem(f"{amount:.2f}")
+                # Set background color for this category
+                item.setBackground(QBrush(category_colors[idx]))
+                row_items.append(item)
+
+            # Total for the month (light gray background)
+            total_item = QStandardItem(f"{month_total:.2f}")
+            total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            row_items.append(total_item)
+
+            model.appendRow(row_items)
 
         self.tableView_reports.setModel(model)
 
-        # Configure column stretching for reports table
+        # Configure columns - no automatic stretching, use natural content width
         reports_header = self.tableView_reports.horizontalHeader()
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.ResizeToContents)
 
     def _get_categories_for_delegate(self) -> list[str]:
         """Get list of category names for the delegate dropdown.
