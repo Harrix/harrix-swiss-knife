@@ -2725,6 +2725,14 @@ class MainWindow(
 
         self.tableView_reports.setModel(model)
 
+        # Set up amount delegates for all monetary columns (Total and all categories)
+        # Column 0 is Month (no delegate needed)
+        # Column 1 is Total
+        # Columns 2+ are categories
+        for col_idx in range(1, model.columnCount()):
+            amount_delegate = AmountDelegate(self.tableView_reports, self.db_manager)
+            self.tableView_reports.setItemDelegateForColumn(col_idx, amount_delegate)
+
         # Configure columns - no automatic stretching, use natural content width
         reports_header = self.tableView_reports.horizontalHeader()
         if reports_header.count() > 0:
