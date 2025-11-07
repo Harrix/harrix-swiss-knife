@@ -2743,11 +2743,15 @@ class MainWindow(
             category_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=False)
             self.tableView_reports.setItemDelegateForColumn(col_idx, category_delegate)
 
-        # Configure columns - no automatic stretching, use natural content width
+        # Configure columns - allow manual resizing by user
         reports_header = self.tableView_reports.horizontalHeader()
         if reports_header.count() > 0:
+            # Set interactive mode to allow user to resize columns manually
             for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.ResizeToContents)
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
+
+            # Optionally resize columns to content initially, but allow manual resizing after
+            self.tableView_reports.resizeColumnsToContents()
 
     def _get_categories_for_delegate(self) -> list[str]:
         """Get list of category names for the delegate dropdown.
