@@ -5,6 +5,7 @@ from harrix_swiss_knife.apps.finance.delegates.category_combo_box_delegate impor
 from harrix_swiss_knife.apps.finance.delegates.currency_combo_box_delegate import CurrencyComboBoxDelegate
 from harrix_swiss_knife.apps.finance.delegates.date_delegate import DateDelegate
 from harrix_swiss_knife.apps.finance.delegates.description_delegate import DescriptionDelegate
+from harrix_swiss_knife.apps.finance.delegates.report_amount_delegate import ReportAmountDelegate
 from harrix_swiss_knife.apps.finance.delegates.tag_delegate import TagDelegate
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "CurrencyComboBoxDelegate",
     "DateDelegate",
     "DescriptionDelegate",
+    "ReportAmountDelegate",
     "TagDelegate",
 ]

@@ -60,6 +60,7 @@ from harrix_swiss_knife.apps.finance.delegates import (
     CurrencyComboBoxDelegate,
     DateDelegate,
     DescriptionDelegate,
+    ReportAmountDelegate,
     TagDelegate,
 )
 from harrix_swiss_knife.apps.finance.exchange_edit_dialog import ExchangeEditDialog
@@ -2725,13 +2726,22 @@ class MainWindow(
 
         self.tableView_reports.setModel(model)
 
+        # Disable editing for reports table
+        self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
         # Set up amount delegates for all monetary columns (Total and all categories)
         # Column 0 is Month (no delegate needed)
-        # Column 1 is Total
-        # Columns 2+ are categories
-        for col_idx in range(1, model.columnCount()):
-            amount_delegate = AmountDelegate(self.tableView_reports, self.db_manager)
-            self.tableView_reports.setItemDelegateForColumn(col_idx, amount_delegate)
+        # Column 1 is Total (bold font)
+        # Columns 2+ are categories (normal font)
+
+        # Total column (bold)
+        total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
+        self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
+
+        # Category columns (normal font)
+        for col_idx in range(2, model.columnCount()):
+            category_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=False)
+            self.tableView_reports.setItemDelegateForColumn(col_idx, category_delegate)
 
         # Configure columns - no automatic stretching, use natural content width
         reports_header = self.tableView_reports.horizontalHeader()
