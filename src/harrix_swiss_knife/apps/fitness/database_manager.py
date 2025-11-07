@@ -789,6 +789,31 @@ class DatabaseManager:
         remainder = [name for name in all_exercises.values() if name not in sorted_exercises]
         return sorted_exercises + remainder
 
+    def get_exercises_by_last_execution(self) -> list[str]:
+        """Return exercise names ordered by last execution date (most recent first).
+
+        Returns:
+
+        - `list[str]`: Exercise names sorted by last execution date.
+          Exercises never executed are appended at the end.
+
+        """
+        # Full list of exercises `{id: name}`.
+        all_exercises = {row[0]: row[1] for row in self.get_rows("SELECT _id, name FROM exercises")}
+
+        # Get exercises with their last execution date.
+        last_execution = self.get_rows(
+            """
+            SELECT e._id, e.name, MAX(p.date) as last_date
+            FROM exercises e
+            LEFT JOIN process p ON e._id = p._id_exercises
+            GROUP BY e._id, e.name
+            ORDER BY last_date DESC NULLS LAST, e.name ASC
+            """
+        )
+
+        return [row[1] for row in last_execution]
+
     def get_filtered_process_records(
         self,
         exercise_name: str | None = None,
