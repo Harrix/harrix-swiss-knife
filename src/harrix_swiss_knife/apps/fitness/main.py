@@ -4656,7 +4656,14 @@ class MainWindow(
             return None
 
         item = self.exercises_list_model.itemFromIndex(current_index)
-        return item.text() if item else None
+        if item:
+            # Try to get original exercise name from UserRole first
+            original_name = item.data(Qt.UserRole)
+            if original_name:
+                return original_name
+            # Fallback to display text
+            return item.text()
+        return None
 
     def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
         """Get the path to the AVIF file for the given exercise.
@@ -5552,12 +5559,17 @@ class MainWindow(
         # Find the item with the matching exercise name
         for row in range(self.exercises_list_model.rowCount()):
             item = self.exercises_list_model.item(row)
-            if item and item.text() == exercise_name:
-                index = self.exercises_list_model.indexFromItem(item)
-                selection_model = self.listView_exercises.selectionModel()
-                if selection_model:
-                    selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
-                break
+            if item:
+                # Check UserRole first (original name), then fallback to text
+                original_name = item.data(Qt.UserRole)
+                item_name = original_name if original_name else item.text()
+
+                if item_name == exercise_name:
+                    index = self.exercises_list_model.indexFromItem(item)
+                    selection_model = self.listView_exercises.selectionModel()
+                    if selection_model:
+                        selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                    break
 
     def _select_last_executed_exercise(self) -> None:
         """Select the last executed exercise in the chart exercise list view."""
@@ -5976,7 +5988,15 @@ class MainWindow(
             if self.exercises_list_model is not None:
                 self.exercises_list_model.clear()
                 for exercise in exercises:
-                    item = QStandardItem(exercise)
+                    # Get today's goal info for this exercise
+                    goal_info = self._get_exercise_today_goal_info(exercise)
+
+                    # Create display text with goal info if available
+                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
+                    item = QStandardItem(display_text)
+
+                    # Store original exercise name in item data for later retrieval
+                    item.setData(exercise, Qt.UserRole)
                     self.exercises_list_model.appendRow(item)
 
             # Unblock signals
