@@ -2695,7 +2695,7 @@ class MainWindow(
 
         # Create model with column headers
         model: QStandardItemModel = QStandardItemModel()
-        headers: list[str] = ["Month", "Total"]  # Month and Total first
+        headers: list[str] = ["Month", "Total", "Cafe + Food"]  # Month, Total, combined column
         headers.extend([cat[1] for cat in expense_categories])  # Add category names
         model.setHorizontalHeaderLabels(headers)
 
@@ -2708,6 +2708,14 @@ class MainWindow(
             # Use pastel colors (high lightness, low saturation)
             color = QColor.fromHsv(int(hue), 80, 240)  # Saturation=80, Value=240
             category_colors.append(color)
+
+        # Pre-calculate category IDs for Cafe and Food (case-insensitive match)
+        combined_category_names = {"cafe", "food"}
+        combined_category_ids: set[int] = {
+            category_id
+            for category_id, category_name, _ in expense_categories
+            if category_name.lower() in combined_category_names
+        }
 
         # Create rows
         for month_name in month_names:
@@ -2728,6 +2736,15 @@ class MainWindow(
             total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
             row_items.append(total_item)
 
+            # Combined Cafe + Food column (light yellow background)
+            combined_total: float = 0.0
+            for category_id in combined_category_ids:
+                combined_total += monthly_data[month_name].get(category_id, 0.0)
+
+            combined_item = QStandardItem(f"{combined_total:.2f}")
+            combined_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
+            row_items.append(combined_item)
+
             # Category amounts with colors
             for idx, (category_id, _category_name, _category_icon) in enumerate(expense_categories):
                 amount = monthly_data[month_name].get(category_id, 0.0)
@@ -2747,14 +2764,19 @@ class MainWindow(
         # Set up amount delegates for all monetary columns (Total and all categories)
         # Column 0 is Month (no delegate needed)
         # Column 1 is Total (bold font)
-        # Columns 2+ are categories (normal font)
+        # Column 2 is Cafe + Food (bold font)
+        # Columns 3+ are categories (normal font)
 
         # Total column (bold)
         total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
         self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
 
+        # Cafe + Food combined column (bold)
+        combined_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
+        self.tableView_reports.setItemDelegateForColumn(2, combined_delegate)
+
         # Category columns (normal font)
-        for col_idx in range(2, model.columnCount()):
+        for col_idx in range(3, model.columnCount()):
             category_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=False)
             self.tableView_reports.setItemDelegateForColumn(col_idx, category_delegate)
 
