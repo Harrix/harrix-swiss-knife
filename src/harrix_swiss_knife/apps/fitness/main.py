@@ -1898,7 +1898,7 @@ class MainWindow(
             table_data = []
             span_info = []
 
-            def _decorate_record_date(date_str: str) -> str:
+            def _decorate_record_date(date_str: str, *, include_last_year_marker: bool = True) -> str:
                 """Decorate record date with recency markers."""
                 if not date_str:
                     return ""
@@ -1915,7 +1915,7 @@ class MainWindow(
 
                 if record_date >= thirty_days_ago:
                     return f"{date_str} ← 🏆LAST 30 DAYS 📅"
-                if record_date >= year_days_ago:
+                if include_last_year_marker and record_date >= year_days_ago:
                     return f"{date_str} ← 🏆LAST 365 DAYS 📅"
 
                 return date_str
@@ -1969,7 +1969,7 @@ class MainWindow(
                         _, _, year_val, year_date = year_entries[i]
                         year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
                         year_val_str = f"{year_val:g}"
-                        year_date_display = _decorate_record_date(year_date)
+                        year_date_display = _decorate_record_date(year_date, include_last_year_marker=False)
                     else:
                         year_val_str = ""
                         year_unit = ""
