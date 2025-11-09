@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from PySide6.QtCore import QDate, Qt
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QPixmap
+from PySide6.QtCore import QDate, Qt, QUrl
+from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QDateEdit,
@@ -490,6 +490,11 @@ class TemplateDialog(QDialog):
         self.widgets: dict[str, QWidget] = {}
         self.field_values: dict[str, str] = {}
         self.links = links or []
+        self._link_qurls: list[QUrl] = []
+        for _, url in self.links:
+            qurl = QUrl(url)
+            if qurl.isValid():
+                self._link_qurls.append(qurl)
 
         self.setWindowTitle(title)
         self.setModal(True)
@@ -690,6 +695,11 @@ class TemplateDialog(QDialog):
         # Default to line edit
         return widget.text() if isinstance(widget, QLineEdit) else ""
 
+    def _open_all_links(self) -> None:
+        """Open all helper links in the default browser."""
+        for qurl in self._link_qurls:
+            QDesktopServices.openUrl(qurl)
+
     def _on_cancel(self) -> None:
         """Handle cancel button click."""
         self.reject()
@@ -724,6 +734,10 @@ class TemplateDialog(QDialog):
                 link_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
                 link_label.setOpenExternalLinks(True)
                 links_layout.addWidget(link_label)
+            if len(self._link_qurls) > 1:
+                open_all_button = QPushButton("Open all")
+                open_all_button.clicked.connect(self._open_all_links)
+                links_layout.addWidget(open_all_button)
             links_layout.addStretch()
             main_layout.addLayout(links_layout)
 
