@@ -14,7 +14,7 @@
   },
   "github_user": "Harrix",
   "markdown_templates": {
-    "Book": {
+    "📖 Book": {
       "insert_position": "start",
       "target_file": "D:/Dropbox/Notes/Notes-Lists/Books/2025.md",
       "template_file": "config/template-book.md",
@@ -23,7 +23,7 @@
         { "label": "Wikipedia (en)", "url": "https://en.wikipedia.org/wiki/Main_Page" }
       ]
     },
-    "Movie": {
+    "🎬 Movie": {
       "insert_position": "end",
       "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
       "template_file": "config/template-movie.md",
@@ -32,7 +32,7 @@
         { "label": "IMDb", "url": "https://www.imdb.com" }
       ]
     },
-    "Movie: series": {
+    "📺 Movie: series": {
       "insert_position": "start",
       "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
       "template_file": "config/template-series.md",
