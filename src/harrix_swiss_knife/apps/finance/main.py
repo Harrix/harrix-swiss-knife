@@ -2627,21 +2627,28 @@ class MainWindow(
         # Sort categories by name for consistent display
         expense_categories.sort(key=lambda x: x[1])
 
-        # Get last 12 months
+        # Determine month range based on available transaction history
         end_date: datetime = datetime.now(tz=datetime.now().astimezone().tzinfo)
-        count_months = 12
+        earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
+
+        if earliest_transaction_date_str:
+            earliest_transaction_date = datetime.strptime(
+                earliest_transaction_date_str, "%Y-%m-%d"
+            ).replace(tzinfo=end_date.tzinfo)
+            month_cursor = earliest_transaction_date.replace(day=1)
+        else:
+            month_cursor = end_date.replace(day=1)
+
+        end_month = end_date.replace(day=1)
 
         # Dictionary to store data: {month_name: {category_id: amount}}
         monthly_data: dict[str, dict[int, float]] = {}
         month_names: list[str] = []
 
-        for i in range(count_months):
-            # Calculate month start and end
-            month_date: datetime = end_date.replace(day=1) - timedelta(days=30 * i)
-            month_start: datetime = month_date.replace(day=1)
+        while month_cursor <= end_month:
+            month_start: datetime = month_cursor
 
             # Calculate last day of month
-            next_month: datetime
             if month_start.month == 12:
                 next_month = month_start.replace(year=month_start.year + 1, month=1)
             else:
@@ -2690,8 +2697,7 @@ class MainWindow(
                 else:
                     monthly_data[month_name][category_id_matched] = amount
 
-        # Reverse to show oldest first
-        month_names.reverse()
+            month_cursor = next_month
 
         # Create model with column headers
         model: QStandardItemModel = QStandardItemModel()
