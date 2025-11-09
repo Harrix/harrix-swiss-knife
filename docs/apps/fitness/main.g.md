@@ -40,6 +40,7 @@ lang: en
   - [⚙️ Method `on_refresh_statistics`](#%EF%B8%8F-method-on_refresh_statistics)
   - [⚙️ Method `on_show_exercise_goal_recommendations`](#%EF%B8%8F-method-on_show_exercise_goal_recommendations)
   - [⚙️ Method `on_show_last_exercises`](#%EF%B8%8F-method-on_show_last_exercises)
+  - [⚙️ Method `on_statistics_exercise_combobox_changed`](#%EF%B8%8F-method-on_statistics_exercise_combobox_changed)
   - [⚙️ Method `on_statistics_selection_changed`](#%EF%B8%8F-method-on_statistics_selection_changed)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
   - [⚙️ Method `on_toggle_show_all_records`](#%EF%B8%8F-method-on_toggle_show_all_records)
@@ -117,6 +118,7 @@ lang: en
   - [⚙️ Method `_schedule_chart_update`](#%EF%B8%8F-method-_schedule_chart_update)
   - [⚙️ Method `_select_exercise_in_chart_list`](#%EF%B8%8F-method-_select_exercise_in_chart_list)
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
+  - [⚙️ Method `_select_exercise_in_statistics_combobox`](#%EF%B8%8F-method-_select_exercise_in_statistics_combobox)
   - [⚙️ Method `_select_last_executed_exercise`](#%EF%B8%8F-method-_select_last_executed_exercise)
   - [⚙️ Method `_set_no_data_info_label`](#%EF%B8%8F-method-_set_no_data_info_label)
   - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
@@ -130,6 +132,7 @@ lang: en
   - [⚙️ Method `_show_weight_context_menu`](#%EF%B8%8F-method-_show_weight_context_menu)
   - [⚙️ Method `_show_yesterday_context_menu`](#%EF%B8%8F-method-_show_yesterday_context_menu)
   - [⚙️ Method `_subtract_one_day_from_main`](#%EF%B8%8F-method-_subtract_one_day_from_main)
+  - [⚙️ Method `_sync_exercise_selection`](#%EF%B8%8F-method-_sync_exercise_selection)
   - [⚙️ Method `_update_chart_based_on_radio_button`](#%EF%B8%8F-method-_update_chart_based_on_radio_button)
   - [⚙️ Method `_update_charts_avif`](#%EF%B8%8F-method-_update_charts_avif)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
@@ -752,16 +755,9 @@ class MainWindow(
         if previous is None:
             previous = QModelIndex()
         self._update_charts_avif()
-
-        # Sync selection with exercises list view
-        if not self._syncing_selection:
-            self._syncing_selection = True
-            try:
-                exercise_name = self._get_selected_chart_exercise()
-                if exercise_name:
-                    self._select_exercise_in_list(exercise_name)
-            finally:
-                self._syncing_selection = False
+        exercise_name = self._get_selected_chart_exercise()
+        if exercise_name:
+            self._sync_exercise_selection(exercise_name, source="chart")
 
     @requires_database()
     def on_chart_type_changed(self, current: QModelIndex | None = None, previous: QModelIndex | None = None) -> None:
@@ -1657,16 +1653,11 @@ class MainWindow(
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
 
-        # Sync selection with chart exercise list view
-        if not self._syncing_selection and exercise:
-            self._syncing_selection = True
-            try:
-                self._select_exercise_in_chart_list(exercise)
-            finally:
-                self._syncing_selection = False
+        if exercise:
+            # Sync selection across widgets
+            self._sync_exercise_selection(exercise, source="list")
 
-        # Move focus to spinBox_count and select all text
-        if exercise:  # Only if exercise was successfully selected
+            # Move focus to spinBox_count and select all text
             QTimer.singleShot(0, self._focus_and_select_spinbox_count)
 
     def on_exercise_type_changed(self, _index: int = -1) -> None:
@@ -2472,6 +2463,12 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
 
+    def on_statistics_exercise_combobox_changed(self, _index: int = -1) -> None:
+        """Handle statistics exercise combobox selection change."""
+        exercise_name = self.comboBox_records_select_exercise.currentText().strip()
+        if exercise_name:
+            self._sync_exercise_selection(exercise_name, source="combo")
+
     def on_statistics_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle statistics table selection change and update AVIF.
 
@@ -2505,7 +2502,8 @@ class MainWindow(
         elif index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
-            self._select_last_executed_exercise()
+            if not self._get_selected_chart_exercise():
+                self._select_last_executed_exercise()
             self._update_charts_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
@@ -2989,6 +2987,7 @@ class MainWindow(
             return
 
         try:
+            previous_exercise = self._get_selected_chart_exercise()
             # Update exercise list view - sort by last execution date
             exercises = self.db_manager.get_exercises_by_last_execution()
 
@@ -3017,8 +3016,11 @@ class MainWindow(
                 selection_model.currentChanged.connect(self.update_chart_type_listview)
                 selection_model.currentChanged.connect(self.on_chart_exercise_changed)
 
-            # Select first item by default
-            if exercise_model.rowCount() > 0:
+            # Restore previous selection if possible, otherwise select the first item
+            if previous_exercise:
+                if not self._select_exercise_in_chart_list(previous_exercise) and exercise_model.rowCount() > 0:
+                    self.listView_chart_exercise.setCurrentIndex(exercise_model.index(0, 0))
+            elif exercise_model.rowCount() > 0:
                 self.listView_chart_exercise.setCurrentIndex(exercise_model.index(0, 0))
 
             # Update type list view
@@ -4315,6 +4317,7 @@ class MainWindow(
         # Statistics exercise combobox
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
+        self.comboBox_records_select_exercise.currentIndexChanged.connect(self.on_statistics_exercise_combobox_changed)
 
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
@@ -5203,28 +5206,18 @@ class MainWindow(
 
                 if last_exercise_name:
                     # Find and select the last executed exercise in the list view
-                    model = self.listView_chart_exercise.model()
-                    if model:
-                        for row in range(model.rowCount()):
-                            if model.data(model.index(row, 0)) == last_exercise_name:
-                                self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                                # Update type list view after selecting exercise
-                                self.update_chart_type_listview()
-                                break
+                    if self._select_exercise_in_chart_list(last_exercise_name):
+                        # Update type list view after selecting exercise
+                        self.update_chart_type_listview()
                 else:
                     # Fallback to Steps exercise if no records found
                     rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
                     if rows:
                         exercise_name = rows[0][0]
                         # Find and select the exercise in the list view
-                        model = self.listView_chart_exercise.model()
-                        if model:
-                            for row in range(model.rowCount()):
-                                if model.data(model.index(row, 0)) == exercise_name:
-                                    self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                                    # Update type list view after selecting exercise
-                                    self.update_chart_type_listview()
-                                    break
+                        if self._select_exercise_in_chart_list(exercise_name):
+                            # Update type list view after selecting exercise
+                            self.update_chart_type_listview()
 
             # Load chart with all time data
             self.set_chart_all_time()
@@ -5607,37 +5600,57 @@ class MainWindow(
 
         self._chart_update_timer.start(delay_ms)
 
-    def _select_exercise_in_chart_list(self, exercise_name: str) -> None:
+    def _select_exercise_in_chart_list(self, exercise_name: str) -> bool:
         """Select an exercise in the chart exercise list view by name.
 
         Args:
 
         - `exercise_name` (`str`): Name of the exercise to select.
 
+        Returns:
+
+        - `bool`: Whether the selection was changed.
+
         """
         if not exercise_name:
-            return
+            return False
 
         model = self.listView_chart_exercise.model()
         if not model:
-            return
+            return False
+
+        target_name = exercise_name.strip()
 
         # Find the item with the matching exercise name
         for row in range(model.rowCount()):
-            if model.data(model.index(row, 0)) == exercise_name:
-                self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                break
+            index = model.index(row, 0)
+            original_name = model.data(index, Qt.UserRole)
+            display_name = model.data(index, Qt.ItemDataRole.DisplayRole)
 
-    def _select_exercise_in_list(self, exercise_name: str) -> None:
+            if original_name == target_name or (original_name is None and display_name == target_name):
+                selection_model = self.listView_chart_exercise.selectionModel()
+                if selection_model:
+                    selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                else:
+                    self.listView_chart_exercise.setCurrentIndex(index)
+                return True
+
+        return False
+
+    def _select_exercise_in_list(self, exercise_name: str) -> bool:
         """Select an exercise in the list view by name.
 
         Args:
 
         - `exercise_name` (`str`): Name of the exercise to select.
 
+        Returns:
+
+        - `bool`: Whether the selection was changed.
+
         """
         if not self.exercises_list_model or not exercise_name:
-            return
+            return False
 
         # Find the item with the matching exercise name
         for row in range(self.exercises_list_model.rowCount()):
@@ -5652,7 +5665,39 @@ class MainWindow(
                     selection_model = self.listView_exercises.selectionModel()
                     if selection_model:
                         selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
-                    break
+                    else:
+                        self.listView_exercises.setCurrentIndex(index)
+                    return True
+
+        return False
+
+    def _select_exercise_in_statistics_combobox(self, exercise_name: str) -> bool:
+        """Select an exercise in the statistics combobox by name.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise to select.
+
+        Returns:
+
+        - `bool`: Whether the selection was changed.
+        """
+        if not exercise_name:
+            return False
+
+        combobox = self.comboBox_records_select_exercise
+        target_index = combobox.findText(exercise_name)
+
+        if target_index < 0 or combobox.currentIndex() == target_index:
+            return False
+
+        combobox.blockSignals(True)
+        try:
+            combobox.setCurrentIndex(target_index)
+        finally:
+            combobox.blockSignals(False)
+
+        return True
 
     def _select_last_executed_exercise(self) -> None:
         """Select the last executed exercise in the chart exercise list view."""
@@ -5668,14 +5713,9 @@ class MainWindow(
 
             if last_exercise_name:
                 # Find and select the last executed exercise in the list view
-                model = self.listView_chart_exercise.model()
-                if model:
-                    for row in range(model.rowCount()):
-                        if model.data(model.index(row, 0)) == last_exercise_name:
-                            self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                            # Update type list view after selecting exercise
-                            self.update_chart_type_listview()
-                            break
+                if self._select_exercise_in_chart_list(last_exercise_name):
+                    # Update type list view after selecting exercise
+                    self.update_chart_type_listview()
         except Exception as e:
             print(f"Error selecting last executed exercise: {e}")
 
@@ -6017,6 +6057,30 @@ class MainWindow(
         current_date = self.dateEdit.date()
         new_date = current_date.addDays(-1)
         self.dateEdit.setDate(new_date)
+
+    def _sync_exercise_selection(self, exercise_name: str, *, source: str) -> None:
+        """Synchronize exercise selection across widgets.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise to synchronize.
+        - `source` (`str`): Identifier of the widget initiating the sync.
+        """
+        if not exercise_name or self._syncing_selection:
+            return
+
+        self._syncing_selection = True
+        try:
+            if source != "list":
+                self._select_exercise_in_list(exercise_name)
+            if source != "chart":
+                self._select_exercise_in_chart_list(exercise_name)
+            if source != "combo":
+                selection_changed = self._select_exercise_in_statistics_combobox(exercise_name)
+                if selection_changed and hasattr(self, "_statistics_initialized"):
+                    self._update_statistics_avif()
+        finally:
+            self._syncing_selection = False
 
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
@@ -6928,16 +6992,9 @@ def on_chart_exercise_changed(
         if previous is None:
             previous = QModelIndex()
         self._update_charts_avif()
-
-        # Sync selection with exercises list view
-        if not self._syncing_selection:
-            self._syncing_selection = True
-            try:
-                exercise_name = self._get_selected_chart_exercise()
-                if exercise_name:
-                    self._select_exercise_in_list(exercise_name)
-            finally:
-                self._syncing_selection = False
+        exercise_name = self._get_selected_chart_exercise()
+        if exercise_name:
+            self._sync_exercise_selection(exercise_name, source="chart")
 ```
 
 </details>
@@ -7921,16 +7978,11 @@ def on_exercise_selection_changed_list(self) -> None:
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
 
-        # Sync selection with chart exercise list view
-        if not self._syncing_selection and exercise:
-            self._syncing_selection = True
-            try:
-                self._select_exercise_in_chart_list(exercise)
-            finally:
-                self._syncing_selection = False
+        if exercise:
+            # Sync selection across widgets
+            self._sync_exercise_selection(exercise, source="list")
 
-        # Move focus to spinBox_count and select all text
-        if exercise:  # Only if exercise was successfully selected
+            # Move focus to spinBox_count and select all text
             QTimer.singleShot(0, self._focus_and_select_spinbox_count)
 ```
 
@@ -8842,6 +8894,26 @@ def on_show_last_exercises(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_statistics_exercise_combobox_changed`
+
+```python
+def on_statistics_exercise_combobox_changed(self, _index: int = -1) -> None
+```
+
+Handle statistics exercise combobox selection change.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_statistics_exercise_combobox_changed(self, _index: int = -1) -> None:
+        exercise_name = self.comboBox_records_select_exercise.currentText().strip()
+        if exercise_name:
+            self._sync_exercise_selection(exercise_name, source="combo")
+```
+
+</details>
+
 ### ⚙️ Method `on_statistics_selection_changed`
 
 ```python
@@ -8896,7 +8968,8 @@ def on_tab_changed(self, index: int) -> None:
         elif index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
-            self._select_last_executed_exercise()
+            if not self._get_selected_chart_exercise():
+                self._select_last_executed_exercise()
             self._update_charts_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
@@ -9581,6 +9654,7 @@ def update_chart_comboboxes(self) -> None:
             return
 
         try:
+            previous_exercise = self._get_selected_chart_exercise()
             # Update exercise list view - sort by last execution date
             exercises = self.db_manager.get_exercises_by_last_execution()
 
@@ -9609,8 +9683,11 @@ def update_chart_comboboxes(self) -> None:
                 selection_model.currentChanged.connect(self.update_chart_type_listview)
                 selection_model.currentChanged.connect(self.on_chart_exercise_changed)
 
-            # Select first item by default
-            if exercise_model.rowCount() > 0:
+            # Restore previous selection if possible, otherwise select the first item
+            if previous_exercise:
+                if not self._select_exercise_in_chart_list(previous_exercise) and exercise_model.rowCount() > 0:
+                    self.listView_chart_exercise.setCurrentIndex(exercise_model.index(0, 0))
+            elif exercise_model.rowCount() > 0:
                 self.listView_chart_exercise.setCurrentIndex(exercise_model.index(0, 0))
 
             # Update type list view
@@ -11119,6 +11196,7 @@ def _connect_signals(self) -> None:
         # Statistics exercise combobox
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
+        self.comboBox_records_select_exercise.currentIndexChanged.connect(self.on_statistics_exercise_combobox_changed)
 
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
@@ -12393,28 +12471,18 @@ def _load_default_exercise_chart(self) -> None:
 
                 if last_exercise_name:
                     # Find and select the last executed exercise in the list view
-                    model = self.listView_chart_exercise.model()
-                    if model:
-                        for row in range(model.rowCount()):
-                            if model.data(model.index(row, 0)) == last_exercise_name:
-                                self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                                # Update type list view after selecting exercise
-                                self.update_chart_type_listview()
-                                break
+                    if self._select_exercise_in_chart_list(last_exercise_name):
+                        # Update type list view after selecting exercise
+                        self.update_chart_type_listview()
                 else:
                     # Fallback to Steps exercise if no records found
                     rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
                     if rows:
                         exercise_name = rows[0][0]
                         # Find and select the exercise in the list view
-                        model = self.listView_chart_exercise.model()
-                        if model:
-                            for row in range(model.rowCount()):
-                                if model.data(model.index(row, 0)) == exercise_name:
-                                    self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                                    # Update type list view after selecting exercise
-                                    self.update_chart_type_listview()
-                                    break
+                        if self._select_exercise_in_chart_list(exercise_name):
+                            # Update type list view after selecting exercise
+                            self.update_chart_type_listview()
 
             # Load chart with all time data
             self.set_chart_all_time()
@@ -12936,7 +13004,7 @@ def _schedule_chart_update(self, delay_ms: int = 50) -> None:
 ### ⚙️ Method `_select_exercise_in_chart_list`
 
 ```python
-def _select_exercise_in_chart_list(self, exercise_name: str) -> None
+def _select_exercise_in_chart_list(self, exercise_name: str) -> bool
 ```
 
 Select an exercise in the chart exercise list view by name.
@@ -12945,23 +13013,39 @@ Args:
 
 - `exercise_name` (`str`): Name of the exercise to select.
 
+Returns:
+
+- `bool`: Whether the selection was changed.
+
 <details>
 <summary>Code:</summary>
 
 ```python
-def _select_exercise_in_chart_list(self, exercise_name: str) -> None:
+def _select_exercise_in_chart_list(self, exercise_name: str) -> bool:
         if not exercise_name:
-            return
+            return False
 
         model = self.listView_chart_exercise.model()
         if not model:
-            return
+            return False
+
+        target_name = exercise_name.strip()
 
         # Find the item with the matching exercise name
         for row in range(model.rowCount()):
-            if model.data(model.index(row, 0)) == exercise_name:
-                self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                break
+            index = model.index(row, 0)
+            original_name = model.data(index, Qt.UserRole)
+            display_name = model.data(index, Qt.ItemDataRole.DisplayRole)
+
+            if original_name == target_name or (original_name is None and display_name == target_name):
+                selection_model = self.listView_chart_exercise.selectionModel()
+                if selection_model:
+                    selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                else:
+                    self.listView_chart_exercise.setCurrentIndex(index)
+                return True
+
+        return False
 ```
 
 </details>
@@ -12969,7 +13053,7 @@ def _select_exercise_in_chart_list(self, exercise_name: str) -> None:
 ### ⚙️ Method `_select_exercise_in_list`
 
 ```python
-def _select_exercise_in_list(self, exercise_name: str) -> None
+def _select_exercise_in_list(self, exercise_name: str) -> bool
 ```
 
 Select an exercise in the list view by name.
@@ -12978,13 +13062,17 @@ Args:
 
 - `exercise_name` (`str`): Name of the exercise to select.
 
+Returns:
+
+- `bool`: Whether the selection was changed.
+
 <details>
 <summary>Code:</summary>
 
 ```python
-def _select_exercise_in_list(self, exercise_name: str) -> None:
+def _select_exercise_in_list(self, exercise_name: str) -> bool:
         if not self.exercises_list_model or not exercise_name:
-            return
+            return False
 
         # Find the item with the matching exercise name
         for row in range(self.exercises_list_model.rowCount()):
@@ -12999,7 +13087,52 @@ def _select_exercise_in_list(self, exercise_name: str) -> None:
                     selection_model = self.listView_exercises.selectionModel()
                     if selection_model:
                         selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
-                    break
+                    else:
+                        self.listView_exercises.setCurrentIndex(index)
+                    return True
+
+        return False
+```
+
+</details>
+
+### ⚙️ Method `_select_exercise_in_statistics_combobox`
+
+```python
+def _select_exercise_in_statistics_combobox(self, exercise_name: str) -> bool
+```
+
+Select an exercise in the statistics combobox by name.
+
+Args:
+
+- `exercise_name` (`str`): Name of the exercise to select.
+
+Returns:
+
+- `bool`: Whether the selection was changed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _select_exercise_in_statistics_combobox(self, exercise_name: str) -> bool:
+        if not exercise_name:
+            return False
+
+        combobox = self.comboBox_records_select_exercise
+        target_index = combobox.findText(exercise_name)
+
+        if target_index < 0 or combobox.currentIndex() == target_index:
+            return False
+
+        combobox.blockSignals(True)
+        try:
+            combobox.setCurrentIndex(target_index)
+        finally:
+            combobox.blockSignals(False)
+
+        return True
 ```
 
 </details>
@@ -13029,14 +13162,9 @@ def _select_last_executed_exercise(self) -> None:
 
             if last_exercise_name:
                 # Find and select the last executed exercise in the list view
-                model = self.listView_chart_exercise.model()
-                if model:
-                    for row in range(model.rowCount()):
-                        if model.data(model.index(row, 0)) == last_exercise_name:
-                            self.listView_chart_exercise.setCurrentIndex(model.index(row, 0))
-                            # Update type list view after selecting exercise
-                            self.update_chart_type_listview()
-                            break
+                if self._select_exercise_in_chart_list(last_exercise_name):
+                    # Update type list view after selecting exercise
+                    self.update_chart_type_listview()
         except Exception as e:
             print(f"Error selecting last executed exercise: {e}")
 ```
@@ -13529,6 +13657,43 @@ def _subtract_one_day_from_main(self) -> None:
         current_date = self.dateEdit.date()
         new_date = current_date.addDays(-1)
         self.dateEdit.setDate(new_date)
+```
+
+</details>
+
+### ⚙️ Method `_sync_exercise_selection`
+
+```python
+def _sync_exercise_selection(self, exercise_name: str) -> None
+```
+
+Synchronize exercise selection across widgets.
+
+Args:
+
+- `exercise_name` (`str`): Name of the exercise to synchronize.
+- `source` (`str`): Identifier of the widget initiating the sync.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _sync_exercise_selection(self, exercise_name: str, *, source: str) -> None:
+        if not exercise_name or self._syncing_selection:
+            return
+
+        self._syncing_selection = True
+        try:
+            if source != "list":
+                self._select_exercise_in_list(exercise_name)
+            if source != "chart":
+                self._select_exercise_in_chart_list(exercise_name)
+            if source != "combo":
+                selection_changed = self._select_exercise_in_statistics_combobox(exercise_name)
+                if selection_changed and hasattr(self, "_statistics_initialized"):
+                    self._update_statistics_avif()
+        finally:
+            self._syncing_selection = False
 ```
 
 </details>

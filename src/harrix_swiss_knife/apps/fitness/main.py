@@ -1600,12 +1600,6 @@ class MainWindow(
             # Unblock signals
             self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
 
-    def on_statistics_exercise_combobox_changed(self, _index: int = -1) -> None:
-        """Handle statistics exercise combobox selection change."""
-        exercise_name = self.comboBox_records_select_exercise.currentText().strip()
-        if exercise_name:
-            self._sync_exercise_selection(exercise_name, source="combo")
-
     def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when exercise type selection changes in the table."""
         index = self.tableView_exercise_types.currentIndex()
@@ -2382,6 +2376,12 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
+
+    def on_statistics_exercise_combobox_changed(self, _index: int = -1) -> None:
+        """Handle statistics exercise combobox selection change."""
+        exercise_name = self.comboBox_records_select_exercise.currentText().strip()
+        if exercise_name:
+            self._sync_exercise_selection(exercise_name, source="combo")
 
     def on_statistics_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle statistics table selection change and update AVIF.
@@ -4231,9 +4231,7 @@ class MainWindow(
         # Statistics exercise combobox
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
-        self.comboBox_records_select_exercise.currentIndexChanged.connect(
-            self.on_statistics_exercise_combobox_changed
-        )
+        self.comboBox_records_select_exercise.currentIndexChanged.connect(self.on_statistics_exercise_combobox_changed)
 
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
@@ -5615,30 +5613,6 @@ class MainWindow(
 
         return True
 
-    def _sync_exercise_selection(self, exercise_name: str, *, source: str) -> None:
-        """Synchronize exercise selection across widgets.
-
-        Args:
-
-        - `exercise_name` (`str`): Name of the exercise to synchronize.
-        - `source` (`str`): Identifier of the widget initiating the sync.
-        """
-        if not exercise_name or self._syncing_selection:
-            return
-
-        self._syncing_selection = True
-        try:
-            if source != "list":
-                self._select_exercise_in_list(exercise_name)
-            if source != "chart":
-                self._select_exercise_in_chart_list(exercise_name)
-            if source != "combo":
-                selection_changed = self._select_exercise_in_statistics_combobox(exercise_name)
-                if selection_changed and hasattr(self, "_statistics_initialized"):
-                    self._update_statistics_avif()
-        finally:
-            self._syncing_selection = False
-
     def _select_last_executed_exercise(self) -> None:
         """Select the last executed exercise in the chart exercise list view."""
         if self.db_manager is None:
@@ -5997,6 +5971,30 @@ class MainWindow(
         current_date = self.dateEdit.date()
         new_date = current_date.addDays(-1)
         self.dateEdit.setDate(new_date)
+
+    def _sync_exercise_selection(self, exercise_name: str, *, source: str) -> None:
+        """Synchronize exercise selection across widgets.
+
+        Args:
+
+        - `exercise_name` (`str`): Name of the exercise to synchronize.
+        - `source` (`str`): Identifier of the widget initiating the sync.
+        """
+        if not exercise_name or self._syncing_selection:
+            return
+
+        self._syncing_selection = True
+        try:
+            if source != "list":
+                self._select_exercise_in_list(exercise_name)
+            if source != "chart":
+                self._select_exercise_in_chart_list(exercise_name)
+            if source != "combo":
+                selection_changed = self._select_exercise_in_statistics_combobox(exercise_name)
+                if selection_changed and hasattr(self, "_statistics_initialized"):
+                    self._update_statistics_avif()
+        finally:
+            self._syncing_selection = False
 
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
