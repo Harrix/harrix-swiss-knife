@@ -237,10 +237,10 @@ class MainWindow(
         self._default_count_sets_font = QFont(base_font)
         self._small_count_sets_font = QFont(base_font)
         if base_font.pointSizeF() > 0:
-            reduced_point_size = max(base_font.pointSizeF() - 2.0, base_font.pointSizeF() * 0.8, 1.0)
+            reduced_point_size = max(base_font.pointSizeF() * 0.4, 1.0)
             self._small_count_sets_font.setPointSizeF(reduced_point_size)
         elif base_font.pixelSize() > 0:
-            reduced_pixel_size = max(base_font.pixelSize() - 4, int(base_font.pixelSize() * 0.8), 1)
+            reduced_pixel_size = max(int(base_font.pixelSize() * 0.4), 1)
             self._small_count_sets_font.setPixelSize(reduced_pixel_size)
         self._is_small_window_layout: bool | None = None
 
@@ -1705,11 +1705,10 @@ class MainWindow(
             current_selection=current_selection,
         )
 
-        dialog_width = max(int(self.width() * 0.95), 1)
-        dialog_height = max(int(self.height() * 0.95), 1)
+        dialog_width = max(int(self.width() * 0.95), preview_size.width())
+        dialog_height = max(int(self.height() * 0.95), preview_size.height())
         dialog.resize(dialog_width, dialog_height)
-        dialog.setMinimumSize(dialog_width, dialog_height)
-        dialog.setMaximumSize(dialog_width, dialog_height)
+        dialog.setMinimumSize(preview_size)
 
         if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
             selected_exercise = dialog.selected_exercise
@@ -4795,18 +4794,14 @@ class MainWindow(
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
-            # If the width is not equal to self.icon_size, add white padding on the sides
-            if scaled_pixmap.width() < self.icon_size:
-                final_pixmap = QPixmap(self.icon_size, self.icon_size)
-                final_pixmap.fill(Qt.GlobalColor.white)
-                painter = QPainter(final_pixmap)
-                x_offset = (self.icon_size - scaled_pixmap.width()) // 2
-                y_offset = (self.icon_size - scaled_pixmap.height()) // 2
-                painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
-                painter.end()
-                icon = QIcon(final_pixmap)
-            else:
-                icon = QIcon(scaled_pixmap)
+            final_pixmap = QPixmap(self.icon_size, self.icon_size)
+            final_pixmap.fill(Qt.GlobalColor.white)
+            painter = QPainter(final_pixmap)
+            x_offset = max((self.icon_size - scaled_pixmap.width()) // 2, 0)
+            y_offset = max((self.icon_size - scaled_pixmap.height()) // 2, 0)
+            painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
+            painter.end()
+            icon = QIcon(final_pixmap)
 
         self._exercise_icon_cache[exercise_name] = (mtime, icon)
         return icon
