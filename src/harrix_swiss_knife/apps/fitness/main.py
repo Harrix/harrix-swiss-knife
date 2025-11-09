@@ -23,7 +23,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QPoint, QSortFilterProxyModel, Qt, QTimer
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QPoint, QSortFilterProxyModel, QSize, Qt, QTimer
 from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
@@ -32,6 +32,7 @@ from PySide6.QtGui import (
     QKeyEvent,
     QMouseEvent,
     QMovie,
+    QPainter,
     QPixmap,
     QResizeEvent,
     QStandardItem,
@@ -131,6 +132,9 @@ class MainWindow(
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
 
+        # Cache of exercise icons keyed by exercise name
+        self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
@@ -143,6 +147,7 @@ class MainWindow(
         # Process table display mode flag
         self.count_records_to_show = 5000
         self.show_all_records = False
+        self.icon_size = 64
 
         # Chart configuration
         self.max_count_points_in_charts = 40
@@ -4585,6 +4590,79 @@ class MainWindow(
 
         return avif_path if avif_path.exists() else None
 
+    def _load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
+        """Load a pixmap from an AVIF file, falling back to Pillow if needed."""
+        pixmap = QPixmap(str(avif_path))
+        if not pixmap.isNull():
+            return pixmap
+
+        try:
+            import pillow_avif  # noqa: F401, PLC0415
+        except ModuleNotFoundError:
+            return None
+
+        try:
+            with Image.open(avif_path) as pil_image:
+                if getattr(pil_image, "is_animated", False):
+                    pil_image.seek(0)
+                frame = pil_image.convert("RGBA")
+                buffer = io.BytesIO()
+                frame.save(buffer, format="PNG")
+                buffer.seek(0)
+                pixmap = QPixmap()
+                pixmap.loadFromData(buffer.getvalue())
+                return pixmap if not pixmap.isNull() else None
+        except Exception as exc:  # pragma: no cover - fallback path
+            print(f"Failed to load AVIF pixmap from {avif_path}: {exc}")
+        return None
+
+    def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
+        """Return a cached icon for the exercise, loading it from AVIF if needed."""
+        if not exercise_name:
+            return None
+
+        cache_entry = self._exercise_icon_cache.get(exercise_name)
+        avif_path = self._get_exercise_avif_path(exercise_name)
+
+        if avif_path is None:
+            if cache_entry is None or cache_entry[0] != -1.0:
+                self._exercise_icon_cache[exercise_name] = (-1.0, None)
+            return None
+
+        try:
+            mtime = avif_path.stat().st_mtime
+        except OSError:
+            self._exercise_icon_cache[exercise_name] = (-1.0, None)
+            return None
+
+        if cache_entry is not None and cache_entry[0] == mtime:
+            return cache_entry[1]
+
+        pixmap = self._load_avif_pixmap(avif_path)
+        icon: QIcon | None = None
+        if pixmap and not pixmap.isNull():
+            scaled_pixmap = pixmap.scaled(
+                self.icon_size,
+                self.icon_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            # If the width is not equal to self.icon_size, add white padding on the sides
+            if scaled_pixmap.width() < self.icon_size:
+                final_pixmap = QPixmap(self.icon_size, self.icon_size)
+                final_pixmap.fill(Qt.GlobalColor.white)
+                painter = QPainter(final_pixmap)
+                x_offset = (self.icon_size - scaled_pixmap.width()) // 2
+                y_offset = (self.icon_size - scaled_pixmap.height()) // 2
+                painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
+                painter.end()
+                icon = QIcon(final_pixmap)
+            else:
+                icon = QIcon(scaled_pixmap)
+
+        self._exercise_icon_cache[exercise_name] = (mtime, icon)
+        return icon
+
     def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
         """Get exercise name by ID.
 
@@ -5057,6 +5135,7 @@ class MainWindow(
         """Initialize the exercises list view with a model and connect signals."""
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
+        self.listView_exercises.setIconSize(QSize(self.icon_size, self.icon_size))
 
         # Disable editing for exercises list
         self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
@@ -6055,6 +6134,10 @@ class MainWindow(
                     # Create display text with goal info if available
                     display_text = f"{exercise} {goal_info}" if goal_info else exercise
                     item = QStandardItem(display_text)
+
+                    icon = self._get_exercise_icon(exercise)
+                    if icon is not None and not icon.isNull():
+                        item.setIcon(icon)
 
                     # Store original exercise name in item data for later retrieval
                     item.setData(exercise, Qt.UserRole)
