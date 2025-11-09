@@ -804,11 +804,19 @@ class DatabaseManager:
         # Get exercises with their last execution date.
         last_execution = self.get_rows(
             """
-            SELECT e._id, e.name, MAX(p.date) as last_date
+            SELECT
+                e._id,
+                e.name,
+                MAX(p.date) AS last_date,
+                MAX(p._id) AS last_process_id
             FROM exercises e
             LEFT JOIN process p ON e._id = p._id_exercises
             GROUP BY e._id, e.name
-            ORDER BY last_date DESC NULLS LAST, e.name ASC
+            ORDER BY
+                (last_process_id IS NULL),
+                last_process_id DESC,
+                last_date DESC,
+                e.name ASC
             """
         )
 
