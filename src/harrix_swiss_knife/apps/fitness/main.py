@@ -1869,10 +1869,17 @@ class MainWindow(
                 self._update_statistics_avif()
                 return
 
-            # Calculate date one year ago
-            one_year_ago = datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(
-                days=365
-            )  # Use local time instead of UTC
+            # Calculate key date boundaries relative to local time
+            local_now = datetime.now().astimezone()
+            today_date = local_now.date()
+            yesterday_date = today_date - timedelta(days=1)
+            thirty_days_ago = today_date - timedelta(days=30)
+            year_days_ago = today_date - timedelta(days=365)
+
+            today = today_date.strftime("%Y-%m-%d")
+            yesterday = yesterday_date.strftime("%Y-%m-%d")
+
+            one_year_ago = local_now - timedelta(days=365)
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Group data by exercise and type combination
@@ -1889,9 +1896,29 @@ class MainWindow(
 
             # Prepare table data
             table_data = []
-            today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
-            yesterday = (QDateTime.currentDateTime().addDays(-1)).toString("yyyy-MM-dd")
             span_info = []
+
+            def _decorate_record_date(date_str: str) -> str:
+                """Decorate record date with recency markers."""
+                if not date_str:
+                    return ""
+
+                if date_str == today:
+                    return f"{date_str} ← 🏆TODAY 📅"
+                if date_str == yesterday:
+                    return f"{date_str} ← 🏆YESTERDAY 📅"
+
+                try:
+                    record_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                except ValueError:
+                    return date_str
+
+                if record_date >= thirty_days_ago:
+                    return f"{date_str} ← 🏆LAST 30 DAYS 📅"
+                if record_date >= year_days_ago:
+                    return f"{date_str} ← 🏆LAST 365 DAYS 📅"
+
+                return date_str
 
             # Define base column colors
             base_column_colors = [
@@ -1930,12 +1957,7 @@ class MainWindow(
                         ex_name, tp_name, val, date = entries[i]
                         unit = self.db_manager.get_exercise_unit(ex_name)
                         val_str = f"{val:g}"
-                        if date == today:
-                            date_display = f"{date} ← 🏆TODAY 📅"
-                        elif date == yesterday:
-                            date_display = f"{date} ← 🏆YESTERDAY 📅"
-                        else:
-                            date_display = date
+                        date_display = _decorate_record_date(date)
                     else:
                         ex_name, tp_name = entries[0][:2] if entries else ("", "")
                         unit = ""
@@ -1947,12 +1969,7 @@ class MainWindow(
                         _, _, year_val, year_date = year_entries[i]
                         year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
                         year_val_str = f"{year_val:g}"
-                        if year_date == today:
-                            year_date_display = f"{year_date} ← 🏆TODAY 📅"
-                        elif year_date == yesterday:
-                            year_date_display = f"{year_date} ← 🏆YESTERDAY 📅"
-                        else:
-                            year_date_display = year_date
+                        year_date_display = _decorate_record_date(year_date)
                     else:
                         year_val_str = ""
                         year_unit = ""
@@ -2027,7 +2044,7 @@ class MainWindow(
                     item.setBackground(QBrush(final_color))
 
                     # For "TODAY" or "YESTERDAY" entries, make text bold
-                    if "TODAY" in str(value) or "YESTERDAY" in str(value):
+                    if any(marker in str(value) for marker in ("TODAY", "YESTERDAY", "LAST 30 DAYS", "LAST 365 DAYS")):
                         font = item.font()
                         font.setBold(True)
                         item.setFont(font)
