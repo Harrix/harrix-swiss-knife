@@ -28,6 +28,7 @@ from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
     QColor,
+    QFont,
     QIcon,
     QKeyEvent,
     QMouseEvent,
@@ -225,6 +226,23 @@ class MainWindow(
         self.count_records_to_show = 5000
         self.show_all_records = False
         self.icon_size = 64
+
+        # Store default UI metrics for responsive adjustments
+        self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
+        self._default_label_exercise_avif_max_height = self.label_exercise_avif.maximumHeight()
+        inferred_height = max(self.label_exercise_avif.height(), self.label_exercise_avif.sizeHint().height(), 1)
+        self._default_label_exercise_avif_height = inferred_height
+
+        base_font = self.label_count_sets_today.font()
+        self._default_count_sets_font = QFont(base_font)
+        self._small_count_sets_font = QFont(base_font)
+        if base_font.pointSizeF() > 0:
+            reduced_point_size = max(base_font.pointSizeF() - 2.0, base_font.pointSizeF() * 0.8, 1.0)
+            self._small_count_sets_font.setPointSizeF(reduced_point_size)
+        elif base_font.pixelSize() > 0:
+            reduced_pixel_size = max(base_font.pixelSize() - 4, int(base_font.pixelSize() * 0.8), 1)
+            self._small_count_sets_font.setPixelSize(reduced_pixel_size)
+        self._is_small_window_layout: bool | None = None
 
         # Chart configuration
         self.max_count_points_in_charts = 40
@@ -4655,6 +4673,7 @@ class MainWindow(
         self.show()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
+        QTimer.singleShot(55, self._update_layout_for_window_size)
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -5694,6 +5713,29 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
+    def _update_layout_for_window_size(self) -> None:
+        """Adjust key widgets based on current window height."""
+        is_small = self.height() < 911
+        if self._is_small_window_layout == is_small:
+            return
+
+        self._is_small_window_layout = is_small
+
+        if is_small:
+            new_height = max(int(self._default_label_exercise_avif_height / 2), 1)
+            self.label_exercise_avif.setMinimumHeight(new_height)
+            self.label_exercise_avif.setMaximumHeight(new_height)
+            self.label_count_sets_today.setFont(self._small_count_sets_font)
+        else:
+            self.label_exercise_avif.setMinimumHeight(self._default_label_exercise_avif_min_height)
+            self.label_exercise_avif.setMaximumHeight(self._default_label_exercise_avif_max_height)
+            self.label_count_sets_today.setFont(self._default_count_sets_font)
+
+        self.label_exercise_avif.updateGeometry()
+        current_exercise = self.avif_data["main"]["exercise"]
+        if current_exercise:
+            self._load_exercise_avif(current_exercise, "main")
+
     def _on_window_resize(self, event: QResizeEvent) -> None:
         """Handle window resize event and adjust table column widths proportionally.
 
@@ -5707,6 +5749,7 @@ class MainWindow(
 
         # Adjust process table column widths based on window size
         self._adjust_process_table_columns()
+        self._update_layout_for_window_size()
 
     def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
         """Refresh a table with data.
