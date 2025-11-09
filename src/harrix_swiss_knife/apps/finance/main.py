@@ -2728,8 +2728,8 @@ class MainWindow(
             if _normalize_category_tokens(name) & combined_category_targets
         }
 
-        # Create rows
-        for month_name in month_names:
+        # Create rows (newest first)
+        for month_name in reversed(month_names):
             row_items: list[QStandardItem] = []
 
             # Month name (no background color)
