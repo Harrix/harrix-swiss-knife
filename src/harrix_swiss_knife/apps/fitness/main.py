@@ -43,11 +43,18 @@ from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
     QListView,
+    QListWidget,
+    QListWidgetItem,
     QMainWindow,
     QMenu,
     QMessageBox,
+    QDialog,
+    QDialogButtonBox,
     QRadioButton,
     QTableView,
+    QVBoxLayout,
+    QWidget,
+    QAbstractItemView,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -66,6 +73,76 @@ if TYPE_CHECKING:
 
 
 config = h.dev.load_config("config/config.json")
+
+
+class ExerciseSelectionDialog(QDialog):
+    """Modal dialog for selecting an exercise via AVIF previews."""
+
+    def __init__(
+        self,
+        parent: QWidget | None,
+        *,
+        exercises: list[str],
+        icon_provider: Callable[[str], QIcon | None],
+        preview_size: QSize,
+        current_selection: str | None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Select Exercise")
+        self.setModal(True)
+        self.selected_exercise: str | None = current_selection
+        self._icon_provider = icon_provider
+
+        layout = QVBoxLayout(self)
+
+        self.list_widget = QListWidget(self)
+        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
+        self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.list_widget.setMovement(QListWidget.Movement.Static)
+        self.list_widget.setSpacing(16)
+        self.list_widget.setIconSize(preview_size)
+        self.list_widget.setWordWrap(True)
+        self.list_widget.setUniformItemSizes(False)
+        layout.addWidget(self.list_widget)
+
+        for exercise in exercises:
+            item = QListWidgetItem(exercise, self.list_widget)
+            item.setData(Qt.ItemDataRole.UserRole, exercise)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+            icon = self._icon_provider(exercise)
+            if icon is not None and not icon.isNull():
+                item.setIcon(icon)
+
+            if current_selection and exercise == current_selection:
+                self.list_widget.setCurrentItem(item)
+
+        self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
+        self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+        button_box.accepted.connect(self._on_accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+    def _on_selection_changed(self) -> None:
+        item = self.list_widget.currentItem()
+        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
+        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
+        self.accept()
+
+    def _on_accept(self) -> None:
+        if self.list_widget.currentItem() is None and self.list_widget.count() > 0:
+            self.list_widget.setCurrentRow(0)
+        self._on_selection_changed()
+
+        if self.selected_exercise:
+            self.accept()
+        else:
+            self.reject()
 
 
 class MainWindow(
@@ -1578,6 +1655,57 @@ class MainWindow(
 
             # Move focus to spinBox_count and select all text
             QTimer.singleShot(0, self._focus_and_select_spinbox_count)
+
+    def on_select_exercise_button_clicked(self) -> None:
+        """Open a modal dialog to select an exercise with AVIF previews."""
+        if not self._validate_database_connection() or self.db_manager is None:
+            QMessageBox.warning(self, "Database Error", "Database connection is not available.")
+            return
+
+        try:
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+        except Exception as exc:
+            QMessageBox.warning(self, "Database Error", f"Failed to load exercises: {exc}")
+            return
+
+        if not exercises:
+            QMessageBox.information(self, "No Exercises", "No exercises are available to select.")
+            return
+
+        label_height = self.label_exercise_avif.height()
+        preview_edge = label_height if label_height > 0 else 0
+        preview_edge = max(min(preview_edge, 512), 160)
+        preview_size = QSize(preview_edge, preview_edge)
+
+        current_selection = self._get_current_selected_exercise()
+
+        dialog = ExerciseSelectionDialog(
+            self,
+            exercises=exercises,
+            icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
+            preview_size=preview_size,
+            current_selection=current_selection,
+        )
+
+        dialog_width = max(int(self.width() * 0.95), 1)
+        dialog_height = max(int(self.height() * 0.95), 1)
+        dialog.resize(dialog_width, dialog_height)
+        dialog.setMinimumSize(dialog_width, dialog_height)
+        dialog.setMaximumSize(dialog_width, dialog_height)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
+            selected_exercise = dialog.selected_exercise
+            if not self._select_exercise_in_list(selected_exercise):
+                self._update_comboboxes(selected_exercise=selected_exercise)
+
+            selection_model = self.listView_exercises.selectionModel()
+            if selection_model:
+                current_index = selection_model.currentIndex()
+                if current_index.isValid():
+                    self.listView_exercises.scrollTo(
+                        current_index,
+                        QAbstractItemView.ScrollHint.PositionAtCenter,
+                    )
 
     def on_exercise_type_changed(self, _index: int = -1) -> None:
         """Handle exercise type combobox selection change and sync with statistics.
@@ -4187,6 +4315,7 @@ class MainWindow(
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
+        self.pushButton_select_exercise.clicked.connect(self.on_select_exercise_button_clicked)
 
         # Add context menu for yesterday button
         self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -4662,6 +4791,36 @@ class MainWindow(
 
         self._exercise_icon_cache[exercise_name] = (mtime, icon)
         return icon
+
+    def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None:
+        """Create a preview-sized icon for the exercise."""
+        avif_path = self._get_exercise_avif_path(exercise_name)
+        if avif_path is None:
+            return None
+
+        pixmap = self._load_avif_pixmap(avif_path)
+        if pixmap is None or pixmap.isNull():
+            return None
+
+        scaled_pixmap = pixmap.scaled(
+            target_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        if scaled_pixmap.isNull():
+            return None
+
+        final_pixmap = QPixmap(target_size)
+        final_pixmap.fill(Qt.GlobalColor.white)
+
+        painter = QPainter(final_pixmap)
+        x_offset = max((target_size.width() - scaled_pixmap.width()) // 2, 0)
+        y_offset = max((target_size.height() - scaled_pixmap.height()) // 2, 0)
+        painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
+        painter.end()
+
+        return QIcon(final_pixmap)
 
     def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
         """Get exercise name by ID.
