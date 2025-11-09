@@ -2729,11 +2729,17 @@ class MainWindow(
         }
 
         # Create rows (newest first)
+        current_year_prefix = datetime.now(tz=end_date.tzinfo).strftime("%Y-")
+
         for month_name in reversed(month_names):
             row_items: list[QStandardItem] = []
 
             # Month name (no background color)
             month_item = QStandardItem(month_name)
+            if month_name.startswith(current_year_prefix):
+                font = month_item.font()
+                font.setBold(True)
+                month_item.setFont(font)
             row_items.append(month_item)
 
             # Calculate total first
@@ -2745,6 +2751,7 @@ class MainWindow(
             # Total for the month (light gray background) - add as second column
             total_item = QStandardItem(f"{month_total:.2f}")
             total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            total_item.setData(month_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
 
             # Combined Cafe + Food column (light yellow background)
@@ -2754,6 +2761,7 @@ class MainWindow(
 
             combined_item = QStandardItem(f"{combined_total:.2f}")
             combined_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
+            combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
             row_items.append(combined_item)
 
             # Category amounts with colors
@@ -2763,6 +2771,7 @@ class MainWindow(
                 item = QStandardItem(f"{amount:.2f}")
                 # Set background color for this category
                 item.setBackground(QBrush(category_colors[idx]))
+                item.setData(amount, Qt.ItemDataRole.UserRole)
                 row_items.append(item)
 
             model.appendRow(row_items)
@@ -2773,6 +2782,7 @@ class MainWindow(
         self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tableView_reports.setSortingEnabled(True)
         self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+        model.setSortRole(Qt.ItemDataRole.UserRole)
 
         # Set up amount delegates for all monetary columns (Total and all categories)
         # Column 0 is Month (no delegate needed)
