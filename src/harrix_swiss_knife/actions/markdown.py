@@ -27,6 +27,7 @@ class OnAddMarkdownFromTemplate(ActionBase):
     5. Either returns the markdown text or inserts it into a specified file
 
     Supported field types:
+
     - line: Single-line text input
     - int: Integer number (e.g., season number)
     - float: Floating-point number (e.g., ratings)
@@ -89,10 +90,26 @@ class OnAddMarkdownFromTemplate(ActionBase):
             self.show_result()
             return
 
+        dialog_links_config = template_config.get("dialog_links", [])
+        dialog_links: list[tuple[str, str]] = []
+
+        for item in dialog_links_config:
+            if isinstance(item, dict):
+                url = item.get("url", "").strip()
+                if not url:
+                    continue
+                label = item.get("label", url).strip() or url
+                dialog_links.append((label, url))
+            elif isinstance(item, str):
+                cleaned = item.strip()
+                if cleaned:
+                    dialog_links.append((cleaned, cleaned))
+
         # Show dialog to collect field values
         dialog = TemplateDialog(
             fields=fields,
             title=f"Add {selected_template.capitalize()}",
+            links=dialog_links,
         )
 
         if dialog.exec() != dialog.DialogCode.Accepted:
