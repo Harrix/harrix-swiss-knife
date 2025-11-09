@@ -19,8 +19,8 @@
       "target_file": "D:/Dropbox/Notes/Notes-Lists/Books/2025.md",
       "template_file": "config/template-book.md",
       "dialog_links": [
-        { "label": "Fantlab", "url": "https://fantlab.ru/" },
-        { "label": "Wikipedia (en)", "url": "https://en.wikipedia.org/wiki/Main_Page" }
+        { "label": "Wikipedia (en)", "url": "https://en.wikipedia.org/wiki/Main_Page" },
+        { "label": "Fantlab", "url": "https://fantlab.ru/" }
       ]
     },
     "🎬 Movie": {
@@ -28,8 +28,8 @@
       "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
       "template_file": "config/template-movie.md",
       "dialog_links": [
-         { "label": "Kinopoisk", "url": "https://www.kinopoisk.ru" },
-        { "label": "IMDb", "url": "https://www.imdb.com" }
+        { "label": "IMDb", "url": "https://www.imdb.com" },
+        { "label": "Kinopoisk", "url": "https://www.kinopoisk.ru" }
       ]
     },
     "📺 Movie: series": {
@@ -37,8 +37,8 @@
       "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
       "template_file": "config/template-series.md",
       "dialog_links": [
-        { "label": "Kinopoisk", "url": "https://www.kinopoisk.ru" },
-        { "label": "IMDb", "url": "https://www.imdb.com" }
+        { "label": "IMDb", "url": "https://www.imdb.com" },
+        { "label": "Kinopoisk", "url": "https://www.kinopoisk.ru" }
       ]
     }
   },

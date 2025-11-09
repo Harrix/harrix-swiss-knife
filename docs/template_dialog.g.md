@@ -62,6 +62,7 @@ lang: en
   - [⚙️ Method `_get_widget_value`](#%EF%B8%8F-method-_get_widget_value)
   - [⚙️ Method `_on_cancel`](#%EF%B8%8F-method-_on_cancel)
   - [⚙️ Method `_on_ok`](#%EF%B8%8F-method-_on_ok)
+  - [⚙️ Method `_open_all_links`](#%EF%B8%8F-method-_open_all_links)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui-4)
 - [🏛️ Class `TemplateField`](#%EF%B8%8F-class-templatefield)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-5)
@@ -1562,6 +1563,11 @@ class TemplateDialog(QDialog):
         self.widgets: dict[str, QWidget] = {}
         self.field_values: dict[str, str] = {}
         self.links = links or []
+        self._link_qurls: list[QUrl] = []
+        for _, url in self.links:
+            qurl = QUrl(url)
+            if qurl.isValid():
+                self._link_qurls.append(qurl)
 
         self.setWindowTitle(title)
         self.setModal(True)
@@ -1778,6 +1784,11 @@ class TemplateDialog(QDialog):
 
         self.accept()
 
+    def _open_all_links(self) -> None:
+        """Open all helper links in the default browser."""
+        for qurl in self._link_qurls:
+            QDesktopServices.openUrl(qurl)
+
     def _setup_ui(self) -> None:
         """Set up the user interface."""
         main_layout = QVBoxLayout()
@@ -1796,6 +1807,10 @@ class TemplateDialog(QDialog):
                 link_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
                 link_label.setOpenExternalLinks(True)
                 links_layout.addWidget(link_label)
+            if len(self._link_qurls) > 1:
+                open_all_button = QPushButton("Open all")
+                open_all_button.clicked.connect(self._open_all_links)
+                links_layout.addWidget(open_all_button)
             links_layout.addStretch()
             main_layout.addLayout(links_layout)
 
@@ -1877,6 +1892,11 @@ def __init__(
         self.widgets: dict[str, QWidget] = {}
         self.field_values: dict[str, str] = {}
         self.links = links or []
+        self._link_qurls: list[QUrl] = []
+        for _, url in self.links:
+            qurl = QUrl(url)
+            if qurl.isValid():
+                self._link_qurls.append(qurl)
 
         self.setWindowTitle(title)
         self.setModal(True)
@@ -2160,6 +2180,25 @@ def _on_ok(self) -> None:
 
 </details>
 
+### ⚙️ Method `_open_all_links`
+
+```python
+def _open_all_links(self) -> None
+```
+
+Open all helper links in the default browser.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _open_all_links(self) -> None:
+        for qurl in self._link_qurls:
+            QDesktopServices.openUrl(qurl)
+```
+
+</details>
+
 ### ⚙️ Method `_setup_ui`
 
 ```python
@@ -2189,6 +2228,10 @@ def _setup_ui(self) -> None:
                 link_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
                 link_label.setOpenExternalLinks(True)
                 links_layout.addWidget(link_label)
+            if len(self._link_qurls) > 1:
+                open_all_button = QPushButton("Open all")
+                open_all_button.clicked.connect(self._open_all_links)
+                links_layout.addWidget(open_all_button)
             links_layout.addStretch()
             main_layout.addLayout(links_layout)
 

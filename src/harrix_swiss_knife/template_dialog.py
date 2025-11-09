@@ -695,11 +695,6 @@ class TemplateDialog(QDialog):
         # Default to line edit
         return widget.text() if isinstance(widget, QLineEdit) else ""
 
-    def _open_all_links(self) -> None:
-        """Open all helper links in the default browser."""
-        for qurl in self._link_qurls:
-            QDesktopServices.openUrl(qurl)
-
     def _on_cancel(self) -> None:
         """Handle cancel button click."""
         self.reject()
@@ -715,6 +710,11 @@ class TemplateDialog(QDialog):
                 self.field_values[field.name] = value
 
         self.accept()
+
+    def _open_all_links(self) -> None:
+        """Open all helper links in the default browser."""
+        for qurl in self._link_qurls:
+            QDesktopServices.openUrl(qurl)
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
