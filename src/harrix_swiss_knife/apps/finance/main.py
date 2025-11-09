@@ -155,6 +155,9 @@ class MainWindow(
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False
 
+        # Track whether account double-click handler is connected
+        self._account_double_click_connected: bool = False
+
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show: int = 1000
         self.count_exchange_rates_to_show: int = 1000
@@ -3014,16 +3017,16 @@ class MainWindow(
         # Make accounts table non-editable and connect double-click signal
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
 
-        # Disconnect existing signal to prevent multiple connections
-        try:
-            with contextlib.suppress(TypeError):
+        # Reconnect double-click signal only when previously connected
+        if self._account_double_click_connected:
+            try:
                 self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
-        except TypeError:
-            # Signal was not connected, which is fine
-            pass
+            except (TypeError, RuntimeError):
+                pass
+            self._account_double_click_connected = False
 
-        # Connect double-click signal
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
+        self._account_double_click_connected = True
 
         # Configure column stretching for accounts table
         accounts_header = self.tableView_accounts.horizontalHeader()
