@@ -2771,6 +2771,8 @@ class MainWindow(
 
         # Disable editing for reports table
         self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tableView_reports.setSortingEnabled(True)
+        self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
 
         # Set up amount delegates for all monetary columns (Total and all categories)
         # Column 0 is Month (no delegate needed)
