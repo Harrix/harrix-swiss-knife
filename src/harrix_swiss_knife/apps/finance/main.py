@@ -2627,11 +2627,6 @@ class MainWindow(
         # Sort categories by name for consistent display
         expense_categories.sort(key=lambda x: x[1])
 
-        # Build helper lookup maps for category names
-        category_name_casefold_to_id: dict[str, int] = {
-            name.casefold(): category_id for name, category_id in category_name_to_id.items()
-        }
-
         # Determine month range based on available transaction history
         end_date: datetime = datetime.now(tz=datetime.now().astimezone().tzinfo)
         earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
@@ -2721,11 +2716,16 @@ class MainWindow(
             category_colors.append(color)
 
         # Pre-calculate category IDs for Cafe and Food (case-insensitive match)
-        combined_category_targets = ("cafe", "food")
+        combined_category_targets = {"cafe", "food"}
+
+        def _normalize_category_tokens(name: str) -> set[str]:
+            cleaned = "".join(ch if ch.isalnum() else " " for ch in name)
+            return {token for token in cleaned.casefold().split() if token}
+
         combined_category_ids: set[int] = {
-            category_name_casefold_to_id[target]
-            for target in combined_category_targets
-            if target in category_name_casefold_to_id
+            category_id
+            for name, category_id in category_name_to_id.items()
+            if _normalize_category_tokens(name) & combined_category_targets
         }
 
         # Create rows
