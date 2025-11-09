@@ -13,6 +13,7 @@ import contextlib
 import io
 import sys
 from collections import defaultdict
+import math
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from pathlib import Path
@@ -4908,23 +4909,31 @@ class MainWindow(
         if not monthly_data or not any(month_data for month_data in monthly_data):
             return ""
 
+        def _monthly_total(data: list[tuple]) -> float:
+            return sum(float(value) for _, value in data) if data else 0.0
+
         # Find the maximum final value from all months
         max_value = 0.0
         for month_data in monthly_data:
-            if month_data:
-                # Calculate cumulative sum for this month
-                cumulative = 0.0
-                for _, value in month_data:
-                    cumulative += float(value)
-                if cumulative > max_value:
-                    max_value = cumulative
+            total = _monthly_total(month_data)
+            if total > max_value:
+                max_value = total
 
-        if max_value <= 0:
-            return ""
-
-        # Get current month progress
         current_month_data = monthly_data[0] if monthly_data else []
-        current_progress = sum(float(value) for _, value in current_month_data)
+        current_progress = _monthly_total(current_month_data)
+
+        target_value = max_value
+        if exercise_id == self.id_steps or exercise.strip().lower() == "oculus move":
+            if len(monthly_data) > 1:
+                target_value = _monthly_total(monthly_data[1])
+            else:
+                target_value = current_progress
+
+            if target_value <= 0:
+                target_value = max_value
+
+        if target_value <= 0:
+            return ""
 
         # Get today's progress
         today_progress = self.db_manager.get_exercise_total_today(exercise_id)
@@ -4935,10 +4944,10 @@ class MainWindow(
         total_days_including_current = remaining_days + 1
 
         # Calculate daily needed
-        remaining_to_max = max_value - current_progress
-        if total_days_including_current > 0 and remaining_to_max > 0:
-            daily_needed = remaining_to_max / total_days_including_current
-            daily_needed_rounded = int(daily_needed) + (1 if daily_needed % 1 > 0 else 0)
+        remaining_to_goal = target_value - current_progress
+        if total_days_including_current > 0 and remaining_to_goal > 0:
+            daily_needed = remaining_to_goal / total_days_including_current
+            daily_needed_rounded = math.ceil(daily_needed)
 
             # Calculate remaining for today
             remaining_for_today = daily_needed_rounded - today_progress
@@ -4949,7 +4958,7 @@ class MainWindow(
             else:
                 # Goal achieved - show checkmark and completed amount
                 return f"✅ ({int(today_progress)})"
-        elif remaining_to_max <= 0:
+        elif remaining_to_goal <= 0:
             # Max goal already achieved
             return f"✅ ({int(today_progress)})"
 
