@@ -22,6 +22,7 @@ from PySide6.QtCore import (
     QDate,
     QDateTime,
     QEvent,
+    QItemSelectionModel,
     QModelIndex,
     QObject,
     QPoint,
@@ -4391,6 +4392,10 @@ class MainWindow(
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
 
+        # Enable category selection via label context menu
+        self.label_category_now.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.label_category_now.customContextMenuRequested.connect(self._show_category_label_context_menu)
+
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
@@ -4473,6 +4478,44 @@ class MainWindow(
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
         layout.addWidget(label)
+
+    def _show_category_label_context_menu(self, position: QPoint) -> None:
+        """Show context menu on the category label with all available categories."""
+        model = self.listView_categories.model()
+        if model is None or model.rowCount() == 0:
+            return
+
+        context_menu = QMenu(self)
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+            display_text = model.data(index, Qt.ItemDataRole.DisplayRole)
+            if not display_text:
+                continue
+            action = context_menu.addAction(display_text)
+            action.setData(row)
+
+        if context_menu.isEmpty():
+            return
+
+        selected_action = context_menu.exec(self.label_category_now.mapToGlobal(position))
+        if selected_action is None:
+            return
+
+        row_data = selected_action.data()
+        if not isinstance(row_data, int):
+            return
+
+        index = model.index(row_data, 0)
+        if not index.isValid():
+            return
+
+        self.listView_categories.setCurrentIndex(index)
+        selection_model = self.listView_categories.selectionModel()
+        if selection_model:
+            selection_model.setCurrentIndex(
+                index,
+                QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
+            )
 
     def _show_transactions_context_menu(self, position: QPoint) -> None:
         """Show context menu for transactions table.
