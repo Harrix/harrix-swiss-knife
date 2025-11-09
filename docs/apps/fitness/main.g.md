@@ -11,8 +11,13 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+- [🏛️ Class `ExerciseSelectionDialog`](#%EF%B8%8F-class-exerciseselectiondialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `_on_accept`](#%EF%B8%8F-method-_on_accept)
+  - [⚙️ Method `_on_item_double_clicked`](#%EF%B8%8F-method-_on_item_double_clicked)
+  - [⚙️ Method `_on_selection_changed`](#%EF%B8%8F-method-_on_selection_changed)
+- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
@@ -38,6 +43,7 @@ lang: en
   - [⚙️ Method `on_process_selection_changed`](#%EF%B8%8F-method-on_process_selection_changed)
   - [⚙️ Method `on_radio_button_changed`](#%EF%B8%8F-method-on_radio_button_changed)
   - [⚙️ Method `on_refresh_statistics`](#%EF%B8%8F-method-on_refresh_statistics)
+  - [⚙️ Method `on_select_exercise_button_clicked`](#%EF%B8%8F-method-on_select_exercise_button_clicked)
   - [⚙️ Method `on_show_exercise_goal_recommendations`](#%EF%B8%8F-method-on_show_exercise_goal_recommendations)
   - [⚙️ Method `on_show_last_exercises`](#%EF%B8%8F-method-on_show_last_exercises)
   - [⚙️ Method `on_statistics_exercise_combobox_changed`](#%EF%B8%8F-method-on_statistics_exercise_combobox_changed)
@@ -87,7 +93,9 @@ lang: en
   - [⚙️ Method `_focus_and_select_spinbox_count`](#%EF%B8%8F-method-_focus_and_select_spinbox_count)
   - [⚙️ Method `_get_current_selected_exercise`](#%EF%B8%8F-method-_get_current_selected_exercise)
   - [⚙️ Method `_get_exercise_avif_path`](#%EF%B8%8F-method-_get_exercise_avif_path)
+  - [⚙️ Method `_get_exercise_icon`](#%EF%B8%8F-method-_get_exercise_icon)
   - [⚙️ Method `_get_exercise_name_by_id`](#%EF%B8%8F-method-_get_exercise_name_by_id)
+  - [⚙️ Method `_get_exercise_preview_icon`](#%EF%B8%8F-method-_get_exercise_preview_icon)
   - [⚙️ Method `_get_exercise_today_goal_info`](#%EF%B8%8F-method-_get_exercise_today_goal_info)
   - [⚙️ Method `_get_first_day_without_steps_record`](#%EF%B8%8F-method-_get_first_day_without_steps_record)
   - [⚙️ Method `_get_last_weight`](#%EF%B8%8F-method-_get_last_weight)
@@ -104,6 +112,7 @@ lang: en
   - [⚙️ Method `_init_sets_count_display`](#%EF%B8%8F-method-_init_sets_count_display)
   - [⚙️ Method `_init_weight_chart_controls`](#%EF%B8%8F-method-_init_weight_chart_controls)
   - [⚙️ Method `_init_weight_controls`](#%EF%B8%8F-method-_init_weight_controls)
+  - [⚙️ Method `_load_avif_pixmap`](#%EF%B8%8F-method-_load_avif_pixmap)
   - [⚙️ Method `_load_default_exercise_chart`](#%EF%B8%8F-method-_load_default_exercise_chart)
   - [⚙️ Method `_load_default_statistics`](#%EF%B8%8F-method-_load_default_statistics)
   - [⚙️ Method `_load_exercise_avif`](#%EF%B8%8F-method-_load_exercise_avif)
@@ -138,9 +147,219 @@ lang: en
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_update_exercises_avif`](#%EF%B8%8F-method-_update_exercises_avif)
   - [⚙️ Method `_update_form_from_process_selection`](#%EF%B8%8F-method-_update_form_from_process_selection)
+  - [⚙️ Method `_update_layout_for_window_size`](#%EF%B8%8F-method-_update_layout_for_window_size)
   - [⚙️ Method `_update_statistics_avif`](#%EF%B8%8F-method-_update_statistics_avif)
   - [⚙️ Method `_update_types_avif`](#%EF%B8%8F-method-_update_types_avif)
   - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
+
+</details>
+
+## 🏛️ Class `ExerciseSelectionDialog`
+
+```python
+class ExerciseSelectionDialog(QDialog)
+```
+
+Modal dialog for selecting an exercise via AVIF previews.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ExerciseSelectionDialog(QDialog):
+
+    def __init__(
+        self,
+        parent: QWidget | None,
+        *,
+        exercises: list[str],
+        icon_provider: Callable[[str], QIcon | None],
+        preview_size: QSize,
+        current_selection: str | None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Select Exercise")
+        self.setModal(True)
+        self.selected_exercise: str | None = current_selection
+        self._icon_provider = icon_provider
+
+        layout = QVBoxLayout(self)
+
+        self.list_widget = QListWidget(self)
+        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
+        self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.list_widget.setMovement(QListWidget.Movement.Static)
+        self.list_widget.setSpacing(16)
+        self.list_widget.setIconSize(preview_size)
+        self.list_widget.setWordWrap(True)
+        self.list_widget.setUniformItemSizes(False)
+        layout.addWidget(self.list_widget)
+
+        for exercise in exercises:
+            item = QListWidgetItem(exercise, self.list_widget)
+            item.setData(Qt.ItemDataRole.UserRole, exercise)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+            icon = self._icon_provider(exercise)
+            if icon is not None and not icon.isNull():
+                item.setIcon(icon)
+
+            if current_selection and exercise == current_selection:
+                self.list_widget.setCurrentItem(item)
+
+        self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
+        self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+        button_box.accepted.connect(self._on_accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+    def _on_accept(self) -> None:
+        if self.list_widget.currentItem() is None and self.list_widget.count() > 0:
+            self.list_widget.setCurrentRow(0)
+        self._on_selection_changed()
+
+        if self.selected_exercise:
+            self.accept()
+        else:
+            self.reject()
+
+    def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
+        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
+        self.accept()
+
+    def _on_selection_changed(self) -> None:
+        item = self.list_widget.currentItem()
+        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        parent: QWidget | None,
+        *,
+        exercises: list[str],
+        icon_provider: Callable[[str], QIcon | None],
+        preview_size: QSize,
+        current_selection: str | None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Select Exercise")
+        self.setModal(True)
+        self.selected_exercise: str | None = current_selection
+        self._icon_provider = icon_provider
+
+        layout = QVBoxLayout(self)
+
+        self.list_widget = QListWidget(self)
+        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
+        self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.list_widget.setMovement(QListWidget.Movement.Static)
+        self.list_widget.setSpacing(16)
+        self.list_widget.setIconSize(preview_size)
+        self.list_widget.setWordWrap(True)
+        self.list_widget.setUniformItemSizes(False)
+        layout.addWidget(self.list_widget)
+
+        for exercise in exercises:
+            item = QListWidgetItem(exercise, self.list_widget)
+            item.setData(Qt.ItemDataRole.UserRole, exercise)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+            icon = self._icon_provider(exercise)
+            if icon is not None and not icon.isNull():
+                item.setIcon(icon)
+
+            if current_selection and exercise == current_selection:
+                self.list_widget.setCurrentItem(item)
+
+        self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
+        self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+        button_box.accepted.connect(self._on_accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+```
+
+</details>
+
+### ⚙️ Method `_on_accept`
+
+```python
+def _on_accept(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_accept(self) -> None:
+        if self.list_widget.currentItem() is None and self.list_widget.count() > 0:
+            self.list_widget.setCurrentRow(0)
+        self._on_selection_changed()
+
+        if self.selected_exercise:
+            self.accept()
+        else:
+            self.reject()
+```
+
+</details>
+
+### ⚙️ Method `_on_item_double_clicked`
+
+```python
+def _on_item_double_clicked(self, item: QListWidgetItem) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
+        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
+        self.accept()
+```
+
+</details>
+
+### ⚙️ Method `_on_selection_changed`
+
+```python
+def _on_selection_changed(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_selection_changed(self) -> None:
+        item = self.list_widget.currentItem()
+        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
+```
 
 </details>
 
@@ -217,6 +436,9 @@ class MainWindow(
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
 
+        # Cache of exercise icons keyed by exercise name
+        self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
@@ -229,6 +451,24 @@ class MainWindow(
         # Process table display mode flag
         self.count_records_to_show = 5000
         self.show_all_records = False
+        self.icon_size = 64
+
+        # Store default UI metrics for responsive adjustments
+        self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
+        self._default_label_exercise_avif_max_height = self.label_exercise_avif.maximumHeight()
+        inferred_height = max(self.label_exercise_avif.height(), self.label_exercise_avif.sizeHint().height(), 1)
+        self._default_label_exercise_avif_height = inferred_height
+
+        base_font = self.label_count_sets_today.font()
+        self._default_count_sets_font = QFont(base_font)
+        self._small_count_sets_font = QFont(base_font)
+        if base_font.pointSizeF() > 0:
+            reduced_point_size = max(base_font.pointSizeF() * 0.4, 1.0)
+            self._small_count_sets_font.setPointSizeF(reduced_point_size)
+        elif base_font.pixelSize() > 0:
+            reduced_pixel_size = max(int(base_font.pixelSize() * 0.4), 1)
+            self._small_count_sets_font.setPixelSize(reduced_pixel_size)
+        self._is_small_window_layout: bool | None = None
 
         # Chart configuration
         self.max_count_points_in_charts = 40
@@ -2109,6 +2349,56 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
+
+    def on_select_exercise_button_clicked(self) -> None:
+        """Open a modal dialog to select an exercise with AVIF previews."""
+        if not self._validate_database_connection() or self.db_manager is None:
+            QMessageBox.warning(self, "Database Error", "Database connection is not available.")
+            return
+
+        try:
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+        except Exception as exc:
+            QMessageBox.warning(self, "Database Error", f"Failed to load exercises: {exc}")
+            return
+
+        if not exercises:
+            QMessageBox.information(self, "No Exercises", "No exercises are available to select.")
+            return
+
+        label_height = self.label_exercise_avif.height()
+        preview_edge = label_height if label_height > 0 else 0
+        preview_edge = max(min(preview_edge, 512), 160)
+        preview_size = QSize(preview_edge, preview_edge)
+
+        current_selection = self._get_current_selected_exercise()
+
+        dialog = ExerciseSelectionDialog(
+            self,
+            exercises=exercises,
+            icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
+            preview_size=preview_size,
+            current_selection=current_selection,
+        )
+
+        dialog_width = max(int(self.width() * 0.95), preview_size.width())
+        dialog_height = max(int(self.height() * 0.95), preview_size.height())
+        dialog.resize(dialog_width, dialog_height)
+        dialog.setMinimumSize(preview_size)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
+            selected_exercise = dialog.selected_exercise
+            if not self._select_exercise_in_list(selected_exercise):
+                self._update_comboboxes(selected_exercise=selected_exercise)
+
+            selection_model = self.listView_exercises.selectionModel()
+            if selection_model:
+                current_index = selection_model.currentIndex()
+                if current_index.isValid():
+                    self.listView_exercises.scrollTo(
+                        current_index,
+                        QAbstractItemView.ScrollHint.PositionAtCenter,
+                    )
 
     def on_show_exercise_goal_recommendations(self) -> None:
         """Show exercise goal recommendations for all exercises in the statistics table.
@@ -4268,6 +4558,7 @@ class MainWindow(
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
+        self.pushButton_select_exercise.clicked.connect(self.on_select_exercise_button_clicked)
 
         # Add context menu for yesterday button
         self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -4607,6 +4898,7 @@ class MainWindow(
         self.show()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
+        QTimer.singleShot(55, self._update_layout_for_window_size)
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -4671,6 +4963,49 @@ class MainWindow(
 
         return avif_path if avif_path.exists() else None
 
+    def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
+        """Return a cached icon for the exercise, loading it from AVIF if needed."""
+        if not exercise_name:
+            return None
+
+        cache_entry = self._exercise_icon_cache.get(exercise_name)
+        avif_path = self._get_exercise_avif_path(exercise_name)
+
+        if avif_path is None:
+            if cache_entry is None or cache_entry[0] != -1.0:
+                self._exercise_icon_cache[exercise_name] = (-1.0, None)
+            return None
+
+        try:
+            mtime = avif_path.stat().st_mtime
+        except OSError:
+            self._exercise_icon_cache[exercise_name] = (-1.0, None)
+            return None
+
+        if cache_entry is not None and cache_entry[0] == mtime:
+            return cache_entry[1]
+
+        pixmap = self._load_avif_pixmap(avif_path)
+        icon: QIcon | None = None
+        if pixmap and not pixmap.isNull():
+            scaled_pixmap = pixmap.scaled(
+                self.icon_size,
+                self.icon_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            final_pixmap = QPixmap(self.icon_size, self.icon_size)
+            final_pixmap.fill(Qt.GlobalColor.white)
+            painter = QPainter(final_pixmap)
+            x_offset = max((self.icon_size - scaled_pixmap.width()) // 2, 0)
+            y_offset = max((self.icon_size - scaled_pixmap.height()) // 2, 0)
+            painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
+            painter.end()
+            icon = QIcon(final_pixmap)
+
+        self._exercise_icon_cache[exercise_name] = (mtime, icon)
+        return icon
+
     def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
         """Get exercise name by ID.
 
@@ -4687,6 +5022,36 @@ class MainWindow(
             return None
 
         return self.db_manager.get_exercise_name_by_id(exercise_id)
+
+    def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None:
+        """Create a preview-sized icon for the exercise."""
+        avif_path = self._get_exercise_avif_path(exercise_name)
+        if avif_path is None:
+            return None
+
+        pixmap = self._load_avif_pixmap(avif_path)
+        if pixmap is None or pixmap.isNull():
+            return None
+
+        scaled_pixmap = pixmap.scaled(
+            target_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        if scaled_pixmap.isNull():
+            return None
+
+        final_pixmap = QPixmap(target_size)
+        final_pixmap.fill(Qt.GlobalColor.white)
+
+        painter = QPainter(final_pixmap)
+        x_offset = max((target_size.width() - scaled_pixmap.width()) // 2, 0)
+        y_offset = max((target_size.height() - scaled_pixmap.height()) // 2, 0)
+        painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
+        painter.end()
+
+        return QIcon(final_pixmap)
 
     def _get_exercise_today_goal_info(self, exercise: str) -> str:
         """Get today's goal information for an exercise.
@@ -4743,23 +5108,31 @@ class MainWindow(
         if not monthly_data or not any(month_data for month_data in monthly_data):
             return ""
 
+        def _monthly_total(data: list[tuple]) -> float:
+            return sum(float(value) for _, value in data) if data else 0.0
+
         # Find the maximum final value from all months
         max_value = 0.0
         for month_data in monthly_data:
-            if month_data:
-                # Calculate cumulative sum for this month
-                cumulative = 0.0
-                for _, value in month_data:
-                    cumulative += float(value)
-                if cumulative > max_value:
-                    max_value = cumulative
+            total = _monthly_total(month_data)
+            if total > max_value:
+                max_value = total
 
-        if max_value <= 0:
-            return ""
-
-        # Get current month progress
         current_month_data = monthly_data[0] if monthly_data else []
-        current_progress = sum(float(value) for _, value in current_month_data)
+        current_progress = _monthly_total(current_month_data)
+
+        target_value = max_value
+        if exercise_id == self.id_steps or exercise.strip().lower() == "oculus move":
+            if len(monthly_data) > 1:
+                target_value = _monthly_total(monthly_data[1])
+            else:
+                target_value = current_progress
+
+            if target_value <= 0:
+                target_value = max_value
+
+        if target_value <= 0:
+            return ""
 
         # Get today's progress
         today_progress = self.db_manager.get_exercise_total_today(exercise_id)
@@ -4770,10 +5143,10 @@ class MainWindow(
         total_days_including_current = remaining_days + 1
 
         # Calculate daily needed
-        remaining_to_max = max_value - current_progress
-        if total_days_including_current > 0 and remaining_to_max > 0:
-            daily_needed = remaining_to_max / total_days_including_current
-            daily_needed_rounded = int(daily_needed) + (1 if daily_needed % 1 > 0 else 0)
+        remaining_to_goal = target_value - current_progress
+        if total_days_including_current > 0 and remaining_to_goal > 0:
+            daily_needed = remaining_to_goal / total_days_including_current
+            daily_needed_rounded = math.ceil(daily_needed)
 
             # Calculate remaining for today
             remaining_for_today = daily_needed_rounded - today_progress
@@ -4784,7 +5157,7 @@ class MainWindow(
             else:
                 # Goal achieved - show checkmark and completed amount
                 return f"✅ ({int(today_progress)})"
-        elif remaining_to_max <= 0:
+        elif remaining_to_goal <= 0:
             # Max goal already achieved
             return f"✅ ({int(today_progress)})"
 
@@ -5143,6 +5516,7 @@ class MainWindow(
         """Initialize the exercises list view with a model and connect signals."""
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
+        self.listView_exercises.setIconSize(QSize(self.icon_size, self.icon_size))
 
         # Disable editing for exercises list
         self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
@@ -5187,6 +5561,32 @@ class MainWindow(
         last_weight = self._get_last_weight()
         self.doubleSpinBox_weight.setValue(last_weight)
         self.dateEdit_weight.setDate(QDate.currentDate())
+
+    def _load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
+        """Load a pixmap from an AVIF file, falling back to Pillow if needed."""
+        pixmap = QPixmap(str(avif_path))
+        if not pixmap.isNull():
+            return pixmap
+
+        try:
+            import pillow_avif  # noqa: F401, PLC0415
+        except ModuleNotFoundError:
+            return None
+
+        try:
+            with Image.open(avif_path) as pil_image:
+                if getattr(pil_image, "is_animated", False):
+                    pil_image.seek(0)
+                frame = pil_image.convert("RGBA")
+                buffer = io.BytesIO()
+                frame.save(buffer, format="PNG")
+                buffer.seek(0)
+                pixmap = QPixmap()
+                pixmap.loadFromData(buffer.getvalue())
+                return pixmap if not pixmap.isNull() else None
+        except Exception as exc:  # pragma: no cover - fallback path
+            print(f"Failed to load AVIF pixmap from {avif_path}: {exc}")
+        return None
 
     def _load_default_exercise_chart(self) -> None:
         """Load default exercise chart on first set to charts tab."""
@@ -5555,6 +5955,7 @@ class MainWindow(
 
         # Adjust process table column widths based on window size
         self._adjust_process_table_columns()
+        self._update_layout_for_window_size()
 
     def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
         """Refresh a table with data.
@@ -6142,6 +6543,10 @@ class MainWindow(
                     display_text = f"{exercise} {goal_info}" if goal_info else exercise
                     item = QStandardItem(display_text)
 
+                    icon = self._get_exercise_icon(exercise)
+                    if icon is not None and not icon.isNull():
+                        item.setIcon(icon)
+
                     # Store original exercise name in item data for later retrieval
                     item.setData(exercise, Qt.UserRole)
                     self.exercises_list_model.appendRow(item)
@@ -6216,6 +6621,29 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating form from process selection: {e}")
+
+    def _update_layout_for_window_size(self) -> None:
+        """Adjust key widgets based on current window height."""
+        is_small = self.height() < 911
+        if self._is_small_window_layout == is_small:
+            return
+
+        self._is_small_window_layout = is_small
+
+        if is_small:
+            new_height = max(int(self._default_label_exercise_avif_height / 2), 1)
+            self.label_exercise_avif.setMinimumHeight(new_height)
+            self.label_exercise_avif.setMaximumHeight(new_height)
+            self.label_count_sets_today.setFont(self._small_count_sets_font)
+        else:
+            self.label_exercise_avif.setMinimumHeight(self._default_label_exercise_avif_min_height)
+            self.label_exercise_avif.setMaximumHeight(self._default_label_exercise_avif_max_height)
+            self.label_count_sets_today.setFont(self._default_count_sets_font)
+
+        self.label_exercise_avif.updateGeometry()
+        current_exercise = self.avif_data["main"]["exercise"]
+        if current_exercise:
+            self._load_exercise_avif(current_exercise, "main")
 
     def _update_statistics_avif(self) -> None:
         """Update AVIF for statistics table based on current mode."""
@@ -6305,6 +6733,9 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
 
+        # Cache of exercise icons keyed by exercise name
+        self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "process": None,
@@ -6317,6 +6748,24 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Process table display mode flag
         self.count_records_to_show = 5000
         self.show_all_records = False
+        self.icon_size = 64
+
+        # Store default UI metrics for responsive adjustments
+        self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
+        self._default_label_exercise_avif_max_height = self.label_exercise_avif.maximumHeight()
+        inferred_height = max(self.label_exercise_avif.height(), self.label_exercise_avif.sizeHint().height(), 1)
+        self._default_label_exercise_avif_height = inferred_height
+
+        base_font = self.label_count_sets_today.font()
+        self._default_count_sets_font = QFont(base_font)
+        self._small_count_sets_font = QFont(base_font)
+        if base_font.pointSizeF() > 0:
+            reduced_point_size = max(base_font.pointSizeF() * 0.4, 1.0)
+            self._small_count_sets_font.setPointSizeF(reduced_point_size)
+        elif base_font.pixelSize() > 0:
+            reduced_pixel_size = max(int(base_font.pixelSize() * 0.4), 1)
+            self._small_count_sets_font.setPixelSize(reduced_pixel_size)
+        self._is_small_window_layout: bool | None = None
 
         # Chart configuration
         self.max_count_points_in_charts = 40
@@ -8511,6 +8960,70 @@ def on_refresh_statistics(self) -> None:
 
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
+```
+
+</details>
+
+### ⚙️ Method `on_select_exercise_button_clicked`
+
+```python
+def on_select_exercise_button_clicked(self) -> None
+```
+
+Open a modal dialog to select an exercise with AVIF previews.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_select_exercise_button_clicked(self) -> None:
+        if not self._validate_database_connection() or self.db_manager is None:
+            QMessageBox.warning(self, "Database Error", "Database connection is not available.")
+            return
+
+        try:
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+        except Exception as exc:
+            QMessageBox.warning(self, "Database Error", f"Failed to load exercises: {exc}")
+            return
+
+        if not exercises:
+            QMessageBox.information(self, "No Exercises", "No exercises are available to select.")
+            return
+
+        label_height = self.label_exercise_avif.height()
+        preview_edge = label_height if label_height > 0 else 0
+        preview_edge = max(min(preview_edge, 512), 160)
+        preview_size = QSize(preview_edge, preview_edge)
+
+        current_selection = self._get_current_selected_exercise()
+
+        dialog = ExerciseSelectionDialog(
+            self,
+            exercises=exercises,
+            icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
+            preview_size=preview_size,
+            current_selection=current_selection,
+        )
+
+        dialog_width = max(int(self.width() * 0.95), preview_size.width())
+        dialog_height = max(int(self.height() * 0.95), preview_size.height())
+        dialog.resize(dialog_width, dialog_height)
+        dialog.setMinimumSize(preview_size)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
+            selected_exercise = dialog.selected_exercise
+            if not self._select_exercise_in_list(selected_exercise):
+                self._update_comboboxes(selected_exercise=selected_exercise)
+
+            selection_model = self.listView_exercises.selectionModel()
+            if selection_model:
+                current_index = selection_model.currentIndex()
+                if current_index.isValid():
+                    self.listView_exercises.scrollTo(
+                        current_index,
+                        QAbstractItemView.ScrollHint.PositionAtCenter,
+                    )
 ```
 
 </details>
@@ -11147,6 +11660,7 @@ def _connect_signals(self) -> None:
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
+        self.pushButton_select_exercise.clicked.connect(self.on_select_exercise_button_clicked)
 
         # Add context menu for yesterday button
         self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -11601,6 +12115,7 @@ def _finish_window_initialization(self) -> None:
         self.show()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
+        QTimer.singleShot(55, self._update_layout_for_window_size)
 ```
 
 </details>
@@ -11705,6 +12220,63 @@ def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
 
 </details>
 
+### ⚙️ Method `_get_exercise_icon`
+
+```python
+def _get_exercise_icon(self, exercise_name: str) -> QIcon | None
+```
+
+Return a cached icon for the exercise, loading it from AVIF if needed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
+        if not exercise_name:
+            return None
+
+        cache_entry = self._exercise_icon_cache.get(exercise_name)
+        avif_path = self._get_exercise_avif_path(exercise_name)
+
+        if avif_path is None:
+            if cache_entry is None or cache_entry[0] != -1.0:
+                self._exercise_icon_cache[exercise_name] = (-1.0, None)
+            return None
+
+        try:
+            mtime = avif_path.stat().st_mtime
+        except OSError:
+            self._exercise_icon_cache[exercise_name] = (-1.0, None)
+            return None
+
+        if cache_entry is not None and cache_entry[0] == mtime:
+            return cache_entry[1]
+
+        pixmap = self._load_avif_pixmap(avif_path)
+        icon: QIcon | None = None
+        if pixmap and not pixmap.isNull():
+            scaled_pixmap = pixmap.scaled(
+                self.icon_size,
+                self.icon_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            final_pixmap = QPixmap(self.icon_size, self.icon_size)
+            final_pixmap.fill(Qt.GlobalColor.white)
+            painter = QPainter(final_pixmap)
+            x_offset = max((self.icon_size - scaled_pixmap.width()) // 2, 0)
+            y_offset = max((self.icon_size - scaled_pixmap.height()) // 2, 0)
+            painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
+            painter.end()
+            icon = QIcon(final_pixmap)
+
+        self._exercise_icon_cache[exercise_name] = (mtime, icon)
+        return icon
+```
+
+</details>
+
 ### ⚙️ Method `_get_exercise_name_by_id`
 
 ```python
@@ -11730,6 +12302,50 @@ def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
             return None
 
         return self.db_manager.get_exercise_name_by_id(exercise_id)
+```
+
+</details>
+
+### ⚙️ Method `_get_exercise_preview_icon`
+
+```python
+def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None
+```
+
+Create a preview-sized icon for the exercise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None:
+        avif_path = self._get_exercise_avif_path(exercise_name)
+        if avif_path is None:
+            return None
+
+        pixmap = self._load_avif_pixmap(avif_path)
+        if pixmap is None or pixmap.isNull():
+            return None
+
+        scaled_pixmap = pixmap.scaled(
+            target_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        if scaled_pixmap.isNull():
+            return None
+
+        final_pixmap = QPixmap(target_size)
+        final_pixmap.fill(Qt.GlobalColor.white)
+
+        painter = QPainter(final_pixmap)
+        x_offset = max((target_size.width() - scaled_pixmap.width()) // 2, 0)
+        y_offset = max((target_size.height() - scaled_pixmap.height()) // 2, 0)
+        painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
+        painter.end()
+
+        return QIcon(final_pixmap)
 ```
 
 </details>
@@ -11798,23 +12414,31 @@ def _get_exercise_today_goal_info(self, exercise: str) -> str:
         if not monthly_data or not any(month_data for month_data in monthly_data):
             return ""
 
+        def _monthly_total(data: list[tuple]) -> float:
+            return sum(float(value) for _, value in data) if data else 0.0
+
         # Find the maximum final value from all months
         max_value = 0.0
         for month_data in monthly_data:
-            if month_data:
-                # Calculate cumulative sum for this month
-                cumulative = 0.0
-                for _, value in month_data:
-                    cumulative += float(value)
-                if cumulative > max_value:
-                    max_value = cumulative
+            total = _monthly_total(month_data)
+            if total > max_value:
+                max_value = total
 
-        if max_value <= 0:
-            return ""
-
-        # Get current month progress
         current_month_data = monthly_data[0] if monthly_data else []
-        current_progress = sum(float(value) for _, value in current_month_data)
+        current_progress = _monthly_total(current_month_data)
+
+        target_value = max_value
+        if exercise_id == self.id_steps or exercise.strip().lower() == "oculus move":
+            if len(monthly_data) > 1:
+                target_value = _monthly_total(monthly_data[1])
+            else:
+                target_value = current_progress
+
+            if target_value <= 0:
+                target_value = max_value
+
+        if target_value <= 0:
+            return ""
 
         # Get today's progress
         today_progress = self.db_manager.get_exercise_total_today(exercise_id)
@@ -11825,10 +12449,10 @@ def _get_exercise_today_goal_info(self, exercise: str) -> str:
         total_days_including_current = remaining_days + 1
 
         # Calculate daily needed
-        remaining_to_max = max_value - current_progress
-        if total_days_including_current > 0 and remaining_to_max > 0:
-            daily_needed = remaining_to_max / total_days_including_current
-            daily_needed_rounded = int(daily_needed) + (1 if daily_needed % 1 > 0 else 0)
+        remaining_to_goal = target_value - current_progress
+        if total_days_including_current > 0 and remaining_to_goal > 0:
+            daily_needed = remaining_to_goal / total_days_including_current
+            daily_needed_rounded = math.ceil(daily_needed)
 
             # Calculate remaining for today
             remaining_for_today = daily_needed_rounded - today_progress
@@ -11839,7 +12463,7 @@ def _get_exercise_today_goal_info(self, exercise: str) -> str:
             else:
                 # Goal achieved - show checkmark and completed amount
                 return f"✅ ({int(today_progress)})"
-        elif remaining_to_max <= 0:
+        elif remaining_to_goal <= 0:
             # Max goal already achieved
             return f"✅ ({int(today_progress)})"
 
@@ -12339,6 +12963,7 @@ Initialize the exercises list view with a model and connect signals.
 def _init_exercises_list(self) -> None:
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
+        self.listView_exercises.setIconSize(QSize(self.icon_size, self.icon_size))
 
         # Disable editing for exercises list
         self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
@@ -12438,6 +13063,46 @@ def _init_weight_controls(self) -> None:
         last_weight = self._get_last_weight()
         self.doubleSpinBox_weight.setValue(last_weight)
         self.dateEdit_weight.setDate(QDate.currentDate())
+```
+
+</details>
+
+### ⚙️ Method `_load_avif_pixmap`
+
+```python
+def _load_avif_pixmap(self, avif_path: Path) -> QPixmap | None
+```
+
+Load a pixmap from an AVIF file, falling back to Pillow if needed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
+        pixmap = QPixmap(str(avif_path))
+        if not pixmap.isNull():
+            return pixmap
+
+        try:
+            import pillow_avif  # noqa: F401, PLC0415
+        except ModuleNotFoundError:
+            return None
+
+        try:
+            with Image.open(avif_path) as pil_image:
+                if getattr(pil_image, "is_animated", False):
+                    pil_image.seek(0)
+                frame = pil_image.convert("RGBA")
+                buffer = io.BytesIO()
+                frame.save(buffer, format="PNG")
+                buffer.seek(0)
+                pixmap = QPixmap()
+                pixmap.loadFromData(buffer.getvalue())
+                return pixmap if not pixmap.isNull() else None
+        except Exception as exc:  # pragma: no cover - fallback path
+            print(f"Failed to load AVIF pixmap from {avif_path}: {exc}")
+        return None
 ```
 
 </details>
@@ -12929,6 +13594,7 @@ def _on_window_resize(self, event: QResizeEvent) -> None:
 
         # Adjust process table column widths based on window size
         self._adjust_process_table_columns()
+        self._update_layout_for_window_size()
 ```
 
 </details>
@@ -13795,6 +14461,10 @@ def _update_comboboxes(
                     display_text = f"{exercise} {goal_info}" if goal_info else exercise
                     item = QStandardItem(display_text)
 
+                    icon = self._get_exercise_icon(exercise)
+                    if icon is not None and not icon.isNull():
+                        item.setIcon(icon)
+
                     # Store original exercise name in item data for later retrieval
                     item.setData(exercise, Qt.UserRole)
                     self.exercises_list_model.appendRow(item)
@@ -13895,6 +14565,43 @@ def _update_form_from_process_selection(self, _exercise_name: str, type_name: st
 
         except Exception as e:
             print(f"Error updating form from process selection: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_update_layout_for_window_size`
+
+```python
+def _update_layout_for_window_size(self) -> None
+```
+
+Adjust key widgets based on current window height.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_layout_for_window_size(self) -> None:
+        is_small = self.height() < 911
+        if self._is_small_window_layout == is_small:
+            return
+
+        self._is_small_window_layout = is_small
+
+        if is_small:
+            new_height = max(int(self._default_label_exercise_avif_height / 2), 1)
+            self.label_exercise_avif.setMinimumHeight(new_height)
+            self.label_exercise_avif.setMaximumHeight(new_height)
+            self.label_count_sets_today.setFont(self._small_count_sets_font)
+        else:
+            self.label_exercise_avif.setMinimumHeight(self._default_label_exercise_avif_min_height)
+            self.label_exercise_avif.setMaximumHeight(self._default_label_exercise_avif_max_height)
+            self.label_count_sets_today.setFont(self._default_count_sets_font)
+
+        self.label_exercise_avif.updateGeometry()
+        current_exercise = self.avif_data["main"]["exercise"]
+        if current_exercise:
+            self._load_exercise_avif(current_exercise, "main")
 ```
 
 </details>

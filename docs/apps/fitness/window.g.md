@@ -60,6 +60,7 @@ class Ui_MainWindow(object):
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", "Count of Sets Today", None))
         self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
+        self.pushButton_select_exercise.setText(QCoreApplication.translate("MainWindow", "Select Exercise", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
@@ -444,6 +445,11 @@ class Ui_MainWindow(object):
         self.label_7.setObjectName("label_7")
 
         self.verticalLayout.addWidget(self.label_7)
+
+        self.pushButton_select_exercise = QPushButton(self.widget_middle)
+        self.pushButton_select_exercise.setObjectName("pushButton_select_exercise")
+
+        self.verticalLayout.addWidget(self.pushButton_select_exercise)
 
         self.listView_exercises = QListView(self.widget_middle)
         self.listView_exercises.setObjectName("listView_exercises")
@@ -1251,6 +1257,7 @@ def retranslateUi(self, MainWindow):
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", "Count of Sets Today", None))
         self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
+        self.pushButton_select_exercise.setText(QCoreApplication.translate("MainWindow", "Select Exercise", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
@@ -1650,6 +1657,11 @@ def setupUi(self, MainWindow):
         self.label_7.setObjectName("label_7")
 
         self.verticalLayout.addWidget(self.label_7)
+
+        self.pushButton_select_exercise = QPushButton(self.widget_middle)
+        self.pushButton_select_exercise.setObjectName("pushButton_select_exercise")
+
+        self.verticalLayout.addWidget(self.pushButton_select_exercise)
 
         self.listView_exercises = QListView(self.widget_middle)
         self.listView_exercises.setObjectName("listView_exercises")

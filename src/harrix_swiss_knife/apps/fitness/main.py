@@ -11,9 +11,9 @@ import calendar
 import colorsys
 import contextlib
 import io
+import math
 import sys
 from collections import defaultdict
-import math
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from pathlib import Path
@@ -24,7 +24,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QPoint, QSortFilterProxyModel, QSize, Qt, QTimer
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, QPoint, QSize, QSortFilterProxyModel, Qt, QTimer
 from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
@@ -42,7 +42,10 @@ from PySide6.QtGui import (
     QTextDocument,
 )
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
     QListView,
     QListWidget,
@@ -50,13 +53,10 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QDialog,
-    QDialogButtonBox,
     QRadioButton,
     QTableView,
     QVBoxLayout,
     QWidget,
-    QAbstractItemView,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -128,14 +128,6 @@ class ExerciseSelectionDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-    def _on_selection_changed(self) -> None:
-        item = self.list_widget.currentItem()
-        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
-
-    def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
-        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
-        self.accept()
-
     def _on_accept(self) -> None:
         if self.list_widget.currentItem() is None and self.list_widget.count() > 0:
             self.list_widget.setCurrentRow(0)
@@ -145,6 +137,14 @@ class ExerciseSelectionDialog(QDialog):
             self.accept()
         else:
             self.reject()
+
+    def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
+        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
+        self.accept()
+
+    def _on_selection_changed(self) -> None:
+        item = self.list_widget.currentItem()
+        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
 
 
 class MainWindow(
@@ -1675,56 +1675,6 @@ class MainWindow(
             # Move focus to spinBox_count and select all text
             QTimer.singleShot(0, self._focus_and_select_spinbox_count)
 
-    def on_select_exercise_button_clicked(self) -> None:
-        """Open a modal dialog to select an exercise with AVIF previews."""
-        if not self._validate_database_connection() or self.db_manager is None:
-            QMessageBox.warning(self, "Database Error", "Database connection is not available.")
-            return
-
-        try:
-            exercises = self.db_manager.get_exercises_by_frequency(500)
-        except Exception as exc:
-            QMessageBox.warning(self, "Database Error", f"Failed to load exercises: {exc}")
-            return
-
-        if not exercises:
-            QMessageBox.information(self, "No Exercises", "No exercises are available to select.")
-            return
-
-        label_height = self.label_exercise_avif.height()
-        preview_edge = label_height if label_height > 0 else 0
-        preview_edge = max(min(preview_edge, 512), 160)
-        preview_size = QSize(preview_edge, preview_edge)
-
-        current_selection = self._get_current_selected_exercise()
-
-        dialog = ExerciseSelectionDialog(
-            self,
-            exercises=exercises,
-            icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
-            preview_size=preview_size,
-            current_selection=current_selection,
-        )
-
-        dialog_width = max(int(self.width() * 0.95), preview_size.width())
-        dialog_height = max(int(self.height() * 0.95), preview_size.height())
-        dialog.resize(dialog_width, dialog_height)
-        dialog.setMinimumSize(preview_size)
-
-        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
-            selected_exercise = dialog.selected_exercise
-            if not self._select_exercise_in_list(selected_exercise):
-                self._update_comboboxes(selected_exercise=selected_exercise)
-
-            selection_model = self.listView_exercises.selectionModel()
-            if selection_model:
-                current_index = selection_model.currentIndex()
-                if current_index.isValid():
-                    self.listView_exercises.scrollTo(
-                        current_index,
-                        QAbstractItemView.ScrollHint.PositionAtCenter,
-                    )
-
     def on_exercise_type_changed(self, _index: int = -1) -> None:
         """Handle exercise type combobox selection change and sync with statistics.
 
@@ -2174,6 +2124,56 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
+
+    def on_select_exercise_button_clicked(self) -> None:
+        """Open a modal dialog to select an exercise with AVIF previews."""
+        if not self._validate_database_connection() or self.db_manager is None:
+            QMessageBox.warning(self, "Database Error", "Database connection is not available.")
+            return
+
+        try:
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+        except Exception as exc:
+            QMessageBox.warning(self, "Database Error", f"Failed to load exercises: {exc}")
+            return
+
+        if not exercises:
+            QMessageBox.information(self, "No Exercises", "No exercises are available to select.")
+            return
+
+        label_height = self.label_exercise_avif.height()
+        preview_edge = label_height if label_height > 0 else 0
+        preview_edge = max(min(preview_edge, 512), 160)
+        preview_size = QSize(preview_edge, preview_edge)
+
+        current_selection = self._get_current_selected_exercise()
+
+        dialog = ExerciseSelectionDialog(
+            self,
+            exercises=exercises,
+            icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
+            preview_size=preview_size,
+            current_selection=current_selection,
+        )
+
+        dialog_width = max(int(self.width() * 0.95), preview_size.width())
+        dialog_height = max(int(self.height() * 0.95), preview_size.height())
+        dialog.resize(dialog_width, dialog_height)
+        dialog.setMinimumSize(preview_size)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
+            selected_exercise = dialog.selected_exercise
+            if not self._select_exercise_in_list(selected_exercise):
+                self._update_comboboxes(selected_exercise=selected_exercise)
+
+            selection_model = self.listView_exercises.selectionModel()
+            if selection_model:
+                current_index = selection_model.currentIndex()
+                if current_index.isValid():
+                    self.listView_exercises.scrollTo(
+                        current_index,
+                        QAbstractItemView.ScrollHint.PositionAtCenter,
+                    )
 
     def on_show_exercise_goal_recommendations(self) -> None:
         """Show exercise goal recommendations for all exercises in the statistics table.
@@ -4738,32 +4738,6 @@ class MainWindow(
 
         return avif_path if avif_path.exists() else None
 
-    def _load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
-        """Load a pixmap from an AVIF file, falling back to Pillow if needed."""
-        pixmap = QPixmap(str(avif_path))
-        if not pixmap.isNull():
-            return pixmap
-
-        try:
-            import pillow_avif  # noqa: F401, PLC0415
-        except ModuleNotFoundError:
-            return None
-
-        try:
-            with Image.open(avif_path) as pil_image:
-                if getattr(pil_image, "is_animated", False):
-                    pil_image.seek(0)
-                frame = pil_image.convert("RGBA")
-                buffer = io.BytesIO()
-                frame.save(buffer, format="PNG")
-                buffer.seek(0)
-                pixmap = QPixmap()
-                pixmap.loadFromData(buffer.getvalue())
-                return pixmap if not pixmap.isNull() else None
-        except Exception as exc:  # pragma: no cover - fallback path
-            print(f"Failed to load AVIF pixmap from {avif_path}: {exc}")
-        return None
-
     def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
         """Return a cached icon for the exercise, loading it from AVIF if needed."""
         if not exercise_name:
@@ -4807,6 +4781,23 @@ class MainWindow(
         self._exercise_icon_cache[exercise_name] = (mtime, icon)
         return icon
 
+    def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
+        """Get exercise name by ID.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `str | None`: Exercise name or None if not found.
+
+        """
+        if not self._validate_database_connection() or self.db_manager is None:
+            return None
+
+        return self.db_manager.get_exercise_name_by_id(exercise_id)
+
     def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None:
         """Create a preview-sized icon for the exercise."""
         avif_path = self._get_exercise_avif_path(exercise_name)
@@ -4836,23 +4827,6 @@ class MainWindow(
         painter.end()
 
         return QIcon(final_pixmap)
-
-    def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
-        """Get exercise name by ID.
-
-        Args:
-
-        - `exercise_id` (`int`): Exercise ID.
-
-        Returns:
-
-        - `str | None`: Exercise name or None if not found.
-
-        """
-        if not self._validate_database_connection() or self.db_manager is None:
-            return None
-
-        return self.db_manager.get_exercise_name_by_id(exercise_id)
 
     def _get_exercise_today_goal_info(self, exercise: str) -> str:
         """Get today's goal information for an exercise.
@@ -5363,6 +5337,32 @@ class MainWindow(
         self.doubleSpinBox_weight.setValue(last_weight)
         self.dateEdit_weight.setDate(QDate.currentDate())
 
+    def _load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
+        """Load a pixmap from an AVIF file, falling back to Pillow if needed."""
+        pixmap = QPixmap(str(avif_path))
+        if not pixmap.isNull():
+            return pixmap
+
+        try:
+            import pillow_avif  # noqa: F401, PLC0415
+        except ModuleNotFoundError:
+            return None
+
+        try:
+            with Image.open(avif_path) as pil_image:
+                if getattr(pil_image, "is_animated", False):
+                    pil_image.seek(0)
+                frame = pil_image.convert("RGBA")
+                buffer = io.BytesIO()
+                frame.save(buffer, format="PNG")
+                buffer.seek(0)
+                pixmap = QPixmap()
+                pixmap.loadFromData(buffer.getvalue())
+                return pixmap if not pixmap.isNull() else None
+        except Exception as exc:  # pragma: no cover - fallback path
+            print(f"Failed to load AVIF pixmap from {avif_path}: {exc}")
+        return None
+
     def _load_default_exercise_chart(self) -> None:
         """Load default exercise chart on first set to charts tab."""
         if not hasattr(self, "_charts_initialized"):
@@ -5716,29 +5716,6 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
-
-    def _update_layout_for_window_size(self) -> None:
-        """Adjust key widgets based on current window height."""
-        is_small = self.height() < 911
-        if self._is_small_window_layout == is_small:
-            return
-
-        self._is_small_window_layout = is_small
-
-        if is_small:
-            new_height = max(int(self._default_label_exercise_avif_height / 2), 1)
-            self.label_exercise_avif.setMinimumHeight(new_height)
-            self.label_exercise_avif.setMaximumHeight(new_height)
-            self.label_count_sets_today.setFont(self._small_count_sets_font)
-        else:
-            self.label_exercise_avif.setMinimumHeight(self._default_label_exercise_avif_min_height)
-            self.label_exercise_avif.setMaximumHeight(self._default_label_exercise_avif_max_height)
-            self.label_count_sets_today.setFont(self._default_count_sets_font)
-
-        self.label_exercise_avif.updateGeometry()
-        current_exercise = self.avif_data["main"]["exercise"]
-        if current_exercise:
-            self._load_exercise_avif(current_exercise, "main")
 
     def _on_window_resize(self, event: QResizeEvent) -> None:
         """Handle window resize event and adjust table column widths proportionally.
@@ -6419,6 +6396,29 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating form from process selection: {e}")
+
+    def _update_layout_for_window_size(self) -> None:
+        """Adjust key widgets based on current window height."""
+        is_small = self.height() < 911
+        if self._is_small_window_layout == is_small:
+            return
+
+        self._is_small_window_layout = is_small
+
+        if is_small:
+            new_height = max(int(self._default_label_exercise_avif_height / 2), 1)
+            self.label_exercise_avif.setMinimumHeight(new_height)
+            self.label_exercise_avif.setMaximumHeight(new_height)
+            self.label_count_sets_today.setFont(self._small_count_sets_font)
+        else:
+            self.label_exercise_avif.setMinimumHeight(self._default_label_exercise_avif_min_height)
+            self.label_exercise_avif.setMaximumHeight(self._default_label_exercise_avif_max_height)
+            self.label_count_sets_today.setFont(self._default_count_sets_font)
+
+        self.label_exercise_avif.updateGeometry()
+        current_exercise = self.avif_data["main"]["exercise"]
+        if current_exercise:
+            self._load_exercise_avif(current_exercise, "main")
 
     def _update_statistics_avif(self) -> None:
         """Update AVIF for statistics table based on current mode."""
