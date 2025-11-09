@@ -87,6 +87,7 @@ lang: en
   - [⚙️ Method `_get_current_selected_exercise`](#%EF%B8%8F-method-_get_current_selected_exercise)
   - [⚙️ Method `_get_exercise_avif_path`](#%EF%B8%8F-method-_get_exercise_avif_path)
   - [⚙️ Method `_get_exercise_name_by_id`](#%EF%B8%8F-method-_get_exercise_name_by_id)
+  - [⚙️ Method `_get_exercise_today_goal_info`](#%EF%B8%8F-method-_get_exercise_today_goal_info)
   - [⚙️ Method `_get_first_day_without_steps_record`](#%EF%B8%8F-method-_get_first_day_without_steps_record)
   - [⚙️ Method `_get_last_weight`](#%EF%B8%8F-method-_get_last_weight)
   - [⚙️ Method `_get_monthly_data_for_exercise`](#%EF%B8%8F-method-_get_monthly_data_for_exercise)
@@ -2988,14 +2989,22 @@ class MainWindow(
             return
 
         try:
-            # Update exercise list view - sort by frequency like in comboBox_type
-            exercises = self.db_manager.get_exercises_by_frequency(500)
+            # Update exercise list view - sort by last execution date
+            exercises = self.db_manager.get_exercises_by_last_execution()
 
             # Create model for exercise list view
             exercise_model = QStandardItemModel()
             if exercises:
                 for exercise in exercises:
-                    item = QStandardItem(exercise)
+                    # Get today's goal info for this exercise
+                    goal_info = self._get_exercise_today_goal_info(exercise)
+
+                    # Create display text with goal info if available
+                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
+                    item = QStandardItem(display_text)
+
+                    # Store original exercise name in item data for later retrieval
+                    item.setData(exercise, Qt.UserRole)
                     exercise_model.appendRow(item)
 
             self.listView_chart_exercise.setModel(exercise_model)
@@ -4628,7 +4637,14 @@ class MainWindow(
             return None
 
         item = self.exercises_list_model.itemFromIndex(current_index)
-        return item.text() if item else None
+        if item:
+            # Try to get original exercise name from UserRole first
+            original_name = item.data(Qt.UserRole)
+            if original_name:
+                return original_name
+            # Fallback to display text
+            return item.text()
+        return None
 
     def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
         """Get the path to the AVIF file for the given exercise.
@@ -4668,6 +4684,108 @@ class MainWindow(
             return None
 
         return self.db_manager.get_exercise_name_by_id(exercise_id)
+
+    def _get_exercise_today_goal_info(self, exercise: str) -> str:
+        """Get today's goal information for an exercise.
+
+        Args:
+
+        - `exercise` (`str`): Name of the exercise.
+
+        Returns:
+
+        - `str`: Empty string if no data, checkmark with count if goal achieved,
+          or remaining count if goal not achieved.
+
+        """
+        if self.db_manager is None:
+            return ""
+
+        # Get exercise ID
+        exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+        if exercise_id is None:
+            return ""
+
+        # Get months count for comparison
+        months_count = self.spinBox_compare_last.value()
+
+        # Get data for last N months
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        monthly_data = []
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            month_date = today.replace(day=1) - timedelta(days=i * 30)
+            month_start_i = month_date.replace(day=1)
+            if i == 0:  # Current month
+                month_end_i = today
+            else:
+                # Last day of the month
+                next_month = month_start_i.replace(day=28) + timedelta(days=4)
+                month_end_i = next_month - timedelta(days=next_month.day)
+
+            # Get data for this month
+            month_data = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=None,  # All types
+                date_from=month_start_i.strftime("%Y-%m-%d"),
+                date_to=month_end_i.strftime("%Y-%m-%d"),
+            )
+
+            if month_data:
+                monthly_data.append(month_data)
+            else:
+                monthly_data.append([])
+
+        if not monthly_data or not any(month_data for month_data in monthly_data):
+            return ""
+
+        # Find the maximum final value from all months
+        max_value = 0.0
+        for month_data in monthly_data:
+            if month_data:
+                # Calculate cumulative sum for this month
+                cumulative = 0.0
+                for _, value in month_data:
+                    cumulative += float(value)
+                if cumulative > max_value:
+                    max_value = cumulative
+
+        if max_value <= 0:
+            return ""
+
+        # Get current month progress
+        current_month_data = monthly_data[0] if monthly_data else []
+        current_progress = sum(float(value) for _, value in current_month_data)
+
+        # Get today's progress
+        today_progress = self.db_manager.get_exercise_total_today(exercise_id)
+
+        # Calculate remaining days in current month
+        days_in_month = calendar.monthrange(today.year, today.month)[1]
+        remaining_days = days_in_month - today.day
+        total_days_including_current = remaining_days + 1
+
+        # Calculate daily needed
+        remaining_to_max = max_value - current_progress
+        if total_days_including_current > 0 and remaining_to_max > 0:
+            daily_needed = remaining_to_max / total_days_including_current
+            daily_needed_rounded = int(daily_needed) + (1 if daily_needed % 1 > 0 else 0)
+
+            # Calculate remaining for today
+            remaining_for_today = daily_needed_rounded - today_progress
+
+            if remaining_for_today > 0:
+                # Goal not achieved - show how much more is needed
+                return f"(+{int(remaining_for_today)})"
+            else:
+                # Goal achieved - show checkmark and completed amount
+                return f"✅ ({int(today_progress)})"
+        elif remaining_to_max <= 0:
+            # Max goal already achieved
+            return f"✅ ({int(today_progress)})"
+
+        return ""
 
     def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
         """Get the first day without Steps records (next day after last record).
@@ -4793,6 +4911,11 @@ class MainWindow(
         if current_index.isValid():
             model = self.listView_chart_exercise.model()
             if model:
+                # Try to get original exercise name from UserRole first
+                original_name = model.data(current_index, Qt.UserRole)
+                if original_name:
+                    return original_name
+                # Fallback to display text
                 return model.data(current_index) or ""
         return ""
 
@@ -5519,12 +5642,17 @@ class MainWindow(
         # Find the item with the matching exercise name
         for row in range(self.exercises_list_model.rowCount()):
             item = self.exercises_list_model.item(row)
-            if item and item.text() == exercise_name:
-                index = self.exercises_list_model.indexFromItem(item)
-                selection_model = self.listView_exercises.selectionModel()
-                if selection_model:
-                    selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
-                break
+            if item:
+                # Check UserRole first (original name), then fallback to text
+                original_name = item.data(Qt.UserRole)
+                item_name = original_name if original_name else item.text()
+
+                if item_name == exercise_name:
+                    index = self.exercises_list_model.indexFromItem(item)
+                    selection_model = self.listView_exercises.selectionModel()
+                    if selection_model:
+                        selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                    break
 
     def _select_last_executed_exercise(self) -> None:
         """Select the last executed exercise in the chart exercise list view."""
@@ -5943,7 +6071,15 @@ class MainWindow(
             if self.exercises_list_model is not None:
                 self.exercises_list_model.clear()
                 for exercise in exercises:
-                    item = QStandardItem(exercise)
+                    # Get today's goal info for this exercise
+                    goal_info = self._get_exercise_today_goal_info(exercise)
+
+                    # Create display text with goal info if available
+                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
+                    item = QStandardItem(display_text)
+
+                    # Store original exercise name in item data for later retrieval
+                    item.setData(exercise, Qt.UserRole)
                     self.exercises_list_model.appendRow(item)
 
             # Unblock signals
@@ -9445,14 +9581,22 @@ def update_chart_comboboxes(self) -> None:
             return
 
         try:
-            # Update exercise list view - sort by frequency like in comboBox_type
-            exercises = self.db_manager.get_exercises_by_frequency(500)
+            # Update exercise list view - sort by last execution date
+            exercises = self.db_manager.get_exercises_by_last_execution()
 
             # Create model for exercise list view
             exercise_model = QStandardItemModel()
             if exercises:
                 for exercise in exercises:
-                    item = QStandardItem(exercise)
+                    # Get today's goal info for this exercise
+                    goal_info = self._get_exercise_today_goal_info(exercise)
+
+                    # Create display text with goal info if available
+                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
+                    item = QStandardItem(display_text)
+
+                    # Store original exercise name in item data for later retrieval
+                    item.setData(exercise, Qt.UserRole)
                     exercise_model.appendRow(item)
 
             self.listView_chart_exercise.setModel(exercise_model)
@@ -11437,7 +11581,14 @@ def _get_current_selected_exercise(self) -> str | None:
             return None
 
         item = self.exercises_list_model.itemFromIndex(current_index)
-        return item.text() if item else None
+        if item:
+            # Try to get original exercise name from UserRole first
+            original_name = item.data(Qt.UserRole)
+            if original_name:
+                return original_name
+            # Fallback to display text
+            return item.text()
+        return None
 ```
 
 </details>
@@ -11501,6 +11652,120 @@ def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
             return None
 
         return self.db_manager.get_exercise_name_by_id(exercise_id)
+```
+
+</details>
+
+### ⚙️ Method `_get_exercise_today_goal_info`
+
+```python
+def _get_exercise_today_goal_info(self, exercise: str) -> str
+```
+
+Get today's goal information for an exercise.
+
+Args:
+
+- `exercise` (`str`): Name of the exercise.
+
+Returns:
+
+- `str`: Empty string if no data, checkmark with count if goal achieved,
+  or remaining count if goal not achieved.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_exercise_today_goal_info(self, exercise: str) -> str:
+        if self.db_manager is None:
+            return ""
+
+        # Get exercise ID
+        exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+        if exercise_id is None:
+            return ""
+
+        # Get months count for comparison
+        months_count = self.spinBox_compare_last.value()
+
+        # Get data for last N months
+        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        monthly_data = []
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            month_date = today.replace(day=1) - timedelta(days=i * 30)
+            month_start_i = month_date.replace(day=1)
+            if i == 0:  # Current month
+                month_end_i = today
+            else:
+                # Last day of the month
+                next_month = month_start_i.replace(day=28) + timedelta(days=4)
+                month_end_i = next_month - timedelta(days=next_month.day)
+
+            # Get data for this month
+            month_data = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=None,  # All types
+                date_from=month_start_i.strftime("%Y-%m-%d"),
+                date_to=month_end_i.strftime("%Y-%m-%d"),
+            )
+
+            if month_data:
+                monthly_data.append(month_data)
+            else:
+                monthly_data.append([])
+
+        if not monthly_data or not any(month_data for month_data in monthly_data):
+            return ""
+
+        # Find the maximum final value from all months
+        max_value = 0.0
+        for month_data in monthly_data:
+            if month_data:
+                # Calculate cumulative sum for this month
+                cumulative = 0.0
+                for _, value in month_data:
+                    cumulative += float(value)
+                if cumulative > max_value:
+                    max_value = cumulative
+
+        if max_value <= 0:
+            return ""
+
+        # Get current month progress
+        current_month_data = monthly_data[0] if monthly_data else []
+        current_progress = sum(float(value) for _, value in current_month_data)
+
+        # Get today's progress
+        today_progress = self.db_manager.get_exercise_total_today(exercise_id)
+
+        # Calculate remaining days in current month
+        days_in_month = calendar.monthrange(today.year, today.month)[1]
+        remaining_days = days_in_month - today.day
+        total_days_including_current = remaining_days + 1
+
+        # Calculate daily needed
+        remaining_to_max = max_value - current_progress
+        if total_days_including_current > 0 and remaining_to_max > 0:
+            daily_needed = remaining_to_max / total_days_including_current
+            daily_needed_rounded = int(daily_needed) + (1 if daily_needed % 1 > 0 else 0)
+
+            # Calculate remaining for today
+            remaining_for_today = daily_needed_rounded - today_progress
+
+            if remaining_for_today > 0:
+                # Goal not achieved - show how much more is needed
+                return f"(+{int(remaining_for_today)})"
+            else:
+                # Goal achieved - show checkmark and completed amount
+                return f"✅ ({int(today_progress)})"
+        elif remaining_to_max <= 0:
+            # Max goal already achieved
+            return f"✅ ({int(today_progress)})"
+
+        return ""
 ```
 
 </details>
@@ -11676,6 +11941,11 @@ def _get_selected_chart_exercise(self) -> str:
         if current_index.isValid():
             model = self.listView_chart_exercise.model()
             if model:
+                # Try to get original exercise name from UserRole first
+                original_name = model.data(current_index, Qt.UserRole)
+                if original_name:
+                    return original_name
+                # Fallback to display text
                 return model.data(current_index) or ""
         return ""
 ```
@@ -12719,12 +12989,17 @@ def _select_exercise_in_list(self, exercise_name: str) -> None:
         # Find the item with the matching exercise name
         for row in range(self.exercises_list_model.rowCount()):
             item = self.exercises_list_model.item(row)
-            if item and item.text() == exercise_name:
-                index = self.exercises_list_model.indexFromItem(item)
-                selection_model = self.listView_exercises.selectionModel()
-                if selection_model:
-                    selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
-                break
+            if item:
+                # Check UserRole first (original name), then fallback to text
+                original_name = item.data(Qt.UserRole)
+                item_name = original_name if original_name else item.text()
+
+                if item_name == exercise_name:
+                    index = self.exercises_list_model.indexFromItem(item)
+                    selection_model = self.listView_exercises.selectionModel()
+                    if selection_model:
+                        selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                    break
 ```
 
 </details>
@@ -13348,7 +13623,15 @@ def _update_comboboxes(
             if self.exercises_list_model is not None:
                 self.exercises_list_model.clear()
                 for exercise in exercises:
-                    item = QStandardItem(exercise)
+                    # Get today's goal info for this exercise
+                    goal_info = self._get_exercise_today_goal_info(exercise)
+
+                    # Create display text with goal info if available
+                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
+                    item = QStandardItem(display_text)
+
+                    # Store original exercise name in item data for later retrieval
+                    item.setData(exercise, Qt.UserRole)
                     self.exercises_list_model.appendRow(item)
 
             # Unblock signals

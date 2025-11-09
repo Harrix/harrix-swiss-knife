@@ -2595,7 +2595,12 @@ class MainWindow(
         category_name_to_id: dict[str, int] = {}  # Map category name to ID for fast lookup
 
         for category in all_categories:
-            category_id, category_name, category_type, category_icon = category[0], category[1], category[2], category[3]
+            category_id, category_name, category_type, category_icon = (
+                category[0],
+                category[1],
+                category[2],
+                category[3],
+            )
             if category_type == 0:  # 0 = expense
                 # Create display name with icon
                 display_name = f"{category_icon} {category_name}" if category_icon else category_name

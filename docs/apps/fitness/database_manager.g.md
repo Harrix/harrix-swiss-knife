@@ -43,6 +43,7 @@ lang: en
   - [⚙️ Method `get_exercise_types`](#%EF%B8%8F-method-get_exercise_types)
   - [⚙️ Method `get_exercise_unit`](#%EF%B8%8F-method-get_exercise_unit)
   - [⚙️ Method `get_exercises_by_frequency`](#%EF%B8%8F-method-get_exercises_by_frequency)
+  - [⚙️ Method `get_exercises_by_last_execution`](#%EF%B8%8F-method-get_exercises_by_last_execution)
   - [⚙️ Method `get_filtered_process_records`](#%EF%B8%8F-method-get_filtered_process_records)
   - [⚙️ Method `get_filtered_statistics_data`](#%EF%B8%8F-method-get_filtered_statistics_data)
   - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
@@ -854,6 +855,31 @@ class DatabaseManager:
         # Preserve exercises not present in sorted_exercises.
         remainder = [name for name in all_exercises.values() if name not in sorted_exercises]
         return sorted_exercises + remainder
+
+    def get_exercises_by_last_execution(self) -> list[str]:
+        """Return exercise names ordered by last execution date (most recent first).
+
+        Returns:
+
+        - `list[str]`: Exercise names sorted by last execution date.
+          Exercises never executed are appended at the end.
+
+        """
+        # Full list of exercises `{id: name}`.
+        all_exercises = {row[0]: row[1] for row in self.get_rows("SELECT _id, name FROM exercises")}
+
+        # Get exercises with their last execution date.
+        last_execution = self.get_rows(
+            """
+            SELECT e._id, e.name, MAX(p.date) as last_date
+            FROM exercises e
+            LEFT JOIN process p ON e._id = p._id_exercises
+            GROUP BY e._id, e.name
+            ORDER BY last_date DESC NULLS LAST, e.name ASC
+            """
+        )
+
+        return [row[1] for row in last_execution]
 
     def get_filtered_process_records(
         self,
@@ -2711,6 +2737,43 @@ def get_exercises_by_frequency(self, limit: int = 500) -> list[str]:
         # Preserve exercises not present in sorted_exercises.
         remainder = [name for name in all_exercises.values() if name not in sorted_exercises]
         return sorted_exercises + remainder
+```
+
+</details>
+
+### ⚙️ Method `get_exercises_by_last_execution`
+
+```python
+def get_exercises_by_last_execution(self) -> list[str]
+```
+
+Return exercise names ordered by last execution date (most recent first).
+
+Returns:
+
+- `list[str]`: Exercise names sorted by last execution date.
+  Exercises never executed are appended at the end.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercises_by_last_execution(self) -> list[str]:
+        # Full list of exercises `{id: name}`.
+        all_exercises = {row[0]: row[1] for row in self.get_rows("SELECT _id, name FROM exercises")}
+
+        # Get exercises with their last execution date.
+        last_execution = self.get_rows(
+            """
+            SELECT e._id, e.name, MAX(p.date) as last_date
+            FROM exercises e
+            LEFT JOIN process p ON e._id = p._id_exercises
+            GROUP BY e._id, e.name
+            ORDER BY last_date DESC NULLS LAST, e.name ASC
+            """
+        )
+
+        return [row[1] for row in last_execution]
 ```
 
 </details>

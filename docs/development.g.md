@@ -224,6 +224,7 @@ Create a new `.md` file in `config/` folder with field placeholders:
 
 - **Date:** {{Date:date}}
 - **URL:** <{{URL:line}}>
+- **Source:** {{Source:line}}
 - **Published:** {{Published:bool:true}}
 - **Comments:** {{Comments:multiline}}
 
@@ -247,7 +248,11 @@ Add template configuration to `config/config.json`:
   "your-template-name": {
     "template_file": "config/template-your-name.md",
     "target_file": "D:/path/to/target-file.md",
-    "insert_position": "start"
+    "insert_position": "start",
+    "dialog_links": [
+      {"label": "IMDb", "url": "https://www.imdb.com"},
+      {"label": "Metacritic", "url": "https://www.metacritic.com"}
+    ]
   }
 }
 ```
@@ -257,6 +262,7 @@ Options:
 - `template_file` — Path to template file
 - `target_file` — Target markdown file (optional, if omitted - just returns text)
 - `insert_position` — `"start"` (after TOC) or `"end"` (default)
+- `dialog_links` — Optional list of helper links shown only in the form dialog
 
 ### Supported Field Types
 
@@ -287,6 +293,7 @@ Notes:
 - Float values that are whole numbers are formatted without decimals (`11.0` → `11`)
 - Date format: `yyyy-MM-dd`
 - Default values are optional
+- **Dialog Links**: `dialog_links` items open in your default browser; they do not affect generated markdown
 - **Image/File Types**: Support drag & drop, file dialogs, and preview functionality
 - **Multiple Types**: `images` and `files` return comma-separated paths
 - **Supported Image Formats**: PNG, JPG, JPEG, GIF, BMP, SVG, WEBP, AVIF

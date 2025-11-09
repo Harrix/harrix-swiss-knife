@@ -135,4 +135,3 @@ class ReportAmountDelegate(QStyledItemDelegate):
         except Exception:
             # Fallback to default painting on any error
             super().paint(painter, option, index)
-

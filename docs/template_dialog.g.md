@@ -1531,6 +1531,7 @@ Attributes:
 - `fields` (`list[TemplateField]`): List of fields in the template.
 - `widgets` (`dict`): Dictionary mapping field names to input widgets.
 - `field_values` (`dict[str, str]`): Dictionary of collected field values.
+- `links` (`list[tuple[str, str]]`): Optional helper links shown in the dialog header.
 
 <details>
 <summary>Code:</summary>
@@ -1544,6 +1545,7 @@ class TemplateDialog(QDialog):
         *,
         fields: list[TemplateField],
         title: str = "Fill Template",
+        links: list[tuple[str, str]] | None = None,
     ) -> None:
         """Initialize the template dialog.
 
@@ -1552,12 +1554,14 @@ class TemplateDialog(QDialog):
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `fields` (`list[TemplateField]`): List of template fields to display.
         - `title` (`str`): Dialog title. Defaults to `"Fill Template"`.
+        - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
 
         """
         super().__init__(parent)
         self.fields = fields
         self.widgets: dict[str, QWidget] = {}
         self.field_values: dict[str, str] = {}
+        self.links = links or []
 
         self.setWindowTitle(title)
         self.setModal(True)
@@ -1783,6 +1787,18 @@ class TemplateDialog(QDialog):
         title_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
         main_layout.addWidget(title_label)
 
+        if self.links:
+            links_layout = QHBoxLayout()
+            links_layout.setSpacing(10)
+            for label, url in self.links:
+                link_label = QLabel(f'<a href="{url}">{label}</a>')
+                link_label.setTextFormat(Qt.TextFormat.RichText)
+                link_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                link_label.setOpenExternalLinks(True)
+                links_layout.addWidget(link_label)
+            links_layout.addStretch()
+            main_layout.addLayout(links_layout)
+
         # Create scroll area for form
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -1842,6 +1858,7 @@ Args:
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `fields` (`list[TemplateField]`): List of template fields to display.
 - `title` (`str`): Dialog title. Defaults to `"Fill Template"`.
+- `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
 
 <details>
 <summary>Code:</summary>
@@ -1853,11 +1870,13 @@ def __init__(
         *,
         fields: list[TemplateField],
         title: str = "Fill Template",
+        links: list[tuple[str, str]] | None = None,
     ) -> None:
         super().__init__(parent)
         self.fields = fields
         self.widgets: dict[str, QWidget] = {}
         self.field_values: dict[str, str] = {}
+        self.links = links or []
 
         self.setWindowTitle(title)
         self.setModal(True)
@@ -2160,6 +2179,18 @@ def _setup_ui(self) -> None:
         title_label = QLabel("Fill in the template fields:")
         title_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
         main_layout.addWidget(title_label)
+
+        if self.links:
+            links_layout = QHBoxLayout()
+            links_layout.setSpacing(10)
+            for label, url in self.links:
+                link_label = QLabel(f'<a href="{url}">{label}</a>')
+                link_label.setTextFormat(Qt.TextFormat.RichText)
+                link_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                link_label.setOpenExternalLinks(True)
+                links_layout.addWidget(link_label)
+            links_layout.addStretch()
+            main_layout.addLayout(links_layout)
 
         # Create scroll area for form
         scroll_area = QScrollArea()
