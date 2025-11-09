@@ -502,6 +502,12 @@ class MainWindow(
                     # Reset the flag shortly after release to allow context menu to process
                     QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
 
+        if obj == self.label_category_now and event.type() == QEvent.Type.MouseButtonPress:
+            mouse_event = QMouseEvent(event)
+            if mouse_event.button() == Qt.MouseButton.LeftButton:
+                self._show_category_label_context_menu(mouse_event.position().toPoint())
+                return True
+
         # Handle Enter key to add transaction quickly
         if (
             (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
@@ -4395,6 +4401,7 @@ class MainWindow(
         # Enable category selection via label context menu
         self.label_category_now.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.label_category_now.customContextMenuRequested.connect(self._show_category_label_context_menu)
+        self.label_category_now.installEventFilter(self)
 
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
