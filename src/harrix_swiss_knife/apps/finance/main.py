@@ -2632,9 +2632,9 @@ class MainWindow(
         earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
 
         if earliest_transaction_date_str:
-            earliest_transaction_date = datetime.strptime(
-                earliest_transaction_date_str, "%Y-%m-%d"
-            ).replace(tzinfo=end_date.tzinfo)
+            earliest_transaction_date = datetime.strptime(earliest_transaction_date_str, "%Y-%m-%d").replace(
+                tzinfo=end_date.tzinfo
+            )
             month_cursor = earliest_transaction_date.replace(day=1)
         else:
             month_cursor = end_date.replace(day=1)
@@ -4516,24 +4516,6 @@ class MainWindow(
                 window_height,
             )
 
-    def _show_no_data_label(self, layout: QLayout, message: str) -> None:
-        """Show a message when no data is available for the chart.
-
-        Args:
-
-        - `layout` (`QLayout`): The layout to add the message to.
-        - `message` (`str`): The message to display.
-
-        """
-        # Clear existing content
-        self._clear_layout(layout)
-
-        # Create and add label
-        label: QLabel = QLabel(message)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
-        layout.addWidget(label)
-
     def _show_category_label_context_menu(self, position: QPoint) -> None:
         """Show context menu on the category label with all available categories."""
         model = self.listView_categories.model()
@@ -4571,6 +4553,24 @@ class MainWindow(
                 index,
                 QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
             )
+
+    def _show_no_data_label(self, layout: QLayout, message: str) -> None:
+        """Show a message when no data is available for the chart.
+
+        Args:
+
+        - `layout` (`QLayout`): The layout to add the message to.
+        - `message` (`str`): The message to display.
+
+        """
+        # Clear existing content
+        self._clear_layout(layout)
+
+        # Create and add label
+        label: QLabel = QLabel(message)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
+        layout.addWidget(label)
 
     def _show_transactions_context_menu(self, position: QPoint) -> None:
         """Show context menu for transactions table.

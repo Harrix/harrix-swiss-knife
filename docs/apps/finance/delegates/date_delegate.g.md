@@ -60,6 +60,7 @@ class DateDelegate(QStyledItemDelegate):
         editor = QDateEdit(parent)
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
+        editor.setDisplayFormat("yyyy-MM-dd")
 
         # Set white background for the editor
         editor.setStyleSheet("QDateEdit { background-color: white; }")
@@ -153,6 +154,7 @@ def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEd
         editor = QDateEdit(parent)
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
+        editor.setDisplayFormat("yyyy-MM-dd")
 
         # Set white background for the editor
         editor.setStyleSheet("QDateEdit { background-color: white; }")

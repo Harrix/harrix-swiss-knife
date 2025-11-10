@@ -134,6 +134,7 @@ lang: en
   - [⚙️ Method `_setup_tab_order`](#%EF%B8%8F-method-_setup_tab_order)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
+  - [⚙️ Method `_show_category_label_context_menu`](#%EF%B8%8F-method-_show_category_label_context_menu)
   - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
   - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
   - [⚙️ Method `_show_yesterday_context_menu`](#%EF%B8%8F-method-_show_yesterday_context_menu)
@@ -229,6 +230,9 @@ class MainWindow(
 
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False
+
+        # Track whether account double-click handler is connected
+        self._account_double_click_connected: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show: int = 1000
@@ -576,6 +580,12 @@ class MainWindow(
                 if mouse_event.button() == Qt.MouseButton.RightButton:
                     # Reset the flag shortly after release to allow context menu to process
                     QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
+
+        if obj == self.label_category_now and event.type() == QEvent.Type.MouseButtonPress:
+            mouse_event = QMouseEvent(event)
+            if mouse_event.button() == Qt.MouseButton.LeftButton:
+                self._show_category_label_context_menu(mouse_event.position().toPoint())
+                return True
 
         # Handle Enter key to add transaction quickly
         if (
@@ -2693,21 +2703,28 @@ class MainWindow(
         # Sort categories by name for consistent display
         expense_categories.sort(key=lambda x: x[1])
 
-        # Get last 12 months
+        # Determine month range based on available transaction history
         end_date: datetime = datetime.now(tz=datetime.now().astimezone().tzinfo)
-        count_months = 12
+        earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
+
+        if earliest_transaction_date_str:
+            earliest_transaction_date = datetime.strptime(earliest_transaction_date_str, "%Y-%m-%d").replace(
+                tzinfo=end_date.tzinfo
+            )
+            month_cursor = earliest_transaction_date.replace(day=1)
+        else:
+            month_cursor = end_date.replace(day=1)
+
+        end_month = end_date.replace(day=1)
 
         # Dictionary to store data: {month_name: {category_id: amount}}
         monthly_data: dict[str, dict[int, float]] = {}
         month_names: list[str] = []
 
-        for i in range(count_months):
-            # Calculate month start and end
-            month_date: datetime = end_date.replace(day=1) - timedelta(days=30 * i)
-            month_start: datetime = month_date.replace(day=1)
+        while month_cursor <= end_month:
+            month_start: datetime = month_cursor
 
             # Calculate last day of month
-            next_month: datetime
             if month_start.month == 12:
                 next_month = month_start.replace(year=month_start.year + 1, month=1)
             else:
@@ -2756,12 +2773,11 @@ class MainWindow(
                 else:
                     monthly_data[month_name][category_id_matched] = amount
 
-        # Reverse to show oldest first
-        month_names.reverse()
+            month_cursor = next_month
 
         # Create model with column headers
         model: QStandardItemModel = QStandardItemModel()
-        headers: list[str] = ["Month", "Total"]  # Month and Total first
+        headers: list[str] = ["Month", "Total", "Cafe + Food"]  # Month, Total, combined column
         headers.extend([cat[1] for cat in expense_categories])  # Add category names
         model.setHorizontalHeaderLabels(headers)
 
@@ -2775,12 +2791,31 @@ class MainWindow(
             color = QColor.fromHsv(int(hue), 80, 240)  # Saturation=80, Value=240
             category_colors.append(color)
 
-        # Create rows
-        for month_name in month_names:
+        # Pre-calculate category IDs for Cafe and Food (case-insensitive match)
+        combined_category_targets = {"cafe", "food"}
+
+        def _normalize_category_tokens(name: str) -> set[str]:
+            cleaned = "".join(ch if ch.isalnum() else " " for ch in name)
+            return {token for token in cleaned.casefold().split() if token}
+
+        combined_category_ids: set[int] = {
+            category_id
+            for name, category_id in category_name_to_id.items()
+            if _normalize_category_tokens(name) & combined_category_targets
+        }
+
+        # Create rows (newest first)
+        current_year_prefix = datetime.now(tz=end_date.tzinfo).strftime("%Y-")
+
+        for month_name in reversed(month_names):
             row_items: list[QStandardItem] = []
 
             # Month name (no background color)
             month_item = QStandardItem(month_name)
+            if month_name.startswith(current_year_prefix):
+                font = month_item.font()
+                font.setBold(True)
+                month_item.setFont(font)
             row_items.append(month_item)
 
             # Calculate total first
@@ -2792,7 +2827,18 @@ class MainWindow(
             # Total for the month (light gray background) - add as second column
             total_item = QStandardItem(f"{month_total:.2f}")
             total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            total_item.setData(month_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
+
+            # Combined Cafe + Food column (light yellow background)
+            combined_total: float = 0.0
+            for category_id in combined_category_ids:
+                combined_total += monthly_data[month_name].get(category_id, 0.0)
+
+            combined_item = QStandardItem(f"{combined_total:.2f}")
+            combined_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
+            combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
+            row_items.append(combined_item)
 
             # Category amounts with colors
             for idx, (category_id, _category_name, _category_icon) in enumerate(expense_categories):
@@ -2801,6 +2847,7 @@ class MainWindow(
                 item = QStandardItem(f"{amount:.2f}")
                 # Set background color for this category
                 item.setBackground(QBrush(category_colors[idx]))
+                item.setData(amount, Qt.ItemDataRole.UserRole)
                 row_items.append(item)
 
             model.appendRow(row_items)
@@ -2809,18 +2856,26 @@ class MainWindow(
 
         # Disable editing for reports table
         self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tableView_reports.setSortingEnabled(True)
+        self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+        model.setSortRole(Qt.ItemDataRole.UserRole)
 
         # Set up amount delegates for all monetary columns (Total and all categories)
         # Column 0 is Month (no delegate needed)
         # Column 1 is Total (bold font)
-        # Columns 2+ are categories (normal font)
+        # Column 2 is Cafe + Food (bold font)
+        # Columns 3+ are categories (normal font)
 
         # Total column (bold)
         total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
         self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
 
+        # Cafe + Food combined column (bold)
+        combined_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
+        self.tableView_reports.setItemDelegateForColumn(2, combined_delegate)
+
         # Category columns (normal font)
-        for col_idx in range(2, model.columnCount()):
+        for col_idx in range(3, model.columnCount()):
             category_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=False)
             self.tableView_reports.setItemDelegateForColumn(col_idx, category_delegate)
 
@@ -3083,16 +3138,16 @@ class MainWindow(
         # Make accounts table non-editable and connect double-click signal
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
 
-        # Disconnect existing signal to prevent multiple connections
-        try:
-            with contextlib.suppress(TypeError):
+        # Reconnect double-click signal only when previously connected
+        if self._account_double_click_connected:
+            try:
                 self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
-        except TypeError:
-            # Signal was not connected, which is fine
-            pass
+            except (TypeError, RuntimeError):
+                pass
+            self._account_double_click_connected = False
 
-        # Connect double-click signal
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
+        self._account_double_click_connected = True
 
         # Configure column stretching for accounts table
         accounts_header = self.tableView_accounts.horizontalHeader()
@@ -4467,6 +4522,11 @@ class MainWindow(
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
 
+        # Enable category selection via label context menu
+        self.label_category_now.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.label_category_now.customContextMenuRequested.connect(self._show_category_label_context_menu)
+        self.label_category_now.installEventFilter(self)
+
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
@@ -4530,6 +4590,44 @@ class MainWindow(
                 title_bar_height,  # Position below title bar
                 window_width,
                 window_height,
+            )
+
+    def _show_category_label_context_menu(self, position: QPoint) -> None:
+        """Show context menu on the category label with all available categories."""
+        model = self.listView_categories.model()
+        if model is None or model.rowCount() == 0:
+            return
+
+        context_menu = QMenu(self)
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+            display_text = model.data(index, Qt.ItemDataRole.DisplayRole)
+            if not display_text:
+                continue
+            action = context_menu.addAction(display_text)
+            action.setData(row)
+
+        if context_menu.isEmpty():
+            return
+
+        selected_action = context_menu.exec(self.label_category_now.mapToGlobal(position))
+        if selected_action is None:
+            return
+
+        row_data = selected_action.data()
+        if not isinstance(row_data, int):
+            return
+
+        index = model.index(row_data, 0)
+        if not index.isValid():
+            return
+
+        self.listView_categories.setCurrentIndex(index)
+        selection_model = self.listView_categories.selectionModel()
+        if selection_model:
+            selection_model.setCurrentIndex(
+                index,
+                QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
             )
 
     def _show_no_data_label(self, layout: QLayout, message: str) -> None:
@@ -4917,6 +5015,9 @@ def __init__(self) -> None:
 
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False
+
+        # Track whether account double-click handler is connected
+        self._account_double_click_connected: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         self.count_transactions_to_show: int = 1000
@@ -5326,6 +5427,12 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
                 if mouse_event.button() == Qt.MouseButton.RightButton:
                     # Reset the flag shortly after release to allow context menu to process
                     QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
+
+        if obj == self.label_category_now and event.type() == QEvent.Type.MouseButtonPress:
+            mouse_event = QMouseEvent(event)
+            if mouse_event.button() == Qt.MouseButton.LeftButton:
+                self._show_category_label_context_menu(mouse_event.position().toPoint())
+                return True
 
         # Handle Enter key to add transaction quickly
         if (
@@ -8273,21 +8380,28 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
         # Sort categories by name for consistent display
         expense_categories.sort(key=lambda x: x[1])
 
-        # Get last 12 months
+        # Determine month range based on available transaction history
         end_date: datetime = datetime.now(tz=datetime.now().astimezone().tzinfo)
-        count_months = 12
+        earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
+
+        if earliest_transaction_date_str:
+            earliest_transaction_date = datetime.strptime(earliest_transaction_date_str, "%Y-%m-%d").replace(
+                tzinfo=end_date.tzinfo
+            )
+            month_cursor = earliest_transaction_date.replace(day=1)
+        else:
+            month_cursor = end_date.replace(day=1)
+
+        end_month = end_date.replace(day=1)
 
         # Dictionary to store data: {month_name: {category_id: amount}}
         monthly_data: dict[str, dict[int, float]] = {}
         month_names: list[str] = []
 
-        for i in range(count_months):
-            # Calculate month start and end
-            month_date: datetime = end_date.replace(day=1) - timedelta(days=30 * i)
-            month_start: datetime = month_date.replace(day=1)
+        while month_cursor <= end_month:
+            month_start: datetime = month_cursor
 
             # Calculate last day of month
-            next_month: datetime
             if month_start.month == 12:
                 next_month = month_start.replace(year=month_start.year + 1, month=1)
             else:
@@ -8336,12 +8450,11 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
                 else:
                     monthly_data[month_name][category_id_matched] = amount
 
-        # Reverse to show oldest first
-        month_names.reverse()
+            month_cursor = next_month
 
         # Create model with column headers
         model: QStandardItemModel = QStandardItemModel()
-        headers: list[str] = ["Month", "Total"]  # Month and Total first
+        headers: list[str] = ["Month", "Total", "Cafe + Food"]  # Month, Total, combined column
         headers.extend([cat[1] for cat in expense_categories])  # Add category names
         model.setHorizontalHeaderLabels(headers)
 
@@ -8355,12 +8468,31 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
             color = QColor.fromHsv(int(hue), 80, 240)  # Saturation=80, Value=240
             category_colors.append(color)
 
-        # Create rows
-        for month_name in month_names:
+        # Pre-calculate category IDs for Cafe and Food (case-insensitive match)
+        combined_category_targets = {"cafe", "food"}
+
+        def _normalize_category_tokens(name: str) -> set[str]:
+            cleaned = "".join(ch if ch.isalnum() else " " for ch in name)
+            return {token for token in cleaned.casefold().split() if token}
+
+        combined_category_ids: set[int] = {
+            category_id
+            for name, category_id in category_name_to_id.items()
+            if _normalize_category_tokens(name) & combined_category_targets
+        }
+
+        # Create rows (newest first)
+        current_year_prefix = datetime.now(tz=end_date.tzinfo).strftime("%Y-")
+
+        for month_name in reversed(month_names):
             row_items: list[QStandardItem] = []
 
             # Month name (no background color)
             month_item = QStandardItem(month_name)
+            if month_name.startswith(current_year_prefix):
+                font = month_item.font()
+                font.setBold(True)
+                month_item.setFont(font)
             row_items.append(month_item)
 
             # Calculate total first
@@ -8372,7 +8504,18 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
             # Total for the month (light gray background) - add as second column
             total_item = QStandardItem(f"{month_total:.2f}")
             total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            total_item.setData(month_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
+
+            # Combined Cafe + Food column (light yellow background)
+            combined_total: float = 0.0
+            for category_id in combined_category_ids:
+                combined_total += monthly_data[month_name].get(category_id, 0.0)
+
+            combined_item = QStandardItem(f"{combined_total:.2f}")
+            combined_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
+            combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
+            row_items.append(combined_item)
 
             # Category amounts with colors
             for idx, (category_id, _category_name, _category_icon) in enumerate(expense_categories):
@@ -8381,6 +8524,7 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
                 item = QStandardItem(f"{amount:.2f}")
                 # Set background color for this category
                 item.setBackground(QBrush(category_colors[idx]))
+                item.setData(amount, Qt.ItemDataRole.UserRole)
                 row_items.append(item)
 
             model.appendRow(row_items)
@@ -8389,18 +8533,26 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
 
         # Disable editing for reports table
         self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tableView_reports.setSortingEnabled(True)
+        self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+        model.setSortRole(Qt.ItemDataRole.UserRole)
 
         # Set up amount delegates for all monetary columns (Total and all categories)
         # Column 0 is Month (no delegate needed)
         # Column 1 is Total (bold font)
-        # Columns 2+ are categories (normal font)
+        # Column 2 is Cafe + Food (bold font)
+        # Columns 3+ are categories (normal font)
 
         # Total column (bold)
         total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
         self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
 
+        # Cafe + Food combined column (bold)
+        combined_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
+        self.tableView_reports.setItemDelegateForColumn(2, combined_delegate)
+
         # Category columns (normal font)
-        for col_idx in range(2, model.columnCount()):
+        for col_idx in range(3, model.columnCount()):
             category_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=False)
             self.tableView_reports.setItemDelegateForColumn(col_idx, category_delegate)
 
@@ -8781,16 +8933,16 @@ def _load_accounts_table(self) -> None:
         # Make accounts table non-editable and connect double-click signal
         self.tableView_accounts.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
 
-        # Disconnect existing signal to prevent multiple connections
-        try:
-            with contextlib.suppress(TypeError):
+        # Reconnect double-click signal only when previously connected
+        if self._account_double_click_connected:
+            try:
                 self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
-        except TypeError:
-            # Signal was not connected, which is fine
-            pass
+            except (TypeError, RuntimeError):
+                pass
+            self._account_double_click_connected = False
 
-        # Connect double-click signal
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
+        self._account_double_click_connected = True
 
         # Configure column stretching for accounts table
         accounts_header = self.tableView_accounts.horizontalHeader()
@@ -10705,6 +10857,11 @@ def _setup_ui(self) -> None:
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
 
+        # Enable category selection via label context menu
+        self.label_category_now.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.label_category_now.customContextMenuRequested.connect(self._show_category_label_context_menu)
+        self.label_category_now.installEventFilter(self)
+
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
@@ -10782,6 +10939,58 @@ def _setup_window_size_and_position(self) -> None:
                 title_bar_height,  # Position below title bar
                 window_width,
                 window_height,
+            )
+```
+
+</details>
+
+### ⚙️ Method `_show_category_label_context_menu`
+
+```python
+def _show_category_label_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu on the category label with all available categories.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_category_label_context_menu(self, position: QPoint) -> None:
+        model = self.listView_categories.model()
+        if model is None or model.rowCount() == 0:
+            return
+
+        context_menu = QMenu(self)
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+            display_text = model.data(index, Qt.ItemDataRole.DisplayRole)
+            if not display_text:
+                continue
+            action = context_menu.addAction(display_text)
+            action.setData(row)
+
+        if context_menu.isEmpty():
+            return
+
+        selected_action = context_menu.exec(self.label_category_now.mapToGlobal(position))
+        if selected_action is None:
+            return
+
+        row_data = selected_action.data()
+        if not isinstance(row_data, int):
+            return
+
+        index = model.index(row_data, 0)
+        if not index.isValid():
+            return
+
+        self.listView_categories.setCurrentIndex(index)
+        selection_model = self.listView_categories.selectionModel()
+        if selection_model:
+            selection_model.setCurrentIndex(
+                index,
+                QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
             )
 ```
 

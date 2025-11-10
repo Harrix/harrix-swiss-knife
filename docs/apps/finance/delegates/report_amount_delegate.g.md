@@ -132,30 +132,15 @@ class ReportAmountDelegate(QStyledItemDelegate):
         """
         try:
             if self.is_bold:
-                # Create a copy of the option to modify font
                 bold_option = QStyleOptionViewItem(option)
                 bold_option.font = QFont(option.font)
                 bold_option.font.setBold(True)
-
-                # Get the formatted amount text
-                amount_text = self.displayText(index.data(), None)
-
-                # Draw the text manually with bold font
-                painter.save()
-                painter.setFont(bold_option.font)
-                painter.drawText(
-                    option.rect.adjusted(5, 0, 0, 0),
-                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-                    amount_text,
-                )
-                painter.restore()
+                super().paint(painter, bold_option, index)
                 return
 
-            # For non-bold columns, use default painting
             super().paint(painter, option, index)
 
         except Exception:
-            # Fallback to default painting on any error
             super().paint(painter, option, index)
 ```
 
@@ -291,30 +276,15 @@ Args:
 def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         try:
             if self.is_bold:
-                # Create a copy of the option to modify font
                 bold_option = QStyleOptionViewItem(option)
                 bold_option.font = QFont(option.font)
                 bold_option.font.setBold(True)
-
-                # Get the formatted amount text
-                amount_text = self.displayText(index.data(), None)
-
-                # Draw the text manually with bold font
-                painter.save()
-                painter.setFont(bold_option.font)
-                painter.drawText(
-                    option.rect.adjusted(5, 0, 0, 0),
-                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-                    amount_text,
-                )
-                painter.restore()
+                super().paint(painter, bold_option, index)
                 return
 
-            # For non-bold columns, use default painting
             super().paint(painter, option, index)
 
         except Exception:
-            # Fallback to default painting on any error
             super().paint(painter, option, index)
 ```
 
