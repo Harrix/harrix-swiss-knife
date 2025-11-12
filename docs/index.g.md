@@ -54,9 +54,9 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ℹ️ About
-  - 📦 Install/Update global NPM packages
   - ⚙️ Open config.json
   - 📥 Update uv
+  - 📦 Update/Install global NPM packages
 - **Images**
   - 📸 Open Camera Uploads
   - 📸 Open Camera Uploads (short list of folders)

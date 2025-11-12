@@ -255,7 +255,7 @@ This ensures all configured packages are present and up-to-date in the system.
 class OnNpmManagePackages(ActionBase):
 
     icon = "📦"
-    title = "Install/Update global NPM packages"
+    title = "Update/Install global NPM packages"
 
     @ActionBase.handle_exceptions("NPM package management")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
