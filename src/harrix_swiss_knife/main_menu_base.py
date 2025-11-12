@@ -69,6 +69,77 @@ class MainMenuBase:
                 for item in sorted_group:
                     self._add_item(menu, item)
 
+    def add_menu_structure(self, parent_menu: QMenu, structure: list) -> None:
+        """Add menus and items from a structured list.
+
+        This method allows defining all menus and items in a single structure.
+        Each element in the structure can be:
+
+        - A tuple `(title: str, icon: str, items: list)` to create a submenu
+        - A callable class to add as a menu item
+        - A string `"-"` to add a separator
+
+        Args:
+
+        - `parent_menu` (`QMenu`): The parent menu to which menus and items will be added.
+        - `structure` (`list`): List of menu definitions, action classes, or separators.
+          Menu definitions are tuples: `(title, icon, items)` where `items` is a list of
+          action classes or separators (`"-"`).
+
+        Example::
+
+            structure = [
+                ("Dev", "🛠️", [OnAboutDialog, OnExit]),
+                ("Images", "🖼️", [OnOptimize, "-", OnClearImages]),
+                OnFinance,
+                "-",
+                OnExit,
+            ]
+
+        """
+        menus_to_add = []
+        items_to_add = []
+
+        for element in structure:
+            # Check if element is a menu definition (tuple with 3 elements: title, icon, items)
+            if isinstance(element, tuple) and len(element) == 3:
+                title, icon, items = element
+                # Create menu and populate it recursively
+                menu = self.new_menu(title, icon)
+                self.add_menu_structure(menu, items)
+                # Filter menus in compact mode - only add menus that have visible items
+                if not self.compact_mode or self._menu_has_visible_items(menu):
+                    menus_to_add.append(menu)
+            # Check if element is a separator
+            elif element == "-":
+                # If we have menus, add separator after them
+                if menus_to_add:
+                    # Add menus first
+                    for menu in menus_to_add:
+                        parent_menu.addMenu(menu)
+                    menus_to_add = []
+                    # Add separator
+                    parent_menu.addSeparator()
+                else:
+                    # Add separator to items
+                    items_to_add.append("-")
+            # Otherwise, treat as an action class
+            else:
+                items_to_add.append(element)
+
+        # Add any remaining menus
+        if menus_to_add:
+            for menu in menus_to_add:
+                parent_menu.addMenu(menu)
+
+        # Add separator between menus and items if both exist
+        if menus_to_add and items_to_add:
+            parent_menu.addSeparator()
+
+        # Add items
+        if items_to_add:
+            self.add_items(parent_menu, items_to_add)
+
     def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None:
         """Add submenus and items to the parent menu.
 
