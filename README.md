@@ -105,7 +105,6 @@ _Figure 1: Screenshot_
   - 🐍 New uv library
   - 🐍 New uv project
   - ⚡ Publish Python library to PyPI
-  - ⬆️ Update uv dependencies
   - 🌟 isort, ruff format, sort in PY files
   - 🌟 ★ isort, ruff format, sort, make docs in PY files
 - 💰 Finance tracker
