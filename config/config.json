@@ -24,7 +24,7 @@
       ]
     },
     "🎬 Movie": {
-      "insert_position": "end",
+      "insert_position": "start",
       "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
       "template_file": "config/template-movie.md",
       "dialog_links": [
