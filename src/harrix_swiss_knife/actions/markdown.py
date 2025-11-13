@@ -80,7 +80,7 @@ class OnAddMarkdownFromTemplate(ActionBase):
             return
 
         with Path.open(template_path, encoding="utf-8") as f:
-            template_content = f.read()
+            template_content = f.read().strip()
 
         # Parse template to get fields
         fields, _ = TemplateParser.parse_template(template_content)
