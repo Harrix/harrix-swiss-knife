@@ -75,6 +75,13 @@
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
       "files": [
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"
+      ],
+      "name": "harrix-swiss-knife"
+    },
+    {
+      "base_folder": "D:/GitHub/harrix-swiss-knife",
+      "files": [
         "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/recover.sql",
         "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/finance/*.py"
       ],

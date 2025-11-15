@@ -29,6 +29,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
+
 
 class FileDropWidget(QWidget):
     """Widget for single file selection with drag and drop support."""
@@ -637,6 +639,8 @@ class TemplateDialog(QDialog):
             widget.setSizePolicy(size_policy)
             if field.options:
                 widget.addItems(field.options)
+                # Apply smart filtering
+                apply_smart_filtering(widget)
             if field.default_value:
                 # Try to set default value, if it's in options, select it, otherwise set as current text
                 index = widget.findText(field.default_value)

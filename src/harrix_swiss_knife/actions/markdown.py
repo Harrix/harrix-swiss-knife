@@ -12,6 +12,7 @@ import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateField, TemplateParser
+from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 
 
 class OnAddMarkdownFromTemplate(ActionBase):
@@ -840,6 +841,10 @@ class OnNewQuotes(ActionBase):
 
     def execute_format_with_author_and_book(self) -> None:
         """Format quotes with specified author and book title via dialog."""
+        # Import at the beginning of the method
+        from PySide6.QtWidgets import QComboBox
+        from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
+
         # Extract existing authors and books from quotes folder
         quotes_folder = self.config.get("path_quotes", "")
         author_books_dict = _extract_authors_and_books_from_quotes_folder(quotes_folder)
@@ -868,21 +873,52 @@ class OnNewQuotes(ActionBase):
         )
 
         # Connect author selection to book list update
-        from PySide6.QtWidgets import QComboBox
-
         author_widget = dialog.widgets.get("Author")
         book_widget = dialog.widgets.get("Book Title")
         if isinstance(author_widget, QComboBox) and isinstance(book_widget, QComboBox):
 
             def update_book_list(author_text: str) -> None:
                 """Update book list based on selected author."""
+                # Store current book value
+                current_book = book_widget.currentText()
+
+                # Clear the widget completely
                 book_widget.clear()
+
+                # Remove old smart filtering if it exists
+                if hasattr(book_widget, '_smart_filter_model'):
+                    delattr(book_widget, '_smart_filter_model')
+                if hasattr(book_widget, '_smart_filter_proxy'):
+                    delattr(book_widget, '_smart_filter_proxy')
+                if hasattr(book_widget, '_smart_filter_completer'):
+                    delattr(book_widget, '_smart_filter_completer')
+                if hasattr(book_widget, '_smart_filter_items'):
+                    delattr(book_widget, '_smart_filter_items')
+
                 if author_text and author_text in author_books_dict:
-                    book_widget.addItems(author_books_dict[author_text])
-                book_widget.setCurrentText("")
+                    books = author_books_dict[author_text]
+                    book_widget.addItems(books)
+                    # Re-apply smart filtering after adding items
+                    apply_smart_filtering(book_widget)
+
+                    # Restore previous value if it's in the list
+                    if current_book:
+                        index = book_widget.findText(current_book)
+                        if index >= 0:
+                            book_widget.setCurrentIndex(index)
+                        else:
+                            book_widget.setCurrentText(current_book)
+                else:
+                    # No author selected - allow free text entry
+                    book_widget.setCurrentText(current_book if current_book else "")
 
             author_widget.currentTextChanged.connect(update_book_list)
 
+            # Trigger initial update if there's a default author
+            if author_widget.currentText():
+                update_book_list(author_widget.currentText())
+
+        # Execute dialog
         if dialog.exec() != dialog.DialogCode.Accepted:
             self.add_line("❌ Dialog was canceled.")
             self.show_result()
