@@ -1032,37 +1032,6 @@ class OnNewQuotes(ActionBase):
         # Convert sets to sorted lists
         return {author: sorted(books) for author, books in sorted(author_books.items())}
 
-    def _format_author_for_folder(self, author: str) -> str:
-        """Format author name for folder structure.
-
-        Args:
-
-        - `author` (`str`) : Full author name (e.g., "Bulgakov Mikhail Afanasievich")
-
-        Returns:
-
-        - `str`: Formatted author name for folder (e.g., "Bulgakov-Mikhail-Afanasievich")
-
-        """
-        # Replace spaces with hyphens and clean up
-        return "-".join(part.strip() for part in author.split() if part.strip())
-
-    def _format_book_title_for_filename(self, book_title: str) -> str:
-        """Format book title for filename.
-
-        Args:
-
-        - `book_title` (`str`): Book title (e.g., "The Master and Margarita")
-
-        Returns:
-
-        - `str`: Formatted book title for filename (e.g., "Master-and-Margarita")
-
-        """
-        # Remove quotes and replace spaces with hyphens
-        clean_title = book_title.replace("«", "").replace("»", "").replace('"', "").replace("'", "")
-        return "-".join(part.strip() for part in clean_title.split() if part.strip())
-
     def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
         """Save quotes to a markdown file.
 
@@ -1085,10 +1054,15 @@ class OnNewQuotes(ActionBase):
             return False
 
         # Create author folder and file paths
-        author_folder = selected_folder / self._format_author_for_folder(author)
+        # Format author name: replace spaces with hyphens
+        author_folder_name = "-".join(part.strip() for part in author.split() if part.strip())
+        author_folder = selected_folder / author_folder_name
         author_folder.mkdir(exist_ok=True)
 
-        filename = f"{self._format_book_title_for_filename(book_title)}.md"
+        # Format book title: remove quotes and replace spaces with hyphens
+        clean_title = book_title.replace("«", "").replace("»", "").replace('"', "").replace("'", "")
+        book_filename = "-".join(part.strip() for part in clean_title.split() if part.strip())
+        filename = f"{book_filename}.md"
         file_path = author_folder / filename
 
         # Read beginning template
