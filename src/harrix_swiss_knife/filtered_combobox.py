@@ -8,6 +8,7 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
     """Custom proxy model for smart filtering.
 
     Implements smart filtering logic:
+    
     - First shows items that start with the filter text (case-insensitive)
     - Then shows items that contain the filter text in the middle (if length >= 2)
     - Case-insensitive matching
@@ -91,6 +92,7 @@ class FilteredComboBox(QComboBox):
     """ComboBox with smart filtering functionality.
 
     Features:
+
     - Shows matching items as you type
     - Case-insensitive filtering
     - Items starting with typed text appear first
@@ -186,6 +188,7 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
     """Apply smart filtering to an existing QComboBox.
 
     This function converts a regular QComboBox into one with smart filtering:
+
     - Shows matching items as you type
     - Case-insensitive filtering
     - Items starting with typed text appear first
@@ -194,14 +197,16 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
     - Allows entering custom text not in the list
 
     Args:
-        combobox: The QComboBox to enhance with smart filtering
+
+    - `combobox` (`QComboBox`): The QComboBox to enhance with smart filtering
 
     Example:
-        ```python
-        combo = QComboBox()
-        combo.addItems(["Apple", "Banana", "Cherry"])
-        apply_smart_filtering(combo)
-        ```
+
+    ```python
+    combo = QComboBox()
+    combo.addItems(["Apple", "Banana", "Cherry"])
+    apply_smart_filtering(combo)
+    ```
     """
     # Make it editable if not already
     if not combobox.isEditable():

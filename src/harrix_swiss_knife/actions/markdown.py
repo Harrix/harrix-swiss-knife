@@ -1065,14 +1065,6 @@ class OnNewQuotes(ActionBase):
         filename = f"{book_filename}.md"
         file_path = author_folder / filename
 
-        # Read beginning template
-        beginning_template = ""
-        beginning_path = self.config.get("beginning_of_md", "")
-        if beginning_path.startswith("snippet:"):
-            beginning_file = Path(beginning_path.replace("snippet:", ""))
-            if beginning_file.exists():
-                beginning_template = beginning_file.read_text(encoding="utf-8")
-
         # Prepare content
         header = f"# {book_title}"
         separator = "---"
@@ -1107,10 +1099,11 @@ class OnNewQuotes(ActionBase):
                 else:
                     new_lines.extend(["", quotes_content])
 
-            content = "\n".join(new_lines)
+            content = "\n".join(new_lines) + "\n"
         else:
-            # Create new file
-            content = f"{beginning_template}\n\n{header}\n\n{quotes_content}"
+            # Create new file with beginning template, header, and quotes
+            beginning_template = self.config["beginning_of_md"]
+            content = f"{beginning_template}\n{header}\n\n{quotes_content}\n"
 
         # Save file
         file_path.write_text(content, encoding="utf-8")
