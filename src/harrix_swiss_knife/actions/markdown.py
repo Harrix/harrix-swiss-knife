@@ -847,7 +847,7 @@ class OnNewQuotes(ActionBase):
 
         # Extract existing authors and books from quotes folder
         quotes_folder = self.config.get("path_quotes", "")
-        author_books_dict = _extract_authors_and_books_from_quotes_folder(quotes_folder)
+        author_books_dict = self._extract_authors_and_books_from_quotes_folder(quotes_folder)
         authors_list = sorted(author_books_dict.keys())
 
         # Create template fields for author, book, and quotes
@@ -973,9 +973,7 @@ class OnNewQuotes(ActionBase):
                         quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
                         break
 
-            success = _save_quotes_to_file(
-                quotes_without_header, author, book_title, self.config, self.get_existing_directory
-            )
+            success = self._save_quotes_to_file(quotes_without_header, author, book_title)
             if success:
                 self.add_line("✅ Quotes saved to file successfully!")
             else:
@@ -984,6 +982,165 @@ class OnNewQuotes(ActionBase):
             self.add_line(result)
 
         self.show_result()
+
+    def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> dict[str, list[str]]:
+        """Extract authors and their books from markdown quote files.
+
+        Scans all markdown files in the quotes folder and extracts author and book information
+        from quote attributions in the format: `> -- _Author, Book Title_`
+        Authors starting with `[` are excluded.
+
+        Args:
+
+        - `quotes_folder` (`str`): Path to the folder containing quote markdown files.
+
+        Returns:
+
+        - `dict[str, list[str]]`: Dictionary mapping author names to lists of their book titles.
+
+        """
+        author_books: dict[str, set[str]] = {}
+
+        quotes_path = Path(quotes_folder)
+        if not quotes_path.exists():
+            return {}
+
+        # Pattern to match quote attribution: > -- _Author, Book Title_
+        # Matches: > -- _Author Name, Book Title_
+        pattern = re.compile(r">\s*--\s*_([^_]+?),\s*([^_]+?)_", re.MULTILINE)
+
+        # Recursively find all markdown files
+        for md_file in quotes_path.rglob("*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8")
+                # Find all matches
+                matches = pattern.findall(content)
+                for author, book in matches:
+                    # Clean up whitespace
+                    author_clean = author.strip()
+                    book_clean = book.strip()
+                    # Skip authors starting with [
+                    if author_clean and not author_clean.startswith("["):
+                        if author_clean not in author_books:
+                            author_books[author_clean] = set()
+                        if book_clean:
+                            author_books[author_clean].add(book_clean)
+            except Exception:
+                # Skip files that can't be read
+                continue
+
+        # Convert sets to sorted lists
+        return {author: sorted(books) for author, books in sorted(author_books.items())}
+
+    def _format_author_for_folder(self, author: str) -> str:
+        """Format author name for folder structure.
+
+        Args:
+
+        - `author` (`str`) : Full author name (e.g., "Bulgakov Mikhail Afanasievich")
+
+        Returns:
+
+        - `str`: Formatted author name for folder (e.g., "Bulgakov-Mikhail-Afanasievich")
+
+        """
+        # Replace spaces with hyphens and clean up
+        return "-".join(part.strip() for part in author.split() if part.strip())
+
+    def _format_book_title_for_filename(self, book_title: str) -> str:
+        """Format book title for filename.
+
+        Args:
+
+        - `book_title` (`str`): Book title (e.g., "The Master and Margarita")
+
+        Returns:
+
+        - `str`: Formatted book title for filename (e.g., "Master-and-Margarita")
+
+        """
+        # Remove quotes and replace spaces with hyphens
+        clean_title = book_title.replace("«", "").replace("»", "").replace('"', "").replace("'", "")
+        return "-".join(part.strip() for part in clean_title.split() if part.strip())
+
+    def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
+        """Save quotes to a markdown file.
+
+        Args:
+
+        - `quotes_content` (`str`): Formatted quotes content
+        - `author` (`str`): Author name
+        - `book_title` (`str`): Book title
+
+        Returns:
+
+        - `bool`: True if file was saved successfully, False otherwise
+
+        """
+        # Ask user to select folder
+        default_path = self.config.get("path_quotes", "")
+        selected_folder = self.get_existing_directory("Select folder to save quotes", default_path)
+
+        if not selected_folder:
+            return False
+
+        # Create author folder and file paths
+        author_folder = selected_folder / self._format_author_for_folder(author)
+        author_folder.mkdir(exist_ok=True)
+
+        filename = f"{self._format_book_title_for_filename(book_title)}.md"
+        file_path = author_folder / filename
+
+        # Read beginning template
+        beginning_template = ""
+        beginning_path = self.config.get("beginning_of_md", "")
+        if beginning_path.startswith("snippet:"):
+            beginning_file = Path(beginning_path.replace("snippet:", ""))
+            if beginning_file.exists():
+                beginning_template = beginning_file.read_text(encoding="utf-8")
+
+        # Prepare content
+        header = f"# {book_title}"
+        separator = "---"
+
+        # Check if file exists
+        if file_path.exists():
+            # Read existing content
+            existing_content = file_path.read_text(encoding="utf-8")
+
+            # Find the header and insert quotes after it, keeping existing content
+            lines = existing_content.split("\n")
+            new_lines = []
+            header_found = False
+
+            for i, line in enumerate(lines):
+                new_lines.append(line)
+                if line.strip() == header.strip():
+                    header_found = True
+                    # Add quotes after the header, then separator
+                    new_lines.append("")  # Empty line after header
+                    new_lines.append(quotes_content)
+                    new_lines.append("")
+                    new_lines.append(separator)
+                    # Add the rest of the existing content
+                    new_lines.extend(lines[i + 1 :])
+                    break
+
+            # If header not found, add at the end
+            if not header_found:
+                if not existing_content.rstrip().endswith("---"):
+                    new_lines.extend(["", separator, "", quotes_content])
+                else:
+                    new_lines.extend(["", quotes_content])
+
+            content = "\n".join(new_lines)
+        else:
+            # Create new file
+            content = f"{beginning_template}\n\n{header}\n\n{quotes_content}"
+
+        # Save file
+        file_path.write_text(content, encoding="utf-8")
+        return True
 
 
 class OnOptimizeImagesFolder(ActionBase):
@@ -1582,170 +1739,3 @@ class OnSortSections(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
         self.show_result()
-
-
-def _extract_authors_and_books_from_quotes_folder(quotes_folder: str) -> dict[str, list[str]]:
-    """Extract authors and their books from markdown quote files.
-
-    Scans all markdown files in the quotes folder and extracts author and book information
-    from quote attributions in the format: `> -- _Author, Book Title_`
-    Authors starting with `[` are excluded.
-
-    Args:
-
-    - `quotes_folder` (`str`): Path to the folder containing quote markdown files.
-
-    Returns:
-
-    - `dict[str, list[str]]`: Dictionary mapping author names to lists of their book titles.
-
-    """
-    author_books: dict[str, set[str]] = {}
-
-    quotes_path = Path(quotes_folder)
-    if not quotes_path.exists():
-        return {}
-
-    # Pattern to match quote attribution: > -- _Author, Book Title_
-    # Matches: > -- _Author Name, Book Title_
-    pattern = re.compile(r">\s*--\s*_([^_]+?),\s*([^_]+?)_", re.MULTILINE)
-
-    # Recursively find all markdown files
-    for md_file in quotes_path.rglob("*.md"):
-        try:
-            content = md_file.read_text(encoding="utf-8")
-            # Find all matches
-            matches = pattern.findall(content)
-            for author, book in matches:
-                # Clean up whitespace
-                author_clean = author.strip()
-                book_clean = book.strip()
-                # Skip authors starting with [
-                if author_clean and not author_clean.startswith("["):
-                    if author_clean not in author_books:
-                        author_books[author_clean] = set()
-                    if book_clean:
-                        author_books[author_clean].add(book_clean)
-        except Exception:
-            # Skip files that can't be read
-            continue
-
-    # Convert sets to sorted lists
-    return {author: sorted(books) for author, books in sorted(author_books.items())}
-
-
-def _format_author_for_folder(author: str) -> str:
-    """Format author name for folder structure.
-
-    Args:
-
-    - `author` (`str`) : Full author name (e.g., "Bulgakov Mikhail Afanasievich")
-
-    Returns:
-
-    - `str`: Formatted author name for folder (e.g., "Bulgakov-Mikhail-Afanasievich")
-
-    """
-    # Replace spaces with hyphens and clean up
-    return "-".join(part.strip() for part in author.split() if part.strip())
-
-
-def _format_book_title_for_filename(book_title: str) -> str:
-    """Format book title for filename.
-
-    Args:
-
-    - `book_title` (`str`): Book title (e.g., "The Master and Margarita")
-
-    Returns:
-
-    - `str`: Formatted book title for filename (e.g., "Master-and-Margarita")
-
-    """
-    # Remove quotes and replace spaces with hyphens
-    clean_title = book_title.replace("«", "").replace("»", "").replace('"', "").replace("'", "")
-    return "-".join(part.strip() for part in clean_title.split() if part.strip())
-
-
-def _save_quotes_to_file(
-    quotes_content: str, author: str, book_title: str, config: dict, get_existing_directory_func: callable
-) -> bool:
-    """Save quotes to a markdown file.
-
-    Args:
-
-    - `quotes_content` (`str`): Formatted quotes content
-    - `author` (`str`): Author name
-    - `book_title` (`str`): Book title
-    - `config` (`dict`): Configuration dictionary
-    - `get_existing_directory_func` (`callable`): Function to get directory from user
-
-    Returns:
-
-    - `bool`: True if file was saved successfully, False otherwise
-
-    """
-    # Ask user to select folder
-    default_path = config.get("path_quotes", "")
-    selected_folder = get_existing_directory_func("Select folder to save quotes", default_path)
-
-    if not selected_folder:
-        return False
-
-    # Create author folder and file paths
-    author_folder = selected_folder / _format_author_for_folder(author)
-    author_folder.mkdir(exist_ok=True)
-
-    filename = f"{_format_book_title_for_filename(book_title)}.md"
-    file_path = author_folder / filename
-
-    # Read beginning template
-    beginning_template = ""
-    beginning_path = config.get("beginning_of_md", "")
-    if beginning_path.startswith("snippet:"):
-        beginning_file = Path(beginning_path.replace("snippet:", ""))
-        if beginning_file.exists():
-            beginning_template = beginning_file.read_text(encoding="utf-8")
-
-    # Prepare content
-    header = f"# {book_title}"
-    separator = "---"
-
-    # Check if file exists
-    if file_path.exists():
-        # Read existing content
-        existing_content = file_path.read_text(encoding="utf-8")
-
-        # Find the header and insert quotes after it, keeping existing content
-        lines = existing_content.split("\n")
-        new_lines = []
-        header_found = False
-
-        for i, line in enumerate(lines):
-            new_lines.append(line)
-            if line.strip() == header.strip():
-                header_found = True
-                # Add quotes after the header, then separator
-                new_lines.append("")  # Empty line after header
-                new_lines.append(quotes_content)
-                new_lines.append("")
-                new_lines.append(separator)
-                # Add the rest of the existing content
-                new_lines.extend(lines[i + 1 :])
-                break
-
-        # If header not found, add at the end
-        if not header_found:
-            if not existing_content.rstrip().endswith("---"):
-                new_lines.extend(["", separator, "", quotes_content])
-            else:
-                new_lines.extend(["", quotes_content])
-
-        content = "\n".join(new_lines)
-    else:
-        # Create new file
-        content = f"{beginning_template}\n\n{header}\n\n{quotes_content}"
-
-    # Save file
-    file_path.write_text(content, encoding="utf-8")
-    return True
