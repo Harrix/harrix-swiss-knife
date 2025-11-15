@@ -825,12 +825,9 @@ class OnNewNoteDialogWithImages(OnNewNoteDialog):
 
 
 class OnNewQuotes(ActionBase):
-    """Add new quotes with various formatting options.
+    """Add new quotes with author and book title.
 
-    This action allows you to quickly add new quotes:
-
-    1. Format quote text as structured Markdown content
-    2. Add a quote with specified author and book title
+    This action allows you to add a quote with specified author and book title.
     """
 
     icon = "❞"
@@ -839,113 +836,20 @@ class OnNewQuotes(ActionBase):
     @ActionBase.handle_exceptions("processing quotes")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        # Let user choose processing mode
-        options = [
-            (
-                "Format quotes from text",
-                (
-                    "Transform plain text quotes (with book and author lines after each quote) into nicely "
-                    "formatted Markdown with blockquotes and attributions."
-                ),
-            ),
-            (
-                "Format quotes with author and book",
-                (
-                    "Input a quote, author, and book separately and generate a Markdown quote block "
-                    "with source information."
-                ),
-            ),
-        ]
-        selected_option = self.get_choice_from_list_with_descriptions(
-            "Select Quote Processing Mode",
-            "How do you want to process quotes?",
-            options,
-        )
-
-        if not selected_option:
-            return
-
-        if selected_option == options[0][0]:
-            self.execute_format_quotes_from_text()
-        elif selected_option == options[1][0]:
-            self.execute_format_with_author_and_book()
-
-    def execute_format_quotes_from_text(self) -> None:
-        """Format plain text quotes into properly structured Markdown."""
-        default_text = """They can get a big bang out of buying a blanket.
-
-The Catcher in the Rye
-J.D. Salinger
-
-
-I just mean that I used to think about old Spencer quite a lot
-
-The Catcher in the Rye
-J.D. Salinger"""
-        content = self.get_text_textarea("Quotes", "Input quotes", default_text)
-        if not content:
-            return
-
-        result = h.md.format_quotes_as_markdown_content(content)
-
-        # Ask if user wants to save to file
-        save_to_file = self.get_yes_no_question(
-            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
-        )
-
-        if save_to_file:
-            # Extract author and book title from content for folder structure
-            # This is a simple extraction - in practice, you might want more robust parsing
-            lines = content.strip().split("\n")
-            author = ""
-            book_title = ""
-
-            # Find the last author/book pair in the content
-            for i in range(len(lines) - 1, -1, -1):
-                line = lines[i].strip()
-                if line and not line.startswith("They can get") and not line.startswith("I just mean"):
-                    if not author:
-                        author = line
-                    elif not book_title:
-                        book_title = line
-                        break
-
-            if author and book_title:
-                # Remove the header from quotes content since it will be added by the save function
-                quotes_without_header = result
-                if quotes_without_header.startswith(f"# {book_title}"):
-                    # Find the first empty line after the header
-                    lines = quotes_without_header.split("\n")
-                    for i_original, line in enumerate(lines):
-                        i = i_original
-                        if line.strip() == f"# {book_title}":
-                            # Skip the header line and any following empty lines
-                            while i + 1 < len(lines) and not lines[i + 1].strip():
-                                i += 1
-                            quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
-                            break
-
-                success = _save_quotes_to_file(
-                    quotes_without_header, author, book_title, self.config, self.get_existing_directory
-                )
-                if success:
-                    self.add_line("✅ Quotes saved to file successfully!")
-                else:
-                    self.add_line("❌ Failed to save quotes to file.")
-            else:
-                self.add_line("❌ Could not extract author and book title from content.")
-                self.add_line(result)
-        else:
-            self.add_line(result)
-
-        self.show_result()
+        self.execute_format_with_author_and_book()
 
     def execute_format_with_author_and_book(self) -> None:
         """Format quotes with specified author and book title via dialog."""
+        # Extract existing authors and books from quotes folder
+        quotes_folder = self.config.get("path_quotes", "")
+        author_books_dict = _extract_authors_and_books_from_quotes_folder(quotes_folder)
+        authors_list = sorted(author_books_dict.keys())
+
         # Create template fields for author, book, and quotes
+        # Start with empty options for books - will be updated based on author selection
         fields = [
-            TemplateField("Book Title", "line", "{{Book Title:line}}", None),
-            TemplateField("Author", "line", "{{Author:line}}", None),
+            TemplateField("Author", "combobox", "{{Author:combobox}}", "", options=authors_list),
+            TemplateField("Book Title", "combobox", "{{Book Title:combobox}}", "", options=[]),
             TemplateField(
                 "Quotes",
                 "multiline",
@@ -962,6 +866,22 @@ J.D. Salinger"""
             fields=fields,
             title="Enter Book, Author and Quotes",
         )
+
+        # Connect author selection to book list update
+        from PySide6.QtWidgets import QComboBox
+
+        author_widget = dialog.widgets.get("Author")
+        book_widget = dialog.widgets.get("Book Title")
+        if isinstance(author_widget, QComboBox) and isinstance(book_widget, QComboBox):
+
+            def update_book_list(author_text: str) -> None:
+                """Update book list based on selected author."""
+                book_widget.clear()
+                if author_text and author_text in author_books_dict:
+                    book_widget.addItems(author_books_dict[author_text])
+                book_widget.setCurrentText("")
+
+            author_widget.currentTextChanged.connect(update_book_list)
 
         if dialog.exec() != dialog.DialogCode.Accepted:
             self.add_line("❌ Dialog was canceled.")
@@ -1626,6 +1546,56 @@ class OnSortSections(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
         self.show_result()
+
+
+def _extract_authors_and_books_from_quotes_folder(quotes_folder: str) -> dict[str, list[str]]:
+    """Extract authors and their books from markdown quote files.
+
+    Scans all markdown files in the quotes folder and extracts author and book information
+    from quote attributions in the format: `> -- _Author, Book Title_`
+    Authors starting with `[` are excluded.
+
+    Args:
+
+    - `quotes_folder` (`str`): Path to the folder containing quote markdown files.
+
+    Returns:
+
+    - `dict[str, list[str]]`: Dictionary mapping author names to lists of their book titles.
+
+    """
+    author_books: dict[str, set[str]] = {}
+
+    quotes_path = Path(quotes_folder)
+    if not quotes_path.exists():
+        return {}
+
+    # Pattern to match quote attribution: > -- _Author, Book Title_
+    # Matches: > -- _Author Name, Book Title_
+    pattern = re.compile(r">\s*--\s*_([^_]+?),\s*([^_]+?)_", re.MULTILINE)
+
+    # Recursively find all markdown files
+    for md_file in quotes_path.rglob("*.md"):
+        try:
+            content = md_file.read_text(encoding="utf-8")
+            # Find all matches
+            matches = pattern.findall(content)
+            for author, book in matches:
+                # Clean up whitespace
+                author_clean = author.strip()
+                book_clean = book.strip()
+                # Skip authors starting with [
+                if author_clean and not author_clean.startswith("["):
+                    if author_clean not in author_books:
+                        author_books[author_clean] = set()
+                    if book_clean:
+                        author_books[author_clean].add(book_clean)
+        except Exception:
+            # Skip files that can't be read
+            continue
+
+    # Convert sets to sorted lists
+    return {author: sorted(books) for author, books in sorted(author_books.items())}
 
 
 def _format_author_for_folder(author: str) -> str:

@@ -9,6 +9,7 @@ from PySide6.QtCore import QDate, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDateEdit,
     QDialog,
     QDoubleSpinBox,
@@ -22,6 +23,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -627,6 +629,26 @@ class TemplateDialog(QDialog):
                 widget.set_file_paths(paths)
             return widget
 
+        if field.field_type == "combobox":
+            widget = QComboBox()
+            widget.setEditable(True)  # Allow user to type custom value
+            # Set size policy to expand like multiline fields
+            size_policy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(size_policy)
+            if field.options:
+                widget.addItems(field.options)
+            if field.default_value:
+                # Try to set default value, if it's in options, select it, otherwise set as current text
+                index = widget.findText(field.default_value)
+                if index >= 0:
+                    widget.setCurrentIndex(index)
+                else:
+                    widget.setCurrentText(field.default_value)
+            else:
+                # Set empty text if no default value
+                widget.setCurrentText("")
+            return widget
+
         # Default to line edit for unknown types
         widget = QLineEdit()
         if field.default_value:
@@ -690,6 +712,11 @@ class TemplateDialog(QDialog):
         if field.field_type == "files":
             if isinstance(widget, FilesListWidget):
                 return ",".join(widget.get_file_paths())
+            return ""
+
+        if field.field_type == "combobox":
+            if isinstance(widget, QComboBox):
+                return widget.currentText()
             return ""
 
         # Default to line edit
@@ -791,13 +818,21 @@ class TemplateField:
     Attributes:
 
     - `name` (`str`): The field name (e.g., "Title", "Score").
-    - `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "bool", "multiline").
+    - `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "bool", "multiline", "combobox").
     - `placeholder` (`str`): The original placeholder text from the template.
     - `default_value` (`str | None`): Optional default value for the field.
+    - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
 
     """
 
-    def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        field_type: str,
+        placeholder: str,
+        default_value: str | None = None,
+        options: list[str] | None = None,
+    ) -> None:
         """Initialize a template field.
 
         Args:
@@ -806,12 +841,14 @@ class TemplateField:
         - `field_type` (`str`): The field type.
         - `placeholder` (`str`): The original placeholder text.
         - `default_value` (`str | None`): Optional default value. Defaults to `None`.
+        - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
 
         """
         self.name = name
         self.field_type = field_type
         self.placeholder = placeholder
         self.default_value = default_value
+        self.options = options or []
 
 
 class TemplateParser:
