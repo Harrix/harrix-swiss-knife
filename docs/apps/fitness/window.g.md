@@ -64,6 +64,40 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
+        self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
+        self.label_chart_type.setText(QCoreApplication.translate("MainWindow", "Type:", None))
+        self.groupBox_type_of_charts.setTitle(QCoreApplication.translate("MainWindow", "Type Of Chart", None))
+        self.radioButton_type_of_chart_standart.setText(QCoreApplication.translate("MainWindow", "Standart", None))
+        self.radioButton_type_of_chart_show_sets_chart.setText(
+            QCoreApplication.translate("MainWindow", "Show Sets Chart", None)
+        )
+        self.radioButton_type_of_chart_kcal.setText(QCoreApplication.translate("MainWindow", "Kcal", None))
+        self.radioButton_type_of_chart_compare_last.setText(
+            QCoreApplication.translate("MainWindow", "Compare last months", None)
+        )
+        self.radioButton_type_of_chart_compare_same_months.setText(
+            QCoreApplication.translate("MainWindow", "Compare same months", None)
+        )
+        self.label_chart_period.setText(QCoreApplication.translate("MainWindow", "Period:", None))
+        self.comboBox_chart_period.setItemText(0, QCoreApplication.translate("MainWindow", "Days", None))
+        self.comboBox_chart_period.setItemText(1, QCoreApplication.translate("MainWindow", "Months", None))
+        self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
+
+        self.checkBox_max_value.setText(QCoreApplication.translate("MainWindow", "Max value, not sum", None))
+        self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
+        self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
+        self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
+        self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
+        self.dateEdit_chart_to.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
+        self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
+        self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
+        self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
+        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "Number of months:", None))
+        self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
+        self.label_chart_info.setText("")
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
+        )
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement:", None))
@@ -101,40 +135,6 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None)
         )
-        self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
-        self.label_chart_type.setText(QCoreApplication.translate("MainWindow", "Type:", None))
-        self.groupBox_type_of_charts.setTitle(QCoreApplication.translate("MainWindow", "Type Of Chart", None))
-        self.radioButton_type_of_chart_standart.setText(QCoreApplication.translate("MainWindow", "Standart", None))
-        self.radioButton_type_of_chart_show_sets_chart.setText(
-            QCoreApplication.translate("MainWindow", "Show Sets Chart", None)
-        )
-        self.radioButton_type_of_chart_kcal.setText(QCoreApplication.translate("MainWindow", "Kcal", None))
-        self.radioButton_type_of_chart_compare_last.setText(
-            QCoreApplication.translate("MainWindow", "Compare last months", None)
-        )
-        self.radioButton_type_of_chart_compare_same_months.setText(
-            QCoreApplication.translate("MainWindow", "Compare same months", None)
-        )
-        self.label_chart_period.setText(QCoreApplication.translate("MainWindow", "Period:", None))
-        self.comboBox_chart_period.setItemText(0, QCoreApplication.translate("MainWindow", "Days", None))
-        self.comboBox_chart_period.setItemText(1, QCoreApplication.translate("MainWindow", "Months", None))
-        self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
-
-        self.checkBox_max_value.setText(QCoreApplication.translate("MainWindow", "Max value, not sum", None))
-        self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
-        self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
-        self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
-        self.dateEdit_chart_to.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
-        self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
-        self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
-        self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
-        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "Number of months:", None))
-        self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
-        self.label_chart_info.setText("")
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
-        )
         self.groupBox_10.setTitle(QCoreApplication.translate("MainWindow", "Records", None))
         self.label_record_count.setText(QCoreApplication.translate("MainWindow", "Record count:", None))
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
@@ -151,7 +151,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1375, 978)
+        MainWindow.resize(1375, 979)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -483,6 +483,254 @@ class Ui_MainWindow(object):
         self.horizontalLayout_main.addWidget(self.splitter)
 
         self.tabWidget.addTab(self.tab, "")
+        self.tab_charts = QWidget()
+        self.tab_charts.setObjectName("tab_charts")
+        self.horizontalLayout_26 = QHBoxLayout(self.tab_charts)
+        self.horizontalLayout_26.setObjectName("horizontalLayout_26")
+        self.splitter_charts = QSplitter(self.tab_charts)
+        self.splitter_charts.setObjectName("splitter_charts")
+        self.splitter_charts.setOrientation(Qt.Orientation.Horizontal)
+        self.widget_left_panel = QWidget(self.splitter_charts)
+        self.widget_left_panel.setObjectName("widget_left_panel")
+        self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
+        self.verticalLayout_18.setObjectName("verticalLayout_18")
+        self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
+        self.label_chart_exercise = QLabel(self.widget_left_panel)
+        self.label_chart_exercise.setObjectName("label_chart_exercise")
+
+        self.verticalLayout_18.addWidget(self.label_chart_exercise)
+
+        self.listView_chart_exercise = QListView(self.widget_left_panel)
+        self.listView_chart_exercise.setObjectName("listView_chart_exercise")
+        self.listView_chart_exercise.setMinimumSize(QSize(301, 0))
+        self.listView_chart_exercise.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_chart_exercise.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
+
+        self.verticalLayout_18.addWidget(self.listView_chart_exercise)
+
+        self.label_chart_type = QLabel(self.widget_left_panel)
+        self.label_chart_type.setObjectName("label_chart_type")
+
+        self.verticalLayout_18.addWidget(self.label_chart_type)
+
+        self.listView_chart_type = QListView(self.widget_left_panel)
+        self.listView_chart_type.setObjectName("listView_chart_type")
+        self.listView_chart_type.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_chart_type.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
+
+        self.verticalLayout_18.addWidget(self.listView_chart_type)
+
+        self.groupBox_type_of_charts = QGroupBox(self.widget_left_panel)
+        self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
+        self.groupBox_type_of_charts.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_21 = QVBoxLayout(self.groupBox_type_of_charts)
+        self.verticalLayout_21.setObjectName("verticalLayout_21")
+        self.radioButton_type_of_chart_standart = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_standart.setObjectName("radioButton_type_of_chart_standart")
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_standart)
+
+        self.radioButton_type_of_chart_show_sets_chart = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_show_sets_chart.setObjectName("radioButton_type_of_chart_show_sets_chart")
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_show_sets_chart)
+
+        self.radioButton_type_of_chart_kcal = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_kcal.setObjectName("radioButton_type_of_chart_kcal")
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_kcal)
+
+        self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_compare_last)
+
+        self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_same_months.setObjectName(
+            "radioButton_type_of_chart_compare_same_months"
+        )
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_compare_same_months)
+
+        self.verticalLayout_18.addWidget(self.groupBox_type_of_charts)
+
+        self.splitter_charts.addWidget(self.widget_left_panel)
+        self.widget_right_panel = QWidget(self.splitter_charts)
+        self.widget_right_panel.setObjectName("widget_right_panel")
+        self.verticalLayout_20 = QVBoxLayout(self.widget_right_panel)
+        self.verticalLayout_20.setObjectName("verticalLayout_20")
+        self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout_23 = QHBoxLayout()
+        self.horizontalLayout_23.setObjectName("horizontalLayout_23")
+        self.frame_charts_controls = QFrame(self.widget_right_panel)
+        self.frame_charts_controls.setObjectName("frame_charts_controls")
+        self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
+        self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Raised)
+        self.verticalLayout_charts_controls = QVBoxLayout(self.frame_charts_controls)
+        self.verticalLayout_charts_controls.setObjectName("verticalLayout_charts_controls")
+        self.horizontalLayout_charts_controls_1 = QHBoxLayout()
+        self.horizontalLayout_charts_controls_1.setObjectName("horizontalLayout_charts_controls_1")
+        self.label_chart_period = QLabel(self.frame_charts_controls)
+        self.label_chart_period.setObjectName("label_chart_period")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.label_chart_period)
+
+        self.comboBox_chart_period = QComboBox(self.frame_charts_controls)
+        self.comboBox_chart_period.addItem("")
+        self.comboBox_chart_period.addItem("")
+        self.comboBox_chart_period.addItem("")
+        self.comboBox_chart_period.setObjectName("comboBox_chart_period")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_period)
+
+        self.checkBox_max_value = QCheckBox(self.frame_charts_controls)
+        self.checkBox_max_value.setObjectName("checkBox_max_value")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.checkBox_max_value)
+
+        self.pushButton_update_chart = QPushButton(self.frame_charts_controls)
+        self.pushButton_update_chart.setObjectName("pushButton_update_chart")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_update_chart)
+
+        self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
+
+        self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_1)
+
+        self.horizontalLayout_charts_controls_2 = QHBoxLayout()
+        self.horizontalLayout_charts_controls_2.setObjectName("horizontalLayout_charts_controls_2")
+        self.label_chart_from = QLabel(self.frame_charts_controls)
+        self.label_chart_from.setObjectName("label_chart_from")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.label_chart_from)
+
+        self.dateEdit_chart_from = QDateEdit(self.frame_charts_controls)
+        self.dateEdit_chart_from.setObjectName("dateEdit_chart_from")
+        self.dateEdit_chart_from.setCalendarPopup(True)
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.dateEdit_chart_from)
+
+        self.label_chart_to = QLabel(self.frame_charts_controls)
+        self.label_chart_to.setObjectName("label_chart_to")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.label_chart_to)
+
+        self.dateEdit_chart_to = QDateEdit(self.frame_charts_controls)
+        self.dateEdit_chart_to.setObjectName("dateEdit_chart_to")
+        self.dateEdit_chart_to.setCalendarPopup(True)
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.dateEdit_chart_to)
+
+        self.pushButton_chart_last_month = QPushButton(self.frame_charts_controls)
+        self.pushButton_chart_last_month.setObjectName("pushButton_chart_last_month")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_last_month)
+
+        self.pushButton_chart_last_year = QPushButton(self.frame_charts_controls)
+        self.pushButton_chart_last_year.setObjectName("pushButton_chart_last_year")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_last_year)
+
+        self.pushButton_chart_all_time = QPushButton(self.frame_charts_controls)
+        self.pushButton_chart_all_time.setObjectName("pushButton_chart_all_time")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_all_time)
+
+        self.horizontalSpacer_charts_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_charts_controls_2.addItem(self.horizontalSpacer_charts_2)
+
+        self.label_compare_last = QLabel(self.frame_charts_controls)
+        self.label_compare_last.setObjectName("label_compare_last")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.label_compare_last)
+
+        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
+        self.spinBox_compare_last.setObjectName("spinBox_compare_last")
+        self.spinBox_compare_last.setMaximum(100000)
+        self.spinBox_compare_last.setValue(3)
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
+
+        self.comboBox_compare_same_months = QComboBox(self.frame_charts_controls)
+        self.comboBox_compare_same_months.setObjectName("comboBox_compare_same_months")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.comboBox_compare_same_months)
+
+        self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_2)
+
+        self.horizontalLayout_23.addWidget(self.frame_charts_controls)
+
+        self.label_exercise_avif_4 = QLabel(self.widget_right_panel)
+        self.label_exercise_avif_4.setObjectName("label_exercise_avif_4")
+        self.label_exercise_avif_4.setMinimumSize(QSize(150, 76))
+        self.label_exercise_avif_4.setStyleSheet("border: 1px solid gray;")
+        self.label_exercise_avif_4.setScaledContents(False)
+        self.label_exercise_avif_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.horizontalLayout_23.addWidget(self.label_exercise_avif_4)
+
+        self.verticalLayout_20.addLayout(self.horizontalLayout_23)
+
+        self.label_chart_info = QLabel(self.widget_right_panel)
+        self.label_chart_info.setObjectName("label_chart_info")
+
+        self.verticalLayout_20.addWidget(self.label_chart_info)
+
+        self.scrollArea_charts = QScrollArea(self.widget_right_panel)
+        self.scrollArea_charts.setObjectName("scrollArea_charts")
+        self.scrollArea_charts.setWidgetResizable(True)
+        self.scrollAreaWidgetContents_charts = QWidget()
+        self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 802))
+        self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
+        self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
+        self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
+
+        self.verticalLayout_20.addWidget(self.scrollArea_charts)
+
+        self.splitter_charts.addWidget(self.widget_right_panel)
+
+        self.horizontalLayout_26.addWidget(self.splitter_charts)
+
+        self.tabWidget.addTab(self.tab_charts, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName("tab_2")
         self.horizontalLayout_4 = QHBoxLayout(self.tab_2)
@@ -873,254 +1121,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_5.addLayout(self.verticalLayout_6)
 
         self.tabWidget.addTab(self.tab_5, "")
-        self.tab_charts = QWidget()
-        self.tab_charts.setObjectName("tab_charts")
-        self.horizontalLayout_26 = QHBoxLayout(self.tab_charts)
-        self.horizontalLayout_26.setObjectName("horizontalLayout_26")
-        self.splitter_charts = QSplitter(self.tab_charts)
-        self.splitter_charts.setObjectName("splitter_charts")
-        self.splitter_charts.setOrientation(Qt.Orientation.Horizontal)
-        self.widget_left_panel = QWidget(self.splitter_charts)
-        self.widget_left_panel.setObjectName("widget_left_panel")
-        self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
-        self.verticalLayout_18.setObjectName("verticalLayout_18")
-        self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
-        self.label_chart_exercise = QLabel(self.widget_left_panel)
-        self.label_chart_exercise.setObjectName("label_chart_exercise")
-
-        self.verticalLayout_18.addWidget(self.label_chart_exercise)
-
-        self.listView_chart_exercise = QListView(self.widget_left_panel)
-        self.listView_chart_exercise.setObjectName("listView_chart_exercise")
-        self.listView_chart_exercise.setMinimumSize(QSize(301, 0))
-        self.listView_chart_exercise.setMaximumSize(QSize(16777215, 16777215))
-        self.listView_chart_exercise.setStyleSheet(
-            "QListView {\n"
-            "                                border: 2px solid #4CAF50;\n"
-            "                                border-radius: 4px;\n"
-            "                                background-color: white;\n"
-            "                                }\n"
-            "                                QListView::item {\n"
-            "                                padding: 4px;\n"
-            "                                border-bottom: 1px solid #e0e0e0;\n"
-            "                                }\n"
-            "                                QListView::item:selected {\n"
-            "                                background-color: #e8f5e8;\n"
-            "                                color: black;\n"
-            "                                }\n"
-            "                                QListView::item:hover {\n"
-            "                                background-color: #f0f8f0;\n"
-            "                                }"
-        )
-
-        self.verticalLayout_18.addWidget(self.listView_chart_exercise)
-
-        self.label_chart_type = QLabel(self.widget_left_panel)
-        self.label_chart_type.setObjectName("label_chart_type")
-
-        self.verticalLayout_18.addWidget(self.label_chart_type)
-
-        self.listView_chart_type = QListView(self.widget_left_panel)
-        self.listView_chart_type.setObjectName("listView_chart_type")
-        self.listView_chart_type.setMaximumSize(QSize(16777215, 16777215))
-        self.listView_chart_type.setStyleSheet(
-            "QListView {\n"
-            "                                border: 2px solid #4CAF50;\n"
-            "                                border-radius: 4px;\n"
-            "                                background-color: white;\n"
-            "                                }\n"
-            "                                QListView::item {\n"
-            "                                padding: 4px;\n"
-            "                                border-bottom: 1px solid #e0e0e0;\n"
-            "                                }\n"
-            "                                QListView::item:selected {\n"
-            "                                background-color: #e8f5e8;\n"
-            "                                color: black;\n"
-            "                                }\n"
-            "                                QListView::item:hover {\n"
-            "                                background-color: #f0f8f0;\n"
-            "                                }"
-        )
-
-        self.verticalLayout_18.addWidget(self.listView_chart_type)
-
-        self.groupBox_type_of_charts = QGroupBox(self.widget_left_panel)
-        self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
-        self.groupBox_type_of_charts.setMinimumSize(QSize(0, 0))
-        self.verticalLayout_21 = QVBoxLayout(self.groupBox_type_of_charts)
-        self.verticalLayout_21.setObjectName("verticalLayout_21")
-        self.radioButton_type_of_chart_standart = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_standart.setObjectName("radioButton_type_of_chart_standart")
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_standart)
-
-        self.radioButton_type_of_chart_show_sets_chart = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_show_sets_chart.setObjectName("radioButton_type_of_chart_show_sets_chart")
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_show_sets_chart)
-
-        self.radioButton_type_of_chart_kcal = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_kcal.setObjectName("radioButton_type_of_chart_kcal")
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_kcal)
-
-        self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_compare_last)
-
-        self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_compare_same_months.setObjectName(
-            "radioButton_type_of_chart_compare_same_months"
-        )
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_compare_same_months)
-
-        self.verticalLayout_18.addWidget(self.groupBox_type_of_charts)
-
-        self.splitter_charts.addWidget(self.widget_left_panel)
-        self.widget_right_panel = QWidget(self.splitter_charts)
-        self.widget_right_panel.setObjectName("widget_right_panel")
-        self.verticalLayout_20 = QVBoxLayout(self.widget_right_panel)
-        self.verticalLayout_20.setObjectName("verticalLayout_20")
-        self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_23 = QHBoxLayout()
-        self.horizontalLayout_23.setObjectName("horizontalLayout_23")
-        self.frame_charts_controls = QFrame(self.widget_right_panel)
-        self.frame_charts_controls.setObjectName("frame_charts_controls")
-        self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
-        self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Raised)
-        self.verticalLayout_charts_controls = QVBoxLayout(self.frame_charts_controls)
-        self.verticalLayout_charts_controls.setObjectName("verticalLayout_charts_controls")
-        self.horizontalLayout_charts_controls_1 = QHBoxLayout()
-        self.horizontalLayout_charts_controls_1.setObjectName("horizontalLayout_charts_controls_1")
-        self.label_chart_period = QLabel(self.frame_charts_controls)
-        self.label_chart_period.setObjectName("label_chart_period")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.label_chart_period)
-
-        self.comboBox_chart_period = QComboBox(self.frame_charts_controls)
-        self.comboBox_chart_period.addItem("")
-        self.comboBox_chart_period.addItem("")
-        self.comboBox_chart_period.addItem("")
-        self.comboBox_chart_period.setObjectName("comboBox_chart_period")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_period)
-
-        self.checkBox_max_value = QCheckBox(self.frame_charts_controls)
-        self.checkBox_max_value.setObjectName("checkBox_max_value")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.checkBox_max_value)
-
-        self.pushButton_update_chart = QPushButton(self.frame_charts_controls)
-        self.pushButton_update_chart.setObjectName("pushButton_update_chart")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_update_chart)
-
-        self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
-
-        self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_1)
-
-        self.horizontalLayout_charts_controls_2 = QHBoxLayout()
-        self.horizontalLayout_charts_controls_2.setObjectName("horizontalLayout_charts_controls_2")
-        self.label_chart_from = QLabel(self.frame_charts_controls)
-        self.label_chart_from.setObjectName("label_chart_from")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.label_chart_from)
-
-        self.dateEdit_chart_from = QDateEdit(self.frame_charts_controls)
-        self.dateEdit_chart_from.setObjectName("dateEdit_chart_from")
-        self.dateEdit_chart_from.setCalendarPopup(True)
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.dateEdit_chart_from)
-
-        self.label_chart_to = QLabel(self.frame_charts_controls)
-        self.label_chart_to.setObjectName("label_chart_to")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.label_chart_to)
-
-        self.dateEdit_chart_to = QDateEdit(self.frame_charts_controls)
-        self.dateEdit_chart_to.setObjectName("dateEdit_chart_to")
-        self.dateEdit_chart_to.setCalendarPopup(True)
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.dateEdit_chart_to)
-
-        self.pushButton_chart_last_month = QPushButton(self.frame_charts_controls)
-        self.pushButton_chart_last_month.setObjectName("pushButton_chart_last_month")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_last_month)
-
-        self.pushButton_chart_last_year = QPushButton(self.frame_charts_controls)
-        self.pushButton_chart_last_year.setObjectName("pushButton_chart_last_year")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_last_year)
-
-        self.pushButton_chart_all_time = QPushButton(self.frame_charts_controls)
-        self.pushButton_chart_all_time.setObjectName("pushButton_chart_all_time")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_all_time)
-
-        self.horizontalSpacer_charts_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_charts_controls_2.addItem(self.horizontalSpacer_charts_2)
-
-        self.label_compare_last = QLabel(self.frame_charts_controls)
-        self.label_compare_last.setObjectName("label_compare_last")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.label_compare_last)
-
-        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
-        self.spinBox_compare_last.setObjectName("spinBox_compare_last")
-        self.spinBox_compare_last.setMaximum(100000)
-        self.spinBox_compare_last.setValue(3)
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
-
-        self.comboBox_compare_same_months = QComboBox(self.frame_charts_controls)
-        self.comboBox_compare_same_months.setObjectName("comboBox_compare_same_months")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.comboBox_compare_same_months)
-
-        self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_2)
-
-        self.horizontalLayout_23.addWidget(self.frame_charts_controls)
-
-        self.label_exercise_avif_4 = QLabel(self.widget_right_panel)
-        self.label_exercise_avif_4.setObjectName("label_exercise_avif_4")
-        self.label_exercise_avif_4.setMinimumSize(QSize(150, 76))
-        self.label_exercise_avif_4.setStyleSheet("border: 1px solid gray;")
-        self.label_exercise_avif_4.setScaledContents(False)
-        self.label_exercise_avif_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.horizontalLayout_23.addWidget(self.label_exercise_avif_4)
-
-        self.verticalLayout_20.addLayout(self.horizontalLayout_23)
-
-        self.label_chart_info = QLabel(self.widget_right_panel)
-        self.label_chart_info.setObjectName("label_chart_info")
-
-        self.verticalLayout_20.addWidget(self.label_chart_info)
-
-        self.scrollArea_charts = QScrollArea(self.widget_right_panel)
-        self.scrollArea_charts.setObjectName("scrollArea_charts")
-        self.scrollArea_charts.setWidgetResizable(True)
-        self.scrollAreaWidgetContents_charts = QWidget()
-        self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 801))
-        self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
-        self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
-        self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
-
-        self.verticalLayout_20.addWidget(self.scrollArea_charts)
-
-        self.splitter_charts.addWidget(self.widget_right_panel)
-
-        self.horizontalLayout_26.addWidget(self.splitter_charts)
-
-        self.tabWidget.addTab(self.tab_charts, "")
         self.tab_4 = QWidget()
         self.tab_4.setObjectName("tab_4")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_4)
@@ -1261,6 +1261,40 @@ def retranslateUi(self, MainWindow):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", "Sets", None)
         )
+        self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
+        self.label_chart_type.setText(QCoreApplication.translate("MainWindow", "Type:", None))
+        self.groupBox_type_of_charts.setTitle(QCoreApplication.translate("MainWindow", "Type Of Chart", None))
+        self.radioButton_type_of_chart_standart.setText(QCoreApplication.translate("MainWindow", "Standart", None))
+        self.radioButton_type_of_chart_show_sets_chart.setText(
+            QCoreApplication.translate("MainWindow", "Show Sets Chart", None)
+        )
+        self.radioButton_type_of_chart_kcal.setText(QCoreApplication.translate("MainWindow", "Kcal", None))
+        self.radioButton_type_of_chart_compare_last.setText(
+            QCoreApplication.translate("MainWindow", "Compare last months", None)
+        )
+        self.radioButton_type_of_chart_compare_same_months.setText(
+            QCoreApplication.translate("MainWindow", "Compare same months", None)
+        )
+        self.label_chart_period.setText(QCoreApplication.translate("MainWindow", "Period:", None))
+        self.comboBox_chart_period.setItemText(0, QCoreApplication.translate("MainWindow", "Days", None))
+        self.comboBox_chart_period.setItemText(1, QCoreApplication.translate("MainWindow", "Months", None))
+        self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
+
+        self.checkBox_max_value.setText(QCoreApplication.translate("MainWindow", "Max value, not sum", None))
+        self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
+        self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
+        self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
+        self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
+        self.dateEdit_chart_to.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
+        self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
+        self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
+        self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
+        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "Number of months:", None))
+        self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
+        self.label_chart_info.setText("")
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
+        )
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", "Unit of Measurement:", None))
@@ -1298,40 +1332,6 @@ def retranslateUi(self, MainWindow):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", "Weight", None)
         )
-        self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
-        self.label_chart_type.setText(QCoreApplication.translate("MainWindow", "Type:", None))
-        self.groupBox_type_of_charts.setTitle(QCoreApplication.translate("MainWindow", "Type Of Chart", None))
-        self.radioButton_type_of_chart_standart.setText(QCoreApplication.translate("MainWindow", "Standart", None))
-        self.radioButton_type_of_chart_show_sets_chart.setText(
-            QCoreApplication.translate("MainWindow", "Show Sets Chart", None)
-        )
-        self.radioButton_type_of_chart_kcal.setText(QCoreApplication.translate("MainWindow", "Kcal", None))
-        self.radioButton_type_of_chart_compare_last.setText(
-            QCoreApplication.translate("MainWindow", "Compare last months", None)
-        )
-        self.radioButton_type_of_chart_compare_same_months.setText(
-            QCoreApplication.translate("MainWindow", "Compare same months", None)
-        )
-        self.label_chart_period.setText(QCoreApplication.translate("MainWindow", "Period:", None))
-        self.comboBox_chart_period.setItemText(0, QCoreApplication.translate("MainWindow", "Days", None))
-        self.comboBox_chart_period.setItemText(1, QCoreApplication.translate("MainWindow", "Months", None))
-        self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
-
-        self.checkBox_max_value.setText(QCoreApplication.translate("MainWindow", "Max value, not sum", None))
-        self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
-        self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
-        self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
-        self.dateEdit_chart_to.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
-        self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
-        self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
-        self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
-        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "Number of months:", None))
-        self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", "No exercise selected", None))
-        self.label_chart_info.setText("")
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Exercise Chart", None)
-        )
         self.groupBox_10.setTitle(QCoreApplication.translate("MainWindow", "Records", None))
         self.label_record_count.setText(QCoreApplication.translate("MainWindow", "Record count:", None))
         self.pushButton_statistics_refresh.setText(QCoreApplication.translate("MainWindow", "Records", None))
@@ -1363,7 +1363,7 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1375, 978)
+        MainWindow.resize(1375, 979)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -1695,6 +1695,254 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_main.addWidget(self.splitter)
 
         self.tabWidget.addTab(self.tab, "")
+        self.tab_charts = QWidget()
+        self.tab_charts.setObjectName("tab_charts")
+        self.horizontalLayout_26 = QHBoxLayout(self.tab_charts)
+        self.horizontalLayout_26.setObjectName("horizontalLayout_26")
+        self.splitter_charts = QSplitter(self.tab_charts)
+        self.splitter_charts.setObjectName("splitter_charts")
+        self.splitter_charts.setOrientation(Qt.Orientation.Horizontal)
+        self.widget_left_panel = QWidget(self.splitter_charts)
+        self.widget_left_panel.setObjectName("widget_left_panel")
+        self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
+        self.verticalLayout_18.setObjectName("verticalLayout_18")
+        self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
+        self.label_chart_exercise = QLabel(self.widget_left_panel)
+        self.label_chart_exercise.setObjectName("label_chart_exercise")
+
+        self.verticalLayout_18.addWidget(self.label_chart_exercise)
+
+        self.listView_chart_exercise = QListView(self.widget_left_panel)
+        self.listView_chart_exercise.setObjectName("listView_chart_exercise")
+        self.listView_chart_exercise.setMinimumSize(QSize(301, 0))
+        self.listView_chart_exercise.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_chart_exercise.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
+
+        self.verticalLayout_18.addWidget(self.listView_chart_exercise)
+
+        self.label_chart_type = QLabel(self.widget_left_panel)
+        self.label_chart_type.setObjectName("label_chart_type")
+
+        self.verticalLayout_18.addWidget(self.label_chart_type)
+
+        self.listView_chart_type = QListView(self.widget_left_panel)
+        self.listView_chart_type.setObjectName("listView_chart_type")
+        self.listView_chart_type.setMaximumSize(QSize(16777215, 16777215))
+        self.listView_chart_type.setStyleSheet(
+            "QListView {\n"
+            "                                border: 2px solid #4CAF50;\n"
+            "                                border-radius: 4px;\n"
+            "                                background-color: white;\n"
+            "                                }\n"
+            "                                QListView::item {\n"
+            "                                padding: 4px;\n"
+            "                                border-bottom: 1px solid #e0e0e0;\n"
+            "                                }\n"
+            "                                QListView::item:selected {\n"
+            "                                background-color: #e8f5e8;\n"
+            "                                color: black;\n"
+            "                                }\n"
+            "                                QListView::item:hover {\n"
+            "                                background-color: #f0f8f0;\n"
+            "                                }"
+        )
+
+        self.verticalLayout_18.addWidget(self.listView_chart_type)
+
+        self.groupBox_type_of_charts = QGroupBox(self.widget_left_panel)
+        self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
+        self.groupBox_type_of_charts.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_21 = QVBoxLayout(self.groupBox_type_of_charts)
+        self.verticalLayout_21.setObjectName("verticalLayout_21")
+        self.radioButton_type_of_chart_standart = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_standart.setObjectName("radioButton_type_of_chart_standart")
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_standart)
+
+        self.radioButton_type_of_chart_show_sets_chart = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_show_sets_chart.setObjectName("radioButton_type_of_chart_show_sets_chart")
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_show_sets_chart)
+
+        self.radioButton_type_of_chart_kcal = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_kcal.setObjectName("radioButton_type_of_chart_kcal")
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_kcal)
+
+        self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_compare_last)
+
+        self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_same_months.setObjectName(
+            "radioButton_type_of_chart_compare_same_months"
+        )
+
+        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_compare_same_months)
+
+        self.verticalLayout_18.addWidget(self.groupBox_type_of_charts)
+
+        self.splitter_charts.addWidget(self.widget_left_panel)
+        self.widget_right_panel = QWidget(self.splitter_charts)
+        self.widget_right_panel.setObjectName("widget_right_panel")
+        self.verticalLayout_20 = QVBoxLayout(self.widget_right_panel)
+        self.verticalLayout_20.setObjectName("verticalLayout_20")
+        self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout_23 = QHBoxLayout()
+        self.horizontalLayout_23.setObjectName("horizontalLayout_23")
+        self.frame_charts_controls = QFrame(self.widget_right_panel)
+        self.frame_charts_controls.setObjectName("frame_charts_controls")
+        self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
+        self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Raised)
+        self.verticalLayout_charts_controls = QVBoxLayout(self.frame_charts_controls)
+        self.verticalLayout_charts_controls.setObjectName("verticalLayout_charts_controls")
+        self.horizontalLayout_charts_controls_1 = QHBoxLayout()
+        self.horizontalLayout_charts_controls_1.setObjectName("horizontalLayout_charts_controls_1")
+        self.label_chart_period = QLabel(self.frame_charts_controls)
+        self.label_chart_period.setObjectName("label_chart_period")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.label_chart_period)
+
+        self.comboBox_chart_period = QComboBox(self.frame_charts_controls)
+        self.comboBox_chart_period.addItem("")
+        self.comboBox_chart_period.addItem("")
+        self.comboBox_chart_period.addItem("")
+        self.comboBox_chart_period.setObjectName("comboBox_chart_period")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_period)
+
+        self.checkBox_max_value = QCheckBox(self.frame_charts_controls)
+        self.checkBox_max_value.setObjectName("checkBox_max_value")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.checkBox_max_value)
+
+        self.pushButton_update_chart = QPushButton(self.frame_charts_controls)
+        self.pushButton_update_chart.setObjectName("pushButton_update_chart")
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_update_chart)
+
+        self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
+
+        self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_1)
+
+        self.horizontalLayout_charts_controls_2 = QHBoxLayout()
+        self.horizontalLayout_charts_controls_2.setObjectName("horizontalLayout_charts_controls_2")
+        self.label_chart_from = QLabel(self.frame_charts_controls)
+        self.label_chart_from.setObjectName("label_chart_from")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.label_chart_from)
+
+        self.dateEdit_chart_from = QDateEdit(self.frame_charts_controls)
+        self.dateEdit_chart_from.setObjectName("dateEdit_chart_from")
+        self.dateEdit_chart_from.setCalendarPopup(True)
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.dateEdit_chart_from)
+
+        self.label_chart_to = QLabel(self.frame_charts_controls)
+        self.label_chart_to.setObjectName("label_chart_to")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.label_chart_to)
+
+        self.dateEdit_chart_to = QDateEdit(self.frame_charts_controls)
+        self.dateEdit_chart_to.setObjectName("dateEdit_chart_to")
+        self.dateEdit_chart_to.setCalendarPopup(True)
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.dateEdit_chart_to)
+
+        self.pushButton_chart_last_month = QPushButton(self.frame_charts_controls)
+        self.pushButton_chart_last_month.setObjectName("pushButton_chart_last_month")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_last_month)
+
+        self.pushButton_chart_last_year = QPushButton(self.frame_charts_controls)
+        self.pushButton_chart_last_year.setObjectName("pushButton_chart_last_year")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_last_year)
+
+        self.pushButton_chart_all_time = QPushButton(self.frame_charts_controls)
+        self.pushButton_chart_all_time.setObjectName("pushButton_chart_all_time")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_all_time)
+
+        self.horizontalSpacer_charts_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_charts_controls_2.addItem(self.horizontalSpacer_charts_2)
+
+        self.label_compare_last = QLabel(self.frame_charts_controls)
+        self.label_compare_last.setObjectName("label_compare_last")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.label_compare_last)
+
+        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
+        self.spinBox_compare_last.setObjectName("spinBox_compare_last")
+        self.spinBox_compare_last.setMaximum(100000)
+        self.spinBox_compare_last.setValue(3)
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
+
+        self.comboBox_compare_same_months = QComboBox(self.frame_charts_controls)
+        self.comboBox_compare_same_months.setObjectName("comboBox_compare_same_months")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.comboBox_compare_same_months)
+
+        self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_2)
+
+        self.horizontalLayout_23.addWidget(self.frame_charts_controls)
+
+        self.label_exercise_avif_4 = QLabel(self.widget_right_panel)
+        self.label_exercise_avif_4.setObjectName("label_exercise_avif_4")
+        self.label_exercise_avif_4.setMinimumSize(QSize(150, 76))
+        self.label_exercise_avif_4.setStyleSheet("border: 1px solid gray;")
+        self.label_exercise_avif_4.setScaledContents(False)
+        self.label_exercise_avif_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.horizontalLayout_23.addWidget(self.label_exercise_avif_4)
+
+        self.verticalLayout_20.addLayout(self.horizontalLayout_23)
+
+        self.label_chart_info = QLabel(self.widget_right_panel)
+        self.label_chart_info.setObjectName("label_chart_info")
+
+        self.verticalLayout_20.addWidget(self.label_chart_info)
+
+        self.scrollArea_charts = QScrollArea(self.widget_right_panel)
+        self.scrollArea_charts.setObjectName("scrollArea_charts")
+        self.scrollArea_charts.setWidgetResizable(True)
+        self.scrollAreaWidgetContents_charts = QWidget()
+        self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 802))
+        self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
+        self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
+        self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
+
+        self.verticalLayout_20.addWidget(self.scrollArea_charts)
+
+        self.splitter_charts.addWidget(self.widget_right_panel)
+
+        self.horizontalLayout_26.addWidget(self.splitter_charts)
+
+        self.tabWidget.addTab(self.tab_charts, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName("tab_2")
         self.horizontalLayout_4 = QHBoxLayout(self.tab_2)
@@ -2085,254 +2333,6 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_5.addLayout(self.verticalLayout_6)
 
         self.tabWidget.addTab(self.tab_5, "")
-        self.tab_charts = QWidget()
-        self.tab_charts.setObjectName("tab_charts")
-        self.horizontalLayout_26 = QHBoxLayout(self.tab_charts)
-        self.horizontalLayout_26.setObjectName("horizontalLayout_26")
-        self.splitter_charts = QSplitter(self.tab_charts)
-        self.splitter_charts.setObjectName("splitter_charts")
-        self.splitter_charts.setOrientation(Qt.Orientation.Horizontal)
-        self.widget_left_panel = QWidget(self.splitter_charts)
-        self.widget_left_panel.setObjectName("widget_left_panel")
-        self.verticalLayout_18 = QVBoxLayout(self.widget_left_panel)
-        self.verticalLayout_18.setObjectName("verticalLayout_18")
-        self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
-        self.label_chart_exercise = QLabel(self.widget_left_panel)
-        self.label_chart_exercise.setObjectName("label_chart_exercise")
-
-        self.verticalLayout_18.addWidget(self.label_chart_exercise)
-
-        self.listView_chart_exercise = QListView(self.widget_left_panel)
-        self.listView_chart_exercise.setObjectName("listView_chart_exercise")
-        self.listView_chart_exercise.setMinimumSize(QSize(301, 0))
-        self.listView_chart_exercise.setMaximumSize(QSize(16777215, 16777215))
-        self.listView_chart_exercise.setStyleSheet(
-            "QListView {\n"
-            "                                border: 2px solid #4CAF50;\n"
-            "                                border-radius: 4px;\n"
-            "                                background-color: white;\n"
-            "                                }\n"
-            "                                QListView::item {\n"
-            "                                padding: 4px;\n"
-            "                                border-bottom: 1px solid #e0e0e0;\n"
-            "                                }\n"
-            "                                QListView::item:selected {\n"
-            "                                background-color: #e8f5e8;\n"
-            "                                color: black;\n"
-            "                                }\n"
-            "                                QListView::item:hover {\n"
-            "                                background-color: #f0f8f0;\n"
-            "                                }"
-        )
-
-        self.verticalLayout_18.addWidget(self.listView_chart_exercise)
-
-        self.label_chart_type = QLabel(self.widget_left_panel)
-        self.label_chart_type.setObjectName("label_chart_type")
-
-        self.verticalLayout_18.addWidget(self.label_chart_type)
-
-        self.listView_chart_type = QListView(self.widget_left_panel)
-        self.listView_chart_type.setObjectName("listView_chart_type")
-        self.listView_chart_type.setMaximumSize(QSize(16777215, 16777215))
-        self.listView_chart_type.setStyleSheet(
-            "QListView {\n"
-            "                                border: 2px solid #4CAF50;\n"
-            "                                border-radius: 4px;\n"
-            "                                background-color: white;\n"
-            "                                }\n"
-            "                                QListView::item {\n"
-            "                                padding: 4px;\n"
-            "                                border-bottom: 1px solid #e0e0e0;\n"
-            "                                }\n"
-            "                                QListView::item:selected {\n"
-            "                                background-color: #e8f5e8;\n"
-            "                                color: black;\n"
-            "                                }\n"
-            "                                QListView::item:hover {\n"
-            "                                background-color: #f0f8f0;\n"
-            "                                }"
-        )
-
-        self.verticalLayout_18.addWidget(self.listView_chart_type)
-
-        self.groupBox_type_of_charts = QGroupBox(self.widget_left_panel)
-        self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
-        self.groupBox_type_of_charts.setMinimumSize(QSize(0, 0))
-        self.verticalLayout_21 = QVBoxLayout(self.groupBox_type_of_charts)
-        self.verticalLayout_21.setObjectName("verticalLayout_21")
-        self.radioButton_type_of_chart_standart = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_standart.setObjectName("radioButton_type_of_chart_standart")
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_standart)
-
-        self.radioButton_type_of_chart_show_sets_chart = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_show_sets_chart.setObjectName("radioButton_type_of_chart_show_sets_chart")
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_show_sets_chart)
-
-        self.radioButton_type_of_chart_kcal = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_kcal.setObjectName("radioButton_type_of_chart_kcal")
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_kcal)
-
-        self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_compare_last)
-
-        self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
-        self.radioButton_type_of_chart_compare_same_months.setObjectName(
-            "radioButton_type_of_chart_compare_same_months"
-        )
-
-        self.verticalLayout_21.addWidget(self.radioButton_type_of_chart_compare_same_months)
-
-        self.verticalLayout_18.addWidget(self.groupBox_type_of_charts)
-
-        self.splitter_charts.addWidget(self.widget_left_panel)
-        self.widget_right_panel = QWidget(self.splitter_charts)
-        self.widget_right_panel.setObjectName("widget_right_panel")
-        self.verticalLayout_20 = QVBoxLayout(self.widget_right_panel)
-        self.verticalLayout_20.setObjectName("verticalLayout_20")
-        self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_23 = QHBoxLayout()
-        self.horizontalLayout_23.setObjectName("horizontalLayout_23")
-        self.frame_charts_controls = QFrame(self.widget_right_panel)
-        self.frame_charts_controls.setObjectName("frame_charts_controls")
-        self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
-        self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_charts_controls.setFrameShadow(QFrame.Shadow.Raised)
-        self.verticalLayout_charts_controls = QVBoxLayout(self.frame_charts_controls)
-        self.verticalLayout_charts_controls.setObjectName("verticalLayout_charts_controls")
-        self.horizontalLayout_charts_controls_1 = QHBoxLayout()
-        self.horizontalLayout_charts_controls_1.setObjectName("horizontalLayout_charts_controls_1")
-        self.label_chart_period = QLabel(self.frame_charts_controls)
-        self.label_chart_period.setObjectName("label_chart_period")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.label_chart_period)
-
-        self.comboBox_chart_period = QComboBox(self.frame_charts_controls)
-        self.comboBox_chart_period.addItem("")
-        self.comboBox_chart_period.addItem("")
-        self.comboBox_chart_period.addItem("")
-        self.comboBox_chart_period.setObjectName("comboBox_chart_period")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_period)
-
-        self.checkBox_max_value = QCheckBox(self.frame_charts_controls)
-        self.checkBox_max_value.setObjectName("checkBox_max_value")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.checkBox_max_value)
-
-        self.pushButton_update_chart = QPushButton(self.frame_charts_controls)
-        self.pushButton_update_chart.setObjectName("pushButton_update_chart")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_update_chart)
-
-        self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
-
-        self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_1)
-
-        self.horizontalLayout_charts_controls_2 = QHBoxLayout()
-        self.horizontalLayout_charts_controls_2.setObjectName("horizontalLayout_charts_controls_2")
-        self.label_chart_from = QLabel(self.frame_charts_controls)
-        self.label_chart_from.setObjectName("label_chart_from")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.label_chart_from)
-
-        self.dateEdit_chart_from = QDateEdit(self.frame_charts_controls)
-        self.dateEdit_chart_from.setObjectName("dateEdit_chart_from")
-        self.dateEdit_chart_from.setCalendarPopup(True)
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.dateEdit_chart_from)
-
-        self.label_chart_to = QLabel(self.frame_charts_controls)
-        self.label_chart_to.setObjectName("label_chart_to")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.label_chart_to)
-
-        self.dateEdit_chart_to = QDateEdit(self.frame_charts_controls)
-        self.dateEdit_chart_to.setObjectName("dateEdit_chart_to")
-        self.dateEdit_chart_to.setCalendarPopup(True)
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.dateEdit_chart_to)
-
-        self.pushButton_chart_last_month = QPushButton(self.frame_charts_controls)
-        self.pushButton_chart_last_month.setObjectName("pushButton_chart_last_month")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_last_month)
-
-        self.pushButton_chart_last_year = QPushButton(self.frame_charts_controls)
-        self.pushButton_chart_last_year.setObjectName("pushButton_chart_last_year")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_last_year)
-
-        self.pushButton_chart_all_time = QPushButton(self.frame_charts_controls)
-        self.pushButton_chart_all_time.setObjectName("pushButton_chart_all_time")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.pushButton_chart_all_time)
-
-        self.horizontalSpacer_charts_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_charts_controls_2.addItem(self.horizontalSpacer_charts_2)
-
-        self.label_compare_last = QLabel(self.frame_charts_controls)
-        self.label_compare_last.setObjectName("label_compare_last")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.label_compare_last)
-
-        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
-        self.spinBox_compare_last.setObjectName("spinBox_compare_last")
-        self.spinBox_compare_last.setMaximum(100000)
-        self.spinBox_compare_last.setValue(3)
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
-
-        self.comboBox_compare_same_months = QComboBox(self.frame_charts_controls)
-        self.comboBox_compare_same_months.setObjectName("comboBox_compare_same_months")
-
-        self.horizontalLayout_charts_controls_2.addWidget(self.comboBox_compare_same_months)
-
-        self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_2)
-
-        self.horizontalLayout_23.addWidget(self.frame_charts_controls)
-
-        self.label_exercise_avif_4 = QLabel(self.widget_right_panel)
-        self.label_exercise_avif_4.setObjectName("label_exercise_avif_4")
-        self.label_exercise_avif_4.setMinimumSize(QSize(150, 76))
-        self.label_exercise_avif_4.setStyleSheet("border: 1px solid gray;")
-        self.label_exercise_avif_4.setScaledContents(False)
-        self.label_exercise_avif_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.horizontalLayout_23.addWidget(self.label_exercise_avif_4)
-
-        self.verticalLayout_20.addLayout(self.horizontalLayout_23)
-
-        self.label_chart_info = QLabel(self.widget_right_panel)
-        self.label_chart_info.setObjectName("label_chart_info")
-
-        self.verticalLayout_20.addWidget(self.label_chart_info)
-
-        self.scrollArea_charts = QScrollArea(self.widget_right_panel)
-        self.scrollArea_charts.setObjectName("scrollArea_charts")
-        self.scrollArea_charts.setWidgetResizable(True)
-        self.scrollAreaWidgetContents_charts = QWidget()
-        self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 801))
-        self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
-        self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
-        self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
-
-        self.verticalLayout_20.addWidget(self.scrollArea_charts)
-
-        self.splitter_charts.addWidget(self.widget_right_panel)
-
-        self.horizontalLayout_26.addWidget(self.splitter_charts)
-
-        self.tabWidget.addTab(self.tab_charts, "")
         self.tab_4 = QWidget()
         self.tab_4.setObjectName("tab_4")
         self.horizontalLayout_6 = QHBoxLayout(self.tab_4)

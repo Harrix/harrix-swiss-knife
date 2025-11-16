@@ -119,6 +119,7 @@ lang: en
   - [⚙️ Method `_load_initial_avifs`](#%EF%B8%8F-method-_load_initial_avifs)
   - [⚙️ Method `_mark_exercises_changed`](#%EF%B8%8F-method-_mark_exercises_changed)
   - [⚙️ Method `_next_avif_frame`](#%EF%B8%8F-method-_next_avif_frame)
+  - [⚙️ Method `_on_chart_exercise_list_double_clicked`](#%EF%B8%8F-method-_on_chart_exercise_list_double_clicked)
   - [⚙️ Method `_on_chart_info_double_clicked`](#%EF%B8%8F-method-_on_chart_info_double_clicked)
   - [⚙️ Method `_on_exercises_list_double_clicked`](#%EF%B8%8F-method-_on_exercises_list_double_clicked)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
@@ -2797,21 +2798,22 @@ class MainWindow(
         - `index` (`int`): The index of the newly selected tab.
 
         """
-        index_tab_weight = 2
-        index_tab_charts = 3
+        index_tab_charts = 1
+        index_tab_exercises = 2
+        index_tab_weight = 3
         index_tab_statistics = 4
 
         # Note: Main tab (index 0) needs no updates - data loaded on startup
-        if index == 1:  # Exercises tab
-            # Update exercises AVIF when switching to exercises tab
-            self._update_exercises_avif()
-            self._update_types_avif()
-        elif index == index_tab_charts:  # Exercise Chart tab
+        if index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
             if not self._get_selected_chart_exercise():
                 self._select_last_executed_exercise()
             self._update_charts_avif()
+        elif index == index_tab_exercises:  # Exercises tab
+            # Update exercises AVIF when switching to exercises tab
+            self._update_exercises_avif()
+            self._update_types_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
         elif index == index_tab_statistics:  # Statistics tab
@@ -4630,6 +4632,9 @@ class MainWindow(
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
 
+        # Connect double-click signal for chart exercise list to open Sets tab
+        self.listView_chart_exercise.doubleClicked.connect(self._on_chart_exercise_list_double_clicked)
+
         # Add context menu for process table
         self.tableView_process.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_process.customContextMenuRequested.connect(self._show_process_context_menu)
@@ -5498,6 +5503,9 @@ class MainWindow(
         self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
         self.dateEdit_chart_to.setDate(current_date)
 
+        # Make listView_chart_exercise items non-editable
+        self.listView_chart_exercise.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
         # Initialize exercise and type list views
         self.update_chart_comboboxes()
 
@@ -5885,6 +5893,19 @@ class MainWindow(
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
+    def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
+        """Handle double-click on chart exercise list to open Sets tab.
+
+        Args:
+
+        - `_index` (`QModelIndex`): Index of the double-clicked item.
+
+        """
+        # Find the Sets tab index (first tab with name "Sets")
+        sets_tab_index = self.tabWidget.indexOf(self.tab)
+        if sets_tab_index >= 0:
+            self.tabWidget.setCurrentIndex(sets_tab_index)
+
     def _on_chart_info_double_clicked(self, _event: QMouseEvent) -> None:
         """Handle double-click on chart info label to copy text to clipboard.
 
@@ -5908,21 +5929,46 @@ class MainWindow(
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
 
-    def _on_exercises_list_double_clicked(self, _index: QModelIndex) -> None:
-        """Handle double-click on exercises list to open statistics tab.
+    def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+        """Handle double-click on exercises list to open Exercise Chart tab.
 
         Args:
 
-        - `_index` (`QModelIndex`): Index of the double-clicked item.
+        - `index` (`QModelIndex`): Index of the double-clicked item.
 
         """
-        # Find the statistics tab index
-        for i in range(self.tabWidget.count()):
-            tab_widget = self.tabWidget.widget(i)
-            if tab_widget and tab_widget.objectName() == "tab_4":
-                # Switch to statistics tab
-                self.tabWidget.setCurrentIndex(i)
-                break
+        # Get exercise name from the clicked item
+        if not index.isValid() or not self.exercises_list_model:
+            return
+
+        item = self.exercises_list_model.itemFromIndex(index)
+        if not item:
+            return
+
+        # Try to get original exercise name from UserRole first
+        exercise_name = item.data(Qt.UserRole)
+        if not exercise_name:
+            # Fallback to display text
+            exercise_name = item.text()
+
+        if not exercise_name:
+            return
+
+        # Find the Exercise Chart tab index
+        chart_tab_index = self.tabWidget.indexOf(self.tab_charts)
+        if chart_tab_index >= 0:
+            # Switch to Exercise Chart tab
+            self.tabWidget.setCurrentIndex(chart_tab_index)
+
+            # Update chart comboboxes first to ensure listView_chart_exercise is populated
+            self.update_chart_comboboxes()
+
+            # Select the exercise in chart exercise list view
+            if self._select_exercise_in_chart_list(exercise_name):
+                # Update type list view after selecting exercise
+                self.update_chart_type_listview()
+                # Update chart and label_chart_info
+                self._update_chart_based_on_radio_button()
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
@@ -9503,21 +9549,22 @@ Args:
 
 ```python
 def on_tab_changed(self, index: int) -> None:
-        index_tab_weight = 2
-        index_tab_charts = 3
+        index_tab_charts = 1
+        index_tab_exercises = 2
+        index_tab_weight = 3
         index_tab_statistics = 4
 
         # Note: Main tab (index 0) needs no updates - data loaded on startup
-        if index == 1:  # Exercises tab
-            # Update exercises AVIF when switching to exercises tab
-            self._update_exercises_avif()
-            self._update_types_avif()
-        elif index == index_tab_charts:  # Exercise Chart tab
+        if index == index_tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
             if not self._get_selected_chart_exercise():
                 self._select_last_executed_exercise()
             self._update_charts_avif()
+        elif index == index_tab_exercises:  # Exercises tab
+            # Update exercises AVIF when switching to exercises tab
+            self._update_exercises_avif()
+            self._update_types_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
         elif index == index_tab_statistics:  # Statistics tab
@@ -11749,6 +11796,9 @@ def _connect_signals(self) -> None:
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
 
+        # Connect double-click signal for chart exercise list to open Sets tab
+        self.listView_chart_exercise.doubleClicked.connect(self._on_chart_exercise_list_double_clicked)
+
         # Add context menu for process table
         self.tableView_process.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_process.customContextMenuRequested.connect(self._show_process_context_menu)
@@ -12948,6 +12998,9 @@ def _init_exercise_chart_controls(self) -> None:
         self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
         self.dateEdit_chart_to.setDate(current_date)
 
+        # Make listView_chart_exercise items non-editable
+        self.listView_chart_exercise.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
         # Initialize exercise and type list views
         self.update_chart_comboboxes()
 
@@ -13499,6 +13552,31 @@ def _next_avif_frame(self, label_key: str) -> None:
 
 </details>
 
+### ⚙️ Method `_on_chart_exercise_list_double_clicked`
+
+```python
+def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None
+```
+
+Handle double-click on chart exercise list to open Sets tab.
+
+Args:
+
+- `_index` (`QModelIndex`): Index of the double-clicked item.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
+        # Find the Sets tab index (first tab with name "Sets")
+        sets_tab_index = self.tabWidget.indexOf(self.tab)
+        if sets_tab_index >= 0:
+            self.tabWidget.setCurrentIndex(sets_tab_index)
+```
+
+</details>
+
 ### ⚙️ Method `_on_chart_info_double_clicked`
 
 ```python
@@ -13534,27 +13612,52 @@ def _on_chart_info_double_clicked(self, _event: QMouseEvent) -> None:
 ### ⚙️ Method `_on_exercises_list_double_clicked`
 
 ```python
-def _on_exercises_list_double_clicked(self, _index: QModelIndex) -> None
+def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None
 ```
 
-Handle double-click on exercises list to open statistics tab.
+Handle double-click on exercises list to open Exercise Chart tab.
 
 Args:
 
-- `_index` (`QModelIndex`): Index of the double-clicked item.
+- `index` (`QModelIndex`): Index of the double-clicked item.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _on_exercises_list_double_clicked(self, _index: QModelIndex) -> None:
-        # Find the statistics tab index
-        for i in range(self.tabWidget.count()):
-            tab_widget = self.tabWidget.widget(i)
-            if tab_widget and tab_widget.objectName() == "tab_4":
-                # Switch to statistics tab
-                self.tabWidget.setCurrentIndex(i)
-                break
+def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+        # Get exercise name from the clicked item
+        if not index.isValid() or not self.exercises_list_model:
+            return
+
+        item = self.exercises_list_model.itemFromIndex(index)
+        if not item:
+            return
+
+        # Try to get original exercise name from UserRole first
+        exercise_name = item.data(Qt.UserRole)
+        if not exercise_name:
+            # Fallback to display text
+            exercise_name = item.text()
+
+        if not exercise_name:
+            return
+
+        # Find the Exercise Chart tab index
+        chart_tab_index = self.tabWidget.indexOf(self.tab_charts)
+        if chart_tab_index >= 0:
+            # Switch to Exercise Chart tab
+            self.tabWidget.setCurrentIndex(chart_tab_index)
+
+            # Update chart comboboxes first to ensure listView_chart_exercise is populated
+            self.update_chart_comboboxes()
+
+            # Select the exercise in chart exercise list view
+            if self._select_exercise_in_chart_list(exercise_name):
+                # Update type list view after selecting exercise
+                self.update_chart_type_listview()
+                # Update chart and label_chart_info
+                self._update_chart_based_on_radio_button()
 ```
 
 </details>

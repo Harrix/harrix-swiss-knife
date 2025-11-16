@@ -5667,6 +5667,19 @@ class MainWindow(
         if label_widget:
             label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
 
+    def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
+        """Handle double-click on chart exercise list to open Sets tab.
+
+        Args:
+
+        - `_index` (`QModelIndex`): Index of the double-clicked item.
+
+        """
+        # Find the Sets tab index (first tab with name "Sets")
+        sets_tab_index = self.tabWidget.indexOf(self.tab)
+        if sets_tab_index >= 0:
+            self.tabWidget.setCurrentIndex(sets_tab_index)
+
     def _on_chart_info_double_clicked(self, _event: QMouseEvent) -> None:
         """Handle double-click on chart info label to copy text to clipboard.
 
@@ -5730,19 +5743,6 @@ class MainWindow(
                 self.update_chart_type_listview()
                 # Update chart and label_chart_info
                 self._update_chart_based_on_radio_button()
-
-    def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
-        """Handle double-click on chart exercise list to open Sets tab.
-
-        Args:
-
-        - `_index` (`QModelIndex`): Index of the double-clicked item.
-
-        """
-        # Find the Sets tab index (first tab with name "Sets")
-        sets_tab_index = self.tabWidget.indexOf(self.tab)
-        if sets_tab_index >= 0:
-            self.tabWidget.setCurrentIndex(sets_tab_index)
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
