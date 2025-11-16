@@ -4405,6 +4405,9 @@ class MainWindow(
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
 
+        # Connect double-click signal for chart exercise list to open Sets tab
+        self.listView_chart_exercise.doubleClicked.connect(self._on_chart_exercise_list_double_clicked)
+
         # Add context menu for process table
         self.tableView_process.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_process.customContextMenuRequested.connect(self._show_process_context_menu)
@@ -5273,6 +5276,9 @@ class MainWindow(
         self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
         self.dateEdit_chart_to.setDate(current_date)
 
+        # Make listView_chart_exercise items non-editable
+        self.listView_chart_exercise.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
         # Initialize exercise and type list views
         self.update_chart_comboboxes()
 
@@ -5698,6 +5704,19 @@ class MainWindow(
                 # Switch to statistics tab
                 self.tabWidget.setCurrentIndex(i)
                 break
+
+    def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
+        """Handle double-click on chart exercise list to open Sets tab.
+
+        Args:
+
+        - `_index` (`QModelIndex`): Index of the double-clicked item.
+
+        """
+        # Find the Sets tab index (first tab with name "Sets")
+        sets_tab_index = self.tabWidget.indexOf(self.tab)
+        if sets_tab_index >= 0:
+            self.tabWidget.setCurrentIndex(sets_tab_index)
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
