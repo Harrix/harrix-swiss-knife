@@ -1700,6 +1700,28 @@ class TemplateDialog(QDialog):
                 widget.set_file_paths(paths)
             return widget
 
+        if field.field_type == "combobox":
+            widget = QComboBox()
+            widget.setEditable(True)  # Allow user to type custom value
+            # Set size policy to expand like multiline fields
+            size_policy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(size_policy)
+            if field.options:
+                widget.addItems(field.options)
+                # Apply smart filtering
+                apply_smart_filtering(widget)
+            if field.default_value:
+                # Try to set default value, if it's in options, select it, otherwise set as current text
+                index = widget.findText(field.default_value)
+                if index >= 0:
+                    widget.setCurrentIndex(index)
+                else:
+                    widget.setCurrentText(field.default_value)
+            else:
+                # Set empty text if no default value
+                widget.setCurrentText("")
+            return widget
+
         # Default to line edit for unknown types
         widget = QLineEdit()
         if field.default_value:
@@ -1763,6 +1785,11 @@ class TemplateDialog(QDialog):
         if field.field_type == "files":
             if isinstance(widget, FilesListWidget):
                 return ",".join(widget.get_file_paths())
+            return ""
+
+        if field.field_type == "combobox":
+            if isinstance(widget, QComboBox):
+                return widget.currentText()
             return ""
 
         # Default to line edit
@@ -2053,6 +2080,28 @@ def _create_widget_for_field(self, field: TemplateField) -> QWidget:
                 widget.set_file_paths(paths)
             return widget
 
+        if field.field_type == "combobox":
+            widget = QComboBox()
+            widget.setEditable(True)  # Allow user to type custom value
+            # Set size policy to expand like multiline fields
+            size_policy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(size_policy)
+            if field.options:
+                widget.addItems(field.options)
+                # Apply smart filtering
+                apply_smart_filtering(widget)
+            if field.default_value:
+                # Try to set default value, if it's in options, select it, otherwise set as current text
+                index = widget.findText(field.default_value)
+                if index >= 0:
+                    widget.setCurrentIndex(index)
+                else:
+                    widget.setCurrentText(field.default_value)
+            else:
+                # Set empty text if no default value
+                widget.setCurrentText("")
+            return widget
+
         # Default to line edit for unknown types
         widget = QLineEdit()
         if field.default_value:
@@ -2128,6 +2177,11 @@ def _get_widget_value(self, field: TemplateField, widget: QWidget) -> str:
         if field.field_type == "files":
             if isinstance(widget, FilesListWidget):
                 return ",".join(widget.get_file_paths())
+            return ""
+
+        if field.field_type == "combobox":
+            if isinstance(widget, QComboBox):
+                return widget.currentText()
             return ""
 
         # Default to line edit
@@ -2292,9 +2346,10 @@ Represents a single field in a template.
 Attributes:
 
 - `name` (`str`): The field name (e.g., "Title", "Score").
-- `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "bool", "multiline").
+- `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "bool", "multiline", "combobox").
 - `placeholder` (`str`): The original placeholder text from the template.
 - `default_value` (`str | None`): Optional default value for the field.
+- `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
@@ -2302,7 +2357,14 @@ Attributes:
 ```python
 class TemplateField:
 
-    def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        field_type: str,
+        placeholder: str,
+        default_value: str | None = None,
+        options: list[str] | None = None,
+    ) -> None:
         """Initialize a template field.
 
         Args:
@@ -2311,12 +2373,14 @@ class TemplateField:
         - `field_type` (`str`): The field type.
         - `placeholder` (`str`): The original placeholder text.
         - `default_value` (`str | None`): Optional default value. Defaults to `None`.
+        - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
 
         """
         self.name = name
         self.field_type = field_type
         self.placeholder = placeholder
         self.default_value = default_value
+        self.options = options or []
 ```
 
 </details>
@@ -2324,7 +2388,7 @@ class TemplateField:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None) -> None
+def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None, options: list[str] | None = None) -> None
 ```
 
 Initialize a template field.
@@ -2335,16 +2399,25 @@ Args:
 - `field_type` (`str`): The field type.
 - `placeholder` (`str`): The original placeholder text.
 - `default_value` (`str | None`): Optional default value. Defaults to `None`.
+- `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None) -> None:
+def __init__(
+        self,
+        name: str,
+        field_type: str,
+        placeholder: str,
+        default_value: str | None = None,
+        options: list[str] | None = None,
+    ) -> None:
         self.name = name
         self.field_type = field_type
         self.placeholder = placeholder
         self.default_value = default_value
+        self.options = options or []
 ```
 
 </details>
