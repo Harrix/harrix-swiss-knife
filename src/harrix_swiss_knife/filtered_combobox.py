@@ -1,14 +1,110 @@
 """Filtered ComboBox with smart search functionality."""
 
-from PySide6.QtCore import Qt, QSortFilterProxyModel, QStringListModel
+from PySide6.QtCore import QSortFilterProxyModel, QStringListModel, Qt
 from PySide6.QtWidgets import QComboBox, QCompleter
+
+
+class FilteredComboBox(QComboBox):
+    """ComboBox with smart filtering functionality.
+
+    Features:
+
+    - Shows matching items as you type
+    - Case-insensitive filtering
+    - Items starting with typed text appear first
+    - Items containing typed text (>= 2 chars) appear after
+    - Dropdown opens automatically when typing
+    - Resets to full list when cleared
+    - Allows entering custom text not in the list
+    """
+
+    def __init__(self, parent=None):
+        """Initialize the filtered combobox."""
+        super().__init__(parent)
+
+        # Make it editable to allow typing
+        self.setEditable(True)
+        self.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+
+        # Setup model and proxy
+        self.string_model = QStringListModel()
+        self.proxy_model = SmartFilterProxyModel(self)
+        self.proxy_model.setSourceModel(self.string_model)
+
+        # Setup completer
+        self.completer_widget = QCompleter(self.proxy_model, self)
+        self.completer_widget.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.completer_widget.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self.completer_widget.setFilterMode(Qt.MatchFlag.MatchContains)
+
+        self.setCompleter(self.completer_widget)
+
+        # Store original items for reset
+        self._original_items = []
+        self._is_programmatic_change = False
+
+        # Connect signals
+        self.lineEdit().textEdited.connect(self._on_text_edited)
+        self.completer_widget.activated.connect(self._on_completion_activated)
+
+    def addItem(self, text):
+        """Add a single item to the combobox."""
+        self._original_items.append(text)
+        self._original_items = sorted(self._original_items, key=str.lower)
+        self.string_model.setStringList(self._original_items)
+        super().clear()
+        super().addItems(self._original_items)
+
+    def addItems(self, texts):
+        """Add multiple items to the combobox."""
+        self._original_items = sorted(texts, key=str.lower)
+        self.string_model.setStringList(self._original_items)
+        # Add items to combobox itself (for when no filter is active)
+        super().clear()
+        super().addItems(self._original_items)
+
+    def clear(self):
+        """Clear all items."""
+        self._original_items = []
+        self.string_model.setStringList([])
+        super().clear()
+
+    def setCurrentText(self, text):
+        """Set current text (override to handle programmatic changes)."""
+        self._is_programmatic_change = True
+        super().setCurrentText(text)
+        self._is_programmatic_change = False
+
+    def _on_completion_activated(self, text):
+        """Handle completion selection."""
+        self._is_programmatic_change = True
+        self.setCurrentText(text)
+        self._is_programmatic_change = False
+
+    def _on_text_edited(self, text):
+        """Handle text editing to show filtered dropdown."""
+        if self._is_programmatic_change:
+            return
+
+        # Update filter
+        self.proxy_model.set_filter_text(text)
+
+        if text:
+            # Show dropdown with filtered items
+            self.completer_widget.setCompletionPrefix(text)
+            self.completer_widget.complete()
+        else:
+            # Empty text - reset to full list and hide popup
+            self.proxy_model.set_filter_text("")
+            if self.completer_widget.popup().isVisible():
+                self.completer_widget.popup().hide()
 
 
 class SmartFilterProxyModel(QSortFilterProxyModel):
     """Custom proxy model for smart filtering.
 
     Implements smart filtering logic:
-    
+
     - First shows items that start with the filter text (case-insensitive)
     - Then shows items that contain the filter text in the middle (if length >= 2)
     - Case-insensitive matching
@@ -88,102 +184,6 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
         self.sort(0)
 
 
-class FilteredComboBox(QComboBox):
-    """ComboBox with smart filtering functionality.
-
-    Features:
-
-    - Shows matching items as you type
-    - Case-insensitive filtering
-    - Items starting with typed text appear first
-    - Items containing typed text (>= 2 chars) appear after
-    - Dropdown opens automatically when typing
-    - Resets to full list when cleared
-    - Allows entering custom text not in the list
-    """
-
-    def __init__(self, parent=None):
-        """Initialize the filtered combobox."""
-        super().__init__(parent)
-
-        # Make it editable to allow typing
-        self.setEditable(True)
-        self.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-
-        # Setup model and proxy
-        self.string_model = QStringListModel()
-        self.proxy_model = SmartFilterProxyModel(self)
-        self.proxy_model.setSourceModel(self.string_model)
-
-        # Setup completer
-        self.completer_widget = QCompleter(self.proxy_model, self)
-        self.completer_widget.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.completer_widget.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
-        self.completer_widget.setFilterMode(Qt.MatchFlag.MatchContains)
-
-        self.setCompleter(self.completer_widget)
-
-        # Store original items for reset
-        self._original_items = []
-        self._is_programmatic_change = False
-
-        # Connect signals
-        self.lineEdit().textEdited.connect(self._on_text_edited)
-        self.completer_widget.activated.connect(self._on_completion_activated)
-
-    def addItems(self, texts):
-        """Add multiple items to the combobox."""
-        self._original_items = sorted(texts, key=str.lower)
-        self.string_model.setStringList(self._original_items)
-        # Add items to combobox itself (for when no filter is active)
-        super().clear()
-        super().addItems(self._original_items)
-
-    def addItem(self, text):
-        """Add a single item to the combobox."""
-        self._original_items.append(text)
-        self._original_items = sorted(self._original_items, key=str.lower)
-        self.string_model.setStringList(self._original_items)
-        super().clear()
-        super().addItems(self._original_items)
-
-    def clear(self):
-        """Clear all items."""
-        self._original_items = []
-        self.string_model.setStringList([])
-        super().clear()
-
-    def setCurrentText(self, text):
-        """Set current text (override to handle programmatic changes)."""
-        self._is_programmatic_change = True
-        super().setCurrentText(text)
-        self._is_programmatic_change = False
-
-    def _on_text_edited(self, text):
-        """Handle text editing to show filtered dropdown."""
-        if self._is_programmatic_change:
-            return
-
-        # Update filter
-        self.proxy_model.set_filter_text(text)
-
-        if text:
-            # Show dropdown with filtered items
-            self.completer_widget.setCompletionPrefix(text)
-            self.completer_widget.complete()
-        else:
-            # Empty text - reset to full list and hide popup
-            self.proxy_model.set_filter_text("")
-            if self.completer_widget.popup().isVisible():
-                self.completer_widget.popup().hide()
-
-    def _on_completion_activated(self, text):
-        """Handle completion selection."""
-        self._is_programmatic_change = True
-        self.setCurrentText(text)
-        self._is_programmatic_change = False
-
-
 def apply_smart_filtering(combobox: QComboBox) -> None:
     """Apply smart filtering to an existing QComboBox.
 
@@ -251,7 +251,7 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
 
     # Connect signals
     def on_text_edited(text):
-        if hasattr(combobox, '_smart_filter_is_programmatic') and combobox._smart_filter_is_programmatic:
+        if hasattr(combobox, "_smart_filter_is_programmatic") and combobox._smart_filter_is_programmatic:
             return
 
         proxy_model.set_filter_text(text)

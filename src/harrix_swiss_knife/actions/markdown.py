@@ -11,8 +11,8 @@ from typing import Any
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateField, TemplateParser
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
+from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateField, TemplateParser
 
 
 class OnAddMarkdownFromTemplate(ActionBase):
@@ -843,6 +843,7 @@ class OnNewQuotes(ActionBase):
         """Format quotes with specified author and book title via dialog."""
         # Import at the beginning of the method
         from PySide6.QtWidgets import QComboBox
+
         from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 
         # Extract existing authors and books from quotes folder
@@ -886,14 +887,14 @@ class OnNewQuotes(ActionBase):
                 book_widget.clear()
 
                 # Remove old smart filtering if it exists
-                if hasattr(book_widget, '_smart_filter_model'):
-                    delattr(book_widget, '_smart_filter_model')
-                if hasattr(book_widget, '_smart_filter_proxy'):
-                    delattr(book_widget, '_smart_filter_proxy')
-                if hasattr(book_widget, '_smart_filter_completer'):
-                    delattr(book_widget, '_smart_filter_completer')
-                if hasattr(book_widget, '_smart_filter_items'):
-                    delattr(book_widget, '_smart_filter_items')
+                if hasattr(book_widget, "_smart_filter_model"):
+                    delattr(book_widget, "_smart_filter_model")
+                if hasattr(book_widget, "_smart_filter_proxy"):
+                    delattr(book_widget, "_smart_filter_proxy")
+                if hasattr(book_widget, "_smart_filter_completer"):
+                    delattr(book_widget, "_smart_filter_completer")
+                if hasattr(book_widget, "_smart_filter_items"):
+                    delattr(book_widget, "_smart_filter_items")
 
                 if author_text and author_text in author_books_dict:
                     books = author_books_dict[author_text]
@@ -1094,11 +1095,14 @@ class OnNewQuotes(ActionBase):
                 else:
                     new_lines.extend(["", quotes_content])
 
-            content = "\n".join(new_lines) + "\n"
+            content = "\n".join(new_lines)
         else:
             # Create new file with beginning template, header, and quotes
             beginning_template = self.config["beginning_of_md"]
-            content = f"{beginning_template}\n{header}\n\n{quotes_content}\n"
+            content = f"{beginning_template}\n{header}\n\n{quotes_content}"
+
+        # Normalize content: remove trailing whitespace and ensure single newline at end
+        content = content.rstrip() + "\n"
 
         # Save file
         file_path.write_text(content, encoding="utf-8")
