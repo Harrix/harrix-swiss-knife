@@ -5690,20 +5690,17 @@ class MainWindow(
             # You could add a toast notification here if you have one
 
     def _on_exercises_list_double_clicked(self, _index: QModelIndex) -> None:
-        """Handle double-click on exercises list to open statistics tab.
+        """Handle double-click on exercises list to open Exercise Chart tab.
 
         Args:
 
         - `_index` (`QModelIndex`): Index of the double-clicked item.
 
         """
-        # Find the statistics tab index
-        for i in range(self.tabWidget.count()):
-            tab_widget = self.tabWidget.widget(i)
-            if tab_widget and tab_widget.objectName() == "tab_4":
-                # Switch to statistics tab
-                self.tabWidget.setCurrentIndex(i)
-                break
+        # Find the Exercise Chart tab index
+        chart_tab_index = self.tabWidget.indexOf(self.tab_charts)
+        if chart_tab_index >= 0:
+            self.tabWidget.setCurrentIndex(chart_tab_index)
 
     def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on chart exercise list to open Sets tab.
