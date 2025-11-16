@@ -953,33 +953,25 @@ class OnNewQuotes(ActionBase):
         # Apply the same formatting function
         result = h.md.format_quotes_as_markdown_content(formatted_content)
 
-        # Ask if user wants to save to file
-        save_to_file = self.get_yes_no_question(
-            "Save quotes to file?", "Do you want to save the formatted quotes to a file?"
-        )
+        # Remove the header from quotes content since it will be added by the save function
+        quotes_without_header = result
+        if quotes_without_header.startswith(f"# {book_title}"):
+            # Find the first empty line after the header
+            lines = quotes_without_header.split("\n")
+            for i_original, line in enumerate(lines):
+                i = i_original
+                if line.strip() == f"# {book_title}":
+                    # Skip the header line and any following empty lines
+                    while i + 1 < len(lines) and not lines[i + 1].strip():
+                        i += 1
+                    quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
+                    break
 
-        if save_to_file:
-            # Remove the header from quotes content since it will be added by the save function
-            quotes_without_header = result
-            if quotes_without_header.startswith(f"# {book_title}"):
-                # Find the first empty line after the header
-                lines = quotes_without_header.split("\n")
-                for i_original, line in enumerate(lines):
-                    i = i_original
-                    if line.strip() == f"# {book_title}":
-                        # Skip the header line and any following empty lines
-                        while i + 1 < len(lines) and not lines[i + 1].strip():
-                            i += 1
-                        quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
-                        break
-
-            success = self._save_quotes_to_file(quotes_without_header, author, book_title)
-            if success:
-                self.add_line("✅ Quotes saved to file successfully!")
-            else:
-                self.add_line("❌ Failed to save quotes to file.")
+        success = self._save_quotes_to_file(quotes_without_header, author, book_title)
+        if success:
+            self.add_line("✅ Quotes saved to file successfully!")
         else:
-            self.add_line(result)
+            self.add_line("❌ Failed to save quotes to file.")
 
         self.show_result()
 
@@ -1046,9 +1038,12 @@ class OnNewQuotes(ActionBase):
         - `bool`: True if file was saved successfully, False otherwise
 
         """
-        # Ask user to select folder
-        default_path = self.config.get("path_quotes", "")
-        selected_folder = self.get_existing_directory("Select folder to save quotes", default_path)
+        # Ask user to select folder from list
+        selected_folder = self.get_folder_with_choice_option(
+            "Select folder to save quotes",
+            self.config.get("paths_quotes", []),
+            self.config.get("path_quotes", ""),
+        )
 
         if not selected_folder:
             return False

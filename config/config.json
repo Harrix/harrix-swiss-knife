@@ -74,9 +74,7 @@
   "paths_combine_for_ai": [
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"
-      ],
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"],
       "name": "harrix-swiss-knife"
     },
     {
@@ -139,6 +137,11 @@
   "paths_python_libraries": ["D:/GitHub/harrix-pylib"],
   "paths_python_project_creation": ["C:/Users/sergi/OneDrive/Projects/Python", "D:/GitHub"],
   "paths_python_projects": ["D:/GitHub/harrix-swiss-knife", "D:/GitHub/harrix-pylib"],
+  "paths_quotes": [
+    "D:/Dropbox/Notes/Notes-Lists/Quotes/Fiction",
+    "D:/Dropbox/Notes/Notes-Lists/Quotes/Religion",
+    "D:/Dropbox/Notes/Notes-Lists/Quotes/Science"
+  ],
   "paths_with_featured_image": [
     "D:/Dropbox/IT/3D printer/Models/Print",
     "D:/Dropbox/IT/3D printer/Models/Printed",
