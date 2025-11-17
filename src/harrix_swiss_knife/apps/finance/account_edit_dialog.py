@@ -66,6 +66,38 @@ class AccountEditDialog(QDialog):
         """
         return self.result_data
 
+    def _is_safe_node(self, node: ast.AST) -> bool:
+        """Check if AST node is safe for evaluation.
+
+        Args:
+
+        - `node` (`ast.AST`): AST node to check.
+
+        Returns:
+
+        - `bool`: True if node is safe, False otherwise.
+
+        """
+        # Allow numbers (int, float)
+        if isinstance(node, (ast.Constant, ast.Num)):
+            return True
+
+        # Allow binary operations (+, -, *, /)
+        if isinstance(node, ast.BinOp):
+            return isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)) and self._is_safe_node(
+                node.left
+            ) and self._is_safe_node(node.right)
+
+        # Allow unary operations (+, -)
+        if isinstance(node, ast.UnaryOp):
+            return isinstance(node.op, (ast.UAdd, ast.USub)) and self._is_safe_node(node.operand)
+
+        # Allow parentheses (expression)
+        if isinstance(node, ast.Expression):
+            return self._is_safe_node(node.body)
+
+        return False
+
     def _evaluate_expression(self, expression: str) -> float:
         """Safely evaluate a mathematical expression.
 
@@ -104,11 +136,22 @@ class AccountEditDialog(QDialog):
             raise ValueError(msg)
 
         try:
-            # Use ast.literal_eval for safe evaluation
-            result = ast.literal_eval(expression)
+            # Parse expression into AST
+            tree = ast.parse(expression, mode="eval")
+
+            # Check if AST is safe
+            if not self._is_safe_node(tree):
+                _raise_value_error("Expression contains unsafe operations")
+
+            # Compile and evaluate safely
+            code = compile(tree, "<string>", "eval")
+            result = eval(code, {"__builtins__": {}}, {})
+
             if not isinstance(result, (int, float)):
                 _raise_value_error("Expression does not evaluate to a number")
             return float(result)
+        except SyntaxError as e:
+            _raise_value_error(f"Invalid expression syntax: {e!s}")
         except Exception as e:
             _raise_value_error(f"Invalid expression: {e!s}")
 
