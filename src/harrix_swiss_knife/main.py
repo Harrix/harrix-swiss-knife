@@ -103,7 +103,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 "New Markdown",
                 "𝐌",
                 [  # noqa: RUF001
-                    hsk.md.OnAddMarkdownFromTemplate,
+                    hsk.md.OnAddMdFromTemplate,
                     "-",
                     hsk.md.OnNewArticle,
                     hsk.md.OnNewDiary,

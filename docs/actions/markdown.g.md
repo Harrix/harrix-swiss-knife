@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnAddMarkdownFromTemplate`](#%EF%B8%8F-class-onaddmarkdownfromtemplate)
+- [🏛️ Class `OnAddMdFromTemplate`](#%EF%B8%8F-class-onaddmdfromtemplate)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 - [🏛️ Class `OnBeautifyMdFolder`](#%EF%B8%8F-class-onbeautifymdfolder)
   - [⚙️ Method `beautify_markdown_common`](#%EF%B8%8F-method-beautify_markdown_common)
@@ -81,22 +81,22 @@ lang: en
 
 </details>
 
-## 🏛️ Class `OnAddMarkdownFromTemplate`
+## 🏛️ Class `OnAddMdFromTemplate`
 
 ```python
-class OnAddMarkdownFromTemplate(ActionBase)
+class OnAddMdFromTemplate(ActionBase)
 ```
 
-Add markdown content using template-based forms.
+Add Markdown content using template-based forms.
 
-This action provides a flexible template system for adding structured markdown
+This action provides a flexible template system for adding structured Markdown
 elements (movies, series, books, etc.) to files. It:
 
 1. Reads a template file with field placeholders ({{FieldName:FieldType}})
 2. Generates a dynamic form dialog based on the template fields
 3. Collects user input through the form
 4. Fills the template with the provided values
-5. Either returns the markdown text or inserts it into a specified file
+5. Either returns the Markdown text or inserts it into a specified file
 
 Supported field types:
 
@@ -113,10 +113,10 @@ Optional default values can be specified: {{FieldName:FieldType:DefaultValue}}
 <summary>Code:</summary>
 
 ```python
-class OnAddMarkdownFromTemplate(ActionBase):
+class OnAddMdFromTemplate(ActionBase):
 
     icon = "📝"
-    title = "Add markdown from template"
+    title = "Add MD from template"
     bold_title = True
 
     @ActionBase.handle_exceptions("adding markdown from template")

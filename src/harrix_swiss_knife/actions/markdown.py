@@ -15,17 +15,17 @@ from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateField, TemplateParser
 
 
-class OnAddMarkdownFromTemplate(ActionBase):
-    """Add markdown content using template-based forms.
+class OnAddMdFromTemplate(ActionBase):
+    """Add Markdown content using template-based forms.
 
-    This action provides a flexible template system for adding structured markdown
+    This action provides a flexible template system for adding structured Markdown
     elements (movies, series, books, etc.) to files. It:
 
     1. Reads a template file with field placeholders ({{FieldName:FieldType}})
     2. Generates a dynamic form dialog based on the template fields
     3. Collects user input through the form
     4. Fills the template with the provided values
-    5. Either returns the markdown text or inserts it into a specified file
+    5. Either returns the Markdown text or inserts it into a specified file
 
     Supported field types:
 
@@ -40,7 +40,7 @@ class OnAddMarkdownFromTemplate(ActionBase):
     """
 
     icon = "📝"
-    title = "Add markdown from template"
+    title = "Add MD from template"
     bold_title = True
 
     @ActionBase.handle_exceptions("adding markdown from template")
