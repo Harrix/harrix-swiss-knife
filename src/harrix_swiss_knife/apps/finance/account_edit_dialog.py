@@ -213,7 +213,11 @@ class AccountEditDialog(QDialog):
         """Populate the dialog with account data."""
         if self.account_data:
             self.name_edit.setText(self.account_data.get("name", ""))
-            self.balance_spin.setValue(self.account_data.get("balance", 0.0))
+            balance = self.account_data.get("balance", 0.0)
+            self.balance_spin.setValue(balance)
+
+            # Set balance value in Expression field
+            self.expression_edit.setText(str(balance))
 
             currency_code = self.account_data.get("currency_code", "")
             if currency_code in self.currencies:
@@ -226,6 +230,9 @@ class AccountEditDialog(QDialog):
             # Set focus to balance field and select all text
             self.balance_spin.setFocus()
             self.balance_spin.selectAll()
+        else:
+            # For new account, set default balance in Expression field
+            self.expression_edit.setText("0.0")
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
