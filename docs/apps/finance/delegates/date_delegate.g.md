@@ -80,11 +80,7 @@ class DateDelegate(QStyledItemDelegate):
         if current_value:
             try:
                 # Make the datetime object timezone-aware (UTC) to avoid naive datetime
-                date_obj = (
-                    datetime.strptime(str(current_value), "%Y-%m-%d")
-                    .replace(tzinfo=datetime.now().astimezone().tzinfo)
-                    .date()
-                )
+                date_obj = pendulum.parse(str(current_value), strict=False).date()
                 editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
             except (ValueError, TypeError):
                 editor.setDate(QDate.currentDate())
@@ -186,11 +182,7 @@ def setEditorData(self, editor: QDateEdit, index: QModelIndex) -> None:  # noqa:
         if current_value:
             try:
                 # Make the datetime object timezone-aware (UTC) to avoid naive datetime
-                date_obj = (
-                    datetime.strptime(str(current_value), "%Y-%m-%d")
-                    .replace(tzinfo=datetime.now().astimezone().tzinfo)
-                    .date()
-                )
+                date_obj = pendulum.parse(str(current_value), strict=False).date()
                 editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
             except (ValueError, TypeError):
                 editor.setDate(QDate.currentDate())

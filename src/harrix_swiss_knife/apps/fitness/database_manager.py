@@ -709,9 +709,7 @@ class DatabaseManager:
         - `float`: Total value for the exercise today, or 0.0 if no records found.
 
         """
-        today = datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
-            "%Y-%m-%d"
-        )
+        today = pendulum.now().format("YYYY-MM-DD")
         rows = self.get_rows(
             "SELECT SUM(CAST(value AS REAL)) FROM process WHERE _id_exercises = :ex_id AND date = :today",
             {"ex_id": exercise_id, "today": today},
@@ -1035,9 +1033,7 @@ class DatabaseManager:
         - `float`: Total calories burned today, or 0.0 if no records found.
 
         """
-        today = datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
-            "%Y-%m-%d"
-        )
+        today = pendulum.now().format("YYYY-MM-DD")
         query = """
             SELECT SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
             FROM process p
@@ -1247,9 +1243,7 @@ class DatabaseManager:
         - `int`: Number of process records for today's date.
 
         """
-        today = datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
-            "%Y-%m-%d"
-        )
+        today = pendulum.now().format("YYYY-MM-DD")
         rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
 

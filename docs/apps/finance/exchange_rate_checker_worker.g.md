@@ -76,8 +76,8 @@ class ExchangeRateCheckerWorker(QThread):
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = datetime.now(tz=datetime.now().astimezone().tzinfo).date()
-            today_str = today.strftime("%Y-%m-%d")
+            today = pendulum.now().date()
+            today_str = today.format("YYYY-MM-DD")
 
             self.progress_updated.emit(f"📅 Checking rates up to {today_str}")
 
@@ -89,11 +89,7 @@ class ExchangeRateCheckerWorker(QThread):
                     self.check_failed.emit("No transactions found to determine start date.")
                     return
 
-                global_start_date = (
-                    datetime.strptime(earliest_transaction_date, "%Y-%m-%d")
-                    .replace(tzinfo=datetime.now().astimezone().tzinfo)
-                    .date()
-                )
+                global_start_date = pendulum.parse(earliest_transaction_date, strict=False).date()
                 self.progress_updated.emit(f"📊 Checking from first transaction date: {global_start_date}")
             else:
                 # Start from last exchange rate date for each currency
@@ -119,11 +115,7 @@ class ExchangeRateCheckerWorker(QThread):
                     if not last_date_str:
                         self.progress_updated.emit(f"⚠️ {currency_code}: No exchange rate records found - skipping")
                         continue
-                    start_date = (
-                        datetime.strptime(last_date_str, "%Y-%m-%d")
-                        .replace(tzinfo=datetime.now().astimezone().tzinfo)
-                        .date()
-                    )
+                    start_date = pendulum.parse(last_date_str, strict=False).date()
 
                 # Calculate missing dates from start_date to today
                 missing_dates = []
@@ -138,11 +130,11 @@ class ExchangeRateCheckerWorker(QThread):
                         self.check_failed.emit("Check cancelled by user")
                         return
 
-                    date_str = current_date.strftime("%Y-%m-%d")
+                    date_str = current_date.format("YYYY-MM-DD")
                     if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
                         missing_dates.append(date_str)
 
-                    current_date += timedelta(days=1)
+                    current_date = current_date.add(days=1)
                     batch_count += 1
 
                     # Update progress every batch_size dates
@@ -235,8 +227,8 @@ def run(self) -> None:
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = datetime.now(tz=datetime.now().astimezone().tzinfo).date()
-            today_str = today.strftime("%Y-%m-%d")
+            today = pendulum.now().date()
+            today_str = today.format("YYYY-MM-DD")
 
             self.progress_updated.emit(f"📅 Checking rates up to {today_str}")
 
@@ -248,11 +240,7 @@ def run(self) -> None:
                     self.check_failed.emit("No transactions found to determine start date.")
                     return
 
-                global_start_date = (
-                    datetime.strptime(earliest_transaction_date, "%Y-%m-%d")
-                    .replace(tzinfo=datetime.now().astimezone().tzinfo)
-                    .date()
-                )
+                global_start_date = pendulum.parse(earliest_transaction_date, strict=False).date()
                 self.progress_updated.emit(f"📊 Checking from first transaction date: {global_start_date}")
             else:
                 # Start from last exchange rate date for each currency
@@ -278,11 +266,7 @@ def run(self) -> None:
                     if not last_date_str:
                         self.progress_updated.emit(f"⚠️ {currency_code}: No exchange rate records found - skipping")
                         continue
-                    start_date = (
-                        datetime.strptime(last_date_str, "%Y-%m-%d")
-                        .replace(tzinfo=datetime.now().astimezone().tzinfo)
-                        .date()
-                    )
+                    start_date = pendulum.parse(last_date_str, strict=False).date()
 
                 # Calculate missing dates from start_date to today
                 missing_dates = []
@@ -297,11 +281,11 @@ def run(self) -> None:
                         self.check_failed.emit("Check cancelled by user")
                         return
 
-                    date_str = current_date.strftime("%Y-%m-%d")
+                    date_str = current_date.format("YYYY-MM-DD")
                     if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
                         missing_dates.append(date_str)
 
-                    current_date += timedelta(days=1)
+                    current_date = current_date.add(days=1)
                     batch_count += 1
 
                     # Update progress every batch_size dates

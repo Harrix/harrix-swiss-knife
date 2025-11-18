@@ -1745,14 +1745,12 @@ class OnNewArticle(ActionBase):
 
         text = self.config["beginning_of_article"].replace(
             "[YEAR]",
-            datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime("%Y"),
+            pendulum.now().format("YYYY"),
         )
         text = text.replace("[NAME]", article_name)
         text = text.replace(
             "[DATE]",
-            datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
-                "%Y-%m-%d"
-            ),
+            pendulum.now().format("YYYY-MM-DD"),
         )
         text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 
@@ -1786,14 +1784,12 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         text = self.config["beginning_of_article"].replace(
             "[YEAR]",
-            datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime("%Y"),
+            pendulum.now().format("YYYY"),
         )
         text = text.replace("[NAME]", article_name)
         text = text.replace(
             "[DATE]",
-            datetime.now(tz=datetime.now(tz=datetime.now().astimezone().tzinfo).astimezone().tzinfo).strftime(
-                "%Y-%m-%d"
-            ),
+            pendulum.now().format("YYYY-MM-DD"),
         )
         text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 

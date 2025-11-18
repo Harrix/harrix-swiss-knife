@@ -4,9 +4,8 @@ This module contains the ExchangeRateUpdateWorker class that handles
 background updates of exchange rates from various data sources.
 """
 
-from datetime import datetime, timedelta
-
 import pandas as pd
+import pendulum
 import yfinance as yf
 from PySide6.QtCore import QThread, Signal
 
@@ -88,10 +87,8 @@ class ExchangeRateUpdateWorker(QThread):
                 end_date = sorted_dates[-1]
 
                 # Add one day to end_date for yfinance API
-                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").replace(
-                    tzinfo=datetime.now().astimezone().tzinfo
-                )
-                end_date_plus = (end_date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
+                end_date_obj = pendulum.parse(end_date, strict=False)
+                end_date_plus = end_date_obj.add(days=1).format("YYYY-MM-DD")
 
                 self.progress_updated.emit(f"📊 Fetching {currency_code} rates from {start_date} to {end_date}...")
 
@@ -274,11 +271,9 @@ class ExchangeRateUpdateWorker(QThread):
                             new_rate = rates_dict[date_str]
                         else:
                             # Try fallback for weekends/holidays
-                            date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(
-                                tzinfo=datetime.now().astimezone().tzinfo
-                            )
+                            date_obj = pendulum.parse(date_str, strict=False)
                             weekend_days = (5, 6)  # Saturday=5, Sunday=6
-                            if date_obj.weekday() in weekend_days:
+                            if date_obj.day_of_week in weekend_days:
                                 self.progress_updated.emit(f"📅 {date_str} is weekend, using fallback...")
                                 new_rate = get_fallback_rate(currency_code, date_str)
                             else:
@@ -300,9 +295,7 @@ class ExchangeRateUpdateWorker(QThread):
                 # Update existing records (only recent ones, not weekends)
                 if existing_records:
                     # Only update last 7 days of records
-                    recent_cutoff = (datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(days=7)).strftime(
-                        "%Y-%m-%d"
-                    )
+                    recent_cutoff = (pendulum.now() - pendulum.duration(days=7)).format("YYYY-MM-DD")
                     recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
 
                     if recent_records:

@@ -115,9 +115,7 @@ class TextParser:
         lines = text.strip().split("\n")
         parsed_items = []
         # Use provided default_date or today's date
-        today = default_date or datetime.datetime.now(tz=datetime.datetime.now().astimezone().tzinfo).date().strftime(
-            "%Y-%m-%d"
-        )
+        today = default_date or pendulum.now().date().format("YYYY-MM-DD")
 
         for line_num, line in enumerate(lines, 1):
             line_new = line.strip()
@@ -688,9 +686,7 @@ def parse_text(
         lines = text.strip().split("\n")
         parsed_items = []
         # Use provided default_date or today's date
-        today = default_date or datetime.datetime.now(tz=datetime.datetime.now().astimezone().tzinfo).date().strftime(
-            "%Y-%m-%d"
-        )
+        today = default_date or pendulum.now().date().format("YYYY-MM-DD")
 
         for line_num, line in enumerate(lines, 1):
             line_new = line.strip()

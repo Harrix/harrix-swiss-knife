@@ -829,8 +829,8 @@ class ChartOperations:
 
         if date_from and date_to:
             try:
-                user_start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-                user_end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                user_start_date = pendulum.parse(date_from, strict=False).in_timezone(pendulum.UTC)
+                user_end_date = pendulum.parse(date_to, strict=False).in_timezone(pendulum.UTC)
                 # Use the later of actual start date or user start date to avoid leading None values
                 start_date = max(actual_start_date, user_start_date)
                 end_date = min(actual_end_date, user_end_date)
@@ -873,7 +873,7 @@ class ChartOperations:
             while current_date <= end_date:
                 value = data_dict.get(current_date)
                 result.append((current_date, value))
-                current_date += timedelta(days=1)
+                current_date = current_date.add(days=1)
 
         return result
 
@@ -977,7 +977,7 @@ class ChartOperations:
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -1026,7 +1026,7 @@ class ChartOperations:
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -1481,8 +1481,8 @@ def _fill_missing_periods_with_zeros(
 
         if date_from and date_to:
             try:
-                user_start_date = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-                user_end_date = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                user_start_date = pendulum.parse(date_from, strict=False).in_timezone(pendulum.UTC)
+                user_end_date = pendulum.parse(date_to, strict=False).in_timezone(pendulum.UTC)
                 # Use the later of actual start date or user start date to avoid leading None values
                 start_date = max(actual_start_date, user_start_date)
                 end_date = min(actual_end_date, user_end_date)
@@ -1525,7 +1525,7 @@ def _fill_missing_periods_with_zeros(
             while current_date <= end_date:
                 value = data_dict.get(current_date)
                 result.append((current_date, value))
-                current_date += timedelta(days=1)
+                current_date = current_date.add(days=1)
 
         return result
 ```
@@ -1665,7 +1665,7 @@ def _group_data_by_period(self, rows: list, period: str, value_type: str = "floa
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -1726,7 +1726,7 @@ def _group_data_by_period_with_max(self, rows: list, period: str, value_type: st
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -2424,8 +2424,8 @@ class ValidationOperations:
             return False
 
         try:
-            datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        except ValueError:
+            pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+        except (ValueError, TypeError):
             return False
         else:
             return True
@@ -2458,8 +2458,8 @@ def _is_valid_date(date_str: str) -> bool:
             return False
 
         try:
-            datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        except ValueError:
+            pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+        except (ValueError, TypeError):
             return False
         else:
             return True

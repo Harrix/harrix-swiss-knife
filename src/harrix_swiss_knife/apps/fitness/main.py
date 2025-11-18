@@ -14,12 +14,12 @@ import io
 import math
 import sys
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import harrix_pylib as h
+import pendulum
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
@@ -838,12 +838,10 @@ class MainWindow(
 
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
-            yesterday = datetime.now(tz=datetime.now().astimezone().tzinfo).date() - timedelta(
-                days=1
-            )  # Use local time instead of UTC
+            yesterday = pendulum.now().date().subtract(days=1)  # Use local time instead of UTC
 
             try:
-                first_date = datetime.strptime(first_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
+                first_date = pendulum.parse(first_date_str, strict=False).date()
             except ValueError:
                 QMessageBox.warning(
                     self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
@@ -858,10 +856,10 @@ class MainWindow(
             current_date = first_date
 
             while current_date <= yesterday:
-                date_str = current_date.strftime("%Y-%m-%d")
+                date_str = current_date.format("YYYY-MM-DD")
                 if date_str not in recorded_dates:
                     missing_days.append(date_str)
-                current_date += timedelta(days=1)
+                current_date = current_date.add(days=1)
 
             # Find duplicate days (days with multiple records)
             duplicate_days = []
@@ -875,8 +873,8 @@ class MainWindow(
             # Add missing days
             for missing_date in missing_days:
                 try:
-                    date_obj = datetime.strptime(missing_date, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
-                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+                    date_obj = pendulum.parse(missing_date, strict=False).date()
+                    formatted_date = date_obj.format("YYYY-MM-DD (MMM DD)")
 
                     # Calculate days ago
                     days_ago = (yesterday - date_obj).days
@@ -897,8 +895,8 @@ class MainWindow(
             # Add duplicate days
             for date_str, count, step_values in duplicate_days:
                 try:
-                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
-                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+                    date_obj = pendulum.parse(date_str, strict=False).date()
+                    formatted_date = date_obj.format("YYYY-MM-DD (MMM DD)")
 
                     # Calculate days ago
                     days_ago = (yesterday - date_obj).days
@@ -985,7 +983,7 @@ class MainWindow(
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
         # Use local time for current date
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        today = pendulum.now()
 
         monthly_data = []
         colors = []
@@ -1014,18 +1012,17 @@ class MainWindow(
         for i in range(months_count):
             # Compute approximate month start/end
             # Note: month stepping is approximate (30 days), kept to match original logic
-            month_date = today.replace(day=1) - timedelta(days=i * 30)
-            month_start = month_date.replace(day=1)
+            month_date = today.start_of("month").subtract(months=i)
+            month_start = month_date.start_of("month")
             if i == 0:
                 month_end = today
             else:
-                # End of previous month: go to next month, step back one day
-                temp = month_start.replace(day=28) + timedelta(days=4)
-                month_end = temp.replace(day=1) - timedelta(days=1)
+                # End of previous month
+                month_end = month_start.end_of("month")
 
             # Format for DB
-            date_from = month_start.strftime("%Y-%m-%d")
-            date_to = month_end.strftime("%Y-%m-%d")
+            date_from = month_start.format("YYYY-MM-DD")
+            date_to = month_end.format("YYYY-MM-DD")
 
             # Query data
             rows = self.db_manager.get_exercise_chart_data(
@@ -1041,7 +1038,7 @@ class MainWindow(
                 cumulative_value = 0.0
                 for date_str, value_str in rows:
                     try:
-                        date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                        date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
                         value = float(value_str)
                         cumulative_value += value
                         # Use day of month for X axis
@@ -1064,11 +1061,11 @@ class MainWindow(
             # Build label/color for every month regardless of data presence
             if i == 0:
                 colors.append("red")
-                labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+                labels.append(f"{month_start.format('MMMM YYYY')} (Current)")
             else:
                 color_index = (i - 1) % len(color_palette)
                 colors.append(color_palette[color_index])
-                labels.append(f"{month_start.strftime('%B %Y')}")
+                labels.append(f"{month_start.format('MMMM YYYY')}")
 
         # In on_compare_last_months, right before the early return where 'all months are empty'
         if all(len(d) == 0 for d in monthly_data):
@@ -1234,7 +1231,7 @@ class MainWindow(
         selected_month_index = self.comboBox_compare_same_months.currentIndex()
         selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
 
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)  # Use local time instead of UTC
+        today = pendulum.now()  # Use local time instead of UTC
         selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
@@ -1268,15 +1265,8 @@ class MainWindow(
             year = current_year - _i
 
             # Calculate start and end of the same month for this year
-            month_start = datetime(year, selected_month, 1, tzinfo=timezone.utc)
-
-            # Calculate end of month
-            count_month = 12
-            if selected_month == count_month:
-                next_month = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
-            else:
-                next_month = datetime(year, selected_month + 1, 1, tzinfo=timezone.utc)
-            month_end = next_month - timedelta(days=1)
+            month_start = pendulum.datetime(year, selected_month, 1, tz=pendulum.UTC)
+            month_end = month_start.end_of("month")
 
             # For current year, limit to today only if we're in the selected month or past it
             if year == current_year:
@@ -1290,8 +1280,8 @@ class MainWindow(
                     continue
 
             # Format dates for database query
-            date_from = month_start.strftime("%Y-%m-%d")
-            date_to = month_end.strftime("%Y-%m-%d")
+            date_from = month_start.format("YYYY-MM-DD")
+            date_to = month_end.format("YYYY-MM-DD")
 
             # Get exercise data for this month
             rows = self.db_manager.get_exercise_chart_data(
@@ -1308,7 +1298,7 @@ class MainWindow(
 
                 for date_str, value_str in rows:
                     try:
-                        date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                        date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
                         value = float(value_str)
                         cumulative_value += value
 
@@ -1336,12 +1326,12 @@ class MainWindow(
                     # Note: i represents the year offset, but we need to check if this year actually has data
                     if year == current_year:  # Current year
                         colors.append("red")  # Current year in red
-                        labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+                        labels.append(f"{month_start.format('MMMM YYYY')} (Current)")
                     else:
                         # Use different colors from palette for other years
                         color_index = (len(yearly_data) - 2) % len(color_palette)  # -2 because current year uses red
                         colors.append(color_palette[color_index])
-                        labels.append(f"{month_start.strftime('%B %Y')}")
+                        labels.append(f"{month_start.format('MMMM YYYY')}")
 
         # In on_compare_same_months, right before early return on 'not yearly_data'
         if not yearly_data:
@@ -1588,8 +1578,8 @@ class MainWindow(
 
             if last_date:
                 try:
-                    date_obj = datetime.strptime(last_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-                    formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
+                    date_obj = pendulum.parse(last_date, strict=False).in_timezone(pendulum.UTC)
+                    formatted_date = date_obj.format("MMM DD, YYYY")  # e.g., "Dec 13, 2025"
                     date_parts.append(f"Last: {formatted_date}")
                 except ValueError:
                     date_parts.append(f"Last: {last_date}")
@@ -1870,17 +1860,17 @@ class MainWindow(
                 return
 
             # Calculate key date boundaries relative to local time
-            local_now = datetime.now().astimezone()
+            local_now = pendulum.now()
             today_date = local_now.date()
-            yesterday_date = today_date - timedelta(days=1)
-            thirty_days_ago = today_date - timedelta(days=30)
-            year_days_ago = today_date - timedelta(days=365)
+            yesterday_date = today_date.subtract(days=1)
+            thirty_days_ago = today_date.subtract(days=30)
+            year_days_ago = today_date.subtract(days=365)
 
-            today = today_date.strftime("%Y-%m-%d")
-            yesterday = yesterday_date.strftime("%Y-%m-%d")
+            today = today_date.format("YYYY-MM-DD")
+            yesterday = yesterday_date.format("YYYY-MM-DD")
 
-            one_year_ago = local_now - timedelta(days=365)
-            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
+            one_year_ago = local_now.subtract(days=365)
+            one_year_ago_str = one_year_ago.format("YYYY-MM-DD")
 
             # Group data by exercise and type combination
             grouped: defaultdict[str, list[tuple]] = defaultdict(list)
@@ -1909,7 +1899,7 @@ class MainWindow(
                     return f"{date_str} ← 🏆YESTERDAY 📅"
 
                 try:
-                    record_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                    record_date = pendulum.parse(date_str, strict=False).date()
                 except ValueError:
                     return date_str
 
@@ -2450,16 +2440,16 @@ class MainWindow(
                 return
 
             # Calculate days ago for each exercise
-            today = datetime.now(tz=datetime.now().astimezone().tzinfo).date()  # Use local time instead of UTC
+            today = pendulum.now().date()  # Use local time instead of UTC
             table_data = []
 
             for exercise_name, last_date_str in exercise_dates:
                 try:
-                    last_date = datetime.strptime(last_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc).date()
+                    last_date = pendulum.parse(last_date_str, strict=False).date()
                     days_ago = (today - last_date).days
 
                     # Format the display date
-                    formatted_date = last_date.strftime("%Y-%m-%d (%b %d)")
+                    formatted_date = last_date.format("YYYY-MM-DD (MMM DD)")
 
                     # Add emoji for recent activities
                     days_in_week = 7
@@ -2749,7 +2739,7 @@ class MainWindow(
         datetime_data = []
         for date_str, calories in rows:
             try:
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
                 datetime_data.append((date_obj, float(calories)))
             except (ValueError, TypeError):
                 continue
@@ -2775,9 +2765,7 @@ class MainWindow(
 
         # For calories chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
-            "%Y-%m-%d"
-        )  # Use local time instead of UTC
+        today = pendulum.now().format("%Y-%m-%d")  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -2839,7 +2827,7 @@ class MainWindow(
         datetime_data = []
         for date_str, count in rows:
             try:
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
                 datetime_data.append((date_obj, int(count)))
             except (ValueError, TypeError):
                 continue
@@ -2865,9 +2853,7 @@ class MainWindow(
 
         # For sets chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
-            "%Y-%m-%d"
-        )  # Use local time instead of UTC
+        today = pendulum.now().format("%Y-%m-%d")  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3203,7 +3189,7 @@ class MainWindow(
         datetime_data = []
         for date_str, value_str in rows:
             try:
-                date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
                 value = float(value_str)
                 datetime_data.append((date_obj, value))
             except (ValueError, TypeError):
@@ -3233,9 +3219,7 @@ class MainWindow(
 
         # For exercise chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo).strftime(
-            "%Y-%m-%d"
-        )  # Use local time instead of UTC
+        today = pendulum.now().format("%Y-%m-%d")  # Use local time instead of UTC
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3423,7 +3407,7 @@ class MainWindow(
             return
 
         # Parse data - convert to datetime objects for chart
-        chart_data = [(datetime.strptime(row[1], "%Y-%m-%d").replace(tzinfo=timezone.utc), row[0]) for row in rows]
+        chart_data = [(pendulum.parse(row[1], strict=False).in_timezone(pendulum.UTC), row[0]) for row in rows]
 
         # Define custom statistics formatter for weight
         def format_weight_stats(values: list) -> str:
@@ -3498,7 +3482,7 @@ class MainWindow(
             return
 
         # Get current month data
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        today = pendulum.now()
         current_month = today.month
         current_year = today.year
 
@@ -3508,7 +3492,7 @@ class MainWindow(
 
         # Get calories data for current month
         current_month_calories = self.db_manager.get_kcal_chart_data(
-            month_start.strftime("%Y-%m-%d"), month_end.strftime("%Y-%m-%d")
+            month_start.format("YYYY-MM-DD"), month_end.format("YYYY-MM-DD")
         )
         current_calories = sum(float(calories) for _, calories in current_month_calories)
 
@@ -3521,17 +3505,16 @@ class MainWindow(
 
         for i in range(months_count):
             # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_date = today.start_of("month").subtract(months=i)  # Approximate month
             month_start_i = month_date.replace(day=1)
             if i == 0:  # Current month
                 month_end_i = today
             else:
-                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
-                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
+                month_end_i = month_start_i.end_of("month")
 
             # Get calories data for this month
             month_calories = self.db_manager.get_kcal_chart_data(
-                month_start_i.strftime("%Y-%m-%d"), month_end_i.strftime("%Y-%m-%d")
+                month_start_i.format("YYYY-MM-DD"), month_end_i.format("YYYY-MM-DD")
             )
             month_total = sum(float(calories) for _, calories in month_calories)
             monthly_calories_data.append(month_total)
@@ -3669,7 +3652,7 @@ class MainWindow(
             return
 
         # Get current month progress
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        today = pendulum.now()
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -3687,8 +3670,8 @@ class MainWindow(
                 today_data = self.db_manager.get_exercise_chart_data(
                     exercise_name=exercise,
                     exercise_type=exercise_type,
-                    date_from=today.strftime("%Y-%m-%d"),
-                    date_to=today.strftime("%Y-%m-%d"),
+                    date_from=today.format("YYYY-MM-DD"),
+                    date_to=today.format("YYYY-MM-DD"),
                 )
                 today_progress = sum(float(value) for _, value in today_data)
             else:
@@ -3814,24 +3797,23 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
         monthly_data = []
 
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        today = pendulum.now()
 
         for i in range(months_count):
             # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_date = today.start_of("month").subtract(months=i)  # Approximate month
             month_start_i = month_date.replace(day=1)
             if i == 0:  # Current month
                 month_end_i = today
             else:
-                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
-                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
+                month_end_i = month_start_i.end_of("month")
 
             # Get exercise data for this month
             month_data = self.db_manager.get_exercise_chart_data(
                 exercise_name=exercise,
                 exercise_type=exercise_type if exercise_type != "All types" else None,
-                date_from=month_start_i.strftime("%Y-%m-%d"),
-                date_to=month_end_i.strftime("%Y-%m-%d"),
+                date_from=month_start_i.format("YYYY-MM-DD"),
+                date_to=month_end_i.format("YYYY-MM-DD"),
             )
 
             # Convert to cumulative data format like in compare_last
@@ -3840,7 +3822,7 @@ class MainWindow(
             for date_str, value_str in month_data:
                 cumulative_value += float(value_str)
                 # Convert date to day number in month using aware datetime
-                day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo).day
+                day = pendulum.parse(date_str, strict=False).day
                 cumulative_data.append((day, cumulative_value))
 
             monthly_data.append(cumulative_data)
@@ -3914,20 +3896,20 @@ class MainWindow(
             # For exercises with types, we need to filter by type
             if exercise_type and exercise_type != "All types":
                 # Get today's date
-                today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+                today = pendulum.now()
                 # Get today's data for this specific exercise and type
                 today_data = self.db_manager.get_exercise_chart_data(
                     exercise_name=exercise,
                     exercise_type=exercise_type,
-                    date_from=today.strftime("%Y-%m-%d"),
-                    date_to=today.strftime("%Y-%m-%d"),
+                    date_from=today.format("YYYY-MM-DD"),
+                    date_to=today.format("YYYY-MM-DD"),
                 )
                 today_progress = sum(float(value) for _, value in today_data)
             else:
                 today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
         # Calculate remaining days in current month
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        today = pendulum.now()
         current_month = today.month
         current_year = today.year
         days_in_month = calendar.monthrange(current_year, current_month)[1]
@@ -4040,7 +4022,7 @@ class MainWindow(
             return
 
         # Get current month data
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        today = pendulum.now()
         current_month = today.month
         current_year = today.year
 
@@ -4050,7 +4032,7 @@ class MainWindow(
 
         # Get sets data for current month
         current_month_sets = self.db_manager.get_sets_chart_data(
-            month_start.strftime("%Y-%m-%d"), month_end.strftime("%Y-%m-%d")
+            month_start.format("YYYY-MM-DD"), month_end.format("YYYY-MM-DD")
         )
         current_sets = sum(int(count) for _, count in current_month_sets)
 
@@ -4063,17 +4045,16 @@ class MainWindow(
 
         for i in range(months_count):
             # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)  # Approximate month
+            month_date = today.start_of("month").subtract(months=i)  # Approximate month
             month_start_i = month_date.replace(day=1)
             if i == 0:  # Current month
                 month_end_i = today
             else:
-                month_end_i = month_start_i.replace(day=28) + timedelta(days=4)
-                month_end_i = month_end_i.replace(day=1) - timedelta(days=1)
+                month_end_i = month_start_i.end_of("month")
 
             # Get sets data for this month
             month_sets = self.db_manager.get_sets_chart_data(
-                month_start_i.strftime("%Y-%m-%d"), month_end_i.strftime("%Y-%m-%d")
+                month_start_i.format("YYYY-MM-DD"), month_end_i.format("YYYY-MM-DD")
             )
             month_total = sum(int(count) for _, count in month_sets)
             monthly_sets_data.append(month_total)
@@ -4231,7 +4212,7 @@ class MainWindow(
                     last_month_value = final_value
 
         # Get current month progress
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        today = pendulum.now()
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -4287,10 +4268,8 @@ class MainWindow(
 
         try:
             # Calculate date one year ago
-            one_year_ago = datetime.now(tz=datetime.now().astimezone().tzinfo) - timedelta(
-                days=365
-            )  # Use local time instead of UTC
-            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
+            one_year_ago = pendulum.now().subtract(days=365)  # Use local time instead of UTC
+            one_year_ago_str = one_year_ago.format("YYYY-MM-DD")
 
             # Use database manager method
             all_time_max, yearly_max = self.db_manager.get_exercise_max_values(ex_id, type_id, one_year_ago_str)
@@ -4874,26 +4853,25 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
 
         # Get data for last N months
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        today = pendulum.now()
         monthly_data = []
 
         for i in range(months_count):
             # Calculate start and end of month
-            month_date = today.replace(day=1) - timedelta(days=i * 30)
+            month_date = today.start_of("month").subtract(months=i)
             month_start_i = month_date.replace(day=1)
             if i == 0:  # Current month
                 month_end_i = today
             else:
                 # Last day of the month
-                next_month = month_start_i.replace(day=28) + timedelta(days=4)
-                month_end_i = next_month - timedelta(days=next_month.day)
+                month_end_i = month_start_i.end_of("month")
 
             # Get data for this month
             month_data = self.db_manager.get_exercise_chart_data(
                 exercise_name=exercise,
                 exercise_type=None,  # All types
-                date_from=month_start_i.strftime("%Y-%m-%d"),
-                date_to=month_end_i.strftime("%Y-%m-%d"),
+                date_from=month_start_i.format("YYYY-MM-DD"),
+                date_to=month_end_i.format("YYYY-MM-DD"),
             )
 
             if month_data:
@@ -5027,21 +5005,20 @@ class MainWindow(
 
         """
         monthly_data = []
-        today = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        today = pendulum.now()
 
         for i in range(months_count):
             # Calculate start and end of month (same logic as compare_last)
-            month_date = today.replace(day=1) - timedelta(days=i * 30)
+            month_date = today.start_of("month").subtract(months=i)
             month_start = month_date.replace(day=1)
             if i == 0:
                 month_end = today
             else:
-                temp = month_start.replace(day=28) + timedelta(days=4)
-                month_end = temp.replace(day=1) - timedelta(days=1)
+                month_end = month_start.end_of("month")
 
             # Format for DB
-            date_from = month_start.strftime("%Y-%m-%d")
-            date_to = month_end.strftime("%Y-%m-%d")
+            date_from = month_start.format("YYYY-MM-DD")
+            date_to = month_end.format("YYYY-MM-DD")
 
             # Query data for this exercise (all types)
             rows = self.db_manager.get_exercise_chart_data(
@@ -5057,7 +5034,7 @@ class MainWindow(
                 cumulative_value = 0.0
                 for date_str, value_str in rows:
                     try:
-                        date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                        date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
                         value = float(value_str)
                         cumulative_value += value
                         day_of_month = date_obj.day
