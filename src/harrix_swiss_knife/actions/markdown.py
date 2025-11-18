@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 import harrix_pylib as h
+import pendulum
 
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
@@ -840,8 +841,6 @@ class OnNewQuotes(ActionBase):
         """Format quotes with specified author and book title via dialog."""
         # Import at the beginning of the method
         from PySide6.QtWidgets import QComboBox
-
-        from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 
         # Extract existing authors and books from quotes folder
         quotes_folder = self.config.get("path_quotes", "")

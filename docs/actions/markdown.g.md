@@ -2054,8 +2054,6 @@ class OnNewQuotes(ActionBase):
         # Import at the beginning of the method
         from PySide6.QtWidgets import QComboBox
 
-        from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
-
         # Extract existing authors and books from quotes folder
         quotes_folder = self.config.get("path_quotes", "")
         author_books_dict = self._extract_authors_and_books_from_quotes_folder(quotes_folder)
@@ -2354,8 +2352,6 @@ Format quotes with specified author and book title via dialog.
 def execute_format_with_author_and_book(self) -> None:
         # Import at the beginning of the method
         from PySide6.QtWidgets import QComboBox
-
-        from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 
         # Extract existing authors and books from quotes folder
         quotes_folder = self.config.get("path_quotes", "")

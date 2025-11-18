@@ -207,6 +207,7 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
     combo.addItems(["Apple", "Banana", "Cherry"])
     apply_smart_filtering(combo)
     ```
+
     """
     # Make it editable if not already
     if not combobox.isEditable():

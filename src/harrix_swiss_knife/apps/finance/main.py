@@ -7,7 +7,6 @@ SQLite database with transactions, categories, accounts, currencies and exchange
 from __future__ import annotations
 
 import colorsys
-import contextlib
 import gc
 import sys
 from functools import partial
@@ -18,7 +17,6 @@ import pendulum
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import (
-    QAbstractItemModel,
     QDate,
     QDateTime,
     QEvent,
@@ -35,19 +33,14 @@ from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QMouseE
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
-    QComboBox,
     QCompleter,
-    QDateEdit,
     QDialog,
     QFileDialog,
     QLabel,
     QLayout,
-    QLineEdit,
     QMainWindow,
     QMenu,
     QMessageBox,
-    QStyledItemDelegate,
-    QStyleOptionViewItem,
     QTableView,
     QWidget,
 )

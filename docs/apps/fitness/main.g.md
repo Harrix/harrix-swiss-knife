@@ -2375,7 +2375,7 @@ class MainWindow(
             return
 
         label_height = self.label_exercise_avif.height()
-        preview_edge = label_height if label_height > 0 else 0
+        preview_edge = max(0, label_height)
         preview_edge = max(min(preview_edge, 512), 160)
         preview_size = QSize(preview_edge, preview_edge)
 
@@ -5115,8 +5115,7 @@ class MainWindow(
         max_value = 0.0
         for month_data in monthly_data:
             total = _monthly_total(month_data)
-            if total > max_value:
-                max_value = total
+            max_value = max(max_value, total)
 
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress = _monthly_total(current_month_data)
@@ -5154,10 +5153,9 @@ class MainWindow(
             if remaining_for_today > 0:
                 # Goal not achieved - show how much more is needed
                 return f"(+{int(remaining_for_today)})"
-            else:
-                # Goal achieved - show checkmark and completed amount
-                return f"✅ ({int(today_progress)})"
-        elif remaining_to_goal <= 0:
+            # Goal achieved - show checkmark and completed amount
+            return f"✅ ({int(today_progress)})"
+        if remaining_to_goal <= 0:
             # Max goal already achieved
             return f"✅ ({int(today_progress)})"
 
@@ -6122,6 +6120,7 @@ class MainWindow(
         Returns:
 
         - `bool`: Whether the selection was changed.
+
         """
         if not exercise_name:
             return False
@@ -6506,6 +6505,7 @@ class MainWindow(
 
         - `exercise_name` (`str`): Name of the exercise to synchronize.
         - `source` (`str`): Identifier of the widget initiating the sync.
+
         """
         if not exercise_name or self._syncing_selection:
             return
@@ -9039,7 +9039,7 @@ def on_select_exercise_button_clicked(self) -> None:
             return
 
         label_height = self.label_exercise_avif.height()
-        preview_edge = label_height if label_height > 0 else 0
+        preview_edge = max(0, label_height)
         preview_edge = max(min(preview_edge, 512), 160)
         preview_size = QSize(preview_edge, preview_edge)
 
@@ -12460,8 +12460,7 @@ def _get_exercise_today_goal_info(self, exercise: str) -> str:
         max_value = 0.0
         for month_data in monthly_data:
             total = _monthly_total(month_data)
-            if total > max_value:
-                max_value = total
+            max_value = max(max_value, total)
 
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress = _monthly_total(current_month_data)
@@ -12499,10 +12498,9 @@ def _get_exercise_today_goal_info(self, exercise: str) -> str:
             if remaining_for_today > 0:
                 # Goal not achieved - show how much more is needed
                 return f"(+{int(remaining_for_today)})"
-            else:
-                # Goal achieved - show checkmark and completed amount
-                return f"✅ ({int(today_progress)})"
-        elif remaining_to_goal <= 0:
+            # Goal achieved - show checkmark and completed amount
+            return f"✅ ({int(today_progress)})"
+        if remaining_to_goal <= 0:
             # Max goal already achieved
             return f"✅ ({int(today_progress)})"
 

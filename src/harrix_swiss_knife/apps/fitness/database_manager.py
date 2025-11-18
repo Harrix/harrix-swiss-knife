@@ -8,6 +8,8 @@ from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pendulum
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
 

@@ -1,6 +1,6 @@
 """Report amount delegate for formatting amounts in reports without editing."""
 
-from PySide6.QtCore import QLocale, QModelIndex, Qt
+from PySide6.QtCore import QLocale, QModelIndex
 from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
