@@ -1292,7 +1292,7 @@ class MainWindow(
             )
 
             if rows:
-                # Convert to datetime objects and calculate cumulative values
+                # Convert to pendulum.DateTime objects and calculate cumulative values
                 cumulative_data = []
                 cumulative_value = 0.0
 
@@ -2735,7 +2735,7 @@ class MainWindow(
         # Get calories data using database manager
         rows = self.db_manager.get_kcal_chart_data(date_from, date_to)
 
-        # Convert to datetime objects for processing
+        # Convert to pendulum.DateTime objects for processing
         datetime_data = []
         for date_str, calories in rows:
             try:
@@ -2823,7 +2823,7 @@ class MainWindow(
         # Get sets data using database manager
         rows = self.db_manager.get_sets_chart_data(date_from, date_to)
 
-        # Convert to datetime objects for processing
+        # Convert to pendulum.DateTime objects for processing
         datetime_data = []
         for date_str, count in rows:
             try:
@@ -3185,7 +3185,7 @@ class MainWindow(
             date_to=date_to,
         )
 
-        # Convert to datetime objects for processing
+        # Convert to pendulum.DateTime objects for processing
         datetime_data = []
         for date_str, value_str in rows:
             try:
@@ -3406,7 +3406,7 @@ class MainWindow(
             )
             return
 
-        # Parse data - convert to datetime objects for chart
+        # Parse data - convert to pendulum.DateTime objects for chart
         chart_data = [(pendulum.parse(row[1], strict=False).in_timezone(pendulum.UTC), row[0]) for row in rows]
 
         # Define custom statistics formatter for weight
@@ -3821,7 +3821,7 @@ class MainWindow(
             cumulative_value = 0.0
             for date_str, value_str in month_data:
                 cumulative_value += float(value_str)
-                # Convert date to day number in month using aware datetime
+                # Convert date to day number in month using pendulum.DateTime
                 day = pendulum.parse(date_str, strict=False).day
                 cumulative_data.append((day, cumulative_value))
 

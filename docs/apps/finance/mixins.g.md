@@ -958,7 +958,7 @@ class ChartOperations:
         self._set_y_axis_limits(ax, y_values)
 
         # Format x-axis if dates
-        if x_values and isinstance(x_values[0], datetime):
+        if x_values and isinstance(x_values[0], pendulum.DateTime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
         # Add statistics if requested
@@ -987,7 +987,7 @@ class ChartOperations:
 
         Args:
 
-        - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
+        - `data` (`list[tuple]`): Original data as (pendulum.DateTime, value) tuples.
         - `period` (`str`): Period type (Days, Months, Years).
         - `date_from` (`str | None`): Start date string (YYYY-MM-DD). Defaults to `None`.
         - `date_to` (`str | None`): End date string (YYYY-MM-DD). Defaults to `None`.
@@ -1067,7 +1067,7 @@ class ChartOperations:
         Args:
 
         - `ax` (`Axes`): Matplotlib axes object.
-        - `dates` (`list`): List of datetime objects.
+        - `dates` (`list`): List of pendulum.DateTime objects.
         - `period` (`str`): Time period for formatting.
 
         """
@@ -1125,7 +1125,7 @@ class ChartOperations:
 
         Returns:
 
-        - `dict`: Dictionary with datetime keys and aggregated values.
+        - `dict`: Dictionary with pendulum.DateTime keys and aggregated values.
 
         """
         grouped = defaultdict(float if value_type == "float" else int)
@@ -1411,7 +1411,7 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
         self._set_y_axis_limits(ax, y_values)
 
         # Format x-axis if dates
-        if x_values and isinstance(x_values[0], datetime):
+        if x_values and isinstance(x_values[0], pendulum.DateTime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
         # Add statistics if requested
@@ -1446,7 +1446,7 @@ Fill missing periods with zero values.
 
 Args:
 
-- `data` (`list[tuple]`): Original data as (datetime, value) tuples.
+- `data` (`list[tuple]`): Original data as (pendulum.DateTime, value) tuples.
 - `period` (`str`): Period type (Days, Months, Years).
 - `date_from` (`str | None`): Start date string (YYYY-MM-DD). Defaults to `None`.
 - `date_to` (`str | None`): End date string (YYYY-MM-DD). Defaults to `None`.
@@ -1540,7 +1540,7 @@ Format x-axis for charts based on period and data range.
 Args:
 
 - `ax` (`Axes`): Matplotlib axes object.
-- `dates` (`list`): List of datetime objects.
+- `dates` (`list`): List of pendulum.DateTime objects.
 - `period` (`str`): Time period for formatting.
 
 <details>
@@ -1622,7 +1622,7 @@ Args:
 
 Returns:
 
-- `dict`: Dictionary with datetime keys and aggregated values.
+- `dict`: Dictionary with pendulum.DateTime keys and aggregated values.
 
 <details>
 <summary>Code:</summary>

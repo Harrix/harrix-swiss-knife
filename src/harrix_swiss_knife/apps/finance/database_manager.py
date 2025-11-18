@@ -664,7 +664,7 @@ class DatabaseManager:
             print("No transactions found, cannot determine start date for filling rates")
             return 0
 
-        # Make start_date timezone-aware (UTC) to avoid naive datetime
+        # Make start_date timezone-aware (UTC) to avoid naive datetime (using pendulum)
         start_date_dt = pendulum.parse(earliest_transaction_date, strict=False)
         start_date = start_date_dt.date()
         end_date = pendulum.now().date()

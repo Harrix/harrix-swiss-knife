@@ -492,7 +492,7 @@ class ExchangeRatesOperations:
                 else:
                     transformed_rates.append(0.0)
 
-            # Convert dates to timezone-aware datetime objects for plotting
+            # Convert dates to timezone-aware pendulum.DateTime objects for plotting
             date_objects = [pendulum.parse(date, strict=False) for date in dates]
 
             # Plot the data

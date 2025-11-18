@@ -388,7 +388,7 @@ class ChartOperations:
 
         Args:
 
-        - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
+        - `data` (`list[tuple]`): Original data as (pendulum.DateTime, value) tuples.
         - `period` (`str`): Period type (Days, Months, Years).
         - `date_from` (`str | None`): Start date string (YYYY-MM-DD). Defaults to `None`.
         - `date_to` (`str | None`): End date string (YYYY-MM-DD). Defaults to `None`.
@@ -468,7 +468,7 @@ class ChartOperations:
         Args:
 
         - `ax` (`Axes`): Matplotlib axes object.
-        - `dates` (`list[datetime]`): List of datetime objects.
+        - `dates` (`list[pendulum.DateTime]`): List of pendulum.DateTime objects.
         - `period` (`str`): Time period for formatting.
 
         """
@@ -538,7 +538,7 @@ class ChartOperations:
 
         Returns:
 
-        - `dict[datetime, float | int]`: Dictionary with datetime keys and aggregated values.
+        - `dict[pendulum.DateTime, float | int]`: Dictionary with pendulum.DateTime keys and aggregated values.
 
         """
         grouped = defaultdict(float if value_type == "float" else int)
@@ -589,7 +589,7 @@ class ChartOperations:
 
         Returns:
 
-        - `dict[datetime, float | int]`: Dictionary with datetime keys and maximum values for each period.
+        - `dict[pendulum.DateTime, float | int]`: Dictionary with pendulum.DateTime keys and maximum values for each period.
 
         """
         grouped = defaultdict(list)
@@ -647,7 +647,7 @@ class ChartOperations:
         Args:
 
         - `ax` (`Axes`): Matplotlib axes object.
-        - `x_values` (`list[datetime]`): X-axis values.
+        - `x_values` (`list[pendulum.DateTime]`): X-axis values.
         - `y_values` (`list[float]`): Y-axis values.
         - `color` (`str`): Plot color.
         - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.

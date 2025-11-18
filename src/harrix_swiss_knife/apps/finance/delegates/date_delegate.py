@@ -54,7 +54,7 @@ class DateDelegate(QStyledItemDelegate):
         current_value = index.data()
         if current_value:
             try:
-                # Make the datetime object timezone-aware (UTC) to avoid naive datetime
+                # Make the pendulum.DateTime object timezone-aware (UTC) to avoid naive datetime
                 date_obj = pendulum.parse(str(current_value), strict=False).date()
                 editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
             except (ValueError, TypeError):

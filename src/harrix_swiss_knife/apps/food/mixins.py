@@ -412,7 +412,7 @@ class ChartOperations:
         self._set_y_axis_limits(ax, y_values)
 
         # Format x-axis if dates
-        if x_values and isinstance(x_values[0], datetime):
+        if x_values and isinstance(x_values[0], pendulum.DateTime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
         # Add statistics if requested (exclude zero values from stats)
@@ -441,7 +441,7 @@ class ChartOperations:
 
         Args:
 
-        - `data` (`list[tuple]`): List of (datetime, value) tuples.
+        - `data` (`list[tuple]`): List of (pendulum.DateTime, value) tuples.
         - `period` (`str`): Period type (Days/Months/Years).
         - `date_from` (`str | None`): Start date string in YYYY-MM-DD format. Defaults to `None`.
         - `date_to` (`str | None`): End date string in YYYY-MM-DD format. Defaults to `None`.
@@ -516,7 +516,7 @@ class ChartOperations:
         Args:
 
         - `ax` (`Axes`): Matplotlib axes object.
-        - `dates` (`list`): List of datetime objects.
+        - `dates` (`list`): List of pendulum.DateTime objects.
         - `period` (`str`): Time period for formatting.
 
         """
@@ -590,7 +590,7 @@ class ChartOperations:
 
         Returns:
 
-        - `dict`: Dictionary with datetime keys and aggregated values.
+        - `dict`: Dictionary with pendulum.DateTime keys and aggregated values.
 
         """
         grouped = defaultdict(float if value_type == "float" else int)
@@ -639,7 +639,7 @@ class ChartOperations:
 
         Returns:
 
-        - `dict`: Dictionary with datetime keys and maximum values for each period.
+        - `dict`: Dictionary with pendulum.DateTime keys and maximum values for each period.
 
         """
         grouped = defaultdict(list)
