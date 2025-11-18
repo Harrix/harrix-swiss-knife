@@ -93,7 +93,7 @@ _Figure 1: Screenshot_
   - 🖼️ ★ Optimize selected images in MD
   - 📶 Sort sections in one MD
 - **New Markdown**
-  - 📝 ★ Add markdown from template
+  - 📝 ★ Add MD from template
   - ✍️ New article
   - 📖 New diary note
   - 💤 New dream note

@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_result`](#%EF%B8%8F-method-get_result)
   - [⚙️ Method `_evaluate_expression`](#%EF%B8%8F-method-_evaluate_expression)
+  - [⚙️ Method `_is_safe_node`](#%EF%B8%8F-method-_is_safe_node)
   - [⚙️ Method `_on_delete`](#%EF%B8%8F-method-_on_delete)
   - [⚙️ Method `_on_expression_changed`](#%EF%B8%8F-method-_on_expression_changed)
   - [⚙️ Method `_on_save`](#%EF%B8%8F-method-_on_save)
@@ -116,13 +117,58 @@ class AccountEditDialog(QDialog):
             raise ValueError(msg)
 
         try:
-            # Use ast.literal_eval for safe evaluation
-            result = ast.literal_eval(expression)
+            # Parse expression into AST
+            tree = ast.parse(expression, mode="eval")
+
+            # Check if AST is safe
+            if not self._is_safe_node(tree):
+                _raise_value_error("Expression contains unsafe operations")
+
+            # Compile and evaluate safely
+            code = compile(tree, "<string>", "eval")
+            result = eval(code, {"__builtins__": {}}, {})
+
             if not isinstance(result, (int, float)):
                 _raise_value_error("Expression does not evaluate to a number")
             return float(result)
+        except SyntaxError as e:
+            _raise_value_error(f"Invalid expression syntax: {e!s}")
         except Exception as e:
             _raise_value_error(f"Invalid expression: {e!s}")
+
+    def _is_safe_node(self, node: ast.AST) -> bool:
+        """Check if AST node is safe for evaluation.
+
+        Args:
+
+        - `node` (`ast.AST`): AST node to check.
+
+        Returns:
+
+        - `bool`: True if node is safe, False otherwise.
+
+        """
+        # Allow numbers (int, float)
+        if isinstance(node, (ast.Constant, ast.Num)):
+            return True
+
+        # Allow binary operations (+, -, *, /)
+        if isinstance(node, ast.BinOp):
+            return (
+                isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div))
+                and self._is_safe_node(node.left)
+                and self._is_safe_node(node.right)
+            )
+
+        # Allow unary operations (+, -)
+        if isinstance(node, ast.UnaryOp):
+            return isinstance(node.op, (ast.UAdd, ast.USub)) and self._is_safe_node(node.operand)
+
+        # Allow parentheses (expression)
+        if isinstance(node, ast.Expression):
+            return self._is_safe_node(node.body)
+
+        return False
 
     def _on_delete(self) -> None:
         """Handle delete button click."""
@@ -182,7 +228,11 @@ class AccountEditDialog(QDialog):
         """Populate the dialog with account data."""
         if self.account_data:
             self.name_edit.setText(self.account_data.get("name", ""))
-            self.balance_spin.setValue(self.account_data.get("balance", 0.0))
+            balance = self.account_data.get("balance", 0.0)
+            self.balance_spin.setValue(balance)
+
+            # Set balance value in Expression field
+            self.expression_edit.setText(str(balance))
 
             currency_code = self.account_data.get("currency_code", "")
             if currency_code in self.currencies:
@@ -195,6 +245,9 @@ class AccountEditDialog(QDialog):
             # Set focus to balance field and select all text
             self.balance_spin.setFocus()
             self.balance_spin.selectAll()
+        else:
+            # For new account, set default balance in Expression field
+            self.expression_edit.setText("0.0")
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
@@ -375,13 +428,70 @@ def _evaluate_expression(self, expression: str) -> float:
             raise ValueError(msg)
 
         try:
-            # Use ast.literal_eval for safe evaluation
-            result = ast.literal_eval(expression)
+            # Parse expression into AST
+            tree = ast.parse(expression, mode="eval")
+
+            # Check if AST is safe
+            if not self._is_safe_node(tree):
+                _raise_value_error("Expression contains unsafe operations")
+
+            # Compile and evaluate safely
+            code = compile(tree, "<string>", "eval")
+            result = eval(code, {"__builtins__": {}}, {})
+
             if not isinstance(result, (int, float)):
                 _raise_value_error("Expression does not evaluate to a number")
             return float(result)
+        except SyntaxError as e:
+            _raise_value_error(f"Invalid expression syntax: {e!s}")
         except Exception as e:
             _raise_value_error(f"Invalid expression: {e!s}")
+```
+
+</details>
+
+### ⚙️ Method `_is_safe_node`
+
+```python
+def _is_safe_node(self, node: ast.AST) -> bool
+```
+
+Check if AST node is safe for evaluation.
+
+Args:
+
+- `node` (`ast.AST`): AST node to check.
+
+Returns:
+
+- `bool`: True if node is safe, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_safe_node(self, node: ast.AST) -> bool:
+        # Allow numbers (int, float)
+        if isinstance(node, (ast.Constant, ast.Num)):
+            return True
+
+        # Allow binary operations (+, -, *, /)
+        if isinstance(node, ast.BinOp):
+            return (
+                isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div))
+                and self._is_safe_node(node.left)
+                and self._is_safe_node(node.right)
+            )
+
+        # Allow unary operations (+, -)
+        if isinstance(node, ast.UnaryOp):
+            return isinstance(node.op, (ast.UAdd, ast.USub)) and self._is_safe_node(node.operand)
+
+        # Allow parentheses (expression)
+        if isinstance(node, ast.Expression):
+            return self._is_safe_node(node.body)
+
+        return False
 ```
 
 </details>
@@ -497,7 +607,11 @@ Populate the dialog with account data.
 def _populate_data(self) -> None:
         if self.account_data:
             self.name_edit.setText(self.account_data.get("name", ""))
-            self.balance_spin.setValue(self.account_data.get("balance", 0.0))
+            balance = self.account_data.get("balance", 0.0)
+            self.balance_spin.setValue(balance)
+
+            # Set balance value in Expression field
+            self.expression_edit.setText(str(balance))
 
             currency_code = self.account_data.get("currency_code", "")
             if currency_code in self.currencies:
@@ -510,6 +624,9 @@ def _populate_data(self) -> None:
             # Set focus to balance field and select all text
             self.balance_spin.setFocus()
             self.balance_spin.selectAll()
+        else:
+            # For new account, set default balance in Expression field
+            self.expression_edit.setText("0.0")
 ```
 
 </details>

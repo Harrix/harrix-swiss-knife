@@ -66,38 +66,6 @@ class AccountEditDialog(QDialog):
         """
         return self.result_data
 
-    def _is_safe_node(self, node: ast.AST) -> bool:
-        """Check if AST node is safe for evaluation.
-
-        Args:
-
-        - `node` (`ast.AST`): AST node to check.
-
-        Returns:
-
-        - `bool`: True if node is safe, False otherwise.
-
-        """
-        # Allow numbers (int, float)
-        if isinstance(node, (ast.Constant, ast.Num)):
-            return True
-
-        # Allow binary operations (+, -, *, /)
-        if isinstance(node, ast.BinOp):
-            return isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)) and self._is_safe_node(
-                node.left
-            ) and self._is_safe_node(node.right)
-
-        # Allow unary operations (+, -)
-        if isinstance(node, ast.UnaryOp):
-            return isinstance(node.op, (ast.UAdd, ast.USub)) and self._is_safe_node(node.operand)
-
-        # Allow parentheses (expression)
-        if isinstance(node, ast.Expression):
-            return self._is_safe_node(node.body)
-
-        return False
-
     def _evaluate_expression(self, expression: str) -> float:
         """Safely evaluate a mathematical expression.
 
@@ -154,6 +122,40 @@ class AccountEditDialog(QDialog):
             _raise_value_error(f"Invalid expression syntax: {e!s}")
         except Exception as e:
             _raise_value_error(f"Invalid expression: {e!s}")
+
+    def _is_safe_node(self, node: ast.AST) -> bool:
+        """Check if AST node is safe for evaluation.
+
+        Args:
+
+        - `node` (`ast.AST`): AST node to check.
+
+        Returns:
+
+        - `bool`: True if node is safe, False otherwise.
+
+        """
+        # Allow numbers (int, float)
+        if isinstance(node, (ast.Constant, ast.Num)):
+            return True
+
+        # Allow binary operations (+, -, *, /)
+        if isinstance(node, ast.BinOp):
+            return (
+                isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div))
+                and self._is_safe_node(node.left)
+                and self._is_safe_node(node.right)
+            )
+
+        # Allow unary operations (+, -)
+        if isinstance(node, ast.UnaryOp):
+            return isinstance(node.op, (ast.UAdd, ast.USub)) and self._is_safe_node(node.operand)
+
+        # Allow parentheses (expression)
+        if isinstance(node, ast.Expression):
+            return self._is_safe_node(node.body)
+
+        return False
 
     def _on_delete(self) -> None:
         """Handle delete button click."""
