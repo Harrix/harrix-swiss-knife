@@ -4896,10 +4896,7 @@ class MainWindow(
 
         target_value = max_value
         if exercise_id == self.id_steps or exercise.strip().lower() == "oculus move":
-            if len(monthly_data) > 1:
-                target_value = _monthly_total(monthly_data[1])
-            else:
-                target_value = current_progress
+            target_value = _monthly_total(monthly_data[1]) if len(monthly_data) > 1 else current_progress
 
             if target_value <= 0:
                 target_value = max_value
@@ -5009,10 +5006,7 @@ class MainWindow(
             # Calculate start and end of month (same logic as compare_last)
             month_date = today.start_of("month").subtract(months=i)
             month_start = month_date.replace(day=1)
-            if i == 0:
-                month_end = today
-            else:
-                month_end = month_start.end_of("month")
+            month_end = today if i == 0 else month_start.end_of("month")
 
             # Format for DB
             date_from = month_start.format("YYYY-MM-DD")
