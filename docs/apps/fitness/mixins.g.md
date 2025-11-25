@@ -877,7 +877,8 @@ class ChartOperations:
 
         Returns:
 
-        - `dict[pendulum.DateTime, float | int]`: Dictionary with pendulum.DateTime keys and maximum values for each period.
+        - `dict[pendulum.DateTime, float | int]`: Dictionary with pendulum.DateTime keys and
+          maximum values for each period.
 
         """
         grouped = defaultdict(list)
@@ -1513,7 +1514,8 @@ Args:
 
 Returns:
 
-- `dict[pendulum.DateTime, float | int]`: Dictionary with pendulum.DateTime keys and maximum values for each period.
+- `dict[pendulum.DateTime, float | int]`: Dictionary with pendulum.DateTime keys and
+  maximum values for each period.
 
 <details>
 <summary>Code:</summary>

@@ -49,7 +49,7 @@ class FilteredComboBox(QComboBox):
         self.lineEdit().textEdited.connect(self._on_text_edited)
         self.completer_widget.activated.connect(self._on_completion_activated)
 
-    def addItem(self, text: str) -> None:
+    def addItem(self, text: str) -> None:  # noqa: N802
         """Add a single item to the combobox."""
         self._original_items.append(text)
         self._original_items = sorted(self._original_items, key=str.lower)
@@ -57,7 +57,7 @@ class FilteredComboBox(QComboBox):
         super().clear()
         super().addItems(self._original_items)
 
-    def addItems(self, texts: list[str]) -> None:
+    def addItems(self, texts: list[str]) -> None:  # noqa: N802
         """Add multiple items to the combobox."""
         self._original_items = sorted(texts, key=str.lower)
         self.string_model.setStringList(self._original_items)
@@ -71,7 +71,7 @@ class FilteredComboBox(QComboBox):
         self.string_model.setStringList([])
         super().clear()
 
-    def setCurrentText(self, text: str) -> None:
+    def setCurrentText(self, text: str) -> None:  # noqa: N802
         """Set current text (override to handle programmatic changes)."""
         self._is_programmatic_change = True
         super().setCurrentText(text)
@@ -119,7 +119,7 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
         self.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 
-    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:  # noqa: N802
         """Determine if a row should be accepted by the filter."""
         if not self.filter_text:
             return True
@@ -140,9 +140,7 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
 
         # For filter text with MIN_FILTER_LENGTH+ chars, also accept items containing it anywhere
         min_filter_length = 2
-        if len(filter_lower) >= min_filter_length and filter_lower in text:
-            return True
-        return False
+        return len(filter_lower) >= min_filter_length and filter_lower in text
 
     def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:  # noqa: N802
         """Sort so that items starting with filter text appear first."""

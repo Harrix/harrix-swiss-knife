@@ -89,6 +89,17 @@ class ExerciseSelectionDialog(QDialog):
         preview_size: QSize,
         current_selection: str | None,
     ) -> None:
+        """Initialize the ExerciseSelectionDialog.
+
+        Args:
+
+        - `parent` (`QWidget | None`): Parent widget.
+        - `exercises` (`list[str]`): List of exercise names to display.
+        - `icon_provider` (`Callable[[str], QIcon | None]`): Function that returns an icon for a given exercise name.
+        - `preview_size` (`QSize`): Size for icon previews.
+        - `current_selection` (`str | None`): Currently selected exercise, if any.
+
+        """
         super().__init__(parent)
         self.setWindowTitle("Select Exercise")
         self.setModal(True)
@@ -1014,11 +1025,7 @@ class MainWindow(
             # Note: month stepping is approximate (30 days), kept to match original logic
             month_date = today.start_of("month").subtract(months=i)
             month_start = month_date.start_of("month")
-            if i == 0:
-                month_end = today
-            else:
-                # End of previous month
-                month_end = month_start.end_of("month")
+            month_end = today if i == 0 else month_start.end_of("month")
 
             # Format for DB
             date_from = month_start.format("YYYY-MM-DD")
@@ -3507,10 +3514,7 @@ class MainWindow(
             # Calculate start and end of month
             month_date = today.start_of("month").subtract(months=i)  # Approximate month
             month_start_i = month_date.replace(day=1)
-            if i == 0:  # Current month
-                month_end_i = today
-            else:
-                month_end_i = month_start_i.end_of("month")
+            month_end_i = today if i == 0 else month_start_i.end_of("month")
 
             # Get calories data for this month
             month_calories = self.db_manager.get_kcal_chart_data(
@@ -3803,10 +3807,7 @@ class MainWindow(
             # Calculate start and end of month
             month_date = today.start_of("month").subtract(months=i)  # Approximate month
             month_start_i = month_date.replace(day=1)
-            if i == 0:  # Current month
-                month_end_i = today
-            else:
-                month_end_i = month_start_i.end_of("month")
+            month_end_i = today if i == 0 else month_start_i.end_of("month")
 
             # Get exercise data for this month
             month_data = self.db_manager.get_exercise_chart_data(
@@ -4047,10 +4048,7 @@ class MainWindow(
             # Calculate start and end of month
             month_date = today.start_of("month").subtract(months=i)  # Approximate month
             month_start_i = month_date.replace(day=1)
-            if i == 0:  # Current month
-                month_end_i = today
-            else:
-                month_end_i = month_start_i.end_of("month")
+            month_end_i = today if i == 0 else month_start_i.end_of("month")
 
             # Get sets data for this month
             month_sets = self.db_manager.get_sets_chart_data(
@@ -4860,11 +4858,7 @@ class MainWindow(
             # Calculate start and end of month
             month_date = today.start_of("month").subtract(months=i)
             month_start_i = month_date.replace(day=1)
-            if i == 0:  # Current month
-                month_end_i = today
-            else:
-                # Last day of the month
-                month_end_i = month_start_i.end_of("month")
+            month_end_i = today if i == 0 else month_start_i.end_of("month")
 
             # Get data for this month
             month_data = self.db_manager.get_exercise_chart_data(
@@ -5899,11 +5893,11 @@ class MainWindow(
         if target_index < 0 or combobox.currentIndex() == target_index:
             return False
 
-        combobox.blockSignals(True)
+        combobox.blockSignals(True)  # noqa: FBT003
         try:
             combobox.setCurrentIndex(target_index)
         finally:
-            combobox.blockSignals(False)
+            combobox.blockSignals(False)  # noqa: FBT003
 
         return True
 
@@ -5919,11 +5913,9 @@ class MainWindow(
         try:
             last_exercise_name = self.db_manager.get_last_executed_exercise()
 
-            if last_exercise_name:
-                # Find and select the last executed exercise in the list view
-                if self._select_exercise_in_chart_list(last_exercise_name):
-                    # Update type list view after selecting exercise
-                    self.update_chart_type_listview()
+            if last_exercise_name and self._select_exercise_in_chart_list(last_exercise_name):
+                # Update type list view after selecting exercise
+                self.update_chart_type_listview()
         except Exception as e:
             print(f"Error selecting last executed exercise: {e}")
 
@@ -6432,7 +6424,8 @@ class MainWindow(
 
     def _update_layout_for_window_size(self) -> None:
         """Adjust key widgets based on current window height."""
-        is_small = self.height() < 911
+        small_window_threshold = 911
+        is_small = self.height() < small_window_threshold
         if self._is_small_window_layout == is_small:
             return
 

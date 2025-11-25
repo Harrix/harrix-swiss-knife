@@ -13,7 +13,7 @@ class ReportAmountDelegate(QStyledItemDelegate):
 
     """
 
-    def __init__(self, parent: QWidget | None = None, is_bold: bool = False) -> None:
+    def __init__(self, parent: QWidget | None = None, *, is_bold: bool = False) -> None:
         """Initialize the report amount delegate.
 
         Args:

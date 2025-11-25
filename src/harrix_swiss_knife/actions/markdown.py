@@ -9,6 +9,7 @@ from typing import Any
 
 import harrix_pylib as h
 import pendulum
+from PySide6.QtWidgets import QComboBox
 
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
@@ -839,9 +840,6 @@ class OnNewQuotes(ActionBase):
 
     def execute_format_with_author_and_book(self) -> None:
         """Format quotes with specified author and book title via dialog."""
-        # Import at the beginning of the method
-        from PySide6.QtWidgets import QComboBox
-
         # Extract existing authors and books from quotes folder
         quotes_folder = self.config.get("path_quotes", "")
         author_books_dict = self._extract_authors_and_books_from_quotes_folder(quotes_folder)

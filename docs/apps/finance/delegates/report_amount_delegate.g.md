@@ -35,7 +35,7 @@ including thousands separators and subscript decimals, without editing capabilit
 ```python
 class ReportAmountDelegate(QStyledItemDelegate):
 
-    def __init__(self, parent: QWidget | None = None, is_bold: bool = False) -> None:
+    def __init__(self, parent: QWidget | None = None, *, is_bold: bool = False) -> None:
         """Initialize the report amount delegate.
 
         Args:
@@ -149,7 +149,7 @@ class ReportAmountDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, is_bold: bool = False) -> None
+def __init__(self, parent: QWidget | None = None) -> None
 ```
 
 Initialize the report amount delegate.
@@ -163,7 +163,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None, is_bold: bool = False) -> None:
+def __init__(self, parent: QWidget | None = None, *, is_bold: bool = False) -> None:
         super().__init__(parent)
         self.is_bold = is_bold
 ```

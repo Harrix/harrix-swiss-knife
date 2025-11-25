@@ -3132,10 +3132,8 @@ class MainWindow(
 
         # Reconnect double-click signal only when previously connected
         if self._account_double_click_connected:
-            try:
+            with contextlib.suppress(TypeError, RuntimeError):
                 self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
-            except (TypeError, RuntimeError):
-                pass
             self._account_double_click_connected = False
 
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
@@ -8919,10 +8917,8 @@ def _load_accounts_table(self) -> None:
 
         # Reconnect double-click signal only when previously connected
         if self._account_double_click_connected:
-            try:
+            with contextlib.suppress(TypeError, RuntimeError):
                 self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
-            except (TypeError, RuntimeError):
-                pass
             self._account_double_click_connected = False
 
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)

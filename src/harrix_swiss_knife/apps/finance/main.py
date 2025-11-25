@@ -7,6 +7,7 @@ SQLite database with transactions, categories, accounts, currencies and exchange
 from __future__ import annotations
 
 import colorsys
+import contextlib
 import gc
 import sys
 from functools import partial
@@ -3049,10 +3050,8 @@ class MainWindow(
 
         # Reconnect double-click signal only when previously connected
         if self._account_double_click_connected:
-            try:
+            with contextlib.suppress(TypeError, RuntimeError):
                 self.tableView_accounts.doubleClicked.disconnect(self._on_account_double_clicked)
-            except (TypeError, RuntimeError):
-                pass
             self._account_double_click_connected = False
 
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)

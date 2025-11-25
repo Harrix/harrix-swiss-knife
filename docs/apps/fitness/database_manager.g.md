@@ -863,10 +863,6 @@ class DatabaseManager:
           Exercises never executed are appended at the end.
 
         """
-        # Full list of exercises `{id: name}`.
-        all_exercises = {row[0]: row[1] for row in self.get_rows("SELECT _id, name FROM exercises")}
-
-        # Get exercises with their last execution date.
         last_execution = self.get_rows(
             """
             SELECT
@@ -2759,10 +2755,6 @@ Returns:
 
 ```python
 def get_exercises_by_last_execution(self) -> list[str]:
-        # Full list of exercises `{id: name}`.
-        all_exercises = {row[0]: row[1] for row in self.get_rows("SELECT _id, name FROM exercises")}
-
-        # Get exercises with their last execution date.
         last_execution = self.get_rows(
             """
             SELECT
