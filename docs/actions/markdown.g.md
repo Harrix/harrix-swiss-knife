@@ -2211,19 +2211,23 @@ class OnNewQuotes(ActionBase):
         for md_file in quotes_path.rglob("*.md"):
             try:
                 content = md_file.read_text(encoding="utf-8")
-                # Find all matches
-                matches = pattern.findall(content)
-                for author, book in matches:
-                    # Clean up whitespace
-                    author_clean = author.strip()
-                    book_clean = book.strip()
-                    # Skip authors starting with [
-                    if author_clean and not author_clean.startswith("["):
-                        if author_clean not in author_books:
-                            author_books[author_clean] = set()
-                        if book_clean:
-                            author_books[author_clean].add(book_clean)
-            except Exception:
+            except Exception as e:
+                # Log the exception (could be replaced with proper logging if desired)
+                print(f"Warning: Failed to read {md_file}: {e}")
+                continue
+
+            # Find all matches
+            matches = pattern.findall(content)
+            for author, book in matches:
+                # Clean up whitespace
+                author_clean = author.strip()
+                book_clean = book.strip()
+                # Skip authors starting with [
+                if author_clean and not author_clean.startswith("["):
+                    if author_clean not in author_books:
+                        author_books[author_clean] = set()
+                    if book_clean:
+                        author_books[author_clean].add(book_clean)
                 # Skip files that can't be read
                 continue
 
@@ -2519,19 +2523,23 @@ def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> d
         for md_file in quotes_path.rglob("*.md"):
             try:
                 content = md_file.read_text(encoding="utf-8")
-                # Find all matches
-                matches = pattern.findall(content)
-                for author, book in matches:
-                    # Clean up whitespace
-                    author_clean = author.strip()
-                    book_clean = book.strip()
-                    # Skip authors starting with [
-                    if author_clean and not author_clean.startswith("["):
-                        if author_clean not in author_books:
-                            author_books[author_clean] = set()
-                        if book_clean:
-                            author_books[author_clean].add(book_clean)
-            except Exception:
+            except Exception as e:
+                # Log the exception (could be replaced with proper logging if desired)
+                print(f"Warning: Failed to read {md_file}: {e}")
+                continue
+
+            # Find all matches
+            matches = pattern.findall(content)
+            for author, book in matches:
+                # Clean up whitespace
+                author_clean = author.strip()
+                book_clean = book.strip()
+                # Skip authors starting with [
+                if author_clean and not author_clean.startswith("["):
+                    if author_clean not in author_books:
+                        author_books[author_clean] = set()
+                    if book_clean:
+                        author_books[author_clean].add(book_clean)
                 # Skip files that can't be read
                 continue
 

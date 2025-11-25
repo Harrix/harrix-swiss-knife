@@ -124,9 +124,8 @@ class AccountEditDialog(QDialog):
             if not self._is_safe_node(tree):
                 _raise_value_error("Expression contains unsafe operations")
 
-            # Compile and evaluate safely
-            code = compile(tree, "<string>", "eval")
-            result = eval(code, {"__builtins__": {}}, {})
+            # Evaluate the expression using ast.literal_eval for safety
+            result = ast.literal_eval(tree.body)
 
             if not isinstance(result, (int, float)):
                 _raise_value_error("Expression does not evaluate to a number")
@@ -435,9 +434,8 @@ def _evaluate_expression(self, expression: str) -> float:
             if not self._is_safe_node(tree):
                 _raise_value_error("Expression contains unsafe operations")
 
-            # Compile and evaluate safely
-            code = compile(tree, "<string>", "eval")
-            result = eval(code, {"__builtins__": {}}, {})
+            # Evaluate the expression using ast.literal_eval for safety
+            result = ast.literal_eval(tree.body)
 
             if not isinstance(result, (int, float)):
                 _raise_value_error("Expression does not evaluate to a number")
