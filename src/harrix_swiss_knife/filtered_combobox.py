@@ -241,11 +241,11 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
     combobox.addItems(items_sorted)
 
     # Store references to prevent garbage collection and maintain smart filtering state
-    setattr(combobox, "smart_filter_model", string_model)
-    setattr(combobox, "smart_filter_proxy", proxy_model)
-    setattr(combobox, "smart_filter_completer", completer)
-    setattr(combobox, "smart_filter_items", items_sorted)
-    setattr(combobox, "smart_filter_is_programmatic", False)
+    combobox.smart_filter_model = string_model
+    combobox.smart_filter_proxy = proxy_model
+    combobox.smart_filter_completer = completer
+    combobox.smart_filter_items = items_sorted
+    combobox.smart_filter_is_programmatic = False
 
     # Disconnect any existing text edited signals to avoid duplicates
     with contextlib.suppress(RuntimeError):
@@ -267,14 +267,13 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
         else:
             proxy_model.set_filter_text("")
             popup = completer.popup()
-            if popup is not None and hasattr(popup, "isVisible") and popup.isVisible():
-                if hasattr(popup, "hide"):
-                    popup.hide()
+            if popup is not None and hasattr(popup, "isVisible") and popup.isVisible() and hasattr(popup, "hide"):
+                popup.hide()
 
     def on_completion_activated(text: str) -> None:
-        setattr(combobox, "smart_filter_is_programmatic", True)
+        combobox.smart_filter_is_programmatic = True
         combobox.setCurrentText(text)
-        setattr(combobox, "smart_filter_is_programmatic", False)
+        combobox.smart_filter_is_programmatic = False
 
     line_edit = combobox.lineEdit()
     if line_edit is not None and hasattr(line_edit, "textEdited"):
