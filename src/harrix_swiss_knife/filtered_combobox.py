@@ -138,8 +138,10 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
         if text.startswith(filter_lower):
             return True
 
-        # For filter text with 2+ chars, also accept items containing it anywhere
-        return len(filter_lower) >= 2 and filter_lower in text
+        # For filter text with MIN_FILTER_LENGTH+ chars, also accept items containing it anywhere
+        min_filter_length = 2
+        if len(filter_lower) >= min_filter_length and filter_lower in text:
+            return True
         return False
 
     def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:  # noqa: N802
