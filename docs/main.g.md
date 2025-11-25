@@ -113,7 +113,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             ),
             (
                 "New Markdown",
-                "𝐌",
+                "𝐌",  # noqa: RUF001
                 [
                     hsk.md.OnAddMdFromTemplate,
                     "-",
@@ -243,7 +243,7 @@ def __init__(self) -> None:
             ),
             (
                 "New Markdown",
-                "𝐌",
+                "𝐌",  # noqa: RUF001
                 [
                     hsk.md.OnAddMdFromTemplate,
                     "-",

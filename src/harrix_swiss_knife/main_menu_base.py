@@ -102,7 +102,9 @@ class MainMenuBase:
 
         for element in structure:
             # Check if element is a menu definition (tuple with 3 elements: title, icon, items)
-            if isinstance(element, tuple) and len(element) == 3:
+            menu_definition_length = 3  # Magic number replaced by constant
+
+            if isinstance(element, tuple) and len(element) == menu_definition_length:
                 title, icon, items = element
                 # Create menu and populate it recursively
                 menu = self.new_menu(title, icon)
