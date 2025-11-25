@@ -1,5 +1,7 @@
 """Filtered ComboBox with smart search functionality."""
 
+import contextlib
+
 from PySide6.QtCore import QModelIndex, QSortFilterProxyModel, QStringListModel, Qt
 from PySide6.QtWidgets import QComboBox, QCompleter, QWidget
 
@@ -137,15 +139,13 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
             return True
 
         # For filter text with 2+ chars, also accept items containing it anywhere
-        if len(filter_lower) >= 2 and filter_lower in text:
-            return True
-
+        return len(filter_lower) >= 2 and filter_lower in text
         return False
 
-    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
-        """Custom sorting to show starts-with matches first."""
+    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:  # noqa: N802
+        """Sort so that items starting with filter text appear first."""
         if not self.filter_text:
-            # Default alphabetical sorting when no filter
+            # Default: alphabetical order (case-insensitive)
             left_data = self.sourceModel().data(left, Qt.ItemDataRole.DisplayRole)
             right_data = self.sourceModel().data(right, Qt.ItemDataRole.DisplayRole)
 
@@ -165,16 +165,14 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
         left_text = str(left_data).lower()
         right_text = str(right_data).lower()
 
-        left_starts = left_text.startswith(filter_lower)
-        right_starts = right_text.startswith(filter_lower)
+        left_startswith = left_text.startswith(filter_lower)
+        right_startswith = right_text.startswith(filter_lower)
 
-        # Items starting with filter come first
-        if left_starts and not right_starts:
-            return True
-        if right_starts and not left_starts:
-            return False
+        # Prioritize items that start with the filter text
+        if left_startswith != right_startswith:
+            return left_startswith
 
-        # Within same category (both start or both contain), sort alphabetically
+        # If both (or neither) start, sort alphabetically
         return left_text < right_text
 
     def set_filter_text(self, text: str) -> None:
@@ -245,11 +243,8 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
     combobox.smart_filter_is_programmatic = False
 
     # Disconnect any existing text edited signals to avoid duplicates
-    try:
+    with contextlib.suppress(RuntimeError):
         combobox.lineEdit().textEdited.disconnect()
-    except RuntimeError:
-        # Signal was not connected, which is fine
-        pass
 
     # Connect signals
     def on_text_edited(text: str) -> None:
