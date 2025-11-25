@@ -883,14 +883,14 @@ class OnNewQuotes(ActionBase):
                 book_widget.clear()
 
                 # Remove old smart filtering if it exists
-                if hasattr(book_widget, "_smart_filter_model"):
-                    delattr(book_widget, "_smart_filter_model")
-                if hasattr(book_widget, "_smart_filter_proxy"):
-                    delattr(book_widget, "_smart_filter_proxy")
-                if hasattr(book_widget, "_smart_filter_completer"):
-                    delattr(book_widget, "_smart_filter_completer")
-                if hasattr(book_widget, "_smart_filter_items"):
-                    delattr(book_widget, "_smart_filter_items")
+                if hasattr(book_widget, "smart_filter_model"):
+                    delattr(book_widget, "smart_filter_model")
+                if hasattr(book_widget, "smart_filter_proxy"):
+                    delattr(book_widget, "smart_filter_proxy")
+                if hasattr(book_widget, "smart_filter_completer"):
+                    delattr(book_widget, "smart_filter_completer")
+                if hasattr(book_widget, "smart_filter_items"):
+                    delattr(book_widget, "smart_filter_items")
 
                 if author_text and author_text in author_books_dict:
                     books = author_books_dict[author_text]

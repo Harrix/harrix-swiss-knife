@@ -1,7 +1,7 @@
 """Filtered ComboBox with smart search functionality."""
 
-from PySide6.QtCore import QSortFilterProxyModel, QStringListModel, Qt
-from PySide6.QtWidgets import QComboBox, QCompleter
+from PySide6.QtCore import QModelIndex, QSortFilterProxyModel, QStringListModel, Qt
+from PySide6.QtWidgets import QComboBox, QCompleter, QWidget
 
 
 class FilteredComboBox(QComboBox):
@@ -18,7 +18,7 @@ class FilteredComboBox(QComboBox):
     - Allows entering custom text not in the list
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the filtered combobox."""
         super().__init__(parent)
 
@@ -47,7 +47,7 @@ class FilteredComboBox(QComboBox):
         self.lineEdit().textEdited.connect(self._on_text_edited)
         self.completer_widget.activated.connect(self._on_completion_activated)
 
-    def addItem(self, text):
+    def addItem(self, text: str) -> None:
         """Add a single item to the combobox."""
         self._original_items.append(text)
         self._original_items = sorted(self._original_items, key=str.lower)
@@ -55,7 +55,7 @@ class FilteredComboBox(QComboBox):
         super().clear()
         super().addItems(self._original_items)
 
-    def addItems(self, texts):
+    def addItems(self, texts: list[str]) -> None:
         """Add multiple items to the combobox."""
         self._original_items = sorted(texts, key=str.lower)
         self.string_model.setStringList(self._original_items)
@@ -63,25 +63,25 @@ class FilteredComboBox(QComboBox):
         super().clear()
         super().addItems(self._original_items)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all items."""
         self._original_items = []
         self.string_model.setStringList([])
         super().clear()
 
-    def setCurrentText(self, text):
+    def setCurrentText(self, text: str) -> None:
         """Set current text (override to handle programmatic changes)."""
         self._is_programmatic_change = True
         super().setCurrentText(text)
         self._is_programmatic_change = False
 
-    def _on_completion_activated(self, text):
+    def _on_completion_activated(self, text: str) -> None:
         """Handle completion selection."""
         self._is_programmatic_change = True
         self.setCurrentText(text)
         self._is_programmatic_change = False
 
-    def _on_text_edited(self, text):
+    def _on_text_edited(self, text: str) -> None:
         """Handle text editing to show filtered dropdown."""
         if self._is_programmatic_change:
             return
@@ -110,14 +110,14 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
     - Case-insensitive matching
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the proxy model."""
         super().__init__(parent)
         self.filter_text = ""
         self.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 
-    def filterAcceptsRow(self, source_row, source_parent):
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         """Determine if a row should be accepted by the filter."""
         if not self.filter_text:
             return True
@@ -142,7 +142,7 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
 
         return False
 
-    def lessThan(self, left, right):
+    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
         """Custom sorting to show starts-with matches first."""
         if not self.filter_text:
             # Default alphabetical sorting when no filter
@@ -177,7 +177,7 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
         # Within same category (both start or both contain), sort alphabetically
         return left_text < right_text
 
-    def set_filter_text(self, text):
+    def set_filter_text(self, text: str) -> None:
         """Set the filter text and trigger re-filtering."""
         self.filter_text = text
         self.invalidateFilter()
@@ -238,21 +238,22 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
     combobox.addItems(items_sorted)
 
     # Store references to prevent garbage collection
-    combobox._smart_filter_model = string_model
-    combobox._smart_filter_proxy = proxy_model
-    combobox._smart_filter_completer = completer
-    combobox._smart_filter_items = items_sorted
-    combobox._smart_filter_is_programmatic = False
+    combobox.smart_filter_model = string_model
+    combobox.smart_filter_proxy = proxy_model
+    combobox.smart_filter_completer = completer
+    combobox.smart_filter_items = items_sorted
+    combobox.smart_filter_is_programmatic = False
 
     # Disconnect any existing text edited signals to avoid duplicates
     try:
         combobox.lineEdit().textEdited.disconnect()
-    except:
+    except RuntimeError:
+        # Signal was not connected, which is fine
         pass
 
     # Connect signals
-    def on_text_edited(text):
-        if hasattr(combobox, "_smart_filter_is_programmatic") and combobox._smart_filter_is_programmatic:
+    def on_text_edited(text: str) -> None:
+        if hasattr(combobox, "smart_filter_is_programmatic") and combobox.smart_filter_is_programmatic:
             return
 
         proxy_model.set_filter_text(text)
@@ -265,10 +266,10 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
             if completer.popup().isVisible():
                 completer.popup().hide()
 
-    def on_completion_activated(text):
-        combobox._smart_filter_is_programmatic = True
+    def on_completion_activated(text: str) -> None:
+        combobox.smart_filter_is_programmatic = True
         combobox.setCurrentText(text)
-        combobox._smart_filter_is_programmatic = False
+        combobox.smart_filter_is_programmatic = False
 
     combobox.lineEdit().textEdited.connect(on_text_edited)
     completer.activated.connect(on_completion_activated)
