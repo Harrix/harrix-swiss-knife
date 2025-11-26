@@ -514,7 +514,7 @@ class DatabaseManager:
         - `int`: Total weight of drinks in grams.
 
         """
-        today = pendulum.now().format("YYYY-MM-DD")
+        today = date.today().strftime("%Y-%m-%d")
         query = "SELECT SUM(weight) FROM food_log WHERE date = :today AND is_drink = 1 AND weight IS NOT NULL"
         params = {"today": today}
         rows = self.get_rows(query, params)
@@ -547,7 +547,7 @@ class DatabaseManager:
         - `float`: Total calories today.
 
         """
-        today = pendulum.now().format("YYYY-MM-DD")
+        today = date.today().strftime("%Y-%m-%d")
         query = """
             SELECT SUM(
                 CASE
@@ -1868,7 +1868,7 @@ Returns:
 
 ```python
 def get_drinks_weight_today(self) -> int:
-        today = pendulum.now().format("YYYY-MM-DD")
+        today = date.today().strftime("%Y-%m-%d")
         query = "SELECT SUM(weight) FROM food_log WHERE date = :today AND is_drink = 1 AND weight IS NOT NULL"
         params = {"today": today}
         rows = self.get_rows(query, params)
@@ -1925,7 +1925,7 @@ Returns:
 
 ```python
 def get_food_calories_today(self) -> float:
-        today = pendulum.now().format("YYYY-MM-DD")
+        today = date.today().strftime("%Y-%m-%d")
         query = """
             SELECT SUM(
                 CASE

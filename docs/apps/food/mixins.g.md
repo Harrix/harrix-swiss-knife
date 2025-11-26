@@ -779,7 +779,7 @@ class ChartOperations:
         self._set_y_axis_limits(ax, y_values)
 
         # Format x-axis if dates
-        if x_values and isinstance(x_values[0], pendulum.DateTime):
+        if x_values and isinstance(x_values[0], datetime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
         # Add statistics if requested (exclude zero values from stats)
@@ -808,7 +808,7 @@ class ChartOperations:
 
         Args:
 
-        - `data` (`list[tuple]`): List of (pendulum.DateTime, value) tuples.
+        - `data` (`list[tuple]`): List of (datetime, value) tuples.
         - `period` (`str`): Period type (Days/Months/Years).
         - `date_from` (`str | None`): Start date string in YYYY-MM-DD format. Defaults to `None`.
         - `date_to` (`str | None`): End date string in YYYY-MM-DD format. Defaults to `None`.
@@ -829,8 +829,8 @@ class ChartOperations:
 
         if date_from and date_to:
             try:
-                user_start_date = pendulum.parse(date_from, strict=False).in_timezone(pendulum.UTC)
-                user_end_date = pendulum.parse(date_to, strict=False).in_timezone(pendulum.UTC)
+                user_start_date = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+                user_end_date = datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
                 # Use the later of actual start date or user start date to avoid leading None values
                 start_date = max(actual_start_date, user_start_date)
                 end_date = min(actual_end_date, user_end_date)
@@ -873,7 +873,7 @@ class ChartOperations:
             while current_date <= end_date:
                 value = data_dict.get(current_date)
                 result.append((current_date, value))
-                current_date = current_date.add(days=1)
+                current_date = current_date + timedelta(days=1)
 
         return result
 
@@ -883,7 +883,7 @@ class ChartOperations:
         Args:
 
         - `ax` (`Axes`): Matplotlib axes object.
-        - `dates` (`list`): List of pendulum.DateTime objects.
+        - `dates` (`list`): List of datetime objects.
         - `period` (`str`): Time period for formatting.
 
         """
@@ -957,7 +957,7 @@ class ChartOperations:
 
         Returns:
 
-        - `dict`: Dictionary with pendulum.DateTime keys and aggregated values.
+        - `dict`: Dictionary with datetime keys and aggregated values.
 
         """
         grouped = defaultdict(float if value_type == "float" else int)
@@ -977,7 +977,7 @@ class ChartOperations:
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -1006,7 +1006,7 @@ class ChartOperations:
 
         Returns:
 
-        - `dict`: Dictionary with pendulum.DateTime keys and maximum values for each period.
+        - `dict`: Dictionary with datetime keys and maximum values for each period.
 
         """
         grouped = defaultdict(list)
@@ -1026,7 +1026,7 @@ class ChartOperations:
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -1419,7 +1419,7 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
         self._set_y_axis_limits(ax, y_values)
 
         # Format x-axis if dates
-        if x_values and isinstance(x_values[0], pendulum.DateTime):
+        if x_values and isinstance(x_values[0], datetime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
         # Add statistics if requested (exclude zero values from stats)
@@ -1454,7 +1454,7 @@ Fill missing periods with None values (for gaps in chart).
 
 Args:
 
-- `data` (`list[tuple]`): List of (pendulum.DateTime, value) tuples.
+- `data` (`list[tuple]`): List of (datetime, value) tuples.
 - `period` (`str`): Period type (Days/Months/Years).
 - `date_from` (`str | None`): Start date string in YYYY-MM-DD format. Defaults to `None`.
 - `date_to` (`str | None`): End date string in YYYY-MM-DD format. Defaults to `None`.
@@ -1481,8 +1481,8 @@ def _fill_missing_periods_with_zeros(
 
         if date_from and date_to:
             try:
-                user_start_date = pendulum.parse(date_from, strict=False).in_timezone(pendulum.UTC)
-                user_end_date = pendulum.parse(date_to, strict=False).in_timezone(pendulum.UTC)
+                user_start_date = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+                user_end_date = datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
                 # Use the later of actual start date or user start date to avoid leading None values
                 start_date = max(actual_start_date, user_start_date)
                 end_date = min(actual_end_date, user_end_date)
@@ -1525,7 +1525,7 @@ def _fill_missing_periods_with_zeros(
             while current_date <= end_date:
                 value = data_dict.get(current_date)
                 result.append((current_date, value))
-                current_date = current_date.add(days=1)
+                current_date = current_date + timedelta(days=1)
 
         return result
 ```
@@ -1543,7 +1543,7 @@ Format x-axis for charts based on period and data range.
 Args:
 
 - `ax` (`Axes`): Matplotlib axes object.
-- `dates` (`list`): List of pendulum.DateTime objects.
+- `dates` (`list`): List of datetime objects.
 - `period` (`str`): Time period for formatting.
 
 <details>
@@ -1641,7 +1641,7 @@ Args:
 
 Returns:
 
-- `dict`: Dictionary with pendulum.DateTime keys and aggregated values.
+- `dict`: Dictionary with datetime keys and aggregated values.
 
 <details>
 <summary>Code:</summary>
@@ -1665,7 +1665,7 @@ def _group_data_by_period(self, rows: list, period: str, value_type: str = "floa
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -1702,7 +1702,7 @@ Args:
 
 Returns:
 
-- `dict`: Dictionary with pendulum.DateTime keys and maximum values for each period.
+- `dict`: Dictionary with datetime keys and maximum values for each period.
 
 <details>
 <summary>Code:</summary>
@@ -1726,7 +1726,7 @@ def _group_data_by_period_with_max(self, rows: list, period: str, value_type: st
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
             except ValueError:
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -2424,7 +2424,7 @@ class ValidationOperations:
             return False
 
         try:
-            pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+            datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
         except (ValueError, TypeError):
             return False
         else:
@@ -2458,7 +2458,7 @@ def _is_valid_date(date_str: str) -> bool:
             return False
 
         try:
-            pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+            datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
         except (ValueError, TypeError):
             return False
         else:

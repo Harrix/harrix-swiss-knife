@@ -1306,7 +1306,7 @@ class MainWindow(
 
         # Calculate running balance
         balance: float = 0.0
-        balance_data: list[tuple[pendulum.DateTime, float]] = []
+        balance_data: list[tuple[datetime, float]] = []
 
         for date_str, _amount in rows:
             # Get transactions for this date
@@ -1328,7 +1328,7 @@ class MainWindow(
                             daily_balance -= trans_amount
 
             balance += daily_balance
-            date_obj: pendulum.DateTime = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+            date_obj: datetime = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
             balance_data.append((date_obj, balance))
 
         # Create chart configuration
@@ -1588,7 +1588,7 @@ class MainWindow(
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # For today's balance and expenses also use simplified queries
-            today: str = pendulum.now().format("YYYY-MM-DD")
+            today: str = date.today().strftime("%Y-%m-%d")
 
             today_query_income: str = """
                 SELECT SUM(t.amount) as total
@@ -1709,7 +1709,7 @@ class MainWindow(
         """
         try:
             # Determine which date to use
-            target_date: str = use_date if use_date is not None else pendulum.now().format("YYYY-MM-DD")
+            target_date: str = use_date if use_date is not None else date.today().strftime("%Y-%m-%d")
 
             # Get exchange rate for the target date
             rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
@@ -1725,7 +1725,7 @@ class MainWindow(
 
             # Convert loss to default currency using today's rate
             if default_currency_id is not None and from_currency_id != default_currency_id:
-                today: str = pendulum.now().format("YYYY-MM-DD")
+                today: str = date.today().strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
@@ -1799,7 +1799,7 @@ class MainWindow(
             accounts_data: list = self.db_manager.get_all_accounts()
 
             total_balance: float = 0.0
-            today: str = pendulum.now().format("YYYY-MM-DD")
+            today: str = date.today().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances: dict[str, float] = {}
@@ -2129,7 +2129,7 @@ class MainWindow(
                 return amount
 
             if date is None:
-                date = pendulum.now().in_timezone(pendulum.UTC).format("YYYY-MM-DD")
+                date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
             rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
             if rate == 1.0 and from_currency_id != to_currency_id:
@@ -2483,10 +2483,10 @@ class MainWindow(
         currency_code: str = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date: pendulum.DateTime = pendulum.now()
-        start_date: pendulum.DateTime = end_date.subtract(days=30)
-        date_from: str = start_date.format("YYYY-MM-DD")
-        date_to: str = end_date.format("YYYY-MM-DD")
+        end_date: datetime = datetime.now()
+        start_date: datetime = end_date - timedelta(days=30)
+        date_from: str = start_date.strftime("%Y-%m-%d")
+        date_to: str = end_date.strftime("%Y-%m-%d")
 
         # Get expenses and income separately
         expense_rows: list = self.db_manager.get_filtered_transactions(
@@ -2610,14 +2610,14 @@ class MainWindow(
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today: str = pendulum.now().format("YYYY-MM-DD")
+                today: str = date.today().strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date: pendulum.DateTime = pendulum.now()
-                start_date: pendulum.DateTime = end_date.subtract(days=days)
-                date_from: str = start_date.format("YYYY-MM-DD")
-                date_to: str = end_date.format("YYYY-MM-DD")
+                end_date: datetime = datetime.now()
+                start_date: datetime = end_date - timedelta(days=days)
+                date_from: str = start_date.strftime("%Y-%m-%d")
+                date_to: str = end_date.strftime("%Y-%m-%d")
 
             income: float
             expenses: float
@@ -2700,32 +2700,35 @@ class MainWindow(
         expense_categories.sort(key=lambda x: x[1])
 
         # Determine month range based on available transaction history
-        end_date: pendulum.DateTime = pendulum.now()
+        end_date: datetime = datetime.now()
         earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
 
         if earliest_transaction_date_str:
-            earliest_transaction_date = pendulum.parse(earliest_transaction_date_str, strict=False).in_timezone(
-                end_date.timezone
+            earliest_transaction_date = datetime.fromisoformat(earliest_transaction_date_str).replace(
+                tzinfo=end_date.tzinfo
             )
-            month_cursor = earliest_transaction_date.start_of("month")
+            month_cursor = earliest_transaction_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         else:
-            month_cursor = end_date.start_of("month")
+            month_cursor = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        end_month = end_date.start_of("month")
+        end_month = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         # Dictionary to store data: {month_name: {category_id: amount}}
         monthly_data: dict[str, dict[int, float]] = {}
         month_names: list[str] = []
 
         while month_cursor <= end_month:
-            month_start: pendulum.DateTime = month_cursor
+            month_start: datetime = month_cursor
 
             # Calculate last day of month
-            month_end: pendulum.DateTime = month_start.end_of("month")
+            if month_start.month == 12:
+                month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
+            else:
+                month_end = month_start.replace(month=month_start.month + 1, day=1) - timedelta(days=1)
 
-            date_from: str = month_start.format("YYYY-MM-DD")
-            date_to: str = month_end.format("YYYY-MM-DD")
-            month_name: str = month_start.format("YYYY-MM")
+            date_from: str = month_start.strftime("%Y-%m-%d")
+            date_to: str = month_end.strftime("%Y-%m-%d")
+            month_name: str = month_start.strftime("%Y-%m")
 
             month_names.append(month_name)
             monthly_data[month_name] = {}
@@ -2765,7 +2768,14 @@ class MainWindow(
                 else:
                     monthly_data[month_name][category_id_matched] = amount
 
-            month_cursor = month_start.add(months=1).start_of("month")
+            if month_start.month == 12:
+                month_cursor = month_start.replace(
+                    year=month_start.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+                )
+            else:
+                month_cursor = month_start.replace(
+                    month=month_start.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0
+                )
 
         # Create model with column headers
         model: QStandardItemModel = QStandardItemModel()
@@ -2797,7 +2807,7 @@ class MainWindow(
         }
 
         # Create rows (newest first)
-        current_year_prefix = pendulum.now().in_timezone(end_date.timezone).format("YYYY-")
+        current_year_prefix = datetime.now(end_date.tzinfo).strftime("%Y-")
 
         for month_name in reversed(month_names):
             row_items: list[QStandardItem] = []
@@ -6504,7 +6514,7 @@ def show_balance_chart(self) -> None:
 
         # Calculate running balance
         balance: float = 0.0
-        balance_data: list[tuple[pendulum.DateTime, float]] = []
+        balance_data: list[tuple[datetime, float]] = []
 
         for date_str, _amount in rows:
             # Get transactions for this date
@@ -6526,7 +6536,7 @@ def show_balance_chart(self) -> None:
                             daily_balance -= trans_amount
 
             balance += daily_balance
-            date_obj: pendulum.DateTime = pendulum.parse(date_str, strict=False).in_timezone(pendulum.UTC)
+            date_obj: datetime = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
             balance_data.append((date_obj, balance))
 
         # Create chart configuration
@@ -6879,7 +6889,7 @@ def update_summary_labels(self) -> None:
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # For today's balance and expenses also use simplified queries
-            today: str = pendulum.now().format("YYYY-MM-DD")
+            today: str = date.today().strftime("%Y-%m-%d")
 
             today_query_income: str = """
                 SELECT SUM(t.amount) as total
@@ -7038,7 +7048,7 @@ def _calculate_exchange_loss(
     ) -> float:
         try:
             # Determine which date to use
-            target_date: str = use_date if use_date is not None else pendulum.now().format("YYYY-MM-DD")
+            target_date: str = use_date if use_date is not None else date.today().strftime("%Y-%m-%d")
 
             # Get exchange rate for the target date
             rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
@@ -7054,7 +7064,7 @@ def _calculate_exchange_loss(
 
             # Convert loss to default currency using today's rate
             if default_currency_id is not None and from_currency_id != default_currency_id:
-                today: str = pendulum.now().format("YYYY-MM-DD")
+                today: str = date.today().strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
@@ -7152,7 +7162,7 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
             accounts_data: list = self.db_manager.get_all_accounts()
 
             total_balance: float = 0.0
-            today: str = pendulum.now().format("YYYY-MM-DD")
+            today: str = date.today().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances: dict[str, float] = {}
@@ -7618,7 +7628,7 @@ def _convert_currency_amount(
                 return amount
 
             if date is None:
-                date = pendulum.now().in_timezone(pendulum.UTC).format("YYYY-MM-DD")
+                date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
             rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
             if rate == 1.0 and from_currency_id != to_currency_id:
@@ -8112,10 +8122,10 @@ def _generate_category_analysis_report(self, _currency_id: int) -> None:
         currency_code: str = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date: pendulum.DateTime = pendulum.now()
-        start_date: pendulum.DateTime = end_date.subtract(days=30)
-        date_from: str = start_date.format("YYYY-MM-DD")
-        date_to: str = end_date.format("YYYY-MM-DD")
+        end_date: datetime = datetime.now()
+        start_date: datetime = end_date - timedelta(days=30)
+        date_from: str = start_date.strftime("%Y-%m-%d")
+        date_to: str = end_date.strftime("%Y-%m-%d")
 
         # Get expenses and income separately
         expense_rows: list = self.db_manager.get_filtered_transactions(
@@ -8265,14 +8275,14 @@ def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today: str = pendulum.now().format("YYYY-MM-DD")
+                today: str = date.today().strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date: pendulum.DateTime = pendulum.now()
-                start_date: pendulum.DateTime = end_date.subtract(days=days)
-                date_from: str = start_date.format("YYYY-MM-DD")
-                date_to: str = end_date.format("YYYY-MM-DD")
+                end_date: datetime = datetime.now()
+                start_date: datetime = end_date - timedelta(days=days)
+                date_from: str = start_date.strftime("%Y-%m-%d")
+                date_to: str = end_date.strftime("%Y-%m-%d")
 
             income: float
             expenses: float
@@ -8367,32 +8377,35 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
         expense_categories.sort(key=lambda x: x[1])
 
         # Determine month range based on available transaction history
-        end_date: pendulum.DateTime = pendulum.now()
+        end_date: datetime = datetime.now()
         earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
 
         if earliest_transaction_date_str:
-            earliest_transaction_date = pendulum.parse(earliest_transaction_date_str, strict=False).in_timezone(
-                end_date.timezone
+            earliest_transaction_date = datetime.fromisoformat(earliest_transaction_date_str).replace(
+                tzinfo=end_date.tzinfo
             )
-            month_cursor = earliest_transaction_date.start_of("month")
+            month_cursor = earliest_transaction_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         else:
-            month_cursor = end_date.start_of("month")
+            month_cursor = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        end_month = end_date.start_of("month")
+        end_month = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         # Dictionary to store data: {month_name: {category_id: amount}}
         monthly_data: dict[str, dict[int, float]] = {}
         month_names: list[str] = []
 
         while month_cursor <= end_month:
-            month_start: pendulum.DateTime = month_cursor
+            month_start: datetime = month_cursor
 
             # Calculate last day of month
-            month_end: pendulum.DateTime = month_start.end_of("month")
+            if month_start.month == 12:
+                month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
+            else:
+                month_end = month_start.replace(month=month_start.month + 1, day=1) - timedelta(days=1)
 
-            date_from: str = month_start.format("YYYY-MM-DD")
-            date_to: str = month_end.format("YYYY-MM-DD")
-            month_name: str = month_start.format("YYYY-MM")
+            date_from: str = month_start.strftime("%Y-%m-%d")
+            date_to: str = month_end.strftime("%Y-%m-%d")
+            month_name: str = month_start.strftime("%Y-%m")
 
             month_names.append(month_name)
             monthly_data[month_name] = {}
@@ -8432,7 +8445,14 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
                 else:
                     monthly_data[month_name][category_id_matched] = amount
 
-            month_cursor = month_start.add(months=1).start_of("month")
+            if month_start.month == 12:
+                month_cursor = month_start.replace(
+                    year=month_start.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+                )
+            else:
+                month_cursor = month_start.replace(
+                    month=month_start.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0
+                )
 
         # Create model with column headers
         model: QStandardItemModel = QStandardItemModel()
@@ -8464,7 +8484,7 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
         }
 
         # Create rows (newest first)
-        current_year_prefix = pendulum.now().in_timezone(end_date.timezone).format("YYYY-")
+        current_year_prefix = datetime.now(end_date.tzinfo).strftime("%Y-")
 
         for month_name in reversed(month_names):
             row_items: list[QStandardItem] = []

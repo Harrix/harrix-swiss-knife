@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import threading
 import uuid
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-
-import pendulum
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -32,7 +31,7 @@ class DatabaseManager:
     connection_name: str
     _db_filename: str
     _exchange_rate_cache: dict[str, float]
-    _cache_timestamp: pendulum.DateTime | None
+    _cache_timestamp: datetime | None
 
     def __init__(self, db_filename: str) -> None:
         """Open a connection to an SQLite database stored in `db_filename`.
@@ -65,7 +64,7 @@ class DatabaseManager:
         self._init_default_settings()
 
         self._exchange_rate_cache: dict[str, float] = {}
-        self._cache_timestamp: pendulum.DateTime | None = None
+        self._cache_timestamp: datetime | None = None
 
     def __del__(self) -> None:
         """Clean up database connection when object is destroyed.
@@ -505,7 +504,7 @@ class DatabaseManager:
 
         try:
             # Calculate the cutoff date
-            cutoff_date = (pendulum.now() - pendulum.duration(days=days)).format("YYYY-MM-DD")
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
 
             # Delete exchange rates from the last N days (including today)
             query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
@@ -664,10 +663,10 @@ class DatabaseManager:
             print("No transactions found, cannot determine start date for filling rates")
             return 0
 
-        # Make start_date timezone-aware (UTC) to avoid naive datetime (using pendulum)
-        start_date_dt = pendulum.parse(earliest_transaction_date, strict=False)
+        # Make start_date timezone-aware (UTC) to avoid naive datetime
+        start_date_dt = datetime.fromisoformat(earliest_transaction_date)
         start_date = start_date_dt.date()
-        end_date = pendulum.now().date()
+        end_date = date.today()
 
         print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
 
@@ -706,7 +705,7 @@ class DatabaseManager:
                     total_filled += 1
                     print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
 
-                current_date = current_date.add(days=1)
+                current_date = current_date + timedelta(days=1)
 
             print(f"  📈 Filled {currency_filled} missing dates for {currency_code}")
 
@@ -1546,14 +1545,14 @@ class DatabaseManager:
         currencies = self.get_currencies_except_usd()
 
         # Generate all dates in the range
-        start_date = pendulum.parse(date_from, strict=False).date()
-        end_date = pendulum.parse(date_to, strict=False).date()
+        start_date = datetime.fromisoformat(date_from).date()
+        end_date = datetime.fromisoformat(date_to).date()
 
         all_dates = []
         current_date = start_date
         while current_date <= end_date:
-            all_dates.append(current_date.format("YYYY-MM-DD"))
-            current_date = current_date.add(days=1)
+            all_dates.append(current_date.strftime("%Y-%m-%d"))
+            current_date = current_date + timedelta(days=1)
 
         print(f"Checking exchange rates from {date_from} to {date_to} ({len(all_dates)} days)")
 
@@ -1701,7 +1700,7 @@ class DatabaseManager:
         - `float`: Today's balance in target currency.
 
         """
-        today = pendulum.now().format("YYYY-MM-DD")
+        today = date.today().strftime("%Y-%m-%d")
         total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return total_income - total_expenses
 
@@ -1717,7 +1716,7 @@ class DatabaseManager:
         - `float`: Today's expenses in the specified currency.
 
         """
-        today = pendulum.now().format("YYYY-MM-DD")
+        today = date.today().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
 
@@ -1820,10 +1819,10 @@ class DatabaseManager:
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        now = pendulum.now()
+        now = datetime.now()
         if (
             self._cache_timestamp
-            and (now - self._cache_timestamp) < pendulum.duration(minutes=5)
+            and (now - self._cache_timestamp) < timedelta(minutes=5)
             and cache_key in self._exchange_rate_cache
         ):
             return self._exchange_rate_cache[cache_key]
@@ -1943,7 +1942,7 @@ class DatabaseManager:
         """
         try:
             # Get today's date in YYYY-MM-DD format
-            today = pendulum.now().format("YYYY-MM-DD")
+            today = date.today().strftime("%Y-%m-%d")
 
             # Get all currencies except USD
             currencies = self.get_currencies_except_usd()

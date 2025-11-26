@@ -3,12 +3,12 @@
 import json
 import re
 import shutil
+from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
 import harrix_pylib as h
-import pendulum
 from PySide6.QtWidgets import QComboBox
 
 from harrix_swiss_knife.actions.base import ActionBase
@@ -724,12 +724,12 @@ class OnNewArticle(ActionBase):
 
         text = self.config["beginning_of_article"].replace(
             "[YEAR]",
-            pendulum.now().format("YYYY"),
+            datetime.now().strftime("%Y"),
         )
         text = text.replace("[NAME]", article_name)
         text = text.replace(
             "[DATE]",
-            pendulum.now().format("YYYY-MM-DD"),
+            datetime.now().strftime("%Y-%m-%d"),
         )
         text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 

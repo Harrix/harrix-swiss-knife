@@ -1,6 +1,7 @@
 """Date delegate for date column in transactions table."""
 
-import pendulum
+from datetime import date as date_class
+
 from PySide6.QtCore import QAbstractItemModel, QDate, QModelIndex, QObject, Qt
 from PySide6.QtWidgets import QDateEdit, QStyledItemDelegate
 
@@ -54,8 +55,8 @@ class DateDelegate(QStyledItemDelegate):
         current_value = index.data()
         if current_value:
             try:
-                # Make the pendulum.DateTime object timezone-aware (UTC) to avoid naive datetime
-                date_obj = pendulum.parse(str(current_value), strict=False).date()
+                # Parse date string to date object
+                date_obj = date_class.fromisoformat(str(current_value))
                 editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
             except (ValueError, TypeError):
                 editor.setDate(QDate.currentDate())

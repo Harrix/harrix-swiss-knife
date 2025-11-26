@@ -5,10 +5,9 @@ from __future__ import annotations
 import threading
 import uuid
 from collections import Counter
+from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-
-import pendulum
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -710,7 +709,7 @@ class DatabaseManager:
         - `float`: Total value for the exercise today, or 0.0 if no records found.
 
         """
-        today = pendulum.now().format("YYYY-MM-DD")
+        today = date.today().strftime("%Y-%m-%d")
         rows = self.get_rows(
             "SELECT SUM(CAST(value AS REAL)) FROM process WHERE _id_exercises = :ex_id AND date = :today",
             {"ex_id": exercise_id, "today": today},
@@ -1030,7 +1029,7 @@ class DatabaseManager:
         - `float`: Total calories burned today, or 0.0 if no records found.
 
         """
-        today = pendulum.now().format("YYYY-MM-DD")
+        today = date.today().strftime("%Y-%m-%d")
         query = """
             SELECT SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
             FROM process p
@@ -1240,7 +1239,7 @@ class DatabaseManager:
         - `int`: Number of process records for today's date.
 
         """
-        today = pendulum.now().format("YYYY-MM-DD")
+        today = date.today().strftime("%Y-%m-%d")
         rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
 

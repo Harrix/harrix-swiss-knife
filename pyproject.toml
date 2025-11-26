@@ -11,7 +11,6 @@ dependencies = [
     "libcst>=1.5.1",
     "matplotlib>=3.10.3",
     "pandas>=2.3.0",
-    "pendulum>=3.1.0",
     "pillow>=11.1.0",
     "pillow-avif-plugin>=1.5.2",
     "pypdf>=5.7.0",

@@ -6,7 +6,8 @@ including loading, updating, filtering, and chart creation.
 
 from __future__ import annotations
 
-import pendulum
+from datetime import datetime
+
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import QDate, QTimer
@@ -492,8 +493,8 @@ class ExchangeRatesOperations:
                 else:
                     transformed_rates.append(0.0)
 
-            # Convert dates to timezone-aware pendulum.DateTime objects for plotting
-            date_objects = [pendulum.parse(date, strict=False) for date in dates]
+            # Convert dates to datetime objects for plotting
+            date_objects = [datetime.fromisoformat(date) for date in dates]
 
             # Plot the data
             ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=1)
