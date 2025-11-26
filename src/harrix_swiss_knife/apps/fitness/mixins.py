@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 
