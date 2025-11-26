@@ -14,7 +14,7 @@ import io
 import math
 import sys
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -849,7 +849,7 @@ class MainWindow(
 
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
-            yesterday = date.today() - timedelta(days=1)  # Use local time instead of UTC
+            yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)  # Use local time instead of UTC
 
             try:
                 first_date = datetime.fromisoformat(first_date_str).date()

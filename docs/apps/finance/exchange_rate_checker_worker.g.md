@@ -76,7 +76,7 @@ class ExchangeRateCheckerWorker(QThread):
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = date.today()
+            today = datetime.now(timezone.utc).date()
             today_str = today.strftime("%Y-%m-%d")
 
             self.progress_updated.emit(f"📅 Checking rates up to {today_str}")
@@ -227,7 +227,7 @@ def run(self) -> None:
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = date.today()
+            today = datetime.now(timezone.utc).date()
             today_str = today.strftime("%Y-%m-%d")
 
             self.progress_updated.emit(f"📅 Checking rates up to {today_str}")

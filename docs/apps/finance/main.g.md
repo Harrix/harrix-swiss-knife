@@ -1588,7 +1588,7 @@ class MainWindow(
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # For today's balance and expenses also use simplified queries
-            today: str = date.today().strftime("%Y-%m-%d")
+            today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
             today_query_income: str = """
                 SELECT SUM(t.amount) as total
@@ -1708,8 +1708,11 @@ class MainWindow(
 
         """
         try:
-            # Determine which date to use
-            target_date: str = use_date if use_date is not None else date.today().strftime("%Y-%m-%d")
+            # Determine which date to use (shorten for line length)
+            if use_date is not None:
+                target_date: str = use_date
+            else:
+                target_date: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
             # Get exchange rate for the target date
             rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
@@ -1725,7 +1728,7 @@ class MainWindow(
 
             # Convert loss to default currency using today's rate
             if default_currency_id is not None and from_currency_id != default_currency_id:
-                today: str = date.today().strftime("%Y-%m-%d")
+                today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
@@ -1799,7 +1802,7 @@ class MainWindow(
             accounts_data: list = self.db_manager.get_all_accounts()
 
             total_balance: float = 0.0
-            today: str = date.today().strftime("%Y-%m-%d")
+            today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances: dict[str, float] = {}
@@ -2483,7 +2486,7 @@ class MainWindow(
         currency_code: str = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date: datetime = datetime.now()
+        end_date: datetime = datetime.now(timezone.utc)
         start_date: datetime = end_date - timedelta(days=30)
         date_from: str = start_date.strftime("%Y-%m-%d")
         date_to: str = end_date.strftime("%Y-%m-%d")
@@ -2610,11 +2613,11 @@ class MainWindow(
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today: str = date.today().strftime("%Y-%m-%d")
+                today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date: datetime = datetime.now()
+                end_date: datetime = datetime.now(timezone.utc)
                 start_date: datetime = end_date - timedelta(days=days)
                 date_from: str = start_date.strftime("%Y-%m-%d")
                 date_to: str = end_date.strftime("%Y-%m-%d")
@@ -2700,7 +2703,7 @@ class MainWindow(
         expense_categories.sort(key=lambda x: x[1])
 
         # Determine month range based on available transaction history
-        end_date: datetime = datetime.now()
+        end_date: datetime = datetime.now(timezone.utc)
         earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
 
         if earliest_transaction_date_str:
@@ -2721,7 +2724,8 @@ class MainWindow(
             month_start: datetime = month_cursor
 
             # Calculate last day of month
-            if month_start.month == 12:
+            months_in_year = 12
+            if month_start.month == months_in_year:
                 month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
             else:
                 month_end = month_start.replace(month=month_start.month + 1, day=1) - timedelta(days=1)
@@ -2768,7 +2772,8 @@ class MainWindow(
                 else:
                     monthly_data[month_name][category_id_matched] = amount
 
-            if month_start.month == 12:
+            months_in_year = 12
+            if month_start.month == months_in_year:
                 month_cursor = month_start.replace(
                     year=month_start.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
                 )
@@ -6889,7 +6894,7 @@ def update_summary_labels(self) -> None:
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # For today's balance and expenses also use simplified queries
-            today: str = date.today().strftime("%Y-%m-%d")
+            today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
             today_query_income: str = """
                 SELECT SUM(t.amount) as total
@@ -7047,8 +7052,11 @@ def _calculate_exchange_loss(
         use_date: str | None = None,
     ) -> float:
         try:
-            # Determine which date to use
-            target_date: str = use_date if use_date is not None else date.today().strftime("%Y-%m-%d")
+            # Determine which date to use (shorten for line length)
+            if use_date is not None:
+                target_date: str = use_date
+            else:
+                target_date: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
             # Get exchange rate for the target date
             rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
@@ -7064,7 +7072,7 @@ def _calculate_exchange_loss(
 
             # Convert loss to default currency using today's rate
             if default_currency_id is not None and from_currency_id != default_currency_id:
-                today: str = date.today().strftime("%Y-%m-%d")
+                today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
@@ -7162,7 +7170,7 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
             accounts_data: list = self.db_manager.get_all_accounts()
 
             total_balance: float = 0.0
-            today: str = date.today().strftime("%Y-%m-%d")
+            today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances: dict[str, float] = {}
@@ -8122,7 +8130,7 @@ def _generate_category_analysis_report(self, _currency_id: int) -> None:
         currency_code: str = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date: datetime = datetime.now()
+        end_date: datetime = datetime.now(timezone.utc)
         start_date: datetime = end_date - timedelta(days=30)
         date_from: str = start_date.strftime("%Y-%m-%d")
         date_to: str = end_date.strftime("%Y-%m-%d")
@@ -8275,11 +8283,11 @@ def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today: str = date.today().strftime("%Y-%m-%d")
+                today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date: datetime = datetime.now()
+                end_date: datetime = datetime.now(timezone.utc)
                 start_date: datetime = end_date - timedelta(days=days)
                 date_from: str = start_date.strftime("%Y-%m-%d")
                 date_to: str = end_date.strftime("%Y-%m-%d")
@@ -8377,7 +8385,7 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
         expense_categories.sort(key=lambda x: x[1])
 
         # Determine month range based on available transaction history
-        end_date: datetime = datetime.now()
+        end_date: datetime = datetime.now(timezone.utc)
         earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
 
         if earliest_transaction_date_str:
@@ -8398,7 +8406,8 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
             month_start: datetime = month_cursor
 
             # Calculate last day of month
-            if month_start.month == 12:
+            months_in_year = 12
+            if month_start.month == months_in_year:
                 month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
             else:
                 month_end = month_start.replace(month=month_start.month + 1, day=1) - timedelta(days=1)
@@ -8445,7 +8454,8 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
                 else:
                     monthly_data[month_name][category_id_matched] = amount
 
-            if month_start.month == 12:
+            months_in_year = 12
+            if month_start.month == months_in_year:
                 month_cursor = month_start.replace(
                     year=month_start.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
                 )

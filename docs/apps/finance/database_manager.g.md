@@ -594,7 +594,7 @@ class DatabaseManager:
 
         try:
             # Calculate the cutoff date
-            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
             # Delete exchange rates from the last N days (including today)
             query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
@@ -756,7 +756,7 @@ class DatabaseManager:
         # Make start_date timezone-aware (UTC) to avoid naive datetime
         start_date_dt = datetime.fromisoformat(earliest_transaction_date)
         start_date = start_date_dt.date()
-        end_date = date.today()
+        end_date = datetime.now(timezone.utc).date()
 
         print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
 
@@ -1790,7 +1790,7 @@ class DatabaseManager:
         - `float`: Today's balance in target currency.
 
         """
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return total_income - total_expenses
 
@@ -1806,7 +1806,7 @@ class DatabaseManager:
         - `float`: Today's expenses in the specified currency.
 
         """
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
 
@@ -1909,7 +1909,7 @@ class DatabaseManager:
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         if (
             self._cache_timestamp
             and (now - self._cache_timestamp) < timedelta(minutes=5)
@@ -2032,7 +2032,7 @@ class DatabaseManager:
         """
         try:
             # Get today's date in YYYY-MM-DD format
-            today = date.today().strftime("%Y-%m-%d")
+            today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
             # Get all currencies except USD
             currencies = self.get_currencies_except_usd()
@@ -3367,7 +3367,7 @@ def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
 
         try:
             # Calculate the cutoff date
-            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
             # Delete exchange rates from the last N days (including today)
             query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
@@ -3577,7 +3577,7 @@ def fill_missing_exchange_rates(self) -> int:
         # Make start_date timezone-aware (UTC) to avoid naive datetime
         start_date_dt = datetime.fromisoformat(earliest_transaction_date)
         start_date = start_date_dt.date()
-        end_date = date.today()
+        end_date = datetime.now(timezone.utc).date()
 
         print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
 
@@ -5017,7 +5017,7 @@ Returns:
 
 ```python
 def get_today_balance_in_currency(self, currency_id: int) -> float:
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return total_income - total_expenses
 ```
@@ -5045,7 +5045,7 @@ Returns:
 
 ```python
 def get_today_expenses_in_currency(self, currency_id: int) -> float:
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
 ```
@@ -5184,7 +5184,7 @@ def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) ->
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         if (
             self._cache_timestamp
             and (now - self._cache_timestamp) < timedelta(minutes=5)
@@ -5367,7 +5367,7 @@ Returns:
 def should_update_exchange_rates(self) -> bool:
         try:
             # Get today's date in YYYY-MM-DD format
-            today = date.today().strftime("%Y-%m-%d")
+            today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
             # Get all currencies except USD
             currencies = self.get_currencies_except_usd()

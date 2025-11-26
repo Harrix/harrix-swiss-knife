@@ -1626,8 +1626,11 @@ class MainWindow(
 
         """
         try:
-            # Determine which date to use
-            target_date: str = use_date if use_date is not None else datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+            # Determine which date to use (shorten for line length)
+            if use_date is not None:
+                target_date: str = use_date
+            else:
+                target_date: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
             # Get exchange rate for the target date
             rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
@@ -2639,7 +2642,8 @@ class MainWindow(
             month_start: datetime = month_cursor
 
             # Calculate last day of month
-            if month_start.month == 12:
+            months_in_year = 12
+            if month_start.month == months_in_year:
                 month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
             else:
                 month_end = month_start.replace(month=month_start.month + 1, day=1) - timedelta(days=1)
@@ -2686,7 +2690,8 @@ class MainWindow(
                 else:
                     monthly_data[month_name][category_id_matched] = amount
 
-            if month_start.month == 12:
+            months_in_year = 12
+            if month_start.month == months_in_year:
                 month_cursor = month_start.replace(
                     year=month_start.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
                 )

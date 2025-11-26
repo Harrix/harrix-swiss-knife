@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -666,7 +666,7 @@ class DatabaseManager:
         # Make start_date timezone-aware (UTC) to avoid naive datetime
         start_date_dt = datetime.fromisoformat(earliest_transaction_date)
         start_date = start_date_dt.date()
-        end_date = date.today()
+        end_date = datetime.now(timezone.utc).date()
 
         print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
 

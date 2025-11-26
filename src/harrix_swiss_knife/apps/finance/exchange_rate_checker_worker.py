@@ -1,6 +1,6 @@
 """Worker thread for checking exchange rates that need updates."""
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from PySide6.QtCore import QThread, Signal
 
@@ -54,7 +54,7 @@ class ExchangeRateCheckerWorker(QThread):
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = date.today()
+            today = datetime.now(timezone.utc).date()
             today_str = today.strftime("%Y-%m-%d")
 
             self.progress_updated.emit(f"📅 Checking rates up to {today_str}")

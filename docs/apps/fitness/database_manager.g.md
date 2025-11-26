@@ -776,7 +776,7 @@ class DatabaseManager:
         - `float`: Total value for the exercise today, or 0.0 if no records found.
 
         """
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         rows = self.get_rows(
             "SELECT SUM(CAST(value AS REAL)) FROM process WHERE _id_exercises = :ex_id AND date = :today",
             {"ex_id": exercise_id, "today": today},
@@ -1096,7 +1096,7 @@ class DatabaseManager:
         - `float`: Total calories burned today, or 0.0 if no records found.
 
         """
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         query = """
             SELECT SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
             FROM process p
@@ -1306,7 +1306,7 @@ class DatabaseManager:
         - `int`: Number of process records for today's date.
 
         """
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
 
@@ -2620,7 +2620,7 @@ Returns:
 
 ```python
 def get_exercise_total_today(self, exercise_id: int) -> float:
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         rows = self.get_rows(
             "SELECT SUM(CAST(value AS REAL)) FROM process WHERE _id_exercises = :ex_id AND date = :today",
             {"ex_id": exercise_id, "today": today},
@@ -3060,7 +3060,7 @@ Returns:
 
 ```python
 def get_kcal_today(self) -> float:
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         query = """
             SELECT SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
             FROM process p
@@ -3378,7 +3378,7 @@ Returns:
 
 ```python
 def get_sets_count_today(self) -> int:
-        today = date.today().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
 ```
