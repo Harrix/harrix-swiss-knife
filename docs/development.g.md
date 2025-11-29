@@ -11,16 +11,16 @@ lang: en
 
 ## Contents
 
-- [CLI commands](#cli-commands)
-- [Add a new action](#add-a-new-action)
-- [Add file to a resource file](#add-file-to-a-resource-file)
-- [Add a new Markdown template (for 📝 Add markdown from template)](#add-a-new-markdown-template-for--add-markdown-from-template)
-  - [Quick start](#quick-start)
-  - [Supported Field Types](#supported-field-types)
+- [💻 CLI commands](#-cli-commands)
+- [➕ Add a new action](#-add-a-new-action)
+- [📁 Add file to a resource file](#-add-file-to-a-resource-file)
+- [📝 Add a new Markdown template (for 📝 Add markdown from template)](#-add-a-new-markdown-template-for--add-markdown-from-template)
+  - [🚀 Quick start](#-quick-start)
+  - [📋 Supported Field Types](#-supported-field-types)
 
 </details>
 
-## CLI commands
+## 💻 CLI commands
 
 CLI commands after installation:
 
@@ -40,7 +40,7 @@ CLI commands after installation:
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
 - `vermin src` — determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
 
-## Add a new action
+## ➕ Add a new action
 
 - Add a new action `class On<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
 - Site for searching emojis: <https://emojidb.org/>.
@@ -188,7 +188,7 @@ class OnHarrixActionWithSequenceOfThread(ActionBase):
         self.show_result()
 ```
 
-## Add file to a resource file
+## 📁 Add file to a resource file
 
 Add files (pictures, etc.) to the `src\harrix_swiss_knife\assets` folder.
 
@@ -209,9 +209,9 @@ Generate `resources_rc.py`:
 pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resources_rc.py
 ```
 
-## Add a new Markdown template (for 📝 Add markdown from template)
+## 📝 Add a new Markdown template (for 📝 Add markdown from template)
 
-### Quick start
+### 🚀 Quick start
 
 Template system allows adding structured markdown content (movies, books, etc.) through dynamic forms.
 
@@ -264,7 +264,7 @@ Options:
 - `insert_position` — `"start"` (after TOC) or `"end"` (default)
 - `dialog_links` — Optional list of helper links shown only in the form dialog
 
-### Supported Field Types
+### 📋 Supported Field Types
 
 Syntax:
 
