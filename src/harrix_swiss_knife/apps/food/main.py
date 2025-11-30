@@ -305,7 +305,7 @@ class MainWindow(
 
         # Create and show the text input dialog
         dialog = TextInputDialog(self)
-        result = dialog.exec()
+        result = dialog.exec_()
 
         if result == QDialog.DialogCode.Accepted:
             text = dialog.get_text()
@@ -570,7 +570,7 @@ class MainWindow(
 
             # Create and show the edit dialog
             dialog = FoodItemDialog(self, food_item_data)
-            result = dialog.exec()
+            result = dialog.exec_()
 
             # Only process if dialog was accepted (not cancelled)
             if result == QDialog.DialogCode.Accepted:
@@ -2455,7 +2455,7 @@ class MainWindow(
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
         # Execute the context menu and get the selected action
-        action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
+        action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
         if action is None:
@@ -2509,7 +2509,9 @@ class MainWindow(
         minus_one_action.triggered.connect(self._subtract_one_day_from_food)
 
         # Show context menu at cursor position
-        context_menu.exec(self.pushButton_food_yesterday.mapToGlobal(position))
+        global_pos: QPoint = self.pushButton_food_yesterday.mapToGlobal(position)
+        context_menu.exec_(global_pos)
+
 
     def _subtract_one_day_from_food(self) -> None:
         """Subtract one day from the current date in food date field."""
@@ -3242,4 +3244,4 @@ if __name__ == "__main__":
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
     win = MainWindow()
     # Window will be shown after initialization in _finish_window_initialization
-    sys.exit(app.exec())
+    sys.exit(app.exec_())
