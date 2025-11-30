@@ -1,8 +1,11 @@
 """Filtered ComboBox with smart search functionality."""
 
+import collections
 import contextlib
+import typing
 
-from PySide6.QtCore import QModelIndex, QSortFilterProxyModel, QStringListModel, Qt
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, QStringListModel, Qt
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QComboBox, QCompleter, QWidget
 
 
@@ -51,15 +54,37 @@ class FilteredComboBox(QComboBox):
             line_edit.textEdited.connect(self._on_text_edited)
         self.completer_widget.activated.connect(self._on_completion_activated)
 
-    def addItem(self, text: str) -> None:  # noqa: N802
+    @typing.overload
+    def addItem(self, text: str, /, userData: typing.Any = ...) -> None: ...  # noqa: N803
+
+    @typing.overload
+    def addItem(self, icon: QIcon | QPixmap, text: str, /, userData: typing.Any = ...) -> None: ...  # noqa: N803
+
+    def addItem(self, *args: typing.Any, **kwargs: typing.Any) -> None:  # noqa: N802, ARG002
         """Add a single item to the combobox."""
+        # Parse arguments to extract text
+        if len(args) == 0:
+            return
+
+        # Determine if first arg is icon or text
+        if isinstance(args[0], (QIcon, QPixmap)):
+            # First signature: icon, text, [userData]
+            min_args_for_icon = 2
+            if len(args) < min_args_for_icon:
+                return
+            # Use constant variable for the magic value '2'
+            text = args[1]
+        else:
+            # Second signature: text, [userData]
+            text = args[0]
+
         self._original_items.append(text)
         self._original_items = sorted(self._original_items, key=str.lower)
         self.string_model.setStringList(self._original_items)
         super().clear()
         super().addItems(self._original_items)
 
-    def addItems(self, texts: list[str]) -> None:  # noqa: N802
+    def addItems(self, texts: collections.abc.Sequence[str], /) -> None:  # noqa: N802
         """Add multiple items to the combobox."""
         self._original_items = sorted(texts, key=str.lower)
         self.string_model.setStringList(self._original_items)
@@ -124,7 +149,7 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
         self.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 
-    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:  # noqa: N802
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex | QPersistentModelIndex) -> bool:  # noqa: N802
         """Determine if a row should be accepted by the filter."""
         if not self.filter_text:
             return True
@@ -147,12 +172,16 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
         min_filter_length = 2
         return len(filter_lower) >= min_filter_length and filter_lower in text
 
-    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:  # noqa: N802
+    def lessThan(  # noqa: N802
+        self,
+        source_left: QModelIndex | QPersistentModelIndex,
+        source_right: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
         """Sort so that items starting with filter text appear first."""
         if not self.filter_text:
             # Default: alphabetical order (case-insensitive)
-            left_data = self.sourceModel().data(left, Qt.ItemDataRole.DisplayRole)
-            right_data = self.sourceModel().data(right, Qt.ItemDataRole.DisplayRole)
+            left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
+            right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
 
             if left_data is None or right_data is None:
                 return False
@@ -161,8 +190,8 @@ class SmartFilterProxyModel(QSortFilterProxyModel):
 
         filter_lower = self.filter_text.lower()
 
-        left_data = self.sourceModel().data(left, Qt.ItemDataRole.DisplayRole)
-        right_data = self.sourceModel().data(right, Qt.ItemDataRole.DisplayRole)
+        left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
+        right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
 
         if left_data is None or right_data is None:
             return False
