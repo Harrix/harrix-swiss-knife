@@ -822,6 +822,16 @@ class MainWindow(
         # Refresh the food log table
         self._update_food_log_table()
 
+    def resizeEvent(self, event: QResizeEvent) -> None:  # type: ignore[override]
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `event` (`QResizeEvent`): The resize event.
+        """
+        self._on_window_resize(event)
+        super().resizeEvent(event)  # Call parent to ensure default behavior
+
     def set_food_yesterday_date(self) -> None:
         """Set yesterday's date in the food date edit field.
 
@@ -1210,7 +1220,7 @@ class MainWindow(
         self.pushButton_food_refresh.clicked.connect(self.update_food_data)
 
         # Connect window resize event for automatic column resizing
-        self.resizeEvent = self._on_window_resize
+        self.resizeEvent = self._on_window_resize  # ty: ignore[invalid-assignment]
 
         # Connect tab widget signal for updating stats when switching to food stats tab
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
@@ -1618,9 +1628,12 @@ class MainWindow(
             return food_name
 
         # Helper function to safely convert to float
-        def safe_float(value: str | None) -> float | None:
+        def safe_float(value: float | str | None) -> float | None:
+            """Safely convert value to float, handling floats, strings, or None."""
             if value is None:
                 return None
+            if isinstance(value, float):
+                return value
             try:
                 return float(value)
             except (ValueError, TypeError):
@@ -1843,7 +1856,7 @@ class MainWindow(
             earliest_date_str = self.db_manager.get_earliest_food_log_date()
             if earliest_date_str:
                 earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-                if earliest_date.isValid():
+                if earliest_date.isValid():  # type: ignore[no-overloaded-call]
                     # If earliest date is more recent than month ago, use earliest date
                     if earliest_date > month_ago:
                         self.dateEdit_food_stats_from.setDate(earliest_date)
@@ -1971,11 +1984,7 @@ class MainWindow(
         Args:
 
         - `event` (`QResizeEvent`): The resize event.
-
         """
-        # Call parent resize event first
-        super().resizeEvent(event)
-
         # Adjust food log table column widths based on window size
         self._adjust_food_log_table_columns()
 
@@ -2511,7 +2520,6 @@ class MainWindow(
         # Show context menu at cursor position
         global_pos: QPoint = self.pushButton_food_yesterday.mapToGlobal(position)
         context_menu.exec_(global_pos)
-
 
     def _subtract_one_day_from_food(self) -> None:
         """Subtract one day from the current date in food date field."""

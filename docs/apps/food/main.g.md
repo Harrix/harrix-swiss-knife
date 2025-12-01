@@ -35,6 +35,7 @@ lang: en
   - [⚙️ Method `on_food_stats_update`](#%EF%B8%8F-method-on_food_stats_update)
   - [⚙️ Method `on_main_food_item_selection_changed`](#%EF%B8%8F-method-on_main_food_item_selection_changed)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_food_yesterday_date`](#%EF%B8%8F-method-set_food_yesterday_date)
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
   - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
@@ -364,7 +365,7 @@ class MainWindow(
 
         # Create and show the text input dialog
         dialog = TextInputDialog(self)
-        result = dialog.exec()
+        result = dialog.exec_()
 
         if result == QDialog.DialogCode.Accepted:
             text = dialog.get_text()
@@ -629,7 +630,7 @@ class MainWindow(
 
             # Create and show the edit dialog
             dialog = FoodItemDialog(self, food_item_data)
-            result = dialog.exec()
+            result = dialog.exec_()
 
             # Only process if dialog was accepted (not cancelled)
             if result == QDialog.DialogCode.Accepted:
@@ -880,6 +881,16 @@ class MainWindow(
 
         # Refresh the food log table
         self._update_food_log_table()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # type: ignore[override]
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `event` (`QResizeEvent`): The resize event.
+        """
+        self._on_window_resize(event)
+        super().resizeEvent(event)  # Call parent to ensure default behavior
 
     def set_food_yesterday_date(self) -> None:
         """Set yesterday's date in the food date edit field.
@@ -1269,7 +1280,7 @@ class MainWindow(
         self.pushButton_food_refresh.clicked.connect(self.update_food_data)
 
         # Connect window resize event for automatic column resizing
-        self.resizeEvent = self._on_window_resize
+        self.resizeEvent = self._on_window_resize  # ty: ignore[invalid-assignment]
 
         # Connect tab widget signal for updating stats when switching to food stats tab
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
@@ -1677,9 +1688,12 @@ class MainWindow(
             return food_name
 
         # Helper function to safely convert to float
-        def safe_float(value: str | None) -> float | None:
+        def safe_float(value: float | str | None) -> float | None:
+            """Safely convert value to float, handling floats, strings, or None."""
             if value is None:
                 return None
+            if isinstance(value, float):
+                return value
             try:
                 return float(value)
             except (ValueError, TypeError):
@@ -1902,7 +1916,7 @@ class MainWindow(
             earliest_date_str = self.db_manager.get_earliest_food_log_date()
             if earliest_date_str:
                 earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-                if earliest_date.isValid():
+                if earliest_date.isValid():  # type: ignore[no-overloaded-call]
                     # If earliest date is more recent than month ago, use earliest date
                     if earliest_date > month_ago:
                         self.dateEdit_food_stats_from.setDate(earliest_date)
@@ -2030,11 +2044,7 @@ class MainWindow(
         Args:
 
         - `event` (`QResizeEvent`): The resize event.
-
         """
-        # Call parent resize event first
-        super().resizeEvent(event)
-
         # Adjust food log table column widths based on window size
         self._adjust_food_log_table_columns()
 
@@ -2514,7 +2524,7 @@ class MainWindow(
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
         # Execute the context menu and get the selected action
-        action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
+        action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
         if action is None:
@@ -2568,7 +2578,8 @@ class MainWindow(
         minus_one_action.triggered.connect(self._subtract_one_day_from_food)
 
         # Show context menu at cursor position
-        context_menu.exec(self.pushButton_food_yesterday.mapToGlobal(position))
+        global_pos: QPoint = self.pushButton_food_yesterday.mapToGlobal(position)
+        context_menu.exec_(global_pos)
 
     def _subtract_one_day_from_food(self) -> None:
         """Subtract one day from the current date in food date field."""
@@ -3591,7 +3602,7 @@ def on_add_as_text(self) -> None:
 
         # Create and show the text input dialog
         dialog = TextInputDialog(self)
-        result = dialog.exec()
+        result = dialog.exec_()
 
         if result == QDialog.DialogCode.Accepted:
             text = dialog.get_text()
@@ -3934,7 +3945,7 @@ def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
 
             # Create and show the edit dialog
             dialog = FoodItemDialog(self, food_item_data)
-            result = dialog.exec()
+            result = dialog.exec_()
 
             # Only process if dialog was accepted (not cancelled)
             if result == QDialog.DialogCode.Accepted:
@@ -4335,6 +4346,29 @@ def on_show_all_records_clicked(self) -> None:
 
         # Refresh the food log table
         self._update_food_log_table()
+```
+
+</details>
+
+### ⚙️ Method `resizeEvent`
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None
+```
+
+Handle window resize event and adjust table column widths proportionally.
+
+Args:
+
+- `event` (`QResizeEvent`): The resize event.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None:  # type: ignore[override]
+        self._on_window_resize(event)
+        super().resizeEvent(event)  # Call parent to ensure default behavior
 ```
 
 </details>
@@ -4872,7 +4906,7 @@ def _connect_signals(self) -> None:
         self.pushButton_food_refresh.clicked.connect(self.update_food_data)
 
         # Connect window resize event for automatic column resizing
-        self.resizeEvent = self._on_window_resize
+        self.resizeEvent = self._on_window_resize  # ty: ignore[invalid-assignment]
 
         # Connect tab widget signal for updating stats when switching to food stats tab
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
@@ -5419,9 +5453,12 @@ def _format_food_name_with_calories(
             return food_name
 
         # Helper function to safely convert to float
-        def safe_float(value: str | None) -> float | None:
+        def safe_float(value: float | str | None) -> float | None:
+            """Safely convert value to float, handling floats, strings, or None."""
             if value is None:
                 return None
+            if isinstance(value, float):
+                return value
             try:
                 return float(value)
             except (ValueError, TypeError):
@@ -5723,7 +5760,7 @@ def _init_food_stats_dates(self) -> None:
             earliest_date_str = self.db_manager.get_earliest_food_log_date()
             if earliest_date_str:
                 earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-                if earliest_date.isValid():
+                if earliest_date.isValid():  # type: ignore[no-overloaded-call]
                     # If earliest date is more recent than month ago, use earliest date
                     if earliest_date > month_ago:
                         self.dateEdit_food_stats_from.setDate(earliest_date)
@@ -5901,9 +5938,6 @@ Args:
 
 ```python
 def _on_window_resize(self, event: QResizeEvent) -> None:
-        # Call parent resize event first
-        super().resizeEvent(event)
-
         # Adjust food log table column widths based on window size
         self._adjust_food_log_table_columns()
 ```
@@ -6515,7 +6549,7 @@ def _show_food_log_context_menu(self, position: QPoint) -> None:
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
         # Execute the context menu and get the selected action
-        action = context_menu.exec(self.tableView_food_log.mapToGlobal(position))
+        action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
         if action is None:
@@ -6581,7 +6615,8 @@ def _show_food_yesterday_context_menu(self, position: QPoint) -> None:
         minus_one_action.triggered.connect(self._subtract_one_day_from_food)
 
         # Show context menu at cursor position
-        context_menu.exec(self.pushButton_food_yesterday.mapToGlobal(position))
+        global_pos: QPoint = self.pushButton_food_yesterday.mapToGlobal(position)
+        context_menu.exec_(global_pos)
 ```
 
 </details>
