@@ -3058,7 +3058,7 @@ class MainWindow(
 
         # Load AVIF for the currently selected exercise
         current_exercise_name = self._get_current_selected_exercise()
-        if current_exercise_name:
+        if isinstance(current_exercise_name, str):
             self._load_exercise_avif(current_exercise_name, "main")
 
         # Update other AVIFs
@@ -5643,7 +5643,7 @@ class MainWindow(
         """Load AVIF for all labels after complete UI initialization."""
         # Load main exercise AVIF
         current_exercise_name = self._get_current_selected_exercise()
-        if current_exercise_name:
+        if isinstance(current_exercise_name, str):
             self._load_exercise_avif(current_exercise_name, "main")
             # Trigger the selection change to update labels
             self.on_exercise_selection_changed_list()
@@ -6447,7 +6447,7 @@ class MainWindow(
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""
         exercise_name = self._get_selected_exercise_from_table("exercises")
-        if exercise_name:
+        if isinstance(exercise_name, str):
             self._load_exercise_avif(exercise_name, "exercises")
 
     def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
@@ -6512,7 +6512,7 @@ class MainWindow(
         if self.current_statistics_mode == "check_steps":
             # Always show Steps exercise for check_steps mode
             steps_exercise_name = self._get_exercise_name_by_id(self.id_steps)
-            if steps_exercise_name:
+            if isinstance(steps_exercise_name, str):
                 self._load_exercise_avif(steps_exercise_name, "statistics")
         elif self.current_statistics_mode == "records":
             # For records mode, use selected exercise from comboBox_records_select_exercise
@@ -6522,12 +6522,12 @@ class MainWindow(
             else:
                 # If no exercise selected in combobox, use selected exercise from table
                 exercise_name = self._get_selected_exercise_from_statistics_table()
-                if exercise_name:
+                if isinstance(exercise_name, str):
                     self._load_exercise_avif(exercise_name, "statistics")
         else:
             # For other modes, use selected exercise from statistics table
             exercise_name = self._get_selected_exercise_from_statistics_table()
-            if exercise_name:
+            if isinstance(exercise_name, str):
                 self._load_exercise_avif(exercise_name, "statistics")
 
     def _update_types_avif(self) -> None:
