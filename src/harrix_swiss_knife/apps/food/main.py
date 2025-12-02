@@ -822,12 +822,13 @@ class MainWindow(
         # Refresh the food log table
         self._update_food_log_table()
 
-    def resizeEvent(self, event: QResizeEvent) -> None:  # type: ignore[override]
+    def resizeEvent(self, event: QResizeEvent) -> None:  # type: ignore[override] # noqa: N802
         """Handle window resize event and adjust table column widths proportionally.
 
         Args:
 
         - `event` (`QResizeEvent`): The resize event.
+
         """
         self._on_window_resize(event)
         super().resizeEvent(event)  # Call parent to ensure default behavior
@@ -1978,12 +1979,13 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
-    def _on_window_resize(self, event: QResizeEvent) -> None:
+    def _on_window_resize(self, _event: QResizeEvent) -> None:
         """Handle window resize event and adjust table column widths proportionally.
 
         Args:
 
-        - `event` (`QResizeEvent`): The resize event.
+        - `_event` (`QResizeEvent`): The resize event.
+
         """
         # Adjust food log table column widths based on window size
         self._adjust_food_log_table_columns()
