@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.dates import date2num
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import QDate, Qt
@@ -655,6 +656,9 @@ class ChartOperations:
         - `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
 
         """
+        # Convert datetime to numerical date values for type safety and plotting
+        x_nums: list[float] = date2num(x_values)  # This satisfies the type checker
+
         # Map color names to matplotlib single-letter codes
         color_map = {
             "blue": "b",
@@ -677,7 +681,7 @@ class ChartOperations:
 
         if point_count_for_labels <= self.max_count_points_in_charts:
             ax.plot(
-                x_values,
+                x_nums,  # Use numerical x-values
                 y_values,
                 color=plot_color,
                 marker="o",
@@ -689,18 +693,19 @@ class ChartOperations:
                 markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
             )
             # Add value labels only for non-zero values
-            for x, y in zip(x_values, y_values, strict=False):
+            for x_dt, y in zip(x_values, y_values, strict=False):
                 if y != 0:  # Only label non-zero points
                     # Format label based on value type - remove unnecessary .0
                     label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
 
                     # Add year in parentheses for Years period
-                    if period == "Years" and hasattr(x, "year"):
-                        label_text += f" ({x.year})"
+                    if period == "Years" and hasattr(x_dt, "year"):
+                        label_text += f" ({x_dt.year})"
 
+                    # Annotate using numerical x-value
                     ax.annotate(
                         label_text,
-                        (x, y),
+                        (date2num(x_dt), y),  # Convert to num here for consistency
                         textcoords="offset points",
                         xytext=(0, 10),
                         ha="center",
@@ -710,11 +715,11 @@ class ChartOperations:
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
         else:
-            ax.plot(x_values, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)
+            ax.plot(x_nums, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)  # Use numerical x-values
 
             # Always label the last point, even when there are many points
             if x_values and y_values:
-                last_x = x_values[-1]
+                last_x_dt = x_values[-1]
                 last_y = y_values[-1]
 
                 # Only label if the last point is non-zero
@@ -726,12 +731,13 @@ class ChartOperations:
                         label_text = f"{last_y:.1f}"
 
                     # Add year in parentheses for Years period
-                    if period == "Years" and hasattr(last_x, "year"):
-                        label_text += f" ({last_x.year})"
+                    if period == "Years" and hasattr(last_x_dt, "year"):
+                        label_text += f" ({last_x_dt.year})"
 
+                    # Annotate using numerical x-value
                     ax.annotate(
                         label_text,
-                        (last_x, last_y),
+                        (date2num(last_x_dt), last_y),  # Convert to num here for consistency
                         textcoords="offset points",
                         xytext=(0, 10),
                         ha="center",
