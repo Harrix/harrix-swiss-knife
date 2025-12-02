@@ -2270,11 +2270,8 @@ class MainWindow(
 
         # Create pie chart
         pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
-        wedges, texts, *autotexts = pie_result
-        if autotexts:
-            autotexts = autotexts[0]
-        else:
-            autotexts = []
+        _wedges, _texts, *autotexts = pie_result
+        autotexts = autotexts[0] if autotexts else []
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
@@ -7809,11 +7806,8 @@ def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
 
         # Create pie chart
         pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
-        wedges, texts, *autotexts = pie_result
-        if autotexts:
-            autotexts = autotexts[0]
-        else:
-            autotexts = []
+        _wedges, _texts, *autotexts = pie_result
+        autotexts = autotexts[0] if autotexts else []
 
         # Customize appearance
         ax.set_title(title, fontsize=14, fontweight="bold")
