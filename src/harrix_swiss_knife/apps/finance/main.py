@@ -1506,7 +1506,7 @@ class MainWindow(
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # For today's balance and expenses also use simplified queries
-            today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+            today: str = datetime.now().date().strftime("%Y-%m-%d")
 
             today_query_income: str = """
                 SELECT SUM(t.amount) as total
@@ -1630,7 +1630,7 @@ class MainWindow(
             if use_date is not None:
                 target_date: str = use_date
             else:
-                target_date: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+                target_date: str = datetime.now().date().strftime("%Y-%m-%d")
 
             # Get exchange rate for the target date
             rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
@@ -1646,7 +1646,7 @@ class MainWindow(
 
             # Convert loss to default currency using today's rate
             if default_currency_id is not None and from_currency_id != default_currency_id:
-                today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+                today: str = datetime.now().date().strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
@@ -1720,7 +1720,7 @@ class MainWindow(
             accounts_data: list = self.db_manager.get_all_accounts()
 
             total_balance: float = 0.0
-            today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+            today: str = datetime.now().date().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances: dict[str, float] = {}
@@ -2050,7 +2050,7 @@ class MainWindow(
                 return amount
 
             if date is None:
-                date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                date = datetime.now().strftime("%Y-%m-%d")
 
             rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
             if rate == 1.0 and from_currency_id != to_currency_id:
@@ -2404,7 +2404,7 @@ class MainWindow(
         currency_code: str = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date: datetime = datetime.now(timezone.utc)
+        end_date: datetime = datetime.now()
         start_date: datetime = end_date - timedelta(days=30)
         date_from: str = start_date.strftime("%Y-%m-%d")
         date_to: str = end_date.strftime("%Y-%m-%d")
@@ -2531,11 +2531,11 @@ class MainWindow(
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+                today: str = datetime.now().date().strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date: datetime = datetime.now(timezone.utc)
+                end_date: datetime = datetime.now()
                 start_date: datetime = end_date - timedelta(days=days)
                 date_from: str = start_date.strftime("%Y-%m-%d")
                 date_to: str = end_date.strftime("%Y-%m-%d")
@@ -2621,7 +2621,7 @@ class MainWindow(
         expense_categories.sort(key=lambda x: x[1])
 
         # Determine month range based on available transaction history
-        end_date: datetime = datetime.now(timezone.utc)
+        end_date: datetime = datetime.now()
         earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
 
         if earliest_transaction_date_str:
