@@ -6504,7 +6504,7 @@ class MainWindow(
 
         self.label_exercise_avif.updateGeometry()
         current_exercise = self.avif_data["main"]["exercise"]
-        if current_exercise:
+        if isinstance(current_exercise, str):
             self._load_exercise_avif(current_exercise, "main")
 
     def _update_statistics_avif(self) -> None:
