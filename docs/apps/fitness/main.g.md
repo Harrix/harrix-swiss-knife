@@ -1083,7 +1083,7 @@ class MainWindow(
 
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
-            yesterday = datetime.now().date() - timedelta(days=1)
+            yesterday = datetime.now(timezone.utc).astimezone().date() - timedelta(days=1)
 
             try:
                 first_date = datetime.fromisoformat(first_date_str).date()
@@ -1228,7 +1228,7 @@ class MainWindow(
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
         # Use local time for current date
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
 
         monthly_data = []
         colors = []
@@ -1482,7 +1482,7 @@ class MainWindow(
         selected_month_index = self.comboBox_compare_same_months.currentIndex()
         selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
 
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
@@ -2112,7 +2112,7 @@ class MainWindow(
                 return
 
             # Calculate key date boundaries relative to local time
-            local_now = datetime.now()
+            local_now = datetime.now(timezone.utc).astimezone()
             today_date = local_now.date()
             yesterday_date = today_date - timedelta(days=1)
             thirty_days_ago = today_date - timedelta(days=30)
@@ -2692,7 +2692,7 @@ class MainWindow(
                 return
 
             # Calculate days ago for each exercise
-            today = datetime.now().date()
+            today = datetime.now(timezone.utc).astimezone().date()
             table_data = []
 
             for exercise_name, last_date_str in exercise_dates:
@@ -3017,7 +3017,7 @@ class MainWindow(
 
         # For calories chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3105,7 +3105,7 @@ class MainWindow(
 
         # For sets chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3471,7 +3471,7 @@ class MainWindow(
 
         # For exercise chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3734,7 +3734,7 @@ class MainWindow(
             return
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month = today.month
         current_year = today.year
 
@@ -3911,7 +3911,7 @@ class MainWindow(
             return
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -4056,7 +4056,7 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
         monthly_data = []
 
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
 
         for i in range(months_count):
             # Calculate start and end of month
@@ -4162,7 +4162,7 @@ class MainWindow(
             # For exercises with types, we need to filter by type
             if exercise_type and exercise_type != "All types":
                 # Get today's date
-                today = datetime.now()
+                today = datetime.now(timezone.utc).astimezone()
                 # Get today's data for this specific exercise and type
                 today_data = self.db_manager.get_exercise_chart_data(
                     exercise_name=exercise,
@@ -4175,7 +4175,7 @@ class MainWindow(
                 today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
         # Calculate remaining days in current month
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month = today.month
         current_year = today.year
         days_in_month = calendar.monthrange(current_year, current_month)[1]
@@ -4288,7 +4288,7 @@ class MainWindow(
             return
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month = today.month
         current_year = today.year
 
@@ -4485,7 +4485,7 @@ class MainWindow(
                     last_month_value = final_value
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -4541,7 +4541,7 @@ class MainWindow(
 
         try:
             # Calculate date one year ago
-            one_year_ago = datetime.now() - timedelta(days=365)
+            one_year_ago = datetime.now(timezone.utc).astimezone() - timedelta(days=365)
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Use database manager method
@@ -5126,7 +5126,7 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
 
         # Get data for last N months
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         monthly_data = []
 
         for i in range(months_count):
@@ -5279,7 +5279,7 @@ class MainWindow(
 
         """
         monthly_data = []
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
 
         for i in range(months_count):
             # Calculate start and end of month (same logic as compare_last)
@@ -7629,7 +7629,7 @@ def on_check_steps(self) -> None:
 
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
-            yesterday = datetime.now().date() - timedelta(days=1)
+            yesterday = datetime.now(timezone.utc).astimezone().date() - timedelta(days=1)
 
             try:
                 first_date = datetime.fromisoformat(first_date_str).date()
@@ -7786,7 +7786,7 @@ def on_compare_last_months(self) -> None:
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
         # Use local time for current date
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
 
         monthly_data = []
         colors = []
@@ -8052,7 +8052,7 @@ def on_compare_same_months(self) -> None:
         selected_month_index = self.comboBox_compare_same_months.currentIndex()
         selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
 
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
@@ -8799,7 +8799,7 @@ def on_refresh_statistics(self) -> None:
                 return
 
             # Calculate key date boundaries relative to local time
-            local_now = datetime.now()
+            local_now = datetime.now(timezone.utc).astimezone()
             today_date = local_now.date()
             yesterday_date = today_date - timedelta(days=1)
             thirty_days_ago = today_date - timedelta(days=30)
@@ -9419,7 +9419,7 @@ def on_show_last_exercises(self) -> None:
                 return
 
             # Calculate days ago for each exercise
-            today = datetime.now().date()
+            today = datetime.now(timezone.utc).astimezone().date()
             table_data = []
 
             for exercise_name, last_date_str in exercise_dates:
@@ -9929,7 +9929,7 @@ def show_kcal_chart(self) -> None:
 
         # For calories chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -10030,7 +10030,7 @@ def show_sets_chart(self) -> None:
 
         # For sets chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -10461,7 +10461,7 @@ def update_exercise_chart(self) -> None:
 
         # For exercise chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -10798,7 +10798,7 @@ def _add_calories_recommendations_to_label(self) -> None:
             return
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month = today.month
         current_year = today.year
 
@@ -10987,7 +10987,7 @@ def _add_exercise_recommendations_to_label(
             return
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -11144,7 +11144,7 @@ def _add_exercise_recommendations_to_label_for_standard_chart(
         months_count = self.spinBox_compare_last.value()
         monthly_data = []
 
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
 
         for i in range(months_count):
             # Calculate start and end of month
@@ -11276,7 +11276,7 @@ def _add_same_months_recommendations_to_label(
             # For exercises with types, we need to filter by type
             if exercise_type and exercise_type != "All types":
                 # Get today's date
-                today = datetime.now()
+                today = datetime.now(timezone.utc).astimezone()
                 # Get today's data for this specific exercise and type
                 today_data = self.db_manager.get_exercise_chart_data(
                     exercise_name=exercise,
@@ -11289,7 +11289,7 @@ def _add_same_months_recommendations_to_label(
                 today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
         # Calculate remaining days in current month
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month = today.month
         current_year = today.year
         days_in_month = calendar.monthrange(current_year, current_month)[1]
@@ -11415,7 +11415,7 @@ def _add_sets_recommendations_to_label(self) -> None:
             return
 
         # Get current month data
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month = today.month
         current_year = today.year
 
@@ -11638,7 +11638,7 @@ def _calculate_exercise_recommendations(
                     last_month_value = final_value
 
         # Get current month progress
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -11706,7 +11706,7 @@ def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float,
 
         try:
             # Calculate date one year ago
-            one_year_ago = datetime.now() - timedelta(days=365)
+            one_year_ago = datetime.now(timezone.utc).astimezone() - timedelta(days=365)
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Use database manager method
@@ -12508,7 +12508,7 @@ def _get_exercise_today_goal_info(self, exercise: str) -> str:
         months_count = self.spinBox_compare_last.value()
 
         # Get data for last N months
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
         monthly_data = []
 
         for i in range(months_count):
@@ -12697,7 +12697,7 @@ Returns:
 ```python
 def _get_monthly_data_for_exercise(self, exercise_name: str, months_count: int) -> list:
         monthly_data = []
-        today = datetime.now()
+        today = datetime.now(timezone.utc).astimezone()
 
         for i in range(months_count):
             # Calculate start and end of month (same logic as compare_last)

@@ -465,7 +465,7 @@ class DatabaseManager:
         - `int`: Total weight of drinks in grams.
 
         """
-        today = datetime.now().date().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
         query = "SELECT SUM(weight) FROM food_log WHERE date = :today AND is_drink = 1 AND weight IS NOT NULL"
         params = {"today": today}
         rows = self.get_rows(query, params)
@@ -498,7 +498,7 @@ class DatabaseManager:
         - `float`: Total calories today.
 
         """
-        today = datetime.now().date().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
         query = """
             SELECT SUM(
                 CASE
