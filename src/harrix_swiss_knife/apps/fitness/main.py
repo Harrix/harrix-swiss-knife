@@ -6104,7 +6104,7 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_exercise_types.mapToGlobal(position))
+        action = context_menu.popup(self.tableView_exercise_types.mapToGlobal(position))
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6121,7 +6121,7 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_exercises.mapToGlobal(position))
+        action = context_menu.popup(self.tableView_exercises.mapToGlobal(position))
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6140,7 +6140,7 @@ class MainWindow(
         context_menu.addSeparator()
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
-        action = context_menu.exec(self.tableView_process.mapToGlobal(position))
+        action = context_menu.popup(self.tableView_process.mapToGlobal(position))
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6262,7 +6262,7 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_statistics.mapToGlobal(position))
+        action = context_menu.popup(self.tableView_statistics.mapToGlobal(position))
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6279,7 +6279,7 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_weight.mapToGlobal(position))
+        action = context_menu.popup(self.tableView_weight.mapToGlobal(position))
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6311,7 +6311,8 @@ class MainWindow(
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position
-        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+        context_menu.popup(self.pushButton_yesterday.mapToGlobal(position))
+
 
     def _subtract_one_day_from_main(self) -> None:
         """Subtract one day from the current date in main date field."""

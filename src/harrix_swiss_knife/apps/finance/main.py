@@ -4529,7 +4529,7 @@ class MainWindow(
         if context_menu.isEmpty():
             return
 
-        selected_action = context_menu.exec(self.label_category_now.mapToGlobal(position))
+        selected_action = context_menu.popup(self.label_category_now.mapToGlobal(position))
         if selected_action is None:
             return
 
@@ -4612,7 +4612,7 @@ class MainWindow(
 
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
+        action = context_menu.popup(self.tableView_transactions.mapToGlobal(position))
 
         if action == export_action:
             self.on_export_csv()
@@ -4654,7 +4654,7 @@ class MainWindow(
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position
-        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+        context_menu.popup(self.pushButton_yesterday.mapToGlobal(position))
 
     def _subtract_one_day_from_main(self) -> None:
         """Subtract one day from the current date in main date field."""
