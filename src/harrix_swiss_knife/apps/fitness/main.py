@@ -5672,10 +5672,14 @@ class MainWindow(
 
         """
         frames = self.avif_data[label_key]["frames"]
-        if not frames:
+        if not frames or not isinstance(frames, list):
             return
 
-        current_frame = (self.avif_data[label_key]["current_frame"] + 1) % len(frames)
+        current_frame_index = self.avif_data[label_key]["current_frame"]
+        if not isinstance(current_frame_index, int):
+            return
+
+        current_frame = (current_frame_index + 1) % len(frames)
         self.avif_data[label_key]["current_frame"] = current_frame
 
         # Get the appropriate label widget
