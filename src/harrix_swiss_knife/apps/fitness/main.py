@@ -5671,12 +5671,12 @@ class MainWindow(
         - `label_key` (`str`): Key identifying which label to update.
 
         """
-        if not self.avif_data[label_key]["frames"]:
+        frames = self.avif_data[label_key]["frames"]
+        if not frames:
             return
 
-        self.avif_data[label_key]["current_frame"] = (self.avif_data[label_key]["current_frame"] + 1) % len(
-            self.avif_data[label_key]["frames"]
-        )
+        current_frame = (self.avif_data[label_key]["current_frame"] + 1) % len(frames)
+        self.avif_data[label_key]["current_frame"] = current_frame
 
         # Get the appropriate label widget
         label_widgets = {
@@ -5689,7 +5689,7 @@ class MainWindow(
 
         label_widget = label_widgets.get(label_key)
         if label_widget:
-            label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
+            label_widget.setPixmap(frames[current_frame])
 
     def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on chart exercise list to open Sets tab.
