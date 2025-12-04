@@ -4992,19 +4992,12 @@ class MainWindow(
         if self.db_manager is None:
             return QDate.currentDate()
 
-        # Get the last date when Steps were recorded
         last_date_str = self.db_manager.get_last_exercise_date(exercise_id)
-
         if last_date_str:
-            try:
-                # Parse the last date and add one day
-                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
-                if last_date.isValid():
-                    return last_date.addDays(1)
-            except Exception as e:
-                print(f"Error parsing last steps record date: {e}")
+            last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+            if QDate.isValid(last_date.year(), last_date.month(), last_date.day()):
+                return last_date.addDays(1)
 
-        # If no last date found or parsing failed, return today
         return QDate.currentDate()
 
     def _get_last_weight(self) -> float:
