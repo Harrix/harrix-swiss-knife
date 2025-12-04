@@ -5493,14 +5493,18 @@ class MainWindow(
             print(f"Unknown label key: {label_key}")
             return
 
-        # Stop current animation if exists
-        if self.avif_data[label_key]["timer"]:
-            self.avif_data[label_key]["timer"].stop()
-            self.avif_data[label_key]["timer"] = None
+        # Get reference to data dict for this label
+        data = self.avif_data[label_key]
 
-        self.avif_data[label_key]["frames"] = []
-        self.avif_data[label_key]["current_frame"] = 0
-        self.avif_data[label_key]["exercise"] = exercise_name
+        # Stop current animation if exists
+        timer = data["timer"]
+        if timer is not None and isinstance(timer, QTimer):
+            timer.stop()
+            data["timer"] = None
+
+        data["frames"] = []
+        data["current_frame"] = 0
+        data["exercise"] = exercise_name
 
         # Clear label and reset alignment
         label_widget.clear()
@@ -5539,7 +5543,7 @@ class MainWindow(
                 # Handle animated AVIF
                 if getattr(pil_image, "is_animated", False):
                     # Extract all frames
-                    self.avif_data[label_key]["frames"] = []
+                    frames: list[QPixmap] = []
                     label_size = label_widget.size()
 
                     for frame_index in range(getattr(pil_image, "n_frames", 1)):
@@ -5575,15 +5579,19 @@ class MainWindow(
                                 Qt.AspectRatioMode.KeepAspectRatio,
                                 Qt.TransformationMode.SmoothTransformation,
                             )
-                            self.avif_data[label_key]["frames"].append(scaled_pixmap)
+                            frames.append(scaled_pixmap)
 
-                    if self.avif_data[label_key]["frames"]:
+                    if frames:
+                        # Store frames in data dict
+                        data["frames"] = frames
+
                         # Show first frame
-                        label_widget.setPixmap(self.avif_data[label_key]["frames"][0])
+                        label_widget.setPixmap(frames[0])
 
                         # Start animation timer
-                        self.avif_data[label_key]["timer"] = QTimer()
-                        self.avif_data[label_key]["timer"].timeout.connect(lambda: self._next_avif_frame(label_key))
+                        new_timer = QTimer()
+                        new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
+                        data["timer"] = new_timer
 
                         # Get frame duration (default 100ms if not available)
                         try:
@@ -5591,7 +5599,7 @@ class MainWindow(
                         except Exception:
                             duration = 100
 
-                        self.avif_data[label_key]["timer"].start(duration)
+                        new_timer.start(duration)
                         return
                 else:
                     # Static image
