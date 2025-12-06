@@ -6109,7 +6109,13 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.popup(self.tableView_exercise_types.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_exercise_types.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6126,7 +6132,13 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.popup(self.tableView_exercises.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_exercises.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6271,7 +6283,13 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.popup(self.tableView_statistics.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_statistics.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6288,7 +6306,13 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.popup(self.tableView_weight.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_weight.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6320,7 +6344,7 @@ class MainWindow(
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position
-        context_menu.popup(self.pushButton_yesterday.mapToGlobal(position))
+        context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
 
 
     def _subtract_one_day_from_main(self) -> None:
