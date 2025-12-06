@@ -17,14 +17,14 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QPoint, QSize, QSortFilterProxyModel, Qt, QTimer
+from PySide6.QtCore import QDate, QDateTime, QEvent, QModelIndex, QPoint, QSize, QSortFilterProxyModel, Qt, QTimer
 from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
@@ -199,6 +199,8 @@ class MainWindow(
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
         self.setupUi(self)
+        # Install event filter for chart info label to handle double-click
+        self.label_chart_info.installEventFilter(self)
         self._setup_ui()
 
         # Set window icon
@@ -4437,9 +4439,6 @@ class MainWindow(
 
         # Add context menu for exercises table
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-
-        # Add double-click handler for chart info label to copy text to clipboard
-        self.label_chart_info.mouseDoubleClickEvent = self._on_chart_info_double_clicked
         self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
 
         # Add context menu for exercise types table
@@ -5731,6 +5730,24 @@ class MainWindow(
 
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
+
+    def eventFilter(self, obj, event) -> bool:
+        """Filter events to handle double-click on chart info label.
+
+        Args:
+            obj: The object that received the event.
+            event: The event that occurred.
+
+        Returns:
+            True if the event was handled, False otherwise.
+        """
+        # Handle double-click on label_chart_info safely
+        if obj is self.label_chart_info and event.type() == QEvent.Type.MouseButtonDblClick:
+            # Call your existing handler
+            self._on_chart_info_double_clicked(cast(QMouseEvent, event))
+            return True  # event handled
+
+        return super().eventFilter(obj, event)
 
     def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on exercises list to open Exercise Chart tab.
