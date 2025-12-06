@@ -6145,7 +6145,13 @@ class MainWindow(
         context_menu.addSeparator()
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
-        action = context_menu.popup(self.tableView_process.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_process.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6155,8 +6161,6 @@ class MainWindow(
             if self.tableView_process.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
                 self.pushButton_delete.click()
-                # Force close the context menu
-                context_menu.close()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
 
