@@ -487,11 +487,11 @@ class MainWindow(
         # Track right mouse button on the table's viewport to suppress data copy on right-click
         if obj == self.tableView_transactions.viewport():
             if event.type() == QEvent.Type.MouseButtonPress:
-                mouse_event = QMouseEvent(event)
-                if mouse_event.button() == Qt.MouseButton.RightButton:
-                    self._right_click_in_progress = True
-                else:
-                    self._right_click_in_progress = False
+                if isinstance(event, QMouseEvent):
+                    if event.button() == Qt.MouseButton.RightButton:
+                        self._right_click_in_progress = True
+                    else:
+                        self._right_click_in_progress = False
 
             elif event.type() == QEvent.Type.MouseButtonRelease:
                 if isinstance(event, QMouseEvent):
