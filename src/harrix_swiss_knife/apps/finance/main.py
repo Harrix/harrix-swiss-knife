@@ -486,37 +486,43 @@ class MainWindow(
         """
         # Track right mouse button on the table's viewport to suppress data copy on right-click
         if obj == self.tableView_transactions.viewport():
-            if event.type() == QEvent.Type.MouseButtonPress:
-                if isinstance(event, QMouseEvent):
-                    if event.button() == Qt.MouseButton.RightButton:
-                        self._right_click_in_progress = True
-                    else:
-                        self._right_click_in_progress = False
+            if event.type() == QEvent.Type.MouseButtonPress and isinstance(event, QMouseEvent):
+                if event.button() == Qt.MouseButton.RightButton:
+                    self._right_click_in_progress = True
+                else:
+                    self._right_click_in_progress = False
 
-            elif event.type() == QEvent.Type.MouseButtonRelease:
-                if isinstance(event, QMouseEvent):
-                    if event.button() == Qt.MouseButton.RightButton:
-                        # Reset the flag shortly after release to allow context menu to process
-                        QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
+            elif (
+                event.type() == QEvent.Type.MouseButtonRelease
+                and isinstance(event, QMouseEvent)
+                and event.button() == Qt.MouseButton.RightButton
+            ):
+                # Reset the flag shortly after release to allow context menu to process
+                QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
 
-        if obj == self.label_category_now and event.type() == QEvent.Type.MouseButtonPress:
-            if isinstance(event, QMouseEvent):
-                if event.button() == Qt.MouseButton.LeftButton:
-                    self._show_category_label_context_menu(event.position().toPoint())
-                    return True
+        if (
+            obj == self.label_category_now
+            and event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._show_category_label_context_menu(event.position().toPoint())
+            return True
 
         # Handle Enter key to add transaction quickly
         if (
-            (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.lineEdit_description and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
+            (
+                (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.lineEdit_description and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
+            )
+            and isinstance(event, QKeyEvent)
+            and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
         ):
-            if isinstance(event, QKeyEvent):
-                if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                    self.on_add_transaction()
-                    return True
+            self.on_add_transaction()
+            return True
 
         return super().eventFilter(obj, event)
 

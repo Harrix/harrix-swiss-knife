@@ -770,7 +770,7 @@ class ExchangeRatesOperations:
         except Exception as e:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
-            QMessageBox.critical(cast(QWidget, self), "Update Error", f"Failed to start exchange rate update: {e}")
+            QMessageBox.critical(cast("QWidget", self), "Update Error", f"Failed to start exchange rate update: {e}")
             print(f"❌ Exchange rate update error: {e}")
 
     def _start_startup_exchange_rate_update(self, currencies_to_process: list) -> None:
