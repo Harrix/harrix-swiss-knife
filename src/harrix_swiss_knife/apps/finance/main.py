@@ -1874,8 +1874,8 @@ class MainWindow(
         """
         while layout.count():
             child = layout.takeAt(0)
-            if child.widget():
-                widget = child.widget()
+            widget = child.widget()
+            if widget is not None:
                 # Special handling for matplotlib canvas
                 if hasattr(widget, "figure"):
                     try:
