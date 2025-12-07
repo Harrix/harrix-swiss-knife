@@ -2200,7 +2200,9 @@ class MainWindow(
             autotext.set_fontweight("bold")
 
         fig.tight_layout()
-        self.scrollAreaWidgetContents_charts.layout().addWidget(canvas)
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            layout.addWidget(canvas)
         canvas.draw()
 
     def _create_table_model(
