@@ -1,7 +1,9 @@
 """Category combo box delegate for category column in transactions table."""
 
+from typing import cast
+
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
-from PySide6.QtWidgets import QComboBox, QStyledItemDelegate
+from PySide6.QtWidgets import QComboBox, QStyledItemDelegate, QWidget
 
 
 class CategoryComboBoxDelegate(QStyledItemDelegate):
@@ -33,7 +35,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         - `QComboBox`: The created combo box editor.
 
         """
-        combo = QComboBox(parent)
+        combo = QComboBox(cast("QWidget", parent))
         combo.setEditable(False)
 
         # Set white background for the editor
