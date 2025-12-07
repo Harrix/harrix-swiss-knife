@@ -145,7 +145,7 @@ class ExchangeEditDialog(QDialog):
         if date_str:
             try:
                 date = QDate.fromString(date_str, "yyyy-MM-dd")
-                if date.isValid():
+                if date.isValid():  # type: ignore[no-matching-overload]
                     self.date_edit.setDate(date)
             except Exception as e:
                 print(f"Failed to parse or set date '{date_str}': {e}")
