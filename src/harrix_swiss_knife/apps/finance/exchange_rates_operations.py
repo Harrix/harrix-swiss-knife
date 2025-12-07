@@ -254,7 +254,10 @@ class ExchangeRatesOperations:
             filter_info.append(f"Records found: {len(filtered_data)}")
 
             QMessageBox.information(
-                self, "Filter Applied", "Exchange rates filter has been applied.\n\n" + "\n".join(filter_info)
+                cast("QWidget", self),
+                "Filter Applied",
+                "Exchange rates filter has been applied.\n\n"
+                + "\n".join(filter_info),
             )
 
         except Exception as e:
@@ -305,7 +308,9 @@ class ExchangeRatesOperations:
             # Check if checker is already running
             if hasattr(self, "exchange_rate_checker") and self.exchange_rate_checker.isRunning():
                 QMessageBox.warning(
-                    self, "Check in Progress", "Exchange rate check is already running. Please wait for it to complete."
+                    cast("QWidget", self),
+                    "Check in Progress",
+                    "Exchange rate check is already running. Please wait for it to complete.",
                 )
                 return
 
