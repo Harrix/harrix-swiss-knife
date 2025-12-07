@@ -85,7 +85,7 @@ class ExchangeRatesOperations:
 
             # Show confirmation dialog
             reply = QMessageBox.question(
-                self,
+                cast("QWidget", self),
                 "Confirm Deletion",
                 f"Are you sure you want to delete exchange rates for the last {days} days?\n\n"
                 "This action cannot be undone.",
