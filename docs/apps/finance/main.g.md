@@ -4611,7 +4611,8 @@ class MainWindow(
         if context_menu.isEmpty():
             return
 
-        selected_action = context_menu.exec(self.label_category_now.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        selected_action = context_menu.exec_(self.label_category_now.mapToGlobal(position))
         if selected_action is None:
             return
 
@@ -4694,7 +4695,13 @@ class MainWindow(
 
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_transactions.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             self.on_export_csv()
@@ -4736,7 +4743,7 @@ class MainWindow(
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position
-        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+        context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
 
     def _subtract_one_day_from_main(self) -> None:
         """Subtract one day from the current date in main date field."""
@@ -10975,7 +10982,8 @@ def _show_category_label_context_menu(self, position: QPoint) -> None:
         if context_menu.isEmpty():
             return
 
-        selected_action = context_menu.exec(self.label_category_now.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        selected_action = context_menu.exec_(self.label_category_now.mapToGlobal(position))
         if selected_action is None:
             return
 
@@ -11082,7 +11090,13 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
 
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_transactions.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_transactions.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             self.on_export_csv()
@@ -11136,7 +11150,7 @@ def _show_yesterday_context_menu(self, position: QPoint) -> None:
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position
-        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+        context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
 ```
 
 </details>

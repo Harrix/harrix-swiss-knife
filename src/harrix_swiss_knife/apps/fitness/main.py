@@ -476,6 +476,27 @@ class MainWindow(
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Filter events to handle double-click on chart info label.
+
+        Args:
+
+        - `obj` (`QObject`): The object that received the event.
+        - `event` (`QEvent`): The event that occurred.
+
+        Returns:
+
+        - `bool`: True if the event was handled, False otherwise.
+
+        """
+        # Handle double-click on label_chart_info safely
+        if obj is self.label_chart_info and event.type() == QEvent.Type.MouseButtonDblClick:
+            # Call your existing handler
+            self._on_chart_info_double_clicked(cast("QMouseEvent", event))
+            return True  # event handled
+
+        return super().eventFilter(obj, event)
+
     def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
         """Generate pastel colors using mathematical distribution.
 
@@ -2693,6 +2714,21 @@ class MainWindow(
                 self.dateEdit_weight.setDate(QDate.currentDate())
         except Exception:
             self.dateEdit_weight.setDate(QDate.currentDate())
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `event` (`QResizeEvent`): The resize event.
+
+        """
+        # Call parent resize event first
+        super().resizeEvent(event)
+
+        # Adjust process table column widths based on window size
+        self._adjust_process_table_columns()
+        self._update_layout_for_window_size()
 
     def set_chart_all_time(self) -> None:
         """Set chart date range to all available data using database manager."""
@@ -5741,27 +5777,6 @@ class MainWindow(
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
 
-    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Filter events to handle double-click on chart info label.
-
-        Args:
-
-        - `obj` (`QObject`): The object that received the event.
-        - `event` (`QEvent`): The event that occurred.
-
-        Returns:
-
-        - `bool`: True if the event was handled, False otherwise.
-
-        """
-        # Handle double-click on label_chart_info safely
-        if obj is self.label_chart_info and event.type() == QEvent.Type.MouseButtonDblClick:
-            # Call your existing handler
-            self._on_chart_info_double_clicked(cast("QMouseEvent", event))
-            return True  # event handled
-
-        return super().eventFilter(obj, event)
-
     def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on exercises list to open Exercise Chart tab.
 
@@ -5837,21 +5852,6 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
-
-    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Handle window resize event and adjust table column widths proportionally.
-
-        Args:
-
-        - `event` (`QResizeEvent`): The resize event.
-
-        """
-        # Call parent resize event first
-        super().resizeEvent(event)
-
-        # Adjust process table column widths based on window size
-        self._adjust_process_table_columns()
-        self._update_layout_for_window_size()
 
     def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
         """Refresh a table with data.
@@ -6375,7 +6375,6 @@ class MainWindow(
 
         # Show context menu at cursor position
         context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
-
 
     def _subtract_one_day_from_main(self) -> None:
         """Subtract one day from the current date in main date field."""

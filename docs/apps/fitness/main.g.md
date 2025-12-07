@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `generate_pastel_colors_mathematical`](#%EF%B8%8F-method-generate_pastel_colors_mathematical)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `load_process_table`](#%EF%B8%8F-method-load_process_table)
@@ -51,6 +52,7 @@ lang: en
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
   - [⚙️ Method `on_toggle_show_all_records`](#%EF%B8%8F-method-on_toggle_show_all_records)
   - [⚙️ Method `on_weight_selection_changed`](#%EF%B8%8F-method-on_weight_selection_changed)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_chart_all_time`](#%EF%B8%8F-method-set_chart_all_time)
   - [⚙️ Method `set_chart_last_month`](#%EF%B8%8F-method-set_chart_last_month)
   - [⚙️ Method `set_chart_last_year`](#%EF%B8%8F-method-set_chart_last_year)
@@ -123,7 +125,6 @@ lang: en
   - [⚙️ Method `_on_chart_info_double_clicked`](#%EF%B8%8F-method-_on_chart_info_double_clicked)
   - [⚙️ Method `_on_exercises_list_double_clicked`](#%EF%B8%8F-method-_on_exercises_list_double_clicked)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
-  - [⚙️ Method `_on_window_resize`](#%EF%B8%8F-method-_on_window_resize)
   - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
   - [⚙️ Method `_schedule_chart_update`](#%EF%B8%8F-method-_schedule_chart_update)
   - [⚙️ Method `_select_exercise_in_chart_list`](#%EF%B8%8F-method-_select_exercise_in_chart_list)
@@ -433,6 +434,8 @@ class MainWindow(
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
         self.setupUi(self)
+        # Install event filter for chart info label to handle double-click
+        self.label_chart_info.installEventFilter(self)
         self._setup_ui()
 
         # Set window icon
@@ -696,6 +699,27 @@ class MainWindow(
             self.update_sets_count_today()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Filter events to handle double-click on chart info label.
+
+        Args:
+
+        - `obj` (`QObject`): The object that received the event.
+        - `event` (`QEvent`): The event that occurred.
+
+        Returns:
+
+        - `bool`: True if the event was handled, False otherwise.
+
+        """
+        # Handle double-click on label_chart_info safely
+        if obj is self.label_chart_info and event.type() == QEvent.Type.MouseButtonDblClick:
+            # Call your existing handler
+            self._on_chart_info_double_clicked(cast("QMouseEvent", event))
+            return True  # event handled
+
+        return super().eventFilter(obj, event)
 
     def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
         """Generate pastel colors using mathematical distribution.
@@ -2915,6 +2939,21 @@ class MainWindow(
         except Exception:
             self.dateEdit_weight.setDate(QDate.currentDate())
 
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `event` (`QResizeEvent`): The resize event.
+
+        """
+        # Call parent resize event first
+        super().resizeEvent(event)
+
+        # Adjust process table column widths based on window size
+        self._adjust_process_table_columns()
+        self._update_layout_for_window_size()
+
     def set_chart_all_time(self) -> None:
         """Set chart date range to all available data using database manager."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
@@ -3292,7 +3331,7 @@ class MainWindow(
 
         # Load AVIF for the currently selected exercise
         current_exercise_name = self._get_current_selected_exercise()
-        if current_exercise_name:
+        if isinstance(current_exercise_name, str):
             self._load_exercise_avif(current_exercise_name, "main")
 
         # Update other AVIFs
@@ -3701,9 +3740,9 @@ class MainWindow(
         self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), period="Days")
 
         # Customize plot
-        ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
-        ax.set_ylabel(chart_config.get("ylabel", "Y"), fontsize=12)
-        ax.set_title(chart_config.get("title", "Chart"), fontsize=14, fontweight="bold")
+        ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
+        ax.set_ylabel(str(chart_config.get("ylabel", "Y")), fontsize=12)
+        ax.set_title(str(chart_config.get("title", "Chart")), fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
 
         # Add more detailed Y-axis grid for weight chart
@@ -4579,8 +4618,7 @@ class MainWindow(
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
-        # Connect window resize event for automatic column resizing
-        self.resizeEvent = self._on_window_resize
+        # Window resize event is handled by overriding resizeEvent method
 
         # Connect delete and refresh buttons for all tables (except statistics)
         tables_with_controls = {"process", "exercises", "types", "weight"}
@@ -4671,9 +4709,6 @@ class MainWindow(
 
         # Add context menu for exercises table
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-
-        # Add double-click handler for chart info label to copy text to clipboard
-        self.label_chart_info.mouseDoubleClickEvent = self._on_chart_info_double_clicked
         self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
 
         # Add context menu for exercise types table
@@ -5226,19 +5261,12 @@ class MainWindow(
         if self.db_manager is None:
             return QDate.currentDate()
 
-        # Get the last date when Steps were recorded
         last_date_str = self.db_manager.get_last_exercise_date(exercise_id)
-
         if last_date_str:
-            try:
-                # Parse the last date and add one day
-                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
-                if last_date.isValid():
-                    return last_date.addDays(1)
-            except Exception as e:
-                print(f"Error parsing last steps record date: {e}")
+            last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+            if QDate.isValid(last_date.year(), last_date.month(), last_date.day()):
+                return last_date.addDays(1)
 
-        # If no last date found or parsing failed, return today
         return QDate.currentDate()
 
     def _get_last_weight(self) -> float:
@@ -5727,14 +5755,18 @@ class MainWindow(
             print(f"Unknown label key: {label_key}")
             return
 
-        # Stop current animation if exists
-        if self.avif_data[label_key]["timer"]:
-            self.avif_data[label_key]["timer"].stop()
-            self.avif_data[label_key]["timer"] = None
+        # Get reference to data dict for this label
+        data = self.avif_data[label_key]
 
-        self.avif_data[label_key]["frames"] = []
-        self.avif_data[label_key]["current_frame"] = 0
-        self.avif_data[label_key]["exercise"] = exercise_name
+        # Stop current animation if exists
+        timer = data["timer"]
+        if timer is not None and isinstance(timer, QTimer):
+            timer.stop()
+            data["timer"] = None
+
+        data["frames"] = []
+        data["current_frame"] = 0
+        data["exercise"] = exercise_name
 
         # Clear label and reset alignment
         label_widget.clear()
@@ -5773,7 +5805,7 @@ class MainWindow(
                 # Handle animated AVIF
                 if getattr(pil_image, "is_animated", False):
                     # Extract all frames
-                    self.avif_data[label_key]["frames"] = []
+                    frames: list[QPixmap] = []
                     label_size = label_widget.size()
 
                     for frame_index in range(getattr(pil_image, "n_frames", 1)):
@@ -5809,15 +5841,19 @@ class MainWindow(
                                 Qt.AspectRatioMode.KeepAspectRatio,
                                 Qt.TransformationMode.SmoothTransformation,
                             )
-                            self.avif_data[label_key]["frames"].append(scaled_pixmap)
+                            frames.append(scaled_pixmap)
 
-                    if self.avif_data[label_key]["frames"]:
+                    if frames:
+                        # Store frames in data dict
+                        data["frames"] = frames
+
                         # Show first frame
-                        label_widget.setPixmap(self.avif_data[label_key]["frames"][0])
+                        label_widget.setPixmap(frames[0])
 
                         # Start animation timer
-                        self.avif_data[label_key]["timer"] = QTimer()
-                        self.avif_data[label_key]["timer"].timeout.connect(lambda: self._next_avif_frame(label_key))
+                        new_timer = QTimer()
+                        new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
+                        data["timer"] = new_timer
 
                         # Get frame duration (default 100ms if not available)
                         try:
@@ -5825,7 +5861,7 @@ class MainWindow(
                         except Exception:
                             duration = 100
 
-                        self.avif_data[label_key]["timer"].start(duration)
+                        new_timer.start(duration)
                         return
                 else:
                     # Static image
@@ -5877,7 +5913,7 @@ class MainWindow(
         """Load AVIF for all labels after complete UI initialization."""
         # Load main exercise AVIF
         current_exercise_name = self._get_current_selected_exercise()
-        if current_exercise_name:
+        if isinstance(current_exercise_name, str):
             self._load_exercise_avif(current_exercise_name, "main")
             # Trigger the selection change to update labels
             self.on_exercise_selection_changed_list()
@@ -5905,12 +5941,16 @@ class MainWindow(
         - `label_key` (`str`): Key identifying which label to update.
 
         """
-        if not self.avif_data[label_key]["frames"]:
+        frames = self.avif_data[label_key]["frames"]
+        if not frames or not isinstance(frames, list):
             return
 
-        self.avif_data[label_key]["current_frame"] = (self.avif_data[label_key]["current_frame"] + 1) % len(
-            self.avif_data[label_key]["frames"]
-        )
+        current_frame_index = self.avif_data[label_key]["current_frame"]
+        if not isinstance(current_frame_index, int):
+            return
+
+        current_frame = (current_frame_index + 1) % len(frames)
+        self.avif_data[label_key]["current_frame"] = current_frame
 
         # Get the appropriate label widget
         label_widgets = {
@@ -5923,7 +5963,7 @@ class MainWindow(
 
         label_widget = label_widgets.get(label_key)
         if label_widget:
-            label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
+            label_widget.setPixmap(frames[current_frame])
 
     def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on chart exercise list to open Sets tab.
@@ -6036,21 +6076,6 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
-
-    def _on_window_resize(self, event: QResizeEvent) -> None:
-        """Handle window resize event and adjust table column widths proportionally.
-
-        Args:
-
-        - `event` (`QResizeEvent`): The resize event.
-
-        """
-        # Call parent resize event first
-        super().resizeEvent(event)
-
-        # Adjust process table column widths based on window size
-        self._adjust_process_table_columns()
-        self._update_layout_for_window_size()
 
     def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
         """Refresh a table with data.
@@ -6338,7 +6363,13 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_exercise_types.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_exercise_types.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6355,7 +6386,13 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_exercises.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_exercises.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6374,7 +6411,13 @@ class MainWindow(
         context_menu.addSeparator()
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
-        action = context_menu.exec(self.tableView_process.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_process.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6384,8 +6427,6 @@ class MainWindow(
             if self.tableView_process.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
                 self.pushButton_delete.click()
-                # Force close the context menu
-                context_menu.close()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
 
@@ -6496,7 +6537,13 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_statistics.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_statistics.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6513,7 +6560,13 @@ class MainWindow(
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_weight.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_weight.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -6545,7 +6598,7 @@ class MainWindow(
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position
-        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+        context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
 
     def _subtract_one_day_from_main(self) -> None:
         """Subtract one day from the current date in main date field."""
@@ -6681,7 +6734,7 @@ class MainWindow(
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""
         exercise_name = self._get_selected_exercise_from_table("exercises")
-        if exercise_name:
+        if isinstance(exercise_name, str):
             self._load_exercise_avif(exercise_name, "exercises")
 
     def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
@@ -6738,7 +6791,7 @@ class MainWindow(
 
         self.label_exercise_avif.updateGeometry()
         current_exercise = self.avif_data["main"]["exercise"]
-        if current_exercise:
+        if isinstance(current_exercise, str):
             self._load_exercise_avif(current_exercise, "main")
 
     def _update_statistics_avif(self) -> None:
@@ -6746,7 +6799,7 @@ class MainWindow(
         if self.current_statistics_mode == "check_steps":
             # Always show Steps exercise for check_steps mode
             steps_exercise_name = self._get_exercise_name_by_id(self.id_steps)
-            if steps_exercise_name:
+            if isinstance(steps_exercise_name, str):
                 self._load_exercise_avif(steps_exercise_name, "statistics")
         elif self.current_statistics_mode == "records":
             # For records mode, use selected exercise from comboBox_records_select_exercise
@@ -6756,12 +6809,12 @@ class MainWindow(
             else:
                 # If no exercise selected in combobox, use selected exercise from table
                 exercise_name = self._get_selected_exercise_from_statistics_table()
-                if exercise_name:
+                if isinstance(exercise_name, str):
                     self._load_exercise_avif(exercise_name, "statistics")
         else:
             # For other modes, use selected exercise from statistics table
             exercise_name = self._get_selected_exercise_from_statistics_table()
-            if exercise_name:
+            if isinstance(exercise_name, str):
                 self._load_exercise_avif(exercise_name, "statistics")
 
     def _update_types_avif(self) -> None:
@@ -6806,6 +6859,8 @@ _No docstring provided._
 def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
         self.setupUi(self)
+        # Install event filter for chart info label to handle double-click
+        self.label_chart_info.installEventFilter(self)
         self._setup_ui()
 
         # Set window icon
@@ -7118,6 +7173,39 @@ def delete_record(self, table_name: str) -> None:
             self.update_sets_count_today()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, obj: QObject, event: QEvent) -> bool
+```
+
+Filter events to handle double-click on chart info label.
+
+Args:
+
+- `obj` (`QObject`): The object that received the event.
+- `event` (`QEvent`): The event that occurred.
+
+Returns:
+
+- `bool`: True if the event was handled, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
+        # Handle double-click on label_chart_info safely
+        if obj is self.label_chart_info and event.type() == QEvent.Type.MouseButtonDblClick:
+            # Call your existing handler
+            self._on_chart_info_double_clicked(cast("QMouseEvent", event))
+            return True  # event handled
+
+        return super().eventFilter(obj, event)
 ```
 
 </details>
@@ -9707,6 +9795,33 @@ def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIn
 
 </details>
 
+### ⚙️ Method `resizeEvent`
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None
+```
+
+Handle window resize event and adjust table column widths proportionally.
+
+Args:
+
+- `event` (`QResizeEvent`): The resize event.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        # Call parent resize event first
+        super().resizeEvent(event)
+
+        # Adjust process table column widths based on window size
+        self._adjust_process_table_columns()
+        self._update_layout_for_window_size()
+```
+
+</details>
+
 ### ⚙️ Method `set_chart_all_time`
 
 ```python
@@ -10245,7 +10360,7 @@ def update_all(
 
         # Load AVIF for the currently selected exercise
         current_exercise_name = self._get_current_selected_exercise()
-        if current_exercise_name:
+        if isinstance(current_exercise_name, str):
             self._load_exercise_avif(current_exercise_name, "main")
 
         # Update other AVIFs
@@ -10752,9 +10867,9 @@ def update_weight_chart(self) -> None:
         self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), period="Days")
 
         # Customize plot
-        ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
-        ax.set_ylabel(chart_config.get("ylabel", "Y"), fontsize=12)
-        ax.set_title(chart_config.get("title", "Chart"), fontsize=14, fontweight="bold")
+        ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
+        ax.set_ylabel(str(chart_config.get("ylabel", "Y")), fontsize=12)
+        ax.set_title(str(chart_config.get("title", "Chart")), fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
 
         # Add more detailed Y-axis grid for weight chart
@@ -11757,8 +11872,7 @@ def _connect_signals(self) -> None:
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
-        # Connect window resize event for automatic column resizing
-        self.resizeEvent = self._on_window_resize
+        # Window resize event is handled by overriding resizeEvent method
 
         # Connect delete and refresh buttons for all tables (except statistics)
         tables_with_controls = {"process", "exercises", "types", "weight"}
@@ -11849,9 +11963,6 @@ def _connect_signals(self) -> None:
 
         # Add context menu for exercises table
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-
-        # Add double-click handler for chart info label to copy text to clipboard
-        self.label_chart_info.mouseDoubleClickEvent = self._on_chart_info_double_clicked
         self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
 
         # Add context menu for exercise types table
@@ -12620,19 +12731,12 @@ def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
         if self.db_manager is None:
             return QDate.currentDate()
 
-        # Get the last date when Steps were recorded
         last_date_str = self.db_manager.get_last_exercise_date(exercise_id)
-
         if last_date_str:
-            try:
-                # Parse the last date and add one day
-                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
-                if last_date.isValid():
-                    return last_date.addDays(1)
-            except Exception as e:
-                print(f"Error parsing last steps record date: {e}")
+            last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+            if QDate.isValid(last_date.year(), last_date.month(), last_date.day()):
+                return last_date.addDays(1)
 
-        # If no last date found or parsing failed, return today
         return QDate.currentDate()
 ```
 
@@ -13359,14 +13463,18 @@ def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> No
             print(f"Unknown label key: {label_key}")
             return
 
-        # Stop current animation if exists
-        if self.avif_data[label_key]["timer"]:
-            self.avif_data[label_key]["timer"].stop()
-            self.avif_data[label_key]["timer"] = None
+        # Get reference to data dict for this label
+        data = self.avif_data[label_key]
 
-        self.avif_data[label_key]["frames"] = []
-        self.avif_data[label_key]["current_frame"] = 0
-        self.avif_data[label_key]["exercise"] = exercise_name
+        # Stop current animation if exists
+        timer = data["timer"]
+        if timer is not None and isinstance(timer, QTimer):
+            timer.stop()
+            data["timer"] = None
+
+        data["frames"] = []
+        data["current_frame"] = 0
+        data["exercise"] = exercise_name
 
         # Clear label and reset alignment
         label_widget.clear()
@@ -13405,7 +13513,7 @@ def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> No
                 # Handle animated AVIF
                 if getattr(pil_image, "is_animated", False):
                     # Extract all frames
-                    self.avif_data[label_key]["frames"] = []
+                    frames: list[QPixmap] = []
                     label_size = label_widget.size()
 
                     for frame_index in range(getattr(pil_image, "n_frames", 1)):
@@ -13441,15 +13549,19 @@ def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> No
                                 Qt.AspectRatioMode.KeepAspectRatio,
                                 Qt.TransformationMode.SmoothTransformation,
                             )
-                            self.avif_data[label_key]["frames"].append(scaled_pixmap)
+                            frames.append(scaled_pixmap)
 
-                    if self.avif_data[label_key]["frames"]:
+                    if frames:
+                        # Store frames in data dict
+                        data["frames"] = frames
+
                         # Show first frame
-                        label_widget.setPixmap(self.avif_data[label_key]["frames"][0])
+                        label_widget.setPixmap(frames[0])
 
                         # Start animation timer
-                        self.avif_data[label_key]["timer"] = QTimer()
-                        self.avif_data[label_key]["timer"].timeout.connect(lambda: self._next_avif_frame(label_key))
+                        new_timer = QTimer()
+                        new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
+                        data["timer"] = new_timer
 
                         # Get frame duration (default 100ms if not available)
                         try:
@@ -13457,7 +13569,7 @@ def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> No
                         except Exception:
                             duration = 100
 
-                        self.avif_data[label_key]["timer"].start(duration)
+                        new_timer.start(duration)
                         return
                 else:
                     # Static image
@@ -13523,7 +13635,7 @@ Load AVIF for all labels after complete UI initialization.
 def _load_initial_avifs(self) -> None:
         # Load main exercise AVIF
         current_exercise_name = self._get_current_selected_exercise()
-        if current_exercise_name:
+        if isinstance(current_exercise_name, str):
             self._load_exercise_avif(current_exercise_name, "main")
             # Trigger the selection change to update labels
             self.on_exercise_selection_changed_list()
@@ -13575,12 +13687,16 @@ Args:
 
 ```python
 def _next_avif_frame(self, label_key: str) -> None:
-        if not self.avif_data[label_key]["frames"]:
+        frames = self.avif_data[label_key]["frames"]
+        if not frames or not isinstance(frames, list):
             return
 
-        self.avif_data[label_key]["current_frame"] = (self.avif_data[label_key]["current_frame"] + 1) % len(
-            self.avif_data[label_key]["frames"]
-        )
+        current_frame_index = self.avif_data[label_key]["current_frame"]
+        if not isinstance(current_frame_index, int):
+            return
+
+        current_frame = (current_frame_index + 1) % len(frames)
+        self.avif_data[label_key]["current_frame"] = current_frame
 
         # Get the appropriate label widget
         label_widgets = {
@@ -13593,7 +13709,7 @@ def _next_avif_frame(self, label_key: str) -> None:
 
         label_widget = label_widgets.get(label_key)
         if label_widget:
-            label_widget.setPixmap(self.avif_data[label_key]["frames"][self.avif_data[label_key]["current_frame"]])
+            label_widget.setPixmap(frames[current_frame])
 ```
 
 </details>
@@ -13751,33 +13867,6 @@ def _on_table_data_changed(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
-```
-
-</details>
-
-### ⚙️ Method `_on_window_resize`
-
-```python
-def _on_window_resize(self, event: QResizeEvent) -> None
-```
-
-Handle window resize event and adjust table column widths proportionally.
-
-Args:
-
-- `event` (`QResizeEvent`): The resize event.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_window_resize(self, event: QResizeEvent) -> None:
-        # Call parent resize event first
-        super().resizeEvent(event)
-
-        # Adjust process table column widths based on window size
-        self._adjust_process_table_columns()
-        self._update_layout_for_window_size()
 ```
 
 </details>
@@ -14204,7 +14293,13 @@ def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_exercise_types.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_exercise_types.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -14233,7 +14328,13 @@ def _show_exercises_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_exercises.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_exercises.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -14264,7 +14365,13 @@ def _show_process_context_menu(self, position: QPoint) -> None:
         context_menu.addSeparator()
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
-        action = context_menu.exec(self.tableView_process.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_process.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -14274,8 +14381,6 @@ def _show_process_context_menu(self, position: QPoint) -> None:
             if self.tableView_process.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
                 self.pushButton_delete.click()
-                # Force close the context menu
-                context_menu.close()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
 ```
@@ -14410,7 +14515,13 @@ def _show_statistics_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_statistics.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_statistics.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -14439,7 +14550,13 @@ def _show_weight_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        action = context_menu.exec(self.tableView_weight.mapToGlobal(position))
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_weight.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
 
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
@@ -14483,7 +14600,7 @@ def _show_yesterday_context_menu(self, position: QPoint) -> None:
         minus_one_action.triggered.connect(self._subtract_one_day_from_main)
 
         # Show context menu at cursor position
-        context_menu.exec(self.pushButton_yesterday.mapToGlobal(position))
+        context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
 ```
 
 </details>
@@ -14699,7 +14816,7 @@ Update AVIF for exercises table selection.
 ```python
 def _update_exercises_avif(self) -> None:
         exercise_name = self._get_selected_exercise_from_table("exercises")
-        if exercise_name:
+        if isinstance(exercise_name, str):
             self._load_exercise_avif(exercise_name, "exercises")
 ```
 
@@ -14782,7 +14899,7 @@ def _update_layout_for_window_size(self) -> None:
 
         self.label_exercise_avif.updateGeometry()
         current_exercise = self.avif_data["main"]["exercise"]
-        if current_exercise:
+        if isinstance(current_exercise, str):
             self._load_exercise_avif(current_exercise, "main")
 ```
 
@@ -14804,7 +14921,7 @@ def _update_statistics_avif(self) -> None:
         if self.current_statistics_mode == "check_steps":
             # Always show Steps exercise for check_steps mode
             steps_exercise_name = self._get_exercise_name_by_id(self.id_steps)
-            if steps_exercise_name:
+            if isinstance(steps_exercise_name, str):
                 self._load_exercise_avif(steps_exercise_name, "statistics")
         elif self.current_statistics_mode == "records":
             # For records mode, use selected exercise from comboBox_records_select_exercise
@@ -14814,12 +14931,12 @@ def _update_statistics_avif(self) -> None:
             else:
                 # If no exercise selected in combobox, use selected exercise from table
                 exercise_name = self._get_selected_exercise_from_statistics_table()
-                if exercise_name:
+                if isinstance(exercise_name, str):
                     self._load_exercise_avif(exercise_name, "statistics")
         else:
             # For other modes, use selected exercise from statistics table
             exercise_name = self._get_selected_exercise_from_statistics_table()
-            if exercise_name:
+            if isinstance(exercise_name, str):
                 self._load_exercise_avif(exercise_name, "statistics")
 ```
 

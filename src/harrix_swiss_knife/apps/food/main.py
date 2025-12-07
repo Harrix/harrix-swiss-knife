@@ -822,6 +822,20 @@ class MainWindow(
         # Refresh the food log table
         self._update_food_log_table()
 
+    def resizeEvent(self, _event: QResizeEvent) -> None:  # noqa: N802
+        """Handle window resize event and adjust table column widths proportionally.
+
+        Args:
+
+        - `_event` (`QResizeEvent`): The resize event.
+
+        """
+        # Call parent resize event first
+        super().resizeEvent(_event)
+
+        # Adjust food log table column widths based on window size
+        self._adjust_food_log_table_columns()
+
     def set_food_yesterday_date(self) -> None:
         """Set yesterday's date in the food date edit field.
 
@@ -1966,20 +1980,6 @@ class MainWindow(
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
-
-    def resizeEvent(self, _event: QResizeEvent) -> None:  # noqa: N802
-        """Handle window resize event and adjust table column widths proportionally.
-
-        Args:
-
-        - `_event` (`QResizeEvent`): The resize event.
-
-        """
-        # Call parent resize event first
-        super().resizeEvent(_event)
-
-        # Adjust food log table column widths based on window size
-        self._adjust_food_log_table_columns()
 
     def _populate_form_from_food_name(self, food_name: str) -> None:
         """Populate form fields based on food name from database.
