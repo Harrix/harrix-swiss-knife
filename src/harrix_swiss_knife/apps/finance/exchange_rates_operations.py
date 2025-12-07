@@ -117,7 +117,7 @@ class ExchangeRatesOperations:
                 self.update_summary_labels()
             else:
                 QMessageBox.warning(
-                    self,
+                    cast("QWidget", self),
                     "Deletion Failed",
                     "Failed to delete exchange rate records. Please check the database connection.",
                 )
