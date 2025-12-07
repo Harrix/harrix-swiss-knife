@@ -136,7 +136,7 @@ class AccountEditDialog(QDialog):
 
         """
         # Allow numbers (int, float)
-        if isinstance(node, (ast.Constant, ast.Num)):
+        if isinstance(node, ast.Constant):
             return True
 
         # Allow binary operations (+, -, *, /)
