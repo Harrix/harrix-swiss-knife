@@ -7,12 +7,13 @@ including loading, updating, filtering, and chart creation.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import cast
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import QDate, QTimer
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QAbstractItemView, QMessageBox
+from PySide6.QtWidgets import QAbstractItemView, QMessageBox, QWidget
 
 from harrix_swiss_knife.apps.finance.delegates import AmountDelegate
 from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
@@ -769,7 +770,7 @@ class ExchangeRatesOperations:
         except Exception as e:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
-            QMessageBox.critical(self, "Update Error", f"Failed to start exchange rate update: {e}")
+            QMessageBox.critical(cast(QWidget, self), "Update Error", f"Failed to start exchange rate update: {e}")
             print(f"❌ Exchange rate update error: {e}")
 
     def _start_startup_exchange_rate_update(self, currencies_to_process: list) -> None:
