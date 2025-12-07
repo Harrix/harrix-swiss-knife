@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import harrix_pylib as h
 
@@ -177,7 +177,7 @@ class OnCombineForAI(ActionBase):
         if not selected_files:
             return
 
-        self.add_line(_safe_collect_text_files_to_markdown(selected_files, base_folder))
+        self.add_line(_safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), base_folder))
         self.show_result()
 
     def _handle_folder_selection(self) -> None:
@@ -218,7 +218,11 @@ class OnCombineForAI(ActionBase):
             return
 
         # Use the selected folder as base folder
-        self.add_line(_safe_collect_text_files_to_markdown(selected_files, str(selected_folder)))
+        self.add_line(
+            _safe_collect_text_files_to_markdown(
+                cast("list[str | Path]", selected_files), str(selected_folder)
+            )
+        )
         self.show_result()
 
 
