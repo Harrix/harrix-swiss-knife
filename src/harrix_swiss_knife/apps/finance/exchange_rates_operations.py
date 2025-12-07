@@ -283,7 +283,7 @@ class ExchangeRatesOperations:
             self._update_exchange_rates_table(unfiltered_data)
 
             QMessageBox.information(
-                self,
+                cast("QWidget", self),
                 "Filter Cleared",
                 f"Exchange rates filter has been cleared.\nShowing {len(unfiltered_data)} most recent records.",
             )
