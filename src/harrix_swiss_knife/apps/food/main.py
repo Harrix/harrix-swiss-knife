@@ -1220,8 +1220,7 @@ class MainWindow(
         self.pushButton_food_delete.clicked.connect(partial(self.delete_record, "food_log"))
         self.pushButton_food_refresh.clicked.connect(self.update_food_data)
 
-        # Connect window resize event for automatic column resizing
-        self.resizeEvent = self._on_window_resize  # ty: ignore[invalid-assignment]
+        # Window resize event is handled by overriding resizeEvent method
 
         # Connect tab widget signal for updating stats when switching to food stats tab
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
@@ -1979,7 +1978,7 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
-    def _on_window_resize(self, _event: QResizeEvent) -> None:
+    def resizeEvent(self, _event: QResizeEvent) -> None:  # noqa: N802
         """Handle window resize event and adjust table column widths proportionally.
 
         Args:
@@ -1987,6 +1986,9 @@ class MainWindow(
         - `_event` (`QResizeEvent`): The resize event.
 
         """
+        # Call parent resize event first
+        super().resizeEvent(_event)
+
         # Adjust food log table column widths based on window size
         self._adjust_food_log_table_columns()
 

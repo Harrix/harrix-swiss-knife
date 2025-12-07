@@ -4347,8 +4347,7 @@ class MainWindow(
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
-        # Connect window resize event for automatic column resizing
-        self.resizeEvent = self._on_window_resize
+        # Window resize event is handled by overriding resizeEvent method
 
         # Connect delete and refresh buttons for all tables (except statistics)
         tables_with_controls = {"process", "exercises", "types", "weight"}
@@ -5825,7 +5824,7 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
-    def _on_window_resize(self, event: QResizeEvent) -> None:
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Handle window resize event and adjust table column widths proportionally.
 
         Args:
