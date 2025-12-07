@@ -513,10 +513,10 @@ class MainWindow(
             or (obj == self.lineEdit_description and event.type() == QEvent.Type.KeyPress)
             or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
         ):
-            key_event = QKeyEvent(event)
-            if key_event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                self.on_add_transaction()
-                return True
+            if isinstance(event, QKeyEvent):
+                if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                    self.on_add_transaction()
+                    return True
 
         return super().eventFilter(obj, event)
 
