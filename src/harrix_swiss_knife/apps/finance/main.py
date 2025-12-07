@@ -500,10 +500,10 @@ class MainWindow(
                     QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
 
         if obj == self.label_category_now and event.type() == QEvent.Type.MouseButtonPress:
-            mouse_event = QMouseEvent(event)
-            if mouse_event.button() == Qt.MouseButton.LeftButton:
-                self._show_category_label_context_menu(mouse_event.position().toPoint())
-                return True
+            if isinstance(event, QMouseEvent):
+                if event.button() == Qt.MouseButton.LeftButton:
+                    self._show_category_label_context_menu(event.position().toPoint())
+                    return True
 
         # Handle Enter key to add transaction quickly
         if (
