@@ -1,6 +1,6 @@
 """Worker thread for checking exchange rates that need updates."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from PySide6.QtCore import QThread, Signal
 
@@ -96,8 +96,12 @@ class ExchangeRateCheckerWorker(QThread):
                     start_date = datetime.fromisoformat(last_date_str).date()
 
                 # Calculate missing dates from start_date to today
+                if start_date is None:
+                    self.progress_updated.emit(f"⚠️ {currency_code}: No start date available - skipping")
+                    continue
+
                 missing_dates = []
-                current_date = start_date
+                current_date: date = start_date
 
                 # Check in batches to avoid blocking
                 batch_size = 100
