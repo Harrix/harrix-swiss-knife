@@ -1064,7 +1064,12 @@ class MainWindow(
 
         try:
             filename: Path = Path(filename_str)
-            model = self.models["transactions"].sourceModel()
+            proxy_model = self.models["transactions"]
+            if proxy_model is None or not isinstance(proxy_model, QSortFilterProxyModel):
+                return
+            model = proxy_model.sourceModel()
+            if model is None:
+                return
             with filename.open("w", encoding="utf-8") as file:
                 headers: list[str] = [
                     model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
