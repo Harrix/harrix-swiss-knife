@@ -1,7 +1,9 @@
 """Description delegate for description column in transactions table."""
 
+from typing import cast
+
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
-from PySide6.QtWidgets import QLineEdit, QStyledItemDelegate
+from PySide6.QtWidgets import QLineEdit, QStyledItemDelegate, QWidget
 
 
 class DescriptionDelegate(QStyledItemDelegate):
@@ -31,7 +33,7 @@ class DescriptionDelegate(QStyledItemDelegate):
         - `QLineEdit`: The created line edit editor.
 
         """
-        editor = QLineEdit(parent)
+        editor = QLineEdit(cast("QWidget", parent))
 
         # Set white background for the editor
         editor.setStyleSheet("QLineEdit { background-color: white; }")
