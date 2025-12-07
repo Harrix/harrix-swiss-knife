@@ -108,7 +108,11 @@ class ExchangeRatesOperations:
                     )
                 else:
                     QMessageBox.information(
-                        self, "No Records Found", f"No exchange rate records were found for the last {days} days."
+                        cast("QWidget", self),
+                        "No Records Found",
+                        (
+                            f"No exchange rate records were found for the last {days} days."
+                        )
                     )
 
                 # Mark exchange rates as changed and update the view
