@@ -3480,9 +3480,9 @@ class MainWindow(
         self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), period="Days")
 
         # Customize plot
-        ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
-        ax.set_ylabel(chart_config.get("ylabel", "Y"), fontsize=12)
-        ax.set_title(chart_config.get("title", "Chart"), fontsize=14, fontweight="bold")
+        ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
+        ax.set_ylabel(str(chart_config.get("ylabel", "Y")), fontsize=12)
+        ax.set_title(str(chart_config.get("title", "Chart")), fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
 
         # Add more detailed Y-axis grid for weight chart
