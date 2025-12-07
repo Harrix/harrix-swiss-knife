@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import re
+from typing import NoReturn
 
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -100,7 +101,7 @@ class AccountEditDialog(QDialog):
             msg = "Division by zero"
             raise ValueError(msg)
 
-        def _raise_value_error(msg: str) -> None:
+        def _raise_value_error(msg: str) -> NoReturn:
             raise ValueError(msg)
 
         try:
