@@ -829,7 +829,7 @@ def _filter_files_by_extension(files: list[str], extensions: list[str] | None = 
     return filtered_files
 
 
-def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str) -> str:
+def _safe_collect_text_files_to_markdown(file_paths: list[str | Path], base_folder: str) -> str:
     """Safely collect text files to markdown, skipping files that can't be decoded as text.
 
     This function wraps h.file.collect_text_files_to_markdown and handles UnicodeDecodeError
@@ -837,7 +837,7 @@ def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str
 
     Args:
 
-    - `file_paths` (`list[str]`): List of file paths to process.
+    - `file_paths` (`list[str | Path]`): List of file paths to process.
     - `base_folder` (`str`): Base folder path for relative path calculation.
 
     Returns:
