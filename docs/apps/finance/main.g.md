@@ -1146,7 +1146,12 @@ class MainWindow(
 
         try:
             filename: Path = Path(filename_str)
-            model = self.models["transactions"].sourceModel()
+            proxy_model = self.models["transactions"]
+            if proxy_model is None or not isinstance(proxy_model, QSortFilterProxyModel):
+                return
+            model = proxy_model.sourceModel()
+            if model is None:
+                return
             with filename.open("w", encoding="utf-8") as file:
                 headers: list[str] = [
                     model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
@@ -1301,7 +1306,9 @@ class MainWindow(
         )
 
         if not rows:
-            self._show_no_data_label(self.scrollAreaWidgetContents_charts.layout(), "No data found for balance chart")
+            layout = self.scrollAreaWidgetContents_charts.layout()
+            if layout is not None:
+                self._show_no_data_label(layout, "No data found for balance chart")
             return
 
         # Calculate running balance
@@ -1341,7 +1348,9 @@ class MainWindow(
             "period": "Days",
         }
 
-        self._create_chart(self.scrollAreaWidgetContents_charts.layout(), balance_data, chart_config)
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            self._create_chart(layout, balance_data, chart_config)
 
     @requires_database()
     def show_pie_chart(self) -> None:
@@ -1515,7 +1524,9 @@ class MainWindow(
             "period": period,
         }
 
-        self._create_chart(self.scrollAreaWidgetContents_charts.layout(), chart_data, chart_config)
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            self._create_chart(layout, chart_data, chart_config)
 
     @requires_database(is_show_warning=False)
     def update_filter_comboboxes(self) -> None:
@@ -1950,13 +1961,13 @@ class MainWindow(
         """
         while layout.count():
             child = layout.takeAt(0)
-            if child.widget():
-                widget = child.widget()
+            widget = child.widget()
+            if widget is not None:
                 # Special handling for matplotlib canvas
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        widget._deleting = True  # noqa: SLF001
+                        setattr(widget, "_deleting", True)
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
@@ -2253,10 +2264,14 @@ class MainWindow(
 
         """
         # Clear existing chart
-        self._clear_layout(self.scrollAreaWidgetContents_charts.layout())
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            self._clear_layout(layout)
 
         if not data:
-            self._show_no_data_label(self.scrollAreaWidgetContents_charts.layout(), "No data for pie chart")
+            layout = self.scrollAreaWidgetContents_charts.layout()
+            if layout is not None:
+                self._show_no_data_label(layout, "No data for pie chart")
             return
 
         # Create matplotlib figure
@@ -2282,7 +2297,9 @@ class MainWindow(
             autotext.set_fontweight("bold")
 
         fig.tight_layout()
-        self.scrollAreaWidgetContents_charts.layout().addWidget(canvas)
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            layout.addWidget(canvas)
         canvas.draw()
 
     def _create_table_model(
@@ -3440,7 +3457,7 @@ class MainWindow(
                 return
 
             source_model = proxy_model.sourceModel()
-            if source_model is None:
+            if source_model is None or not isinstance(source_model, QStandardItemModel):
                 return
 
             row_id_item = source_model.verticalHeaderItem(index.row())
@@ -4044,7 +4061,7 @@ class MainWindow(
                 return
 
             source_model = proxy_model.sourceModel()
-            if source_model is None:
+            if source_model is None or not isinstance(source_model, QStandardItemModel):
                 return
 
             # Get the row ID from vertical header
@@ -4386,7 +4403,7 @@ class MainWindow(
         try:
             # Parse the date string and set it in dateEdit
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 self.dateEdit.setDate(date_obj)
             else:
                 print(f"❌ Invalid date format: {date_value}")
@@ -4404,7 +4421,7 @@ class MainWindow(
         try:
             # Parse the date string, subtract 1 day and set it in dateEdit
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 new_date: QDate = date_obj.addDays(-1)
                 self.dateEdit.setDate(new_date)
             else:
@@ -4423,7 +4440,7 @@ class MainWindow(
         try:
             # Parse the date string, add 1 day and set it in dateEdit
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 new_date: QDate = date_obj.addDays(1)
                 self.dateEdit.setDate(new_date)
             else:
@@ -4632,20 +4649,20 @@ class MainWindow(
                 QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
             )
 
-    def _show_no_data_label(self, layout: QLayout, message: str) -> None:
+    def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a message when no data is available for the chart.
 
         Args:
 
         - `layout` (`QLayout`): The layout to add the message to.
-        - `message` (`str`): The message to display.
+        - `text` (`str`): The message to display.
 
         """
         # Clear existing content
         self._clear_layout(layout)
 
         # Create and add label
-        label: QLabel = QLabel(message)
+        label: QLabel = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
         layout.addWidget(label)
@@ -6213,7 +6230,12 @@ def on_export_csv(self) -> None:
 
         try:
             filename: Path = Path(filename_str)
-            model = self.models["transactions"].sourceModel()
+            proxy_model = self.models["transactions"]
+            if proxy_model is None or not isinstance(proxy_model, QSortFilterProxyModel):
+                return
+            model = proxy_model.sourceModel()
+            if model is None:
+                return
             with filename.open("w", encoding="utf-8") as file:
                 headers: list[str] = [
                     model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
@@ -6517,7 +6539,9 @@ def show_balance_chart(self) -> None:
         )
 
         if not rows:
-            self._show_no_data_label(self.scrollAreaWidgetContents_charts.layout(), "No data found for balance chart")
+            layout = self.scrollAreaWidgetContents_charts.layout()
+            if layout is not None:
+                self._show_no_data_label(layout, "No data found for balance chart")
             return
 
         # Calculate running balance
@@ -6557,7 +6581,9 @@ def show_balance_chart(self) -> None:
             "period": "Days",
         }
 
-        self._create_chart(self.scrollAreaWidgetContents_charts.layout(), balance_data, chart_config)
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            self._create_chart(layout, balance_data, chart_config)
 ```
 
 </details>
@@ -6798,7 +6824,9 @@ def update_charts(self) -> None:
             "period": period,
         }
 
-        self._create_chart(self.scrollAreaWidgetContents_charts.layout(), chart_data, chart_config)
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            self._create_chart(layout, chart_data, chart_config)
 ```
 
 </details>
@@ -7417,13 +7445,13 @@ Args:
 def _clear_layout(self, layout: QLayout) -> None:
         while layout.count():
             child = layout.takeAt(0)
-            if child.widget():
-                widget = child.widget()
+            widget = child.widget()
+            if widget is not None:
                 # Special handling for matplotlib canvas
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        widget._deleting = True  # noqa: SLF001
+                        setattr(widget, "_deleting", True)
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
@@ -7796,10 +7824,14 @@ Args:
 ```python
 def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
         # Clear existing chart
-        self._clear_layout(self.scrollAreaWidgetContents_charts.layout())
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            self._clear_layout(layout)
 
         if not data:
-            self._show_no_data_label(self.scrollAreaWidgetContents_charts.layout(), "No data for pie chart")
+            layout = self.scrollAreaWidgetContents_charts.layout()
+            if layout is not None:
+                self._show_no_data_label(layout, "No data for pie chart")
             return
 
         # Create matplotlib figure
@@ -7825,7 +7857,9 @@ def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
             autotext.set_fontweight("bold")
 
         fig.tight_layout()
-        self.scrollAreaWidgetContents_charts.layout().addWidget(canvas)
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            layout.addWidget(canvas)
         canvas.draw()
 ```
 
@@ -9376,7 +9410,7 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
                 return
 
             source_model = proxy_model.sourceModel()
-            if source_model is None:
+            if source_model is None or not isinstance(source_model, QStandardItemModel):
                 return
 
             row_id_item = source_model.verticalHeaderItem(index.row())
@@ -10211,7 +10245,7 @@ def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QMo
                 return
 
             source_model = proxy_model.sourceModel()
-            if source_model is None:
+            if source_model is None or not isinstance(source_model, QStandardItemModel):
                 return
 
             # Get the row ID from vertical header
@@ -10649,7 +10683,7 @@ def _set_date_from_table(self, date_value: str) -> None:
         try:
             # Parse the date string and set it in dateEdit
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 self.dateEdit.setDate(date_obj)
             else:
                 print(f"❌ Invalid date format: {date_value}")
@@ -10679,7 +10713,7 @@ def _set_date_from_table_minus_one_day(self, date_value: str) -> None:
         try:
             # Parse the date string, subtract 1 day and set it in dateEdit
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 new_date: QDate = date_obj.addDays(-1)
                 self.dateEdit.setDate(new_date)
             else:
@@ -10710,7 +10744,7 @@ def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
         try:
             # Parse the date string, add 1 day and set it in dateEdit
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 new_date: QDate = date_obj.addDays(1)
                 self.dateEdit.setDate(new_date)
             else:
@@ -11009,7 +11043,7 @@ def _show_category_label_context_menu(self, position: QPoint) -> None:
 ### ⚙️ Method `_show_no_data_label`
 
 ```python
-def _show_no_data_label(self, layout: QLayout, message: str) -> None
+def _show_no_data_label(self, layout: QLayout, text: str) -> None
 ```
 
 Show a message when no data is available for the chart.
@@ -11017,18 +11051,18 @@ Show a message when no data is available for the chart.
 Args:
 
 - `layout` (`QLayout`): The layout to add the message to.
-- `message` (`str`): The message to display.
+- `text` (`str`): The message to display.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_no_data_label(self, layout: QLayout, message: str) -> None:
+def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         # Clear existing content
         self._clear_layout(layout)
 
         # Create and add label
-        label: QLabel = QLabel(message)
+        label: QLabel = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
         layout.addWidget(label)

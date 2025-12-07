@@ -636,8 +636,9 @@ class MainWindow(
             self.current_movie.stop()
 
         for label_key in self.avif_data:
-            if self.avif_data[label_key]["timer"]:
-                self.avif_data[label_key]["timer"].stop()
+            timer = self.avif_data[label_key]["timer"]
+            if timer is not None and isinstance(timer, QTimer):
+                timer.stop()
 
         # Dispose Models
         self._dispose_models()
@@ -2932,7 +2933,7 @@ class MainWindow(
         # Parse and set the date
         try:
             date_obj = QDate.fromString(weight_date, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 self.dateEdit_weight.setDate(date_obj)
             else:
                 self.dateEdit_weight.setDate(QDate.currentDate())
@@ -3737,7 +3738,7 @@ class MainWindow(
         y_values = [item[1] for item in chart_data]
 
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), period="Days")
+        self._plot_data(ax, x_values, y_values, str(chart_config.get("color", "b")), period="Days")
 
         # Customize plot
         ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
@@ -7099,8 +7100,9 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             self.current_movie.stop()
 
         for label_key in self.avif_data:
-            if self.avif_data[label_key]["timer"]:
-                self.avif_data[label_key]["timer"].stop()
+            timer = self.avif_data[label_key]["timer"]
+            if timer is not None and isinstance(timer, QTimer):
+                timer.stop()
 
         # Dispose Models
         self._dispose_models()
@@ -9785,7 +9787,7 @@ def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIn
         # Parse and set the date
         try:
             date_obj = QDate.fromString(weight_date, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 self.dateEdit_weight.setDate(date_obj)
             else:
                 self.dateEdit_weight.setDate(QDate.currentDate())
@@ -10864,7 +10866,7 @@ def update_weight_chart(self) -> None:
         y_values = [item[1] for item in chart_data]
 
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), period="Days")
+        self._plot_data(ax, x_values, y_values, str(chart_config.get("color", "b")), period="Days")
 
         # Customize plot
         ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)

@@ -86,7 +86,7 @@ Manage the connection and operations for a fitness tracking database.
 
 Attributes:
 
-- `db` (`QSqlDatabase`): A live connection object opened on an SQLite database file.
+- `db` (`QSqlDatabase | None`): A live connection object opened on an SQLite database file.
 - `connection_name` (`str`): Unique name for this database connection.
 
 <details>
@@ -95,7 +95,7 @@ Attributes:
 ```python
 class DatabaseManager:
 
-    db: QSqlDatabase
+    db: QSqlDatabase | None
     connection_name: str
     _db_filename: str
 
