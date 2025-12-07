@@ -3358,7 +3358,7 @@ class MainWindow(
                 return
 
             source_model = proxy_model.sourceModel()
-            if source_model is None:
+            if source_model is None or not isinstance(source_model, QStandardItemModel):
                 return
 
             row_id_item = source_model.verticalHeaderItem(index.row())
@@ -3962,7 +3962,7 @@ class MainWindow(
                 return
 
             source_model = proxy_model.sourceModel()
-            if source_model is None:
+            if source_model is None or not isinstance(source_model, QStandardItemModel):
                 return
 
             # Get the row ID from vertical header
