@@ -290,6 +290,8 @@ class DatabaseManager:
         - `int`: Number of cleaned records.
 
         """
+        if self.db is None:
+            return 0
         query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
         cursor = self.db.exec(query)
         if cursor.lastError().isValid():
