@@ -494,10 +494,10 @@ class MainWindow(
                     self._right_click_in_progress = False
 
             elif event.type() == QEvent.Type.MouseButtonRelease:
-                mouse_event = QMouseEvent(event)
-                if mouse_event.button() == Qt.MouseButton.RightButton:
-                    # Reset the flag shortly after release to allow context menu to process
-                    QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
+                if isinstance(event, QMouseEvent):
+                    if event.button() == Qt.MouseButton.RightButton:
+                        # Reset the flag shortly after release to allow context menu to process
+                        QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
 
         if obj == self.label_category_now and event.type() == QEvent.Type.MouseButtonPress:
             if isinstance(event, QMouseEvent):
