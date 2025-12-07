@@ -40,7 +40,7 @@ class AutoSaveOperations:
     # Expected attributes from main class
     db_manager: Any
     _validate_database_connection: Callable[[], bool]
-    _update_comboboxes: Callable[[], None]
+    _update_comboboxes: Callable[..., None]
     update_filter_comboboxes: Callable[[], None]
     _is_valid_date: Callable[[str], bool]
 
