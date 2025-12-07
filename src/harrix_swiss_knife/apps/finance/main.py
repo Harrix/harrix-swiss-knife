@@ -4304,7 +4304,7 @@ class MainWindow(
         try:
             # Parse the date string and set it in dateEdit
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 self.dateEdit.setDate(date_obj)
             else:
                 print(f"❌ Invalid date format: {date_value}")
@@ -4322,7 +4322,7 @@ class MainWindow(
         try:
             # Parse the date string, subtract 1 day and set it in dateEdit
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 new_date: QDate = date_obj.addDays(-1)
                 self.dateEdit.setDate(new_date)
             else:
@@ -4341,7 +4341,7 @@ class MainWindow(
         try:
             # Parse the date string, add 1 day and set it in dateEdit
             date_obj: QDate = QDate.fromString(date_value, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 new_date: QDate = date_obj.addDays(1)
                 self.dateEdit.setDate(new_date)
             else:
