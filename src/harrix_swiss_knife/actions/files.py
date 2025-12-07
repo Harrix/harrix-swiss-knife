@@ -861,7 +861,7 @@ def _safe_collect_text_files_to_markdown(file_paths: list[str | Path], base_fold
         for file_path in file_paths:
             try:
                 # Try to read the file to check if it's a text file
-                with Path.open(file_path, encoding="utf-8") as f:
+                with Path(file_path).open(encoding="utf-8") as f:
                     f.read(1)  # Try to read at least one character
                 processed_files.append(file_path)
             except UnicodeDecodeError:
