@@ -822,17 +822,6 @@ class MainWindow(
         # Refresh the food log table
         self._update_food_log_table()
 
-    def resizeEvent(self, event: QResizeEvent) -> None:  # type: ignore[override] # noqa: N802
-        """Handle window resize event and adjust table column widths proportionally.
-
-        Args:
-
-        - `event` (`QResizeEvent`): The resize event.
-
-        """
-        self._on_window_resize(event)
-        super().resizeEvent(event)  # Call parent to ensure default behavior
-
     def set_food_yesterday_date(self) -> None:
         """Set yesterday's date in the food date edit field.
 

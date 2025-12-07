@@ -5739,11 +5739,12 @@ class MainWindow(
 
         Returns:
             True if the event was handled, False otherwise.
+
         """
         # Handle double-click on label_chart_info safely
         if obj is self.label_chart_info and event.type() == QEvent.Type.MouseButtonDblClick:
             # Call your existing handler
-            self._on_chart_info_double_clicked(cast(QMouseEvent, event))
+            self._on_chart_info_double_clicked(cast("QMouseEvent", event))
             return True  # event handled
 
         return super().eventFilter(obj, event)
