@@ -1967,7 +1967,7 @@ class MainWindow(
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        setattr(widget, "_deleting", True)
+                        widget.deleting = True
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
@@ -7451,7 +7451,7 @@ def _clear_layout(self, layout: QLayout) -> None:
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        setattr(widget, "_deleting", True)
+                        widget.deleting = True
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly

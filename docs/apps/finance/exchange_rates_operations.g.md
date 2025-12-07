@@ -198,8 +198,8 @@ class ExchangeRatesOperations:
                     return
                 # Additional check: if canvas is being deleted, wait a bit
                 if (
-                    hasattr(self._current_exchange_rate_canvas, "_deleting")
-                    and self._current_exchange_rate_canvas._deleting  # noqa: SLF001
+                    hasattr(self._current_exchange_rate_canvas, "deleting")
+                    and self._current_exchange_rate_canvas.deleting
                 ):
                     return
             except Exception:
@@ -1130,8 +1130,8 @@ def on_exchange_rates_update(self) -> None:
                     return
                 # Additional check: if canvas is being deleted, wait a bit
                 if (
-                    hasattr(self._current_exchange_rate_canvas, "_deleting")
-                    and self._current_exchange_rate_canvas._deleting  # noqa: SLF001
+                    hasattr(self._current_exchange_rate_canvas, "deleting")
+                    and self._current_exchange_rate_canvas.deleting
                 ):
                     return
             except Exception:
