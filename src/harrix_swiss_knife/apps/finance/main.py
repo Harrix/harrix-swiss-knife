@@ -1219,7 +1219,9 @@ class MainWindow(
         )
 
         if not rows:
-            self._show_no_data_label(self.scrollAreaWidgetContents_charts.layout(), "No data found for balance chart")
+            layout = self.scrollAreaWidgetContents_charts.layout()
+            if layout is not None:
+                self._show_no_data_label(layout, "No data found for balance chart")
             return
 
         # Calculate running balance
@@ -1259,7 +1261,9 @@ class MainWindow(
             "period": "Days",
         }
 
-        self._create_chart(self.scrollAreaWidgetContents_charts.layout(), balance_data, chart_config)
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            self._create_chart(layout, balance_data, chart_config)
 
     @requires_database()
     def show_pie_chart(self) -> None:
@@ -1433,7 +1437,9 @@ class MainWindow(
             "period": period,
         }
 
-        self._create_chart(self.scrollAreaWidgetContents_charts.layout(), chart_data, chart_config)
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            self._create_chart(layout, chart_data, chart_config)
 
     @requires_database(is_show_warning=False)
     def update_filter_comboboxes(self) -> None:
@@ -2171,10 +2177,14 @@ class MainWindow(
 
         """
         # Clear existing chart
-        self._clear_layout(self.scrollAreaWidgetContents_charts.layout())
+        layout = self.scrollAreaWidgetContents_charts.layout()
+        if layout is not None:
+            self._clear_layout(layout)
 
         if not data:
-            self._show_no_data_label(self.scrollAreaWidgetContents_charts.layout(), "No data for pie chart")
+            layout = self.scrollAreaWidgetContents_charts.layout()
+            if layout is not None:
+                self._show_no_data_label(layout, "No data for pie chart")
             return
 
         # Create matplotlib figure
