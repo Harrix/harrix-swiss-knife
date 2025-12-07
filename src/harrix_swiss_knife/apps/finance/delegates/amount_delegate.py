@@ -52,13 +52,13 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802
+    def displayText(self, value: object, _locale: QLocale | None) -> str:  # noqa: N802
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
 
         - `value` (`object`): The value to format for display.
-        - `_locale` (`QLocale`): The locale for formatting (unused in this implementation).
+        - `_locale` (`QLocale | None`): The locale for formatting (unused in this implementation).
 
         Returns:
 
