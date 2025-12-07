@@ -1,7 +1,9 @@
 """Tag delegate for tag column in transactions table."""
 
+from typing import cast
+
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
-from PySide6.QtWidgets import QComboBox, QStyledItemDelegate, QStyleOptionViewItem
+from PySide6.QtWidgets import QComboBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 
 class TagDelegate(QStyledItemDelegate):
@@ -26,7 +28,7 @@ class TagDelegate(QStyledItemDelegate):
         - `QComboBox`: The created combo box editor.
 
         """
-        combo: QComboBox = QComboBox(parent)
+        combo: QComboBox = QComboBox(cast("QWidget", parent))
         combo.setEditable(True)
 
         # Set white background for the editor
