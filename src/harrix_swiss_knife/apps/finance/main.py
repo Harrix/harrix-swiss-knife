@@ -1891,7 +1891,7 @@ class MainWindow(
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        widget.deleting = True
+                        widget.deleting = True  # ty: ignore[invalid-assignment]
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
