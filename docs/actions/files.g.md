@@ -375,7 +375,7 @@ class OnCombineForAI(ActionBase):
         if not selected_files:
             return
 
-        self.add_line(_safe_collect_text_files_to_markdown(selected_files, base_folder))
+        self.add_line(_safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), base_folder))
         self.show_result()
 
     def _handle_folder_selection(self) -> None:
@@ -416,7 +416,9 @@ class OnCombineForAI(ActionBase):
             return
 
         # Use the selected folder as base folder
-        self.add_line(_safe_collect_text_files_to_markdown(selected_files, str(selected_folder)))
+        self.add_line(
+            _safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), str(selected_folder))
+        )
         self.show_result()
 ```
 
@@ -494,7 +496,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if not selected_files:
             return
 
-        self.add_line(_safe_collect_text_files_to_markdown(selected_files, base_folder))
+        self.add_line(_safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), base_folder))
         self.show_result()
 ```
 
@@ -549,7 +551,9 @@ def _handle_folder_selection(self) -> None:
             return
 
         # Use the selected folder as base folder
-        self.add_line(_safe_collect_text_files_to_markdown(selected_files, str(selected_folder)))
+        self.add_line(
+            _safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), str(selected_folder))
+        )
         self.show_result()
 ```
 
@@ -1891,7 +1895,7 @@ def _filter_files_by_extension(files: list[str], extensions: list[str] | None = 
 ## 🔧 Function `_safe_collect_text_files_to_markdown`
 
 ```python
-def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str) -> str
+def _safe_collect_text_files_to_markdown(file_paths: list[str | Path], base_folder: str) -> str
 ```
 
 Safely collect text files to markdown, skipping files that can't be decoded as text.
@@ -1901,7 +1905,7 @@ exceptions by skipping files that can't be decoded as text (e.g., binary files).
 
 Args:
 
-- `file_paths` (`list[str]`): List of file paths to process.
+- `file_paths` (`list[str | Path]`): List of file paths to process.
 - `base_folder` (`str`): Base folder path for relative path calculation.
 
 Returns:
@@ -1912,7 +1916,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str) -> str:
+def _safe_collect_text_files_to_markdown(file_paths: list[str | Path], base_folder: str) -> str:
     try:
         return h.file.collect_text_files_to_markdown(file_paths, base_folder)
     except UnicodeDecodeError:
@@ -1925,7 +1929,7 @@ def _safe_collect_text_files_to_markdown(file_paths: list[str], base_folder: str
         for file_path in file_paths:
             try:
                 # Try to read the file to check if it's a text file
-                with Path.open(file_path, encoding="utf-8") as f:
+                with Path(file_path).open(encoding="utf-8") as f:
                     f.read(1)  # Try to read at least one character
                 processed_files.append(file_path)
             except UnicodeDecodeError:

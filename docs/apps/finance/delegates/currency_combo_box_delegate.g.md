@@ -59,7 +59,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
         - `QComboBox`: The created combo box editor.
 
         """
-        combo = QComboBox(parent)
+        combo = QComboBox(cast("QWidget", parent))
         combo.setEditable(False)
 
         # Set white background for the editor
@@ -151,7 +151,7 @@ Returns:
 
 ```python
 def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QComboBox:  # noqa: N802, ANN001
-        combo = QComboBox(parent)
+        combo = QComboBox(cast("QWidget", parent))
         combo.setEditable(False)
 
         # Set white background for the editor

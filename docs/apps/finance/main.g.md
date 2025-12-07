@@ -568,37 +568,43 @@ class MainWindow(
         """
         # Track right mouse button on the table's viewport to suppress data copy on right-click
         if obj == self.tableView_transactions.viewport():
-            if event.type() == QEvent.Type.MouseButtonPress:
-                mouse_event = QMouseEvent(event)
-                if mouse_event.button() == Qt.MouseButton.RightButton:
+            if event.type() == QEvent.Type.MouseButtonPress and isinstance(event, QMouseEvent):
+                if event.button() == Qt.MouseButton.RightButton:
                     self._right_click_in_progress = True
                 else:
                     self._right_click_in_progress = False
 
-            elif event.type() == QEvent.Type.MouseButtonRelease:
-                mouse_event = QMouseEvent(event)
-                if mouse_event.button() == Qt.MouseButton.RightButton:
-                    # Reset the flag shortly after release to allow context menu to process
-                    QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
+            elif (
+                event.type() == QEvent.Type.MouseButtonRelease
+                and isinstance(event, QMouseEvent)
+                and event.button() == Qt.MouseButton.RightButton
+            ):
+                # Reset the flag shortly after release to allow context menu to process
+                QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
 
-        if obj == self.label_category_now and event.type() == QEvent.Type.MouseButtonPress:
-            mouse_event = QMouseEvent(event)
-            if mouse_event.button() == Qt.MouseButton.LeftButton:
-                self._show_category_label_context_menu(mouse_event.position().toPoint())
-                return True
+        if (
+            obj == self.label_category_now
+            and event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._show_category_label_context_menu(event.position().toPoint())
+            return True
 
         # Handle Enter key to add transaction quickly
         if (
-            (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.lineEdit_description and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
+            (
+                (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.lineEdit_description and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
+            )
+            and isinstance(event, QKeyEvent)
+            and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
         ):
-            key_event = QKeyEvent(event)
-            if key_event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                self.on_add_transaction()
-                return True
+            self.on_add_transaction()
+            return True
 
         return super().eventFilter(obj, event)
 
@@ -723,7 +729,7 @@ class MainWindow(
         result: int = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            text: str = dialog.get_text()
+            text: str | None = dialog.get_text()
             if text:
                 self._process_text_input(text)
 
@@ -1335,7 +1341,7 @@ class MainWindow(
                             daily_balance -= trans_amount
 
             balance += daily_balance
-            date_obj: datetime = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+            date_obj: datetime = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
             balance_data.append((date_obj, balance))
 
         # Create chart configuration
@@ -1599,7 +1605,7 @@ class MainWindow(
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # For today's balance and expenses also use simplified queries
-            today: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+            today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             today_query_income: str = """
                 SELECT SUM(t.amount) as total
@@ -1723,7 +1729,7 @@ class MainWindow(
             if use_date is not None:
                 target_date: str = use_date
             else:
-                target_date: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+                target_date: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             # Get exchange rate for the target date
             rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
@@ -1739,7 +1745,7 @@ class MainWindow(
 
             # Convert loss to default currency using today's rate
             if default_currency_id is not None and from_currency_id != default_currency_id:
-                today: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+                today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
@@ -1813,7 +1819,7 @@ class MainWindow(
             accounts_data: list = self.db_manager.get_all_accounts()
 
             total_balance: float = 0.0
-            today: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+            today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances: dict[str, float] = {}
@@ -1967,7 +1973,7 @@ class MainWindow(
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        widget.deleting = True
+                        widget.deleting = True  # ty: ignore[invalid-assignment]
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
@@ -2143,7 +2149,7 @@ class MainWindow(
                 return amount
 
             if date is None:
-                date = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+                date = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
 
             rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
             if rate == 1.0 and from_currency_id != to_currency_id:
@@ -2499,7 +2505,7 @@ class MainWindow(
         currency_code: str = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date: datetime = datetime.now(timezone.utc).astimezone()
+        end_date: datetime = datetime.now(UTC).astimezone()
         start_date: datetime = end_date - timedelta(days=30)
         date_from: str = start_date.strftime("%Y-%m-%d")
         date_to: str = end_date.strftime("%Y-%m-%d")
@@ -2626,11 +2632,11 @@ class MainWindow(
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+                today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date: datetime = datetime.now(timezone.utc).astimezone()
+                end_date: datetime = datetime.now(UTC).astimezone()
                 start_date: datetime = end_date - timedelta(days=days)
                 date_from: str = start_date.strftime("%Y-%m-%d")
                 date_to: str = end_date.strftime("%Y-%m-%d")
@@ -2716,7 +2722,7 @@ class MainWindow(
         expense_categories.sort(key=lambda x: x[1])
 
         # Determine month range based on available transaction history
-        end_date: datetime = datetime.now(timezone.utc).astimezone()
+        end_date: datetime = datetime.now(UTC).astimezone()
         earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
 
         if earliest_transaction_date_str:
@@ -5440,37 +5446,43 @@ Returns:
 def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         # Track right mouse button on the table's viewport to suppress data copy on right-click
         if obj == self.tableView_transactions.viewport():
-            if event.type() == QEvent.Type.MouseButtonPress:
-                mouse_event = QMouseEvent(event)
-                if mouse_event.button() == Qt.MouseButton.RightButton:
+            if event.type() == QEvent.Type.MouseButtonPress and isinstance(event, QMouseEvent):
+                if event.button() == Qt.MouseButton.RightButton:
                     self._right_click_in_progress = True
                 else:
                     self._right_click_in_progress = False
 
-            elif event.type() == QEvent.Type.MouseButtonRelease:
-                mouse_event = QMouseEvent(event)
-                if mouse_event.button() == Qt.MouseButton.RightButton:
-                    # Reset the flag shortly after release to allow context menu to process
-                    QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
+            elif (
+                event.type() == QEvent.Type.MouseButtonRelease
+                and isinstance(event, QMouseEvent)
+                and event.button() == Qt.MouseButton.RightButton
+            ):
+                # Reset the flag shortly after release to allow context menu to process
+                QTimer.singleShot(100, lambda: setattr(self, "_right_click_in_progress", False))
 
-        if obj == self.label_category_now and event.type() == QEvent.Type.MouseButtonPress:
-            mouse_event = QMouseEvent(event)
-            if mouse_event.button() == Qt.MouseButton.LeftButton:
-                self._show_category_label_context_menu(mouse_event.position().toPoint())
-                return True
+        if (
+            obj == self.label_category_now
+            and event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._show_category_label_context_menu(event.position().toPoint())
+            return True
 
         # Handle Enter key to add transaction quickly
         if (
-            (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.lineEdit_description and event.type() == QEvent.Type.KeyPress)
-            or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
+            (
+                (obj == self.doubleSpinBox_amount and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.dateEdit and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.lineEdit_tag and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.lineEdit_description and event.type() == QEvent.Type.KeyPress)
+                or (obj == self.pushButton_add and event.type() == QEvent.Type.KeyPress)
+            )
+            and isinstance(event, QKeyEvent)
+            and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
         ):
-            key_event = QKeyEvent(event)
-            if key_event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                self.on_add_transaction()
-                return True
+            self.on_add_transaction()
+            return True
 
         return super().eventFilter(obj, event)
 ```
@@ -5646,7 +5658,7 @@ def on_add_as_text(self) -> None:
         result: int = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            text: str = dialog.get_text()
+            text: str | None = dialog.get_text()
             if text:
                 self._process_text_input(text)
 ```
@@ -6568,7 +6580,7 @@ def show_balance_chart(self) -> None:
                             daily_balance -= trans_amount
 
             balance += daily_balance
-            date_obj: datetime = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+            date_obj: datetime = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
             balance_data.append((date_obj, balance))
 
         # Create chart configuration
@@ -6925,7 +6937,7 @@ def update_summary_labels(self) -> None:
             self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
 
             # For today's balance and expenses also use simplified queries
-            today: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+            today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             today_query_income: str = """
                 SELECT SUM(t.amount) as total
@@ -7087,7 +7099,7 @@ def _calculate_exchange_loss(
             if use_date is not None:
                 target_date: str = use_date
             else:
-                target_date: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+                target_date: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             # Get exchange rate for the target date
             rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
@@ -7103,7 +7115,7 @@ def _calculate_exchange_loss(
 
             # Convert loss to default currency using today's rate
             if default_currency_id is not None and from_currency_id != default_currency_id:
-                today: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+                today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
                 return self._convert_currency_amount(
                     loss_in_from_currency, from_currency_id, default_currency_id, today
                 )
@@ -7201,7 +7213,7 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
             accounts_data: list = self.db_manager.get_all_accounts()
 
             total_balance: float = 0.0
-            today: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+            today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
             currency_balances: dict[str, float] = {}
@@ -7451,7 +7463,7 @@ def _clear_layout(self, layout: QLayout) -> None:
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        widget.deleting = True
+                        widget.deleting = True  # ty: ignore[invalid-assignment]
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
@@ -7667,7 +7679,7 @@ def _convert_currency_amount(
                 return amount
 
             if date is None:
-                date = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+                date = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
 
             rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
             if rate == 1.0 and from_currency_id != to_currency_id:
@@ -8163,7 +8175,7 @@ def _generate_category_analysis_report(self, _currency_id: int) -> None:
         currency_code: str = self.db_manager.get_default_currency()
 
         # Get transactions for last 30 days
-        end_date: datetime = datetime.now(timezone.utc).astimezone()
+        end_date: datetime = datetime.now(UTC).astimezone()
         start_date: datetime = end_date - timedelta(days=30)
         date_from: str = start_date.strftime("%Y-%m-%d")
         date_to: str = end_date.strftime("%Y-%m-%d")
@@ -8316,11 +8328,11 @@ def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
         for period_name, days in periods:
             if days == 0:
                 # Today
-                today: str = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+                today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
                 date_from = date_to = today
             else:
                 # Last N days
-                end_date: datetime = datetime.now(timezone.utc).astimezone()
+                end_date: datetime = datetime.now(UTC).astimezone()
                 start_date: datetime = end_date - timedelta(days=days)
                 date_from: str = start_date.strftime("%Y-%m-%d")
                 date_to: str = end_date.strftime("%Y-%m-%d")
@@ -8418,7 +8430,7 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
         expense_categories.sort(key=lambda x: x[1])
 
         # Determine month range based on available transaction history
-        end_date: datetime = datetime.now(timezone.utc).astimezone()
+        end_date: datetime = datetime.now(UTC).astimezone()
         earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
 
         if earliest_transaction_date_str:

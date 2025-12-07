@@ -85,7 +85,7 @@ class OnAboutDialog(ActionBase):
         """
         try:
             pyproject_path = h.dev.get_project_root() / "pyproject.toml"
-            with Path.open(pyproject_path, "rb") as f:
+            with pyproject_path.open("rb") as f:
                 data = tomllib.load(f)
                 return data.get("project", {}).get("version", "Unknown")
         except Exception as e:
@@ -151,7 +151,7 @@ Returns:
 def _get_version_from_pyproject(self) -> str:
         try:
             pyproject_path = h.dev.get_project_root() / "pyproject.toml"
-            with Path.open(pyproject_path, "rb") as f:
+            with pyproject_path.open("rb") as f:
                 data = tomllib.load(f)
                 return data.get("project", {}).get("version", "Unknown")
         except Exception as e:

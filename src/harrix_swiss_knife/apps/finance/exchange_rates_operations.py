@@ -110,9 +110,7 @@ class ExchangeRatesOperations:
                     QMessageBox.information(
                         cast("QWidget", self),
                         "No Records Found",
-                        (
-                            f"No exchange rate records were found for the last {days} days."
-                        )
+                        (f"No exchange rate records were found for the last {days} days."),
                     )
 
                 # Mark exchange rates as changed and update the view
@@ -128,9 +126,7 @@ class ExchangeRatesOperations:
 
         except Exception as e:
             QMessageBox.critical(
-                cast("QWidget", self),
-                "Error",
-                f"An error occurred while deleting exchange rates: {e}"
+                cast("QWidget", self), "Error", f"An error occurred while deleting exchange rates: {e}"
             )
 
     def on_exchange_rates_all_time(self) -> None:
@@ -260,8 +256,7 @@ class ExchangeRatesOperations:
             QMessageBox.information(
                 cast("QWidget", self),
                 "Filter Applied",
-                "Exchange rates filter has been applied.\n\n"
-                + "\n".join(filter_info),
+                "Exchange rates filter has been applied.\n\n" + "\n".join(filter_info),
             )
 
         except Exception as e:
@@ -294,9 +289,7 @@ class ExchangeRatesOperations:
 
         except Exception as e:
             QMessageBox.critical(
-                cast("QWidget", self),
-                "Clear Filter Error",
-                f"An error occurred while clearing filter: {e}"
+                cast("QWidget", self), "Clear Filter Error", f"An error occurred while clearing filter: {e}"
             )
 
     def on_update_exchange_rates(self) -> None:

@@ -219,9 +219,7 @@ class OnCombineForAI(ActionBase):
 
         # Use the selected folder as base folder
         self.add_line(
-            _safe_collect_text_files_to_markdown(
-                cast("list[str | Path]", selected_files), str(selected_folder)
-            )
+            _safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), str(selected_folder))
         )
         self.show_result()
 

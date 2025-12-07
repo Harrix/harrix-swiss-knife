@@ -57,7 +57,7 @@ class DateDelegate(QStyledItemDelegate):
         - `QDateEdit`: The created date editor.
 
         """
-        editor = QDateEdit(parent)
+        editor = QDateEdit(cast("QWidget", parent))
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
         editor.setDisplayFormat("yyyy-MM-dd")
@@ -147,7 +147,7 @@ Returns:
 
 ```python
 def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:  # noqa: N802, ANN001
-        editor = QDateEdit(parent)
+        editor = QDateEdit(cast("QWidget", parent))
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
         editor.setDisplayFormat("yyyy-MM-dd")

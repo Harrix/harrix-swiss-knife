@@ -52,7 +52,7 @@ class TagDelegate(QStyledItemDelegate):
         - `QComboBox`: The created combo box editor.
 
         """
-        combo: QComboBox = QComboBox(parent)
+        combo: QComboBox = QComboBox(cast("QWidget", parent))
         combo.setEditable(True)
 
         # Set white background for the editor
@@ -142,7 +142,7 @@ Returns:
 
 ```python
 def createEditor(self, parent: QObject, _: QStyleOptionViewItem, _index: QModelIndex) -> QComboBox:  # noqa: N802
-        combo: QComboBox = QComboBox(parent)
+        combo: QComboBox = QComboBox(cast("QWidget", parent))
         combo.setEditable(True)
 
         # Set white background for the editor

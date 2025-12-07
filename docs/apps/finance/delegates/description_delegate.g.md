@@ -57,7 +57,7 @@ class DescriptionDelegate(QStyledItemDelegate):
         - `QLineEdit`: The created line edit editor.
 
         """
-        editor = QLineEdit(parent)
+        editor = QLineEdit(cast("QWidget", parent))
 
         # Set white background for the editor
         editor.setStyleSheet("QLineEdit { background-color: white; }")
@@ -138,7 +138,7 @@ Returns:
 
 ```python
 def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QLineEdit:  # noqa: N802
-        editor = QLineEdit(parent)
+        editor = QLineEdit(cast("QWidget", parent))
 
         # Set white background for the editor
         editor.setStyleSheet("QLineEdit { background-color: white; }")

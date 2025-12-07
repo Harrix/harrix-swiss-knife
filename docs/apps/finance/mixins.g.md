@@ -1010,8 +1010,8 @@ class ChartOperations:
 
         if date_from and date_to:
             try:
-                user_start_date = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
-                user_end_date = datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
+                user_start_date = datetime.fromisoformat(date_from).replace(tzinfo=UTC)
+                user_end_date = datetime.fromisoformat(date_to).replace(tzinfo=UTC)
                 # Use the later of actual start date or user start date to avoid leading zeros
                 start_date = max(actual_start_date, user_start_date)
                 end_date = min(actual_end_date, user_end_date)
@@ -1145,7 +1145,7 @@ class ChartOperations:
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
             except (ValueError, TypeError):
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -1475,8 +1475,8 @@ def _fill_missing_periods_with_zeros(
 
         if date_from and date_to:
             try:
-                user_start_date = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
-                user_end_date = datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
+                user_start_date = datetime.fromisoformat(date_from).replace(tzinfo=UTC)
+                user_end_date = datetime.fromisoformat(date_to).replace(tzinfo=UTC)
                 # Use the later of actual start date or user start date to avoid leading zeros
                 start_date = max(actual_start_date, user_start_date)
                 end_date = min(actual_end_date, user_end_date)
@@ -1646,7 +1646,7 @@ def _group_data_by_period(self, rows: list, period: str, value_type: str = "floa
 
             # Safe date parsing with proper error handling
             try:
-                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
             except (ValueError, TypeError):
                 # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
                 continue
@@ -2238,7 +2238,7 @@ class ValidationOperations:
             return False
 
         try:
-            datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+            datetime.fromisoformat(date_str).replace(tzinfo=UTC)
         except (ValueError, TypeError):
             return False
         else:
@@ -2272,7 +2272,7 @@ def _is_valid_date(date_str: str) -> bool:
             return False
 
         try:
-            datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+            datetime.fromisoformat(date_str).replace(tzinfo=UTC)
         except (ValueError, TypeError):
             return False
         else:

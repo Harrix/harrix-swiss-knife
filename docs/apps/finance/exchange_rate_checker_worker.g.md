@@ -76,7 +76,7 @@ class ExchangeRateCheckerWorker(QThread):
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = datetime.now(timezone.utc).astimezone().date()
+            today = datetime.now(UTC).astimezone().date()
             today_str = today.strftime("%Y-%m-%d")
 
             self.progress_updated.emit(f"📅 Checking rates up to {today_str}")
@@ -118,8 +118,12 @@ class ExchangeRateCheckerWorker(QThread):
                     start_date = datetime.fromisoformat(last_date_str).date()
 
                 # Calculate missing dates from start_date to today
+                if start_date is None:
+                    self.progress_updated.emit(f"⚠️ {currency_code}: No start date available - skipping")
+                    continue
+
                 missing_dates = []
-                current_date = start_date
+                current_date: date = start_date
 
                 # Check in batches to avoid blocking
                 batch_size = 100
@@ -227,7 +231,7 @@ def run(self) -> None:
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = datetime.now(timezone.utc).astimezone().date()
+            today = datetime.now(UTC).astimezone().date()
             today_str = today.strftime("%Y-%m-%d")
 
             self.progress_updated.emit(f"📅 Checking rates up to {today_str}")
@@ -269,8 +273,12 @@ def run(self) -> None:
                     start_date = datetime.fromisoformat(last_date_str).date()
 
                 # Calculate missing dates from start_date to today
+                if start_date is None:
+                    self.progress_updated.emit(f"⚠️ {currency_code}: No start date available - skipping")
+                    continue
+
                 missing_dates = []
-                current_date = start_date
+                current_date: date = start_date
 
                 # Check in batches to avoid blocking
                 batch_size = 100

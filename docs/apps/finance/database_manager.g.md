@@ -117,7 +117,7 @@ Attributes:
 ```python
 class DatabaseManager:
 
-    db: QSqlDatabase
+    db: QSqlDatabase | None
     connection_name: str
     _db_filename: str
     _exchange_rate_cache: dict[str, float]
@@ -380,6 +380,8 @@ class DatabaseManager:
         - `int`: Number of cleaned records.
 
         """
+        if self.db is None:
+            return 0
         query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
         cursor = self.db.exec(query)
         if cursor.lastError().isValid():
@@ -594,7 +596,7 @@ class DatabaseManager:
 
         try:
             # Calculate the cutoff date
-            cutoff_date = (datetime.now(timezone.utc).astimezone() - timedelta(days=days)).strftime("%Y-%m-%d")
+            cutoff_date = (datetime.now(UTC).astimezone() - timedelta(days=days)).strftime("%Y-%m-%d")
 
             # Delete exchange rates from the last N days (including today)
             query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
@@ -756,7 +758,7 @@ class DatabaseManager:
         # Make start_date timezone-aware (UTC) to avoid naive datetime
         start_date_dt = datetime.fromisoformat(earliest_transaction_date)
         start_date = start_date_dt.date()
-        end_date = datetime.now(timezone.utc).astimezone().date()
+        end_date = datetime.now(UTC).astimezone().date()
 
         print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
 
@@ -1790,7 +1792,7 @@ class DatabaseManager:
         - `float`: Today's balance in target currency.
 
         """
-        today = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return total_income - total_expenses
 
@@ -1806,7 +1808,7 @@ class DatabaseManager:
         - `float`: Today's expenses in the specified currency.
 
         """
-        today = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
 
@@ -1909,7 +1911,7 @@ class DatabaseManager:
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        now = datetime.now(timezone.utc).astimezone()
+        now = datetime.now(UTC).astimezone()
         if (
             self._cache_timestamp
             and (now - self._cache_timestamp) < timedelta(minutes=5)
@@ -2032,7 +2034,7 @@ class DatabaseManager:
         """
         try:
             # Get today's date in YYYY-MM-DD format
-            today = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             # Get all currencies except USD
             currencies = self.get_currencies_except_usd()
@@ -3032,6 +3034,8 @@ Returns:
 
 ```python
 def clean_invalid_exchange_rates(self) -> int:
+        if self.db is None:
+            return 0
         query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
         cursor = self.db.exec(query)
         if cursor.lastError().isValid():
@@ -3367,7 +3371,7 @@ def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
 
         try:
             # Calculate the cutoff date
-            cutoff_date = (datetime.now(timezone.utc).astimezone() - timedelta(days=days)).strftime("%Y-%m-%d")
+            cutoff_date = (datetime.now(UTC).astimezone() - timedelta(days=days)).strftime("%Y-%m-%d")
 
             # Delete exchange rates from the last N days (including today)
             query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
@@ -3577,7 +3581,7 @@ def fill_missing_exchange_rates(self) -> int:
         # Make start_date timezone-aware (UTC) to avoid naive datetime
         start_date_dt = datetime.fromisoformat(earliest_transaction_date)
         start_date = start_date_dt.date()
-        end_date = datetime.now(timezone.utc).astimezone().date()
+        end_date = datetime.now(UTC).astimezone().date()
 
         print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
 
@@ -5017,7 +5021,7 @@ Returns:
 
 ```python
 def get_today_balance_in_currency(self, currency_id: int) -> float:
-        today = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return total_income - total_expenses
 ```
@@ -5045,7 +5049,7 @@ Returns:
 
 ```python
 def get_today_expenses_in_currency(self, currency_id: int) -> float:
-        today = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
 ```
@@ -5184,7 +5188,7 @@ def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) ->
         cache_key = f"{currency_id}_{date or 'latest'}"
 
         # Check cache (valid for 5 minutes)
-        now = datetime.now(timezone.utc).astimezone()
+        now = datetime.now(UTC).astimezone()
         if (
             self._cache_timestamp
             and (now - self._cache_timestamp) < timedelta(minutes=5)
@@ -5367,7 +5371,7 @@ Returns:
 def should_update_exchange_rates(self) -> bool:
         try:
             # Get today's date in YYYY-MM-DD format
-            today = datetime.now(timezone.utc).astimezone().date().strftime("%Y-%m-%d")
+            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             # Get all currencies except USD
             currencies = self.get_currencies_except_usd()

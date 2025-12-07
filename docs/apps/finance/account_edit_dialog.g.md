@@ -113,7 +113,7 @@ class AccountEditDialog(QDialog):
             msg = "Division by zero"
             raise ValueError(msg)
 
-        def _raise_value_error(msg: str) -> None:
+        def _raise_value_error(msg: str) -> NoReturn:
             raise ValueError(msg)
 
         try:
@@ -148,7 +148,7 @@ class AccountEditDialog(QDialog):
 
         """
         # Allow numbers (int, float)
-        if isinstance(node, (ast.Constant, ast.Num)):
+        if isinstance(node, ast.Constant):
             return True
 
         # Allow binary operations (+, -, *, /)
@@ -423,7 +423,7 @@ def _evaluate_expression(self, expression: str) -> float:
             msg = "Division by zero"
             raise ValueError(msg)
 
-        def _raise_value_error(msg: str) -> None:
+        def _raise_value_error(msg: str) -> NoReturn:
             raise ValueError(msg)
 
         try:
@@ -470,7 +470,7 @@ Returns:
 ```python
 def _is_safe_node(self, node: ast.AST) -> bool:
         # Allow numbers (int, float)
-        if isinstance(node, (ast.Constant, ast.Num)):
+        if isinstance(node, ast.Constant):
             return True
 
         # Allow binary operations (+, -, *, /)
