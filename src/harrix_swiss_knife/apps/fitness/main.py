@@ -412,8 +412,9 @@ class MainWindow(
             self.current_movie.stop()
 
         for label_key in self.avif_data:
-            if self.avif_data[label_key]["timer"]:
-                self.avif_data[label_key]["timer"].stop()
+            timer = self.avif_data[label_key]["timer"]
+            if timer is not None and isinstance(timer, QTimer):
+                timer.stop()
 
         # Dispose Models
         self._dispose_models()
@@ -2708,7 +2709,7 @@ class MainWindow(
         # Parse and set the date
         try:
             date_obj = QDate.fromString(weight_date, "yyyy-MM-dd")
-            if date_obj.isValid():
+            if not date_obj.isNull():
                 self.dateEdit_weight.setDate(date_obj)
             else:
                 self.dateEdit_weight.setDate(QDate.currentDate())
