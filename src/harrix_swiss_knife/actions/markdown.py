@@ -3,7 +3,7 @@
 import json
 import re
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -724,12 +724,12 @@ class OnNewArticle(ActionBase):
 
         text = self.config["beginning_of_article"].replace(
             "[YEAR]",
-            datetime.now(timezone.utc).strftime("%Y"),
+            datetime.now(UTC).strftime("%Y"),
         )
         text = text.replace("[NAME]", article_name)
         text = text.replace(
             "[DATE]",
-            datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            datetime.now(UTC).strftime("%Y-%m-%d"),
         )
         text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 

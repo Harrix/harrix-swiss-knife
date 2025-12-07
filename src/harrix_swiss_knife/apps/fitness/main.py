@@ -14,7 +14,7 @@ import io
 import math
 import sys
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -884,7 +884,7 @@ class MainWindow(
 
             # Get date range: from first record to yesterday
             first_date_str = steps_records[0][0]
-            yesterday = datetime.now(timezone.utc).astimezone().date() - timedelta(days=1)
+            yesterday = datetime.now(UTC).astimezone().date() - timedelta(days=1)
 
             try:
                 first_date = datetime.fromisoformat(first_date_str).date()
@@ -1029,7 +1029,7 @@ class MainWindow(
         exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
         # Use local time for current date
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
 
         monthly_data = []
         colors = []
@@ -1090,7 +1090,7 @@ class MainWindow(
                 cumulative_value = 0.0
                 for date_str, value_str in rows:
                     try:
-                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
                         value = float(value_str)
                         cumulative_value += value
                         # Use day of month for X axis
@@ -1283,7 +1283,7 @@ class MainWindow(
         selected_month_index = self.comboBox_compare_same_months.currentIndex()
         selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
 
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
         selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
         current_year = today.year
 
@@ -1317,7 +1317,7 @@ class MainWindow(
             year = current_year - _i
 
             # Calculate start and end of the same month for this year
-            month_start = datetime(year, selected_month, 1, tzinfo=timezone.utc)
+            month_start = datetime(year, selected_month, 1, tzinfo=UTC)
             last_day = calendar.monthrange(month_start.year, month_start.month)[1]
             month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
 
@@ -1351,7 +1351,7 @@ class MainWindow(
 
                 for date_str, value_str in rows:
                     try:
-                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
                         value = float(value_str)
                         cumulative_value += value
 
@@ -1631,7 +1631,7 @@ class MainWindow(
 
             if last_date:
                 try:
-                    date_obj = datetime.fromisoformat(last_date).replace(tzinfo=timezone.utc)
+                    date_obj = datetime.fromisoformat(last_date).replace(tzinfo=UTC)
                     formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
                     date_parts.append(f"Last: {formatted_date}")
                 except ValueError:
@@ -1913,7 +1913,7 @@ class MainWindow(
                 return
 
             # Calculate key date boundaries relative to local time
-            local_now = datetime.now(timezone.utc).astimezone()
+            local_now = datetime.now(UTC).astimezone()
             today_date = local_now.date()
             yesterday_date = today_date - timedelta(days=1)
             thirty_days_ago = today_date - timedelta(days=30)
@@ -2493,7 +2493,7 @@ class MainWindow(
                 return
 
             # Calculate days ago for each exercise
-            today = datetime.now(timezone.utc).astimezone().date()
+            today = datetime.now(UTC).astimezone().date()
             table_data = []
 
             for exercise_name, last_date_str in exercise_dates:
@@ -2807,7 +2807,7 @@ class MainWindow(
         datetime_data = []
         for date_str, calories in rows:
             try:
-                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
                 datetime_data.append((date_obj, float(calories)))
             except (ValueError, TypeError):
                 continue
@@ -2833,7 +2833,7 @@ class MainWindow(
 
         # For calories chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+        today = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -2895,7 +2895,7 @@ class MainWindow(
         datetime_data = []
         for date_str, count in rows:
             try:
-                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
                 datetime_data.append((date_obj, int(count)))
             except (ValueError, TypeError):
                 continue
@@ -2921,7 +2921,7 @@ class MainWindow(
 
         # For sets chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+        today = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3257,7 +3257,7 @@ class MainWindow(
         datetime_data = []
         for date_str, value_str in rows:
             try:
-                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
                 value = float(value_str)
                 datetime_data.append((date_obj, value))
             except (ValueError, TypeError):
@@ -3287,7 +3287,7 @@ class MainWindow(
 
         # For exercise chart, respect the selected date range
         # But don't extend beyond today
-        today = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+        today = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
         chart_date_from = date_from
         chart_date_to = min(today, date_to)
 
@@ -3475,7 +3475,7 @@ class MainWindow(
             return
 
         # Parse data - convert to datetime objects for chart
-        chart_data = [(datetime.fromisoformat(row[1]).replace(tzinfo=timezone.utc), row[0]) for row in rows]
+        chart_data = [(datetime.fromisoformat(row[1]).replace(tzinfo=UTC), row[0]) for row in rows]
 
         # Define custom statistics formatter for weight
         def format_weight_stats(values: list) -> str:
@@ -3550,7 +3550,7 @@ class MainWindow(
             return
 
         # Get current month data
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
         current_month = today.month
         current_year = today.year
 
@@ -3727,7 +3727,7 @@ class MainWindow(
             return
 
         # Get current month progress
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -3872,7 +3872,7 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
         monthly_data = []
 
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
 
         for i in range(months_count):
             # Calculate start and end of month
@@ -3978,7 +3978,7 @@ class MainWindow(
             # For exercises with types, we need to filter by type
             if exercise_type and exercise_type != "All types":
                 # Get today's date
-                today = datetime.now(timezone.utc).astimezone()
+                today = datetime.now(UTC).astimezone()
                 # Get today's data for this specific exercise and type
                 today_data = self.db_manager.get_exercise_chart_data(
                     exercise_name=exercise,
@@ -3991,7 +3991,7 @@ class MainWindow(
                 today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
         # Calculate remaining days in current month
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
         current_month = today.month
         current_year = today.year
         days_in_month = calendar.monthrange(current_year, current_month)[1]
@@ -4104,7 +4104,7 @@ class MainWindow(
             return
 
         # Get current month data
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
         current_month = today.month
         current_year = today.year
 
@@ -4301,7 +4301,7 @@ class MainWindow(
                     last_month_value = final_value
 
         # Get current month progress
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
         current_month_data = monthly_data[0] if monthly_data else []
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -4357,7 +4357,7 @@ class MainWindow(
 
         try:
             # Calculate date one year ago
-            one_year_ago = datetime.now(timezone.utc).astimezone() - timedelta(days=365)
+            one_year_ago = datetime.now(UTC).astimezone() - timedelta(days=365)
             one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
 
             # Use database manager method
@@ -4938,7 +4938,7 @@ class MainWindow(
         months_count = self.spinBox_compare_last.value()
 
         # Get data for last N months
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
         monthly_data = []
 
         for i in range(months_count):
@@ -5084,7 +5084,7 @@ class MainWindow(
 
         """
         monthly_data = []
-        today = datetime.now(timezone.utc).astimezone()
+        today = datetime.now(UTC).astimezone()
 
         for i in range(months_count):
             # Calculate start and end of month (same logic as compare_last)
@@ -5120,7 +5120,7 @@ class MainWindow(
                 cumulative_value = 0.0
                 for date_str, value_str in rows:
                     try:
-                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
                         value = float(value_str)
                         cumulative_value += value
                         day_of_month = date_obj.day

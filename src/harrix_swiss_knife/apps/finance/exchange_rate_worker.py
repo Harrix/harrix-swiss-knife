@@ -4,7 +4,7 @@ This module contains the ExchangeRateUpdateWorker class that handles
 background updates of exchange rates from various data sources.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 import yfinance as yf
@@ -296,7 +296,7 @@ class ExchangeRateUpdateWorker(QThread):
                 # Update existing records (only recent ones, not weekends)
                 if existing_records:
                     # Only update last 7 days of records
-                    recent_cutoff = (datetime.now(timezone.utc).astimezone() - timedelta(days=7)).strftime("%Y-%m-%d")
+                    recent_cutoff = (datetime.now(UTC).astimezone() - timedelta(days=7)).strftime("%Y-%m-%d")
                     recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
 
                     if recent_records:

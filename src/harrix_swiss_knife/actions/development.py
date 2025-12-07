@@ -1,7 +1,6 @@
 """Actions for Python development and code management."""
 
-import tomllib  # noqa: I001
-from pathlib import Path
+import tomllib
 from typing import Any
 
 import harrix_pylib as h
