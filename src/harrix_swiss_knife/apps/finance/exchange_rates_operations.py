@@ -316,7 +316,7 @@ class ExchangeRatesOperations:
                     return
 
             # Create and configure check progress dialog
-            self.check_progress_dialog = QMessageBox(self)
+            self.check_progress_dialog = QMessageBox(cast("QWidget", self))
             self.check_progress_dialog.setWindowTitle("Checking Exchange Rates")
             check_mode = "from first transaction" if check_from_first_transaction else "from last exchange rate"
             self.check_progress_dialog.setText(
@@ -394,7 +394,7 @@ class ExchangeRatesOperations:
                     return
 
             # Create modal progress dialog
-            self.startup_progress_dialog = QMessageBox(self)
+            self.startup_progress_dialog = QMessageBox(cast("QWidget", self))
             self.startup_progress_dialog.setWindowTitle("Loading Exchange Rates")
             self.startup_progress_dialog.setText(f"Checking exchange rates {strategy_text}...\nPlease wait...")
             self.startup_progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
@@ -737,7 +737,7 @@ class ExchangeRatesOperations:
         """
         try:
             # Create and configure update progress dialog
-            self.progress_dialog = QMessageBox(self)
+            self.progress_dialog = QMessageBox(cast("QWidget", self))
             self.progress_dialog.setWindowTitle("Updating Exchange Rates")
             self.progress_dialog.setText(
                 f"Starting exchange rate update for {len(currencies_to_process)} currencies from yfinance..."
