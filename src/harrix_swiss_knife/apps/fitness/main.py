@@ -24,7 +24,18 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
-from PySide6.QtCore import QDate, QDateTime, QEvent, QModelIndex, QPoint, QSize, QSortFilterProxyModel, Qt, QTimer
+from PySide6.QtCore import (
+    QDate,
+    QDateTime,
+    QEvent,
+    QModelIndex,
+    QObject,
+    QPoint,
+    QSize,
+    QSortFilterProxyModel,
+    Qt,
+    QTimer,
+)
 from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
@@ -5730,15 +5741,17 @@ class MainWindow(
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
 
-    def eventFilter(self, obj, event) -> bool:
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         """Filter events to handle double-click on chart info label.
 
         Args:
-            obj: The object that received the event.
-            event: The event that occurred.
+
+        - `obj` (`QObject`): The object that received the event.
+        - `event` (`QEvent`): The event that occurred.
 
         Returns:
-            True if the event was handled, False otherwise.
+
+        - `bool`: True if the event was handled, False otherwise.
 
         """
         # Handle double-click on label_chart_info safely
