@@ -3513,7 +3513,7 @@ class MainWindow(
         y_values = [item[1] for item in chart_data]
 
         # Plot data
-        self._plot_data(ax, x_values, y_values, chart_config.get("color", "b"), period="Days")
+        self._plot_data(ax, x_values, y_values, str(chart_config.get("color", "b")), period="Days")
 
         # Customize plot
         ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
