@@ -647,7 +647,7 @@ class MainWindow(
         result: int = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            text: str = dialog.get_text()
+            text: str | None = dialog.get_text()
             if text:
                 self._process_text_input(text)
 
