@@ -27,7 +27,7 @@ class DatabaseManager:
 
     """
 
-    db: QSqlDatabase
+    db: QSqlDatabase | None
     connection_name: str
     _db_filename: str
     _exchange_rate_cache: dict[str, float]
