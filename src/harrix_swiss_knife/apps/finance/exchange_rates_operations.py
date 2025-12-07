@@ -102,7 +102,7 @@ class ExchangeRatesOperations:
             if success:
                 if deleted_count > 0:
                     QMessageBox.information(
-                        self,
+                        cast("QWidget", self),
                         "Deletion Successful",
                         f"Successfully deleted {deleted_count} exchange rate records for the last {days} days.",
                     )
