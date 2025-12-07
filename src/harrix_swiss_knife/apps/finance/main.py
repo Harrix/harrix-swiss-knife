@@ -1880,7 +1880,7 @@ class MainWindow(
                 if hasattr(widget, "figure"):
                     try:
                         # Mark canvas as being deleted to prevent new updates
-                        widget._deleting = True  # noqa: SLF001
+                        setattr(widget, "_deleting", True)
                         # Clear the figure first
                         widget.figure.clear()
                         # Close the canvas properly
