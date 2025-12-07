@@ -1,9 +1,10 @@
 """Date delegate for date column in transactions table."""
 
 from datetime import date as date_class
+from typing import cast
 
 from PySide6.QtCore import QAbstractItemModel, QDate, QModelIndex, QObject, Qt
-from PySide6.QtWidgets import QDateEdit, QStyledItemDelegate
+from PySide6.QtWidgets import QDateEdit, QStyledItemDelegate, QWidget
 
 
 class DateDelegate(QStyledItemDelegate):
@@ -33,7 +34,7 @@ class DateDelegate(QStyledItemDelegate):
         - `QDateEdit`: The created date editor.
 
         """
-        editor = QDateEdit(parent)
+        editor = QDateEdit(cast("QWidget", parent))
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
         editor.setDisplayFormat("yyyy-MM-dd")
