@@ -4550,20 +4550,20 @@ class MainWindow(
                 QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
             )
 
-    def _show_no_data_label(self, layout: QLayout, message: str) -> None:
+    def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a message when no data is available for the chart.
 
         Args:
 
         - `layout` (`QLayout`): The layout to add the message to.
-        - `message` (`str`): The message to display.
+        - `text` (`str`): The message to display.
 
         """
         # Clear existing content
         self._clear_layout(layout)
 
         # Create and add label
-        label: QLabel = QLabel(message)
+        label: QLabel = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
         layout.addWidget(label)
