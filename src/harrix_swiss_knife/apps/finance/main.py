@@ -30,7 +30,18 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QMouseEvent, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtGui import (
+    QBrush,
+    QCloseEvent,
+    QColor,
+    QIcon,
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QStandardItem,
+    QStandardItemModel,
+)
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -42,8 +53,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QStyle,
-    QStyleOptionComboBox,
     QTableView,
     QWidget,
 )
@@ -79,7 +88,7 @@ config = h.dev.load_config("config/config.json")
 class ClickableCategoryLabel(QLabel):
     """QLabel with dropdown arrow indicator on the right side."""
 
-    def paintEvent(self, event) -> None:
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         """Override paintEvent to draw dropdown arrow."""
         super().paintEvent(event)
 

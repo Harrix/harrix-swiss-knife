@@ -136,8 +136,8 @@ class AmountDelegate(QStyledItemDelegate):
 
         """
         try:
-            # Don't apply income formatting to "Total per day" column (index 6)
-            if index.column() == 6:
+            total_per_day_column = 6  # Column index for "Total per day"
+            if index.column() == total_per_day_column:
                 super().paint(painter, option, index)
                 return
 
