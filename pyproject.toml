@@ -38,6 +38,7 @@ dev = [
 
 [tool.ty.rules]
 unresolved-attribute = "ignore"
+invalid-method-override = "ignore"
 
 # Disabling some pydocstyle rules that conflict with Markdown-style documentation.
 # We use Markdown for docstrings instead of traditional reST/Napoleon/Google formats:
