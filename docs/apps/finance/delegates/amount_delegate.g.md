@@ -159,6 +159,11 @@ class AmountDelegate(QStyledItemDelegate):
 
         """
         try:
+            total_per_day_column = 6  # Column index for "Total per day"
+            if index.column() == total_per_day_column:
+                super().paint(painter, option, index)
+                return
+
             # Get the model and check if this is an income transaction
             model = index.model()
             if model is None:
@@ -420,6 +425,11 @@ Args:
 ```python
 def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         try:
+            total_per_day_column = 6  # Column index for "Total per day"
+            if index.column() == total_per_day_column:
+                super().paint(painter, option, index)
+                return
+
             # Get the model and check if this is an income transaction
             model = index.model()
             if model is None:

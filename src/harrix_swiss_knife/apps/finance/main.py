@@ -1342,9 +1342,7 @@ class MainWindow(
         if not expense_rows:
             charts_layout = self.scrollAreaWidgetContents_charts.layout()
             if charts_layout is not None:
-                self._show_no_data_label(
-                    charts_layout, "No expense data found for pie chart"
-                )
+                self._show_no_data_label(charts_layout, "No expense data found for pie chart")
             return
 
         # Group by category and sum amounts (converted to default currency)
@@ -1471,9 +1469,7 @@ class MainWindow(
         if not rows:
             charts_layout = self.scrollAreaWidgetContents_charts.layout()
             if charts_layout is not None:
-                self._show_no_data_label(
-                    charts_layout, "No data found for the selected period"
-                )
+                self._show_no_data_label(charts_layout, "No data found for the selected period")
             return
 
         # Group data by period

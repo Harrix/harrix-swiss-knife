@@ -11,6 +11,8 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `ClickableCategoryLabel`](#%EF%B8%8F-class-clickablecategorylabel)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
 - [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
@@ -144,6 +146,93 @@ lang: en
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
+
+</details>
+
+## 🏛️ Class `ClickableCategoryLabel`
+
+```python
+class ClickableCategoryLabel(QLabel)
+```
+
+QLabel with dropdown arrow indicator on the right side.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ClickableCategoryLabel(QLabel):
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Override paintEvent to draw dropdown arrow."""
+        super().paintEvent(event)
+
+        # Draw dropdown arrow on the right side
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Get arrow size and position
+        arrow_size = 8
+        margin = 4
+        rect = self.rect()
+        arrow_x = rect.width() - arrow_size - margin
+        arrow_y = rect.height() // 2
+
+        # Get text color for arrow
+        text_color = self.palette().color(self.palette().ColorRole.WindowText)
+        painter.setPen(text_color)
+        painter.setBrush(text_color)
+
+        # Draw triangle pointing down
+        points = [
+            QPoint(arrow_x, arrow_y - arrow_size // 2),
+            QPoint(arrow_x + arrow_size, arrow_y - arrow_size // 2),
+            QPoint(arrow_x + arrow_size // 2, arrow_y + arrow_size // 2),
+        ]
+        painter.drawPolygon(points)
+```
+
+</details>
+
+### ⚙️ Method `paintEvent`
+
+```python
+def paintEvent(self, event: QPaintEvent) -> None
+```
+
+Override paintEvent to draw dropdown arrow.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        super().paintEvent(event)
+
+        # Draw dropdown arrow on the right side
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Get arrow size and position
+        arrow_size = 8
+        margin = 4
+        rect = self.rect()
+        arrow_x = rect.width() - arrow_size - margin
+        arrow_y = rect.height() // 2
+
+        # Get text color for arrow
+        text_color = self.palette().color(self.palette().ColorRole.WindowText)
+        painter.setPen(text_color)
+        painter.setBrush(text_color)
+
+        # Draw triangle pointing down
+        points = [
+            QPoint(arrow_x, arrow_y - arrow_size // 2),
+            QPoint(arrow_x + arrow_size, arrow_y - arrow_size // 2),
+            QPoint(arrow_x + arrow_size // 2, arrow_y + arrow_size // 2),
+        ]
+        painter.drawPolygon(points)
+```
 
 </details>
 
@@ -1379,9 +1468,9 @@ class MainWindow(
         )
 
         if not expense_rows:
-            self._show_no_data_label(
-                self.scrollAreaWidgetContents_charts.layout(), "No expense data found for pie chart"
-            )
+            charts_layout = self.scrollAreaWidgetContents_charts.layout()
+            if charts_layout is not None:
+                self._show_no_data_label(charts_layout, "No expense data found for pie chart")
             return
 
         # Group by category and sum amounts (converted to default currency)
@@ -1506,9 +1595,9 @@ class MainWindow(
         )
 
         if not rows:
-            self._show_no_data_label(
-                self.scrollAreaWidgetContents_charts.layout(), "No data found for the selected period"
-            )
+            charts_layout = self.scrollAreaWidgetContents_charts.layout()
+            if charts_layout is not None:
+                self._show_no_data_label(charts_layout, "No data found for the selected period")
             return
 
         # Group data by period
@@ -3717,11 +3806,8 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Failed to parse exchange values")
             return
 
-        # Get currencies list
-        currencies = self.comboBox_exchange_from.allItems() if hasattr(self.comboBox_exchange_from, "allItems") else []
-        if not currencies:
-            # Fallback: get currencies from combobox
-            currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
+        # Get currencies list from combobox
+        currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
 
         # Prepare exchange data
         exchange_data = {
@@ -4545,6 +4631,36 @@ class MainWindow(
 
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
+
+        # Replace label_category_now with custom label that has dropdown arrow
+        old_label = self.label_category_now
+        parent = old_label.parentWidget()
+        if parent is None:
+            parent_widget = old_label.parent()
+            if isinstance(parent_widget, QWidget):
+                parent = parent_widget
+            else:
+                return  # Cannot replace if no valid parent widget
+
+        if not isinstance(parent, QWidget):
+            return  # Cannot replace if parent is not a QWidget
+
+        layout = parent.layout()
+        if layout is not None:
+            layout_index = layout.indexOf(old_label)
+
+            # Create new custom label with same properties
+            new_label = ClickableCategoryLabel(parent=parent)
+            new_label.setObjectName("label_category_now")
+            new_label.setFont(old_label.font())
+            new_label.setFocusPolicy(old_label.focusPolicy())
+            new_label.setText(old_label.text())
+
+            # Replace in layout
+            layout.removeWidget(old_label)
+            layout.insertWidget(layout_index, new_label)
+            old_label.deleteLater()
+            self.label_category_now = new_label
 
         # Enable category selection via label context menu
         self.label_category_now.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -6631,9 +6747,9 @@ def show_pie_chart(self) -> None:
         )
 
         if not expense_rows:
-            self._show_no_data_label(
-                self.scrollAreaWidgetContents_charts.layout(), "No expense data found for pie chart"
-            )
+            charts_layout = self.scrollAreaWidgetContents_charts.layout()
+            if charts_layout is not None:
+                self._show_no_data_label(charts_layout, "No expense data found for pie chart")
             return
 
         # Group by category and sum amounts (converted to default currency)
@@ -6812,9 +6928,9 @@ def update_charts(self) -> None:
         )
 
         if not rows:
-            self._show_no_data_label(
-                self.scrollAreaWidgetContents_charts.layout(), "No data found for the selected period"
-            )
+            charts_layout = self.scrollAreaWidgetContents_charts.layout()
+            if charts_layout is not None:
+                self._show_no_data_label(charts_layout, "No data found for the selected period")
             return
 
         # Group data by period
@@ -9747,11 +9863,8 @@ def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
             QMessageBox.warning(self, "Error", "Failed to parse exchange values")
             return
 
-        # Get currencies list
-        currencies = self.comboBox_exchange_from.allItems() if hasattr(self.comboBox_exchange_from, "allItems") else []
-        if not currencies:
-            # Fallback: get currencies from combobox
-            currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
+        # Get currencies list from combobox
+        currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
 
         # Prepare exchange data
         exchange_data = {
@@ -10911,6 +11024,36 @@ def _setup_ui(self) -> None:
 
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
+
+        # Replace label_category_now with custom label that has dropdown arrow
+        old_label = self.label_category_now
+        parent = old_label.parentWidget()
+        if parent is None:
+            parent_widget = old_label.parent()
+            if isinstance(parent_widget, QWidget):
+                parent = parent_widget
+            else:
+                return  # Cannot replace if no valid parent widget
+
+        if not isinstance(parent, QWidget):
+            return  # Cannot replace if parent is not a QWidget
+
+        layout = parent.layout()
+        if layout is not None:
+            layout_index = layout.indexOf(old_label)
+
+            # Create new custom label with same properties
+            new_label = ClickableCategoryLabel(parent=parent)
+            new_label.setObjectName("label_category_now")
+            new_label.setFont(old_label.font())
+            new_label.setFocusPolicy(old_label.focusPolicy())
+            new_label.setText(old_label.text())
+
+            # Replace in layout
+            layout.removeWidget(old_label)
+            layout.insertWidget(layout_index, new_label)
+            old_label.deleteLater()
+            self.label_category_now = new_label
 
         # Enable category selection via label context menu
         self.label_category_now.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)

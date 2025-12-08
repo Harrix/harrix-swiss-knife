@@ -98,6 +98,9 @@ class AccountEditDialog(QDialog):
         # Remove all whitespace
         expression = expression.replace(" ", "")
 
+        # Replace comma with dot for decimal separator
+        expression = expression.replace(",", ".")
+
         # Only allow safe characters: numbers, operators, parentheses, decimal points
         if not re.match(r"^[0-9+\-*/().]+$", expression):
             msg = "Expression contains invalid characters"
@@ -202,16 +205,7 @@ class AccountEditDialog(QDialog):
             QMessageBox.warning(self, "Error", "Account name cannot be empty")
             return
 
-        # Check if expression field has content and try to evaluate it
-        expression = self.expression_edit.text().strip()
-        if expression:
-            try:
-                calculated_balance = self._evaluate_expression(expression)
-                self.balance_spin.setValue(calculated_balance)
-            except ValueError as e:
-                QMessageBox.warning(self, "Error", f"Invalid expression: {e!s}")
-                return
-
+        # Get balance value directly from balance_spin field
         self.result_data = {
             "action": "save",
             "name": name,
@@ -408,6 +402,9 @@ def _evaluate_expression(self, expression: str) -> float:
         # Remove all whitespace
         expression = expression.replace(" ", "")
 
+        # Replace comma with dot for decimal separator
+        expression = expression.replace(",", ".")
+
         # Only allow safe characters: numbers, operators, parentheses, decimal points
         if not re.match(r"^[0-9+\-*/().]+$", expression):
             msg = "Expression contains invalid characters"
@@ -566,16 +563,7 @@ def _on_save(self) -> None:
             QMessageBox.warning(self, "Error", "Account name cannot be empty")
             return
 
-        # Check if expression field has content and try to evaluate it
-        expression = self.expression_edit.text().strip()
-        if expression:
-            try:
-                calculated_balance = self._evaluate_expression(expression)
-                self.balance_spin.setValue(calculated_balance)
-            except ValueError as e:
-                QMessageBox.warning(self, "Error", f"Invalid expression: {e!s}")
-                return
-
+        # Get balance value directly from balance_spin field
         self.result_data = {
             "action": "save",
             "name": name,
