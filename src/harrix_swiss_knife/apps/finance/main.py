@@ -30,7 +30,7 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QMouseEvent, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QMouseEvent, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -42,6 +42,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QStyle,
+    QStyleOptionComboBox,
     QTableView,
     QWidget,
 )
@@ -72,6 +74,38 @@ from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.text_parser import TextParser
 
 config = h.dev.load_config("config/config.json")
+
+
+class ClickableCategoryLabel(QLabel):
+    """QLabel with dropdown arrow indicator on the right side."""
+
+    def paintEvent(self, event) -> None:
+        """Override paintEvent to draw dropdown arrow."""
+        super().paintEvent(event)
+
+        # Draw dropdown arrow on the right side
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Get arrow size and position
+        arrow_size = 8
+        margin = 4
+        rect = self.rect()
+        arrow_x = rect.width() - arrow_size - margin
+        arrow_y = rect.height() // 2
+
+        # Get text color for arrow
+        text_color = self.palette().color(self.palette().ColorRole.WindowText)
+        painter.setPen(text_color)
+        painter.setBrush(text_color)
+
+        # Draw triangle pointing down
+        points = [
+            QPoint(arrow_x, arrow_y - arrow_size // 2),
+            QPoint(arrow_x + arrow_size, arrow_y - arrow_size // 2),
+            QPoint(arrow_x + arrow_size // 2, arrow_y + arrow_size // 2),
+        ]
+        painter.drawPolygon(points)
 
 
 class MainWindow(
@@ -4463,6 +4497,28 @@ class MainWindow(
 
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
+
+        # Replace label_category_now with custom label that has dropdown arrow
+        old_label = self.label_category_now
+        parent = old_label.parentWidget()
+        if parent is None:
+            parent = old_label.parent()
+        layout = parent.layout()
+        if layout is not None:
+            layout_index = layout.indexOf(old_label)
+
+            # Create new custom label with same properties
+            new_label = ClickableCategoryLabel(parent)
+            new_label.setObjectName("label_category_now")
+            new_label.setFont(old_label.font())
+            new_label.setFocusPolicy(old_label.focusPolicy())
+            new_label.setText(old_label.text())
+
+            # Replace in layout
+            layout.removeWidget(old_label)
+            layout.insertWidget(layout_index, new_label)
+            old_label.deleteLater()
+            self.label_category_now = new_label
 
         # Enable category selection via label context menu
         self.label_category_now.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
