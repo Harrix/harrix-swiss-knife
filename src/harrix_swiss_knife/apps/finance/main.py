@@ -1340,9 +1340,11 @@ class MainWindow(
         )
 
         if not expense_rows:
-            self._show_no_data_label(
-                self.scrollAreaWidgetContents_charts.layout(), "No expense data found for pie chart"
-            )
+            charts_layout = self.scrollAreaWidgetContents_charts.layout()
+            if charts_layout is not None:
+                self._show_no_data_label(
+                    charts_layout, "No expense data found for pie chart"
+                )
             return
 
         # Group by category and sum amounts (converted to default currency)
@@ -1467,9 +1469,11 @@ class MainWindow(
         )
 
         if not rows:
-            self._show_no_data_label(
-                self.scrollAreaWidgetContents_charts.layout(), "No data found for the selected period"
-            )
+            charts_layout = self.scrollAreaWidgetContents_charts.layout()
+            if charts_layout is not None:
+                self._show_no_data_label(
+                    charts_layout, "No data found for the selected period"
+                )
             return
 
         # Group data by period
@@ -3678,11 +3682,8 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Failed to parse exchange values")
             return
 
-        # Get currencies list
-        currencies = self.comboBox_exchange_from.allItems() if hasattr(self.comboBox_exchange_from, "allItems") else []
-        if not currencies:
-            # Fallback: get currencies from combobox
-            currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
+        # Get currencies list from combobox
+        currencies = [self.comboBox_exchange_from.itemText(i) for i in range(self.comboBox_exchange_from.count())]
 
         # Prepare exchange data
         exchange_data = {
@@ -4511,13 +4512,21 @@ class MainWindow(
         old_label = self.label_category_now
         parent = old_label.parentWidget()
         if parent is None:
-            parent = old_label.parent()
+            parent_widget = old_label.parent()
+            if isinstance(parent_widget, QWidget):
+                parent = parent_widget
+            else:
+                return  # Cannot replace if no valid parent widget
+
+        if not isinstance(parent, QWidget):
+            return  # Cannot replace if parent is not a QWidget
+
         layout = parent.layout()
         if layout is not None:
             layout_index = layout.indexOf(old_label)
 
             # Create new custom label with same properties
-            new_label = ClickableCategoryLabel(parent)
+            new_label = ClickableCategoryLabel(parent=parent)
             new_label.setObjectName("label_category_now")
             new_label.setFont(old_label.font())
             new_label.setFocusPolicy(old_label.focusPolicy())
