@@ -136,6 +136,11 @@ class AmountDelegate(QStyledItemDelegate):
 
         """
         try:
+            # Don't apply income formatting to "Total per day" column (index 6)
+            if index.column() == 6:
+                super().paint(painter, option, index)
+                return
+
             # Get the model and check if this is an income transaction
             model = index.model()
             if model is None:
