@@ -55,16 +55,20 @@ class OnAddMdFromTemplate(ActionBase):
             self.show_result()
             return
 
-        # Let user choose a template
-        template_names = list(templates.keys())
-        selected_template = self.get_choice_from_list(
-            "Select Template",
-            "Choose a template to use:",
-            template_names,
-        )
+        # Check if template name was passed as parameter (for use from other actions)
+        selected_template = kwargs.get("template_name")
 
         if not selected_template:
-            return
+            # Let user choose a template
+            template_names = list(templates.keys())
+            selected_template = self.get_choice_from_list(
+                "Select Template",
+                "Choose a template to use:",
+                template_names,
+            )
+
+            if not selected_template:
+                return
 
         template_config = templates[selected_template]
         template_file = template_config.get("template_file")
@@ -219,9 +223,11 @@ class OnNewMarkdown(ActionBase):
     @ActionBase.handle_exceptions("creating new markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        # Define all available commands
+        # Get templates from config (if available)
+        templates = self.config.get("markdown_templates", {})
+
+        # Define all available commands (without OnAddMdFromTemplate)
         commands = [
-            OnAddMdFromTemplate,
             OnNewArticle,
             OnNewDiary,
             OnNewDiaryDream,
@@ -233,12 +239,20 @@ class OnNewMarkdown(ActionBase):
         # Create display names with icons from the action classes
         choices = []
         action_map = {}
+
+        # Add templates first (if available)
+        for template_name in templates.keys():
+            display_text = f"📝 {template_name}"
+            choices.append(display_text)
+            action_map[display_text] = ("template", template_name)
+
+        # Add other commands
         for action_class in commands:
             action_instance = action_class()
             # Format: "Icon Title" - use the actual title from the action class
             display_text = f"{action_instance.icon} {action_instance.title}"
             choices.append(display_text)
-            action_map[display_text] = action_class
+            action_map[display_text] = ("action", action_class)
 
         # Show dialog to select command
         selected_choice = self.get_choice_from_list(
@@ -250,17 +264,24 @@ class OnNewMarkdown(ActionBase):
         if not selected_choice:
             return
 
-        # Get the selected action class and execute it
-        selected_action_class = action_map.get(selected_choice)
-        if not selected_action_class:
+        # Get the selected action or template
+        selected_item = action_map.get(selected_choice)
+        if not selected_item:
             self.add_line(f"❌ Unknown command selected: {selected_choice}")
             self.show_result()
             return
 
-        # Instantiate and execute the selected action
-        # Calling the instance directly triggers __call__ which handles setup and calls execute()
-        selected_action = selected_action_class()
-        selected_action()  # This triggers __call__ which calls execute()
+        item_type, item_value = selected_item
+
+        if item_type == "template":
+            # Execute OnAddMdFromTemplate with the selected template
+            template_action = OnAddMdFromTemplate()
+            template_action(template_name=item_value)  # Use __call__ to properly initialize
+        elif item_type == "action":
+            # Execute the selected action
+            selected_action_class = item_value
+            selected_action = selected_action_class()
+            selected_action()  # This triggers __call__ which calls execute()
 
 
 class OnBeautifyMdFolder(ActionBase):
