@@ -175,16 +175,24 @@ class AccountEditDialog(QDialog):
 
     def _on_expression_changed(self) -> None:
         """Handle expression field changes and update balance."""
+        # This method is called on every text change, but we don't auto-update
+        # to avoid errors while typing. Use the equals button to calculate.
+        pass
+
+    def _on_equals_clicked(self) -> None:
+        """Handle equals button click - evaluate expression and set balance."""
         expression = self.expression_edit.text().strip()
         if not expression:
+            QMessageBox.warning(self, "Error", "Expression is empty")
             return
 
         try:
             result = self._evaluate_expression(expression)
             self.balance_spin.setValue(result)
-        except ValueError:
-            # Don't show error for partial expressions, only for invalid ones
-            pass
+            # Optionally clear the expression field after successful calculation
+            # self.expression_edit.clear()
+        except ValueError as e:
+            QMessageBox.warning(self, "Error", f"Invalid expression: {e}")
 
     def _on_save(self) -> None:
         """Handle save button click."""
@@ -257,6 +265,14 @@ class AccountEditDialog(QDialog):
         self.expression_edit.setPlaceholderText("e.g., 3*200+100*3")
         self.expression_edit.textChanged.connect(self._on_expression_changed)
         expression_layout.addWidget(self.expression_edit)
+
+        # Add equals button to evaluate expression
+        self.equals_button = QPushButton("=")
+        self.equals_button.setFixedWidth(40)
+        self.equals_button.clicked.connect(self._on_equals_clicked)
+        self.equals_button.setToolTip("Calculate expression and set balance")
+        expression_layout.addWidget(self.equals_button)
+
         layout.addLayout(expression_layout)
 
         # Currency
