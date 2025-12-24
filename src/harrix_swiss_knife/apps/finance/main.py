@@ -4412,6 +4412,38 @@ class MainWindow(
         except Exception as e:
             print(f"❌ Error setting date from table + 1 day: {e}")
 
+    def _filter_by_category_from_table(self, category_value: str) -> None:
+        """Filter transactions by category from table row.
+
+        Args:
+
+        - `category_value` (`str`): Category string from the table (may include emoji and "(Income)" suffix).
+
+        """
+        try:
+            # Remove emoji prefix and "(Income)" suffix if present for database lookup
+            clean_category_name: str = category_value
+            # Remove emoji prefix (emoji is typically at the start, followed by a space)
+            if (
+                clean_category_name
+                and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            ):
+                # Find first letter/number character (skip emoji)
+                for i, char in enumerate(clean_category_name):
+                    if char in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
+                        clean_category_name = clean_category_name[i:].lstrip()
+                        break
+            # Remove "(Income)" suffix
+            clean_category_name = clean_category_name.replace(" (Income)", "")
+
+            # Set the category in the filter combo box
+            self.comboBox_filter_category.setCurrentText(clean_category_name)
+
+            # Apply the filter
+            self.apply_filter()
+        except Exception as e:
+            print(f"❌ Error filtering by category from table: {e}")
+
     def _set_today_date_in_main(self) -> None:
         """Set today's date in the main date field."""
         today: QDate = QDate.currentDate()
@@ -4673,12 +4705,28 @@ class MainWindow(
 
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
+        filter_by_category_action = None
         if index.isValid():
+            # Get the category from the Category column (index 2)
+            category_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 2)
+            if category_index.isValid():
+                category_value: str = self.tableView_transactions.model().data(category_index)
+                if category_value:
+                    # Add menu item to filter by this category
+                    filter_by_category_action = context_menu.addAction("🔍 Filter by this category")
+                    filter_by_category_action.triggered.connect(
+                        lambda: self._filter_by_category_from_table(category_value)
+                    )
+
             # Get the date from the Date column (index 4)
             date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 4)
             if date_index.isValid():
                 date_value: str = self.tableView_transactions.model().data(date_index)
                 if date_value:
+                    # Add separator if category filter action was added
+                    if filter_by_category_action:
+                        context_menu.addSeparator()
+
                     # Add menu item to set this date in dateEdit
                     set_date_action = context_menu.addAction("📅 Set this date in main field")
                     set_date_action.triggered.connect(lambda: self._set_date_from_table(date_value))
@@ -4720,6 +4768,9 @@ class MainWindow(
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
+        elif filter_by_category_action and action == filter_by_category_action:
+            # This will be handled by the lambda connection above
+            pass
         elif (
             ("set_date_action" in locals() and action == set_date_action)
             or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action)
