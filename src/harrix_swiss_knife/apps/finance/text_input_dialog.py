@@ -6,7 +6,17 @@ which will be parsed and converted to transaction records.
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtCore import QDate
+from PySide6.QtWidgets import (
+    QDateEdit,
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class TextInputDialog(QDialog):
@@ -18,23 +28,27 @@ class TextInputDialog(QDialog):
     Attributes:
 
     - `text_edit` (`QPlainTextEdit`): Text area for entering purchase information.
+    - `date_edit` (`QDateEdit`): Date picker for purchase date.
     - `accepted_text` (`str | None`): The text that was accepted by the user.
 
     """
 
     text_edit: QPlainTextEdit
+    date_edit: QDateEdit
     accepted_text: str | None
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None) -> None:
         """Initialize the text input dialog.
 
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `default_date` (`QDate | None`): Default date for purchases. Defaults to `None` (current date).
 
         """
         super().__init__(parent)
         self.accepted_text: str | None = None
+        self._default_date: QDate | None = default_date
         self._setup_ui()
 
     def get_text(self) -> str | None:
@@ -47,6 +61,18 @@ class TextInputDialog(QDialog):
         """
         if self.result() == QDialog.DialogCode.Accepted:
             return self.text_edit.toPlainText().strip()
+        return None
+
+    def get_date(self) -> str | None:
+        """Get the selected date.
+
+        Returns:
+
+        - `str | None`: The selected date in yyyy-MM-dd format, or None if dialog was cancelled.
+
+        """
+        if self.result() == QDialog.DialogCode.Accepted:
+            return self.date_edit.date().toString("yyyy-MM-dd")
         return None
 
     def _setup_ui(self) -> None:
@@ -68,10 +94,25 @@ class TextInputDialog(QDialog):
             "• Olivier salad with chicken 'From Store'\tFood\t285 ₽\n"
             "• Cat litter filler 'Barsik'\tPet Care\t179 ₽\n"
             "• Universal wet wipes\tHousehold Goods\t29 ₽\n\n"
-            "Note: Use Tab character to separate columns. Date will be taken from the main form."
+            "Note: Use Tab character to separate columns. Date can be selected in the date field above."
         )
         description.setWordWrap(True)
         layout.addWidget(description)
+
+        # Add date picker
+        date_layout = QHBoxLayout()
+        date_label = QLabel("Date:")
+        date_layout.addWidget(date_label)
+        self.date_edit = QDateEdit()
+        self.date_edit.setCalendarPopup(True)
+        self.date_edit.setDisplayFormat("yyyy-MM-dd")
+        if self._default_date:
+            self.date_edit.setDate(self._default_date)
+        else:
+            self.date_edit.setDate(QDate.currentDate())
+        date_layout.addWidget(self.date_edit)
+        date_layout.addStretch()
+        layout.addLayout(date_layout)
 
         # Add text edit
         self.text_edit = QPlainTextEdit()

@@ -685,14 +685,18 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Database connection not available")
             return
 
+        # Get date from dateEdit to use as default in dialog
+        default_date: QDate = self.dateEdit.date()
+
         # Create and show the text input dialog
-        dialog: TextInputDialog = TextInputDialog(self)
+        dialog: TextInputDialog = TextInputDialog(self, default_date=default_date)
         result: int = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
             text: str | None = dialog.get_text()
-            if text:
-                self._process_text_input(text)
+            date: str | None = dialog.get_date()
+            if text and date:
+                self._process_text_input(text, date)
 
     @requires_database()
     def on_add_category(self) -> None:
@@ -4196,12 +4200,13 @@ class MainWindow(
             # Always restore the original date
             self.dateEdit.setDate(current_date)
 
-    def _process_text_input(self, text: str) -> None:
+    def _process_text_input(self, text: str, purchase_date: str) -> None:
         """Process text input and add purchases to database.
 
         Args:
 
         - `text` (`str`): Text input to process.
+        - `purchase_date` (`str`): Date for purchases in yyyy-MM-dd format.
 
         """
         if self.db_manager is None:
@@ -4215,9 +4220,6 @@ class MainWindow(
         if not parsed_items:
             QMessageBox.information(self, "No Items", "No valid purchase items found in the text.")
             return
-
-        # Get date from dateEdit
-        purchase_date: str = self.dateEdit.date().toString("yyyy-MM-dd")
 
         # Get default currency ID
         default_currency: str | None = self.db_manager.get_default_currency()
