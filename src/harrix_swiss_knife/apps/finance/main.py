@@ -4703,6 +4703,13 @@ class MainWindow(
         """
         context_menu: QMenu = QMenu(self)
 
+        # Add menu item to clear all filters (always available)
+        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
+        clear_filters_action.triggered.connect(self.clear_filter)
+
+        # Add separator if there will be other actions
+        context_menu.addSeparator()
+
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
         filter_by_category_action = None
@@ -4768,6 +4775,9 @@ class MainWindow(
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
+        elif action == clear_filters_action:
+            # This will be handled by the lambda connection above
+            pass
         elif filter_by_category_action and action == filter_by_category_action:
             # This will be handled by the lambda connection above
             pass
