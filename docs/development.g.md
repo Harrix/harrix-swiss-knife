@@ -273,7 +273,7 @@ Syntax:
 {{FieldName:FieldType:DefaultValue}}
 ```
 
-Available Types:
+Available types:
 
 | Type        | Widget                 | Example                  | Default Value Example                      |
 | ----------- | ---------------------- | ------------------------ | ------------------------------------------ |
