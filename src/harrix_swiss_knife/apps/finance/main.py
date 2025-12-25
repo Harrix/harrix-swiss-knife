@@ -2880,6 +2880,12 @@ class MainWindow(
             # Optionally resize columns to content initially, but allow manual resizing after
             self.tableView_reports.resizeColumnsToContents()
 
+            # Increase width for Total column (column 1) if it exists
+            if reports_header.count() > 1:
+                current_width = self.tableView_reports.columnWidth(1)
+                # Increase width by 30 pixels to ensure content fits
+                self.tableView_reports.setColumnWidth(1, current_width + 30)
+
     def _get_categories_for_delegate(self) -> list[str]:
         """Get list of category names for the delegate dropdown.
 
