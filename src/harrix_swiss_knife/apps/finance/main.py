@@ -1224,7 +1224,6 @@ class MainWindow(
             self.update_chart_comboboxes()
         elif index == id_reports_tab:  # Reports tab
             self.update_summary_labels()
-            self.on_generate_report()
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
     def on_yesterday(self) -> None:
