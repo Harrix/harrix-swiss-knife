@@ -1147,16 +1147,6 @@ class MainWindow(
             return
 
         report_type: str = self.comboBox_report_type.currentText()
-
-        # If no report type is selected, use default (first item)
-        if not report_type and self.comboBox_report_type.count() > 0:
-            self.comboBox_report_type.setCurrentIndex(0)
-            report_type = self.comboBox_report_type.currentText()
-
-        if not report_type:
-            print("❌ No report type selected")
-            return
-
         default_currency_id: int = self.db_manager.get_default_currency_id()
 
         try:
@@ -1234,8 +1224,7 @@ class MainWindow(
             self.update_chart_comboboxes()
         elif index == id_reports_tab:  # Reports tab
             self.update_summary_labels()
-            # Use QTimer to ensure UI is fully ready before generating report
-            QTimer.singleShot(0, self.on_generate_report)
+            self.on_generate_report()
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
     def on_yesterday(self) -> None:
