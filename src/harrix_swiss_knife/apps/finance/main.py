@@ -2815,19 +2815,19 @@ class MainWindow(
                 amount = monthly_data[month_name].get(category_id, 0.0)
                 month_total += amount
 
-            # Total for the month (light gray background) - add as second column
+            # Total for the month (light yellow background) - add as second column
             total_item = QStandardItem(f"{month_total:.2f}")
-            total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            total_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
             total_item.setData(month_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
 
-            # Combined Cafe + Food column (light yellow background)
+            # Combined Cafe + Food column (light gray background)
             combined_total: float = 0.0
             for category_id in combined_category_ids:
                 combined_total += monthly_data[month_name].get(category_id, 0.0)
 
             combined_item = QStandardItem(f"{combined_total:.2f}")
-            combined_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
+            combined_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
             combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
             row_items.append(combined_item)
 
