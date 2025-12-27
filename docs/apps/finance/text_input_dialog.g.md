@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `TextInputDialog`](#%EF%B8%8F-class-textinputdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_date`](#%EF%B8%8F-method-get_date)
   - [⚙️ Method `get_text`](#%EF%B8%8F-method-get_text)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
 
@@ -32,6 +33,7 @@ in a simple text format, which will be parsed according to specific rules.
 Attributes:
 
 - `text_edit` (`QPlainTextEdit`): Text area for entering purchase information.
+- `date_edit` (`QDateEdit`): Date picker for purchase date.
 - `accepted_text` (`str | None`): The text that was accepted by the user.
 
 <details>
@@ -41,19 +43,34 @@ Attributes:
 class TextInputDialog(QDialog):
 
     text_edit: QPlainTextEdit
+    date_edit: QDateEdit
     accepted_text: str | None
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None) -> None:
         """Initialize the text input dialog.
 
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `default_date` (`QDate | None`): Default date for purchases. Defaults to `None` (current date).
 
         """
         super().__init__(parent)
         self.accepted_text: str | None = None
+        self._default_date: QDate | None = default_date
         self._setup_ui()
+
+    def get_date(self) -> str | None:
+        """Get the selected date.
+
+        Returns:
+
+        - `str | None`: The selected date in yyyy-MM-dd format, or None if dialog was cancelled.
+
+        """
+        if self.result() == QDialog.DialogCode.Accepted:
+            return self.date_edit.date().toString("yyyy-MM-dd")
+        return None
 
     def get_text(self) -> str | None:
         """Get the entered text.
@@ -86,10 +103,25 @@ class TextInputDialog(QDialog):
             "• Olivier salad with chicken 'From Store'\tFood\t285 ₽\n"
             "• Cat litter filler 'Barsik'\tPet Care\t179 ₽\n"
             "• Universal wet wipes\tHousehold Goods\t29 ₽\n\n"
-            "Note: Use Tab character to separate columns. Date will be taken from the main form."
+            "Note: Use Tab character to separate columns. Date can be selected in the date field above."
         )
         description.setWordWrap(True)
         layout.addWidget(description)
+
+        # Add date picker
+        date_layout = QHBoxLayout()
+        date_label = QLabel("Date:")
+        date_layout.addWidget(date_label)
+        self.date_edit = QDateEdit()
+        self.date_edit.setCalendarPopup(True)
+        self.date_edit.setDisplayFormat("yyyy-MM-dd")
+        if self._default_date:
+            self.date_edit.setDate(self._default_date)
+        else:
+            self.date_edit.setDate(QDate.currentDate())
+        date_layout.addWidget(self.date_edit)
+        date_layout.addStretch()
+        layout.addLayout(date_layout)
 
         # Add text edit
         self.text_edit = QPlainTextEdit()
@@ -126,7 +158,7 @@ class TextInputDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None) -> None
 ```
 
 Initialize the text input dialog.
@@ -134,15 +166,41 @@ Initialize the text input dialog.
 Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- `default_date` (`QDate | None`): Default date for purchases. Defaults to `None` (current date).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None:
+def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None) -> None:
         super().__init__(parent)
         self.accepted_text: str | None = None
+        self._default_date: QDate | None = default_date
         self._setup_ui()
+```
+
+</details>
+
+### ⚙️ Method `get_date`
+
+```python
+def get_date(self) -> str | None
+```
+
+Get the selected date.
+
+Returns:
+
+- `str | None`: The selected date in yyyy-MM-dd format, or None if dialog was cancelled.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_date(self) -> str | None:
+        if self.result() == QDialog.DialogCode.Accepted:
+            return self.date_edit.date().toString("yyyy-MM-dd")
+        return None
 ```
 
 </details>
@@ -201,10 +259,25 @@ def _setup_ui(self) -> None:
             "• Olivier salad with chicken 'From Store'\tFood\t285 ₽\n"
             "• Cat litter filler 'Barsik'\tPet Care\t179 ₽\n"
             "• Universal wet wipes\tHousehold Goods\t29 ₽\n\n"
-            "Note: Use Tab character to separate columns. Date will be taken from the main form."
+            "Note: Use Tab character to separate columns. Date can be selected in the date field above."
         )
         description.setWordWrap(True)
         layout.addWidget(description)
+
+        # Add date picker
+        date_layout = QHBoxLayout()
+        date_label = QLabel("Date:")
+        date_layout.addWidget(date_label)
+        self.date_edit = QDateEdit()
+        self.date_edit.setCalendarPopup(True)
+        self.date_edit.setDisplayFormat("yyyy-MM-dd")
+        if self._default_date:
+            self.date_edit.setDate(self._default_date)
+        else:
+            self.date_edit.setDate(QDate.currentDate())
+        date_layout.addWidget(self.date_edit)
+        date_layout.addStretch()
+        layout.addLayout(date_layout)
 
         # Add text edit
         self.text_edit = QPlainTextEdit()

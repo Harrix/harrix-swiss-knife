@@ -75,6 +75,7 @@ lang: en
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
   - [⚙️ Method `_create_transactions_table_model`](#%EF%B8%8F-method-_create_transactions_table_model)
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
+  - [⚙️ Method `_filter_by_category_from_table`](#%EF%B8%8F-method-_filter_by_category_from_table)
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
   - [⚙️ Method `_focus_amount_and_select_text`](#%EF%B8%8F-method-_focus_amount_and_select_text)
   - [⚙️ Method `_focus_description_and_select_text`](#%EF%B8%8F-method-_focus_description_and_select_text)
@@ -813,14 +814,18 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Database connection not available")
             return
 
+        # Get date from dateEdit to use as default in dialog
+        default_date: QDate = self.dateEdit.date()
+
         # Create and show the text input dialog
-        dialog: TextInputDialog = TextInputDialog(self)
+        dialog: TextInputDialog = TextInputDialog(self, default_date=default_date)
         result: int = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
             text: str | None = dialog.get_text()
-            if text:
-                self._process_text_input(text)
+            date: str | None = dialog.get_date()
+            if text and date:
+                self._process_text_input(text, date)
 
     @requires_database()
     def on_add_category(self) -> None:
@@ -2508,6 +2513,38 @@ class MainWindow(
                 model.deleteLater()
             self.models[key] = None
 
+    def _filter_by_category_from_table(self, category_value: str) -> None:
+        """Filter transactions by category from table row.
+
+        Args:
+
+        - `category_value` (`str`): Category string from the table (may include emoji and "(Income)" suffix).
+
+        """
+        try:
+            # Remove emoji prefix and "(Income)" suffix if present for database lookup
+            clean_category_name: str = category_value
+            # Remove emoji prefix (emoji is typically at the start, followed by a space)
+            if (
+                clean_category_name
+                and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            ):
+                # Find first letter/number character (skip emoji)
+                for i, char in enumerate(clean_category_name):
+                    if char in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
+                        clean_category_name = clean_category_name[i:].lstrip()
+                        break
+            # Remove "(Income)" suffix
+            clean_category_name = clean_category_name.replace(" (Income)", "")
+
+            # Set the category in the filter combo box
+            self.comboBox_filter_category.setCurrentText(clean_category_name)
+
+            # Apply the filter
+            self.apply_filter()
+        except Exception as e:
+            print(f"❌ Error filtering by category from table: {e}")
+
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window."""
         self.show()
@@ -2939,19 +2976,19 @@ class MainWindow(
                 amount = monthly_data[month_name].get(category_id, 0.0)
                 month_total += amount
 
-            # Total for the month (light gray background) - add as second column
+            # Total for the month (light yellow background) - add as second column
             total_item = QStandardItem(f"{month_total:.2f}")
-            total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            total_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
             total_item.setData(month_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
 
-            # Combined Cafe + Food column (light yellow background)
+            # Combined Cafe + Food column (light gray background)
             combined_total: float = 0.0
             for category_id in combined_category_ids:
                 combined_total += monthly_data[month_name].get(category_id, 0.0)
 
             combined_item = QStandardItem(f"{combined_total:.2f}")
-            combined_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
+            combined_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
             combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
             row_items.append(combined_item)
 
@@ -3003,6 +3040,12 @@ class MainWindow(
 
             # Optionally resize columns to content initially, but allow manual resizing after
             self.tableView_reports.resizeColumnsToContents()
+
+            # Increase width for Total column (column 1) if it exists
+            if reports_header.count() > 1:
+                current_width = self.tableView_reports.columnWidth(1)
+                # Increase width by 30 pixels to ensure content fits
+                self.tableView_reports.setColumnWidth(1, current_width + 30)
 
     def _get_categories_for_delegate(self) -> list[str]:
         """Get list of category names for the delegate dropdown.
@@ -4324,12 +4367,13 @@ class MainWindow(
             # Always restore the original date
             self.dateEdit.setDate(current_date)
 
-    def _process_text_input(self, text: str) -> None:
+    def _process_text_input(self, text: str, purchase_date: str) -> None:
         """Process text input and add purchases to database.
 
         Args:
 
         - `text` (`str`): Text input to process.
+        - `purchase_date` (`str`): Date for purchases in yyyy-MM-dd format.
 
         """
         if self.db_manager is None:
@@ -4343,9 +4387,6 @@ class MainWindow(
         if not parsed_items:
             QMessageBox.information(self, "No Items", "No valid purchase items found in the text.")
             return
-
-        # Get date from dateEdit
-        purchase_date: str = self.dateEdit.date().toString("yyyy-MM-dd")
 
         # Get default currency ID
         default_currency: str | None = self.db_manager.get_default_currency()
@@ -4799,14 +4840,37 @@ class MainWindow(
         """
         context_menu: QMenu = QMenu(self)
 
+        # Add menu item to clear all filters (always available)
+        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
+        clear_filters_action.triggered.connect(self.clear_filter)
+
+        # Add separator if there will be other actions
+        context_menu.addSeparator()
+
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
+        filter_by_category_action = None
         if index.isValid():
+            # Get the category from the Category column (index 2)
+            category_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 2)
+            if category_index.isValid():
+                category_value: str = self.tableView_transactions.model().data(category_index)
+                if category_value:
+                    # Add menu item to filter by this category
+                    filter_by_category_action = context_menu.addAction("🔍 Filter by this category")
+                    filter_by_category_action.triggered.connect(
+                        lambda: self._filter_by_category_from_table(category_value)
+                    )
+
             # Get the date from the Date column (index 4)
             date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 4)
             if date_index.isValid():
                 date_value: str = self.tableView_transactions.model().data(date_index)
                 if date_value:
+                    # Add separator if category filter action was added
+                    if filter_by_category_action:
+                        context_menu.addSeparator()
+
                     # Add menu item to set this date in dateEdit
                     set_date_action = context_menu.addAction("📅 Set this date in main field")
                     set_date_action.triggered.connect(lambda: self._set_date_from_table(date_value))
@@ -4848,6 +4912,12 @@ class MainWindow(
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
+        elif action == clear_filters_action:
+            # This will be handled by the lambda connection above
+            pass
+        elif filter_by_category_action and action == filter_by_category_action:
+            # This will be handled by the lambda connection above
+            pass
         elif (
             ("set_date_action" in locals() and action == set_date_action)
             or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action)
@@ -5769,14 +5839,18 @@ def on_add_as_text(self) -> None:
             QMessageBox.warning(self, "Error", "Database connection not available")
             return
 
+        # Get date from dateEdit to use as default in dialog
+        default_date: QDate = self.dateEdit.date()
+
         # Create and show the text input dialog
-        dialog: TextInputDialog = TextInputDialog(self)
+        dialog: TextInputDialog = TextInputDialog(self, default_date=default_date)
         result: int = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
             text: str | None = dialog.get_text()
-            if text:
-                self._process_text_input(text)
+            date: str | None = dialog.get_date()
+            if text and date:
+                self._process_text_input(text, date)
 ```
 
 </details>
@@ -8142,6 +8216,50 @@ def _dispose_models(self) -> None:
 
 </details>
 
+### ⚙️ Method `_filter_by_category_from_table`
+
+```python
+def _filter_by_category_from_table(self, category_value: str) -> None
+```
+
+Filter transactions by category from table row.
+
+Args:
+
+- `category_value` (`str`): Category string from the table (may include emoji and "(Income)" suffix).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _filter_by_category_from_table(self, category_value: str) -> None:
+        try:
+            # Remove emoji prefix and "(Income)" suffix if present for database lookup
+            clean_category_name: str = category_value
+            # Remove emoji prefix (emoji is typically at the start, followed by a space)
+            if (
+                clean_category_name
+                and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            ):
+                # Find first letter/number character (skip emoji)
+                for i, char in enumerate(clean_category_name):
+                    if char in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
+                        clean_category_name = clean_category_name[i:].lstrip()
+                        break
+            # Remove "(Income)" suffix
+            clean_category_name = clean_category_name.replace(" (Income)", "")
+
+            # Set the category in the filter combo box
+            self.comboBox_filter_category.setCurrentText(clean_category_name)
+
+            # Apply the filter
+            self.apply_filter()
+        except Exception as e:
+            print(f"❌ Error filtering by category from table: {e}")
+```
+
+</details>
+
 ### ⚙️ Method `_finish_window_initialization`
 
 ```python
@@ -8674,19 +8792,19 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
                 amount = monthly_data[month_name].get(category_id, 0.0)
                 month_total += amount
 
-            # Total for the month (light gray background) - add as second column
+            # Total for the month (light yellow background) - add as second column
             total_item = QStandardItem(f"{month_total:.2f}")
-            total_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            total_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
             total_item.setData(month_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
 
-            # Combined Cafe + Food column (light yellow background)
+            # Combined Cafe + Food column (light gray background)
             combined_total: float = 0.0
             for category_id in combined_category_ids:
                 combined_total += monthly_data[month_name].get(category_id, 0.0)
 
             combined_item = QStandardItem(f"{combined_total:.2f}")
-            combined_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
+            combined_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
             combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
             row_items.append(combined_item)
 
@@ -8738,6 +8856,12 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
 
             # Optionally resize columns to content initially, but allow manual resizing after
             self.tableView_reports.resizeColumnsToContents()
+
+            # Increase width for Total column (column 1) if it exists
+            if reports_header.count() > 1:
+                current_width = self.tableView_reports.columnWidth(1)
+                # Increase width by 30 pixels to ensure content fits
+                self.tableView_reports.setColumnWidth(1, current_width + 30)
 ```
 
 </details>
@@ -10583,7 +10707,7 @@ def _populate_form_from_description(self, description: str) -> None:
 ### ⚙️ Method `_process_text_input`
 
 ```python
-def _process_text_input(self, text: str) -> None
+def _process_text_input(self, text: str, purchase_date: str) -> None
 ```
 
 Process text input and add purchases to database.
@@ -10591,12 +10715,13 @@ Process text input and add purchases to database.
 Args:
 
 - `text` (`str`): Text input to process.
+- `purchase_date` (`str`): Date for purchases in yyyy-MM-dd format.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _process_text_input(self, text: str) -> None:
+def _process_text_input(self, text: str, purchase_date: str) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -10608,9 +10733,6 @@ def _process_text_input(self, text: str) -> None:
         if not parsed_items:
             QMessageBox.information(self, "No Items", "No valid purchase items found in the text.")
             return
-
-        # Get date from dateEdit
-        purchase_date: str = self.dateEdit.date().toString("yyyy-MM-dd")
 
         # Get default currency ID
         default_currency: str | None = self.db_manager.get_default_currency()
@@ -11244,14 +11366,37 @@ Args:
 def _show_transactions_context_menu(self, position: QPoint) -> None:
         context_menu: QMenu = QMenu(self)
 
+        # Add menu item to clear all filters (always available)
+        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
+        clear_filters_action.triggered.connect(self.clear_filter)
+
+        # Add separator if there will be other actions
+        context_menu.addSeparator()
+
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
+        filter_by_category_action = None
         if index.isValid():
+            # Get the category from the Category column (index 2)
+            category_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 2)
+            if category_index.isValid():
+                category_value: str = self.tableView_transactions.model().data(category_index)
+                if category_value:
+                    # Add menu item to filter by this category
+                    filter_by_category_action = context_menu.addAction("🔍 Filter by this category")
+                    filter_by_category_action.triggered.connect(
+                        lambda: self._filter_by_category_from_table(category_value)
+                    )
+
             # Get the date from the Date column (index 4)
             date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 4)
             if date_index.isValid():
                 date_value: str = self.tableView_transactions.model().data(date_index)
                 if date_value:
+                    # Add separator if category filter action was added
+                    if filter_by_category_action:
+                        context_menu.addSeparator()
+
                     # Add menu item to set this date in dateEdit
                     set_date_action = context_menu.addAction("📅 Set this date in main field")
                     set_date_action.triggered.connect(lambda: self._set_date_from_table(date_value))
@@ -11293,6 +11438,12 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
+        elif action == clear_filters_action:
+            # This will be handled by the lambda connection above
+            pass
+        elif filter_by_category_action and action == filter_by_category_action:
+            # This will be handled by the lambda connection above
+            pass
         elif (
             ("set_date_action" in locals() and action == set_date_action)
             or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action)

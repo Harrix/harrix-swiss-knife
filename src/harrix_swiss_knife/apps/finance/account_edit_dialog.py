@@ -173,12 +173,6 @@ class AccountEditDialog(QDialog):
             self.result_data = {"action": "delete", "id": self.account_data.get("id")}
             self.accept()
 
-    def _on_expression_changed(self) -> None:
-        """Handle expression field changes and update balance."""
-        # This method is called on every text change, but we don't auto-update
-        # to avoid errors while typing. Use the equals button to calculate.
-        pass
-
     def _on_equals_clicked(self) -> None:
         """Handle equals button click - evaluate expression and set balance."""
         expression = self.expression_edit.text().strip()
@@ -193,6 +187,12 @@ class AccountEditDialog(QDialog):
             # self.expression_edit.clear()
         except ValueError as e:
             QMessageBox.warning(self, "Error", f"Invalid expression: {e}")
+
+    def _on_expression_changed(self) -> None:
+        """Handle expression field changes and update balance."""
+        # This method is called on every text change, but we don't auto-update
+        # to avoid errors while typing. Use the equals button to calculate.
+        pass
 
     def _on_save(self) -> None:
         """Handle save button click."""

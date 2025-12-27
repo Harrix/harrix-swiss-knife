@@ -208,82 +208,6 @@ class OnAddMdFromTemplate(ActionBase):
         self.show_result()
 
 
-class OnNewMarkdown(ActionBase):
-    """Create new Markdown files using various templates and formats.
-
-    This action provides a unified interface for creating different types of Markdown files.
-    It shows a dialog with all available new Markdown commands, allowing the user to
-    select which type of Markdown file they want to create.
-    """
-
-    icon = "📝"
-    title = "New Markdown"
-    bold_title = True
-
-    @ActionBase.handle_exceptions("creating new markdown")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        # Get templates from config (if available)
-        templates = self.config.get("markdown_templates", {})
-
-        # Define all available commands (without OnAddMdFromTemplate)
-        commands = [
-            OnNewArticle,
-            OnNewDiary,
-            OnNewDiaryDream,
-            OnNewNoteDialog,
-            OnNewNoteDialogWithImages,
-            OnNewQuotes,
-        ]
-
-        # Create display names with icons from the action classes
-        choices = []
-        action_map = {}
-
-        # Add templates first (if available)
-        for template_name in templates.keys():
-            display_text = f"📝 {template_name}"
-            choices.append(display_text)
-            action_map[display_text] = ("template", template_name)
-
-        # Add other commands
-        for action_class in commands:
-            action_instance = action_class()
-            # Format: "Icon Title" - use the actual title from the action class
-            display_text = f"{action_instance.icon} {action_instance.title}"
-            choices.append(display_text)
-            action_map[display_text] = ("action", action_class)
-
-        # Show dialog to select command
-        selected_choice = self.get_choice_from_list(
-            "New Markdown",
-            "Choose a command to create new Markdown content:",
-            choices,
-        )
-
-        if not selected_choice:
-            return
-
-        # Get the selected action or template
-        selected_item = action_map.get(selected_choice)
-        if not selected_item:
-            self.add_line(f"❌ Unknown command selected: {selected_choice}")
-            self.show_result()
-            return
-
-        item_type, item_value = selected_item
-
-        if item_type == "template":
-            # Execute OnAddMdFromTemplate with the selected template
-            template_action = OnAddMdFromTemplate()
-            template_action(template_name=item_value)  # Use __call__ to properly initialize
-        elif item_type == "action":
-            # Execute the selected action
-            selected_action_class = item_value
-            selected_action = selected_action_class()
-            selected_action()  # This triggers __call__ which calls execute()
-
-
 class OnBeautifyMdFolder(ActionBase):
     """Apply comprehensive beautification to all Markdown notes.
 
@@ -854,6 +778,82 @@ class OnNewDiaryDream(ActionBase):
         result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
+
+
+class OnNewMarkdown(ActionBase):
+    """Create new Markdown files using various templates and formats.
+
+    This action provides a unified interface for creating different types of Markdown files.
+    It shows a dialog with all available new Markdown commands, allowing the user to
+    select which type of Markdown file they want to create.
+    """
+
+    icon = "📝"
+    title = "New Markdown"
+    bold_title = True
+
+    @ActionBase.handle_exceptions("creating new markdown")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Get templates from config (if available)
+        templates = self.config.get("markdown_templates", {})
+
+        # Define all available commands (without OnAddMdFromTemplate)
+        commands = [
+            OnNewArticle,
+            OnNewDiary,
+            OnNewDiaryDream,
+            OnNewNoteDialog,
+            OnNewNoteDialogWithImages,
+            OnNewQuotes,
+        ]
+
+        # Create display names with icons from the action classes
+        choices = []
+        action_map = {}
+
+        # Add templates first (if available)
+        for template_name in templates.keys():
+            display_text = f"📝 {template_name}"
+            choices.append(display_text)
+            action_map[display_text] = ("template", template_name)
+
+        # Add other commands
+        for action_class in commands:
+            action_instance = action_class()
+            # Format: "Icon Title" - use the actual title from the action class
+            display_text = f"{action_instance.icon} {action_instance.title}"
+            choices.append(display_text)
+            action_map[display_text] = ("action", action_class)
+
+        # Show dialog to select command
+        selected_choice = self.get_choice_from_list(
+            "New Markdown",
+            "Choose a command to create new Markdown content:",
+            choices,
+        )
+
+        if not selected_choice:
+            return
+
+        # Get the selected action or template
+        selected_item = action_map.get(selected_choice)
+        if not selected_item:
+            self.add_line(f"❌ Unknown command selected: {selected_choice}")
+            self.show_result()
+            return
+
+        item_type, item_value = selected_item
+
+        if item_type == "template":
+            # Execute OnAddMdFromTemplate with the selected template
+            template_action = OnAddMdFromTemplate()
+            template_action(template_name=item_value)  # Use __call__ to properly initialize
+        elif item_type == "action":
+            # Execute the selected action
+            selected_action_class = item_value
+            selected_action = selected_action_class()
+            selected_action()  # This triggers __call__ which calls execute()
 
 
 class OnNewNoteDialog(ActionBase):

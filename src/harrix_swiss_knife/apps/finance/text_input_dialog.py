@@ -7,16 +7,7 @@ which will be parsed and converted to transaction records.
 from __future__ import annotations
 
 from PySide6.QtCore import QDate
-from PySide6.QtWidgets import (
-    QDateEdit,
-    QDialog,
-    QHBoxLayout,
-    QLabel,
-    QPlainTextEdit,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QDateEdit, QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
 
 
 class TextInputDialog(QDialog):
@@ -51,18 +42,6 @@ class TextInputDialog(QDialog):
         self._default_date: QDate | None = default_date
         self._setup_ui()
 
-    def get_text(self) -> str | None:
-        """Get the entered text.
-
-        Returns:
-
-        - `str | None`: The entered text, or None if dialog was cancelled.
-
-        """
-        if self.result() == QDialog.DialogCode.Accepted:
-            return self.text_edit.toPlainText().strip()
-        return None
-
     def get_date(self) -> str | None:
         """Get the selected date.
 
@@ -73,6 +52,18 @@ class TextInputDialog(QDialog):
         """
         if self.result() == QDialog.DialogCode.Accepted:
             return self.date_edit.date().toString("yyyy-MM-dd")
+        return None
+
+    def get_text(self) -> str | None:
+        """Get the entered text.
+
+        Returns:
+
+        - `str | None`: The entered text, or None if dialog was cancelled.
+
+        """
+        if self.result() == QDialog.DialogCode.Accepted:
+            return self.text_edit.toPlainText().strip()
         return None
 
     def _setup_ui(self) -> None:

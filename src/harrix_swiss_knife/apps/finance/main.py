@@ -2384,6 +2384,38 @@ class MainWindow(
                 model.deleteLater()
             self.models[key] = None
 
+    def _filter_by_category_from_table(self, category_value: str) -> None:
+        """Filter transactions by category from table row.
+
+        Args:
+
+        - `category_value` (`str`): Category string from the table (may include emoji and "(Income)" suffix).
+
+        """
+        try:
+            # Remove emoji prefix and "(Income)" suffix if present for database lookup
+            clean_category_name: str = category_value
+            # Remove emoji prefix (emoji is typically at the start, followed by a space)
+            if (
+                clean_category_name
+                and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            ):
+                # Find first letter/number character (skip emoji)
+                for i, char in enumerate(clean_category_name):
+                    if char in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
+                        clean_category_name = clean_category_name[i:].lstrip()
+                        break
+            # Remove "(Income)" suffix
+            clean_category_name = clean_category_name.replace(" (Income)", "")
+
+            # Set the category in the filter combo box
+            self.comboBox_filter_category.setCurrentText(clean_category_name)
+
+            # Apply the filter
+            self.apply_filter()
+        except Exception as e:
+            print(f"❌ Error filtering by category from table: {e}")
+
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window."""
         self.show()
@@ -4419,38 +4451,6 @@ class MainWindow(
                 print(f"❌ Invalid date format: {date_value}")
         except Exception as e:
             print(f"❌ Error setting date from table + 1 day: {e}")
-
-    def _filter_by_category_from_table(self, category_value: str) -> None:
-        """Filter transactions by category from table row.
-
-        Args:
-
-        - `category_value` (`str`): Category string from the table (may include emoji and "(Income)" suffix).
-
-        """
-        try:
-            # Remove emoji prefix and "(Income)" suffix if present for database lookup
-            clean_category_name: str = category_value
-            # Remove emoji prefix (emoji is typically at the start, followed by a space)
-            if (
-                clean_category_name
-                and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-            ):
-                # Find first letter/number character (skip emoji)
-                for i, char in enumerate(clean_category_name):
-                    if char in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
-                        clean_category_name = clean_category_name[i:].lstrip()
-                        break
-            # Remove "(Income)" suffix
-            clean_category_name = clean_category_name.replace(" (Income)", "")
-
-            # Set the category in the filter combo box
-            self.comboBox_filter_category.setCurrentText(clean_category_name)
-
-            # Apply the filter
-            self.apply_filter()
-        except Exception as e:
-            print(f"❌ Error filtering by category from table: {e}")
 
     def _set_today_date_in_main(self) -> None:
         """Set today's date in the main date field."""

@@ -115,14 +115,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 "New Markdown",
                 "𝐌",  # noqa: RUF001
                 [
-                    hsk.md.OnAddMdFromTemplate,
-                    "-",
-                    hsk.md.OnNewArticle,
-                    hsk.md.OnNewDiary,
-                    hsk.md.OnNewDiaryDream,
-                    hsk.md.OnNewNoteDialog,
-                    hsk.md.OnNewNoteDialogWithImages,
-                    hsk.md.OnNewQuotes,
+                    hsk.md.OnNewMarkdown,
                 ],
             ),
             (
@@ -245,14 +238,7 @@ def __init__(self) -> None:
                 "New Markdown",
                 "𝐌",  # noqa: RUF001
                 [
-                    hsk.md.OnAddMdFromTemplate,
-                    "-",
-                    hsk.md.OnNewArticle,
-                    hsk.md.OnNewDiary,
-                    hsk.md.OnNewDiaryDream,
-                    hsk.md.OnNewNoteDialog,
-                    hsk.md.OnNewNoteDialogWithImages,
-                    hsk.md.OnNewQuotes,
+                    hsk.md.OnNewMarkdown,
                 ],
             ),
             (
