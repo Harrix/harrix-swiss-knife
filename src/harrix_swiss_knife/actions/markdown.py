@@ -813,7 +813,7 @@ class OnNewMarkdown(ActionBase):
         action_map = {}
 
         # Add templates first (if available)
-        for template_name in templates.keys():
+        for template_name in templates:
             display_text = f"📝 {template_name}"
             choices.append(display_text)
             action_map[display_text] = ("template", template_name)
