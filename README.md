@@ -92,8 +92,6 @@ _Figure 1: Screenshot_
   - 🖼️ Optimize images in MD in …
   - 🖼️ ★ Optimize selected images in MD
   - 📶 Sort sections in one MD
-- **New Markdown**
-  - 📝 ★ New Markdown
 - **Python**
   - 🚧 Check PY in …
   - 🐍 New uv library
@@ -104,6 +102,7 @@ _Figure 1: Screenshot_
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
+- 📝 ★ New Markdown
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit

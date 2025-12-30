@@ -112,13 +112,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 ],
             ),
             (
-                "New Markdown",
-                "𝐌",  # noqa: RUF001
-                [
-                    hsk.md.OnNewMarkdown,
-                ],
-            ),
-            (
                 "Python",
                 "py.svg",
                 [
@@ -133,6 +126,8 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             hsk.apps.OnFinance,
             hsk.apps.OnFitness,
             hsk.apps.OnFood,
+            "-",
+            hsk.md.OnNewMarkdown,
             "-",
             hsk.images.OnOptimizeClipboard,
             hsk.images.OnOptimizeClipboardDialog,
@@ -235,13 +230,6 @@ def __init__(self) -> None:
                 ],
             ),
             (
-                "New Markdown",
-                "𝐌",  # noqa: RUF001
-                [
-                    hsk.md.OnNewMarkdown,
-                ],
-            ),
-            (
                 "Python",
                 "py.svg",
                 [
@@ -256,6 +244,8 @@ def __init__(self) -> None:
             hsk.apps.OnFinance,
             hsk.apps.OnFitness,
             hsk.apps.OnFood,
+            "-",
+            hsk.md.OnNewMarkdown,
             "-",
             hsk.images.OnOptimizeClipboard,
             hsk.images.OnOptimizeClipboardDialog,

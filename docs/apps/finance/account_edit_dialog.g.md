@@ -196,8 +196,6 @@ class AccountEditDialog(QDialog):
         try:
             result = self._evaluate_expression(expression)
             self.balance_spin.setValue(result)
-            # Optionally clear the expression field after successful calculation
-            # self.expression_edit.clear()
         except ValueError as e:
             QMessageBox.warning(self, "Error", f"Invalid expression: {e}")
 
@@ -205,7 +203,6 @@ class AccountEditDialog(QDialog):
         """Handle expression field changes and update balance."""
         # This method is called on every text change, but we don't auto-update
         # to avoid errors while typing. Use the equals button to calculate.
-        pass
 
     def _on_save(self) -> None:
         """Handle save button click."""
@@ -556,8 +553,6 @@ def _on_equals_clicked(self) -> None:
         try:
             result = self._evaluate_expression(expression)
             self.balance_spin.setValue(result)
-            # Optionally clear the expression field after successful calculation
-            # self.expression_edit.clear()
         except ValueError as e:
             QMessageBox.warning(self, "Error", f"Invalid expression: {e}")
 ```
@@ -577,9 +572,6 @@ Handle expression field changes and update balance.
 
 ```python
 def _on_expression_changed(self) -> None:
-        # This method is called on every text change, but we don't auto-update
-        # to avoid errors while typing. Use the equals button to calculate.
-        pass
 ```
 
 </details>

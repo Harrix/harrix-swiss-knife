@@ -4912,16 +4912,14 @@ class MainWindow(
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
-        elif action == clear_filters_action:
-            # This will be handled by the lambda connection above
-            pass
-        elif filter_by_category_action and action == filter_by_category_action:
-            # This will be handled by the lambda connection above
-            pass
         elif (
-            ("set_date_action" in locals() and action == set_date_action)
-            or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action)
-            or ("set_date_minus_one_action" in locals() and action == set_date_minus_one_action)
+            action == clear_filters_action
+            or (filter_by_category_action and action == filter_by_category_action)
+            or (
+                ("set_date_action" in locals() and action == set_date_action)
+                or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action)
+                or ("set_date_minus_one_action" in locals() and action == set_date_minus_one_action)
+            )
         ):
             # This will be handled by the lambda connection above
             pass
@@ -11438,16 +11436,14 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
-        elif action == clear_filters_action:
-            # This will be handled by the lambda connection above
-            pass
-        elif filter_by_category_action and action == filter_by_category_action:
-            # This will be handled by the lambda connection above
-            pass
         elif (
-            ("set_date_action" in locals() and action == set_date_action)
-            or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action)
-            or ("set_date_minus_one_action" in locals() and action == set_date_minus_one_action)
+            action == clear_filters_action
+            or (filter_by_category_action and action == filter_by_category_action)
+            or (
+                ("set_date_action" in locals() and action == set_date_action)
+                or ("set_date_plus_one_action" in locals() and action == set_date_plus_one_action)
+                or ("set_date_minus_one_action" in locals() and action == set_date_minus_one_action)
+            )
         ):
             # This will be handled by the lambda connection above
             pass

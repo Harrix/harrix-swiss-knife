@@ -531,9 +531,11 @@ class ExchangeRatesOperations:
 
             # Convert dates to datetime objects for plotting
             date_objects = [datetime.fromisoformat(date) for date in dates]
+            # Convert to numeric values for matplotlib type checking
+            date_numeric = [date2num(dt) for dt in date_objects]
 
             # Plot the data
-            ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=1)
+            ax.plot(date_numeric, transformed_rates, color="#2E86AB", linewidth=1)
 
             # Highlight min and max points
             if len(transformed_rates) > 1:
@@ -543,10 +545,10 @@ class ExchangeRatesOperations:
                 max_index = transformed_rates.index(max_rate)
 
                 # Plot min point in red
-                ax.scatter(date_objects[min_index], min_rate, color="red", s=5, zorder=5, marker="o")
+                ax.scatter(date_numeric[min_index], min_rate, color="red", s=5, zorder=5, marker="o")
 
                 # Plot max point in green
-                ax.scatter(date_objects[max_index], max_rate, color="green", s=5, zorder=5, marker="o")
+                ax.scatter(date_numeric[max_index], max_rate, color="green", s=5, zorder=5, marker="o")
 
             # Customize plot
             ax.set_xlabel("Date", fontsize=12)
@@ -572,7 +574,7 @@ class ExchangeRatesOperations:
                 first_date = dates[0]
                 ax.annotate(
                     f"{transformed_rates[0]:.6f} ({first_date})",
-                    xy=(date_objects[0], transformed_rates[0]),
+                    xy=(date_numeric[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
                     bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
@@ -582,7 +584,7 @@ class ExchangeRatesOperations:
                 dates[-1]
                 ax.annotate(
                     f"{transformed_rates[-1]:.6f}",
-                    xy=(date_objects[-1], transformed_rates[-1]),
+                    xy=(date_numeric[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
                     bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
@@ -594,7 +596,7 @@ class ExchangeRatesOperations:
                     min_date = dates[min_index]
                     ax.annotate(
                         f"MIN: {min_rate:.6f} ({min_date})",
-                        xy=(date_objects[min_index], min_rate),
+                        xy=(date_numeric[min_index], min_rate),
                         xytext=(10, -20),
                         textcoords="offset points",
                         bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
@@ -607,7 +609,7 @@ class ExchangeRatesOperations:
                     max_date = dates[max_index]
                     ax.annotate(
                         f"MAX: {max_rate:.6f} ({max_date})",
-                        xy=(date_objects[max_index], max_rate),
+                        xy=(date_numeric[max_index], max_rate),
                         xytext=(10, 20),
                         textcoords="offset points",
                         bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
@@ -1539,9 +1541,11 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
 
             # Convert dates to datetime objects for plotting
             date_objects = [datetime.fromisoformat(date) for date in dates]
+            # Convert to numeric values for matplotlib type checking
+            date_numeric = [date2num(dt) for dt in date_objects]
 
             # Plot the data
-            ax.plot(date_objects, transformed_rates, color="#2E86AB", linewidth=1)
+            ax.plot(date_numeric, transformed_rates, color="#2E86AB", linewidth=1)
 
             # Highlight min and max points
             if len(transformed_rates) > 1:
@@ -1551,10 +1555,10 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                 max_index = transformed_rates.index(max_rate)
 
                 # Plot min point in red
-                ax.scatter(date_objects[min_index], min_rate, color="red", s=5, zorder=5, marker="o")
+                ax.scatter(date_numeric[min_index], min_rate, color="red", s=5, zorder=5, marker="o")
 
                 # Plot max point in green
-                ax.scatter(date_objects[max_index], max_rate, color="green", s=5, zorder=5, marker="o")
+                ax.scatter(date_numeric[max_index], max_rate, color="green", s=5, zorder=5, marker="o")
 
             # Customize plot
             ax.set_xlabel("Date", fontsize=12)
@@ -1580,7 +1584,7 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                 first_date = dates[0]
                 ax.annotate(
                     f"{transformed_rates[0]:.6f} ({first_date})",
-                    xy=(date_objects[0], transformed_rates[0]),
+                    xy=(date_numeric[0], transformed_rates[0]),
                     xytext=(10, 10),
                     textcoords="offset points",
                     bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
@@ -1590,7 +1594,7 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                 dates[-1]
                 ax.annotate(
                     f"{transformed_rates[-1]:.6f}",
-                    xy=(date_objects[-1], transformed_rates[-1]),
+                    xy=(date_numeric[-1], transformed_rates[-1]),
                     xytext=(10, 10),
                     textcoords="offset points",
                     bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
@@ -1602,7 +1606,7 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                     min_date = dates[min_index]
                     ax.annotate(
                         f"MIN: {min_rate:.6f} ({min_date})",
-                        xy=(date_objects[min_index], min_rate),
+                        xy=(date_numeric[min_index], min_rate),
                         xytext=(10, -20),
                         textcoords="offset points",
                         bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
@@ -1615,7 +1619,7 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
                     max_date = dates[max_index]
                     ax.annotate(
                         f"MAX: {max_rate:.6f} ({max_date})",
-                        xy=(date_objects[max_index], max_rate),
+                        xy=(date_numeric[max_index], max_rate),
                         xytext=(10, 20),
                         textcoords="offset points",
                         bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.9},
