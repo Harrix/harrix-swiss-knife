@@ -227,6 +227,27 @@ class AmountDelegate(QStyledItemDelegate):
         """
         value = editor.value()
 
+        # Only apply transaction type logic for Amount column (index 1), not for Total per day (index 6)
+        amount_column_index = 1
+        if index.column() == amount_column_index:
+            # Get the category column (index 2) from the same row to determine transaction type
+            category_index = model.index(index.row(), 2)
+            category_text = model.data(category_index, Qt.ItemDataRole.DisplayRole)
+
+            # Check if this is an income transaction (has "(Income)" suffix)
+            is_income = category_text and "(Income)" in str(category_text)
+
+            # For expenses (not income), ensure negative sign is present
+            # For income, ensure no negative sign
+            if not is_income:
+                # Expense: ensure value is negative
+                if value > 0:
+                    value = -value
+            else:
+                # Income: ensure value is positive
+                if value < 0:
+                    value = abs(value)
+
         # Format the value as string with 2 decimal places for storage
         formatted_value = f"{value:.2f}"
 
