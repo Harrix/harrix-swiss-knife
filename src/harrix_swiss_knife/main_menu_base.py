@@ -114,8 +114,8 @@ class MainMenuBase:
                     menus_to_add.append(menu)
             # Check if element is a separator
             elif element == "-":
-                # If we have menus, add separator after them
-                if menus_to_add:
+                # If we have menus and no items yet, add separator after menus
+                if menus_to_add and not items_to_add:
                     # Add menus first
                     for menu in menus_to_add:
                         parent_menu.addMenu(menu)
@@ -123,7 +123,7 @@ class MainMenuBase:
                     # Add separator
                     parent_menu.addSeparator()
                 else:
-                    # Add separator to items
+                    # Add separator to items (either we have items, or menus will be added later)
                     items_to_add.append("-")
             # Otherwise, treat as an action class
             else:
@@ -135,7 +135,8 @@ class MainMenuBase:
                 parent_menu.addMenu(menu)
 
         # Add separator between menus and items if both exist
-        if menus_to_add and items_to_add:
+        # But only if items don't start with a separator (to avoid double separators)
+        if menus_to_add and items_to_add and items_to_add[0] != "-":
             parent_menu.addSeparator()
 
         # Add items
