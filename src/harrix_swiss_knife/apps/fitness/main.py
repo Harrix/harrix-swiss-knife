@@ -790,7 +790,7 @@ class MainWindow(
 
                 # Update weight chart if we're on the weight tab
                 current_tab_index = self.tabWidget.currentIndex()
-                weight_tab_index = 2
+                weight_tab_index = 3
                 if current_tab_index == weight_tab_index:
                     self.update_weight_chart()
             else:
