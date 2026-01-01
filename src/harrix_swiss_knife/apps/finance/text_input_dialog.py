@@ -67,6 +67,11 @@ class TextInputDialog(QDialog):
             return self.text_edit.toPlainText().strip()
         return None
 
+    def showEvent(self, event: QShowEvent) -> None:
+        """Override showEvent to set focus on text edit when dialog is shown."""
+        super().showEvent(event)
+        self.text_edit.setFocus()
+
     def _setup_ui(self) -> None:
         """Set up the user interface for the dialog."""
         self.setWindowTitle("Add Purchases as Text")
@@ -134,8 +139,3 @@ class TextInputDialog(QDialog):
         button_layout.addWidget(ok_button)
 
         layout.addLayout(button_layout)
-
-    def showEvent(self, event: QShowEvent) -> None:
-        """Override showEvent to set focus on text edit when dialog is shown."""
-        super().showEvent(event)
-        self.text_edit.setFocus()

@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_date`](#%EF%B8%8F-method-get_date)
   - [⚙️ Method `get_text`](#%EF%B8%8F-method-get_text)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
 
 </details>
@@ -83,6 +84,11 @@ class TextInputDialog(QDialog):
         if self.result() == QDialog.DialogCode.Accepted:
             return self.text_edit.toPlainText().strip()
         return None
+
+    def showEvent(self, event: QShowEvent) -> None:
+        """Override showEvent to set focus on text edit when dialog is shown."""
+        super().showEvent(event)
+        self.text_edit.setFocus()
 
     def _setup_ui(self) -> None:
         """Set up the user interface for the dialog."""
@@ -225,6 +231,25 @@ def get_text(self) -> str | None:
         if self.result() == QDialog.DialogCode.Accepted:
             return self.text_edit.toPlainText().strip()
         return None
+```
+
+</details>
+
+### ⚙️ Method `showEvent`
+
+```python
+def showEvent(self, event: QShowEvent) -> None
+```
+
+Override showEvent to set focus on text edit when dialog is shown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        self.text_edit.setFocus()
 ```
 
 </details>
