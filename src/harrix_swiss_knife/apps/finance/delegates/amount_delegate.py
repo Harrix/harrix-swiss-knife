@@ -243,10 +243,9 @@ class AmountDelegate(QStyledItemDelegate):
                 # Expense: ensure value is negative
                 if value > 0:
                     value = -value
-            else:
-                # Income: ensure value is positive
-                if value < 0:
-                    value = abs(value)
+            # Income: ensure value is positive
+            elif value < 0:
+                value = abs(value)
 
         # Format the value as string with 2 decimal places for storage
         formatted_value = f"{value:.2f}"
