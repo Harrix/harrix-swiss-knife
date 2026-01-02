@@ -937,9 +937,7 @@ class OnNewNoteDialog(ActionBase):
 
         # Show dialog to select beginning template with content preview
         selected_display_name = self.get_choice_from_list_with_descriptions(
-            "Select Beginning Template",
-            "Choose a beginning template:",
-            file_choices
+            "Select Beginning Template", "Choose a beginning template:", file_choices
         )
 
         if not selected_display_name:

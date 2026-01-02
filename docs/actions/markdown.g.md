@@ -1932,7 +1932,6 @@ class OnNewMarkdown(ActionBase):
 
     icon = "📝"
     title = "New Markdown"
-    bold_title = True
 
     @ActionBase.handle_exceptions("creating new markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -2100,16 +2099,89 @@ class OnNewNoteDialog(ActionBase):
     @ActionBase.handle_exceptions("creating new note")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        filename = self.get_save_filename("Save Note", self.config["path_notes"], "Markdown (*.md);;All Files (*)")
+        # Get the last note folder from config, or use default path_notes
+        default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
+
+        filename = self.get_save_filename("Save Note", default_path, "Markdown (*.md);;All Files (*)")
         if not filename:
             return
+
+        # Save the folder path to config.json
+        config_file = h.dev.get_project_root() / self.config_path
+        with Path.open(config_file, "r", encoding="utf8") as f:
+            config_data = json.load(f)
+        config_data["path_last_note_folder"] = str(filename.parent)
+        with Path.open(config_file, "w", encoding="utf8") as f:
+            json.dump(config_data, f, indent=2, ensure_ascii=False)
 
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")
 
+        # Get list of beginning template files from config
+        config_folder = h.dev.get_project_root() / "config"
+        template_files = self.config.get("note_beginning_templates", [])
+
+        if not template_files:
+            self.add_line("❌ No note_beginning_templates configured in config.json.")
+            return
+
+        # Load file contents and create choices with descriptions
+        file_contents = {}
+        file_choices = []
+        display_to_template = {}  # Mapping from display_name to template_file
+        for template_file in template_files:
+            # Handle snippet: prefix format (e.g., "snippet:config/beginning-of-md.md")
+            if template_file.startswith("snippet:"):
+                # Extract path after "snippet:" prefix
+                file_path_str = template_file[8:]  # Remove "snippet:" prefix
+                file_path = h.dev.get_project_root() / file_path_str
+                display_name = Path(file_path_str).name
+            else:
+                # Legacy format: just filename
+                file_path = config_folder / template_file
+                display_name = template_file
+
+            if not file_path.exists():
+                self.add_line(f"⚠️ Template file not found: {template_file}")
+                continue
+
+            try:
+                with Path.open(file_path, "r", encoding="utf8") as f:
+                    content = f.read()
+                file_contents[template_file] = content
+                # Truncate content if too long for preview (first 10 lines)
+                # This preserves line breaks
+                lines = content.split("\n")
+                max_count_lines = 10
+                preview = "\n".join(lines[:max_count_lines]) + "\n..." if len(lines) > max_count_lines else content
+                # Store display_name as choice (shown in dialog), map it to template_file
+                display_to_template[display_name] = template_file
+                file_choices.append((display_name, preview))
+            except Exception as e:
+                self.add_line(f"❌ Error reading file {template_file}: {e}")
+                continue
+
+        if not file_choices:
+            self.add_line("❌ No valid beginning template files could be read.")
+            return
+
+        # Show dialog to select beginning template with content preview
+        selected_display_name = self.get_choice_from_list_with_descriptions(
+            "Select Beginning Template", "Choose a beginning template:", file_choices
+        )
+
+        if not selected_display_name:
+            return
+
+        # Get the original template_file from display_name mapping
+        selected_template_file = display_to_template[selected_display_name]
+
+        # Get the selected file content
+        beginning_text = file_contents[selected_template_file]
+
         is_with_images = kwargs.get("is_with_images", False)
 
-        text = self.config["beginning_of_md"] + f"\n# {filename.stem}\n\n\n"
+        text = beginning_text + f"\n# {filename.stem}\n\n\n"
 
         filename_final = filename.stem.replace("-", "--").replace(" ", "-")
 
@@ -2133,16 +2205,89 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        filename = self.get_save_filename("Save Note", self.config["path_notes"], "Markdown (*.md);;All Files (*)")
+        # Get the last note folder from config, or use default path_notes
+        default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
+
+        filename = self.get_save_filename("Save Note", default_path, "Markdown (*.md);;All Files (*)")
         if not filename:
             return
+
+        # Save the folder path to config.json
+        config_file = h.dev.get_project_root() / self.config_path
+        with Path.open(config_file, "r", encoding="utf8") as f:
+            config_data = json.load(f)
+        config_data["path_last_note_folder"] = str(filename.parent)
+        with Path.open(config_file, "w", encoding="utf8") as f:
+            json.dump(config_data, f, indent=2, ensure_ascii=False)
 
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")
 
+        # Get list of beginning template files from config
+        config_folder = h.dev.get_project_root() / "config"
+        template_files = self.config.get("note_beginning_templates", [])
+
+        if not template_files:
+            self.add_line("❌ No note_beginning_templates configured in config.json.")
+            return
+
+        # Load file contents and create choices with descriptions
+        file_contents = {}
+        file_choices = []
+        display_to_template = {}  # Mapping from display_name to template_file
+        for template_file in template_files:
+            # Handle snippet: prefix format (e.g., "snippet:config/beginning-of-md.md")
+            if template_file.startswith("snippet:"):
+                # Extract path after "snippet:" prefix
+                file_path_str = template_file[8:]  # Remove "snippet:" prefix
+                file_path = h.dev.get_project_root() / file_path_str
+                display_name = Path(file_path_str).name
+            else:
+                # Legacy format: just filename
+                file_path = config_folder / template_file
+                display_name = template_file
+
+            if not file_path.exists():
+                self.add_line(f"⚠️ Template file not found: {template_file}")
+                continue
+
+            try:
+                with Path.open(file_path, "r", encoding="utf8") as f:
+                    content = f.read()
+                file_contents[template_file] = content
+                # Truncate content if too long for preview (first 10 lines)
+                # This preserves line breaks
+                lines = content.split("\n")
+                max_count_lines = 10
+                preview = "\n".join(lines[:max_count_lines]) + "\n..." if len(lines) > max_count_lines else content
+                # Store display_name as choice (shown in dialog), map it to template_file
+                display_to_template[display_name] = template_file
+                file_choices.append((display_name, preview))
+            except Exception as e:
+                self.add_line(f"❌ Error reading file {template_file}: {e}")
+                continue
+
+        if not file_choices:
+            self.add_line("❌ No valid beginning template files could be read.")
+            return
+
+        # Show dialog to select beginning template with content preview
+        selected_display_name = self.get_choice_from_list_with_descriptions(
+            "Select Beginning Template", "Choose a beginning template:", file_choices
+        )
+
+        if not selected_display_name:
+            return
+
+        # Get the original template_file from display_name mapping
+        selected_template_file = display_to_template[selected_display_name]
+
+        # Get the selected file content
+        beginning_text = file_contents[selected_template_file]
+
         is_with_images = kwargs.get("is_with_images", False)
 
-        text = self.config["beginning_of_md"] + f"\n# {filename.stem}\n\n\n"
+        text = beginning_text + f"\n# {filename.stem}\n\n\n"
 
         filename_final = filename.stem.replace("-", "--").replace(" ", "-")
 

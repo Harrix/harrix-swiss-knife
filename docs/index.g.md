@@ -108,7 +108,7 @@ _Figure 1: Screenshot_
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
-- 📝 ★ New Markdown
+- 📝 New Markdown
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit
