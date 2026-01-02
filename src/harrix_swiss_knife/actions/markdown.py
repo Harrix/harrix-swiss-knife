@@ -790,7 +790,6 @@ class OnNewMarkdown(ActionBase):
 
     icon = "📝"
     title = "New Markdown"
-    bold_title = True
 
     @ActionBase.handle_exceptions("creating new markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
