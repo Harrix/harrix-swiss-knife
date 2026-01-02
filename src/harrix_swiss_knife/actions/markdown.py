@@ -887,22 +887,38 @@ class OnNewNoteDialog(ActionBase):
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")
 
-        # Find all beginning-of-*.md files in config folder
+        # Get list of beginning template files from config
         config_folder = h.dev.get_project_root() / "config"
-        beginning_files = sorted(config_folder.glob("beginning-of-*.md"))
+        template_files = self.config.get("note_beginning_templates", [])
 
-        if not beginning_files:
-            self.add_line("❌ No beginning-of-*.md files found in config folder.")
+        if not template_files:
+            self.add_line("❌ No note_beginning_templates configured in config.json.")
             return
 
         # Load file contents and create choices with descriptions
         file_contents = {}
         file_choices = []
-        for file_path in beginning_files:
+        display_to_template = {}  # Mapping from display_name to template_file
+        for template_file in template_files:
+            # Handle snippet: prefix format (e.g., "snippet:config/beginning-of-md.md")
+            if template_file.startswith("snippet:"):
+                # Extract path after "snippet:" prefix
+                file_path_str = template_file[8:]  # Remove "snippet:" prefix
+                file_path = h.dev.get_project_root() / file_path_str
+                display_name = Path(file_path_str).name
+            else:
+                # Legacy format: just filename
+                file_path = config_folder / template_file
+                display_name = template_file
+
+            if not file_path.exists():
+                self.add_line(f"⚠️ Template file not found: {template_file}")
+                continue
+
             try:
                 with Path.open(file_path, "r", encoding="utf8") as f:
                     content = f.read()
-                file_contents[file_path.name] = content
+                file_contents[template_file] = content
                 # Truncate content if too long for preview (first 10 lines)
                 # This preserves line breaks
                 lines = content.split("\n")
@@ -910,27 +926,32 @@ class OnNewNoteDialog(ActionBase):
                     preview = "\n".join(lines[:10]) + "\n..."
                 else:
                     preview = content
-                file_choices.append((file_path.name, preview))
+                # Store display_name as choice (shown in dialog), map it to template_file
+                display_to_template[display_name] = template_file
+                file_choices.append((display_name, preview))
             except Exception as e:
-                self.add_line(f"❌ Error reading file {file_path.name}: {e}")
+                self.add_line(f"❌ Error reading file {template_file}: {e}")
                 continue
 
         if not file_choices:
-            self.add_line("❌ No valid beginning-of-*.md files could be read.")
+            self.add_line("❌ No valid beginning template files could be read.")
             return
 
         # Show dialog to select beginning template with content preview
-        selected_file = self.get_choice_from_list_with_descriptions(
+        selected_display_name = self.get_choice_from_list_with_descriptions(
             "Select Beginning Template",
             "Choose a beginning template:",
             file_choices
         )
 
-        if not selected_file:
+        if not selected_display_name:
             return
 
+        # Get the original template_file from display_name mapping
+        selected_template_file = display_to_template[selected_display_name]
+
         # Get the selected file content
-        beginning_text = file_contents[selected_file]
+        beginning_text = file_contents[selected_template_file]
 
         is_with_images = kwargs.get("is_with_images", False)
 
