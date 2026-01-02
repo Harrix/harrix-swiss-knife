@@ -922,10 +922,8 @@ class OnNewNoteDialog(ActionBase):
                 # Truncate content if too long for preview (first 10 lines)
                 # This preserves line breaks
                 lines = content.split("\n")
-                if len(lines) > 10:
-                    preview = "\n".join(lines[:10]) + "\n..."
-                else:
-                    preview = content
+                max_count_lines = 10
+                preview = "\n".join(lines[:max_count_lines]) + "\n..." if len(lines) > max_count_lines else content
                 # Store display_name as choice (shown in dialog), map it to template_file
                 display_to_template[display_name] = template_file
                 file_choices.append((display_name, preview))
