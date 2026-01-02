@@ -887,9 +887,35 @@ class OnNewNoteDialog(ActionBase):
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")
 
+        # Find all beginning-of-*.md files in config folder
+        config_folder = h.dev.get_project_root() / "config"
+        beginning_files = sorted(config_folder.glob("beginning-of-*.md"))
+
+        if not beginning_files:
+            self.add_line("❌ No beginning-of-*.md files found in config folder.")
+            return
+
+        # Create list of file names for selection
+        file_choices = [f.name for f in beginning_files]
+
+        # Show dialog to select beginning template
+        selected_file = self.get_choice_from_list(
+            "Select Beginning Template",
+            "Choose a beginning template:",
+            file_choices
+        )
+
+        if not selected_file:
+            return
+
+        # Load the selected file content
+        selected_path = config_folder / selected_file
+        with Path.open(selected_path, "r", encoding="utf8") as f:
+            beginning_text = f.read()
+
         is_with_images = kwargs.get("is_with_images", False)
 
-        text = self.config["beginning_of_md"] + f"\n# {filename.stem}\n\n\n"
+        text = beginning_text + f"\n# {filename.stem}\n\n\n"
 
         filename_final = filename.stem.replace("-", "--").replace(" ", "-")
 
