@@ -6,9 +6,13 @@ which will be parsed and converted to transaction records.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import QDate
-from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import QDateEdit, QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
+
+if TYPE_CHECKING:
+    from PySide6.QtGui import QShowEvent
 
 
 class TextInputDialog(QDialog):
@@ -67,7 +71,7 @@ class TextInputDialog(QDialog):
             return self.text_edit.toPlainText().strip()
         return None
 
-    def showEvent(self, event: QShowEvent) -> None:
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Override showEvent to set focus on text edit when dialog is shown."""
         super().showEvent(event)
         self.text_edit.setFocus()

@@ -85,7 +85,7 @@ class TextInputDialog(QDialog):
             return self.text_edit.toPlainText().strip()
         return None
 
-    def showEvent(self, event: QShowEvent) -> None:
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Override showEvent to set focus on text edit when dialog is shown."""
         super().showEvent(event)
         self.text_edit.setFocus()
@@ -247,7 +247,7 @@ Override showEvent to set focus on text edit when dialog is shown.
 <summary>Code:</summary>
 
 ```python
-def showEvent(self, event: QShowEvent) -> None:
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
         self.text_edit.setFocus()
 ```
