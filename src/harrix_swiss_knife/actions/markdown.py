@@ -895,11 +895,32 @@ class OnNewNoteDialog(ActionBase):
             self.add_line("❌ No beginning-of-*.md files found in config folder.")
             return
 
-        # Create list of file names for selection
-        file_choices = [f.name for f in beginning_files]
+        # Load file contents and create choices with descriptions
+        file_contents = {}
+        file_choices = []
+        for file_path in beginning_files:
+            try:
+                with Path.open(file_path, "r", encoding="utf8") as f:
+                    content = f.read()
+                file_contents[file_path.name] = content
+                # Truncate content if too long for preview (first 10 lines)
+                # This preserves line breaks
+                lines = content.split("\n")
+                if len(lines) > 10:
+                    preview = "\n".join(lines[:10]) + "\n..."
+                else:
+                    preview = content
+                file_choices.append((file_path.name, preview))
+            except Exception as e:
+                self.add_line(f"❌ Error reading file {file_path.name}: {e}")
+                continue
 
-        # Show dialog to select beginning template
-        selected_file = self.get_choice_from_list(
+        if not file_choices:
+            self.add_line("❌ No valid beginning-of-*.md files could be read.")
+            return
+
+        # Show dialog to select beginning template with content preview
+        selected_file = self.get_choice_from_list_with_descriptions(
             "Select Beginning Template",
             "Choose a beginning template:",
             file_choices
@@ -908,10 +929,8 @@ class OnNewNoteDialog(ActionBase):
         if not selected_file:
             return
 
-        # Load the selected file content
-        selected_path = config_folder / selected_file
-        with Path.open(selected_path, "r", encoding="utf8") as f:
-            beginning_text = f.read()
+        # Get the selected file content
+        beginning_text = file_contents[selected_file]
 
         is_with_images = kwargs.get("is_with_images", False)
 

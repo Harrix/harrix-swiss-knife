@@ -7,6 +7,7 @@ integrations, file operations, and threading capabilities.
 
 from collections.abc import Callable
 from functools import wraps
+from html import escape
 from pathlib import Path
 from typing import Any, Concatenate, NoReturn, ParamSpec, TypeVar
 
@@ -1081,15 +1082,19 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         else:
             text_color = option.palette.text().color()
 
+        # Escape HTML and preserve line breaks
+        escaped_choice = escape(choice)
+        escaped_description = escape(description).replace("\n", "<br>")
+
         # Create HTML content with different font sizes and proper colors, avoiding line too long
         html_content = (
             f'<div style="font-family: Arial, sans-serif; color: {text_color.name()};">'
             f'<div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">'
-            f"{choice}"
+            f"{escaped_choice}"
             f"</div>"
             f'<div style="font-size: 9pt; font-style: italic; color: {text_color.name()}; '
-            f'opacity: 0.7; margin-left: 10px;">'
-            f"{description}"
+            f'opacity: 0.7; margin-left: 10px; white-space: pre-wrap;">'
+            f"{escaped_description}"
             f"</div>"
             f"</div>"
         )
@@ -1119,13 +1124,17 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         choice = lines[0]
         description = "\n".join(lines[1:]).strip()
 
+        # Escape HTML and preserve line breaks
+        escaped_choice = escape(choice)
+        escaped_description = escape(description).replace("\n", "<br>")
+
         html_content = f"""
         <div style="font-family: Arial, sans-serif;">
             <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
-                {choice}
+                {escaped_choice}
             </div>
-            <div style="font-size: 9pt; font-style: italic; color: #666666; margin-left: 10px;">
-                {description}
+            <div style="font-size: 9pt; font-style: italic; color: #666666; margin-left: 10px; white-space: pre-wrap;">
+                {escaped_description}
             </div>
         </div>
         """
