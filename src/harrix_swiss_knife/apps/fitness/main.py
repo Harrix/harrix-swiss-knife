@@ -4986,11 +4986,6 @@ class MainWindow(
         current_progress = _monthly_total(current_month_data)
 
         target_value = max_value
-        if exercise_id == self.id_steps or exercise.strip().lower() == "oculus move":
-            target_value = _monthly_total(monthly_data[1]) if len(monthly_data) > 1 else current_progress
-
-            if target_value <= 0:
-                target_value = max_value
 
         if target_value <= 0:
             return ""
