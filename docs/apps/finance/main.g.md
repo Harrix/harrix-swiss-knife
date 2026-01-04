@@ -4840,13 +4840,6 @@ class MainWindow(
         """
         context_menu: QMenu = QMenu(self)
 
-        # Add menu item to clear all filters (always available)
-        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
-        clear_filters_action.triggered.connect(self.clear_filter)
-
-        # Add separator if there will be other actions
-        context_menu.addSeparator()
-
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
         filter_by_category_action = None
@@ -4897,6 +4890,13 @@ class MainWindow(
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
         export_action = context_menu.addAction("📤 Export to CSV")
+
+        # Add separator before clear filters action
+        context_menu.addSeparator()
+
+        # Add menu item to clear all filters (always available)
+        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
+        clear_filters_action.triggered.connect(self.clear_filter)
 
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_transactions.mapToGlobal(position))
@@ -11364,13 +11364,6 @@ Args:
 def _show_transactions_context_menu(self, position: QPoint) -> None:
         context_menu: QMenu = QMenu(self)
 
-        # Add menu item to clear all filters (always available)
-        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
-        clear_filters_action.triggered.connect(self.clear_filter)
-
-        # Add separator if there will be other actions
-        context_menu.addSeparator()
-
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
         filter_by_category_action = None
@@ -11421,6 +11414,13 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
         export_action = context_menu.addAction("📤 Export to CSV")
+
+        # Add separator before clear filters action
+        context_menu.addSeparator()
+
+        # Add menu item to clear all filters (always available)
+        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
+        clear_filters_action.triggered.connect(self.clear_filter)
 
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_transactions.mapToGlobal(position))
