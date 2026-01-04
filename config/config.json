@@ -29,7 +29,7 @@
         }
       ],
       "insert_position": "start",
-      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
+      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2026.md",
       "template_file": "config/template-movie.md"
     },
     "📖 Book": {
@@ -44,7 +44,7 @@
         }
       ],
       "insert_position": "start",
-      "target_file": "D:/Dropbox/Notes/Notes-Lists/Books/2025.md",
+      "target_file": "D:/Dropbox/Notes/Notes-Lists/Books/2026.md",
       "template_file": "config/template-book.md"
     },
     "📺 Movie: series": {
@@ -59,7 +59,7 @@
         }
       ],
       "insert_position": "start",
-      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2025.md",
+      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2026.md",
       "template_file": "config/template-series.md"
     }
   },
@@ -68,7 +68,7 @@
     "prettier"
   ],
   "path_3d": "D:/Downloads",
-  "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
+  "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2026",
   "path_books": "D:/Dropbox/Books",
   "path_diary": "D:/Dropbox/Notes/Notes-Diaries/Diary",
   "path_dream": "D:/Dropbox/Notes/Notes-Diaries/Dreams",
@@ -156,8 +156,8 @@
     "D:/Dropbox/Notes/Notes-Temp",
     "D:/Dropbox/Notes/Notes-Diaries",
     "D:/GitHub/_content__harrix-dev",
-    "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
-    "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2025-en",
+    "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2026",
+    "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2026-en",
     "D:/GitHub/_content__harrix-dev/harrix.dev-games",
     "D:/GitHub/_content__harrix-dev/harrix.dev-games-en",
     "D:/GitHub/harrix-swiss-knife",
