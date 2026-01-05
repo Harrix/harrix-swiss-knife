@@ -340,20 +340,19 @@ class AutoSaveOperations:
                 else:
                     # Update stored record_id in the item
                     item.setData((existing_record_id, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+            # Create new record
+            elif self.db_manager.add_process_habbit_record(habbit_id, value, date_str):
+                # Get the new record_id
+                new_records = self.db_manager.get_rows(
+                    "SELECT _id FROM process_habbits WHERE _id_habbit = :habbit_id AND date = :date ORDER BY _id DESC LIMIT 1",
+                    {"habbit_id": habbit_id, "date": date_str}
+                )
+                if new_records and len(new_records) > 0:
+                    new_record_id = new_records[0][0]
+                    # Update stored record_id in the item
+                    item.setData((new_record_id, habbit_id, date_str), Qt.ItemDataRole.UserRole)
             else:
-                # Create new record
-                if self.db_manager.add_process_habbit_record(habbit_id, value, date_str):
-                    # Get the new record_id
-                    new_records = self.db_manager.get_rows(
-                        "SELECT _id FROM process_habbits WHERE _id_habbit = :habbit_id AND date = :date ORDER BY _id DESC LIMIT 1",
-                        {"habbit_id": habbit_id, "date": date_str}
-                    )
-                    if new_records and len(new_records) > 0:
-                        new_record_id = new_records[0][0]
-                        # Update stored record_id in the item
-                        item.setData((new_record_id, habbit_id, date_str), Qt.ItemDataRole.UserRole)
-                else:
-                    QMessageBox.warning(None, "Database Error", "Failed to add process habbit record")
+                QMessageBox.warning(None, "Database Error", "Failed to add process habbit record")
 
 
 class ChartOperations:

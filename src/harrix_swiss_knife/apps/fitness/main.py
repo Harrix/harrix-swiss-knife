@@ -3513,7 +3513,7 @@ class MainWindow(
                             habbit_id = row[0] if row[0] is not None else 0
                             transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]  # name, is_bool, id, color
                             habbits_transformed_data.append(transformed_row)
-                        except Exception as row_error:
+                        except Exception:
                             continue
                     self.models["habbits"] = self._create_colored_table_model(
                         habbits_transformed_data, self.table_config["habbits"][2]
@@ -5050,6 +5050,7 @@ class MainWindow(
 
         Args:
             table_name: Name of the table to connect signal for.
+
         """
         if table_name not in self._SAFE_TABLES:
             return
