@@ -42,6 +42,8 @@ class AutoSaveOperations:
     _validate_database_connection: Callable[[], bool]
     _update_comboboxes: Callable[..., None]
     update_filter_comboboxes: Callable[[], None]
+    _update_habbits_list: Callable[[], None]
+    update_habbits_filter_combobox: Callable[[], None]
     _is_valid_date: Callable[[str], bool]
 
     def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
@@ -63,6 +65,7 @@ class AutoSaveOperations:
             "exercises": self._save_exercise_data,
             "types": self._save_type_data,
             "weight": self._save_weight_data,
+            "habbits": self._save_habbit_data,
         }
 
         handler = save_handlers.get(table_name)
@@ -238,6 +241,41 @@ class AutoSaveOperations:
         # Update database
         if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
             QMessageBox.warning(None, "Database Error", "Failed to save weight record")
+
+    def _save_habbit_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
+        """Save habbit data.
+
+        Args:
+
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index.
+        - `row_id` (`str`): Database ID of the row.
+
+        """
+        name = model.data(model.index(row, 0)) or ""
+        is_bool_str = model.data(model.index(row, 1)) or ""
+
+        # Validate habbit name
+        if not name.strip():
+            QMessageBox.warning(None, "Validation Error", "Habbit name cannot be empty")
+            return
+
+        # Convert is_bool_str to boolean or None
+        # "Yes" -> True, "No" -> False, "" -> None
+        is_bool = None
+        if is_bool_str == "Yes":
+            is_bool = True
+        elif is_bool_str == "No":
+            is_bool = False
+        # else: is_bool remains None
+
+        # Update database
+        if not self.db_manager.update_habbit(int(row_id), name.strip(), is_bool=is_bool):
+            QMessageBox.warning(None, "Database Error", "Failed to save habbit record")
+        else:
+            # Update related UI elements
+            self._update_habbits_list()
+            self.update_habbits_filter_combobox()
 
 
 class ChartOperations:
